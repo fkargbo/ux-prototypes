@@ -1983,11 +1983,22 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                           <Tr>
                             <Td colSpan={4} style={{ textAlign: 'center', padding: '40px' }}>
                               <EmptyState>
+                                <Title headingLevel="h4" size="lg" style={{ marginBottom: '12px' }}>
+                                  {selectedClusters.length > 1 ? "No common projects found" : "No projects available"}
+                                </Title>
                                 <EmptyStateBody>
                                   {selectedClusters.length > 1 
-                                    ? 'No common projects found across the selected clusters. Go back and select different clusters, or create projects with the same name on these clusters.'
-                                    : 'No projects available in the selected cluster.'}
+                                    ? 'Go back and select different clusters, or create projects with the same name on these clusters.'
+                                    : 'No projects are available in the selected cluster.'}
                                 </EmptyStateBody>
+                                {selectedClusters.length > 1 && (
+                                  <Button variant="primary" style={{ marginTop: '16px' }} onClick={() => {
+                                    // TODO: Implement create common project functionality
+                                    console.log('Create common project clicked');
+                                  }}>
+                                    Create common project
+                                  </Button>
+                                )}
                               </EmptyState>
                           </Td>
                         </Tr>
@@ -2238,13 +2249,24 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                   <Tbody>
                         {filteredProjectsForClusters.length === 0 ? (
                           <Tr>
-                            <Td colSpan={4}>
+                            <Td colSpan={4} style={{ textAlign: 'center', padding: '40px' }}>
                               <EmptyState>
+                                <Title headingLevel="h4" size="lg" style={{ marginBottom: '12px' }}>
+                                  {selectedClusters.length > 1 ? "No common projects found" : "No projects available"}
+                                </Title>
                                 <EmptyStateBody>
                                   {selectedClusters.length > 1 
-                                    ? 'No common projects found across the selected clusters.'
-                                    : 'No projects found in the selected cluster.'}
+                                    ? 'Go back and select different clusters, or create projects with the same name on these clusters.'
+                                    : 'No projects are available in the selected cluster.'}
                                 </EmptyStateBody>
+                                {selectedClusters.length > 1 && (
+                                  <Button variant="primary" style={{ marginTop: '16px' }} onClick={() => {
+                                    // TODO: Implement create common project functionality
+                                    console.log('Create common project clicked');
+                                  }}>
+                                    Create common project
+                                  </Button>
+                                )}
                               </EmptyState>
                               </Td>
                             </Tr>
