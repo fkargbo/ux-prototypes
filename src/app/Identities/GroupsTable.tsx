@@ -85,28 +85,35 @@ export const GroupsTable: React.FunctionComponent = () => {
   React.useEffect(() => {
     const state = location.state as any;
     if (state?.newGroup && state?.showSuccessAlert) {
-      const newGroup = {
-        id: mockGroups.length + additionalGroups.length + 1,
-        name: state.newGroup.name,
-        members: state.newGroup.members.length,
-        created: new Date().toLocaleDateString(),
-        syncSource: 'Local',
-        lastSynced: null,
-      };
+      const groupName = state.newGroup.name;
       
-      setAdditionalGroups(prev => [newGroup, ...prev]);
-      setNewlyCreatedGroup(state.newGroup.name);
-      setShowSuccessAlert(true);
+      // Check if this group already exists in additionalGroups
+      const groupExists = additionalGroups.some(g => g.name === groupName);
+      
+      if (!groupExists) {
+        const newGroup = {
+          id: mockGroups.length + additionalGroups.length + 1,
+          name: groupName,
+          members: state.newGroup.members.length,
+          created: new Date().toLocaleDateString(),
+          syncSource: 'Local',
+          lastSynced: null,
+        };
+        
+        setAdditionalGroups(prev => [newGroup, ...prev]);
+        setNewlyCreatedGroup(groupName);
+        setShowSuccessAlert(true);
+        
+        // Auto-dismiss alert after 8 seconds
+        setTimeout(() => {
+          setShowSuccessAlert(false);
+        }, 8000);
+      }
       
       // Clear navigation state
       navigate(location.pathname, { replace: true, state: null });
-      
-      // Auto-dismiss alert after 8 seconds
-      setTimeout(() => {
-        setShowSuccessAlert(false);
-      }, 8000);
     }
-  }, [location]);
+  }, [location.state]);
 
   const allGroups = [...additionalGroups, ...mockGroups];
   const paginatedGroups = allGroups.slice((page - 1) * perPage, page * perPage);
