@@ -40,8 +40,9 @@ import {
   Alert,
   AlertGroup,
   AlertActionCloseButton,
+  Checkbox,
 } from '@patternfly/react-core';
-import { CubesIcon, FilterIcon, InfoCircleIcon, EllipsisVIcon, CheckIcon, SyncAltIcon } from '@patternfly/react-icons';
+import { CubesIcon, FilterIcon, InfoCircleIcon, EllipsisVIcon, CheckIcon, SyncAltIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { GroupRoleAssignmentWizard } from '@app/RoleAssignment/GroupRoleAssignmentWizard';
@@ -53,6 +54,7 @@ const GroupDetail: React.FunctionComponent = () => {
   
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
   const [isWizardOpen, setIsWizardOpen] = React.useState(false);
+  const [editingAssignment, setEditingAssignment] = React.useState<RoleAssignment | null>(null);
   const [searchValue, setSearchValue] = React.useState('');
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [page, setPage] = React.useState(1);
@@ -79,6 +81,7 @@ const GroupDetail: React.FunctionComponent = () => {
   
   const [roleAssignments, setRoleAssignments] = React.useState<RoleAssignment[]>([]);
   const [showSuccessAlert, setShowSuccessAlert] = React.useState(false);
+  const [alertType, setAlertType] = React.useState<'create' | 'edit'>('create');
   
   useDocumentTitle(`ACM | ${groupName}`);
 
@@ -87,7 +90,91 @@ const GroupDetail: React.FunctionComponent = () => {
   };
 
   const handleCreateRoleAssignment = () => {
+    setEditingAssignment(null);
     setIsWizardOpen(true);
+  };
+
+  const handleEditRoleAssignment = (assignment: RoleAssignment) => {
+    setEditingAssignment(assignment);
+    setIsWizardOpen(true);
+  };
+
+  const prepareInitialDataForEdit = (assignment: RoleAssignment) => {
+    // Get data from database for reverse mapping
+    const allClusters = getAllClusters();
+    const allClusterSets = getAllClusterSets();
+    const allNamespaces = getAllNamespaces();
+    
+    // Create mock mappings like the wizard does
+    const mockClusters = allClusters.map((cluster, index) => ({
+      id: index + 1,
+      name: cluster.name,
+    }));
+    
+    const mockProjects = allNamespaces.map((namespace, index) => ({
+      id: index + 1,
+      name: namespace.name,
+    }));
+    
+    const mockClusterSets = allClusterSets.map((clusterSet, index) => ({
+      id: index + 1,
+      name: clusterSet.name,
+    }));
+    
+    // Determine resource scope
+    let resourceScope: 'everything' | 'cluster-sets' | 'clusters' = 'everything';
+    let selectedClusterSets: number[] = [];
+    let selectedClusters: number[] = [];
+    let selectedProjects: number[] = [];
+    
+    if (assignment.clusterSet === 'All cluster sets') {
+      resourceScope = 'everything';
+    } else if (assignment.clusterSet) {
+      resourceScope = 'cluster-sets';
+      // Find cluster set IDs
+      const clusterSetNames = assignment.clusterSet.split(', ');
+      selectedClusterSets = clusterSetNames
+        .map(name => mockClusterSets.find(cs => cs.name === name)?.id)
+        .filter((id): id is number => id !== undefined);
+      
+      // Find cluster IDs if not "All resources"
+      if (!assignment.clusters.includes('All resources') && !assignment.clusters.includes('All clusters')) {
+        selectedClusters = assignment.clusters
+          .map(name => mockClusters.find(c => c.name === name)?.id)
+          .filter((id): id is number => id !== undefined);
+      }
+      
+      // Find project IDs if not "All projects"
+      if (!assignment.projects.includes('All projects')) {
+        selectedProjects = assignment.projects
+          .map(name => mockProjects.find(p => p.name === name)?.id)
+          .filter((id): id is number => id !== undefined);
+      }
+    } else {
+      resourceScope = 'clusters';
+      // Find cluster IDs
+      if (!assignment.clusters.includes('All resources') && !assignment.clusters.includes('All clusters')) {
+        selectedClusters = assignment.clusters
+          .map(name => mockClusters.find(c => c.name === name)?.id)
+          .filter((id): id is number => id !== undefined);
+      }
+      
+      // Find project IDs if not "All projects"
+      if (!assignment.projects.includes('All projects')) {
+        selectedProjects = assignment.projects
+          .map(name => mockProjects.find(p => p.name === name)?.id)
+          .filter((id): id is number => id !== undefined);
+      }
+    }
+    
+    return {
+      id: assignment.id,
+      resourceScope,
+      selectedClusterSets,
+      selectedClusters,
+      selectedProjects,
+      roleName: assignment.roles[0]?.name || '',
+    };
   };
 
   const onSetPage = (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
@@ -187,9 +274,9 @@ const GroupDetail: React.FunctionComponent = () => {
       category: selectedRole?.category || 'openshift',
     };
     
-    // Create new role assignment
-    const newAssignment: RoleAssignment = {
-      id: `ra-${Date.now()}`,
+    // Create or update role assignment
+    const assignmentData: RoleAssignment = {
+      id: wizardData.id || `ra-${Date.now()}`, // Use existing ID if editing
       name: groupName || 'Unknown Group',
       type: 'Group',
       clusterSet: clusterSetName,
@@ -197,21 +284,41 @@ const GroupDetail: React.FunctionComponent = () => {
       projects: projectNames.length > 0 ? projectNames : ['All projects'],
       roles: [roleInfo],
       status: 'Active',
-      assignedDate: new Date().toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-      }),
+      assignedDate: wizardData.id 
+        ? (roleAssignments.find(a => a.id === wizardData.id)?.assignedDate || new Date().toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+          }))
+        : new Date().toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+          }),
       assignedBy: 'Walter Joseph Kovacs',
       origin: 'Hub cluster',
     };
     
-    setRoleAssignments([...roleAssignments, newAssignment]);
+    if (wizardData.id) {
+      // Edit mode - update existing assignment
+      setRoleAssignments(roleAssignments.map(a => a.id === wizardData.id ? assignmentData : a));
+      setAlertType('edit');
+    } else {
+      // Create mode - add new assignment
+      setRoleAssignments([...roleAssignments, assignmentData]);
+      setAlertType('create');
+    }
+    
     setIsWizardOpen(false);
+    setEditingAssignment(null);
     setShowSuccessAlert(true);
   };
 
@@ -316,17 +423,25 @@ users:
   const RoleAssignmentsTab = () => {
     const [selectedAssignments, setSelectedAssignments] = React.useState<Set<string>>(new Set());
     const [isBulkActionsOpen, setIsBulkActionsOpen] = React.useState(false);
-    const [filterValue, setFilterValue] = React.useState<string>('all');
+    const [bulkSelectorDropdownOpen, setBulkSelectorDropdownOpen] = React.useState(false);
+    const [filterType, setFilterType] = React.useState('Cluster set');
+    const [isRoleAssignmentFilterOpen, setIsRoleAssignmentFilterOpen] = React.useState(false);
 
-    const areAllSelected = selectedAssignments.size === roleAssignments.length && roleAssignments.length > 0;
-    const areSomeSelected = selectedAssignments.size > 0;
+    const handleSelectPage = () => {
+      const newSelected = new Set(selectedAssignments);
+      paginatedAssignments.forEach(assignment => newSelected.add(assignment.id));
+      setSelectedAssignments(newSelected);
+      setBulkSelectorDropdownOpen(false);
+    };
 
-    const handleSelectAll = (isSelecting: boolean) => {
-      if (isSelecting) {
-        setSelectedAssignments(new Set(roleAssignments.map(a => a.id)));
-      } else {
-        setSelectedAssignments(new Set());
-      }
+    const handleSelectAllAssignments = () => {
+      const newSelected = new Set(roleAssignments.map(a => a.id));
+      setSelectedAssignments(newSelected);
+      setBulkSelectorDropdownOpen(false);
+    };
+
+    const handleDeselectAll = () => {
+      setSelectedAssignments(new Set());
     };
 
     const handleSelectAssignment = (assignmentId: string, isSelecting: boolean) => {
@@ -353,18 +468,19 @@ users:
 
     // Filter and paginate assignments
     const filteredAssignments = roleAssignments.filter(assignment => {
-      const matchesSearch = assignment.name.toLowerCase().includes(searchValue.toLowerCase());
-      const matchesFilter = filterValue === 'all' || 
-        (filterValue === 'user' && assignment.type === 'User') ||
-        (filterValue === 'group' && assignment.type === 'Group') ||
-        (filterValue === 'active' && assignment.status === 'Active');
-      return matchesSearch && matchesFilter;
+      const matchesSearch = 
+        (filterType === 'Cluster set' && assignment.clusterSet?.toLowerCase().includes(searchValue.toLowerCase())) ||
+        (filterType === 'Cluster' && assignment.clusters.some(c => c.toLowerCase().includes(searchValue.toLowerCase()))) ||
+        (filterType === 'Project' && assignment.projects.some(p => p.toLowerCase().includes(searchValue.toLowerCase())));
+      return matchesSearch || searchValue === '';
     });
 
     const paginatedAssignments = filteredAssignments.slice(
       (page - 1) * perPage,
       page * perPage
     );
+
+    const isAllPageSelected = paginatedAssignments.length > 0 && paginatedAssignments.every(assignment => selectedAssignments.has(assignment.id));
 
     if (roleAssignments.length === 0) {
       return (
@@ -397,72 +513,128 @@ users:
     return (
       <div className="table-content-card">
         <Toolbar>
-          <ToolbarContent>
+          <ToolbarContent style={{ gap: '8px' }}>
             <ToolbarItem>
               <Dropdown
-                isOpen={isFilterOpen}
-                onSelect={() => setIsFilterOpen(false)}
-                onOpenChange={(isOpen: boolean) => setIsFilterOpen(isOpen)}
+                isOpen={bulkSelectorDropdownOpen}
+                onSelect={() => setBulkSelectorDropdownOpen(false)}
+                onOpenChange={(isOpen: boolean) => setBulkSelectorDropdownOpen(isOpen)}
                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                   <MenuToggle
                     ref={toggleRef}
+                    onClick={() => {
+                      if (selectedAssignments.size > 0) {
+                        handleDeselectAll();
+                      } else {
+                        setBulkSelectorDropdownOpen(!bulkSelectorDropdownOpen);
+                      }
+                    }}
                     variant="plain"
-                    onClick={() => setIsFilterOpen(!isFilterOpen)}
-                    isExpanded={isFilterOpen}
+                    style={{
+                      border: '1px solid var(--pf-t--global--border--color--default)',
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      padding: '6px 8px',
+                      minWidth: 'auto',
+                    }}
                   >
-                    Filter
+                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem>
+                        <Checkbox
+                          isChecked={isAllPageSelected}
+                          onChange={(event, checked) => {
+                            event.stopPropagation();
+                            if (checked) {
+                              handleSelectPage();
+                            } else {
+                              handleDeselectAll();
+                            }
+                          }}
+                          aria-label="Select all"
+                          id="select-all-role-assignments-checkbox"
+                        />
+                      </FlexItem>
+                      <FlexItem>
+                        <CaretDownIcon />
+                      </FlexItem>
+                    </Flex>
                   </MenuToggle>
                 )}
               >
                 <DropdownList>
-                  <DropdownItem key="all" onClick={() => setFilterValue('all')}>
-                    All
+                  <DropdownItem key="select-page" onClick={handleSelectPage}>
+                    Select page ({paginatedAssignments.length} items)
                   </DropdownItem>
-                  <DropdownItem key="user" onClick={() => setFilterValue('user')}>
-                    User
+                  <DropdownItem key="select-all" onClick={handleSelectAllAssignments}>
+                    Select all ({filteredAssignments.length} items)
                   </DropdownItem>
-                  <DropdownItem key="group" onClick={() => setFilterValue('group')}>
-                    Group
+                </DropdownList>
+              </Dropdown>
+            </ToolbarItem>
+            <ToolbarItem>
+              <Dropdown
+                isOpen={isRoleAssignmentFilterOpen}
+                onSelect={() => setIsRoleAssignmentFilterOpen(false)}
+                onOpenChange={(isOpen: boolean) => setIsRoleAssignmentFilterOpen(isOpen)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle 
+                    ref={toggleRef} 
+                    onClick={() => setIsRoleAssignmentFilterOpen(!isRoleAssignmentFilterOpen)} 
+                    isExpanded={isRoleAssignmentFilterOpen}
+                    variant="default"
+                  >
+                    {filterType}
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem value="Cluster set" onClick={() => setFilterType('Cluster set')}>
+                    Cluster set
                   </DropdownItem>
-                  <DropdownItem key="active" onClick={() => setFilterValue('active')}>
-                    Active
+                  <DropdownItem value="Cluster" onClick={() => setFilterType('Cluster')}>
+                    Cluster
+                  </DropdownItem>
+                  <DropdownItem value="Project" onClick={() => setFilterType('Project')}>
+                    Project
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>
             </ToolbarItem>
             <ToolbarItem>
               <SearchInput
-                placeholder="Search role assignments"
+                placeholder={`Search by ${filterType.toLowerCase()}`}
                 value={searchValue}
                 onChange={(_event, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
               />
             </ToolbarItem>
-            <ToolbarItem variant="separator" />
-            <ToolbarItem>
-              <Dropdown
-                isOpen={isBulkActionsOpen}
-                onSelect={() => setIsBulkActionsOpen(false)}
-                onOpenChange={(isOpen) => setIsBulkActionsOpen(isOpen)}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsBulkActionsOpen(!isBulkActionsOpen)}
-                    isExpanded={isBulkActionsOpen}
-                    variant="secondary"
-                    isDisabled={!areSomeSelected}
+            {selectedAssignments.size > 0 && (
+              <>
+                <ToolbarItem variant="separator" />
+                <ToolbarItem>
+                  <Dropdown
+                    isOpen={isBulkActionsOpen}
+                    onSelect={() => setIsBulkActionsOpen(false)}
+                    onOpenChange={(isOpen) => setIsBulkActionsOpen(isOpen)}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsBulkActionsOpen(!isBulkActionsOpen)}
+                        isExpanded={isBulkActionsOpen}
+                        variant="secondary"
+                      >
+                        Actions ({selectedAssignments.size} selected)
+                      </MenuToggle>
+                    )}
                   >
-                    Actions {areSomeSelected ? `(${selectedAssignments.size} selected)` : ''}
-                  </MenuToggle>
-                )}
-              >
-                <DropdownList>
-                  <DropdownItem key="delete" onClick={handleBulkDelete}>
-                    Delete selected
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </ToolbarItem>
+                    <DropdownList>
+                      <DropdownItem key="delete" onClick={handleBulkDelete}>
+                        Delete selected
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </ToolbarItem>
+              </>
+            )}
             <ToolbarItem>
               <Button variant="primary" onClick={handleCreateRoleAssignment}>
                 Create role assignment
@@ -474,12 +646,7 @@ users:
         <Table aria-label="Role assignments table" variant="compact">
           <Thead>
             <Tr>
-              <Th
-                select={{
-                  onSelect: (_event, isSelecting) => handleSelectAll(isSelecting),
-                  isSelected: areAllSelected,
-                }}
-              />
+              <Th />
               <Th sort={{ sortBy: {}, columnIndex: 0 }}>Cluster set</Th>
               <Th sort={{ sortBy: {}, columnIndex: 1 }}>Clusters</Th>
               <Th sort={{ sortBy: {}, columnIndex: 2 }}>Projects</Th>
@@ -558,7 +725,7 @@ users:
                     items={[
                       {
                         title: 'Edit',
-                        onClick: () => console.log('Edit', assignment.id)
+                        onClick: () => handleEditRoleAssignment(assignment)
                       },
                       {
                         isSeparator: true
@@ -941,17 +1108,21 @@ users:
 
       <GroupRoleAssignmentWizard 
         isOpen={isWizardOpen} 
-        onClose={() => setIsWizardOpen(false)}
+        onClose={() => {
+          setIsWizardOpen(false);
+          setEditingAssignment(null);
+        }}
         onComplete={handleWizardComplete}
         groupName={groupName || 'Unknown'}
+        initialData={editingAssignment ? prepareInitialDataForEdit(editingAssignment) : undefined}
       />
 
       {/* Success Alert */}
       <AlertGroup isToast isLiveRegion>
         {showSuccessAlert && (
           <Alert
-            variant="success"
-            title="Role assignment created"
+            variant={alertType === 'edit' ? 'info' : 'success'}
+            title={alertType === 'edit' ? 'Successfully updated role assignment' : 'Successfully created role assignment'}
             actionClose={
               <AlertActionCloseButton onClose={() => setShowSuccessAlert(false)} />
             }

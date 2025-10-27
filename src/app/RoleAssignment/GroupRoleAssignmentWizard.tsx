@@ -96,6 +96,14 @@ interface GroupRoleAssignmentWizardProps {
   onClose: () => void;
   onComplete: (data: any) => void;
   groupName: string;
+  initialData?: {
+    id?: string;
+    resourceScope: 'everything' | 'cluster-sets' | 'clusters';
+    selectedClusterSets: number[];
+    selectedClusters: number[];
+    selectedProjects: number[];
+    roleName: string;
+  };
 }
 
 export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps> = ({
@@ -103,46 +111,61 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
   onClose,
   onComplete,
   groupName,
+  initialData,
 }) => {
   const [currentStep, setCurrentStep] = React.useState(1);
   const [clustersPage, setClustersPage] = React.useState(1);
   const [clustersPerPage, setClustersPerPage] = React.useState(10);
   
   // Step 1: Resources - Hierarchical structure for Group wizard
-  const [resourceScope, setResourceScope] = React.useState<'everything' | 'cluster-sets' | 'clusters'>('everything');
+  const [resourceScope, setResourceScope] = React.useState<'everything' | 'cluster-sets' | 'clusters'>(initialData?.resourceScope || 'everything');
   const [isResourceScopeOpen, setIsResourceScopeOpen] = React.useState(false);
   
   // Cluster sets selection
-  const [selectedClusterSets, setSelectedClusterSets] = React.useState<number[]>([]);
+  const [selectedClusterSets, setSelectedClusterSets] = React.useState<number[]>(initialData?.selectedClusterSets || []);
   const [clusterSetSearch, setClusterSetSearch] = React.useState('');
   const [isClusterSetFilterOpen, setIsClusterSetFilterOpen] = React.useState(false);
   const [clusterSetFilterType, setClusterSetFilterType] = React.useState('Name');
   
   // Clusters selection (can be multiple)
-  const [selectedClusters, setSelectedClusters] = React.useState<number[]>([]);
+  const [selectedClusters, setSelectedClusters] = React.useState<number[]>(initialData?.selectedClusters || []);
   const [clusterSearch, setClusterSearch] = React.useState('');
   const [isClusterFilterOpen, setIsClusterFilterOpen] = React.useState(false);
   const [clusterFilterType, setClusterFilterType] = React.useState('Name');
   
   // Cluster scope - after selecting clusters
-  const [clusterScope, setClusterScope] = React.useState<'everything' | 'projects'>('everything');
+  const [clusterScope, setClusterScope] = React.useState<'everything' | 'projects'>(() => {
+    return initialData?.selectedProjects && initialData.selectedProjects.length > 0 ? 'projects' : 'everything';
+  });
   const [isClusterScopeOpen, setIsClusterScopeOpen] = React.useState(false);
   
   // Cluster set scope - after selecting cluster sets
-  const [clusterSetScope, setClusterSetScope] = React.useState<'everything' | 'partial'>('everything');
+  const [clusterSetScope, setClusterSetScope] = React.useState<'everything' | 'partial'>(() => {
+    return initialData?.selectedClusters && initialData.selectedClusters.length > 0 ? 'partial' : 'everything';
+  });
   const [isClusterSetScopeOpen, setIsClusterSetScopeOpen] = React.useState(false);
   
   // Projects selection
-  const [selectedProjects, setSelectedProjects] = React.useState<number[]>([]);
+  const [selectedProjects, setSelectedProjects] = React.useState<number[]>(initialData?.selectedProjects || []);
   const [projectSearch, setProjectSearch] = React.useState('');
   const [isProjectFilterOpen, setIsProjectFilterOpen] = React.useState(false);
   const [projectFilterType, setProjectFilterType] = React.useState('Name');
   
   // Substep tracking
-  const [showClusterSetSelection, setShowClusterSetSelection] = React.useState(false);
-  const [showClusterSelection, setShowClusterSelection] = React.useState(false);
-  const [showScopeSelection, setShowScopeSelection] = React.useState(false);
-  const [showProjectSelection, setShowProjectSelection] = React.useState(false);
+  const [showClusterSetSelection, setShowClusterSetSelection] = React.useState(() => {
+    return initialData?.resourceScope === 'cluster-sets' && (initialData.selectedClusterSets?.length > 0);
+  });
+  const [showClusterSelection, setShowClusterSelection] = React.useState(() => {
+    return (initialData?.resourceScope === 'clusters' && (initialData.selectedClusters?.length > 0)) ||
+           (initialData?.resourceScope === 'cluster-sets' && (initialData.selectedClusters?.length > 0));
+  });
+  const [showScopeSelection, setShowScopeSelection] = React.useState(() => {
+    return (initialData?.resourceScope === 'clusters' && (initialData.selectedClusters?.length > 0)) ||
+           (initialData?.resourceScope === 'cluster-sets' && (initialData.selectedClusters?.length > 0));
+  });
+  const [showProjectSelection, setShowProjectSelection] = React.useState(() => {
+    return initialData?.selectedProjects && initialData.selectedProjects.length > 0;
+  });
   
   // Carousel for example tree views
   const [exampleIndex, setExampleIndex] = React.useState(0);
@@ -155,7 +178,13 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
   const [isProjectBulkSelectorOpen, setIsProjectBulkSelectorOpen] = React.useState(false);
   
   // Step 2: Role selection
-  const [selectedRole, setSelectedRole] = React.useState<number | null>(null);
+  const [selectedRole, setSelectedRole] = React.useState<number | null>(() => {
+    if (initialData?.roleName) {
+      const role = mockRoles.find(r => r.name === initialData.roleName);
+      return role?.id || null;
+    }
+    return null;
+  });
   const [roleSearch, setRoleSearch] = React.useState('');
   const [rolesPage, setRolesPage] = React.useState(1);
   const [rolesPerPage, setRolesPerPage] = React.useState(10);
@@ -183,8 +212,11 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
     setSelectedClusters([]);
     setClusterSearch('');
     setClusterScope('everything');
+    setClusterSetScope('everything');
     setSelectedProjects([]);
     setProjectSearch('');
+    setShowClusterSetSelection(false);
+    setShowClusterSelection(false);
     setShowScopeSelection(false);
     setShowProjectSelection(false);
     setSelectedRole(null);
@@ -193,6 +225,50 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
     setRolesPerPage(10);
     setRoleFilterType('All');
   };
+
+  // Effect to handle when wizard opens with initialData
+  React.useEffect(() => {
+    if (isOpen && initialData) {
+      // Restore resource scope and selections
+      setResourceScope(initialData.resourceScope);
+      setSelectedClusterSets(initialData.selectedClusterSets || []);
+      setSelectedClusters(initialData.selectedClusters || []);
+      setSelectedProjects(initialData.selectedProjects || []);
+      
+      // Find and set the selected role
+      if (initialData.roleName) {
+        const role = mockRoles.find(r => r.name === initialData.roleName);
+        if (role) {
+          setSelectedRole(role.id);
+        }
+      }
+      
+      // Reset substep flags based on initialData
+      setShowClusterSetSelection(initialData.resourceScope === 'cluster-sets' && (initialData.selectedClusterSets?.length > 0));
+      setShowClusterSelection(
+        (initialData.resourceScope === 'clusters' && (initialData.selectedClusters?.length > 0)) ||
+        (initialData.resourceScope === 'cluster-sets' && (initialData.selectedClusters?.length > 0))
+      );
+      setShowScopeSelection(
+        (initialData.resourceScope === 'clusters' && (initialData.selectedClusters?.length > 0)) ||
+        (initialData.resourceScope === 'cluster-sets' && (initialData.selectedClusters?.length > 0))
+      );
+      setShowProjectSelection(initialData.selectedProjects && initialData.selectedProjects.length > 0);
+      
+      // Set scopes based on selections
+      if (initialData.selectedProjects && initialData.selectedProjects.length > 0) {
+        setClusterScope('projects');
+      } else {
+        setClusterScope('everything');
+      }
+      
+      if (initialData.resourceScope === 'cluster-sets' && initialData.selectedClusters && initialData.selectedClusters.length > 0) {
+        setClusterSetScope('partial');
+      } else {
+        setClusterSetScope('everything');
+      }
+    }
+  }, [isOpen, initialData]);
 
   const handleClose = () => {
     resetWizard();
@@ -290,6 +366,7 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
     const roleName = mockRoles.find(r => r.id === selectedRole)?.name || 'Unknown Role';
 
     onComplete({
+      id: initialData?.id, // Include id if editing
       identityType: 'group',
       identityId: null,
       identityName: groupName,

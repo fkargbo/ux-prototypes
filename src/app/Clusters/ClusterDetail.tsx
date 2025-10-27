@@ -39,14 +39,15 @@ import {
   Alert,
   AlertGroup,
   AlertActionCloseButton,
+  Checkbox,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
-import { InfoCircleIcon, CheckIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon, CheckIcon, ExclamationTriangleIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { CubesIcon } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { ClusterSetRoleAssignmentWizard } from '@app/RoleAssignment/ClusterSetRoleAssignmentWizard';
 import { ClusterRoleAssignmentWizard } from '@app/RoleAssignment/ClusterRoleAssignmentWizard';
-import { getAllClusterSets, getClustersByClusterSet } from '@app/data';
+import { getAllClusterSets, getClustersByClusterSet, getAllRoles } from '@app/data';
 
 // Interface for role assignment entries
 interface RoleAssignment {
@@ -55,7 +56,11 @@ interface RoleAssignment {
   type: 'User' | 'Group';
   clusters: string[];
   namespaces: string[];
-  roles: string[];
+  roles: Array<{
+    name: string;
+    displayName: string;
+    category: string;
+  }>;
   status: 'Active' | 'Inactive';
   assignedDate: string;
   assignedBy: string;
@@ -110,6 +115,16 @@ const ClusterDetail: React.FunctionComponent = () => {
       namespacesList = ['All namespaces'];
     }
     
+    // Get full role information
+    const allRoles = getAllRoles();
+    const selectedRole = allRoles.find(r => r.name === wizardData.roleName);
+    
+    const roleInfo = {
+      name: selectedRole?.name || wizardData.roleName || 'Unknown Role',
+      displayName: selectedRole?.displayName || wizardData.roleName || 'Unknown Role',
+      category: selectedRole?.category || 'openshift',
+    };
+    
     // Create a new role assignment from the wizard selections
     const newAssignment: RoleAssignment = {
       id: `ra-${Date.now()}`,
@@ -117,7 +132,7 @@ const ClusterDetail: React.FunctionComponent = () => {
       type: wizardData.identityType === 'user' ? 'User' : 'Group',
       clusters: clustersList,
       namespaces: namespacesList,
-      roles: [wizardData.roleName || 'Unknown Role'],
+      roles: [roleInfo],
       status: 'Active',
       assignedDate: new Date().toLocaleString('en-US', { 
         year: 'numeric', 
@@ -485,6 +500,10 @@ const ClusterDetail: React.FunctionComponent = () => {
   };
 
   const RoleAssignmentsTab = () => {
+  const [bulkSelectorDropdownOpen, setBulkSelectorDropdownOpen] = React.useState(false);
+  const [filterType, setFilterType] = React.useState('Name');
+  const [isRoleFilterOpen, setIsRoleFilterOpen] = React.useState(false);
+
   const handleDeleteAssignment = (assignmentId: string) => {
     setRoleAssignments(roleAssignments.filter(ra => ra.id !== assignmentId));
     setSelectedAssignments(prev => {
@@ -506,13 +525,21 @@ const ClusterDetail: React.FunctionComponent = () => {
     });
   };
 
-  const handleSelectAll = (isSelecting: boolean) => {
-    if (isSelecting) {
-      const allIds = roleAssignments.map(ra => ra.id);
-      setSelectedAssignments(new Set(allIds));
-    } else {
-      setSelectedAssignments(new Set());
-    }
+  const handleSelectPage = () => {
+    const newSelected = new Set(selectedAssignments);
+    paginatedAssignments.forEach(assignment => newSelected.add(assignment.id));
+    setSelectedAssignments(newSelected);
+    setBulkSelectorDropdownOpen(false);
+  };
+
+  const handleSelectAllAssignments = () => {
+    const allIds = roleAssignments.map(ra => ra.id);
+    setSelectedAssignments(new Set(allIds));
+    setBulkSelectorDropdownOpen(false);
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedAssignments(new Set());
   };
 
   const handleBulkDelete = () => {
@@ -549,96 +576,170 @@ const ClusterDetail: React.FunctionComponent = () => {
     }
 
     // Show table if there are assignments
-    let filteredAssignments = roleAssignments.filter(assignment =>
-      assignment.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      assignment.roles.some(role => role.toLowerCase().includes(searchValue.toLowerCase()))
-    );
-
-    // Apply filter
-    if (filterValue === 'user') {
-      filteredAssignments = filteredAssignments.filter(a => a.type === 'User');
-    } else if (filterValue === 'group') {
-      filteredAssignments = filteredAssignments.filter(a => a.type === 'Group');
-    } else if (filterValue === 'active') {
-      filteredAssignments = filteredAssignments.filter(a => a.status === 'Active');
-    }
+    const filteredAssignments = roleAssignments.filter(assignment => {
+      const matchesSearch = 
+        (filterType === 'Name' && assignment.name.toLowerCase().includes(searchValue.toLowerCase())) ||
+        (filterType === 'Identity type' && assignment.type.toLowerCase().includes(searchValue.toLowerCase())) ||
+        (filterType === 'Cluster' && assignment.clusters.some(c => c.toLowerCase().includes(searchValue.toLowerCase()))) ||
+        (filterType === 'Project' && assignment.namespaces.some(p => p.toLowerCase().includes(searchValue.toLowerCase()))) ||
+        (filterType === 'Role' && assignment.roles.some(r => 
+          r.displayName.toLowerCase().includes(searchValue.toLowerCase()) || 
+          r.name.toLowerCase().includes(searchValue.toLowerCase())
+        )) ||
+        (filterType === 'Status' && assignment.status.toLowerCase().includes(searchValue.toLowerCase())) ||
+        (filterType === 'Assigned by' && assignment.assignedBy?.toLowerCase().includes(searchValue.toLowerCase())) ||
+        (filterType === 'Origin' && assignment.origin.toLowerCase().includes(searchValue.toLowerCase()));
+      return matchesSearch || searchValue === '';
+    });
 
     const paginatedAssignments = filteredAssignments.slice(
       (page - 1) * perPage,
       page * perPage
     );
 
-    const areAllSelected = roleAssignments.length > 0 && selectedAssignments.size === roleAssignments.length;
+    const isAllPageSelected = paginatedAssignments.length > 0 && paginatedAssignments.every(assignment => selectedAssignments.has(assignment.id));
     const areSomeSelected = selectedAssignments.size > 0;
 
     return (
       <div className="table-content-card">
         <Toolbar>
-          <ToolbarContent>
+          <ToolbarContent style={{ gap: '8px' }}>
             <ToolbarItem>
               <Dropdown
-                isOpen={isFilterOpen}
-                onSelect={() => setIsFilterOpen(false)}
-                onOpenChange={(isOpen) => setIsFilterOpen(isOpen)}
+                isOpen={bulkSelectorDropdownOpen}
+                onSelect={() => setBulkSelectorDropdownOpen(false)}
+                onOpenChange={(isOpen: boolean) => setBulkSelectorDropdownOpen(isOpen)}
                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                   <MenuToggle
                     ref={toggleRef}
-                    onClick={() => setIsFilterOpen(!isFilterOpen)}
-                    isExpanded={isFilterOpen}
+                    onClick={() => {
+                      if (selectedAssignments.size > 0) {
+                        handleDeselectAll();
+                      } else {
+                        setBulkSelectorDropdownOpen(!bulkSelectorDropdownOpen);
+                      }
+                    }}
+                    variant="plain"
+                    style={{
+                      border: '1px solid var(--pf-t--global--border--color--default)',
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      padding: '6px 8px',
+                      minWidth: 'auto',
+                    }}
                   >
-                    Filter: {filterValue === 'all' ? 'All' : filterValue === 'user' ? 'User' : filterValue === 'group' ? 'Group' : 'Active'}
+                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem>
+                        <Checkbox
+                          isChecked={isAllPageSelected}
+                          onChange={(event, checked) => {
+                            event.stopPropagation();
+                            if (checked) {
+                              handleSelectPage();
+                            } else {
+                              handleDeselectAll();
+                            }
+                          }}
+                          aria-label="Select all"
+                          id="select-all-role-assignments-checkbox"
+                        />
+                      </FlexItem>
+                      <FlexItem>
+                        <CaretDownIcon />
+                      </FlexItem>
+                    </Flex>
                   </MenuToggle>
                 )}
               >
                 <DropdownList>
-                  <DropdownItem key="all" onClick={() => setFilterValue('all')}>
-                    All
+                  <DropdownItem key="select-page" onClick={handleSelectPage}>
+                    Select page ({paginatedAssignments.length} items)
                   </DropdownItem>
-                  <DropdownItem key="user" onClick={() => setFilterValue('user')}>
-                    User
+                  <DropdownItem key="select-all" onClick={handleSelectAllAssignments}>
+                    Select all ({filteredAssignments.length} items)
                   </DropdownItem>
-                  <DropdownItem key="group" onClick={() => setFilterValue('group')}>
-                    Group
+                </DropdownList>
+              </Dropdown>
+            </ToolbarItem>
+            <ToolbarItem>
+              <Dropdown
+                isOpen={isRoleFilterOpen}
+                onSelect={() => setIsRoleFilterOpen(false)}
+                onOpenChange={(isOpen: boolean) => setIsRoleFilterOpen(isOpen)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle 
+                    ref={toggleRef} 
+                    onClick={() => setIsRoleFilterOpen(!isRoleFilterOpen)} 
+                    isExpanded={isRoleFilterOpen}
+                    variant="default"
+                  >
+                    {filterType}
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem value="Name" onClick={() => setFilterType('Name')}>
+                    Name
                   </DropdownItem>
-                  <DropdownItem key="active" onClick={() => setFilterValue('active')}>
-                    Active
+                  <DropdownItem value="Identity type" onClick={() => setFilterType('Identity type')}>
+                    Identity type
+                  </DropdownItem>
+                  <DropdownItem value="Cluster" onClick={() => setFilterType('Cluster')}>
+                    Cluster
+                  </DropdownItem>
+                  <DropdownItem value="Project" onClick={() => setFilterType('Project')}>
+                    Project
+                  </DropdownItem>
+                  <DropdownItem value="Role" onClick={() => setFilterType('Role')}>
+                    Role
+                  </DropdownItem>
+                  <DropdownItem value="Status" onClick={() => setFilterType('Status')}>
+                    Status
+                  </DropdownItem>
+                  <DropdownItem value="Assigned by" onClick={() => setFilterType('Assigned by')}>
+                    Assigned by
+                  </DropdownItem>
+                  <DropdownItem value="Origin" onClick={() => setFilterType('Origin')}>
+                    Origin
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>
             </ToolbarItem>
             <ToolbarItem>
               <SearchInput
-                placeholder="Search role assignments"
+                placeholder={`Search by ${filterType.toLowerCase()}`}
                 value={searchValue}
                 onChange={(_event, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
               />
             </ToolbarItem>
-            <ToolbarItem variant="separator" />
-            <ToolbarItem>
-              <Dropdown
-                isOpen={isBulkActionsOpen}
-                onSelect={() => setIsBulkActionsOpen(false)}
-                onOpenChange={(isOpen) => setIsBulkActionsOpen(isOpen)}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsBulkActionsOpen(!isBulkActionsOpen)}
-                    isExpanded={isBulkActionsOpen}
-                    variant="secondary"
-                    isDisabled={!areSomeSelected}
+            {areSomeSelected && (
+              <>
+                <ToolbarItem variant="separator" />
+                <ToolbarItem>
+                  <Dropdown
+                    isOpen={isBulkActionsOpen}
+                    onSelect={() => setIsBulkActionsOpen(false)}
+                    onOpenChange={(isOpen) => setIsBulkActionsOpen(isOpen)}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsBulkActionsOpen(!isBulkActionsOpen)}
+                        isExpanded={isBulkActionsOpen}
+                        variant="secondary"
+                      >
+                        Actions ({selectedAssignments.size} selected)
+                      </MenuToggle>
+                    )}
                   >
-                    Actions {areSomeSelected ? `(${selectedAssignments.size} selected)` : ''}
-                  </MenuToggle>
-                )}
-              >
-                <DropdownList>
-                  <DropdownItem key="delete" onClick={handleBulkDelete}>
-                    Delete selected
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </ToolbarItem>
+                    <DropdownList>
+                      <DropdownItem key="delete" onClick={handleBulkDelete}>
+                        Delete selected
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </ToolbarItem>
+              </>
+            )}
             <ToolbarItem>
               <Button variant="primary" onClick={handleCreateRoleAssignment}>
                 Create role assignment
@@ -650,12 +751,7 @@ const ClusterDetail: React.FunctionComponent = () => {
         <Table aria-label="Role assignments table" variant="compact">
           <Thead>
             <Tr>
-              <Th
-                select={{
-                  onSelect: (_event, isSelecting) => handleSelectAll(isSelecting),
-                  isSelected: areAllSelected,
-                }}
-              />
+              <Th />
               <Th sort={{ sortBy: {}, columnIndex: 0 }}>Name</Th>
               <Th sort={{ sortBy: {}, columnIndex: 1 }}>Type</Th>
               {isClusterSet && <Th sort={{ sortBy: {}, columnIndex: 2 }}>Clusters</Th>}
@@ -713,9 +809,14 @@ const ClusterDetail: React.FunctionComponent = () => {
                 <Td dataLabel="Roles">
                   {assignment.roles.map((role, idx) => (
                     <span key={idx}>
-                      <Button variant="link" isInline style={{ paddingLeft: 0 }}>
-                        {role}
-                      </Button>
+                      <div>
+                        <Button variant="link" isInline style={{ paddingLeft: 0 }}>
+                          {role.displayName}
+                        </Button>
+                        <div className="pf-v6-u-font-size-sm pf-v6-u-color-200">
+                          {role.name}
+                        </div>
+                      </div>
                       {idx < assignment.roles.length - 1 && ', '}
                     </span>
                   ))}
