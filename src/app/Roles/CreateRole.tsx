@@ -377,7 +377,7 @@ const CreateRole: React.FunctionComponent = () => {
         let verbs: string[];
         if (isChecked) {
           // Add all verbs from the group that aren't already selected
-          verbs = [...new Set([...rule.verbs, ...groupVerbs])];
+          verbs = Array.from(new Set([...rule.verbs, ...groupVerbs]));
         } else {
           // Remove all verbs from the group
           verbs = rule.verbs.filter(v => !groupVerbs.includes(v));
@@ -642,11 +642,6 @@ ${rule.verbs.map(v => `  - "${v}"`).join('\n')}`).join('\n')}`;
         title="Select templates"
         isOpen={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
-        actions={[
-          <Button key="close" variant="primary" onClick={() => setIsTemplateModalOpen(false)}>
-            Close
-          </Button>
-        ]}
       >
         <div style={{ padding: '16px 16px 0 16px' }}>
           <SearchInput
@@ -687,6 +682,11 @@ ${rule.verbs.map(v => `  - "${v}"`).join('\n')}`).join('\n')}`;
             ))}
           </Tbody>
         </Table>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+          <Button variant="primary" onClick={() => setIsTemplateModalOpen(false)}>
+            Close
+          </Button>
+        </div>
       </Modal>
 
       <Drawer isExpanded={isDrawerOpen} onExpand={() => setIsDrawerOpen(true)}>

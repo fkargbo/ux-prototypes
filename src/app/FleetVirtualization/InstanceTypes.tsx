@@ -90,12 +90,12 @@ export const InstanceTypes: React.FunctionComponent = () => {
 
   // Get unique clusters and projects for filter dropdowns
   const uniqueClusters = React.useMemo(() => {
-    const clusters = [...new Set(instanceTypes.map(it => it.cluster))];
+    const clusters = Array.from(new Set(instanceTypes.map(it => it.cluster)));
     return ['All clusters', ...clusters.sort()];
   }, [instanceTypes]);
 
   const uniqueProjects = React.useMemo(() => {
-    const projects = [...new Set(instanceTypes.map(it => it.project))];
+    const projects = Array.from(new Set(instanceTypes.map(it => it.project)));
     return ['All projects', ...projects.sort()];
   }, [instanceTypes]);
 
