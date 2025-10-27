@@ -86,35 +86,38 @@ export const GroupsTable: React.FunctionComponent = () => {
     const state = location.state as any;
     if (state?.newGroup && state?.showSuccessAlert) {
       const groupName = state.newGroup.name;
+      const memberCount = state.newGroup.members.length;
       
-      // Check if this group already exists in additionalGroups
-      const groupExists = additionalGroups.some(g => g.name === groupName);
+      setAdditionalGroups(prev => {
+        // Check if this group already exists in the current state
+        const groupExists = prev.some(g => g.name === groupName);
+        
+        if (groupExists) {
+          return prev; // Return unchanged if group already exists
+        }
+        
+        // Generate unique ID using timestamp and random number
+        const newId = Date.now() + Math.floor(Math.random() * 1000);
+        
+        const newGroup = {
+          id: newId,
+          name: groupName,
+          members: memberCount,
+          created: new Date().toLocaleDateString(),
+          syncSource: 'Local',
+          lastSynced: null,
+        };
+        
+        return [newGroup, ...prev];
+      });
       
-      if (!groupExists) {
-        setAdditionalGroups(prev => {
-          // Generate unique ID using timestamp and random number
-          const newId = Date.now() + Math.floor(Math.random() * 1000);
-          
-          const newGroup = {
-            id: newId,
-            name: groupName,
-            members: state.newGroup.members.length,
-            created: new Date().toLocaleDateString(),
-            syncSource: 'Local',
-            lastSynced: null,
-          };
-          
-          return [newGroup, ...prev];
-        });
-        
-        setNewlyCreatedGroup(groupName);
-        setShowSuccessAlert(true);
-        
-        // Auto-dismiss alert after 8 seconds
-        setTimeout(() => {
-          setShowSuccessAlert(false);
-        }, 8000);
-      }
+      setNewlyCreatedGroup(groupName);
+      setShowSuccessAlert(true);
+      
+      // Auto-dismiss alert after 8 seconds
+      setTimeout(() => {
+        setShowSuccessAlert(false);
+      }, 8000);
       
       // Clear navigation state
       navigate(location.pathname, { replace: true, state: null });
