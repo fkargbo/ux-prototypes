@@ -169,9 +169,20 @@ ${usersSection}`;
   };
 
   const handleSave = () => {
-    // In a real implementation, this would save the group
-    console.log('Saving group:', { groupName, selectedUsers });
-    navigate('/identities');
+    // Create the group data
+    const newGroup = {
+      name: groupName,
+      members: selectedUsers,
+      created: new Date().toISOString(),
+    };
+    
+    // Navigate back to Identities page with the new group data
+    navigate('/user-management/identities', { 
+      state: { 
+        newGroup,
+        showSuccessAlert: true 
+      } 
+    });
   };
 
   const handleCancel = () => {

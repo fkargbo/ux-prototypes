@@ -23,12 +23,14 @@ import {
   ModalFooter,
   Title,
   Alert,
+  AlertGroup,
+  AlertActionCloseButton,
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { SyncAltIcon, CogIcon, EllipsisVIcon, TrashIcon, CaretDownIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getAllGroups } from '@app/data';
 import { useImpersonation } from '@app/contexts/ImpersonationContext';
 import { GroupRoleAssignmentWizard } from '@app/RoleAssignment/GroupRoleAssignmentWizard';
@@ -59,6 +61,7 @@ const mockGroups = dbGroups.map((group, index) => {
 
 export const GroupsTable: React.FunctionComponent = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { startImpersonation } = useImpersonation();
   const [searchValue, setSearchValue] = React.useState('');
   const [filterType, setFilterType] = React.useState('Group');
@@ -74,8 +77,39 @@ export const GroupsTable: React.FunctionComponent = () => {
   const [impersonateGroupName, setImpersonateGroupName] = React.useState('');
   const [isWizardOpen, setIsWizardOpen] = React.useState(false);
   const [selectedGroupForWizard, setSelectedGroupForWizard] = React.useState('');
+  const [showSuccessAlert, setShowSuccessAlert] = React.useState(false);
+  const [newlyCreatedGroup, setNewlyCreatedGroup] = React.useState<string | null>(null);
+  const [additionalGroups, setAdditionalGroups] = React.useState<any[]>([]);
 
-  const paginatedGroups = mockGroups.slice((page - 1) * perPage, page * perPage);
+  // Check for newly created group from navigation state
+  React.useEffect(() => {
+    const state = location.state as any;
+    if (state?.newGroup && state?.showSuccessAlert) {
+      const newGroup = {
+        id: mockGroups.length + additionalGroups.length + 1,
+        name: state.newGroup.name,
+        members: state.newGroup.members.length,
+        created: new Date().toLocaleDateString(),
+        syncSource: 'Local',
+        lastSynced: null,
+      };
+      
+      setAdditionalGroups(prev => [newGroup, ...prev]);
+      setNewlyCreatedGroup(state.newGroup.name);
+      setShowSuccessAlert(true);
+      
+      // Clear navigation state
+      navigate(location.pathname, { replace: true, state: null });
+      
+      // Auto-dismiss alert after 8 seconds
+      setTimeout(() => {
+        setShowSuccessAlert(false);
+      }, 8000);
+    }
+  }, [location]);
+
+  const allGroups = [...additionalGroups, ...mockGroups];
+  const paginatedGroups = allGroups.slice((page - 1) * perPage, page * perPage);
 
   const handleSelectPage = () => {
     const newSelected = new Set(selectedGroups);
@@ -163,8 +197,22 @@ export const GroupsTable: React.FunctionComponent = () => {
   };
 
   return (
-    <div className="table-content-card">
-      <Toolbar>
+    <>
+      {/* Success Alert */}
+      <AlertGroup isToast isLiveRegion>
+        {showSuccessAlert && (
+          <Alert
+            variant="success"
+            title={`Local group "${newlyCreatedGroup}" successfully created`}
+            timeout={8000}
+            onTimeout={() => setShowSuccessAlert(false)}
+            actionClose={<AlertActionCloseButton onClose={() => setShowSuccessAlert(false)} />}
+          />
+        )}
+      </AlertGroup>
+      
+      <div className="table-content-card">
+        <Toolbar>
         <ToolbarContent style={{ gap: '8px' }}>
           <ToolbarItem>
             <Dropdown
@@ -217,7 +265,7 @@ export const GroupsTable: React.FunctionComponent = () => {
                   Select page ({paginatedGroups.length} items)
                 </DropdownItem>
                 <DropdownItem key="select-all" onClick={handleSelectAll}>
-                  Select all ({mockGroups.length} items)
+                  Select all ({allGroups.length} items)
                 </DropdownItem>
               </DropdownList>
             </Dropdown>
@@ -301,7 +349,7 @@ export const GroupsTable: React.FunctionComponent = () => {
           </ToolbarItem>
           <ToolbarItem align={{ default: 'alignEnd' }}>
             <Pagination
-              itemCount={mockGroups.length}
+              itemCount={allGroups.length}
               perPage={perPage}
               page={page}
               onSetPage={(_event, pageNumber) => setPage(pageNumber)}
@@ -417,7 +465,7 @@ export const GroupsTable: React.FunctionComponent = () => {
       </Table>
       <div style={{ padding: '16px' }}>
         <Pagination
-          itemCount={mockGroups.length}
+          itemCount={allGroups.length}
           perPage={perPage}
           page={page}
           onSetPage={(_event, pageNumber) => setPage(pageNumber)}
@@ -427,6 +475,7 @@ export const GroupsTable: React.FunctionComponent = () => {
           }}
           variant={PaginationVariant.bottom}
         />
+      </div>
       </div>
 
       <Modal
@@ -471,6 +520,6 @@ export const GroupsTable: React.FunctionComponent = () => {
         groupName={selectedGroupForWizard}
         onComplete={handleWizardComplete}
       />
-    </div>
+    </>
   );
 };
