@@ -257,11 +257,6 @@ ${usersSection}`;
                   <Content component="p" className="pf-v6-u-color-200 pf-v6-u-font-size-sm" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     Select at least one user to add as a member of this group.
                   </Content>
-                  {selectedUsers.length === 0 && (
-                    <Content component="p" className="pf-v6-u-font-size-sm" style={{ color: 'var(--pf-t--global--color--status--danger--default)', marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                      At least one member is required
-                    </Content>
-                  )}
 
                   {/* User selection table */}
                   <Toolbar style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>

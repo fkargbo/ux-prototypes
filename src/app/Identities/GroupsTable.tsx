@@ -91,16 +91,22 @@ export const GroupsTable: React.FunctionComponent = () => {
       const groupExists = additionalGroups.some(g => g.name === groupName);
       
       if (!groupExists) {
-        const newGroup = {
-          id: mockGroups.length + additionalGroups.length + 1,
-          name: groupName,
-          members: state.newGroup.members.length,
-          created: new Date().toLocaleDateString(),
-          syncSource: 'Local',
-          lastSynced: null,
-        };
+        setAdditionalGroups(prev => {
+          // Generate unique ID using timestamp and random number
+          const newId = Date.now() + Math.floor(Math.random() * 1000);
+          
+          const newGroup = {
+            id: newId,
+            name: groupName,
+            members: state.newGroup.members.length,
+            created: new Date().toLocaleDateString(),
+            syncSource: 'Local',
+            lastSynced: null,
+          };
+          
+          return [newGroup, ...prev];
+        });
         
-        setAdditionalGroups(prev => [newGroup, ...prev]);
         setNewlyCreatedGroup(groupName);
         setShowSuccessAlert(true);
         
