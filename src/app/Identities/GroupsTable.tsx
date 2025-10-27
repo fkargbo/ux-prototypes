@@ -260,7 +260,7 @@ export const GroupsTable: React.FunctionComponent = () => {
             />
           </ToolbarItem>
           <ToolbarItem>
-            <Button variant="primary">Create local group</Button>
+            <Button variant="primary" onClick={() => navigate('/user-management/groups/create')}>Create local group</Button>
           </ToolbarItem>
           <ToolbarItem>
             <Dropdown

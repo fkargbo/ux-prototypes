@@ -6,6 +6,7 @@ import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
 import { IdentityDetail } from '@app/Identities/IdentityDetail';
 import { GroupDetail } from '@app/Identities/GroupDetail';
+import CreateGroup from '@app/Identities/CreateGroup';
 import { CreateRole } from '@app/Roles/CreateRole';
 import { RoleDetail } from '@app/Roles/RoleDetail';
 import { IdentityProviderDetail } from '@app/IdentityProvider/IdentityProviderDetail';
@@ -191,6 +192,11 @@ const routes: AppRouteConfig[] = [
         label: 'Identities',
         path: '/user-management/identities',
         title: 'ACM | Identities',
+      },
+      {
+        element: <CreateGroup />,
+        path: '/user-management/groups/create',
+        title: 'ACM | Create Group',
       },
       {
         element: <GroupDetail />,
