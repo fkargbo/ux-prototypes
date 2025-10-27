@@ -45,7 +45,7 @@ import { CubesIcon, FilterIcon, InfoCircleIcon, EllipsisVIcon, CheckIcon, SyncAl
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { GroupRoleAssignmentWizard } from '@app/RoleAssignment/GroupRoleAssignmentWizard';
-import { getAllGroups, getUsersByGroup, getAllClusters, getAllClusterSets, getAllNamespaces } from '@app/data';
+import { getAllGroups, getUsersByGroup, getAllClusters, getAllClusterSets, getAllNamespaces, getAllRoles } from '@app/data';
 
 const GroupDetail: React.FunctionComponent = () => {
   const { groupName } = useParams<{ groupName: string }>();
@@ -63,9 +63,14 @@ const GroupDetail: React.FunctionComponent = () => {
     id: string;
     name: string;
     type: 'User' | 'Group';
+    clusterSet?: string;
     clusters: string[];
-    namespaces: string[];
-    roles: string[];
+    projects: string[];
+    roles: Array<{
+      name: string;
+      displayName: string;
+      category: string;
+    }>;
     status: 'Active' | 'Inactive';
     assignedDate: string;
     assignedBy: string;
@@ -98,32 +103,53 @@ const GroupDetail: React.FunctionComponent = () => {
     const allClusters = getAllClusters();
     const allClusterSets = getAllClusterSets();
     const allNamespaces = getAllNamespaces();
+    const allRoles = getAllRoles();
     
-    // Extract cluster names and project names from wizard data
+    // Create mock mappings like the wizard does (numeric ID to actual data)
+    const mockClusters = allClusters.map((cluster, index) => ({
+      id: index + 1,
+      dbId: cluster.id,
+      name: cluster.name,
+    }));
+    
+    const mockProjects = allNamespaces.map((namespace, index) => ({
+      id: index + 1,
+      name: namespace.name,
+    }));
+    
+    const mockClusterSets = allClusterSets.map((clusterSet, index) => ({
+      id: index + 1,
+      dbId: clusterSet.id,
+      name: clusterSet.name,
+    }));
+    
+    // Extract cluster set name, cluster names and project names from wizard data
+    let clusterSetName: string | undefined = undefined;
     const clusterNames: string[] = [];
     const projectNames: string[] = [];
     
     if (wizardData.resourceScope === 'everything') {
+      clusterSetName = 'All cluster sets';
       clusterNames.push('All resources');
       projectNames.push('All projects');
     } else if (wizardData.resourceScope === 'cluster-sets') {
       // Handle cluster sets
       if (wizardData.selectedClusterSets && wizardData.selectedClusterSets.length > 0) {
+        // Get cluster set name using numeric IDs
         const clusterSetNames = wizardData.selectedClusterSets
-          .map((id: string) => allClusterSets.find(cs => cs.id === id)?.name)
+          .map((id: number) => mockClusterSets.find(cs => cs.id === id)?.name)
           .filter(Boolean);
-        clusterNames.push(...clusterSetNames);
+        clusterSetName = clusterSetNames.length > 0 ? clusterSetNames.join(', ') : undefined;
         
         if (wizardData.selectedClusters && wizardData.selectedClusters.length > 0) {
           const selectedClusterNames = wizardData.selectedClusters
-            .map((id: string) => allClusters.find(c => c.id === id)?.name)
+            .map((id: number) => mockClusters.find(c => c.id === id)?.name)
             .filter(Boolean);
-          clusterNames.length = 0; // Clear cluster set names
           clusterNames.push(...selectedClusterNames);
           
           if (wizardData.selectedProjects && wizardData.selectedProjects.length > 0) {
             const selectedProjectNames = wizardData.selectedProjects
-              .map((id: string) => allNamespaces.find(n => n.id === id)?.name)
+              .map((id: number) => mockProjects.find(p => p.id === id)?.name)
               .filter(Boolean);
             projectNames.push(...selectedProjectNames);
           } else {
@@ -137,13 +163,13 @@ const GroupDetail: React.FunctionComponent = () => {
       // Handle individual clusters
       if (wizardData.selectedClusters && wizardData.selectedClusters.length > 0) {
         const selectedClusterNames = wizardData.selectedClusters
-          .map((id: string) => allClusters.find(c => c.id === id)?.name)
+          .map((id: number) => mockClusters.find(c => c.id === id)?.name)
           .filter(Boolean);
         clusterNames.push(...selectedClusterNames);
         
         if (wizardData.selectedProjects && wizardData.selectedProjects.length > 0) {
           const selectedProjectNames = wizardData.selectedProjects
-            .map((id: string) => allNamespaces.find(n => n.id === id)?.name)
+            .map((id: number) => mockProjects.find(p => p.id === id)?.name)
             .filter(Boolean);
           projectNames.push(...selectedProjectNames);
         } else {
@@ -152,14 +178,24 @@ const GroupDetail: React.FunctionComponent = () => {
       }
     }
     
+    // Get full role information
+    const selectedRole = allRoles.find(r => r.name === wizardData.roleName);
+    
+    const roleInfo = {
+      name: selectedRole?.name || wizardData.roleName || 'Unknown Role',
+      displayName: selectedRole?.displayName || wizardData.roleName || 'Unknown Role',
+      category: selectedRole?.category || 'openshift',
+    };
+    
     // Create new role assignment
     const newAssignment: RoleAssignment = {
       id: `ra-${Date.now()}`,
       name: groupName || 'Unknown Group',
       type: 'Group',
+      clusterSet: clusterSetName,
       clusters: clusterNames.length > 0 ? clusterNames : ['All clusters'],
-      namespaces: projectNames.length > 0 ? projectNames : ['All projects'],
-      roles: [wizardData.roleName || 'Unknown Role'],
+      projects: projectNames.length > 0 ? projectNames : ['All projects'],
+      roles: [roleInfo],
       status: 'Active',
       assignedDate: new Date().toLocaleString('en-US', {
         year: 'numeric',
@@ -438,24 +474,20 @@ users:
         <Table aria-label="Role assignments table" variant="compact">
           <Thead>
             <Tr>
-              <Th style={{ backgroundColor: '#f0f0f0' }} />
-              <Th colSpan={7} style={{ backgroundColor: '#f0f0f0', fontWeight: 600 }}>Scope</Th>
-              <Th style={{ backgroundColor: '#f0f0f0' }}></Th>
-            </Tr>
-            <Tr>
               <Th
                 select={{
                   onSelect: (_event, isSelecting) => handleSelectAll(isSelecting),
                   isSelected: areAllSelected,
                 }}
               />
-              <Th sort={{ sortBy: {}, columnIndex: 0 }}>Clusters</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 1 }}>Namespaces</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 2 }}>Roles</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 3 }}>Status</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 4 }}>Assigned date</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 5 }}>Assigned by</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 6 }}>Origin</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 0 }}>Cluster set</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 1 }}>Clusters</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 2 }}>Projects</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 3 }}>Roles</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 4 }}>Status</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 5 }}>Assigned date</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 6 }}>Assigned by</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 7 }}>Origin</Th>
               <Th></Th>
             </Tr>
           </Thead>
@@ -469,6 +501,15 @@ users:
                     isSelected: selectedAssignments.has(assignment.id),
                   }}
                 />
+                <Td dataLabel="Cluster set">
+                  {assignment.clusterSet ? (
+                    <Button variant="link" isInline style={{ paddingLeft: 0 }}>
+                      {assignment.clusterSet}
+                    </Button>
+                  ) : (
+                    <span>-</span>
+                  )}
+                </Td>
                 <Td dataLabel="Clusters">
                   {assignment.clusters.map((cluster, idx) => (
                     <span key={idx}>
@@ -479,22 +520,27 @@ users:
                     </span>
                   ))}
                 </Td>
-                <Td dataLabel="Namespaces">
-                  {assignment.namespaces.map((ns, idx) => (
+                <Td dataLabel="Projects">
+                  {assignment.projects.map((project, idx) => (
                     <span key={idx}>
                       <Button variant="link" isInline style={{ paddingLeft: 0 }}>
-                        {ns}
+                        {project}
                       </Button>
-                      {idx < assignment.namespaces.length - 1 && ', '}
+                      {idx < assignment.projects.length - 1 && ', '}
                     </span>
                   ))}
                 </Td>
                 <Td dataLabel="Roles">
                   {assignment.roles.map((role, idx) => (
                     <span key={idx}>
-                      <Button variant="link" isInline style={{ paddingLeft: 0 }}>
-                        {role}
-                      </Button>
+                      <div>
+                        <Button variant="link" isInline style={{ paddingLeft: 0 }}>
+                          {role.displayName}
+                        </Button>
+                        <div className="pf-v6-u-font-size-sm pf-v6-u-color-200">
+                          {role.name}
+                        </div>
+                      </div>
                       {idx < assignment.roles.length - 1 && ', '}
                     </span>
                   ))}

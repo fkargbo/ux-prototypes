@@ -1267,4 +1267,3 @@ export const Catalog: React.FunctionComponent = () => {
     </div>
   );
 };
-
