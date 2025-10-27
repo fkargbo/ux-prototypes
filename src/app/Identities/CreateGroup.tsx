@@ -189,6 +189,9 @@ ${usersSection}`;
     navigate('/identities');
   };
 
+  // Validation
+  const isFormValid = groupName.trim() !== '' && selectedUsers.length > 0;
+
   return (
     <div className="identities-page-container">
       <div className="page-header-section">
@@ -212,7 +215,11 @@ ${usersSection}`;
             <Button variant="secondary" onClick={handleCancel} style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSave}>
+            <Button 
+              variant="primary" 
+              onClick={handleSave}
+              isDisabled={!isFormValid}
+            >
               Create
             </Button>
           </SplitItem>
@@ -237,13 +244,24 @@ ${usersSection}`;
                     value={groupName}
                     onChange={(_event, value) => setGroupName(value)}
                     placeholder="Enter group name"
+                    validated={groupName.trim() === '' ? 'error' : 'default'}
                   />
+                  {groupName.trim() === '' && (
+                    <Content component="p" className="pf-v6-u-font-size-sm" style={{ color: 'var(--pf-t--global--color--status--danger--default)', marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                      Group name is required
+                    </Content>
+                  )}
                 </FormGroup>
 
-                <FormGroup label="Members" fieldId="group-members" style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                <FormGroup label="Members" isRequired fieldId="group-members" style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
                   <Content component="p" className="pf-v6-u-color-200 pf-v6-u-font-size-sm" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    Select users to add as members of this group.
+                    Select at least one user to add as a member of this group.
                   </Content>
+                  {selectedUsers.length === 0 && (
+                    <Content component="p" className="pf-v6-u-font-size-sm" style={{ color: 'var(--pf-t--global--color--status--danger--default)', marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                      At least one member is required
+                    </Content>
+                  )}
 
                   {/* User selection table */}
                   <Toolbar style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
