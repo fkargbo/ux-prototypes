@@ -55,7 +55,7 @@ interface RoleAssignment {
   name: string;
   type: 'User' | 'Group';
   clusters: string[];
-  namespaces: string[];
+  projects: string[];
   roles: Array<{
     name: string;
     displayName: string;
@@ -98,21 +98,21 @@ const ClusterDetail: React.FunctionComponent = () => {
   const handleWizardComplete = (wizardData: any) => {
     // Determine clusters
     let clustersList: string[] = [];
-    let namespacesList: string[] = [];
+    let projectsList: string[] = [];
     
     if (isClusterSet) {
       // For cluster sets, show the resource scope
       if (wizardData.resourceScope === 'all') {
         clustersList = ['All clusters in cluster set'];
-        namespacesList = ['All namespaces'];
+        projectsList = ['All projects'];
       } else {
         clustersList = [`${wizardData.selectedClusters?.length || 0} selected cluster(s)`];
-        namespacesList = ['All namespaces'];
+        projectsList = ['All projects'];
       }
     } else {
       // For individual clusters
       clustersList = [clusterName || ''];
-      namespacesList = ['All namespaces'];
+      projectsList = ['All projects'];
     }
     
     // Get full role information
@@ -131,7 +131,7 @@ const ClusterDetail: React.FunctionComponent = () => {
       name: wizardData.identityName || 'Unknown',
       type: wizardData.identityType === 'user' ? 'User' : 'Group',
       clusters: clustersList,
-      namespaces: namespacesList,
+      projects: projectsList,
       roles: [roleInfo],
       status: 'Active',
       assignedDate: new Date().toLocaleString('en-US', { 
@@ -581,7 +581,7 @@ const ClusterDetail: React.FunctionComponent = () => {
         (filterType === 'Name' && assignment.name.toLowerCase().includes(searchValue.toLowerCase())) ||
         (filterType === 'Identity type' && assignment.type.toLowerCase().includes(searchValue.toLowerCase())) ||
         (filterType === 'Cluster' && assignment.clusters.some(c => c.toLowerCase().includes(searchValue.toLowerCase()))) ||
-        (filterType === 'Project' && assignment.namespaces.some(p => p.toLowerCase().includes(searchValue.toLowerCase()))) ||
+        (filterType === 'Project' && assignment.projects.some(p => p.toLowerCase().includes(searchValue.toLowerCase()))) ||
         (filterType === 'Role' && assignment.roles.some(r => 
           r.displayName.toLowerCase().includes(searchValue.toLowerCase()) || 
           r.name.toLowerCase().includes(searchValue.toLowerCase())
@@ -755,7 +755,7 @@ const ClusterDetail: React.FunctionComponent = () => {
               <Th sort={{ sortBy: {}, columnIndex: 0 }}>Name</Th>
               <Th sort={{ sortBy: {}, columnIndex: 1 }}>Type</Th>
               {isClusterSet && <Th sort={{ sortBy: {}, columnIndex: 2 }}>Clusters</Th>}
-              <Th sort={{ sortBy: {}, columnIndex: isClusterSet ? 3 : 2 }}>Namespaces</Th>
+              <Th sort={{ sortBy: {}, columnIndex: isClusterSet ? 3 : 2 }}>Projects</Th>
               <Th sort={{ sortBy: {}, columnIndex: isClusterSet ? 4 : 3 }}>Roles</Th>
               <Th sort={{ sortBy: {}, columnIndex: isClusterSet ? 5 : 4 }}>Status</Th>
               <Th sort={{ sortBy: {}, columnIndex: isClusterSet ? 6 : 5 }}>Assigned date</Th>
@@ -796,13 +796,13 @@ const ClusterDetail: React.FunctionComponent = () => {
                     )}
                   </Td>
                 )}
-                <Td dataLabel="Namespaces">
-                  {assignment.namespaces.map((ns, idx) => (
+                <Td dataLabel="Projects">
+                  {assignment.projects.map((ns, idx) => (
                     <span key={idx}>
                       <Button variant="link" isInline style={{ paddingLeft: 0 }}>
                         {ns}
                       </Button>
-                      {idx < assignment.namespaces.length - 1 && ', '}
+                      {idx < assignment.projects.length - 1 && ', '}
                     </span>
                   ))}
                 </Td>

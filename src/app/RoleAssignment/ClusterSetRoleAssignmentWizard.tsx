@@ -1016,8 +1016,8 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
             flexShrink: 0,
             margin: 0
           }}>
-            {renderStepIndicator(1, 'Select user or group')}
-            {renderStepIndicator(2, 'Select resources')}
+            {renderStepIndicator(1, 'Identities')}
+            {renderStepIndicator(2, 'Scope')}
             {currentStep === 2 && showAccessLevel && (
               <div style={{ marginLeft: '3.5rem', marginTop: '0', marginBottom: '0.5rem' }}>
                 <div style={{ 
@@ -1033,7 +1033,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                 </div>
               </div>
             )}
-            {renderStepIndicator(3, 'Select role')}
+            {renderStepIndicator(3, 'Roles')}
             {renderStepIndicator(4, 'Review')}
           </div>
           
