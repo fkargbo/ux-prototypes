@@ -106,6 +106,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
   const [preauthorizeEmail, setPreauthorizeEmail] = React.useState('');
   const [preauthorizeIdpId, setPreauthorizeIdpId] = React.useState<string>('');
   const [isIdpDropdownOpen, setIsIdpDropdownOpen] = React.useState(false);
+  const [preauthorizedUserEntry, setPreauthorizedUserEntry] = React.useState<any>(null);
   const [usersPage, setUsersPage] = React.useState(1);
   const [usersPerPage, setUsersPerPage] = React.useState(10);
   const [groupsPage, setGroupsPage] = React.useState(1);
@@ -400,13 +401,21 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
   };
 
   // Filter functions for users and groups
-  const filteredUsers = mockUsers.filter(user => {
-    if (!userSearch) return true;
+  const filteredUsers = React.useMemo(() => {
+    // If we have a pre-authorized user saved, show only that
+    if (preauthorizedUserEntry) {
+      return [preauthorizedUserEntry];
+    }
     
-    // Search in both name and username for "User" filter
-    return user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-           user.username.toLowerCase().includes(userSearch.toLowerCase());
-  });
+    // Otherwise show filtered existing users
+    return mockUsers.filter(user => {
+      if (!userSearch) return true;
+      
+      // Search in both name and username for "User" filter
+      return user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+             user.username.toLowerCase().includes(userSearch.toLowerCase());
+    });
+  }, [preauthorizedUserEntry, userSearch]);
 
   const filteredGroups = mockGroups.filter(group => {
     if (!groupSearch) return true;
@@ -1322,6 +1331,8 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                   setSelectedGroup(null);
                   setPreauthorizeEmail('');
                   setPreauthorizeIdpId('');
+                  setPreauthorizedUserEntry(null);
+                  setUserSearch('');
                 }}
                 style={{ padding: 0, fontSize: '14px', verticalAlign: 'baseline' }}
               >
@@ -1338,6 +1349,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                 setIsPreauthorizing(false);
                 setPreauthorizeEmail('');
                 setPreauthorizeIdpId('');
+                setPreauthorizedUserEntry(null);
                 setUserSearch('');
                 setGroupSearch('');
               }}
@@ -1450,20 +1462,39 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                               />
                             </Td>
                             <Td dataLabel="User">
-                              <Button 
-                                variant="link" 
-                                isInline 
-                                component="a" 
-                                href={`#/user-management/identities/${encodeURIComponent(user.username)}`}
-                                target="_blank"
-                                style={{ padding: 0, fontSize: 'inherit' }}
-                              >
-                                {user.name}
-                              </Button>
-                              <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>{user.username}</div>
+                              <div>
+                                {user.isPending ? (
+                                  <>
+                                    <span style={{ fontSize: 'inherit', fontWeight: 600 }}>{user.name}</span>
+                                    <div style={{ marginTop: '4px' }}>
+                                      <Label color="orange">Pending</Label>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button 
+                                      variant="link" 
+                                      isInline 
+                                      component="a" 
+                                      href={`#/user-management/identities/${encodeURIComponent(user.username)}`}
+                                      target="_blank"
+                                      style={{ padding: 0, fontSize: 'inherit' }}
+                                    >
+                                      {user.name}
+                                    </Button>
+                                    <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>{user.username}</div>
+                                  </>
+                                )}
+                              </div>
                             </Td>
                             <Td dataLabel="Identity provider">{user.provider}</Td>
-                            <Td dataLabel="Created">{user.created}</Td>
+                            <Td dataLabel="Created">
+                              {user.isPending ? (
+                                <Label color="orange">Pending</Label>
+                              ) : (
+                                user.created
+                              )}
+                            </Td>
                           </Tr>
                         ))}
                     </Tbody>
@@ -1566,8 +1597,25 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                         <Button 
                           variant="primary"
                           onClick={() => {
+                            // Create a temporary user entry for the pre-authorized user
+                            const idpName = preauthorizeIdpId 
+                              ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name 
+                              : 'Any';
+                            
+                            const tempUserId = -1; // Negative ID to distinguish from real users
+                            const newUserEntry = {
+                              id: tempUserId,
+                              dbId: '',
+                              name: preauthorizeEmail,
+                              username: preauthorizeEmail,
+                              provider: idpName,
+                              created: 'Pending',
+                              isPending: true,
+                            };
+                            
+                            setPreauthorizedUserEntry(newUserEntry);
+                            setSelectedUser(tempUserId);
                             setIsPreauthorizing(false);
-                            setSelectedUser(null);
                           }}
                           isDisabled={!preauthorizeEmail.trim()}
                         >
@@ -1579,6 +1627,8 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                             setIsPreauthorizing(false);
                             setPreauthorizeEmail('');
                             setPreauthorizeIdpId('');
+                            setPreauthorizedUserEntry(null);
+                            setUserSearch('');
                           }}
                         >
                           Cancel and search users instead
