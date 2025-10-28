@@ -4800,7 +4800,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
-                  {isPreauthorizing ? 'Pre-authorized User' : (identityType === 'user' ? 'User' : 'Group')}
+                  {isPreauthorizing ? 'Pre-auth user' : (identityType === 'user' ? 'User' : 'Group')}
                 </Title>
                 <Button 
                   variant="link" 
