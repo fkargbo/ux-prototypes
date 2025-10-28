@@ -1464,12 +1464,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                             <Td dataLabel="User">
                               <div>
                                 {user.isPending ? (
-                                  <>
-                                    <span style={{ fontSize: 'inherit', fontWeight: 600 }}>{user.name}</span>
-                                    <div style={{ marginTop: '4px' }}>
-                                      <Label color="orange">Pending</Label>
-                                    </div>
-                                  </>
+                                  <span style={{ fontSize: 'inherit', fontWeight: 600 }}>{user.name}</span>
                                 ) : (
                                   <>
                                     <Button 
@@ -1487,7 +1482,9 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                                 )}
                               </div>
                             </Td>
-                            <Td dataLabel="Identity provider">{user.provider}</Td>
+                            <Td dataLabel="Identity provider">
+                              {user.isPending && user.provider === 'Any' ? '—' : user.provider}
+                            </Td>
                             <Td dataLabel="Created">
                               {user.isPending ? (
                                 <Label color="orange">Pending</Label>
