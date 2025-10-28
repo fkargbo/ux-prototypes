@@ -1311,7 +1311,22 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
               Identities
             </Title>
             <Content component="p" style={{ marginBottom: '24px', color: '#6a6e73', fontSize: '14px' }}>
-              Select a user or group to assign this role.
+              Select a user or group to assign this role, or{' '}
+              <Button 
+                variant="link" 
+                isInline 
+                onClick={() => {
+                  setIdentityType('user');
+                  setIsPreauthorizing(true);
+                  setSelectedUser(null);
+                  setSelectedGroup(null);
+                  setPreauthorizeEmail('');
+                  setPreauthorizeIdpId('');
+                }}
+                style={{ padding: 0, fontSize: '14px', verticalAlign: 'baseline' }}
+              >
+                add pre-authorized user
+              </Button>
             </Content>
 
             <Tabs
