@@ -32,9 +32,11 @@ import {
   ToggleGroupItem,
   Flex,
   FlexItem,
+  EmptyState,
+  EmptyStateBody,
 } from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { DownloadIcon, TimesIcon, FilterIcon, CaretDownIcon } from '@patternfly/react-icons';
+import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
+import { DownloadIcon, TimesIcon, FilterIcon, CaretDownIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { getAllUsers, getAllIdentityProviders, getIdentityProviderById, getGroupByName, getUsersByGroup } from '@app/data';
@@ -61,6 +63,17 @@ const CreateGroup: React.FunctionComponent = () => {
   const [userViewMode, setUserViewMode] = React.useState<'all' | 'selected'>('all');
   const [isBulkSelectorOpen, setIsBulkSelectorOpen] = React.useState(false);
   const [originalGroupName, setOriginalGroupName] = React.useState('');
+  
+  // Pre-authorization states
+  const [isPreauthorizing, setIsPreauthorizing] = React.useState(false);
+  const [preauthorizeEmail, setPreauthorizeEmail] = React.useState('');
+  const [preauthorizeIdpId, setPreauthorizeIdpId] = React.useState<string | null>(null);
+  const [isIdpDropdownOpen, setIsIdpDropdownOpen] = React.useState(false);
+  const [preauthorizedMembers, setPreauthorizedMembers] = React.useState<Array<{
+    identifier: string;
+    idpId: string | null;
+    idpName: string;
+  }>>([]);
 
   // Get all users and identity providers from the database
   const allUsers = getAllUsers();
@@ -74,8 +87,23 @@ const CreateGroup: React.FunctionComponent = () => {
       username: user.username,
       email: user.email,
       ldap: identityProvider?.name || 'Unknown',
+      isPending: false,
+      provider: identityProvider?.name || 'Unknown',
     };
   });
+  
+  // Add pre-authorized members to the user list
+  const preauthorizedUsers = preauthorizedMembers.map((member, index) => ({
+    id: -(index + 1), // Negative IDs for pre-auth users
+    name: member.identifier,
+    username: member.identifier,
+    email: member.identifier,
+    ldap: member.idpName,
+    isPending: true,
+    provider: member.idpName,
+  }));
+  
+  const allUsersWithPreauth = [...preauthorizedUsers, ...mockUsers];
 
   // Load group data in edit mode
   React.useEffect(() => {
@@ -94,7 +122,7 @@ const CreateGroup: React.FunctionComponent = () => {
   }, [isEditMode, groupNameParam]);
 
   // Filter users based on view mode, search and filter type
-  const filteredUsers = mockUsers.filter(user => {
+  const filteredUsers = allUsersWithPreauth.filter(user => {
     // First filter by view mode
     if (userViewMode === 'selected' && !selectedUsers.includes(user.username)) {
       return false;
@@ -158,8 +186,14 @@ const CreateGroup: React.FunctionComponent = () => {
   };
 
   const generateYAML = () => {
-    const usersSection = selectedUsers.length > 0
-      ? `users:\n${selectedUsers.map(u => `  - ${u}`).join('\n')}`
+    // Combine existing users and pre-authorized members
+    const allMembers = [
+      ...selectedUsers,
+      ...preauthorizedMembers.map(m => `${m.identifier} # Pending`)
+    ];
+    
+    const usersSection = allMembers.length > 0
+      ? `users:\n${allMembers.map(u => `  - ${u}`).join('\n')}`
       : 'users: []';
 
     return `apiVersion: user.openshift.io/v1
@@ -172,7 +206,7 @@ ${usersSection}`;
   // Update YAML code whenever form changes
   React.useEffect(() => {
     setYamlCode(generateYAML());
-  }, [groupName, selectedUsers]);
+  }, [groupName, selectedUsers, preauthorizedMembers]);
 
   const handleCopyYAML = () => {
     const yaml = generateYAML();
@@ -198,6 +232,7 @@ ${usersSection}`;
       const updatedGroup = {
         name: groupName,
         members: selectedUsers,
+        preauthorizedMembers: preauthorizedMembers,
         originalName: originalGroupName,
       };
       
@@ -213,6 +248,7 @@ ${usersSection}`;
       const newGroup = {
         name: groupName,
         members: selectedUsers,
+        preauthorizedMembers: preauthorizedMembers,
         created: new Date().toISOString(),
       };
       
@@ -231,7 +267,7 @@ ${usersSection}`;
   };
 
   // Validation
-  const isFormValid = groupName.trim() !== '' && selectedUsers.length > 0;
+  const isFormValid = groupName.trim() !== '' && (selectedUsers.length > 0 || preauthorizedMembers.length > 0);
 
   return (
     <div className="identities-page-container">
@@ -296,7 +332,19 @@ ${usersSection}`;
 
                 <FormGroup label="Members" isRequired fieldId="group-members" style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
                   <Content component="p" className="pf-v6-u-color-200 pf-v6-u-font-size-sm" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    Select at least one user to add as a member of this group.
+                    Select at least one user to add as a member of this group, or{' '}
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => {
+                        setIsPreauthorizing(true);
+                        setUserSearch('');
+                      }}
+                      style={{ padding: 0, fontSize: 'inherit' }}
+                    >
+                      add pre-authorized member
+                    </Button>
+                    .
                   </Content>
 
                   {/* User selection table */}
@@ -433,6 +481,141 @@ ${usersSection}`;
                     </ToolbarContent>
                   </Toolbar>
 
+                  {/* Pre-authorization form */}
+                  {isPreauthorizing && (
+                    <div style={{ 
+                      padding: 'var(--pf-t--global--spacer--lg)',
+                      marginBottom: 'var(--pf-t--global--spacer--md)',
+                      border: '1px solid var(--pf-t--global--border--color--default)',
+                      borderRadius: 'var(--pf-t--global--border--radius--small)'
+                    }}>
+                      <Title headingLevel="h3" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                        Pre-authorize member
+                      </Title>
+                      
+                      <Form>
+                        <FormGroup label="User identifier" isRequired fieldId="preauth-identifier">
+                          <Content component="p" className="pf-v6-u-color-200 pf-v6-u-font-size-sm">
+                            Enter the email address or username that will be used when this person logs in for the first time.
+                          </Content>
+                          <TextInput
+                            isRequired
+                            type="text"
+                            id="preauth-identifier"
+                            value={preauthorizeEmail}
+                            onChange={(_event, value) => setPreauthorizeEmail(value)}
+                            placeholder="e.g., john.doe@company.com"
+                          />
+                        </FormGroup>
+
+                        <FormGroup label="Identity Provider (optional)" fieldId="preauth-idp" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                          <Dropdown
+                            isOpen={isIdpDropdownOpen}
+                            onSelect={() => setIsIdpDropdownOpen(false)}
+                            onOpenChange={(isOpen: boolean) => setIsIdpDropdownOpen(isOpen)}
+                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                onClick={() => setIsIdpDropdownOpen(!isIdpDropdownOpen)}
+                                isExpanded={isIdpDropdownOpen}
+                                style={{ width: '100%' }}
+                              >
+                                {preauthorizeIdpId !== null 
+                                  ? allIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name || 'Any identity provider'
+                                  : 'Any identity provider'}
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              <DropdownItem 
+                                key="any" 
+                                onClick={() => {
+                                  setPreauthorizeIdpId(null);
+                                  setIsIdpDropdownOpen(false);
+                                }}
+                              >
+                                Any identity provider
+                              </DropdownItem>
+                              {allIdentityProviders.map((idp) => (
+                                <DropdownItem 
+                                  key={idp.id} 
+                                  onClick={() => {
+                                    setPreauthorizeIdpId(idp.id);
+                                    setIsIdpDropdownOpen(false);
+                                  }}
+                                >
+                                  {idp.name}
+                                </DropdownItem>
+                              ))}
+                            </DropdownList>
+                          </Dropdown>
+                        </FormGroup>
+
+                        <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                          <Button
+                            variant="primary"
+                            onClick={() => {
+                              const idpName = preauthorizeIdpId !== null
+                                ? allIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name || 'Any'
+                                : 'Any';
+                              
+                              // Add to pre-authorized members
+                              setPreauthorizedMembers([
+                                ...preauthorizedMembers,
+                                {
+                                  identifier: preauthorizeEmail,
+                                  idpId: preauthorizeIdpId,
+                                  idpName: idpName,
+                                }
+                              ]);
+                              
+                              // Reset form
+                              setPreauthorizeEmail('');
+                              setPreauthorizeIdpId(null);
+                              setIsPreauthorizing(false);
+                            }}
+                            isDisabled={preauthorizeEmail.trim() === ''}
+                            style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}
+                          >
+                            Add pre-authorized member
+                          </Button>
+                          <Button
+                            variant="link"
+                            onClick={() => {
+                              setIsPreauthorizing(false);
+                              setPreauthorizeEmail('');
+                              setPreauthorizeIdpId(null);
+                            }}
+                          >
+                            Cancel and select users instead
+                          </Button>
+                        </div>
+                      </Form>
+                    </div>
+                  )}
+
+                  {/* Empty state when no users found and not preauthorizing */}
+                  {!isPreauthorizing && filteredUsers.length === 0 && userSearch.trim() !== '' && (
+                    <EmptyState>
+                      <EmptyStateBody>
+                        <Content>No users found matching "{userSearch}"</Content>
+                        <Button
+                          variant="primary"
+                          icon={<SyncAltIcon />}
+                          onClick={() => {
+                            setIsPreauthorizing(true);
+                            setPreauthorizeEmail(userSearch);
+                          }}
+                          style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                        >
+                          Pre-authorize '{userSearch}'
+                        </Button>
+                      </EmptyStateBody>
+                    </EmptyState>
+                  )}
+
+                  {/* Users table */}
+                  {!isPreauthorizing && filteredUsers.length > 0 && (
                   <Table aria-label="Users table" variant="compact">
                     <Thead>
                       <Tr>
@@ -441,14 +624,16 @@ ${usersSection}`;
                         <Th>Username</Th>
                         <Th>Email</Th>
                         <Th>LDAP</Th>
+                        <Th>Status</Th>
+                        <Th />
                       </Tr>
                     </Thead>
                     <Tbody>
                       {paginatedUsers.map(user => (
                         <Tr 
                           key={user.id}
-                          isClickable
-                          onRowClick={() => handleUserToggle(user.username, !selectedUsers.includes(user.username))}
+                          isClickable={!user.isPending}
+                          onRowClick={() => !user.isPending && handleUserToggle(user.username, !selectedUsers.includes(user.username))}
                         >
                           <Td>
                             <Checkbox
@@ -460,29 +645,61 @@ ${usersSection}`;
                               }}
                               aria-label={`Select ${user.name}`}
                               onClick={(event) => event.stopPropagation()}
+                              isDisabled={user.isPending}
                             />
                           </Td>
                           <Td>
-                            <Button 
-                              variant="link" 
-                              isInline 
-                              style={{ paddingLeft: 0 }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/user-management/identities/${user.username}`);
-                              }}
-                            >
-                              {user.name}
-                            </Button>
+                            {user.isPending ? (
+                              <span style={{ fontWeight: 'bold' }}>{user.name}</span>
+                            ) : (
+                              <Button 
+                                variant="link" 
+                                isInline 
+                                style={{ paddingLeft: 0 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/user-management/identities/${user.username}`);
+                                }}
+                              >
+                                {user.name}
+                              </Button>
+                            )}
                           </Td>
                           <Td>{user.username}</Td>
                           <Td>{user.email}</Td>
-                          <Td>{user.ldap}</Td>
+                          <Td>{user.isPending && user.provider === 'Any' ? '—' : user.ldap}</Td>
+                          <Td>
+                            {user.isPending ? (
+                              <Label color="orange">Pending</Label>
+                            ) : (
+                              '—'
+                            )}
+                          </Td>
+                          <Td isActionCell>
+                            {user.isPending && (
+                              <ActionsColumn
+                                items={[
+                                  {
+                                    title: 'Delete',
+                                    onClick: (event) => {
+                                      event.stopPropagation();
+                                      // Remove from pre-authorized members
+                                      setPreauthorizedMembers(
+                                        preauthorizedMembers.filter(m => m.identifier !== user.username)
+                                      );
+                                    },
+                                  },
+                                ]}
+                              />
+                            )}
+                          </Td>
                         </Tr>
                       ))}
                     </Tbody>
                   </Table>
+                  )}
 
+                  {!isPreauthorizing && filteredUsers.length > 0 && (
                   <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                     <Pagination
                       itemCount={filteredUsers.length}
@@ -496,6 +713,7 @@ ${usersSection}`;
                       variant={PaginationVariant.bottom}
                     />
                   </div>
+                  )}
                 </FormGroup>
               </Form>
             </CardBody>
