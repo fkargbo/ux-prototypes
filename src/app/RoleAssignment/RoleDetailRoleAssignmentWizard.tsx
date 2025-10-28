@@ -31,7 +31,7 @@ import {
   EmptyStateBody,
   TextInput,
 } from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
 import { CaretDownIcon, CheckCircleIcon, CircleIcon, AngleLeftIcon, AngleRightIcon, ResourcesEmptyIcon, TimesIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { getAllUsers, getAllGroups, getAllRoles, getAllClusters, getAllNamespaces, getAllClusterSets, getAllIdentityProviders } from '@app/data';
 
@@ -1440,6 +1440,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                         <Th>User</Th>
                         <Th>Identity provider</Th>
                         <Th>Created</Th>
+                        {preauthorizedUserEntry && <Th></Th>}
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -1492,6 +1493,24 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                                 user.created
                               )}
                             </Td>
+                            {user.isPending && (
+                              <Td isActionCell>
+                                <ActionsColumn
+                                  items={[
+                                    {
+                                      title: 'Delete',
+                                      onClick: () => {
+                                        setPreauthorizedUserEntry(null);
+                                        setSelectedUser(null);
+                                        setPreauthorizeEmail('');
+                                        setPreauthorizeIdpId('');
+                                        setUserSearch('');
+                                      }
+                                    }
+                                  ]}
+                                />
+                              </Td>
+                            )}
                           </Tr>
                         ))}
                     </Tbody>
