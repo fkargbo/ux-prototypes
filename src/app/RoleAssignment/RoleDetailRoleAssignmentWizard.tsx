@@ -29,10 +29,11 @@ import {
   PaginationVariant,
   EmptyState,
   EmptyStateBody,
+  TextInput,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { CaretDownIcon, CheckCircleIcon, CircleIcon, AngleLeftIcon, AngleRightIcon, ResourcesEmptyIcon, TimesIcon, SyncAltIcon } from '@patternfly/react-icons';
-import { getAllUsers, getAllGroups, getAllRoles, getAllClusters, getAllNamespaces, getAllClusterSets } from '@app/data';
+import { getAllUsers, getAllGroups, getAllRoles, getAllClusters, getAllNamespaces, getAllClusterSets, getAllIdentityProviders } from '@app/data';
 
 const dbUsers = getAllUsers();
 const dbGroups = getAllGroups();
@@ -40,6 +41,7 @@ const dbRoles = getAllRoles();
 const dbClusters = getAllClusters();
 const dbNamespaces = getAllNamespaces();
 const dbClusterSets = getAllClusterSets();
+const dbIdentityProviders = getAllIdentityProviders();
 
 const mockUsers = dbUsers.map((user, index) => ({
   id: index + 1,
@@ -93,11 +95,17 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
   const [clustersPerPage, setClustersPerPage] = React.useState(10);
   
   // Step 1: Select user or group
+  const [assignmentMode, setAssignmentMode] = React.useState<'existing' | 'preauthorize'>('existing');
   const [identityType, setIdentityType] = React.useState<'user' | 'group'>('user');
   const [selectedUser, setSelectedUser] = React.useState<number | null>(null);
   const [selectedGroup, setSelectedGroup] = React.useState<number | null>(null);
   const [userSearch, setUserSearch] = React.useState('');
   const [groupSearch, setGroupSearch] = React.useState('');
+  
+  // Pre-authorization fields
+  const [preauthorizeEmail, setPreauthorizeEmail] = React.useState('');
+  const [preauthorizeIdpId, setPreauthorizeIdpId] = React.useState<string>('');
+  const [isIdpDropdownOpen, setIsIdpDropdownOpen] = React.useState(false);
   const [usersPage, setUsersPage] = React.useState(1);
   const [usersPerPage, setUsersPerPage] = React.useState(10);
   const [groupsPage, setGroupsPage] = React.useState(1);
@@ -276,28 +284,53 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
     let identityName = '';
     let identityTypeValue = '';
     
-    if (identityType === 'user' && selectedUser !== null) {
-      const user = mockUsers.find(u => u.id === selectedUser);
-      identityName = user?.name || 'Unknown User';
-      identityTypeValue = 'user';
-    } else if (identityType === 'group' && selectedGroup !== null) {
-      const group = mockGroups.find(g => g.id === selectedGroup);
-      identityName = group?.name || 'Unknown Group';
-      identityTypeValue = 'group';
-    }
+    if (assignmentMode === 'preauthorize') {
+      // Pre-authorization mode
+      const idpName = dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name || 'Unknown IDP';
+      
+      onComplete({
+        assignmentMode: 'preauthorize',
+        identityType: 'user', // Pre-authorization is always for users
+        preauthorizeEmail,
+        preauthorizeIdpId,
+        preauthorizeIdpName: idpName,
+        identityName: preauthorizeEmail,
+        roleName,
+        resourceScope,
+        selectedClusterSets,
+        selectedClusters,
+        selectedProjects,
+        clusterScope,
+        clusterSetScope,
+        status: 'Pending'
+      });
+    } else {
+      // Existing user/group mode
+      if (identityType === 'user' && selectedUser !== null) {
+        const user = mockUsers.find(u => u.id === selectedUser);
+        identityName = user?.name || 'Unknown User';
+        identityTypeValue = 'user';
+      } else if (identityType === 'group' && selectedGroup !== null) {
+        const group = mockGroups.find(g => g.id === selectedGroup);
+        identityName = group?.name || 'Unknown Group';
+        identityTypeValue = 'group';
+      }
 
-    onComplete({
-      identityType: identityTypeValue,
-      identityId: identityType === 'user' ? selectedUser : selectedGroup,
-      identityName,
-      roleName,
-      resourceScope,
-      selectedClusterSets,
-      selectedClusters,
-      selectedProjects,
-      clusterScope,
-      clusterSetScope,
-    });
+      onComplete({
+        assignmentMode: 'existing',
+        identityType: identityTypeValue,
+        identityId: identityType === 'user' ? selectedUser : selectedGroup,
+        identityName,
+        roleName,
+        resourceScope,
+        selectedClusterSets,
+        selectedClusters,
+        selectedProjects,
+        clusterScope,
+        clusterSetScope,
+        status: 'Active'
+      });
+    }
     
     resetWizard();
   };
@@ -305,8 +338,13 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
   const isNextDisabled = () => {
     const disabled = (() => {
     if (currentStep === 1) {
-        // Step 1: User or Group selection - must select either a user or group
-        return (identityType === 'user' && selectedUser === null) || (identityType === 'group' && selectedGroup === null);
+        // Step 1: User or Group selection - must select either a user or group, OR pre-authorize with valid email and IDP
+        if (assignmentMode === 'existing') {
+          return (identityType === 'user' && selectedUser === null) || (identityType === 'group' && selectedGroup === null);
+        } else {
+          // Pre-authorize mode: require email and IDP
+          return !preauthorizeEmail.trim() || !preauthorizeIdpId;
+        }
     }
     if (currentStep === 2) {
         // Step 2: Resources - 'everything' doesn't require any selection
@@ -1263,45 +1301,170 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
         {currentStep === 1 && (
           <>
             <Title headingLevel="h2" size="xl" style={{ marginBottom: '8px' }}>
-              Select user or group
+              Identities
             </Title>
             <Content component="p" style={{ marginBottom: '24px', color: '#6a6e73', fontSize: '14px' }}>
-              Choose whether to assign this role to a user or a group.
+              Assign this role to an existing identity or pre-authorize for a future user.
             </Content>
 
-            <Tabs
-              activeKey={identityType}
-              onSelect={(_event, tabIndex) => {
-                setIdentityType(tabIndex as 'user' | 'group');
-                setSelectedUser(null);
-                setSelectedGroup(null);
-              }}
-              aria-label="Select user or group"
-              style={{ marginBottom: '24px' }}
-            >
-              <Tab 
-                eventKey="user" 
-                title={<TabTitleText>Users</TabTitleText>}
-                aria-label="Users tab"
-                style={{
-                  borderBottom: identityType === 'user' ? '3px solid #0066cc' : 'none',
-                  color: identityType === 'user' ? '#0066cc' : '#6a6e73',
-                  fontWeight: identityType === 'user' ? 600 : 400
-                }}
-              />
-              <Tab 
-                eventKey="group" 
-                title={<TabTitleText>Groups</TabTitleText>}
-                aria-label="Groups tab"
-                style={{
-                  borderBottom: identityType === 'group' ? '3px solid #0066cc' : 'none',
-                  color: identityType === 'group' ? '#0066cc' : '#6a6e73',
-                  fontWeight: identityType === 'group' ? 600 : 400
-                }}
-              />
-            </Tabs>
+            {/* Mode Selection */}
+            <Form style={{ marginBottom: '24px' }}>
+              <FormGroup>
+                <Radio
+                  isChecked={assignmentMode === 'existing'}
+                  name="assignment-mode"
+                  onChange={() => {
+                    setAssignmentMode('existing');
+                    setPreauthorizeEmail('');
+                    setPreauthorizeIdpId('');
+                  }}
+                  label="Existing users or groups"
+                  id="mode-existing"
+                  description="Select from users and groups that have already logged in"
+                />
+                <Radio
+                  isChecked={assignmentMode === 'preauthorize'}
+                  name="assignment-mode"
+                  onChange={() => {
+                    setAssignmentMode('preauthorize');
+                    setSelectedUser(null);
+                    setSelectedGroup(null);
+                  }}
+                  label="Pre-authorize future user"
+                  id="mode-preauthorize"
+                  description="Grant permissions that will activate when a user logs in for the first time"
+                  style={{ marginTop: '12px' }}
+                />
+              </FormGroup>
+            </Form>
 
-            {identityType === 'user' && (
+            {assignmentMode === 'existing' && (
+              <>
+                <Tabs
+                  activeKey={identityType}
+                  onSelect={(_event, tabIndex) => {
+                    setIdentityType(tabIndex as 'user' | 'group');
+                    setSelectedUser(null);
+                    setSelectedGroup(null);
+                  }}
+                  aria-label="Select user or group"
+                  style={{ marginBottom: '24px' }}
+                >
+                  <Tab 
+                    eventKey="user" 
+                    title={<TabTitleText>Users</TabTitleText>}
+                    aria-label="Users tab"
+                    style={{
+                      borderBottom: identityType === 'user' ? '3px solid #0066cc' : 'none',
+                      color: identityType === 'user' ? '#0066cc' : '#6a6e73',
+                      fontWeight: identityType === 'user' ? 600 : 400
+                    }}
+                  />
+                  <Tab 
+                    eventKey="group" 
+                    title={<TabTitleText>Groups</TabTitleText>}
+                    aria-label="Groups tab"
+                    style={{
+                      borderBottom: identityType === 'group' ? '3px solid #0066cc' : 'none',
+                      color: identityType === 'group' ? '#0066cc' : '#6a6e73',
+                      fontWeight: identityType === 'group' ? 600 : 400
+                    }}
+                  />
+                </Tabs>
+              </>
+            )}
+
+            {assignmentMode === 'preauthorize' && (
+              <div style={{ 
+                backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', 
+                padding: 'var(--pf-t--global--spacer--lg)',
+                borderRadius: 'var(--pf-t--global--border--radius--medium)',
+                marginBottom: '24px'
+              }}>
+                <Alert 
+                  variant="info" 
+                  isInline 
+                  title="Pre-authorization will take effect on first login"
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  <Content component="p">
+                    Enter the user's expected email or username and select their identity provider. 
+                    The role assignment will automatically activate when they log in for the first time.
+                  </Content>
+                </Alert>
+                
+                <Form>
+                  <FormGroup 
+                    label="User identifier" 
+                    isRequired 
+                    fieldId="preauthorize-email"
+                  >
+                    <Content component="p" style={{ marginBottom: '8px', fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Enter the email address or username
+                    </Content>
+                    <TextInput
+                      isRequired
+                      type="text"
+                      id="preauthorize-email"
+                      name="preauthorize-email"
+                      value={preauthorizeEmail}
+                      onChange={(_event, value) => setPreauthorizeEmail(value)}
+                      placeholder="user@company.com or username"
+                    />
+                  </FormGroup>
+                  
+                  <FormGroup 
+                    label="Identity Provider" 
+                    isRequired 
+                    fieldId="preauthorize-idp"
+                    style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                  >
+                    <Content component="p" style={{ marginBottom: '8px', fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Select the identity provider this user will authenticate through
+                    </Content>
+                    <Dropdown
+                      isOpen={isIdpDropdownOpen}
+                      onSelect={() => setIsIdpDropdownOpen(false)}
+                      onOpenChange={(isOpen: boolean) => setIsIdpDropdownOpen(isOpen)}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle 
+                          ref={toggleRef} 
+                          onClick={() => setIsIdpDropdownOpen(!isIdpDropdownOpen)} 
+                          isExpanded={isIdpDropdownOpen}
+                          variant="default"
+                          style={{ width: '100%' }}
+                        >
+                          {preauthorizeIdpId 
+                            ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name 
+                            : 'Select identity provider'}
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        {dbIdentityProviders.map((idp) => (
+                          <DropdownItem 
+                            key={idp.id}
+                            onClick={() => {
+                              setPreauthorizeIdpId(idp.id);
+                              setIsIdpDropdownOpen(false);
+                            }}
+                          >
+                            <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                              <FlexItem>
+                                <Label color="blue" icon={<SyncAltIcon />}>{idp.type}</Label>
+                              </FlexItem>
+                              <FlexItem>{idp.name}</FlexItem>
+                            </Flex>
+                          </DropdownItem>
+                        ))}
+                      </DropdownList>
+                    </Dropdown>
+                  </FormGroup>
+                </Form>
+              </div>
+            )}
+
+            {assignmentMode === 'existing' && identityType === 'user' && (
               <>
                 <Toolbar>
                   <ToolbarContent>
@@ -1404,7 +1567,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
               </>
             )}
 
-            {identityType === 'group' && (
+            {assignmentMode === 'existing' && identityType === 'group' && (
               <>
                 <Toolbar>
                   <ToolbarContent>
@@ -4567,7 +4730,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
-                  {identityType === 'user' ? 'User' : 'Group'}
+                  {assignmentMode === 'preauthorize' ? 'Pre-authorized User' : (identityType === 'user' ? 'User' : 'Group')}
                 </Title>
                 <Button 
                   variant="link" 
@@ -4579,17 +4742,60 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                 </Button>
               </div>
               <div style={{ marginLeft: '16px' }}>
-                <Content component="p" style={{ 
-                  marginBottom: '4px', 
-                  fontSize: '14px', 
-                  fontWeight: 600,
-                  color: '#151515'
-                }}>
-                  {identityType === 'user' 
-                    ? mockUsers.find(u => u.id === selectedUser)?.name || 'Unknown User'
-                    : mockGroups.find(g => g.id === selectedGroup)?.name || 'Unknown Group'
-                  }
-                </Content>
+                {assignmentMode === 'preauthorize' ? (
+                  <>
+                    <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                      <FlexItem>
+                        <Label color="orange" icon={<TimesIcon />}>Pending</Label>
+                      </FlexItem>
+                      <FlexItem>
+                        <Content component="p" style={{ 
+                          marginBottom: '4px', 
+                          fontSize: '14px', 
+                          fontWeight: 600,
+                          color: '#151515'
+                        }}>
+                          User identifier
+                        </Content>
+                        <Content component="p" style={{ fontSize: '14px', color: '#6a6e73' }}>
+                          {preauthorizeEmail}
+                        </Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Content component="p" style={{ 
+                          marginBottom: '4px', 
+                          fontSize: '14px', 
+                          fontWeight: 600,
+                          color: '#151515'
+                        }}>
+                          Identity Provider
+                        </Content>
+                        <Content component="p" style={{ fontSize: '14px', color: '#6a6e73' }}>
+                          {dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name || 'Unknown IDP'}
+                        </Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Alert variant="info" isInline title="Will activate on first login" style={{ marginTop: '8px' }}>
+                          <Content component="p" style={{ fontSize: '0.875rem' }}>
+                            This role assignment will automatically become active when the user logs in for the first time.
+                          </Content>
+                        </Alert>
+                      </FlexItem>
+                    </Flex>
+                  </>
+                ) : (
+                  <Content component="p" style={{ 
+                    marginBottom: '4px', 
+                    fontSize: '14px', 
+                    fontWeight: 600,
+                    color: '#151515'
+                  }}>
+                    {identityType === 'user' 
+                      ? mockUsers.find(u => u.id === selectedUser)?.name || 'Unknown User'
+                      : mockGroups.find(g => g.id === selectedGroup)?.name || 'Unknown Group'
+                    }
+                  </Content>
+                )}
               </div>
             </div>
 

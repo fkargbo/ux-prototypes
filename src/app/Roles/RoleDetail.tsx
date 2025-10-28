@@ -67,10 +67,13 @@ const RoleDetail: React.FunctionComponent = () => {
     clusters: string[];
     projects: string[];
     roles: string[];
-    status: 'Active' | 'Inactive';
+    status: 'Active' | 'Pending' | 'Inactive';
     assignedDate: string;
     assignedBy: string;
     origin: string;
+    // Pre-authorization fields
+    isPending?: boolean;
+    preauthorizeIdpName?: string;
   }
 
   const [roleAssignments, setRoleAssignments] = React.useState<RoleAssignment[]>([]);
@@ -201,7 +204,7 @@ rules:
       clusters: clusterNames.length > 0 ? clusterNames : ['All clusters'],
       projects: projectNames.length > 0 ? projectNames : ['All projects'],
       roles: [roleName || 'Unknown Role'],
-      status: 'Active',
+      status: wizardData.status || 'Active',
       assignedDate: new Date().toLocaleString('en-US', {
         year: 'numeric',
         month: 'numeric',
@@ -213,6 +216,8 @@ rules:
       }),
       assignedBy: 'Walter Joseph Kovacs',
       origin: 'Hub cluster',
+      isPending: wizardData.assignmentMode === 'preauthorize',
+      preauthorizeIdpName: wizardData.preauthorizeIdpName,
     };
     
     setRoleAssignments([...roleAssignments, newAssignment]);
@@ -510,9 +515,16 @@ rules:
                   }}
                 />
                 <Td dataLabel="Name">
-                  <Button variant="link" isInline style={{ paddingLeft: 0 }}>
-                    {assignment.name}
-                  </Button>
+                  <div>
+                    <Button variant="link" isInline style={{ paddingLeft: 0 }}>
+                      {assignment.name}
+                    </Button>
+                    {assignment.isPending && assignment.preauthorizeIdpName && (
+                      <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '4px' }}>
+                        IDP: {assignment.preauthorizeIdpName}
+                      </div>
+                    )}
+                  </div>
                 </Td>
                 <Td dataLabel="Type">{assignment.type}</Td>
                 <Td dataLabel="Cluster sets">
@@ -550,7 +562,10 @@ rules:
                   ))}
                 </Td>
                 <Td dataLabel="Status">
-                  <Label color="green" icon={<CheckIcon />}>
+                  <Label 
+                    color={assignment.status === 'Pending' ? 'orange' : 'green'} 
+                    icon={assignment.status === 'Pending' ? undefined : <CheckIcon />}
+                  >
                     {assignment.status}
                   </Label>
                 </Td>
