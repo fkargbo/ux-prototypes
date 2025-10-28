@@ -286,13 +286,15 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
     
     if (assignmentMode === 'preauthorize') {
       // Pre-authorization mode
-      const idpName = dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name || 'Unknown IDP';
+      const idpName = preauthorizeIdpId 
+        ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name 
+        : undefined;
       
       onComplete({
         assignmentMode: 'preauthorize',
         identityType: 'user', // Pre-authorization is always for users
         preauthorizeEmail,
-        preauthorizeIdpId,
+        preauthorizeIdpId: preauthorizeIdpId || undefined,
         preauthorizeIdpName: idpName,
         identityName: preauthorizeEmail,
         roleName,
@@ -338,12 +340,12 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
   const isNextDisabled = () => {
     const disabled = (() => {
     if (currentStep === 1) {
-        // Step 1: User or Group selection - must select either a user or group, OR pre-authorize with valid email and IDP
+        // Step 1: User or Group selection - must select either a user or group, OR pre-authorize with valid email (IDP is optional)
         if (assignmentMode === 'existing') {
           return (identityType === 'user' && selectedUser === null) || (identityType === 'group' && selectedGroup === null);
         } else {
-          // Pre-authorize mode: require email and IDP
-          return !preauthorizeEmail.trim() || !preauthorizeIdpId;
+          // Pre-authorize mode: require email/username only (IDP is optional)
+          return !preauthorizeEmail.trim();
         }
     }
     if (currentStep === 2) {
@@ -1388,7 +1390,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                   style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                 >
                   <Content component="p">
-                    Enter the user's expected email or username and select their identity provider. 
+                    Enter the user's expected email or username. Optionally, select their identity provider if known. 
                     The role assignment will automatically activate when they log in for the first time.
                   </Content>
                 </Alert>
@@ -1414,13 +1416,12 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                   </FormGroup>
                   
                   <FormGroup 
-                    label="Identity Provider" 
-                    isRequired 
+                    label="Identity Provider (optional)" 
                     fieldId="preauthorize-idp"
                     style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
                   >
                     <Content component="p" style={{ marginBottom: '8px', fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Select the identity provider this user will authenticate through
+                      Select the identity provider if known, or leave unspecified to allow any IDP
                     </Content>
                     <Dropdown
                       isOpen={isIdpDropdownOpen}
@@ -4771,7 +4772,9 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                           Identity Provider
                         </Content>
                         <Content component="p" style={{ fontSize: '14px', color: '#6a6e73' }}>
-                          {dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name || 'Unknown IDP'}
+                          {preauthorizeIdpId 
+                            ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name || 'Unknown IDP'
+                            : 'Any (not specified)'}
                         </Content>
                       </FlexItem>
                       <FlexItem>

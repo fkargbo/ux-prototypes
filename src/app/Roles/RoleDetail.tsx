@@ -519,9 +519,9 @@ rules:
                     <Button variant="link" isInline style={{ paddingLeft: 0 }}>
                       {assignment.name}
                     </Button>
-                    {assignment.isPending && assignment.preauthorizeIdpName && (
+                    {assignment.isPending && (
                       <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '4px' }}>
-                        IDP: {assignment.preauthorizeIdpName}
+                        IDP: {assignment.preauthorizeIdpName || 'Any'}
                       </div>
                     )}
                   </div>
