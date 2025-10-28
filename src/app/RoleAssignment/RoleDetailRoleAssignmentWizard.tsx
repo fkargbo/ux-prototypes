@@ -1479,12 +1479,9 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
 
                 {isPreauthorizing && (
                   <div style={{ marginTop: '16px' }}>
-                    <Alert 
-                      variant="info" 
-                      isInline 
-                      title="This role assignment will activate automatically on the user's first login"
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                    />
+                    <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)', fontSize: '14px', color: '#6a6e73' }}>
+                      This role assignment will activate automatically on the user's first login.
+                    </Content>
                     
                     <Form>
                       <FormGroup 
@@ -1550,17 +1547,28 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                         </Dropdown>
                       </FormGroup>
 
-                      <Button 
-                        variant="link" 
-                        onClick={() => {
-                          setIsPreauthorizing(false);
-                          setPreauthorizeEmail('');
-                          setPreauthorizeIdpId('');
-                        }}
-                        style={{ marginTop: 'var(--pf-t--global--spacer--md)', paddingLeft: 0 }}
-                      >
-                        Cancel and search users instead
-                      </Button>
+                      <div style={{ marginTop: 'var(--pf-t--global--spacer--md)', display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                        <Button 
+                          variant="primary"
+                          onClick={() => {
+                            setIsPreauthorizing(false);
+                            setSelectedUser(null);
+                          }}
+                          isDisabled={!preauthorizeEmail.trim()}
+                        >
+                          Save pre-authorized user
+                        </Button>
+                        <Button 
+                          variant="link" 
+                          onClick={() => {
+                            setIsPreauthorizing(false);
+                            setPreauthorizeEmail('');
+                            setPreauthorizeIdpId('');
+                          }}
+                        >
+                          Cancel and search users instead
+                        </Button>
+                      </div>
                     </Form>
                   </div>
                 )}
