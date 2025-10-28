@@ -35,8 +35,11 @@ import {
   PaginationVariant,
   ToolbarGroup,
   Divider,
+  Checkbox,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
-import { CubesIcon, CheckIcon } from '@patternfly/react-icons';
+import { CubesIcon, CheckIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
@@ -60,8 +63,9 @@ const RoleDetail: React.FunctionComponent = () => {
     id: string;
     name: string;
     type: 'User' | 'Group';
+    clusterSets: string[];
     clusters: string[];
-    namespaces: string[];
+    projects: string[];
     roles: string[];
     status: 'Active' | 'Inactive';
     assignedDate: string;
@@ -132,26 +136,27 @@ rules:
     const allClusterSets = getAllClusterSets();
     const allNamespaces = getAllNamespaces();
     
-    // Extract cluster names and project names from wizard data
+    // Extract cluster set names, cluster names, and project names from wizard data
+    const clusterSetNames: string[] = [];
     const clusterNames: string[] = [];
     const projectNames: string[] = [];
     
     if (wizardData.resourceScope === 'everything') {
-      clusterNames.push('All resources');
+      clusterSetNames.push('All cluster sets');
+      clusterNames.push('All clusters');
       projectNames.push('All projects');
     } else if (wizardData.resourceScope === 'cluster-sets') {
       // Handle cluster sets
       if (wizardData.selectedClusterSets && wizardData.selectedClusterSets.length > 0) {
-        const clusterSetNames = wizardData.selectedClusterSets
+        const selectedClusterSetNames = wizardData.selectedClusterSets
           .map((id: string) => allClusterSets.find(cs => cs.id === id)?.name)
           .filter(Boolean);
-        clusterNames.push(...clusterSetNames);
+        clusterSetNames.push(...selectedClusterSetNames);
         
         if (wizardData.selectedClusters && wizardData.selectedClusters.length > 0) {
           const selectedClusterNames = wizardData.selectedClusters
             .map((id: string) => allClusters.find(c => c.id === id)?.name)
             .filter(Boolean);
-          clusterNames.length = 0; // Clear cluster set names
           clusterNames.push(...selectedClusterNames);
           
           if (wizardData.selectedProjects && wizardData.selectedProjects.length > 0) {
@@ -163,6 +168,7 @@ rules:
             projectNames.push('All projects');
           }
         } else {
+          clusterNames.push('All clusters');
           projectNames.push('All projects');
         }
       }
@@ -191,8 +197,9 @@ rules:
       id: `ra-${Date.now()}`,
       name: wizardData.identityName || 'Unknown',
       type: wizardData.identityType === 'group' ? 'Group' : 'User',
+      clusterSets: clusterSetNames,
       clusters: clusterNames.length > 0 ? clusterNames : ['All clusters'],
-      namespaces: projectNames.length > 0 ? projectNames : ['All projects'],
+      projects: projectNames.length > 0 ? projectNames : ['All projects'],
       roles: [roleName || 'Unknown Role'],
       status: 'Active',
       assignedDate: new Date().toLocaleString('en-US', {
@@ -221,18 +228,11 @@ rules:
   const RoleAssignmentsTab = () => {
     const [selectedAssignments, setSelectedAssignments] = React.useState<Set<string>>(new Set());
     const [isBulkActionsOpen, setIsBulkActionsOpen] = React.useState(false);
-    const [filterValue, setFilterValue] = React.useState<string>('all');
+    const [bulkSelectorDropdownOpen, setBulkSelectorDropdownOpen] = React.useState(false);
+    const [filterType, setFilterType] = React.useState('Name');
 
     const areAllSelected = selectedAssignments.size === roleAssignments.length && roleAssignments.length > 0;
     const areSomeSelected = selectedAssignments.size > 0;
-
-    const handleSelectAll = (isSelecting: boolean) => {
-      if (isSelecting) {
-        setSelectedAssignments(new Set(roleAssignments.map(a => a.id)));
-      } else {
-        setSelectedAssignments(new Set());
-      }
-    };
 
     const handleSelectAssignment = (assignmentId: string, isSelecting: boolean) => {
       const newSelected = new Set(selectedAssignments);
@@ -242,6 +242,57 @@ rules:
         newSelected.delete(assignmentId);
       }
       setSelectedAssignments(newSelected);
+    };
+
+    // Filter and paginate assignments
+    const filteredAssignments = roleAssignments.filter(assignment => {
+      if (!searchValue) return true;
+      
+      const searchLower = searchValue.toLowerCase();
+      
+      switch (filterType) {
+        case 'Name':
+          return assignment.name.toLowerCase().includes(searchLower);
+        case 'Type':
+          return assignment.type.toLowerCase().includes(searchLower);
+        case 'Cluster set':
+          return assignment.clusterSets?.some(cs => cs.toLowerCase().includes(searchLower));
+        case 'Cluster':
+          return assignment.clusters.some(c => c.toLowerCase().includes(searchLower));
+        case 'Project':
+          return assignment.projects.some(p => p.toLowerCase().includes(searchLower));
+        case 'Status':
+          return assignment.status.toLowerCase().includes(searchLower);
+        case 'Assigned by':
+          return assignment.assignedBy.toLowerCase().includes(searchLower);
+        case 'Origin':
+          return assignment.origin.toLowerCase().includes(searchLower);
+        default:
+          return true;
+      }
+    });
+
+    const paginatedAssignments = filteredAssignments.slice(
+      (page - 1) * perPage,
+      page * perPage
+    );
+
+    const isAllPageSelected = paginatedAssignments.every(assignment => 
+      selectedAssignments.has(assignment.id)
+    ) && paginatedAssignments.length > 0;
+
+    const handleSelectPage = () => {
+      const newSelected = new Set(selectedAssignments);
+      paginatedAssignments.forEach(assignment => newSelected.add(assignment.id));
+      setSelectedAssignments(newSelected);
+    };
+
+    const handleSelectAll = () => {
+      setSelectedAssignments(new Set(roleAssignments.map(a => a.id)));
+    };
+
+    const handleDeselectAll = () => {
+      setSelectedAssignments(new Set());
     };
 
     const handleBulkDelete = () => {
@@ -255,21 +306,6 @@ rules:
       const updatedAssignments = roleAssignments.filter(a => a.id !== assignmentId);
       setRoleAssignments(updatedAssignments);
     };
-
-    // Filter and paginate assignments
-    const filteredAssignments = roleAssignments.filter(assignment => {
-      const matchesSearch = assignment.name.toLowerCase().includes(searchValue.toLowerCase());
-      const matchesFilter = filterValue === 'all' || 
-        (filterValue === 'user' && assignment.type === 'User') ||
-        (filterValue === 'group' && assignment.type === 'Group') ||
-        (filterValue === 'active' && assignment.status === 'Active');
-      return matchesSearch && matchesFilter;
-    });
-
-    const paginatedAssignments = filteredAssignments.slice(
-      (page - 1) * perPage,
-      page * perPage
-    );
 
     if (roleAssignments.length === 0) {
       return (
@@ -302,77 +338,143 @@ rules:
     return (
       <div className="table-content-card">
         <Toolbar>
-          <ToolbarContent>
-            {selectedAssignments.size > 0 && (
-              <>
-                <ToolbarGroup>
-                  <ToolbarItem>
-                    <span style={{ fontWeight: 'bold', marginRight: '16px' }}>
-                      {selectedAssignments.size} selected
-                    </span>
-                  </ToolbarItem>
-                  <ToolbarItem>
-                    <Dropdown
-                      isOpen={isBulkActionsOpen}
-                      onSelect={() => setIsBulkActionsOpen(false)}
-                      onOpenChange={(isOpen) => setIsBulkActionsOpen(isOpen)}
-                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setIsBulkActionsOpen(!isBulkActionsOpen)}
-                          isExpanded={isBulkActionsOpen}
-                          variant="secondary"
-                          isDisabled={!areSomeSelected}
-                        >
-                          Actions {areSomeSelected ? `(${selectedAssignments.size} selected)` : ''}
-                        </MenuToggle>
-                      )}
-                    >
-                      <DropdownList>
-                        <DropdownItem key="delete" onClick={handleBulkDelete}>
-                          Delete selected
-                        </DropdownItem>
-                      </DropdownList>
-                    </Dropdown>
-                  </ToolbarItem>
-                </ToolbarGroup>
-                <ToolbarItem>
-                  <Divider orientation={{ default: 'vertical' }} />
-                </ToolbarItem>
-              </>
-            )}
+          <ToolbarContent style={{ gap: '8px' }}>
+            <ToolbarItem>
+              <Dropdown
+                isOpen={bulkSelectorDropdownOpen}
+                onSelect={() => setBulkSelectorDropdownOpen(false)}
+                onOpenChange={(isOpen: boolean) => setBulkSelectorDropdownOpen(isOpen)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => {
+                      if (selectedAssignments.size > 0) {
+                        handleDeselectAll();
+                      } else {
+                        setBulkSelectorDropdownOpen(!bulkSelectorDropdownOpen);
+                      }
+                    }}
+                    variant="plain"
+                    style={{
+                      border: '1px solid var(--pf-t--global--border--color--default)',
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      padding: '6px 8px',
+                      minWidth: 'auto',
+                    }}
+                  >
+                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem>
+                        <Checkbox
+                          isChecked={isAllPageSelected}
+                          onChange={(event, checked) => {
+                            event.stopPropagation();
+                            if (checked) {
+                              handleSelectPage();
+                            } else {
+                              handleDeselectAll();
+                            }
+                          }}
+                          aria-label="Select all"
+                          id="select-all-assignments-checkbox"
+                        />
+                      </FlexItem>
+                      <FlexItem>
+                        <CaretDownIcon />
+                      </FlexItem>
+                    </Flex>
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem key="select-none" onClick={handleDeselectAll}>
+                    Select none (0 items)
+                  </DropdownItem>
+                  <DropdownItem key="select-page" onClick={handleSelectPage}>
+                    Select page ({paginatedAssignments.length} items)
+                  </DropdownItem>
+                  <DropdownItem key="select-all" onClick={handleSelectAll}>
+                    Select all ({roleAssignments.length} items)
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </ToolbarItem>
             <ToolbarItem>
               <Dropdown
                 isOpen={isFilterOpen}
                 onSelect={() => setIsFilterOpen(false)}
                 onOpenChange={(isOpen: boolean) => setIsFilterOpen(isOpen)}
                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    variant="plain"
-                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  <MenuToggle 
+                    ref={toggleRef} 
+                    onClick={() => setIsFilterOpen(!isFilterOpen)} 
                     isExpanded={isFilterOpen}
+                    variant="default"
                   >
-                    Filter
+                    {filterType}
                   </MenuToggle>
                 )}
               >
                 <DropdownList>
-                  <DropdownItem key="all" onClick={() => setFilterValue('all')}>All</DropdownItem>
-                  <DropdownItem key="user" onClick={() => setFilterValue('user')}>User</DropdownItem>
-                  <DropdownItem key="group" onClick={() => setFilterValue('group')}>Group</DropdownItem>
-                  <DropdownItem key="active" onClick={() => setFilterValue('active')}>Active</DropdownItem>
+                  <DropdownItem onClick={() => setFilterType('Name')}>
+                    Name
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setFilterType('Type')}>
+                    Type
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setFilterType('Cluster set')}>
+                    Cluster set
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setFilterType('Cluster')}>
+                    Cluster
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setFilterType('Project')}>
+                    Project
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setFilterType('Status')}>
+                    Status
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setFilterType('Assigned by')}>
+                    Assigned by
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setFilterType('Origin')}>
+                    Origin
+                  </DropdownItem>
                 </DropdownList>
               </Dropdown>
             </ToolbarItem>
             <ToolbarItem>
               <SearchInput
-                placeholder="Search role assignments"
+                placeholder={`Search by ${filterType.toLowerCase()}`}
                 value={searchValue}
                 onChange={(_event, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
               />
             </ToolbarItem>
+            {selectedAssignments.size > 0 && (
+              <ToolbarItem>
+                <Dropdown
+                  isOpen={isBulkActionsOpen}
+                  onSelect={() => setIsBulkActionsOpen(false)}
+                  onOpenChange={(isOpen) => setIsBulkActionsOpen(isOpen)}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsBulkActionsOpen(!isBulkActionsOpen)}
+                      isExpanded={isBulkActionsOpen}
+                      variant="plain"
+                    >
+                      Actions
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    <DropdownItem key="delete" onClick={handleBulkDelete}>
+                      Delete selected
+                    </DropdownItem>
+                  </DropdownList>
+                </Dropdown>
+              </ToolbarItem>
+            )}
             <ToolbarItem>
               <Button variant="primary" onClick={() => setIsWizardOpen(true)}>
                 Create role assignment
@@ -384,26 +486,16 @@ rules:
         <Table aria-label="Role assignments table" variant="compact">
           <Thead>
             <Tr>
-              <Th style={{ backgroundColor: '#f0f0f0' }} />
-              <Th colSpan={2} style={{ backgroundColor: '#f0f0f0', fontWeight: 600 }}>Subject</Th>
-              <Th colSpan={6} style={{ backgroundColor: '#f0f0f0', fontWeight: 600 }}>Scope</Th>
-              <Th style={{ backgroundColor: '#f0f0f0' }}></Th>
-            </Tr>
-            <Tr>
-              <Th
-                select={{
-                  onSelect: (_event, isSelecting) => handleSelectAll(isSelecting),
-                  isSelected: areAllSelected,
-                }}
-              />
+              <Th />
               <Th sort={{ sortBy: {}, columnIndex: 0 }}>Name</Th>
               <Th sort={{ sortBy: {}, columnIndex: 1 }}>Type</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 2 }}>Clusters</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 3 }}>Namespaces</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 4 }}>Status</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 5 }}>Assigned date</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 6 }}>Assigned by</Th>
-              <Th sort={{ sortBy: {}, columnIndex: 7 }}>Origin</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 2 }}>Cluster sets</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 3 }}>Clusters</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 4 }}>Projects</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 5 }}>Status</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 6 }}>Assigned date</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 7 }}>Assigned by</Th>
+              <Th sort={{ sortBy: {}, columnIndex: 8 }}>Origin</Th>
               <Th></Th>
             </Tr>
           </Thead>
@@ -423,6 +515,20 @@ rules:
                   </Button>
                 </Td>
                 <Td dataLabel="Type">{assignment.type}</Td>
+                <Td dataLabel="Cluster sets">
+                  {assignment.clusterSets && assignment.clusterSets.length > 0 ? (
+                    assignment.clusterSets.map((clusterSet, idx) => (
+                      <span key={idx}>
+                        <Button variant="link" isInline style={{ paddingLeft: 0 }}>
+                          {clusterSet}
+                        </Button>
+                        {idx < assignment.clusterSets.length - 1 && ', '}
+                      </span>
+                    ))
+                  ) : (
+                    '-'
+                  )}
+                </Td>
                 <Td dataLabel="Clusters">
                   {assignment.clusters.map((cluster, idx) => (
                     <span key={idx}>
@@ -433,13 +539,13 @@ rules:
                     </span>
                   ))}
                 </Td>
-                <Td dataLabel="Namespaces">
-                  {assignment.namespaces.map((ns, idx) => (
+                <Td dataLabel="Projects">
+                  {assignment.projects.map((project, idx) => (
                     <span key={idx}>
                       <Button variant="link" isInline style={{ paddingLeft: 0 }}>
-                        {ns}
+                        {project}
                       </Button>
-                      {idx < assignment.namespaces.length - 1 && ', '}
+                      {idx < assignment.projects.length - 1 && ', '}
                     </span>
                   ))}
                 </Td>

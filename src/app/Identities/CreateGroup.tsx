@@ -35,13 +35,20 @@ import {
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { DownloadIcon, TimesIcon, FilterIcon, CaretDownIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-import { getAllUsers, getAllIdentityProviders, getIdentityProviderById } from '@app/data';
+import { getAllUsers, getAllIdentityProviders, getIdentityProviderById, getGroupByName, getUsersByGroup } from '@app/data';
 
 const CreateGroup: React.FunctionComponent = () => {
-  useDocumentTitle('ACM RBAC | Create Local Group');
   const navigate = useNavigate();
+  const location = useLocation();
+  const { groupName: groupNameParam } = useParams<{ groupName?: string }>();
+  
+  // Determine if we're in edit mode
+  const isEditMode = location.pathname.includes('/edit/');
+  const groupData = location.state?.groupData;
+  
+  useDocumentTitle(isEditMode ? 'ACM RBAC | Edit Local Group' : 'ACM RBAC | Create Local Group');
   
   const [groupName, setGroupName] = React.useState('example');
   const [selectedUsers, setSelectedUsers] = React.useState<string[]>([]);
@@ -53,6 +60,7 @@ const CreateGroup: React.FunctionComponent = () => {
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [userViewMode, setUserViewMode] = React.useState<'all' | 'selected'>('all');
   const [isBulkSelectorOpen, setIsBulkSelectorOpen] = React.useState(false);
+  const [originalGroupName, setOriginalGroupName] = React.useState('');
 
   // Get all users and identity providers from the database
   const allUsers = getAllUsers();
@@ -68,6 +76,22 @@ const CreateGroup: React.FunctionComponent = () => {
       ldap: identityProvider?.name || 'Unknown',
     };
   });
+
+  // Load group data in edit mode
+  React.useEffect(() => {
+    if (isEditMode && groupNameParam) {
+      const group = getGroupByName(groupNameParam);
+      if (group) {
+        setGroupName(group.name);
+        setOriginalGroupName(group.name);
+        
+        // Get the users in this group
+        const groupUsers = getUsersByGroup(group.id);
+        const usernames = groupUsers.map(user => user.username);
+        setSelectedUsers(usernames);
+      }
+    }
+  }, [isEditMode, groupNameParam]);
 
   // Filter users based on view mode, search and filter type
   const filteredUsers = mockUsers.filter(user => {
@@ -169,20 +193,37 @@ ${usersSection}`;
   };
 
   const handleSave = () => {
-    // Create the group data
-    const newGroup = {
-      name: groupName,
-      members: selectedUsers,
-      created: new Date().toISOString(),
-    };
-    
-    // Navigate back to Identities page with the new group data
-    navigate('/user-management/identities', { 
-      state: { 
-        newGroup,
-        showSuccessAlert: true 
-      } 
-    });
+    if (isEditMode) {
+      // Update the existing group
+      const updatedGroup = {
+        name: groupName,
+        members: selectedUsers,
+        originalName: originalGroupName,
+      };
+      
+      // Navigate back to Identities page with the updated group data
+      navigate('/user-management/identities', { 
+        state: { 
+          updatedGroup,
+          showEditSuccessAlert: true 
+        } 
+      });
+    } else {
+      // Create the group data
+      const newGroup = {
+        name: groupName,
+        members: selectedUsers,
+        created: new Date().toISOString(),
+      };
+      
+      // Navigate back to Identities page with the new group data
+      navigate('/user-management/identities', { 
+        state: { 
+          newGroup,
+          showSuccessAlert: true 
+        } 
+      });
+    }
   };
 
   const handleCancel = () => {
@@ -203,13 +244,13 @@ ${usersSection}`;
           <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/identities'); }}>
             Identities
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Create local group</BreadcrumbItem>
+          <BreadcrumbItem isActive>{isEditMode ? 'Edit local group' : 'Create local group'}</BreadcrumbItem>
         </Breadcrumb>
 
         {/* Page Title */}
         <Split style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
           <SplitItem isFilled>
-            <Title headingLevel="h1" size="2xl">Create local group</Title>
+            <Title headingLevel="h1" size="2xl">{isEditMode ? 'Edit local group' : 'Create local group'}</Title>
           </SplitItem>
           <SplitItem>
             <Button variant="secondary" onClick={handleCancel} style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
@@ -220,7 +261,7 @@ ${usersSection}`;
               onClick={handleSave}
               isDisabled={!isFormValid}
             >
-              Create
+              {isEditMode ? 'Save' : 'Create'}
             </Button>
           </SplitItem>
         </Split>

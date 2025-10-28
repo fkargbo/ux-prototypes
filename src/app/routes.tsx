@@ -199,6 +199,11 @@ const routes: AppRouteConfig[] = [
         title: 'ACM | Create Group',
       },
       {
+        element: <CreateGroup />,
+        path: '/user-management/groups/edit/:groupName',
+        title: 'ACM | Edit Group',
+      },
+      {
         element: <GroupDetail />,
         path: '/user-management/groups/:groupName',
         title: 'ACM | Group Detail',

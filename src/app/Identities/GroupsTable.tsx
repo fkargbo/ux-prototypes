@@ -78,12 +78,16 @@ export const GroupsTable: React.FunctionComponent = () => {
   const [isWizardOpen, setIsWizardOpen] = React.useState(false);
   const [selectedGroupForWizard, setSelectedGroupForWizard] = React.useState('');
   const [showSuccessAlert, setShowSuccessAlert] = React.useState(false);
+  const [showEditSuccessAlert, setShowEditSuccessAlert] = React.useState(false);
   const [newlyCreatedGroup, setNewlyCreatedGroup] = React.useState<string | null>(null);
+  const [editedGroupName, setEditedGroupName] = React.useState<string | null>(null);
   const [additionalGroups, setAdditionalGroups] = React.useState<any[]>([]);
 
-  // Check for newly created group from navigation state
+  // Check for newly created or edited group from navigation state
   React.useEffect(() => {
     const state = location.state as any;
+    
+    // Handle new group creation
     if (state?.newGroup && state?.showSuccessAlert) {
       const groupName = state.newGroup.name;
       const memberCount = state.newGroup.members.length;
@@ -117,6 +121,38 @@ export const GroupsTable: React.FunctionComponent = () => {
       // Auto-dismiss alert after 8 seconds
       setTimeout(() => {
         setShowSuccessAlert(false);
+      }, 8000);
+      
+      // Clear navigation state
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    
+    // Handle group edit
+    if (state?.updatedGroup && state?.showEditSuccessAlert) {
+      const updatedGroupData = state.updatedGroup;
+      const originalName = updatedGroupData.originalName;
+      const newName = updatedGroupData.name;
+      const memberCount = updatedGroupData.members.length;
+      
+      setAdditionalGroups(prev => {
+        return prev.map(group => {
+          if (group.name === originalName) {
+            return {
+              ...group,
+              name: newName,
+              members: memberCount,
+            };
+          }
+          return group;
+        });
+      });
+      
+      setEditedGroupName(newName);
+      setShowEditSuccessAlert(true);
+      
+      // Auto-dismiss alert after 8 seconds
+      setTimeout(() => {
+        setShowEditSuccessAlert(false);
       }, 8000);
       
       // Clear navigation state
@@ -223,6 +259,15 @@ export const GroupsTable: React.FunctionComponent = () => {
             timeout={8000}
             onTimeout={() => setShowSuccessAlert(false)}
             actionClose={<AlertActionCloseButton onClose={() => setShowSuccessAlert(false)} />}
+          />
+        )}
+        {showEditSuccessAlert && (
+          <Alert
+            variant="info"
+            title={`Local group "${editedGroupName}" successfully updated`}
+            timeout={8000}
+            onTimeout={() => setShowEditSuccessAlert(false)}
+            actionClose={<AlertActionCloseButton onClose={() => setShowEditSuccessAlert(false)} />}
           />
         )}
       </AlertGroup>
@@ -452,6 +497,16 @@ export const GroupsTable: React.FunctionComponent = () => {
                     shouldFocusToggleOnSelect
                   >
                   <DropdownList>
+                    {group.syncSource === 'Local' && (
+                      <DropdownItem
+                        key="edit"
+                        onClick={() => navigate(`/user-management/groups/edit/${group.name}`, {
+                          state: { groupData: group }
+                        })}
+                      >
+                        Edit
+                      </DropdownItem>
+                    )}
                     <DropdownItem
                       key="create-role-assignment"
                       onClick={() => handleCreateRoleAssignment(group.name)}
