@@ -344,6 +344,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
         // Step 1: User or Group selection
         if (identityType === 'user') {
           // For users: must select a user (either existing or saved pre-auth user)
+          // Next button disabled when selectedUser is null (including after deleting pre-auth user)
           return selectedUser === null;
         } else {
           // For groups: must select a group
@@ -1496,11 +1497,14 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                                     {
                                       title: 'Delete',
                                       onClick: () => {
+                                        // Clear pre-auth user and return to regular users table
                                         setPreauthorizedUserEntry(null);
+                                        // Clear selection to keep Next button disabled
                                         setSelectedUser(null);
                                         setPreauthorizeEmail('');
                                         setPreauthorizeIdpId('');
                                         setUserSearch('');
+                                        // User must now select an existing user from the table to proceed
                                       }
                                     }
                                   ]}
