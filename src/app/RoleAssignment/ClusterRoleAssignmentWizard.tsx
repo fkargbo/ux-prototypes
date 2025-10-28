@@ -30,9 +30,11 @@ import {
   EmptyState,
   EmptyStateBody,
   TextInput,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
-import { CaretDownIcon, CheckCircleIcon, CircleIcon, AngleLeftIcon, AngleRightIcon, ResourcesEmptyIcon, SyncAltIcon, TimesIcon } from '@patternfly/react-icons';
+import { CaretDownIcon, CheckCircleIcon, CircleIcon, AngleLeftIcon, AngleRightIcon, ResourcesEmptyIcon, SyncAltIcon, TimesIcon, FilterIcon } from '@patternfly/react-icons';
 import { getAllUsers, getAllGroups, getAllRoles, getAllClusters, getAllNamespaces, getAllClusterSets, getAllIdentityProviders } from '@app/data';
 
 const dbUsers = getAllUsers();
@@ -71,11 +73,29 @@ const mockGroups = dbGroups.map((group, index) => {
   };
 });
 
+// Map category to display category (plugin/source)
+const getCategoryDisplay = (category: string): string => {
+  switch (category) {
+    case 'kubevirt':
+      return 'Virtualization';
+    case 'cluster':
+      return 'OpenShift Cluster Management';
+    case 'namespace':
+      return 'OpenShift Namespace Management';
+    case 'application':
+      return 'Application Management';
+    default:
+      return 'OpenShift';
+  }
+};
+
 const mockRoles = dbRoles.map((role, index) => ({
   id: index + 1,
   name: role.name,
   displayName: role.displayName,
   type: role.type === 'default' ? 'Default' : 'Custom',
+  category: getCategoryDisplay(role.category),
+  description: role.description,
   resources: role.category === 'kubevirt' 
     ? ['VirtualMachines', 'VirtualMachineInstances'] 
     : role.category === 'cluster' 
@@ -144,6 +164,8 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
   const [rolesPerPage, setRolesPerPage] = React.useState(10);
   const [isRoleFilterOpen, setIsRoleFilterOpen] = React.useState(false);
   const [roleFilterType, setRoleFilterType] = React.useState('All');
+  const [isCategoryFilterOpen, setIsCategoryFilterOpen] = React.useState(false);
+  const [categoryFilter, setCategoryFilter] = React.useState('All');
   
   // Bulk selector dropdowns
   const [isUserBulkSelectorOpen, setIsUserBulkSelectorOpen] = React.useState(false);
@@ -339,7 +361,10 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
     // Filter by type
     const matchesType = roleFilterType === 'All' || role.type === roleFilterType;
     
-    return matchesSearch && matchesType;
+    // Filter by category
+    const matchesCategory = categoryFilter === 'All' || role.category === categoryFilter;
+    
+    return matchesSearch && matchesType && matchesCategory;
   });
 
   // Filter projects based on selected clusters and search
@@ -1252,44 +1277,88 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
               <ToolbarContent>
                 <ToolbarItem>
                   <Dropdown
-                    isOpen={isRoleFilterOpen}
-                    onSelect={() => setIsRoleFilterOpen(false)}
-                    onOpenChange={(isOpen: boolean) => setIsRoleFilterOpen(isOpen)}
+                    isOpen={isCategoryFilterOpen}
+                    onSelect={() => setIsCategoryFilterOpen(false)}
+                    onOpenChange={(isOpen: boolean) => setIsCategoryFilterOpen(isOpen)}
                     toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                       <MenuToggle 
                         ref={toggleRef} 
-                        onClick={() => setIsRoleFilterOpen(!isRoleFilterOpen)} 
-                        isExpanded={isRoleFilterOpen}
+                        onClick={() => setIsCategoryFilterOpen(!isCategoryFilterOpen)} 
+                        isExpanded={isCategoryFilterOpen}
                         variant="default"
+                        icon={<FilterIcon />}
                       >
-                        {roleFilterType}
+                        {categoryFilter}
                       </MenuToggle>
                     )}
                     popperProps={{
                       appendTo: () => document.body,
-                      
-                      
                     }}
                   >
                     <DropdownList>
-                      <DropdownItem onClick={() => { setRoleFilterType('All'); setIsRoleFilterOpen(false); }}>
-                        All
-                      </DropdownItem>
-                      <DropdownItem onClick={() => { setRoleFilterType('Default'); setIsRoleFilterOpen(false); }}>
-                        Default
-                      </DropdownItem>
-                      <DropdownItem onClick={() => { setRoleFilterType('Custom'); setIsRoleFilterOpen(false); }}>
-                        Custom
-                      </DropdownItem>
+                      {['All', 'Virtualization', 'OpenShift Cluster Management', 'OpenShift Namespace Management', 'Application Management', 'OpenShift'].map((category) => (
+                        <DropdownItem
+                          key={category}
+                          onClick={() => { 
+                            setCategoryFilter(category); 
+                            setIsCategoryFilterOpen(false);
+                            setRolesPage(1);
+                          }}
+                        >
+                          {category}
+                        </DropdownItem>
+                      ))}
                     </DropdownList>
                   </Dropdown>
                 </ToolbarItem>
-                <ToolbarItem>
+                <ToolbarItem style={{ minWidth: '180px', maxWidth: '240px' }}>
                   <SearchInput
                     placeholder="Search roles"
                     value={roleSearch}
                     onChange={(_event, value) => setRoleSearch(value)}
                     onClear={() => setRoleSearch('')}
+                  />
+                </ToolbarItem>
+                <ToolbarItem>
+                  <ToggleGroup aria-label="Role type filter">
+                    <ToggleGroupItem
+                      text="All"
+                      isSelected={roleFilterType === 'All'}
+                      onChange={() => {
+                        setRoleFilterType('All');
+                        setRolesPage(1);
+                      }}
+                    />
+                    <ToggleGroupItem
+                      text="Default"
+                      isSelected={roleFilterType === 'Default'}
+                      onChange={() => {
+                        setRoleFilterType('Default');
+                        setRolesPage(1);
+                      }}
+                    />
+                    <ToggleGroupItem
+                      text="Custom"
+                      isSelected={roleFilterType === 'Custom'}
+                      onChange={() => {
+                        setRoleFilterType('Custom');
+                        setRolesPage(1);
+                      }}
+                    />
+                  </ToggleGroup>
+                </ToolbarItem>
+                <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
+                  <Pagination
+                    itemCount={filteredRoles.length}
+                    perPage={rolesPerPage}
+                    page={rolesPage}
+                    onSetPage={(_event, pageNumber) => setRolesPage(pageNumber)}
+                    onPerPageSelect={(_event, perPage) => {
+                      setRolesPerPage(perPage);
+                      setRolesPage(1);
+                    }}
+                    variant={PaginationVariant.top}
+                    isCompact
                   />
                 </ToolbarItem>
               </ToolbarContent>
@@ -1298,10 +1367,10 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
               <Thead>
                 <Tr>
                   <Th width={10}></Th>
-                  <Th width={35}>Role</Th>
-                  <Th width={15}>Type</Th>
-                  <Th width={25}>Resources</Th>
-                  <Th width={20}>Permissions</Th>
+                  <Th width={25}>Role</Th>
+                  <Th width={35}>Description</Th>
+                  <Th width={20}>Category</Th>
+                  <Th width={10}>Type</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -1323,7 +1392,7 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
                     </Td>
                     <Td dataLabel="Role" style={{ textAlign: 'left', wordBreak: 'break-word' }}>
                       <div>
-                      <div style={{ fontWeight: selectedRole === role.id ? '600' : 'normal' }}>
+                        <div style={{ fontWeight: selectedRole === role.id ? '600' : 'normal' }}>
                           <a 
                             href="#"
                             onClick={(e) => {
@@ -1342,27 +1411,18 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
                           </a>
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                        {role.name}
+                          {role.name}
                         </div>
                       </div>
                     </Td>
+                    <Td dataLabel="Description" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', wordBreak: 'break-word' }}>
+                      {role.description}
+                    </Td>
+                    <Td dataLabel="Category" style={{ wordBreak: 'break-word' }}>
+                      {role.category}
+                    </Td>
                     <Td dataLabel="Type">
                       <Label color={role.type === 'Default' ? 'blue' : 'green'}>{role.type}</Label>
-                    </Td>
-                    <Td dataLabel="Resources" style={{ wordBreak: 'break-word' }}>
-                      <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
-                        {role.resources.join(', ')}
-                      </div>
-                    </Td>
-                    <Td dataLabel="Permissions">
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                        {role.permissions.slice(0, 2).map((perm) => (
-                          <Label key={perm} isCompact>{perm}</Label>
-                        ))}
-                        {role.permissions.length > 2 && (
-                          <Label isCompact>+{role.permissions.length - 2} more</Label>
-                        )}
-                      </div>
                     </Td>
                   </Tr>
                 ))}
