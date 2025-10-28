@@ -1159,8 +1159,8 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
             flexShrink: 0,
             margin: 0
           }}>
-            {renderStepIndicator(1, 'Select user or group')}
-            {renderStepIndicator(2, 'Select resources')}
+            {renderStepIndicator(1, 'Identities')}
+            {renderStepIndicator(2, 'Scope')}
             
             {/* Substeps for cluster-sets */}
             {currentStep === 2 && resourceScope === 'cluster-sets' && (
