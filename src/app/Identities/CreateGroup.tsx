@@ -569,6 +569,9 @@ ${usersSection}`;
                                 }
                               ]);
                               
+                              // Auto-select the pre-authorized member
+                              setSelectedUsers([...selectedUsers, preauthorizeEmail]);
+                              
                               // Reset form
                               setPreauthorizeEmail('');
                               setPreauthorizeIdpId(null);
@@ -632,8 +635,8 @@ ${usersSection}`;
                       {paginatedUsers.map(user => (
                         <Tr 
                           key={user.id}
-                          isClickable={!user.isPending}
-                          onRowClick={() => !user.isPending && handleUserToggle(user.username, !selectedUsers.includes(user.username))}
+                          isClickable
+                          onRowClick={() => handleUserToggle(user.username, !selectedUsers.includes(user.username))}
                         >
                           <Td>
                             <Checkbox
@@ -645,7 +648,6 @@ ${usersSection}`;
                               }}
                               aria-label={`Select ${user.name}`}
                               onClick={(event) => event.stopPropagation()}
-                              isDisabled={user.isPending}
                             />
                           </Td>
                           <Td>
@@ -665,8 +667,8 @@ ${usersSection}`;
                               </Button>
                             )}
                           </Td>
-                          <Td>{user.username}</Td>
-                          <Td>{user.email}</Td>
+                          <Td>{user.isPending ? '—' : user.username}</Td>
+                          <Td>{user.isPending ? '—' : user.email}</Td>
                           <Td>{user.isPending && user.provider === 'Any' ? '—' : user.ldap}</Td>
                           <Td>
                             {user.isPending ? (
