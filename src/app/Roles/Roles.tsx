@@ -437,6 +437,16 @@ const Roles: React.FunctionComponent = () => {
                     shouldFocusToggleOnSelect
                   >
                     <DropdownList>
+                      {role.type === 'Custom' && (
+                        <DropdownItem
+                          key="edit"
+                          onClick={() => navigate(`/user-management/roles/edit/${role.name}`, {
+                            state: { roleData: role }
+                          })}
+                        >
+                          Edit role
+                        </DropdownItem>
+                      )}
                       <DropdownItem
                         key="duplicate"
                         onClick={() => handleDuplicateRole(role.id, role.name)}

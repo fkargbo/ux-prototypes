@@ -225,6 +225,11 @@ const routes: AppRouteConfig[] = [
         title: 'ACM | Create Role',
       },
       {
+        element: <CreateRole />,
+        path: '/user-management/roles/edit/:roleName',
+        title: 'ACM | Edit Role',
+      },
+      {
         element: <RoleDetail />,
         path: '/user-management/roles/:roleName',
         title: 'ACM | Role Detail',

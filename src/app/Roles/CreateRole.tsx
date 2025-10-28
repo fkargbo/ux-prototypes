@@ -45,7 +45,7 @@ import {
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { PlusCircleIcon, MinusCircleIcon, DownloadIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
 interface PermissionRule {
@@ -56,12 +56,19 @@ interface PermissionRule {
 }
 
 const CreateRole: React.FunctionComponent = () => {
-  useDocumentTitle('ACM RBAC | Create Custom Role');
   const navigate = useNavigate();
+  const location = useLocation();
+  const { roleName: roleNameParam } = useParams<{ roleName: string }>();
   
-  const [roleName, setRoleName] = React.useState('my-custom-role');
-  const [description, setDescription] = React.useState('');
-  const [category, setCategory] = React.useState('');
+  // Determine if we're in edit mode
+  const isEditMode = location.pathname.includes('/edit/');
+  const roleData = location.state?.roleData;
+  
+  useDocumentTitle(isEditMode ? 'ACM RBAC | Edit Custom Role' : 'ACM RBAC | Create Custom Role');
+  
+  const [roleName, setRoleName] = React.useState(isEditMode && roleData ? roleData.name : 'my-custom-role');
+  const [description, setDescription] = React.useState(isEditMode && roleData ? roleData.description || '' : '');
+  const [category, setCategory] = React.useState(isEditMode && roleData ? roleData.category || '' : '');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = React.useState(false);
   const [isCreatingNewCategory, setIsCreatingNewCategory] = React.useState(false);
   const [labels, setLabels] = React.useState<Array<{ id: number; key: string; value: string }>>([]);
@@ -697,13 +704,13 @@ ${rule.verbs.map(v => `  - "${v}"`).join('\n')}`).join('\n')}`;
                 <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/user-management/roles'); }}>
                   Roles
                 </BreadcrumbItem>
-                <BreadcrumbItem isActive>Create custom role</BreadcrumbItem>
+                <BreadcrumbItem isActive>{isEditMode ? 'Edit custom role' : 'Create custom role'}</BreadcrumbItem>
               </Breadcrumb>
 
               <Split hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                 <SplitItem isFilled>
                   <Title headingLevel="h1" size="2xl">
-                    Create custom role
+                    {isEditMode ? 'Edit custom role' : 'Create custom role'}
                   </Title>
                 </SplitItem>
                 <SplitItem>
@@ -1245,7 +1252,7 @@ ${rule.verbs.map(v => `  - "${v}"`).join('\n')}`).join('\n')}`;
 
           <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
             <Button variant="primary" onClick={handleCreateRole}>
-              Create Role
+              {isEditMode ? 'Save' : 'Create Role'}
             </Button>{' '}
             <Button variant="link" onClick={handleCancel}>
               Cancel
