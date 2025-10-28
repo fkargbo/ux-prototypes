@@ -33,10 +33,11 @@ import {
   ToggleGroupItem,
   EmptyState,
   EmptyStateBody,
+  TextInput,
 } from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
 import { CaretDownIcon, CheckCircleIcon, AngleLeftIcon, AngleRightIcon, ResourcesEmptyIcon, TimesIcon, FilterIcon, SyncAltIcon } from '@patternfly/react-icons';
-import { getAllUsers, getAllGroups, getAllRoles, getAllClusters, getAllNamespaces, getAllClusterSets } from '@app/data';
+import { getAllUsers, getAllGroups, getAllRoles, getAllClusters, getAllNamespaces, getAllClusterSets, getAllIdentityProviders } from '@app/data';
 
 const dbUsers = getAllUsers();
 const dbGroups = getAllGroups();
@@ -44,6 +45,7 @@ const dbRoles = getAllRoles();
 const dbClusters = getAllClusters();
 const dbNamespaces = getAllNamespaces();
 const dbClusterSets = getAllClusterSets();
+const dbIdentityProviders = getAllIdentityProviders();
 
 const mockUsers = dbUsers.map((user, index) => ({
   id: index + 1,
@@ -142,6 +144,13 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
   const [isGroupFilterOpen, setIsGroupFilterOpen] = React.useState(false);
   const [groupFilterType, setGroupFilterType] = React.useState('Group');
   
+  // Pre-authorization fields (for users only)
+  const [isPreauthorizing, setIsPreauthorizing] = React.useState(false);
+  const [preauthorizeEmail, setPreauthorizeEmail] = React.useState('');
+  const [preauthorizeIdpId, setPreauthorizeIdpId] = React.useState<string>('');
+  const [isIdpDropdownOpen, setIsIdpDropdownOpen] = React.useState(false);
+  const [preauthorizedUserEntry, setPreauthorizedUserEntry] = React.useState<any>(null);
+  
   // Step 2: Resources - simplified inline structure
   const [resourceScope, setResourceScope] = React.useState<'all' | 'clusters'>('all');
   const [selectedClusters, setSelectedClusters] = React.useState<number[]>([]);
@@ -190,6 +199,10 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
     setSelectedGroup(null);
     setUserSearch('');
     setGroupSearch('');
+    setIsPreauthorizing(false);
+    setPreauthorizeEmail('');
+    setPreauthorizeIdpId('');
+    setPreauthorizedUserEntry(null);
     setResourceScope('all');
     setSelectedClusters([]);
     setClusterSearch('');
@@ -242,32 +255,74 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
   };
 
   const handleFinish = () => {
-    const identityType = activeTabKey === 0 ? 'user' : 'group';
-    const identityId = activeTabKey === 0 ? selectedUser : selectedGroup;
-    const identityName = activeTabKey === 0 
-      ? mockUsers.find(u => u.id === selectedUser)?.name || 'Unknown'
-      : mockGroups.find(g => g.id === selectedGroup)?.name || 'Unknown';
+    // Get the identity name and type
+    let identityName = '';
+    let identityTypeValue = '';
     
-    const roleData = mockRoles.find(r => r.id === selectedRole);
-    const roleName = roleData?.name || 'Unknown';
-    const roleDisplayName = roleData?.displayName || roleName;
+    if (isPreauthorizing) {
+      // Pre-authorization mode (users only)
+      const idpName = preauthorizeIdpId 
+        ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name 
+        : undefined;
+      
+      const roleData = mockRoles.find(r => r.id === selectedRole);
+      const roleName = roleData?.name || 'Unknown';
+      
+      onComplete({
+        assignmentMode: 'preauthorize',
+        identityType: 'user',
+        preauthorizeEmail,
+        preauthorizeIdpId: preauthorizeIdpId || undefined,
+        preauthorizeIdpName: idpName,
+        identityName: preauthorizeEmail,
+        roleId: selectedRole,
+        roleName,
+        resourceScope,
+        selectedClusters,
+        status: 'Pending'
+      });
+    } else {
+      // Existing user/group mode
+      const identityType = activeTabKey === 0 ? 'user' : 'group';
+      const identityId = activeTabKey === 0 ? selectedUser : selectedGroup;
+      identityName = activeTabKey === 0 
+        ? mockUsers.find(u => u.id === selectedUser)?.name || 'Unknown'
+        : mockGroups.find(g => g.id === selectedGroup)?.name || 'Unknown';
+      
+      const roleData = mockRoles.find(r => r.id === selectedRole);
+      const roleName = roleData?.name || 'Unknown';
 
-    onComplete({
-      identityType,
-      identityId,
-      identityName,
-      roleId: selectedRole,
-      roleName,
-      resourceScope,
-      selectedClusters,
-    });
+      onComplete({
+        assignmentMode: 'existing',
+        identityType,
+        identityId,
+        identityName,
+        roleId: selectedRole,
+        roleName,
+        resourceScope,
+        selectedClusters,
+        status: 'Active'
+      });
+    }
     
     resetWizard();
   };
 
   const isNextDisabled = () => {
     if (currentStep === 1) {
-      return activeTabKey === 0 ? selectedUser === null : selectedGroup === null;
+      if (activeTabKey === 0) {
+        // For users: must select a user (existing or saved pre-auth user)
+        // Next button disabled when selectedUser is null (including after deleting pre-auth user)
+        if (selectedUser === null) return true;
+        
+        // Additional check: ensure selected user exists in current filtered users
+        // This handles cases where pre-auth user was deleted
+        const userExists = filteredUsers.some(u => u.id === selectedUser);
+        return !userExists;
+      } else {
+        // For groups: must select a group
+        return selectedGroup === null;
+      }
     }
     if (currentStep === 2) {
       if (!showAccessLevel) {
@@ -338,9 +393,17 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
     }));
   }, [clusterSetName]);
 
-  const filteredUsers = mockUsers.filter(user =>
-    user.name.toLowerCase().includes(userSearch.toLowerCase())
-  );
+  const filteredUsers = React.useMemo(() => {
+    // If we have a pre-authorized user saved, show only that
+    if (preauthorizedUserEntry) {
+      return [preauthorizedUserEntry];
+    }
+    
+    // Otherwise show filtered existing users
+    return mockUsers.filter(user =>
+      user.name.toLowerCase().includes(userSearch.toLowerCase())
+    );
+  }, [preauthorizedUserEntry, userSearch]);
 
   const filteredGroups = mockGroups.filter(group =>
     group.name.toLowerCase().includes(groupSearch.toLowerCase())
@@ -1059,9 +1122,29 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
         {/* Step 1: Select User or Group */}
         {currentStep === 1 && (
           <>
-            <Title headingLevel="h2" size="xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              Select user or group
+            <Title headingLevel="h2" size="xl" style={{ marginBottom: '8px' }}>
+              Identities
             </Title>
+            <Content component="p" style={{ marginBottom: '24px', color: '#6a6e73', fontSize: '14px' }}>
+              Select a user or group to assign this role, or{' '}
+              <Button 
+                variant="link" 
+                isInline 
+                onClick={() => {
+                  setActiveTabKey(0);
+                  setIsPreauthorizing(true);
+                  setSelectedUser(null);
+                  setSelectedGroup(null);
+                  setPreauthorizeEmail('');
+                  setPreauthorizeIdpId('');
+                  setPreauthorizedUserEntry(null);
+                  setUserSearch('');
+                }}
+                style={{ padding: 0, fontSize: '14px', verticalAlign: 'baseline' }}
+              >
+                add pre-authorized user
+              </Button>
+            </Content>
             
             <Tabs
               activeKey={activeTabKey}
@@ -1069,6 +1152,12 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                 setActiveTabKey(Number(tabIndex));
                 setSelectedUser(null);
                 setSelectedGroup(null);
+                setIsPreauthorizing(false);
+                setPreauthorizeEmail('');
+                setPreauthorizeIdpId('');
+                setPreauthorizedUserEntry(null);
+                setUserSearch('');
+                setGroupSearch('');
               }}
               aria-label="Select user or group tabs"
               className="custom-tabs-selected"
@@ -1136,6 +1225,8 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                       </ToolbarItem>
                     </ToolbarContent>
                   </Toolbar>
+                  
+                  {!isPreauthorizing && filteredUsers.length > 0 && (
                   <Table aria-label="Users table" variant="compact">
                     <Thead>
                       <Tr>
@@ -1143,6 +1234,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                         <Th>User</Th>
                         <Th>Identity provider</Th>
                         <Th>Created</Th>
+                        {preauthorizedUserEntry && <Th></Th>}
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -1169,26 +1261,200 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                             />
                           </Td>
                           <Td dataLabel="User">
-                            <Button 
-                              variant="link" 
-                              isInline 
-                              component="a" 
-                              href={`#/user-management/identities/${encodeURIComponent(user.username)}`}
-                              target="_blank"
-                              style={{ padding: 0, fontSize: 'inherit', fontWeight: selectedUser === user.id ? '600' : 'normal' }}
-                            >
-                              {user.name}
-                            </Button>
-                            <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                              {user.username}
+                            <div>
+                              {user.isPending ? (
+                                <span style={{ fontSize: 'inherit', fontWeight: 600 }}>{user.name}</span>
+                              ) : (
+                                <>
+                                  <Button 
+                                    variant="link" 
+                                    isInline 
+                                    component="a" 
+                                    href={`#/user-management/identities/${encodeURIComponent(user.username)}`}
+                                    target="_blank"
+                                    style={{ padding: 0, fontSize: 'inherit', fontWeight: selectedUser === user.id ? '600' : 'normal' }}
+                                  >
+                                    {user.name}
+                                  </Button>
+                                  <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    {user.username}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </Td>
-                          <Td dataLabel="Identity provider">{user.provider}</Td>
-                          <Td dataLabel="Created">{user.created}</Td>
+                          <Td dataLabel="Identity provider">
+                            {user.isPending && user.provider === 'Any' ? '—' : user.provider}
+                          </Td>
+                          <Td dataLabel="Created">
+                            {user.isPending ? (
+                              <Label color="orange">Pending</Label>
+                            ) : (
+                              user.created
+                            )}
+                          </Td>
+                          {user.isPending && (
+                            <Td isActionCell>
+                              <ActionsColumn
+                                items={[
+                                  {
+                                    title: 'Delete',
+                                    onClick: (event) => {
+                                      event.stopPropagation();
+                                      setPreauthorizedUserEntry(null);
+                                      setSelectedUser(null);
+                                      setPreauthorizeEmail('');
+                                      setPreauthorizeIdpId('');
+                                      setUserSearch('');
+                                    }
+                                  }
+                                ]}
+                              />
+                            </Td>
+                          )}
                         </Tr>
                       ))}
                     </Tbody>
                   </Table>
+                  )}
+                  
+                  {!isPreauthorizing && filteredUsers.length === 0 && userSearch.trim() !== '' && (
+                    <EmptyState>
+                      <ResourcesEmptyIcon />
+                      <Title headingLevel="h2" size="lg">
+                        No users found
+                      </Title>
+                      <EmptyStateBody>
+                        No users match your search criteria.
+                      </EmptyStateBody>
+                      <Button 
+                        variant="primary"
+                        onClick={() => {
+                          setIsPreauthorizing(true);
+                          setPreauthorizeEmail(userSearch);
+                          setSelectedUser(null);
+                        }}
+                      >
+                        Pre-authorize "{userSearch}"
+                      </Button>
+                    </EmptyState>
+                  )}
+                  
+                  {isPreauthorizing && (
+                    <div style={{ marginTop: '16px' }}>
+                      <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)', fontSize: '14px', color: '#6a6e73' }}>
+                        This role assignment will activate automatically on the user's first login.
+                      </Content>
+                      
+                      <Form>
+                        <FormGroup 
+                          label="User identifier" 
+                          isRequired 
+                          fieldId="preauthorize-email"
+                        >
+                          <TextInput
+                            isRequired
+                            type="text"
+                            id="preauthorize-email"
+                            name="preauthorize-email"
+                            value={preauthorizeEmail}
+                            onChange={(_event, value) => setPreauthorizeEmail(value)}
+                            placeholder="user@company.com or username"
+                          />
+                        </FormGroup>
+                        
+                        <FormGroup 
+                          label="Identity Provider (optional)" 
+                          fieldId="preauthorize-idp"
+                          style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                        >
+                          <Content component="p" style={{ marginBottom: '8px', fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                            Select the identity provider if known
+                          </Content>
+                          <Dropdown
+                            isOpen={isIdpDropdownOpen}
+                            onSelect={() => setIsIdpDropdownOpen(false)}
+                            onOpenChange={(isOpen: boolean) => setIsIdpDropdownOpen(isOpen)}
+                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                              <MenuToggle 
+                                ref={toggleRef} 
+                                onClick={() => setIsIdpDropdownOpen(!isIdpDropdownOpen)} 
+                                isExpanded={isIdpDropdownOpen}
+                                variant="default"
+                                style={{ width: '100%' }}
+                              >
+                                {preauthorizeIdpId 
+                                  ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name 
+                                  : 'Any identity provider'}
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              {dbIdentityProviders.map((idp) => (
+                                <DropdownItem 
+                                  key={idp.id}
+                                  onClick={() => {
+                                    setPreauthorizeIdpId(idp.id);
+                                    setIsIdpDropdownOpen(false);
+                                  }}
+                                >
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                                    <FlexItem>
+                                      <Label color="blue" icon={<SyncAltIcon />}>{idp.type}</Label>
+                                    </FlexItem>
+                                    <FlexItem>{idp.name}</FlexItem>
+                                  </Flex>
+                                </DropdownItem>
+                              ))}
+                            </DropdownList>
+                          </Dropdown>
+                        </FormGroup>
+
+                        <div style={{ marginTop: 'var(--pf-t--global--spacer--md)', display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                          <Button 
+                            variant="primary"
+                            onClick={() => {
+                              const idpName = preauthorizeIdpId 
+                                ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name 
+                                : 'Any';
+                              
+                              const tempUserId = -1;
+                              const newUserEntry = {
+                                id: tempUserId,
+                                dbId: '',
+                                name: preauthorizeEmail,
+                                username: preauthorizeEmail,
+                                provider: idpName,
+                                created: 'Pending',
+                                isPending: true,
+                              };
+                              
+                              setPreauthorizedUserEntry(newUserEntry);
+                              setSelectedUser(null);
+                              setIsPreauthorizing(false);
+                            }}
+                            isDisabled={!preauthorizeEmail.trim()}
+                          >
+                            Save pre-authorized user
+                          </Button>
+                          <Button 
+                            variant="link" 
+                            onClick={() => {
+                              setIsPreauthorizing(false);
+                              setPreauthorizeEmail('');
+                              setPreauthorizeIdpId('');
+                              setPreauthorizedUserEntry(null);
+                              setUserSearch('');
+                            }}
+                          >
+                            Cancel and search users instead
+                          </Button>
+                        </div>
+                      </Form>
+                    </div>
+                  )}
+                  
+                  {!isPreauthorizing && filteredUsers.length > 0 && (
                   <Pagination
                     itemCount={filteredUsers.length}
                     perPage={usersPerPage}
@@ -1201,6 +1467,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                     variant={PaginationVariant.bottom}
                     style={{ marginTop: '16px' }}
                   />
+                  )}
                 </div>
               </Tab>
               
@@ -1929,7 +2196,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
-                  Select user or group
+                  {isPreauthorizing ? 'Pre-auth user' : (activeTabKey === 0 ? 'User' : 'Group')}
                 </Title>
                 <Button 
                   variant="link" 
@@ -1941,19 +2208,66 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                 </Button>
               </div>
               <div style={{ marginLeft: '16px' }}>
-                <Content component="p" style={{ 
-                  marginBottom: '4px', 
-                  fontSize: '14px', 
-                  fontWeight: 600,
-                  color: '#151515'
-                }}>
-                  {activeTabKey === 0 ? 'User' : 'Group'}
-                </Content>
-                <Content component="p" style={{ fontSize: '14px', color: '#6a6e73' }}>
-                  {activeTabKey === 0 
-                    ? mockUsers.find(u => u.id === selectedUser)?.name
-                    : mockGroups.find(g => g.id === selectedGroup)?.name}
-                </Content>
+                {isPreauthorizing ? (
+                  <>
+                    <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                      <FlexItem>
+                        <Label color="orange" icon={<TimesIcon />}>Pending</Label>
+                      </FlexItem>
+                      <FlexItem>
+                        <Content component="p" style={{ 
+                          marginBottom: '4px', 
+                          fontSize: '14px', 
+                          fontWeight: 600,
+                          color: '#151515'
+                        }}>
+                          User identifier
+                        </Content>
+                        <Content component="p" style={{ fontSize: '14px', color: '#6a6e73' }}>
+                          {preauthorizeEmail}
+                        </Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Content component="p" style={{ 
+                          marginBottom: '4px', 
+                          fontSize: '14px', 
+                          fontWeight: 600,
+                          color: '#151515'
+                        }}>
+                          Identity Provider
+                        </Content>
+                        <Content component="p" style={{ fontSize: '14px', color: '#6a6e73' }}>
+                          {preauthorizeIdpId 
+                            ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name || 'Unknown IDP'
+                            : 'Any (not specified)'}
+                        </Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Alert variant="info" isInline title="Will activate on first login" style={{ marginTop: '8px' }}>
+                          <Content component="p" style={{ fontSize: '0.875rem' }}>
+                            This role assignment will automatically become active when the user logs in for the first time.
+                          </Content>
+                        </Alert>
+                      </FlexItem>
+                    </Flex>
+                  </>
+                ) : (
+                  <>
+                    <Content component="p" style={{ 
+                      marginBottom: '4px', 
+                      fontSize: '14px', 
+                      fontWeight: 600,
+                      color: '#151515'
+                    }}>
+                      {activeTabKey === 0 ? 'User' : 'Group'}
+                    </Content>
+                    <Content component="p" style={{ fontSize: '14px', color: '#6a6e73' }}>
+                      {activeTabKey === 0 
+                        ? mockUsers.find(u => u.id === selectedUser)?.name
+                        : mockGroups.find(g => g.id === selectedGroup)?.name}
+                    </Content>
+                  </>
+                )}
               </div>
             </div>
 
