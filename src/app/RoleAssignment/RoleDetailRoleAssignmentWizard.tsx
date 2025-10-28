@@ -1611,7 +1611,8 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                             };
                             
                             setPreauthorizedUserEntry(newUserEntry);
-                            setSelectedUser(tempUserId);
+                            // Don't auto-select - user must explicitly select the pre-auth user
+                            setSelectedUser(null);
                             setIsPreauthorizing(false);
                           }}
                           isDisabled={!preauthorizeEmail.trim()}
