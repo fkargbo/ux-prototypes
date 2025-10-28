@@ -1478,22 +1478,13 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                 )}
 
                 {isPreauthorizing && (
-                  <div style={{ 
-                    backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', 
-                    padding: 'var(--pf-t--global--spacer--lg)',
-                    borderRadius: 'var(--pf-t--global--border--radius--medium)',
-                    marginTop: '16px'
-                  }}>
+                  <div style={{ marginTop: '16px' }}>
                     <Alert 
                       variant="info" 
                       isInline 
-                      title="Pre-authorization will take effect on first login"
+                      title="This role assignment will activate automatically on the user's first login"
                       style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                    >
-                      <Content component="p">
-                        This role assignment will automatically activate when the user logs in for the first time.
-                      </Content>
-                    </Alert>
+                    />
                     
                     <Form>
                       <FormGroup 
