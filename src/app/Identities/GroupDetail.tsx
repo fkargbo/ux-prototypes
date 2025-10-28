@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Title,
   Tabs,
@@ -51,6 +51,7 @@ import { getAllGroups, getUsersByGroup, getAllClusters, getAllClusterSets, getAl
 const GroupDetail: React.FunctionComponent = () => {
   const { groupName } = useParams<{ groupName: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
   const [isWizardOpen, setIsWizardOpen] = React.useState(false);
@@ -323,10 +324,15 @@ const GroupDetail: React.FunctionComponent = () => {
   };
 
   const DetailsTab = () => {
-    // Get group data from centralized database
+    // Get group data from centralized database and location state
     const allGroups = getAllGroups();
     const currentGroup = allGroups.find(g => g.name === groupName);
     const groupUsers = currentGroup ? getUsersByGroup(currentGroup.id) : [];
+    
+    // Get pre-authorized members from location state (if navigated from groups table)
+    const groupData = (location.state as any)?.groupData;
+    const preauthorizedMembers = groupData?.preauthorizedMembers || [];
+    const totalMembers = groupUsers.length + preauthorizedMembers.length;
     
     // Determine sync source and last synced (same logic as GroupsTable)
     const groupIndex = allGroups.findIndex(g => g.name === groupName);
@@ -371,7 +377,14 @@ const GroupDetail: React.FunctionComponent = () => {
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Number of users</DescriptionListTerm>
-              <DescriptionListDescription>{groupUsers.length}</DescriptionListDescription>
+              <DescriptionListDescription>
+                {totalMembers}
+                {preauthorizedMembers.length > 0 && (
+                  <span style={{ marginLeft: '8px', color: 'var(--pf-t--global--color--nonstatus--orange--default)', fontSize: '14px' }}>
+                    ({preauthorizedMembers.length} pending)
+                  </span>
+                )}
+              </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>
         </CardBody>
@@ -761,10 +774,14 @@ users:
   };
 
   const UsersTab = () => {
-    // Get group data from centralized database
+    // Get group data from centralized database and location state
     const allGroups = getAllGroups();
     const currentGroup = allGroups.find(g => g.name === groupName);
     const groupUsers = currentGroup ? getUsersByGroup(currentGroup.id) : [];
+    
+    // Get pre-authorized members from location state (if navigated from groups table)
+    const groupData = (location.state as any)?.groupData;
+    const preauthorizedMembers = groupData?.preauthorizedMembers || [];
     
     // Determine if group is synced from Identity Provider (same logic as GroupsTable)
     const groupIndex = allGroups.findIndex(g => g.name === groupName);
@@ -778,12 +795,26 @@ users:
       username: user.username,
       identityProvider: 'LDAP',
       created: new Date(user.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      isPending: false,
     }));
+    
+    // Add pre-authorized members as pending users
+    const pendingUsers = preauthorizedMembers.map((member: any, index: number) => ({
+      id: -(index + 1), // Negative IDs for pending users
+      name: member.identifier,
+      username: member.identifier,
+      identityProvider: member.idpName || 'Any',
+      created: '—',
+      isPending: true,
+    }));
+    
+    // Combine active and pending users
+    const allUsers = [...mockUsers, ...pendingUsers];
 
     const [selectedUsers, setSelectedUsers] = React.useState<Set<number>>(new Set());
     const [isBulkActionOpen, setIsBulkActionOpen] = React.useState(false);
 
-    const filteredUsers = mockUsers.filter(user =>
+    const filteredUsers = allUsers.filter(user =>
       user.name.toLowerCase().includes(searchValue.toLowerCase()) ||
       user.username.toLowerCase().includes(searchValue.toLowerCase())
     );
@@ -1006,9 +1037,13 @@ users:
                       </FlexItem>
                       <FlexItem>
                         <div>
-                          <Button variant="link" isInline className="pf-v6-u-p-0">
-                            {user.name}
-                          </Button>
+                          {user.isPending ? (
+                            <span style={{ fontWeight: 'bold' }}>{user.name}</span>
+                          ) : (
+                            <Button variant="link" isInline className="pf-v6-u-p-0">
+                              {user.name}
+                            </Button>
+                          )}
                           <div className="pf-v6-u-font-size-sm pf-v6-u-color-200">
                             {user.username}
                           </div>
@@ -1017,9 +1052,17 @@ users:
                     </Flex>
                   </Td>
                   <Td dataLabel="Identity provider">
-                    <Label color="blue">{user.identityProvider}</Label>
+                    <Label color={user.isPending ? "grey" : "blue"}>
+                      {user.identityProvider}
+                    </Label>
                   </Td>
-                  <Td dataLabel="Created">{user.created}</Td>
+                  <Td dataLabel="Created">
+                    {user.isPending ? (
+                      <Label color="orange">Pending</Label>
+                    ) : (
+                      user.created
+                    )}
+                  </Td>
                   {!isSynced && (
                     <Td dataLabel="Actions">
                       <Button variant="plain" aria-label="Actions">

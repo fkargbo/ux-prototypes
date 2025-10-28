@@ -91,6 +91,8 @@ export const GroupsTable: React.FunctionComponent = () => {
     if (state?.newGroup && state?.showSuccessAlert) {
       const groupName = state.newGroup.name;
       const memberCount = state.newGroup.members.length;
+      const preauthorizedMembers = state.newGroup.preauthorizedMembers || [];
+      const totalMembers = memberCount + preauthorizedMembers.length;
       
       setAdditionalGroups(prev => {
         // Check if this group already exists in the current state
@@ -106,7 +108,9 @@ export const GroupsTable: React.FunctionComponent = () => {
         const newGroup = {
           id: newId,
           name: groupName,
-          members: memberCount,
+          members: totalMembers,
+          activeMembers: state.newGroup.members,
+          preauthorizedMembers: preauthorizedMembers,
           created: new Date().toLocaleDateString(),
           syncSource: 'Local',
           lastSynced: null,
@@ -133,6 +137,8 @@ export const GroupsTable: React.FunctionComponent = () => {
       const originalName = updatedGroupData.originalName;
       const newName = updatedGroupData.name;
       const memberCount = updatedGroupData.members.length;
+      const preauthorizedMembers = updatedGroupData.preauthorizedMembers || [];
+      const totalMembers = memberCount + preauthorizedMembers.length;
       
       setAdditionalGroups(prev => {
         return prev.map(group => {
@@ -140,7 +146,9 @@ export const GroupsTable: React.FunctionComponent = () => {
             return {
               ...group,
               name: newName,
-              members: memberCount,
+              members: totalMembers,
+              activeMembers: updatedGroupData.members,
+              preauthorizedMembers: preauthorizedMembers,
             };
           }
           return group;
@@ -447,10 +455,12 @@ export const GroupsTable: React.FunctionComponent = () => {
                 }}
               />
               <Td dataLabel="Group" width={20}>
-                <Button
+                <Button 
                   variant="link"
                   isInline
-                  onClick={() => navigate(`/user-management/groups/${group.name}`)}
+                  onClick={() => navigate(`/user-management/groups/${group.name}`, {
+                    state: { groupData: group }
+                  })}
                 >
                   {group.name}
                 </Button>
