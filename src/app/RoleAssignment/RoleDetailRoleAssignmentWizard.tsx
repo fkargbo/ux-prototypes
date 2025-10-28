@@ -343,12 +343,8 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
     if (currentStep === 1) {
         // Step 1: User or Group selection
         if (identityType === 'user') {
-          // For users: either select existing user OR pre-authorize with email
-          if (isPreauthorizing) {
-            return !preauthorizeEmail.trim();
-          } else {
-            return selectedUser === null;
-          }
+          // For users: must select a user (either existing or saved pre-auth user)
+          return selectedUser === null;
         } else {
           // For groups: must select a group
           return selectedGroup === null;
