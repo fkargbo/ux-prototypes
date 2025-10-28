@@ -95,14 +95,14 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
   const [clustersPerPage, setClustersPerPage] = React.useState(10);
   
   // Step 1: Select user or group
-  const [assignmentMode, setAssignmentMode] = React.useState<'existing' | 'preauthorize'>('existing');
   const [identityType, setIdentityType] = React.useState<'user' | 'group'>('user');
   const [selectedUser, setSelectedUser] = React.useState<number | null>(null);
   const [selectedGroup, setSelectedGroup] = React.useState<number | null>(null);
   const [userSearch, setUserSearch] = React.useState('');
   const [groupSearch, setGroupSearch] = React.useState('');
   
-  // Pre-authorization fields
+  // Pre-authorization fields (for users only)
+  const [isPreauthorizing, setIsPreauthorizing] = React.useState(false);
   const [preauthorizeEmail, setPreauthorizeEmail] = React.useState('');
   const [preauthorizeIdpId, setPreauthorizeIdpId] = React.useState<string>('');
   const [isIdpDropdownOpen, setIsIdpDropdownOpen] = React.useState(false);
@@ -284,15 +284,15 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
     let identityName = '';
     let identityTypeValue = '';
     
-    if (assignmentMode === 'preauthorize') {
-      // Pre-authorization mode
+    if (isPreauthorizing) {
+      // Pre-authorization mode (users only)
       const idpName = preauthorizeIdpId 
         ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name 
         : undefined;
       
       onComplete({
         assignmentMode: 'preauthorize',
-        identityType: 'user', // Pre-authorization is always for users
+        identityType: 'user',
         preauthorizeEmail,
         preauthorizeIdpId: preauthorizeIdpId || undefined,
         preauthorizeIdpName: idpName,
@@ -340,12 +340,17 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
   const isNextDisabled = () => {
     const disabled = (() => {
     if (currentStep === 1) {
-        // Step 1: User or Group selection - must select either a user or group, OR pre-authorize with valid email (IDP is optional)
-        if (assignmentMode === 'existing') {
-          return (identityType === 'user' && selectedUser === null) || (identityType === 'group' && selectedGroup === null);
+        // Step 1: User or Group selection
+        if (identityType === 'user') {
+          // For users: either select existing user OR pre-authorize with email
+          if (isPreauthorizing) {
+            return !preauthorizeEmail.trim();
+          } else {
+            return selectedUser === null;
+          }
         } else {
-          // Pre-authorize mode: require email/username only (IDP is optional)
-          return !preauthorizeEmail.trim();
+          // For groups: must select a group
+          return selectedGroup === null;
         }
     }
     if (currentStep === 2) {
@@ -1306,166 +1311,47 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
               Identities
             </Title>
             <Content component="p" style={{ marginBottom: '24px', color: '#6a6e73', fontSize: '14px' }}>
-              Assign this role to an existing identity or pre-authorize for a future user.
+              Select a user or group to assign this role.
             </Content>
 
-            {/* Mode Selection */}
-            <Form style={{ marginBottom: '24px' }}>
-              <FormGroup>
-                <Radio
-                  isChecked={assignmentMode === 'existing'}
-                  name="assignment-mode"
-                  onChange={() => {
-                    setAssignmentMode('existing');
-                    setPreauthorizeEmail('');
-                    setPreauthorizeIdpId('');
-                  }}
-                  label="Existing users or groups"
-                  id="mode-existing"
-                  description="Select from users and groups that have already logged in"
-                />
-                <Radio
-                  isChecked={assignmentMode === 'preauthorize'}
-                  name="assignment-mode"
-                  onChange={() => {
-                    setAssignmentMode('preauthorize');
-                    setSelectedUser(null);
-                    setSelectedGroup(null);
-                  }}
-                  label="Pre-authorize future user"
-                  id="mode-preauthorize"
-                  description="Grant permissions that will activate when a user logs in for the first time"
-                  style={{ marginTop: '12px' }}
-                />
-              </FormGroup>
-            </Form>
+            <Tabs
+              activeKey={identityType}
+              onSelect={(_event, tabIndex) => {
+                setIdentityType(tabIndex as 'user' | 'group');
+                setSelectedUser(null);
+                setSelectedGroup(null);
+                setIsPreauthorizing(false);
+                setPreauthorizeEmail('');
+                setPreauthorizeIdpId('');
+                setUserSearch('');
+                setGroupSearch('');
+              }}
+              aria-label="Select user or group"
+              style={{ marginBottom: '24px' }}
+            >
+              <Tab 
+                eventKey="user" 
+                title={<TabTitleText>Users</TabTitleText>}
+                aria-label="Users tab"
+                style={{
+                  borderBottom: identityType === 'user' ? '3px solid #0066cc' : 'none',
+                  color: identityType === 'user' ? '#0066cc' : '#6a6e73',
+                  fontWeight: identityType === 'user' ? 600 : 400
+                }}
+              />
+              <Tab 
+                eventKey="group" 
+                title={<TabTitleText>Groups</TabTitleText>}
+                aria-label="Groups tab"
+                style={{
+                  borderBottom: identityType === 'group' ? '3px solid #0066cc' : 'none',
+                  color: identityType === 'group' ? '#0066cc' : '#6a6e73',
+                  fontWeight: identityType === 'group' ? 600 : 400
+                }}
+              />
+            </Tabs>
 
-            {assignmentMode === 'existing' && (
-              <>
-                <Tabs
-                  activeKey={identityType}
-                  onSelect={(_event, tabIndex) => {
-                    setIdentityType(tabIndex as 'user' | 'group');
-                    setSelectedUser(null);
-                    setSelectedGroup(null);
-                  }}
-                  aria-label="Select user or group"
-                  style={{ marginBottom: '24px' }}
-                >
-                  <Tab 
-                    eventKey="user" 
-                    title={<TabTitleText>Users</TabTitleText>}
-                    aria-label="Users tab"
-                    style={{
-                      borderBottom: identityType === 'user' ? '3px solid #0066cc' : 'none',
-                      color: identityType === 'user' ? '#0066cc' : '#6a6e73',
-                      fontWeight: identityType === 'user' ? 600 : 400
-                    }}
-                  />
-                  <Tab 
-                    eventKey="group" 
-                    title={<TabTitleText>Groups</TabTitleText>}
-                    aria-label="Groups tab"
-                    style={{
-                      borderBottom: identityType === 'group' ? '3px solid #0066cc' : 'none',
-                      color: identityType === 'group' ? '#0066cc' : '#6a6e73',
-                      fontWeight: identityType === 'group' ? 600 : 400
-                    }}
-                  />
-                </Tabs>
-              </>
-            )}
-
-            {assignmentMode === 'preauthorize' && (
-              <div style={{ 
-                backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', 
-                padding: 'var(--pf-t--global--spacer--lg)',
-                borderRadius: 'var(--pf-t--global--border--radius--medium)',
-                marginBottom: '24px'
-              }}>
-                <Alert 
-                  variant="info" 
-                  isInline 
-                  title="Pre-authorization will take effect on first login"
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                >
-                  <Content component="p">
-                    Enter the user's expected email or username. Optionally, select their identity provider if known. 
-                    The role assignment will automatically activate when they log in for the first time.
-                  </Content>
-                </Alert>
-                
-                <Form>
-                  <FormGroup 
-                    label="User identifier" 
-                    isRequired 
-                    fieldId="preauthorize-email"
-                  >
-                    <Content component="p" style={{ marginBottom: '8px', fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Enter the email address or username
-                    </Content>
-                    <TextInput
-                      isRequired
-                      type="text"
-                      id="preauthorize-email"
-                      name="preauthorize-email"
-                      value={preauthorizeEmail}
-                      onChange={(_event, value) => setPreauthorizeEmail(value)}
-                      placeholder="user@company.com or username"
-                    />
-                  </FormGroup>
-                  
-                  <FormGroup 
-                    label="Identity Provider (optional)" 
-                    fieldId="preauthorize-idp"
-                    style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
-                  >
-                    <Content component="p" style={{ marginBottom: '8px', fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Select the identity provider if known, or leave unspecified to allow any IDP
-                    </Content>
-                    <Dropdown
-                      isOpen={isIdpDropdownOpen}
-                      onSelect={() => setIsIdpDropdownOpen(false)}
-                      onOpenChange={(isOpen: boolean) => setIsIdpDropdownOpen(isOpen)}
-                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                        <MenuToggle 
-                          ref={toggleRef} 
-                          onClick={() => setIsIdpDropdownOpen(!isIdpDropdownOpen)} 
-                          isExpanded={isIdpDropdownOpen}
-                          variant="default"
-                          style={{ width: '100%' }}
-                        >
-                          {preauthorizeIdpId 
-                            ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name 
-                            : 'Select identity provider'}
-                        </MenuToggle>
-                      )}
-                    >
-                      <DropdownList>
-                        {dbIdentityProviders.map((idp) => (
-                          <DropdownItem 
-                            key={idp.id}
-                            onClick={() => {
-                              setPreauthorizeIdpId(idp.id);
-                              setIsIdpDropdownOpen(false);
-                            }}
-                          >
-                            <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                              <FlexItem>
-                                <Label color="blue" icon={<SyncAltIcon />}>{idp.type}</Label>
-                              </FlexItem>
-                              <FlexItem>{idp.name}</FlexItem>
-                            </Flex>
-                          </DropdownItem>
-                        ))}
-                      </DropdownList>
-                    </Dropdown>
-                  </FormGroup>
-                </Form>
-              </div>
-            )}
-
-            {assignmentMode === 'existing' && identityType === 'user' && (
+            {identityType === 'user' && (
               <>
                 <Toolbar>
                   <ToolbarContent>
@@ -1518,57 +1404,179 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                     </ToolbarItem>
                   </ToolbarContent>
                 </Toolbar>
-                <Table aria-label="Users table" variant="compact">
-                  <Thead>
-                    <Tr>
-                      <Th width={10}></Th>
-                      <Th>User</Th>
-                      <Th>Identity provider</Th>
-                      <Th>Created</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {filteredUsers
-                      .slice((usersPage - 1) * usersPerPage, usersPage * usersPerPage)
-                      .map((user) => (
-                        <Tr
-                          key={user.id}
-                          isSelectable
-                          isClickable
-                          isRowSelected={selectedUser === user.id}
-                          onRowClick={() => setSelectedUser(user.id)}
-                        >
-                          <Td>
-                            <Radio
-                              id={`user-${user.id}`}
-                              name="user-selection"
-                              isChecked={selectedUser === user.id}
-                              onChange={() => setSelectedUser(user.id)}
-                            />
-                          </Td>
-                          <Td dataLabel="User">
-                            <Button 
-                              variant="link" 
-                              isInline 
-                              component="a" 
-                              href={`#/user-management/identities/${encodeURIComponent(user.username)}`}
-                              target="_blank"
-                              style={{ padding: 0, fontSize: 'inherit' }}
+                
+                {!isPreauthorizing && filteredUsers.length > 0 && (
+                  <Table aria-label="Users table" variant="compact">
+                    <Thead>
+                      <Tr>
+                        <Th width={10}></Th>
+                        <Th>User</Th>
+                        <Th>Identity provider</Th>
+                        <Th>Created</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {filteredUsers
+                        .slice((usersPage - 1) * usersPerPage, usersPage * usersPerPage)
+                        .map((user) => (
+                          <Tr
+                            key={user.id}
+                            isSelectable
+                            isClickable
+                            isRowSelected={selectedUser === user.id}
+                            onRowClick={() => setSelectedUser(user.id)}
+                          >
+                            <Td>
+                              <Radio
+                                id={`user-${user.id}`}
+                                name="user-selection"
+                                isChecked={selectedUser === user.id}
+                                onChange={() => setSelectedUser(user.id)}
+                              />
+                            </Td>
+                            <Td dataLabel="User">
+                              <Button 
+                                variant="link" 
+                                isInline 
+                                component="a" 
+                                href={`#/user-management/identities/${encodeURIComponent(user.username)}`}
+                                target="_blank"
+                                style={{ padding: 0, fontSize: 'inherit' }}
+                              >
+                                {user.name}
+                              </Button>
+                              <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>{user.username}</div>
+                            </Td>
+                            <Td dataLabel="Identity provider">{user.provider}</Td>
+                            <Td dataLabel="Created">{user.created}</Td>
+                          </Tr>
+                        ))}
+                    </Tbody>
+                  </Table>
+                )}
+
+                {!isPreauthorizing && filteredUsers.length === 0 && userSearch.trim() !== '' && (
+                  <EmptyState>
+                    <ResourcesEmptyIcon />
+                    <Title headingLevel="h2" size="lg">
+                      No users found
+                    </Title>
+                    <EmptyStateBody>
+                      No users match "{userSearch}". You can pre-authorize this user to grant them access when they log in for the first time.
+                    </EmptyStateBody>
+                    <Button 
+                      variant="primary" 
+                      onClick={() => {
+                        setIsPreauthorizing(true);
+                        setPreauthorizeEmail(userSearch);
+                        setSelectedUser(null);
+                      }}
+                    >
+                      Pre-authorize "{userSearch}"
+                    </Button>
+                  </EmptyState>
+                )}
+
+                {isPreauthorizing && (
+                  <div style={{ 
+                    backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', 
+                    padding: 'var(--pf-t--global--spacer--lg)',
+                    borderRadius: 'var(--pf-t--global--border--radius--medium)',
+                    marginTop: '16px'
+                  }}>
+                    <Alert 
+                      variant="info" 
+                      isInline 
+                      title="Pre-authorization will take effect on first login"
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                    >
+                      <Content component="p">
+                        This role assignment will automatically activate when the user logs in for the first time.
+                      </Content>
+                    </Alert>
+                    
+                    <Form>
+                      <FormGroup 
+                        label="User identifier" 
+                        isRequired 
+                        fieldId="preauthorize-email"
+                      >
+                        <TextInput
+                          isRequired
+                          type="text"
+                          id="preauthorize-email"
+                          name="preauthorize-email"
+                          value={preauthorizeEmail}
+                          onChange={(_event, value) => setPreauthorizeEmail(value)}
+                          placeholder="user@company.com or username"
+                        />
+                      </FormGroup>
+                      
+                      <FormGroup 
+                        label="Identity Provider (optional)" 
+                        fieldId="preauthorize-idp"
+                        style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                      >
+                        <Content component="p" style={{ marginBottom: '8px', fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                          Select the identity provider if known
+                        </Content>
+                        <Dropdown
+                          isOpen={isIdpDropdownOpen}
+                          onSelect={() => setIsIdpDropdownOpen(false)}
+                          onOpenChange={(isOpen: boolean) => setIsIdpDropdownOpen(isOpen)}
+                          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                            <MenuToggle 
+                              ref={toggleRef} 
+                              onClick={() => setIsIdpDropdownOpen(!isIdpDropdownOpen)} 
+                              isExpanded={isIdpDropdownOpen}
+                              variant="default"
+                              style={{ width: '100%' }}
                             >
-                              {user.name}
-                            </Button>
-                            <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>{user.username}</div>
-                          </Td>
-                          <Td dataLabel="Identity provider">{user.provider}</Td>
-                          <Td dataLabel="Created">{user.created}</Td>
-                        </Tr>
-                      ))}
-                  </Tbody>
-                </Table>
+                              {preauthorizeIdpId 
+                                ? dbIdentityProviders.find(idp => idp.id === preauthorizeIdpId)?.name 
+                                : 'Any identity provider'}
+                            </MenuToggle>
+                          )}
+                        >
+                          <DropdownList>
+                            {dbIdentityProviders.map((idp) => (
+                              <DropdownItem 
+                                key={idp.id}
+                                onClick={() => {
+                                  setPreauthorizeIdpId(idp.id);
+                                  setIsIdpDropdownOpen(false);
+                                }}
+                              >
+                                <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                                  <FlexItem>
+                                    <Label color="blue" icon={<SyncAltIcon />}>{idp.type}</Label>
+                                  </FlexItem>
+                                  <FlexItem>{idp.name}</FlexItem>
+                                </Flex>
+                              </DropdownItem>
+                            ))}
+                          </DropdownList>
+                        </Dropdown>
+                      </FormGroup>
+
+                      <Button 
+                        variant="link" 
+                        onClick={() => {
+                          setIsPreauthorizing(false);
+                          setPreauthorizeEmail('');
+                          setPreauthorizeIdpId('');
+                        }}
+                        style={{ marginTop: 'var(--pf-t--global--spacer--md)', paddingLeft: 0 }}
+                      >
+                        Cancel and search users instead
+                      </Button>
+                    </Form>
+                  </div>
+                )}
               </>
             )}
 
-            {assignmentMode === 'existing' && identityType === 'group' && (
+            {identityType === 'group' && (
               <>
                 <Toolbar>
                   <ToolbarContent>
@@ -4731,7 +4739,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
-                  {assignmentMode === 'preauthorize' ? 'Pre-authorized User' : (identityType === 'user' ? 'User' : 'Group')}
+                  {isPreauthorizing ? 'Pre-authorized User' : (identityType === 'user' ? 'User' : 'Group')}
                 </Title>
                 <Button 
                   variant="link" 
@@ -4743,7 +4751,7 @@ export const RoleDetailRoleAssignmentWizard: React.FC<RoleDetailRoleAssignmentWi
                 </Button>
               </div>
               <div style={{ marginLeft: '16px' }}>
-                {assignmentMode === 'preauthorize' ? (
+                {isPreauthorizing ? (
                   <>
                     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                       <FlexItem>
