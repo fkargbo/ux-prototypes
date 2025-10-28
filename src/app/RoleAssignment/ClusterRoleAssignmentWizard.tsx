@@ -469,9 +469,9 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
             flexShrink: 0,
             margin: 0
           }}>
-            {renderStepIndicator(1, 'Select user or group')}
-            {renderStepIndicator(2, 'Select resources')}
-            {renderStepIndicator(3, 'Select role')}
+            {renderStepIndicator(1, 'Identities')}
+            {renderStepIndicator(2, 'Scope')}
+            {renderStepIndicator(3, 'Role')}
             {renderStepIndicator(4, 'Review')}
           </div>
           
@@ -534,7 +534,7 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
                 setUserSearch('');
                 setGroupSearch('');
               }}
-              aria-label="Select user or group tabs"
+              aria-label="Identities tabs"
               className="custom-tabs-selected"
               style={{ 
                 marginBottom: 'var(--pf-t--global--spacer--md)'
@@ -998,7 +998,7 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
         {currentStep === 2 && (
           <>
             <Title headingLevel="h2" size="xl" style={{ marginBottom: '8px' }}>
-              Select resources
+              Scope
             </Title>
             <Content component="p" style={{ marginBottom: '16px', color: '#6a6e73', fontSize: '14px' }}>
               Define the scope of access for this role assignment on the {clusterName} cluster.
@@ -1245,7 +1245,7 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
         {currentStep === 3 && (
           <>
             <Title headingLevel="h2" size="xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              Select role
+              Role
             </Title>
             
             <Toolbar>
@@ -1480,7 +1480,7 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
-                  Select resources
+                  Scope
                 </Title>
                 <Button 
                   variant="link" 
@@ -1498,7 +1498,7 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
                   fontWeight: 600,
                   color: '#151515'
                 }}>
-                  Select resources
+                  Scope
                 </Content>
                 <Content component="p" style={{ fontSize: '14px', color: '#6a6e73', marginBottom: '8px' }}>
                   Cluster: {clusterName}
@@ -1533,7 +1533,7 @@ export const ClusterRoleAssignmentWizard: React.FC<ClusterRoleAssignmentWizardPr
             <div style={{ marginBottom: '32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
-                  Select role
+                  Role
                 </Title>
                 <Button 
                   variant="link" 
