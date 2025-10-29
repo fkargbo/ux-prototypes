@@ -318,6 +318,7 @@ const Roles: React.FunctionComponent = () => {
                 value={searchValue}
                 onChange={(_event, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
+                style={{ width: '250px' }}
               />
             </ToolbarItem>
             <ToolbarItem>
