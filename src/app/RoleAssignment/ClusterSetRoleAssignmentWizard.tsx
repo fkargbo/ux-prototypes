@@ -2506,12 +2506,13 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                     </DropdownList>
                   </Dropdown>
                 </ToolbarItem>
-                <ToolbarItem style={{ minWidth: '180px', maxWidth: '240px' }}>
+                <ToolbarItem>
                   <SearchInput
                     placeholder="Search roles"
                     value={roleSearch}
                     onChange={(_event, value) => setRoleSearch(value)}
                     onClear={() => setRoleSearch('')}
+                    style={{ width: '200px' }}
                   />
                 </ToolbarItem>
                 <ToolbarItem>
