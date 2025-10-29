@@ -433,6 +433,9 @@ const Roles: React.FunctionComponent = () => {
                     isOpen={openActionMenuId === role.id}
                     onSelect={() => setOpenActionMenuId(null)}
                     onOpenChange={(isOpen: boolean) => !isOpen && setOpenActionMenuId(null)}
+                    popperProps={{
+                      position: 'end'
+                    }}
                     toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                       <MenuToggle
                         ref={toggleRef}
