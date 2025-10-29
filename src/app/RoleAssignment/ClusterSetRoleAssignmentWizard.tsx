@@ -1681,11 +1681,108 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                   </DropdownList>
                 </Dropdown>
 
+                {/* Show message when cluster set role assignment (all) is selected */}
+                {resourceScope === 'all' && (
+                  <div style={{ 
+                    padding: '16px', 
+                    backgroundColor: '#f0f0f0', 
+                    borderRadius: '4px',
+                    marginTop: '16px',
+                    fontSize: '14px',
+                    color: '#6a6e73'
+                  }}>
+                    This role assignment will apply to all current and future resources on the cluster set.
+                  </div>
+                )}
+
                 {/* Show clusters table inline when "Cluster role assignment" is selected */}
                 {resourceScope === 'clusters' && (
                   <div style={{ marginTop: '24px' }}>
+                    <Content component="p" style={{ marginBottom: '16px', fontSize: '14px', color: '#6a6e73' }}>
+                      Select one or more clusters from the selected cluster sets.
+                    </Content>
                     <Toolbar>
                       <ToolbarContent>
+                        {/* Bulk selector dropdown */}
+                        <ToolbarItem>
+                          <Dropdown
+                            isOpen={isClusterBulkSelectorOpen}
+                            onSelect={() => setIsClusterBulkSelectorOpen(false)}
+                            onOpenChange={(isOpen: boolean) => setIsClusterBulkSelectorOpen(isOpen)}
+                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                onClick={() => {
+                                  if (selectedClusters.length > 0) {
+                                    setSelectedClusters([]);
+                                  } else {
+                                    setIsClusterBulkSelectorOpen(!isClusterBulkSelectorOpen);
+                                  }
+                                }}
+                                variant="plain"
+                                style={{
+                                  border: '1px solid var(--pf-t--global--border--color--default)',
+                                  borderRadius: 'var(--pf-t--global--border--radius--small)',
+                                  padding: '6px 8px',
+                                  minWidth: 'auto',
+                                }}
+                              >
+                                <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                  <FlexItem>
+                                    <Checkbox
+                                      isChecked={filteredClusters.length > 0 && filteredClusters.every(c => selectedClusters.includes(c.id))}
+                                      onChange={(event, checked) => {
+                                        event.stopPropagation();
+                                        if (checked) {
+                                          const allIds = filteredClusters.map(c => c.id);
+                                          const combined = [...selectedClusters, ...allIds];
+                                          setSelectedClusters(Array.from(new Set(combined)));
+                                        } else {
+                                          const visibleIds = filteredClusters.map(c => c.id);
+                                          setSelectedClusters(selectedClusters.filter(id => !visibleIds.includes(id)));
+                                        }
+                                      }}
+                                      aria-label="Select all"
+                                      id="select-all-clusters-checkbox"
+                                    />
+                                  </FlexItem>
+                                  <FlexItem>
+                                    <CaretDownIcon />
+                                  </FlexItem>
+                                </Flex>
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              <DropdownItem
+                                onClick={() => {
+                                  setSelectedClusters([]);
+                                  setIsClusterBulkSelectorOpen(false);
+                                }}
+                              >
+                                Select none
+                              </DropdownItem>
+                              <DropdownItem
+                                onClick={() => {
+                                  const allIds = filteredClusters.map(c => c.id);
+                                  const combined = [...selectedClusters, ...allIds];
+                                  setSelectedClusters(Array.from(new Set(combined)));
+                                  setIsClusterBulkSelectorOpen(false);
+                                }}
+                              >
+                                Select page ({filteredClusters.slice((clustersPage - 1) * clustersPerPage, clustersPage * clustersPerPage).length} items)
+                              </DropdownItem>
+                              <DropdownItem
+                                onClick={() => {
+                                  setSelectedClusters(filteredClusters.map(c => c.id));
+                                  setIsClusterBulkSelectorOpen(false);
+                                }}
+                              >
+                                Select all ({filteredClusters.length} items)
+                              </DropdownItem>
+                            </DropdownList>
+                          </Dropdown>
+                        </ToolbarItem>
                         <ToolbarItem>
                           <Dropdown
                             isOpen={isClusterFilterOpen}
@@ -1697,14 +1794,13 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                                 onClick={() => setIsClusterFilterOpen(!isClusterFilterOpen)}
                                 isExpanded={isClusterFilterOpen}
                               >
-                                <span style={{ marginRight: '8px' }}>Filter:</span> {clusterFilterType}
+                                {clusterFilterType}
                               </MenuToggle>
                             )}
                             shouldFocusToggleOnSelect
                           >
                             <DropdownList>
                               <DropdownItem key="Name" onClick={() => { setClusterFilterType('Name'); setIsClusterFilterOpen(false); }}>Name</DropdownItem>
-                              <DropdownItem key="Status" onClick={() => { setClusterFilterType('Status'); setIsClusterFilterOpen(false); }}>Status</DropdownItem>
                             </DropdownList>
                           </Dropdown>
                         </ToolbarItem>
@@ -1761,19 +1857,19 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                                 }
                               }}
                             >
-                              <Td
-                                select={{
-                                  rowIndex: index,
-                                  onSelect: (_event, isSelecting) => {
-                                    if (isSelecting) {
-                                      setSelectedClusters([...selectedClusters, cluster.id]);
-                                    } else {
+                              <Td>
+                                <Checkbox
+                                  id={`cluster-${cluster.id}`}
+                                  isChecked={isSelected}
+                                  onChange={() => {
+                                    if (isSelected) {
                                       setSelectedClusters(selectedClusters.filter(id => id !== cluster.id));
+                                    } else {
+                                      setSelectedClusters([...selectedClusters, cluster.id]);
                                     }
-                                  },
-                                  isSelected,
-                                }}
-                              />
+                                  }}
+                                />
+                              </Td>
                               <Td dataLabel="Name">
                                 <a 
                                   href="#"
