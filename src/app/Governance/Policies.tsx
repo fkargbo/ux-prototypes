@@ -6,9 +6,6 @@ import {
   ToolbarItem,
   SearchInput,
   Label,
-  Tabs,
-  Tab,
-  TabTitleText,
   Dropdown,
   DropdownList,
   DropdownItem,
@@ -20,8 +17,6 @@ import {
   FlexItem,
   Checkbox,
   Title,
-  Tooltip,
-  MenuToggleAction,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td, ExpandableRowContent } from '@patternfly/react-table';
 import { 
@@ -30,7 +25,6 @@ import {
   CaretDownIcon, 
   ColumnsIcon, 
   DownloadIcon,
-  HelpIcon,
   AngleRightIcon,
   AngleDownIcon,
 } from '@patternfly/react-icons';
@@ -51,7 +45,6 @@ const mockPolicies = Array.from({ length: 50 }, (_, i) => ({
 const Policies: React.FunctionComponent = () => {
   useDocumentTitle('ACM RBAC | Governance');
   
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(2); // Policies tab
   const [searchValue, setSearchValue] = React.useState('');
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [filterType, setFilterType] = React.useState('Name');
@@ -65,10 +58,6 @@ const Policies: React.FunctionComponent = () => {
   const [perPage, setPerPage] = React.useState(10);
   const [openStatusMenuId, setOpenStatusMenuId] = React.useState<number | null>(null);
   const [openRemediationMenuId, setOpenRemediationMenuId] = React.useState<number | null>(null);
-
-  const handleTabClick = (_event: React.MouseEvent<HTMLElement, MouseEvent>, tabIndex: string | number) => {
-    setActiveTabKey(tabIndex);
-  };
 
   const toggleRowMenu = (policyId: number) => {
     setOpenActionMenuId(openActionMenuId === policyId ? null : policyId);
@@ -119,34 +108,7 @@ const Policies: React.FunctionComponent = () => {
 
   return (
     <>
-      <div style={{ padding: '24px 24px 0 24px' }}>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }} style={{ marginBottom: '16px' }}>
-          <FlexItem>
-            <Title headingLevel="h1" size="2xl">
-              Governance
-            </Title>
-          </FlexItem>
-          <FlexItem>
-            <Tooltip content="Governance policies help ensure compliance and security across clusters">
-              <HelpIcon style={{ color: '#6a6e73' }} />
-            </Tooltip>
-          </FlexItem>
-        </Flex>
-
-        <Tabs
-          activeKey={activeTabKey}
-          onSelect={handleTabClick}
-          aria-label="Governance tabs"
-        >
-          <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>} />
-          <Tab eventKey={1} title={<TabTitleText>Policy sets</TabTitleText>} />
-          <Tab eventKey={2} title={<TabTitleText>Policies</TabTitleText>} />
-          <Tab eventKey={3} title={<TabTitleText>Discovered policies</TabTitleText>} />
-        </Tabs>
-      </div>
-
-      {activeTabKey === 2 && (
-        <div className="table-content-card" style={{ marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none' }}>
+      <div className="table-content-card">
           <Toolbar>
             <ToolbarContent>
               <ToolbarItem>
@@ -503,7 +465,6 @@ const Policies: React.FunctionComponent = () => {
             />
           </div>
         </div>
-      )}
     </>
   );
 };
