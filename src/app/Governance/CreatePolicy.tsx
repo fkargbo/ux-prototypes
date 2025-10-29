@@ -317,34 +317,30 @@ const CreatePolicy: React.FunctionComponent = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
       {/* Breadcrumb */}
-      <section className="pf-v6-c-page__main-breadcrumb">
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
-          <Breadcrumb>
-            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-              Governance
-            </BreadcrumbItem>
-            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-              Policies
-            </BreadcrumbItem>
-            <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
-          </Breadcrumb>
-        </div>
-      </section>
+      <div style={{ backgroundColor: '#ffffff', padding: '16px 24px', borderBottom: '1px solid #d2d2d2' }}>
+        <Breadcrumb>
+          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+            Governance
+          </BreadcrumbItem>
+          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+            Policies
+          </BreadcrumbItem>
+          <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
+        </Breadcrumb>
+      </div>
 
       {/* Title */}
-      <section className="pf-v6-c-page__main-section">
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
-          <Title headingLevel="h1" size="2xl">
-            Create policy
-          </Title>
-          <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
-            Create a new governance policy to enforce compliance across your clusters.
-          </Content>
-        </div>
-      </section>
+      <div style={{ backgroundColor: '#ffffff', padding: '24px', borderBottom: '1px solid #d2d2d2' }}>
+        <Title headingLevel="h1" size="2xl">
+          Create policy
+        </Title>
+        <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
+          Create a new governance policy to enforce compliance across your clusters.
+        </Content>
+      </div>
 
       {/* Wizard content */}
-      <section className="pf-v6-c-page__main-wizard" style={{ flex: 1, overflow: 'hidden' }}>
+      <div style={{ flex: 1, overflow: 'hidden', backgroundColor: '#ffffff' }}>
         <div className="pf-v6-c-wizard">
           {/* Mobile toggle button (hidden on desktop) */}
           <button
@@ -499,7 +495,7 @@ const CreatePolicy: React.FunctionComponent = () => {
             </footer>
           </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 };
