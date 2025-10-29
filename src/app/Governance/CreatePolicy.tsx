@@ -124,7 +124,7 @@ const CreatePolicy: React.FunctionComponent = () => {
     // Step 1: Details
     if (currentStep === 1) {
       return (
-        <Form isWidthLimited>
+        <Form>
           <FormGroup label="Name" isRequired fieldId="policy-name">
             <TextInput
               isRequired
@@ -164,7 +164,7 @@ const CreatePolicy: React.FunctionComponent = () => {
     if (currentStep === 2) {
       if (currentSubstep === 1) {
         return (
-          <Form isWidthLimited>
+          <Form>
             <FormGroup label="Template type" fieldId="template-type">
               <TextInput
                 type="text"
@@ -190,7 +190,7 @@ const CreatePolicy: React.FunctionComponent = () => {
       }
       if (currentSubstep === 2) {
         return (
-          <Form isWidthLimited>
+          <Form>
             <FormGroup label="Remediation" isRequired fieldId="remediation">
               <TextInput
                 isRequired
@@ -217,7 +217,7 @@ const CreatePolicy: React.FunctionComponent = () => {
       }
       if (currentSubstep === 3) {
         return (
-          <Form isWidthLimited>
+          <Form>
             <FormGroup label="Cluster selector" fieldId="cluster-selector">
               <TextInput
                 type="text"
@@ -246,7 +246,7 @@ const CreatePolicy: React.FunctionComponent = () => {
     // Step 3: Additional
     if (currentStep === 3) {
       return (
-        <Form isWidthLimited>
+        <Form>
           <FormGroup label="Annotations" fieldId="annotations">
             <TextArea
               id="annotations"
@@ -317,30 +317,34 @@ const CreatePolicy: React.FunctionComponent = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
       {/* Breadcrumb */}
-      <div style={{ backgroundColor: '#ffffff', padding: '16px 24px', borderBottom: '1px solid #d2d2d2' }}>
-        <Breadcrumb>
-          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-            Governance
-          </BreadcrumbItem>
-          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-            Policies
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
-        </Breadcrumb>
-      </div>
+      <section className="pf-v6-c-page__main-breadcrumb">
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+          <Breadcrumb>
+            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+              Governance
+            </BreadcrumbItem>
+            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+              Policies
+            </BreadcrumbItem>
+            <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
+          </Breadcrumb>
+        </div>
+      </section>
 
       {/* Title */}
-      <div style={{ backgroundColor: '#ffffff', padding: '16px 24px', borderBottom: '1px solid #d2d2d2' }}>
-        <Title headingLevel="h1" size="2xl">
-          Create policy
-        </Title>
-        <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
-          Create a new governance policy to enforce compliance across your clusters.
-        </Content>
-      </div>
+      <section className="pf-v6-c-page__main-section">
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+          <Title headingLevel="h1" size="2xl">
+            Create policy
+          </Title>
+          <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
+            Create a new governance policy to enforce compliance across your clusters.
+          </Content>
+        </div>
+      </section>
 
       {/* Wizard content */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', backgroundColor: '#ffffff' }}>
+      <section className="pf-v6-c-page__main-wizard" style={{ flex: 1, overflow: 'hidden' }}>
         <div className="pf-v6-c-wizard">
           {/* Mobile toggle button (hidden on desktop) */}
           <button
@@ -495,7 +499,7 @@ const CreatePolicy: React.FunctionComponent = () => {
             </footer>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
