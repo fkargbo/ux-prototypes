@@ -316,30 +316,27 @@ const CreatePolicy: React.FunctionComponent = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
-      {/* Header area with 24px padding */}
-      <div style={{ backgroundColor: '#ffffff', padding: '24px', borderBottom: '1px solid #d2d2d2' }}>
-        {/* Breadcrumb */}
-        <div style={{ marginBottom: '16px' }}>
-          <Breadcrumb>
-            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-              Governance
-            </BreadcrumbItem>
-            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-              Policies
-            </BreadcrumbItem>
-            <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
-          </Breadcrumb>
-        </div>
+      {/* Breadcrumb section */}
+      <div style={{ backgroundColor: '#ffffff', padding: '16px 24px 0 24px' }}>
+        <Breadcrumb>
+          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+            Governance
+          </BreadcrumbItem>
+          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+            Policies
+          </BreadcrumbItem>
+          <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
+        </Breadcrumb>
+      </div>
 
-        {/* Title */}
-        <div>
-          <Title headingLevel="h1" size="2xl">
-            Create policy
-          </Title>
-          <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
-            Create a new governance policy to enforce compliance across your clusters.
-          </Content>
-        </div>
+      {/* Title section */}
+      <div style={{ backgroundColor: '#ffffff', padding: '24px', borderBottom: '1px solid #d2d2d2' }}>
+        <Title headingLevel="h1" size="2xl">
+          Create policy
+        </Title>
+        <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
+          Create a new governance policy to enforce compliance across your clusters.
+        </Content>
       </div>
 
       {/* Wizard content */}
