@@ -2512,7 +2512,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                     value={roleSearch}
                     onChange={(_event, value) => setRoleSearch(value)}
                     onClear={() => setRoleSearch('')}
-                    style={{ width: '200px' }}
+                    style={{ width: '160px' }}
                   />
                 </ToolbarItem>
                 <ToolbarItem>
