@@ -1110,7 +1110,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                   borderRadius: '4px',
                   marginBottom: '0'
                 }}>
-                  Choose access level
+                  Define cluster granularity
                 </div>
               </div>
             )}
@@ -1937,16 +1937,15 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
               </>
             ) : (
               <>
-                 {/* Substep: Choose access level */}
-                 <Title headingLevel="h2" size="xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                   Choose access level
+                 {/* Substep: Define cluster granularity */}
+                 <Title headingLevel="h2" size="xl" style={{ marginBottom: '12px' }}>
+                   Define cluster granularity
                  </Title>
-                 <Content component="p" style={{ marginBottom: '16px', color: '#6a6e73', fontSize: '14px' }}>
-                   {selectedClusters.length > 1 
-                     ? 'Define whether you want full access or partial access to common projects across the selected clusters.'
-                     : 'Define whether you want full access or partial access to specific projects on the selected cluster.'}
+                 <Content component="p" style={{ marginBottom: '24px', color: '#6a6e73', fontSize: '14px' }}>
+                   Define the level of access for the {selectedClusters.length} selected cluster{selectedClusters.length > 1 ? 's' : ''}.
                  </Content>
 
+                <FormGroup label="Access level for selected clusters" style={{ marginBottom: '16px' }}>
                 <Dropdown
                   isOpen={isClusterScopeOpen}
                   onSelect={() => setIsClusterScopeOpen(false)}
@@ -1957,16 +1956,19 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                        onClick={() => setIsClusterScopeOpen(!isClusterScopeOpen)} 
                        isExpanded={isClusterScopeOpen}
                        variant="default"
-                       style={{ width: '100%', marginBottom: '16px' }}
+                       style={{ width: '100%' }}
                      >
                        {clusterScope === 'everything' 
-                         ? 'Full access to selected clusters' 
-                         : selectedClusters.length > 1 
-                           ? 'Limit to common projects' 
-                           : 'Limit to specific projects'}
+                         ? 'Cluster role assignment' 
+                         : selectedClusters.length === 1 
+                           ? 'Project role assignment' 
+                           : 'Common projects role assignment'}
                      </MenuToggle>
                   )}
                   shouldFocusToggleOnSelect
+                  popperProps={{
+                    appendTo: () => document.body,
+                  }}
                 >
                   <DropdownList>
                     <DropdownItem
@@ -1976,9 +1978,11 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                         setSelectedProjects([]);
                         setIsClusterScopeOpen(false);
                       }}
-                      description="Grants access to all current and future resources in the selected clusters"
+                      description={selectedClusters.length === 1
+                        ? 'Grant access to all current and future resources on the cluster.'
+                        : 'Grant access to all current and future resources on the clusters'}
                     >
-                      Full access to selected clusters
+                      Cluster role assignment
                     </DropdownItem>
                     <DropdownItem
                       key="projects"
@@ -1986,16 +1990,31 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                         setClusterScope('projects');
                         setIsClusterScopeOpen(false);
                       }}
-                      description={selectedClusters.length > 1 
-                        ? "Choose common projects (same name across all selected clusters)" 
-                        : "Choose specific projects to limit the scope of access"}
+                      description={selectedClusters.length === 1 
+                        ? 'Grant access to specific projects on the cluster.' 
+                        : 'Grant access to projects with the same name across selected clusters'}
                     >
-                      {selectedClusters.length > 1 ? 'Limit to common projects' : 'Limit to specific projects'}
+                      {selectedClusters.length === 1 ? 'Project role assignment' : 'Common projects role assignment'}
                     </DropdownItem>
                   </DropdownList>
                 </Dropdown>
+                </FormGroup>
 
-                {/* Show projects table if "Limit to specific projects" is selected */}
+                {/* Show message when cluster role assignment (everything) is selected */}
+                {clusterScope === 'everything' && (
+                  <div style={{ 
+                    padding: '16px', 
+                    backgroundColor: '#f0f0f0', 
+                    borderRadius: '4px',
+                    marginTop: '16px',
+                    fontSize: '14px',
+                    color: '#6a6e73'
+                  }}>
+                    This role assignment will apply to all current and future resources on the selected {selectedClusters.length === 1 ? 'cluster' : 'clusters'}.
+                  </div>
+                )}
+
+                {/* Show projects table if project/common project assignment is selected */}
                 {clusterScope === 'projects' && (
                   <div style={{ marginTop: '16px' }}>
                     {/* Toolbar with Name dropdown and Search */}
