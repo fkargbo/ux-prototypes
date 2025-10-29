@@ -118,9 +118,9 @@ const Policies: React.FunctionComponent = () => {
     paginatedPolicies.every(p => selectedPolicies.has(p.id));
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+    <>
+      <div style={{ padding: '24px 24px 0 24px' }}>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }} style={{ marginBottom: '16px' }}>
           <FlexItem>
             <Title headingLevel="h1" size="2xl">
               Governance
@@ -132,22 +132,21 @@ const Policies: React.FunctionComponent = () => {
             </Tooltip>
           </FlexItem>
         </Flex>
+
+        <Tabs
+          activeKey={activeTabKey}
+          onSelect={handleTabClick}
+          aria-label="Governance tabs"
+        >
+          <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>} />
+          <Tab eventKey={1} title={<TabTitleText>Policy sets</TabTitleText>} />
+          <Tab eventKey={2} title={<TabTitleText>Policies</TabTitleText>} />
+          <Tab eventKey={3} title={<TabTitleText>Discovered policies</TabTitleText>} />
+        </Tabs>
       </div>
 
-      <Tabs
-        activeKey={activeTabKey}
-        onSelect={handleTabClick}
-        aria-label="Governance tabs"
-        style={{ marginBottom: '24px' }}
-      >
-        <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>} />
-        <Tab eventKey={1} title={<TabTitleText>Policy sets</TabTitleText>} />
-        <Tab eventKey={2} title={<TabTitleText>Policies</TabTitleText>} />
-        <Tab eventKey={3} title={<TabTitleText>Discovered policies</TabTitleText>} />
-      </Tabs>
-
       {activeTabKey === 2 && (
-        <div className="table-content-card">
+        <div className="table-content-card" style={{ marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none' }}>
           <Toolbar>
             <ToolbarContent>
               <ToolbarItem>
@@ -505,7 +504,7 @@ const Policies: React.FunctionComponent = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
