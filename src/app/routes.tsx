@@ -15,6 +15,7 @@ import { ProjectDetail } from '@app/Projects/ProjectDetail';
 import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
 import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 import { NotFound } from '@app/NotFound/NotFound';
+import { Policies } from '@app/Governance/Policies';
 import {
   ClustersPage,
   ClusterDetailPage,
@@ -138,12 +139,11 @@ const routes: AppRouteConfig[] = [
   },
   {
     label: 'Governance',
-    disabled: true,
     routes: [
       {
-        element: <Dashboard />,
-        label: 'Overview',
-        path: '/governance/overview',
+        element: <Policies />,
+        label: 'Policies',
+        path: '/governance/policies',
         title: 'ACM | Governance',
       },
     ],
