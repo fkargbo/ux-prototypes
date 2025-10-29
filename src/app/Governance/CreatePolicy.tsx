@@ -317,9 +317,8 @@ const CreatePolicy: React.FunctionComponent = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
       {/* Header area with breadcrumb, title and description */}
-      <header style={{ 
+      <header className="wizard-page-header" style={{ 
         backgroundColor: '#ffffff', 
-        padding: '24px',
         borderBottom: '1px solid #d2d2d2'
       }}>
         <Breadcrumb style={{ marginBottom: '16px' }}>
