@@ -542,6 +542,11 @@ const Roles: React.FunctionComponent = () => {
             setIsRoleAssignmentWizardOpen(false);
             setSelectedRoleForAssignment('');
           }}
+          onComplete={(data) => {
+            console.log('Role assignment created:', data);
+            setIsRoleAssignmentWizardOpen(false);
+            setSelectedRoleForAssignment('');
+          }}
           roleName={selectedRoleForAssignment}
         />
       )}
