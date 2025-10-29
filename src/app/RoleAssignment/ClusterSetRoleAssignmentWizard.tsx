@@ -2017,26 +2017,98 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                 {/* Show projects table if project/common project assignment is selected */}
                 {clusterScope === 'projects' && (
                   <div style={{ marginTop: '16px' }}>
-                    {/* Toolbar with Name dropdown and Search */}
+                    {/* Toolbar with bulk selector, Name dropdown and Search */}
                     <Toolbar style={{ padding: 0, marginBottom: '8px' }}>
                       <ToolbarContent style={{ padding: 0 }}>
+                        {/* Bulk selector dropdown */}
                         <ToolbarItem>
                           <Dropdown
-                            isOpen={false}
-                            onSelect={() => {}}
+                            isOpen={isProjectBulkSelectorOpen}
+                            onSelect={() => setIsProjectBulkSelectorOpen(false)}
+                            onOpenChange={(isOpen: boolean) => setIsProjectBulkSelectorOpen(isOpen)}
                             toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                               <MenuToggle
                                 ref={toggleRef}
-                                onClick={() => {}}
-                                isExpanded={false}
-                                style={{ width: '150px' }}
+                                onClick={() => {
+                                  if (selectedProjects.length > 0) {
+                                    setSelectedProjects([]);
+                                  } else {
+                                    setIsProjectBulkSelectorOpen(!isProjectBulkSelectorOpen);
+                                  }
+                                }}
+                                variant="plain"
+                                style={{
+                                  border: '1px solid var(--pf-t--global--border--color--default)',
+                                  borderRadius: 'var(--pf-t--global--border--radius--small)',
+                                  padding: '6px 8px',
+                                  minWidth: 'auto',
+                                }}
                               >
-                                Name
+                                <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                  <FlexItem>
+                                    <Checkbox
+                                      isChecked={filteredProjects.length > 0 && filteredProjects.every(p => selectedProjects.includes(p.id))}
+                                      onChange={(event, checked) => {
+                                        event.stopPropagation();
+                                        if (checked) {
+                                          const allIds = filteredProjects.map(p => p.id);
+                                          const combined = [...selectedProjects, ...allIds];
+                                          setSelectedProjects(Array.from(new Set(combined)));
+                                        } else {
+                                          const visibleIds = filteredProjects.map(p => p.id);
+                                          setSelectedProjects(selectedProjects.filter(id => !visibleIds.includes(id)));
+                                        }
+                                      }}
+                                      aria-label="Select all"
+                                      id="select-all-projects-checkbox"
+                                    />
+                                  </FlexItem>
+                                  <FlexItem>
+                                    <CaretDownIcon />
+                                  </FlexItem>
+                                </Flex>
                               </MenuToggle>
                             )}
                           >
                             <DropdownList>
-                              <DropdownItem key="name">Name</DropdownItem>
+                              <DropdownItem
+                                onClick={() => {
+                                  setSelectedProjects([]);
+                                  setIsProjectBulkSelectorOpen(false);
+                                }}
+                              >
+                                Select none
+                              </DropdownItem>
+                              <DropdownItem
+                                onClick={() => {
+                                  const allIds = filteredProjects.map(p => p.id);
+                                  const combined = [...selectedProjects, ...allIds];
+                                  setSelectedProjects(Array.from(new Set(combined)));
+                                  setIsProjectBulkSelectorOpen(false);
+                                }}
+                              >
+                                Select all ({filteredProjects.length} items)
+                              </DropdownItem>
+                            </DropdownList>
+                          </Dropdown>
+                        </ToolbarItem>
+                        <ToolbarItem>
+                          <Dropdown
+                            isOpen={isProjectFilterOpen}
+                            onSelect={() => setIsProjectFilterOpen(false)}
+                            onOpenChange={(isOpen: boolean) => setIsProjectFilterOpen(isOpen)}
+                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                onClick={() => setIsProjectFilterOpen(!isProjectFilterOpen)}
+                                isExpanded={isProjectFilterOpen}
+                              >
+                                {projectFilterType}
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              <DropdownItem key="name" onClick={() => { setProjectFilterType('Name'); setIsProjectFilterOpen(false); }}>Name</DropdownItem>
                             </DropdownList>
                           </Dropdown>
                         </ToolbarItem>
@@ -2091,19 +2163,19 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                                   }
                                 }}
                               >
-                                <Td
-                                  select={{
-                                    rowIndex: index,
-                                    onSelect: (_event, isSelecting) => {
-                                      if (isSelecting) {
-                                        setSelectedProjects([...selectedProjects, project.id]);
-                                      } else {
+                                <Td>
+                                  <Checkbox
+                                    id={`project-${project.id}`}
+                                    isChecked={isSelected}
+                                    onChange={() => {
+                                      if (isSelected) {
                                         setSelectedProjects(selectedProjects.filter(id => id !== project.id));
+                                      } else {
+                                        setSelectedProjects([...selectedProjects, project.id]);
                                       }
-                                    },
-                                    isSelected,
-                                  }}
-                                />
+                                    }}
+                                  />
+                                </Td>
                                 <Td dataLabel="Name">{project.displayName}</Td>
                                 <Td dataLabel="Type">
                                   <Label isCompact>{project.type}</Label>
