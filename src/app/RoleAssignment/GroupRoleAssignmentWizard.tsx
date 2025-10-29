@@ -2421,7 +2421,62 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                 <Table aria-label="Projects table" variant="compact">
                   <Thead>
                     <Tr>
-                      <Th width={10}></Th>
+                      <Th width={10}>
+                        {(() => {
+                          // Calculate all visible project IDs based on current view
+                          let allVisibleProjectIds: number[] = [];
+                          
+                          if (selectedClusters.length === 1) {
+                            // Single cluster view
+                            const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                            allVisibleProjectIds = [
+                              ...filteredProjectsForClusters,
+                              ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))
+                            ].map(p => p.id);
+                          } else {
+                            // Multiple clusters view - get all project IDs from common projects
+                            const grouped = [
+                              ...filteredProjectsForClusters,
+                              ...createdCommonProjects
+                            ].reduce((acc, project) => {
+                              const existing = acc.find(g => g.name === project.name);
+                              if (!existing) {
+                                acc.push({
+                                  name: project.name,
+                                  projects: [project]
+                                });
+                              } else {
+                                existing.projects.push(project);
+                              }
+                              return acc;
+                            }, [] as any[]);
+                            
+                            allVisibleProjectIds = grouped.flatMap(g => g.projects.map((p: any) => p.id));
+                          }
+                          
+                          const allSelected = allVisibleProjectIds.length > 0 && 
+                                            allVisibleProjectIds.every(id => selectedProjects.includes(id));
+                          const someSelected = allVisibleProjectIds.some(id => selectedProjects.includes(id));
+                          
+                          return allVisibleProjectIds.length > 0 ? (
+                            <Checkbox
+                              id="select-all-projects"
+                              isChecked={allSelected}
+                              onChange={() => {
+                                if (allSelected) {
+                                  // Deselect all visible projects
+                                  setSelectedProjects(selectedProjects.filter(id => !allVisibleProjectIds.includes(id)));
+                                } else {
+                                  // Select all visible projects
+                                  const combined = [...selectedProjects, ...allVisibleProjectIds];
+                                  setSelectedProjects(Array.from(new Set(combined)));
+                                }
+                              }}
+                              aria-label="Select all projects"
+                            />
+                          ) : null;
+                        })()}
+                      </Th>
                       <Th>Name</Th>
                       {createdCommonProjects.length === 0 && <Th>Type</Th>}
                       <Th>Clusters</Th>
