@@ -317,31 +317,34 @@ const CreatePolicy: React.FunctionComponent = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
       {/* Breadcrumb section */}
-      <section className="pf-v6-c-page__main-breadcrumb pf-m-limit-width">
-        <div className="pf-v6-c-page__main-body">
-          <Breadcrumb>
-            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-              Governance
-            </BreadcrumbItem>
-            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-              Policies
-            </BreadcrumbItem>
-            <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
-          </Breadcrumb>
-        </div>
-      </section>
+      <div style={{ 
+        backgroundColor: '#ffffff',
+        padding: '24px 24px 8px 24px'
+      }}>
+        <Breadcrumb>
+          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+            Governance
+          </BreadcrumbItem>
+          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+            Policies
+          </BreadcrumbItem>
+          <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
+        </Breadcrumb>
+      </div>
 
       {/* Page header with title and description */}
-      <section className="pf-v6-c-page__main-section pf-m-limit-width" style={{ borderBottom: '1px solid #d2d2d2' }}>
-        <div className="pf-v6-c-page__main-body">
-          <Title headingLevel="h1" size="2xl" className="pf-m-page-title">
-            Create policy
-          </Title>
-          <Content component="p">
-            Create a new governance policy to enforce compliance across your clusters.
-          </Content>
-        </div>
-      </section>
+      <div style={{ 
+        backgroundColor: '#ffffff',
+        padding: '16px 24px 24px 24px',
+        borderBottom: '1px solid #d2d2d2'
+      }}>
+        <Title headingLevel="h1" size="2xl">
+          Create policy
+        </Title>
+        <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
+          Create a new governance policy to enforce compliance across your clusters.
+        </Content>
+      </div>
 
       {/* Wizard content */}
       <div style={{ flex: 1, overflow: 'hidden', backgroundColor: '#ffffff' }}>
