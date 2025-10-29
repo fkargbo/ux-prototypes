@@ -317,7 +317,7 @@ const CreatePolicy: React.FunctionComponent = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
       {/* Breadcrumb section */}
-      <div style={{ backgroundColor: '#ffffff', padding: '24px 24px 0 24px' }}>
+      <div style={{ backgroundColor: '#ffffff', padding: '32px 32px 16px 32px' }}>
         <Breadcrumb>
           <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
             Governance
@@ -330,11 +330,11 @@ const CreatePolicy: React.FunctionComponent = () => {
       </div>
 
       {/* Title section */}
-      <div style={{ backgroundColor: '#ffffff', padding: '24px 24px 32px 24px', borderBottom: '1px solid #d2d2d2' }}>
+      <div style={{ backgroundColor: '#ffffff', padding: '16px 32px 32px 32px', borderBottom: '1px solid #d2d2d2' }}>
         <Title headingLevel="h1" size="2xl">
           Create policy
         </Title>
-        <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
+        <Content component="p" style={{ marginTop: '12px', color: '#6a6e73' }}>
           Create a new governance policy to enforce compliance across your clusters.
         </Content>
       </div>
