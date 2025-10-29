@@ -463,7 +463,7 @@ const CreatePolicy: React.FunctionComponent = () => {
 
               {/* Main content area */}
               <div className="pf-v6-c-wizard__main">
-                <div className="pf-v6-c-wizard__main-body">
+                <div className="pf-v6-c-wizard__main-body" style={{ padding: '24px' }}>
                   {renderStepContent()}
                 </div>
               </div>
