@@ -297,11 +297,36 @@ body,
 /* Wizard main body padding */
 .pf-v6-c-wizard__main-body {
   padding: 24px !important;
+  box-sizing: border-box !important;
+}
+
+/* Force padding on all wizard body elements */
+div.pf-v6-c-wizard__main div.pf-v6-c-wizard__main-body {
+  padding-top: 24px !important;
+  padding-right: 24px !important;
+  padding-bottom: 24px !important;
+  padding-left: 24px !important;
+  box-sizing: border-box !important;
 }
 
 /* Wizard page header padding */
 .wizard-page-header {
   padding: 24px !important;
+  box-sizing: border-box !important;
+}
+
+/* Create policy page breadcrumb and header sections */
+.create-policy-breadcrumb {
+  padding: 24px 24px 8px 24px !important;
+  background-color: #ffffff !important;
+  box-sizing: border-box !important;
+}
+
+.create-policy-header {
+  padding: 16px 24px 24px 24px !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #d2d2d2 !important;
+  box-sizing: border-box !important;
 }
 
 /* Projects page container - same layout as identity providers */
