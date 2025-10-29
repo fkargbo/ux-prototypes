@@ -29,6 +29,7 @@ import {
   AngleDownIcon,
 } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
+import { useNavigate } from 'react-router-dom';
 
 // Mock data for policies
 const mockPolicies = Array.from({ length: 50 }, (_, i) => ({
@@ -44,6 +45,7 @@ const mockPolicies = Array.from({ length: 50 }, (_, i) => ({
 
 const Policies: React.FunctionComponent = () => {
   useDocumentTitle('ACM RBAC | Governance');
+  const navigate = useNavigate();
   
   const [searchValue, setSearchValue] = React.useState('');
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
@@ -202,7 +204,9 @@ const Policies: React.FunctionComponent = () => {
                 />
               </ToolbarItem>
               <ToolbarItem>
-                <Button variant="primary">Create policy</Button>
+                <Button variant="primary" onClick={() => navigate('/governance/policies/create')}>
+                  Create policy
+                </Button>
               </ToolbarItem>
               <ToolbarItem>
                 <Dropdown

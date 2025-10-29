@@ -16,6 +16,7 @@ import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
 import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 import { NotFound } from '@app/NotFound/NotFound';
 import { GovernancePage } from '@app/navigation/governance/GovernancePage';
+import { CreatePolicy } from '@app/Governance/CreatePolicy';
 import {
   ClustersPage,
   ClusterDetailPage,
@@ -142,6 +143,11 @@ const routes: AppRouteConfig[] = [
     label: 'Governance',
     path: '/governance',
     title: 'ACM | Governance',
+  },
+  {
+    element: <CreatePolicy />,
+    path: '/governance/policies/create',
+    title: 'ACM | Create Policy',
   },
   {
     label: 'Credentials',
