@@ -138,15 +138,10 @@ const routes: AppRouteConfig[] = [
     ],
   },
   {
+    element: <Policies />,
     label: 'Governance',
-    routes: [
-      {
-        element: <Policies />,
-        label: 'Policies',
-        path: '/governance/policies',
-        title: 'ACM | Governance',
-      },
-    ],
+    path: '/governance',
+    title: 'ACM | Governance',
   },
   {
     label: 'Credentials',
