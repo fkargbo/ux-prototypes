@@ -472,6 +472,7 @@ const Roles: React.FunctionComponent = () => {
                       <DropdownItem
                         key="delete"
                         onClick={() => handleDeleteRole(role.id, role.name)}
+                        isDisabled={role.type === 'Default'}
                       >
                         Delete role
                       </DropdownItem>
