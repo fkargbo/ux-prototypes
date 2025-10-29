@@ -469,13 +469,14 @@ const Roles: React.FunctionComponent = () => {
                       >
                         Duplicate role
                       </DropdownItem>
-                      <DropdownItem
-                        key="delete"
-                        onClick={() => handleDeleteRole(role.id, role.name)}
-                        isDisabled={role.type === 'Default'}
-                      >
-                        Delete role
-                      </DropdownItem>
+                      {role.type === 'Custom' && (
+                        <DropdownItem
+                          key="delete"
+                          onClick={() => handleDeleteRole(role.id, role.name)}
+                        >
+                          Delete role
+                        </DropdownItem>
+                      )}
                     </DropdownList>
                   </Dropdown>
                 </Td>
