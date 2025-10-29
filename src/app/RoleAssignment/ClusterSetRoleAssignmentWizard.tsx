@@ -2728,7 +2728,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
               </div>
             </div>
 
-            {/* Select resources section */}
+            {/* Scope section */}
             <div style={{ 
               marginBottom: '32px',
               paddingBottom: '24px',
@@ -2736,7 +2736,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
-                  Select resources
+                  Scope
                 </Title>
                 <Button 
                   variant="link" 
@@ -2754,7 +2754,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                   fontWeight: 600,
                   color: '#151515'
                 }}>
-                  Select resources
+                  Scope
                 </Content>
                 <Content component="p" style={{ fontSize: '14px', color: '#6a6e73', marginBottom: '8px' }}>
                   {resourceScope === 'all' ? 'Cluster set role assignment' : 'Cluster role assignment'}
