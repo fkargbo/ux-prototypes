@@ -317,7 +317,7 @@ const CreatePolicy: React.FunctionComponent = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
       {/* Breadcrumb section */}
-      <div style={{ backgroundColor: '#ffffff', padding: '16px 24px 0 24px' }}>
+      <div style={{ backgroundColor: '#ffffff', padding: '24px 24px 0 24px' }}>
         <Breadcrumb>
           <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
             Governance
@@ -330,7 +330,7 @@ const CreatePolicy: React.FunctionComponent = () => {
       </div>
 
       {/* Title section */}
-      <div style={{ backgroundColor: '#ffffff', padding: '24px', borderBottom: '1px solid #d2d2d2' }}>
+      <div style={{ backgroundColor: '#ffffff', padding: '24px 24px 32px 24px', borderBottom: '1px solid #d2d2d2' }}>
         <Title headingLevel="h1" size="2xl">
           Create policy
         </Title>
