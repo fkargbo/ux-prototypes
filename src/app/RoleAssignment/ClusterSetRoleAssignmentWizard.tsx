@@ -36,7 +36,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
-import { CaretDownIcon, CheckCircleIcon, AngleLeftIcon, AngleRightIcon, ResourcesEmptyIcon, TimesIcon, FilterIcon, SyncAltIcon } from '@patternfly/react-icons';
+import { CaretDownIcon, CheckCircleIcon, AngleLeftIcon, AngleRightIcon, ResourcesEmptyIcon, TimesIcon, FilterIcon, SyncAltIcon, TrashIcon } from '@patternfly/react-icons';
 import { getAllUsers, getAllGroups, getAllRoles, getAllClusters, getAllNamespaces, getAllClusterSets, getAllIdentityProviders } from '@app/data';
 
 const dbUsers = getAllUsers();
@@ -169,6 +169,11 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
   const [projectSearch, setProjectSearch] = React.useState('');
   const [isProjectFilterOpen, setIsProjectFilterOpen] = React.useState(false);
   const [projectFilterType, setProjectFilterType] = React.useState('Name');
+  const [isCreatingCommonProject, setIsCreatingCommonProject] = React.useState(false);
+  const [commonProjectName, setCommonProjectName] = React.useState('');
+  const [commonProjectDisplayName, setCommonProjectDisplayName] = React.useState('');
+  const [commonProjectDescription, setCommonProjectDescription] = React.useState('');
+  const [createdCommonProjects, setCreatedCommonProjects] = React.useState<any[]>([]);
   
   // Step 3: Role
   const [selectedRole, setSelectedRole] = React.useState<number | null>(null);
@@ -459,6 +464,20 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
           projectsByName.get(project.name)?.push(project);
         });
         
+        // Add created common projects
+        const selectedClusterDbIdsForCreated = selectedClusters
+          .map(id => mockClusters.find(c => c.id === id)?.dbId)
+          .filter(Boolean) as string[];
+        
+        createdCommonProjects
+          .filter(project => selectedClusterDbIdsForCreated.includes(project.clusterId))
+          .forEach(project => {
+            if (!projectsByName.has(project.name)) {
+              projectsByName.set(project.name, []);
+            }
+            projectsByName.get(project.name)?.push(project);
+          });
+        
         // Find project names that appear in ALL selected clusters
         const commonProjectGroups = Array.from(projectsByName.entries())
           .filter(([_, projs]) => projs.length === selectedClusters.length)
@@ -469,6 +488,11 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
         
         // Return grouped common projects
         projects = commonProjectGroups as any;
+      } else {
+        // Single cluster: include created projects for this cluster
+        const selectedClusterDbId = selectedClusterDbIds[0];
+        const createdForCluster = createdCommonProjects.filter(p => p.clusterId === selectedClusterDbId);
+        projects = [...projects, ...createdForCluster] as any;
       }
     }
     
@@ -478,7 +502,7 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
     }
     
     return projects;
-  }, [selectedClusters, projectSearch, mockProjects, mockClusters]);
+  }, [selectedClusters, projectSearch, mockProjects, mockClusters, createdCommonProjects]);
 
   // Render step indicator to match the original wizard
   const renderStepIndicator = (stepNum: number, label: string) => {
@@ -2121,37 +2145,145 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                             style={{ width: '300px' }}
                           />
                         </ToolbarItem>
+                        {selectedClusters.length > 1 && (filteredProjects.length > 0 || createdCommonProjects.length > 0) && (
+                          <ToolbarItem>
+                            <Button 
+                              variant="primary"
+                              onClick={() => setIsCreatingCommonProject(true)}
+                            >
+                              Create common project
+                            </Button>
+                          </ToolbarItem>
+                        )}
                       </ToolbarContent>
                     </Toolbar>
                     
+                    {/* Form for creating common projects - replaces table when active */}
+                    {isCreatingCommonProject ? (
+                      <div style={{ padding: '16px', backgroundColor: '#f5f5f5', marginBottom: '16px', borderRadius: '4px' }}>
+                        <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
+                          Create common project
+                        </Title>
+                        <Form style={{ maxWidth: '600px' }}>
+                          <FormGroup label="Name" isRequired>
+                            <TextInput
+                              type="text"
+                              value={commonProjectName}
+                              onChange={(_event, value) => setCommonProjectName(value)}
+                              placeholder="Enter project name"
+                            />
+                          </FormGroup>
+                          
+                          <FormGroup label="Display name">
+                            <TextInput
+                              type="text"
+                              value={commonProjectDisplayName}
+                              onChange={(_event, value) => setCommonProjectDisplayName(value)}
+                              placeholder="Enter display name (optional)"
+                            />
+                          </FormGroup>
+                          
+                          <FormGroup label="Description">
+                            <TextInput
+                              type="text"
+                              value={commonProjectDescription}
+                              onChange={(_event, value) => setCommonProjectDescription(value)}
+                              placeholder="Enter description (optional)"
+                            />
+                          </FormGroup>
+
+                          <div style={{ marginTop: 'var(--pf-t--global--spacer--md)', display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                            <Button 
+                              variant="primary"
+                              onClick={() => {
+                                // Create temporary project entries for each selected cluster
+                                const newProjects = selectedClusters.map((clusterId) => {
+                                  const cluster = mockClusters.find(c => c.id === clusterId);
+                                  const clusterDbId = cluster?.dbId || '';
+                                  const tempId = -(Date.now() + Math.random()); // Negative ID to distinguish from real projects
+                                  
+                                  return {
+                                    id: tempId,
+                                    dbId: `temp-${Date.now()}-${clusterDbId}`,
+                                    name: commonProjectName,
+                                    displayName: commonProjectDisplayName,
+                                    description: commonProjectDescription,
+                                    clusterId: clusterDbId,
+                                    clusterName: cluster?.name || 'Unknown',
+                                    type: 'application', // Default type
+                                    labels: {},
+                                    isPending: true,
+                                  };
+                                });
+                                
+                                setCreatedCommonProjects([...createdCommonProjects, ...newProjects]);
+                                // Auto-select the newly created projects
+                                setSelectedProjects(newProjects.map(p => p.id));
+                                // Close form and clear fields
+                                setIsCreatingCommonProject(false);
+                                setCommonProjectName('');
+                                setCommonProjectDisplayName('');
+                                setCommonProjectDescription('');
+                              }}
+                              isDisabled={!commonProjectName.trim()}
+                            >
+                              Save
+                            </Button>
+                            <Button 
+                              variant="link"
+                              onClick={() => {
+                                setIsCreatingCommonProject(false);
+                                setCommonProjectName('');
+                                setCommonProjectDisplayName('');
+                                setCommonProjectDescription('');
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </Form>
+                      </div>
+                    ) : (
                     <Table aria-label="Projects table" variant="compact">
                       <Thead>
                         <Tr>
                           <Th />
                           <Th>Name</Th>
-                          <Th>Type</Th>
+                          {createdCommonProjects.length === 0 && <Th>Type</Th>}
                           <Th>{selectedClusters.length > 1 ? 'Clusters' : 'Cluster'}</Th>
+                          {createdCommonProjects.length > 0 && <Th>Actions</Th>}
                         </Tr>
                       </Thead>
                       <Tbody>
-                        {filteredProjects.length === 0 ? (
+                        {filteredProjects.length === 0 && createdCommonProjects.length === 0 ? (
                           <Tr>
                             <Td colSpan={4} style={{ textAlign: 'center', padding: '40px' }}>
                               <EmptyState>
+                                <Title headingLevel="h4" size="lg" style={{ marginBottom: '12px' }}>
+                                  {selectedClusters.length > 1 ? "No common projects found" : "No projects available"}
+                                </Title>
                                 <EmptyStateBody>
                                   {selectedClusters.length > 1 
-                                    ? 'No common projects found across the selected clusters. Go back and select different clusters, or create projects with the same name on these clusters.'
-                                    : 'No projects available in the selected cluster.'}
+                                    ? 'Go back and select different clusters, or create projects with the same name on these clusters.'
+                                    : 'No projects are available in the selected cluster.'}
                                 </EmptyStateBody>
+                                {selectedClusters.length > 1 && (
+                                  <Button variant="primary" style={{ marginTop: '16px' }} onClick={() => {
+                                    setIsCreatingCommonProject(true);
+                                  }}>
+                                    Create common project
+                                  </Button>
+                                )}
                               </EmptyState>
                             </Td>
                           </Tr>
-                        ) : (
-                          filteredProjects.map((project, index) => {
+                        ) : selectedClusters.length === 1 ? (
+                          // Single cluster: Show ALL projects (including created)
+                          filteredProjects.map((project) => {
                             const isSelected = selectedProjects.includes(project.id);
                             return (
                               <Tr
-                                key={index}
+                                key={project.id}
                                 isSelectable
                                 isClickable
                                 isRowSelected={isSelected}
@@ -2176,17 +2308,136 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
                                     }}
                                   />
                                 </Td>
-                                <Td dataLabel="Name">{project.displayName}</Td>
-                                <Td dataLabel="Type">
-                                  <Label isCompact>{project.type}</Label>
+                                <Td dataLabel="Name">
+                                  <div style={{ fontWeight: isSelected ? '600' : 'normal' }}>
+                                    {project.displayName || project.name}
+                                  </div>
                                 </Td>
-                                <Td dataLabel="Cluster">{selectedClusters.length > 1 ? (project as any).clusterNames : project.clusterName}</Td>
+                                {createdCommonProjects.length === 0 && (
+                                  <Td dataLabel="Type">
+                                    <Label color="blue">{project.type}</Label>
+                                  </Td>
+                                )}
+                                <Td dataLabel="Cluster">
+                                  <Label color="grey">{project.clusterName}</Label>
+                                </Td>
+                                {createdCommonProjects.length > 0 && (
+                                  <Td isActionCell>
+                                    {(project as any).isPending ? (
+                                      <Button
+                                        variant="link"
+                                        isDanger
+                                        aria-label={`Delete ${project.name}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setCreatedCommonProjects(
+                                            createdCommonProjects.filter(p => p.id !== project.id)
+                                          );
+                                          setSelectedProjects(
+                                            selectedProjects.filter(id => id !== project.id)
+                                          );
+                                        }}
+                                      >
+                                        <TrashIcon /> Delete
+                                      </Button>
+                                    ) : null}
+                                  </Td>
+                                )}
                               </Tr>
                             );
                           })
+                        ) : (
+                          // Multiple clusters: Show COMMON projects grouped by name
+                          (() => {
+                            // Group projects by name
+                            const commonProjects = new Map<string, typeof filteredProjects>();
+                            
+                            filteredProjects.forEach(project => {
+                              if (!commonProjects.has(project.name)) {
+                                commonProjects.set(project.name, []);
+                              }
+                              commonProjects.get(project.name)?.push(project);
+                            });
+                            
+                            return Array.from(commonProjects.entries()).map(([name, projects]) => {
+                              const projectIds = projects.map(p => p.id);
+                              const isSelected = projectIds.every(id => selectedProjects.includes(id));
+                          
+                              return (
+                                <Tr
+                                  key={name}
+                                  isSelectable
+                                  isClickable
+                                  isRowSelected={isSelected}
+                                  onRowClick={() => {
+                                    if (isSelected) {
+                                      setSelectedProjects(selectedProjects.filter(id => !projectIds.includes(id)));
+                                    } else {
+                                      setSelectedProjects([...selectedProjects, ...projectIds]);
+                                    }
+                                  }}
+                                >
+                                  <Td>
+                                    <Checkbox
+                                      id={`project-${name}`}
+                                      isChecked={isSelected}
+                                      onChange={() => {
+                                        if (isSelected) {
+                                          setSelectedProjects(selectedProjects.filter(id => !projectIds.includes(id)));
+                                        } else {
+                                          setSelectedProjects([...selectedProjects, ...projectIds]);
+                                        }
+                                      }}
+                                    />
+                                  </Td>
+                                  <Td dataLabel="Name">
+                                    <div style={{ fontWeight: isSelected ? '600' : 'normal' }}>
+                                      {name}
+                                    </div>
+                                  </Td>
+                                  {createdCommonProjects.length === 0 && (
+                                    <Td dataLabel="Type">
+                                      <Label color="blue">{projects[0].type}</Label>
+                                    </Td>
+                                  )}
+                                  <Td dataLabel="Clusters">
+                                    {projects.map((p, idx) => (
+                                      <Label key={idx} color="grey" style={{ marginRight: '4px' }}>
+                                        {p.clusterName}
+                                      </Label>
+                                    ))}
+                                  </Td>
+                                  {createdCommonProjects.length > 0 && (
+                                    <Td isActionCell>
+                                      {projects.some((p: any) => p.isPending) ? (
+                                        <Button
+                                          variant="link"
+                                          isDanger
+                                          aria-label={`Delete ${name}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const projectIdsToRemove = projects.map(p => p.id);
+                                            setCreatedCommonProjects(
+                                              createdCommonProjects.filter(p => !projectIdsToRemove.includes(p.id))
+                                            );
+                                            setSelectedProjects(
+                                              selectedProjects.filter(id => !projectIdsToRemove.includes(id))
+                                            );
+                                          }}
+                                        >
+                                          <TrashIcon /> Delete
+                                        </Button>
+                                      ) : null}
+                                    </Td>
+                                  )}
+                                </Tr>
+                              );
+                            });
+                          })()
                         )}
                       </Tbody>
                     </Table>
+                    )}
                   </div>
                 )}
               </>
