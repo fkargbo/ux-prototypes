@@ -31,6 +31,7 @@ import { EllipsisVIcon, FilterIcon, CaretDownIcon } from '@patternfly/react-icon
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { useNavigate } from 'react-router-dom';
 import { getAllRoles } from '@app/data';
+import { RoleDetailRoleAssignmentWizard } from '@app/RoleAssignment/RoleDetailRoleAssignmentWizard';
 
 // Get roles from centralized database
 const dbRoles = getAllRoles();
@@ -88,6 +89,8 @@ const Roles: React.FunctionComponent = () => {
   const [openActionMenuId, setOpenActionMenuId] = React.useState<number | null>(null);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(10);
+  const [isRoleAssignmentWizardOpen, setIsRoleAssignmentWizardOpen] = React.useState(false);
+  const [selectedRoleForAssignment, setSelectedRoleForAssignment] = React.useState<string>('');
   
   // Get unique categories from roles
   const uniqueCategories = React.useMemo(() => {
@@ -207,6 +210,12 @@ const Roles: React.FunctionComponent = () => {
   const handleDeleteRole = (roleId: number, roleName: string) => {
     console.log('Delete role:', roleId, roleName);
     // In a real application, this would delete the role
+    setOpenActionMenuId(null);
+  };
+
+  const handleCreateRoleAssignment = (roleName: string) => {
+    setSelectedRoleForAssignment(roleName);
+    setIsRoleAssignmentWizardOpen(true);
     setOpenActionMenuId(null);
   };
 
@@ -437,6 +446,12 @@ const Roles: React.FunctionComponent = () => {
                     shouldFocusToggleOnSelect
                   >
                     <DropdownList>
+                      <DropdownItem
+                        key="create-assignment"
+                        onClick={() => handleCreateRoleAssignment(role.name)}
+                      >
+                        Create role assignment
+                      </DropdownItem>
                       {role.type === 'Custom' && (
                         <DropdownItem
                           key="edit"
@@ -519,6 +534,17 @@ const Roles: React.FunctionComponent = () => {
           </Button>
         </div>
       </Modal>
+
+      {isRoleAssignmentWizardOpen && (
+        <RoleDetailRoleAssignmentWizard
+          isOpen={isRoleAssignmentWizardOpen}
+          onClose={() => {
+            setIsRoleAssignmentWizardOpen(false);
+            setSelectedRoleForAssignment('');
+          }}
+          roleName={selectedRoleForAssignment}
+        />
+      )}
     </>
   );
 };
