@@ -182,6 +182,7 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
   
   // Example expandable section states
   // Bulk selector dropdowns
+  const [isClusterSetBulkSelectorOpen, setIsClusterSetBulkSelectorOpen] = React.useState(false);
   const [isClusterBulkSelectorOpen, setIsClusterBulkSelectorOpen] = React.useState(false);
   const [isProjectBulkSelectorOpen, setIsProjectBulkSelectorOpen] = React.useState(false);
   
@@ -1477,6 +1478,92 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                   <div style={{ marginTop: '16px' }}>
                   <Toolbar>
                     <ToolbarContent>
+                      {/* Bulk selector dropdown for cluster sets */}
+                      <ToolbarItem>
+                        <Dropdown
+                          isOpen={isClusterSetBulkSelectorOpen}
+                          onSelect={() => setIsClusterSetBulkSelectorOpen(false)}
+                          onOpenChange={(isOpen: boolean) => setIsClusterSetBulkSelectorOpen(isOpen)}
+                          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                            <MenuToggle
+                              ref={toggleRef}
+                              onClick={() => {
+                                if (selectedClusterSets.length > 0) {
+                                  // Deselect all
+                                  setSelectedClusterSets([]);
+                                } else {
+                                  // Open dropdown
+                                  setIsClusterSetBulkSelectorOpen(!isClusterSetBulkSelectorOpen);
+                                }
+                              }}
+                              variant="plain"
+                              style={{
+                                border: '1px solid var(--pf-t--global--border--color--default)',
+                                borderRadius: 'var(--pf-t--global--border--radius--small)',
+                                padding: '6px 8px',
+                                minWidth: 'auto',
+                              }}
+                            >
+                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <FlexItem>
+                                  <Checkbox
+                                    isChecked={filteredClusterSets.length > 0 && filteredClusterSets.every(cs => selectedClusterSets.includes(cs.id))}
+                                    onChange={(event, checked) => {
+                                      event.stopPropagation();
+                                      if (checked) {
+                                        // Select all visible
+                                        const allIds = filteredClusterSets.map(cs => cs.id);
+                                        const combined = [...selectedClusterSets, ...allIds];
+                                        setSelectedClusterSets(Array.from(new Set(combined)));
+                                      } else {
+                                        // Deselect all visible
+                                        const visibleIds = filteredClusterSets.map(cs => cs.id);
+                                        setSelectedClusterSets(selectedClusterSets.filter(id => !visibleIds.includes(id)));
+                                      }
+                                    }}
+                                    aria-label="Select all"
+                                    id="select-all-cluster-sets-checkbox"
+                                  />
+                                </FlexItem>
+                                <FlexItem>
+                                  <CaretDownIcon />
+                                </FlexItem>
+                              </Flex>
+                            </MenuToggle>
+                          )}
+                        >
+                          <DropdownList>
+                            <DropdownItem
+                              onClick={() => {
+                                setSelectedClusterSets([]);
+                                setIsClusterSetBulkSelectorOpen(false);
+                              }}
+                            >
+                              Select none
+                            </DropdownItem>
+                            <DropdownItem
+                              onClick={() => {
+                                // Select all visible on current view
+                                const allIds = filteredClusterSets.map(cs => cs.id);
+                                const combined = [...selectedClusterSets, ...allIds];
+                                setSelectedClusterSets(Array.from(new Set(combined)));
+                                setIsClusterSetBulkSelectorOpen(false);
+                              }}
+                            >
+                              Select page ({filteredClusterSets.length} items)
+                            </DropdownItem>
+                            <DropdownItem
+                              onClick={() => {
+                                // Select all cluster sets
+                                setSelectedClusterSets(mockClusterSets.map(cs => cs.id));
+                                setIsClusterSetBulkSelectorOpen(false);
+                              }}
+                            >
+                              Select all ({mockClusterSets.length} items)
+                            </DropdownItem>
+                          </DropdownList>
+                        </Dropdown>
+                      </ToolbarItem>
                       <ToolbarItem>
                         <Dropdown
                             isOpen={isClusterSetFilterOpen}
@@ -1518,7 +1605,7 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                     <Table aria-label="Cluster sets table" variant="compact">
                     <Thead>
                       <Tr>
-                        <Th width={10}></Th>
+                        <Th />
                           <Th>Cluster set name</Th>
                           <Th>Clusters</Th>
                       </Tr>
@@ -1584,6 +1671,100 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                   <div style={{ marginTop: '16px' }}>
                   <Toolbar>
                     <ToolbarContent>
+                      {/* Bulk selector dropdown for clusters */}
+                      <ToolbarItem>
+                        <Dropdown
+                          isOpen={isClusterBulkSelectorOpen}
+                          onSelect={() => setIsClusterBulkSelectorOpen(false)}
+                          onOpenChange={(isOpen: boolean) => setIsClusterBulkSelectorOpen(isOpen)}
+                          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                            <MenuToggle
+                              ref={toggleRef}
+                              onClick={() => {
+                                if (selectedClusters.length > 0) {
+                                  // Deselect all
+                                  setSelectedClusters([]);
+                                } else {
+                                  // Open dropdown
+                                  setIsClusterBulkSelectorOpen(!isClusterBulkSelectorOpen);
+                                }
+                              }}
+                              variant="plain"
+                              style={{
+                                border: '1px solid var(--pf-t--global--border--color--default)',
+                                borderRadius: 'var(--pf-t--global--border--radius--small)',
+                                padding: '6px 8px',
+                                minWidth: 'auto',
+                              }}
+                            >
+                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <FlexItem>
+                                  <Checkbox
+                                    isChecked={(() => {
+                                      const paginatedClusterIds = filteredClusters
+                                        .slice((clustersPage - 1) * clustersPerPage, clustersPage * clustersPerPage)
+                                        .map(c => c.id);
+                                      return paginatedClusterIds.length > 0 && paginatedClusterIds.every(id => selectedClusters.includes(id));
+                                    })()}
+                                    onChange={(event, checked) => {
+                                      event.stopPropagation();
+                                      const paginatedClusterIds = filteredClusters
+                                        .slice((clustersPage - 1) * clustersPerPage, clustersPage * clustersPerPage)
+                                        .map(c => c.id);
+                                      if (checked) {
+                                        // Select all on page
+                                        const combined = [...selectedClusters, ...paginatedClusterIds];
+                                        setSelectedClusters(Array.from(new Set(combined)));
+                                      } else {
+                                        // Deselect all on page
+                                        setSelectedClusters(selectedClusters.filter(id => !paginatedClusterIds.includes(id)));
+                                      }
+                                    }}
+                                    aria-label="Select all"
+                                    id="select-all-clusters-checkbox"
+                                  />
+                                </FlexItem>
+                                <FlexItem>
+                                  <CaretDownIcon />
+                                </FlexItem>
+                              </Flex>
+                            </MenuToggle>
+                          )}
+                        >
+                          <DropdownList>
+                            <DropdownItem
+                              onClick={() => {
+                                setSelectedClusters([]);
+                                setIsClusterBulkSelectorOpen(false);
+                              }}
+                            >
+                              Select none
+                            </DropdownItem>
+                            <DropdownItem
+                              onClick={() => {
+                                // Select all on current page
+                                const paginatedClusterIds = filteredClusters
+                                  .slice((clustersPage - 1) * clustersPerPage, clustersPage * clustersPerPage)
+                                  .map(c => c.id);
+                                const combined = [...selectedClusters, ...paginatedClusterIds];
+                                setSelectedClusters(Array.from(new Set(combined)));
+                                setIsClusterBulkSelectorOpen(false);
+                              }}
+                            >
+                              Select page ({filteredClusters.slice((clustersPage - 1) * clustersPerPage, clustersPage * clustersPerPage).length} items)
+                            </DropdownItem>
+                            <DropdownItem
+                              onClick={() => {
+                                // Select all clusters
+                                setSelectedClusters(filteredClusters.map(c => c.id));
+                                setIsClusterBulkSelectorOpen(false);
+                              }}
+                            >
+                              Select all ({filteredClusters.length} items)
+                            </DropdownItem>
+                          </DropdownList>
+                        </Dropdown>
+                      </ToolbarItem>
                       <ToolbarItem>
                         <Dropdown
                             isOpen={isClusterFilterOpen}
@@ -1639,7 +1820,7 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                     <Table aria-label="Clusters table" variant="compact">
                     <Thead>
                       <Tr>
-                        <Th width={10}></Th>
+                        <Th />
                           <Th>Cluster name</Th>
                           <Th>Cluster set</Th>
                           <Th>Status</Th>
@@ -1794,6 +1975,20 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
               </Dropdown>
                 </FormGroup>
 
+                {/* Show message when cluster set role assignment (everything) is selected */}
+                {clusterSetScope === 'everything' && (
+                  <div style={{ 
+                    padding: '16px', 
+                    backgroundColor: '#f0f0f0', 
+                    borderRadius: '4px',
+                    marginTop: '16px',
+                    fontSize: '14px',
+                    color: '#6a6e73'
+                  }}>
+                    This role assignment will apply to all current and future resources on the cluster set.
+                  </div>
+                )}
+
                 {/* Show clusters table BELOW the dropdown if partial access is selected */}
                 {clusterSetScope === 'partial' && (
               <div style={{ marginTop: '24px' }}>
@@ -1802,6 +1997,107 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                     </Content>
                     <Toolbar>
                   <ToolbarContent>
+                    {/* Bulk selector dropdown for clusters */}
+                    <ToolbarItem>
+                      <Dropdown
+                        isOpen={isClusterBulkSelectorOpen}
+                        onSelect={() => setIsClusterBulkSelectorOpen(false)}
+                        onOpenChange={(isOpen: boolean) => setIsClusterBulkSelectorOpen(isOpen)}
+                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            onClick={() => {
+                              if (selectedClusters.length > 0) {
+                                // Deselect all
+                                setSelectedClusters([]);
+                              } else {
+                                // Open dropdown
+                                setIsClusterBulkSelectorOpen(!isClusterBulkSelectorOpen);
+                              }
+                            }}
+                            variant="plain"
+                            style={{
+                              border: '1px solid var(--pf-t--global--border--color--default)',
+                              borderRadius: 'var(--pf-t--global--border--radius--small)',
+                              padding: '6px 8px',
+                              minWidth: 'auto',
+                            }}
+                          >
+                            <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <FlexItem>
+                                <Checkbox
+                                  isChecked={filteredClustersForClusterSets.length > 0 && filteredClustersForClusterSets.every(c => selectedClusters.includes(c.id))}
+                                  onChange={(event, checked) => {
+                                    event.stopPropagation();
+                                    if (checked) {
+                                      // Select all visible
+                                      const allIds = filteredClustersForClusterSets.map(c => c.id);
+                                      const combined = [...selectedClusters, ...allIds];
+                                      setSelectedClusters(Array.from(new Set(combined)));
+                                    } else {
+                                      // Deselect all visible
+                                      const visibleIds = filteredClustersForClusterSets.map(c => c.id);
+                                      setSelectedClusters(selectedClusters.filter(id => !visibleIds.includes(id)));
+                                    }
+                                  }}
+                                  aria-label="Select all"
+                                  id="select-all-clusters-checkbox"
+                                />
+                              </FlexItem>
+                              <FlexItem>
+                                <CaretDownIcon />
+                              </FlexItem>
+                            </Flex>
+                          </MenuToggle>
+                        )}
+                      >
+                        <DropdownList>
+                          <DropdownItem
+                            onClick={() => {
+                              setSelectedClusters([]);
+                              setIsClusterBulkSelectorOpen(false);
+                            }}
+                          >
+                            Select none
+                          </DropdownItem>
+                          <DropdownItem
+                            onClick={() => {
+                              // Select all visible on current view
+                              const allIds = filteredClustersForClusterSets.map(c => c.id);
+                              const combined = [...selectedClusters, ...allIds];
+                              setSelectedClusters(Array.from(new Set(combined)));
+                              setIsClusterBulkSelectorOpen(false);
+                            }}
+                          >
+                            Select page ({filteredClustersForClusterSets.length} items)
+                          </DropdownItem>
+                          <DropdownItem
+                            onClick={() => {
+                              // Select all clusters from cluster sets (unfiltered by search)
+                              const selectedClusterSetDbIds = selectedClusterSets
+                                .map(id => mockClusterSets.find(cs => cs.id === id)?.dbId)
+                                .filter(Boolean);
+                              const allClustersFromSets = mockClusters.filter(cluster => {
+                                const dbCluster = dbClusters.find(c => c.id === cluster.dbId);
+                                return dbCluster && selectedClusterSetDbIds.includes(dbCluster.clusterSetId);
+                              });
+                              setSelectedClusters(allClustersFromSets.map(c => c.id));
+                              setIsClusterBulkSelectorOpen(false);
+                            }}
+                          >
+                            Select all ({(() => {
+                              const selectedClusterSetDbIds = selectedClusterSets
+                                .map(id => mockClusterSets.find(cs => cs.id === id)?.dbId)
+                                .filter(Boolean);
+                              return mockClusters.filter(cluster => {
+                                const dbCluster = dbClusters.find(c => c.id === cluster.dbId);
+                                return dbCluster && selectedClusterSetDbIds.includes(dbCluster.clusterSetId);
+                              }).length;
+                            })()} items)
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </ToolbarItem>
                     <ToolbarItem>
                       <Dropdown
                         isOpen={isClusterFilterOpen}
@@ -1857,7 +2153,7 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                 <Table aria-label="Clusters table" variant="compact">
                   <Thead>
                     <Tr>
-                      <Th width={10}></Th>
+                      <Th />
                       <Th>Name</Th>
                       <Th>Status</Th>
                       <Th>Infrastructure</Th>
@@ -2011,279 +2307,149 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                   </Dropdown>
                 </FormGroup>
 
+                {/* Show message when cluster role assignment (everything) is selected */}
+                {clusterScope === 'everything' && (
+                  <div style={{ 
+                    padding: '16px', 
+                    backgroundColor: '#f0f0f0', 
+                    borderRadius: '4px',
+                    marginTop: '16px',
+                    fontSize: '14px',
+                    color: '#6a6e73'
+                  }}>
+                    This role assignment will apply to all current and future resources on the selected {selectedClusters.length === 1 ? 'cluster' : 'clusters'}.
+                  </div>
+                )}
+
                 {/* Show projects table below if partial access is selected */}
                 {clusterScope === 'projects' && (
               <div style={{ marginTop: '24px' }}>
                     <Toolbar>
                   <ToolbarContent>
+                    {/* Bulk selector dropdown */}
                     <ToolbarItem>
                       <Dropdown
-                        isOpen={isProjectFilterOpen}
-                        onSelect={() => setIsProjectFilterOpen(false)}
-                        onOpenChange={(isOpen: boolean) => setIsProjectFilterOpen(isOpen)}
+                        isOpen={isProjectBulkSelectorOpen}
+                        onSelect={() => setIsProjectBulkSelectorOpen(false)}
+                        onOpenChange={(isOpen: boolean) => setIsProjectBulkSelectorOpen(isOpen)}
                         toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                          <MenuToggle 
-                            ref={toggleRef} 
-                            onClick={() => setIsProjectFilterOpen(!isProjectFilterOpen)} 
-                            isExpanded={isProjectFilterOpen}
-                            variant="default"
-                          >
-                            {projectFilterType}
-                          </MenuToggle>
-                        )}
-                        popperProps={{
-                          appendTo: () => document.body,
-                          
-                          
-                        }}
-                      >
-                        <DropdownList>
-                          <DropdownItem onClick={() => { setProjectFilterType('Name'); setIsProjectFilterOpen(false); }}>
-                            Name
-                          </DropdownItem>
-                        </DropdownList>
-                      </Dropdown>
-                    </ToolbarItem>
-                    <ToolbarItem>
-                      <SearchInput
-                        placeholder="Search projects"
-                        value={projectSearch}
-                        onChange={(_event, value) => setProjectSearch(value)}
-                        onClear={() => setProjectSearch('')}
-                      />
-                    </ToolbarItem>
-                  </ToolbarContent>
-                </Toolbar>
-                <Table aria-label="Projects table" variant="compact">
-                  <Thead>
-                    <Tr>
-                      <Th width={10}></Th>
-                          <Th>Name</Th>
-                          <Th>Type</Th>
-                        <Th>Clusters</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                        {filteredProjectsForClusters.length === 0 ? (
-                          <Tr>
-                            <Td colSpan={4} style={{ textAlign: 'center', padding: '40px' }}>
-                              <EmptyState>
-                                <Title headingLevel="h4" size="lg" style={{ marginBottom: '12px' }}>
-                                  {selectedClusters.length > 1 ? "No common projects found" : "No projects available"}
-                                </Title>
-                                <EmptyStateBody>
-                                  {selectedClusters.length > 1 
-                                    ? 'Go back and select different clusters, or create projects with the same name on these clusters.'
-                                    : 'No projects are available in the selected cluster.'}
-                                </EmptyStateBody>
-                                {selectedClusters.length > 1 && (
-                                  <Button variant="primary" style={{ marginTop: '16px' }} onClick={() => {
-                                    // TODO: Implement create common project functionality
-                                    console.log('Create common project clicked');
-                                  }}>
-                                    Create common project
-                                  </Button>
-                                )}
-                              </EmptyState>
-                          </Td>
-                        </Tr>
-                        ) : selectedClusters.length === 1 ? (
-                          // Single cluster: Show ALL projects, allow multiple selection
-                          filteredProjectsForClusters.map((project) => (
-                        <Tr
-                          key={project.id}
-                          isSelectable
-                          isClickable
-                          isRowSelected={selectedProjects.includes(project.id)}
-                          onRowClick={() => {
-                            if (selectedProjects.includes(project.id)) {
-                              setSelectedProjects(selectedProjects.filter(id => id !== project.id));
-                            } else {
-                              setSelectedProjects([...selectedProjects, project.id]);
-                            }
-                          }}
-                        >
-                          <Td>
-                            <Checkbox
-                              id={`project-${project.id}`}
-                              isChecked={selectedProjects.includes(project.id)}
-                              onChange={() => {
-                                if (selectedProjects.includes(project.id)) {
-                                  setSelectedProjects(selectedProjects.filter(id => id !== project.id));
-                                } else {
-                                  setSelectedProjects([...selectedProjects, project.id]);
-                                }
-                              }}
-                            />
-                          </Td>
-                              <Td dataLabel="Name">
-                                <div style={{ fontWeight: selectedProjects.includes(project.id) ? '600' : 'normal' }}>
-                                  {project.displayName}
-                                </div>
-                              </Td>
-                              <Td dataLabel="Type">
-                            <Label color="blue">{project.type}</Label>
-                          </Td>
-                              <Td dataLabel="Clusters">
-                                <Label color="grey">{project.clusterName}</Label>
-                          </Td>
-                        </Tr>
-                        ))
-                    ) : (
-                          // Multiple clusters: Show COMMON projects grouped by name, allow only ONE selection
-                      (() => {
-                            // Group projects by name to show as common
-                            const commonProjects = new Map<string, typeof filteredProjectsForClusters>();
-                            filteredProjectsForClusters.forEach(project => {
-                              if (!commonProjects.has(project.name)) {
-                                commonProjects.set(project.name, []);
+                          <MenuToggle
+                            ref={toggleRef}
+                            onClick={() => {
+                              if (selectedProjects.length > 0) {
+                                setSelectedProjects([]);
+                              } else {
+                                setIsProjectBulkSelectorOpen(!isProjectBulkSelectorOpen);
                               }
-                              commonProjects.get(project.name)?.push(project);
-                            });
-                            
-                            return Array.from(commonProjects.entries()).map(([name, projects]) => {
-                              const isSelected = projects.every(p => selectedProjects.includes(p.id));
-                          
-                              return (
-                                <Tr
-                                  key={name}
-                                  isSelectable
-                                  isClickable
-                                  isRowSelected={isSelected}
-                                  onRowClick={() => {
-                                    if (isSelected) {
-                                      setSelectedProjects([]);
+                            }}
+                            variant="plain"
+                            style={{
+                              border: '1px solid var(--pf-t--global--border--color--default)',
+                              borderRadius: 'var(--pf-t--global--border--radius--small)',
+                              padding: '6px 8px',
+                              minWidth: 'auto',
+                            }}
+                          >
+                            <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <FlexItem>
+                                <Checkbox
+                                  isChecked={(() => {
+                                    let allVisibleProjectIds: number[] = [];
+                                    if (selectedClusters.length === 1) {
+                                      const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                      allVisibleProjectIds = [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].map(p => p.id);
                                     } else {
-                                      setSelectedProjects(projects.map(p => p.id));
+                                      const grouped = [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                        const existing = acc.find(g => g.name === project.name);
+                                        if (!existing) {
+                                          acc.push({ name: project.name, projects: [project] });
+                                        } else {
+                                          existing.projects.push(project);
+                                        }
+                                        return acc;
+                                      }, [] as any[]);
+                                      allVisibleProjectIds = grouped.flatMap(g => g.projects.map((p: any) => p.id));
+                                    }
+                                    return allVisibleProjectIds.length > 0 && allVisibleProjectIds.every(id => selectedProjects.includes(id));
+                                  })()}
+                                  onChange={(event, checked) => {
+                                    event.stopPropagation();
+                                    let allVisibleProjectIds: number[] = [];
+                                    if (selectedClusters.length === 1) {
+                                      const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                      allVisibleProjectIds = [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].map(p => p.id);
+                                    } else {
+                                      const grouped = [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                        const existing = acc.find(g => g.name === project.name);
+                                        if (!existing) {
+                                          acc.push({ name: project.name, projects: [project] });
+                                        } else {
+                                          existing.projects.push(project);
+                                        }
+                                        return acc;
+                                      }, [] as any[]);
+                                      allVisibleProjectIds = grouped.flatMap(g => g.projects.map((p: any) => p.id));
+                                    }
+                                    if (checked) {
+                                      const combined = [...selectedProjects, ...allVisibleProjectIds];
+                                      setSelectedProjects(Array.from(new Set(combined)));
+                                    } else {
+                                      setSelectedProjects(selectedProjects.filter(id => !allVisibleProjectIds.includes(id)));
                                     }
                                   }}
-                                >
-                                  <Td>
-                                    <Radio
-                                      id={`project-${name}`}
-                                      name="common-project-selection-substep"
-                                      isChecked={isSelected}
-                                      onChange={() => {
-                                        if (isSelected) {
-                                          setSelectedProjects([]);
-                                        } else {
-                                          setSelectedProjects(projects.map(p => p.id));
-                                        }
-                                      }}
-                                    />
-                                  </Td>
-                                  <Td dataLabel="Name">
-                                    <div style={{ fontWeight: isSelected ? '600' : 'normal' }}>
-                                      {name}
-                                    </div>
-                                  </Td>
-                                  <Td dataLabel="Type">
-                                    <Label color="blue">{projects[0].type}</Label>
-                                  </Td>
-                                  <Td dataLabel="Clusters">
-                                    {projects.map((p, idx) => (
-                                      <Label key={idx} color="grey" style={{ marginRight: '4px' }}>
-                                        {p.clusterName}
-                                      </Label>
-                                    ))}
-                                  </Td>
-                                </Tr>
-                              );
-                            });
-                          })()
+                                  aria-label="Select all"
+                                  id="select-all-projects-checkbox"
+                                />
+                              </FlexItem>
+                              <FlexItem>
+                                <CaretDownIcon />
+                              </FlexItem>
+                            </Flex>
+                          </MenuToggle>
                         )}
-                      </Tbody>
-                    </Table>
-                  </div>
-                )}
-              </div>
-              );
-            })()}
-
-
-            {/* SUB-STEP: Choose Access Level after selecting clusters (for 'clusters' path only) */}
-            {resourceScope === 'clusters' && showScopeSelection && !showProjectSelection && (() => {
-                          return (
-              <div key="clusters-access-level-selection">
-                <Title headingLevel="h2" size="xl" style={{ marginBottom: '12px' }}>
-                  Choose access level
-                </Title>
-                <Content component="p" style={{ marginBottom: '16px', fontSize: '14px', color: '#6a6e73' }}>
-                  Define the level of access for the {selectedClusters.length} selected cluster{selectedClusters.length > 1 ? 's' : ''}.
-                                </Content>
-                
-                <FormGroup label="Access level" style={{ marginBottom: '16px' }}>
-                  <Dropdown
-                    isOpen={isClusterScopeOpen}
-                    onSelect={() => setIsClusterScopeOpen(false)}
-                    onOpenChange={(isOpen: boolean) => setIsClusterScopeOpen(isOpen)}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle 
-                        ref={toggleRef} 
-                        onClick={() => setIsClusterScopeOpen(!isClusterScopeOpen)} 
-                        isExpanded={isClusterScopeOpen}
-                        variant="default"
-                        style={{ width: '100%' }}
                       >
-                        {clusterScope === 'everything'
-                          ? 'Cluster role assignment'
-                          : (selectedClusters.length === 1 ? 'Project role assignment' : 'Common projects role assignments')}
-                      </MenuToggle>
-                    )}
-                    shouldFocusToggleOnSelect
-                    popperProps={{
-                      appendTo: () => document.body,
-                      
-                      
-                    }}
-                  >
-                    <DropdownList>
-                      <DropdownItem
-                        key="everything"
-                        onClick={() => {
-                          setClusterScope('everything');
-                          setSelectedProjects([]);
-                          setShowProjectSelection(false);
-                          setIsClusterScopeOpen(false);
-                        }}
-                        description={selectedClusters.length === 1
-                          ? 'Grant access to all current and future resources on the cluster.'
-                          : 'Grant access to all current and future resources on the clusters'}
-                      >
-                      Cluster role assignment
-                      </DropdownItem>
-                      <DropdownItem
-                        key="projects"
-                        onClick={() => {
-                          setClusterScope('projects');
-                          setSelectedProjects([]);
-                          setIsClusterScopeOpen(false);
-                        }}
-                        description={selectedClusters.length === 1
-                          ? 'Grant access to specific projects on the cluster.'
-                        : 'Grant access to projects with the same name across selected clusters'}
-                      >
-                      {selectedClusters.length === 1 ? 'Project role assignment' : 'Common projects role assignments'}
-                      </DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
-                </FormGroup>
-
-              {/* Projects table shown inline if partial access is selected */}
-              {clusterScope === 'projects' && (
-              <div style={{ marginTop: '24px' }}>
-                    {selectedClusters.length > 1 && filteredProjectsForClusters.length === 0 && (
-                  <Content component="p" style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f5f5f5', fontSize: '13px' }}>
-                        <strong>Note:</strong> No common projects found across all {selectedClusters.length} selected clusters.
-                  </Content>
-                )}
-                    {selectedClusters.length > 1 && filteredProjectsForClusters.length > 0 && (
-                      <Content component="p" style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f5f5f5', fontSize: '13px' }}>
-                        <strong>Note:</strong> Only projects that exist in <strong>all {selectedClusters.length} clusters</strong> are shown below. You can select <strong>only one common project</strong>.
-                      </Content>
-                    )}
-                    <Toolbar>
-                  <ToolbarContent>
+                        <DropdownList>
+                          <DropdownItem
+                            onClick={() => {
+                              let allVisibleProjectIds: number[] = [];
+                              if (selectedClusters.length === 1) {
+                                const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                allVisibleProjectIds = [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].map(p => p.id);
+                              } else {
+                                const grouped = [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                  const existing = acc.find(g => g.name === project.name);
+                                  if (!existing) {
+                                    acc.push({ name: project.name, projects: [project] });
+                                  } else {
+                                    existing.projects.push(project);
+                                  }
+                                  return acc;
+                                }, [] as any[]);
+                                allVisibleProjectIds = grouped.flatMap(g => g.projects.map((p: any) => p.id));
+                              }
+                              const combined = [...selectedProjects, ...allVisibleProjectIds];
+                              setSelectedProjects(Array.from(new Set(combined)));
+                              setIsProjectBulkSelectorOpen(false);
+                            }}
+                          >
+                            Select all ({(() => {
+                              if (selectedClusters.length === 1) {
+                                const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                return [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].length;
+                              } else {
+                                return [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                  const existing = acc.find(g => g.name === project.name);
+                                  if (!existing) {
+                                    acc.push({ name: project.name, projects: [project] });
+                                  }
+                                  return acc;
+                                }, [] as any[]).length;
+                              }
+                            })()} items)
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </ToolbarItem>
                     <ToolbarItem>
                       <Dropdown
                         isOpen={isProjectFilterOpen}
@@ -2320,7 +2486,7 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                         onClear={() => setProjectSearch('')}
                       />
                     </ToolbarItem>
-                    {selectedClusters.length > 1 && createdCommonProjects.length > 0 && (
+                    {selectedClusters.length > 1 && (filteredProjectsForClusters.length > 0 || createdCommonProjects.length > 0) && (
                       <ToolbarItem>
                         <Button 
                           variant="primary"
@@ -2421,62 +2587,614 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                 <Table aria-label="Projects table" variant="compact">
                   <Thead>
                     <Tr>
-                      <Th width={10}>
-                        {(() => {
-                          // Calculate all visible project IDs based on current view
-                          let allVisibleProjectIds: number[] = [];
-                          
-                          if (selectedClusters.length === 1) {
-                            // Single cluster view
+                      <Th />
+                          <Th>Name</Th>
+                          {createdCommonProjects.length === 0 && <Th>Type</Th>}
+                        <Th>Clusters</Th>
+                        {createdCommonProjects.length > 0 && <Th>Actions</Th>}
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                        {filteredProjectsForClusters.length === 0 && createdCommonProjects.length === 0 ? (
+                          <Tr>
+                            <Td colSpan={4} style={{ textAlign: 'center', padding: '40px' }}>
+                              <EmptyState>
+                                <Title headingLevel="h4" size="lg" style={{ marginBottom: '12px' }}>
+                                  {selectedClusters.length > 1 ? "No common projects found" : "No projects available"}
+                                </Title>
+                                <EmptyStateBody>
+                                  {selectedClusters.length > 1 
+                                    ? 'Go back and select different clusters, or create projects with the same name on these clusters.'
+                                    : 'No projects are available in the selected cluster.'}
+                                </EmptyStateBody>
+                                {selectedClusters.length > 1 && (
+                                  <Button variant="primary" style={{ marginTop: '16px' }} onClick={() => {
+                                    setIsCreatingCommonProject(true);
+                                  }}>
+                                    Create common project
+                                  </Button>
+                                )}
+                              </EmptyState>
+                          </Td>
+                        </Tr>
+                        ) : selectedClusters.length === 1 ? (
+                          // Single cluster: Show ALL projects (including created), allow multiple selection
+                          (() => {
                             const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
-                            allVisibleProjectIds = [
+                            return [
                               ...filteredProjectsForClusters,
                               ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))
-                            ].map(p => p.id);
-                          } else {
-                            // Multiple clusters view - get all project IDs from common projects
-                            const grouped = [
-                              ...filteredProjectsForClusters,
-                              ...createdCommonProjects
-                            ].reduce((acc, project) => {
-                              const existing = acc.find(g => g.name === project.name);
-                              if (!existing) {
-                                acc.push({
-                                  name: project.name,
-                                  projects: [project]
-                                });
-                              } else {
-                                existing.projects.push(project);
-                              }
-                              return acc;
-                            }, [] as any[]);
-                            
-                            allVisibleProjectIds = grouped.flatMap(g => g.projects.map((p: any) => p.id));
-                          }
-                          
-                          const allSelected = allVisibleProjectIds.length > 0 && 
-                                            allVisibleProjectIds.every(id => selectedProjects.includes(id));
-                          const someSelected = allVisibleProjectIds.some(id => selectedProjects.includes(id));
-                          
-                          return allVisibleProjectIds.length > 0 ? (
+                            ];
+                          })().map((project) => (
+                        <Tr
+                          key={project.id}
+                          isSelectable
+                          isClickable
+                          isRowSelected={selectedProjects.includes(project.id)}
+                          onRowClick={() => {
+                            if (selectedProjects.includes(project.id)) {
+                              setSelectedProjects(selectedProjects.filter(id => id !== project.id));
+                            } else {
+                              setSelectedProjects([...selectedProjects, project.id]);
+                            }
+                          }}
+                        >
+                          <Td>
                             <Checkbox
-                              id="select-all-projects"
-                              isChecked={allSelected}
+                              id={`project-${project.id}`}
+                              isChecked={selectedProjects.includes(project.id)}
                               onChange={() => {
-                                if (allSelected) {
-                                  // Deselect all visible projects
-                                  setSelectedProjects(selectedProjects.filter(id => !allVisibleProjectIds.includes(id)));
+                                if (selectedProjects.includes(project.id)) {
+                                  setSelectedProjects(selectedProjects.filter(id => id !== project.id));
                                 } else {
-                                  // Select all visible projects
-                                  const combined = [...selectedProjects, ...allVisibleProjectIds];
-                                  setSelectedProjects(Array.from(new Set(combined)));
+                                  setSelectedProjects([...selectedProjects, project.id]);
                                 }
                               }}
-                              aria-label="Select all projects"
                             />
-                          ) : null;
-                        })()}
-                      </Th>
+                          </Td>
+                              <Td dataLabel="Name">
+                                <div style={{ fontWeight: selectedProjects.includes(project.id) ? '600' : 'normal' }}>
+                                  {project.displayName || project.name}
+                                </div>
+                              </Td>
+                              {createdCommonProjects.length === 0 && (
+                                <Td dataLabel="Type">
+                                  <Label color="blue">{project.type}</Label>
+                                </Td>
+                              )}
+                              <Td dataLabel="Clusters">
+                                <Label color="grey">{project.clusterName}</Label>
+                          </Td>
+                          {createdCommonProjects.length > 0 && (
+                            <Td isActionCell>
+                              {(project as any).isPending ? (
+                                <Button
+                                  variant="link"
+                                  isDanger
+                                  aria-label={`Delete ${project.name}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCreatedCommonProjects(
+                                      createdCommonProjects.filter(p => p.id !== project.id)
+                                    );
+                                    setSelectedProjects(
+                                      selectedProjects.filter(id => id !== project.id)
+                                    );
+                                  }}
+                                >
+                                  <TrashIcon /> Delete
+                                </Button>
+                              ) : null}
+                            </Td>
+                          )}
+                        </Tr>
+                        ))
+                    ) : (
+                          // Multiple clusters: Show COMMON projects grouped by name, allow multiple selection
+                      (() => {
+                            // Group projects by name to show as common (including created common projects)
+                            const commonProjects = new Map<string, typeof filteredProjectsForClusters>();
+                            const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                            
+                            // Add existing projects from database
+                            filteredProjectsForClusters.forEach(project => {
+                              if (!commonProjects.has(project.name)) {
+                                commonProjects.set(project.name, []);
+                              }
+                              commonProjects.get(project.name)?.push(project);
+                            });
+                            
+                            // Add created common projects
+                            createdCommonProjects
+                              .filter(project => selectedClusterIds.includes(project.clusterId))
+                              .forEach(project => {
+                                if (!commonProjects.has(project.name)) {
+                                  commonProjects.set(project.name, []);
+                                }
+                                commonProjects.get(project.name)?.push(project);
+                              });
+                            
+                            return Array.from(commonProjects.entries()).map(([name, projects]) => {
+                              const projectIds = projects.map(p => p.id);
+                              const isSelected = projectIds.every(id => selectedProjects.includes(id));
+                          
+                              return (
+                                <Tr
+                                  key={name}
+                                  isSelectable
+                                  isClickable
+                                  isRowSelected={isSelected}
+                                  onRowClick={() => {
+                                    if (isSelected) {
+                                      setSelectedProjects(selectedProjects.filter(id => !projectIds.includes(id)));
+                                    } else {
+                                      setSelectedProjects([...selectedProjects, ...projectIds]);
+                                    }
+                                  }}
+                                >
+                                  <Td>
+                                    <Checkbox
+                                      id={`project-${name}`}
+                                      isChecked={isSelected}
+                                      onChange={() => {
+                                        if (isSelected) {
+                                          setSelectedProjects(selectedProjects.filter(id => !projectIds.includes(id)));
+                                        } else {
+                                          setSelectedProjects([...selectedProjects, ...projectIds]);
+                                        }
+                                      }}
+                                    />
+                                  </Td>
+                                  <Td dataLabel="Name">
+                                    <div style={{ fontWeight: isSelected ? '600' : 'normal' }}>
+                                      {name}
+                                    </div>
+                                  </Td>
+                                  {createdCommonProjects.length === 0 && (
+                                    <Td dataLabel="Type">
+                                      <Label color="blue">{projects[0].type}</Label>
+                                    </Td>
+                                  )}
+                                  <Td dataLabel="Clusters">
+                                    {projects.map((p, idx) => (
+                                      <Label key={idx} color="grey" style={{ marginRight: '4px' }}>
+                                        {p.clusterName}
+                                      </Label>
+                                    ))}
+                                  </Td>
+                                  {createdCommonProjects.length > 0 && (
+                                    <Td isActionCell>
+                                      {projects.some((p: any) => p.isPending) ? (
+                                        <Button
+                                          variant="link"
+                                          isDanger
+                                          aria-label={`Delete ${name}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const projectIdsToRemove = projects.map(p => p.id);
+                                            setCreatedCommonProjects(
+                                              createdCommonProjects.filter(p => !projectIdsToRemove.includes(p.id))
+                                            );
+                                            setSelectedProjects(
+                                              selectedProjects.filter(id => !projectIdsToRemove.includes(id))
+                                            );
+                                          }}
+                                        >
+                                          <TrashIcon /> Delete
+                                        </Button>
+                                      ) : null}
+                                    </Td>
+                                  )}
+                                </Tr>
+                              );
+                            });
+                          })()
+                        )}
+                      </Tbody>
+                    </Table>
+                    )}
+                  </div>
+                )}
+              </div>
+              );
+            })()}
+
+
+            {/* SUB-STEP: Choose Access Level after selecting clusters (for 'clusters' path only) */}
+            {resourceScope === 'clusters' && showScopeSelection && !showProjectSelection && (() => {
+                          return (
+              <div key="clusters-access-level-selection">
+                <Title headingLevel="h2" size="xl" style={{ marginBottom: '12px' }}>
+                  Choose access level
+                </Title>
+                <Content component="p" style={{ marginBottom: '16px', fontSize: '14px', color: '#6a6e73' }}>
+                  Define the level of access for the {selectedClusters.length} selected cluster{selectedClusters.length > 1 ? 's' : ''}.
+                                </Content>
+                
+                <FormGroup label="Access level" style={{ marginBottom: '16px' }}>
+                  <Dropdown
+                    isOpen={isClusterScopeOpen}
+                    onSelect={() => setIsClusterScopeOpen(false)}
+                    onOpenChange={(isOpen: boolean) => setIsClusterScopeOpen(isOpen)}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle 
+                        ref={toggleRef} 
+                        onClick={() => setIsClusterScopeOpen(!isClusterScopeOpen)} 
+                        isExpanded={isClusterScopeOpen}
+                        variant="default"
+                        style={{ width: '100%' }}
+                      >
+                        {clusterScope === 'everything'
+                          ? 'Cluster role assignment'
+                          : (selectedClusters.length === 1 ? 'Project role assignment' : 'Common projects role assignments')}
+                      </MenuToggle>
+                    )}
+                    shouldFocusToggleOnSelect
+                    popperProps={{
+                      appendTo: () => document.body,
+                      
+                      
+                    }}
+                  >
+                    <DropdownList>
+                      <DropdownItem
+                        key="everything"
+                        onClick={() => {
+                          setClusterScope('everything');
+                          setSelectedProjects([]);
+                          setShowProjectSelection(false);
+                          setIsClusterScopeOpen(false);
+                        }}
+                        description={selectedClusters.length === 1
+                          ? 'Grant access to all current and future resources on the cluster.'
+                          : 'Grant access to all current and future resources on the clusters'}
+                      >
+                      Cluster role assignment
+                      </DropdownItem>
+                      <DropdownItem
+                        key="projects"
+                        onClick={() => {
+                          setClusterScope('projects');
+                          setSelectedProjects([]);
+                          setIsClusterScopeOpen(false);
+                        }}
+                        description={selectedClusters.length === 1
+                          ? 'Grant access to specific projects on the cluster.'
+                        : 'Grant access to projects with the same name across selected clusters'}
+                      >
+                      {selectedClusters.length === 1 ? 'Project role assignment' : 'Common projects role assignments'}
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </FormGroup>
+
+                {/* Show message when cluster role assignment (everything) is selected */}
+                {clusterScope === 'everything' && (
+                  <div style={{ 
+                    padding: '16px', 
+                    backgroundColor: '#f0f0f0', 
+                    borderRadius: '4px',
+                    marginTop: '16px',
+                    fontSize: '14px',
+                    color: '#6a6e73'
+                  }}>
+                    This role assignment will apply to all current and future resources on the selected {selectedClusters.length === 1 ? 'cluster' : 'clusters'}.
+                  </div>
+                )}
+
+              {/* Projects table shown inline if partial access is selected */}
+              {clusterScope === 'projects' && (
+              <div style={{ marginTop: '24px' }}>
+                    <Toolbar>
+                  <ToolbarContent>
+                    {/* Bulk selector dropdown */}
+                    <ToolbarItem>
+                      <Dropdown
+                        isOpen={isProjectBulkSelectorOpen}
+                        onSelect={() => setIsProjectBulkSelectorOpen(false)}
+                        onOpenChange={(isOpen: boolean) => setIsProjectBulkSelectorOpen(isOpen)}
+                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            onClick={() => {
+                              if (selectedProjects.length > 0) {
+                                setSelectedProjects([]);
+                              } else {
+                                setIsProjectBulkSelectorOpen(!isProjectBulkSelectorOpen);
+                              }
+                            }}
+                            variant="plain"
+                            style={{
+                              border: '1px solid var(--pf-t--global--border--color--default)',
+                              borderRadius: 'var(--pf-t--global--border--radius--small)',
+                              padding: '6px 8px',
+                              minWidth: 'auto',
+                            }}
+                          >
+                            <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <FlexItem>
+                                <Checkbox
+                                  isChecked={(() => {
+                                    let allVisibleProjectIds: number[] = [];
+                                    if (selectedClusters.length === 1) {
+                                      const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                      allVisibleProjectIds = [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].map(p => p.id);
+                                    } else {
+                                      const grouped = [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                        const existing = acc.find(g => g.name === project.name);
+                                        if (!existing) {
+                                          acc.push({ name: project.name, projects: [project] });
+                                        } else {
+                                          existing.projects.push(project);
+                                        }
+                                        return acc;
+                                      }, [] as any[]);
+                                      allVisibleProjectIds = grouped.flatMap(g => g.projects.map((p: any) => p.id));
+                                    }
+                                    return allVisibleProjectIds.length > 0 && allVisibleProjectIds.every(id => selectedProjects.includes(id));
+                                  })()}
+                                  onChange={(event, checked) => {
+                                    event.stopPropagation();
+                                    let allVisibleProjectIds: number[] = [];
+                                    if (selectedClusters.length === 1) {
+                                      const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                      allVisibleProjectIds = [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].map(p => p.id);
+                                    } else {
+                                      const grouped = [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                        const existing = acc.find(g => g.name === project.name);
+                                        if (!existing) {
+                                          acc.push({ name: project.name, projects: [project] });
+                                        } else {
+                                          existing.projects.push(project);
+                                        }
+                                        return acc;
+                                      }, [] as any[]);
+                                      allVisibleProjectIds = grouped.flatMap(g => g.projects.map((p: any) => p.id));
+                                    }
+                                    if (checked) {
+                                      const combined = [...selectedProjects, ...allVisibleProjectIds];
+                                      setSelectedProjects(Array.from(new Set(combined)));
+                                    } else {
+                                      setSelectedProjects(selectedProjects.filter(id => !allVisibleProjectIds.includes(id)));
+                                    }
+                                  }}
+                                  aria-label="Select all"
+                                  id="select-all-projects-checkbox-clusters-path"
+                                />
+                              </FlexItem>
+                              <FlexItem>
+                                <CaretDownIcon />
+                              </FlexItem>
+                            </Flex>
+                          </MenuToggle>
+                        )}
+                      >
+                        <DropdownList>
+                          <DropdownItem
+                            onClick={() => {
+                              setSelectedProjects([]);
+                              setIsProjectBulkSelectorOpen(false);
+                            }}
+                          >
+                            Select none
+                          </DropdownItem>
+                          <DropdownItem
+                            onClick={() => {
+                              let allVisibleProjectIds: number[] = [];
+                              if (selectedClusters.length === 1) {
+                                const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                allVisibleProjectIds = [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].map(p => p.id);
+                              } else {
+                                const grouped = [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                  const existing = acc.find(g => g.name === project.name);
+                                  if (!existing) {
+                                    acc.push({ name: project.name, projects: [project] });
+                                  } else {
+                                    existing.projects.push(project);
+                                  }
+                                  return acc;
+                                }, [] as any[]);
+                                allVisibleProjectIds = grouped.flatMap(g => g.projects.map((p: any) => p.id));
+                              }
+                              const combined = [...selectedProjects, ...allVisibleProjectIds];
+                              setSelectedProjects(Array.from(new Set(combined)));
+                              setIsProjectBulkSelectorOpen(false);
+                            }}
+                          >
+                            Select page ({(() => {
+                              if (selectedClusters.length === 1) {
+                                const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                return [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].length;
+                              } else {
+                                return [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                  const existing = acc.find(g => g.name === project.name);
+                                  if (!existing) {
+                                    acc.push({ name: project.name, projects: [project] });
+                                  }
+                                  return acc;
+                                }, [] as any[]).length;
+                              }
+                            })()} items)
+                          </DropdownItem>
+                          <DropdownItem
+                            onClick={() => {
+                              let allVisibleProjectIds: number[] = [];
+                              if (selectedClusters.length === 1) {
+                                const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                allVisibleProjectIds = [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].map(p => p.id);
+                              } else {
+                                const grouped = [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                  const existing = acc.find(g => g.name === project.name);
+                                  if (!existing) {
+                                    acc.push({ name: project.name, projects: [project] });
+                                  } else {
+                                    existing.projects.push(project);
+                                  }
+                                  return acc;
+                                }, [] as any[]);
+                                allVisibleProjectIds = grouped.flatMap(g => g.projects.map((p: any) => p.id));
+                              }
+                              const combined = [...selectedProjects, ...allVisibleProjectIds];
+                              setSelectedProjects(Array.from(new Set(combined)));
+                              setIsProjectBulkSelectorOpen(false);
+                            }}
+                          >
+                            Select all ({(() => {
+                              if (selectedClusters.length === 1) {
+                                const selectedClusterIds = selectedClusters.map(idx => dbClusters[idx - 1]?.id).filter(Boolean);
+                                return [...filteredProjectsForClusters, ...createdCommonProjects.filter(p => selectedClusterIds.includes(p.clusterId))].length;
+                              } else {
+                                return [...filteredProjectsForClusters, ...createdCommonProjects].reduce((acc, project) => {
+                                  const existing = acc.find(g => g.name === project.name);
+                                  if (!existing) {
+                                    acc.push({ name: project.name, projects: [project] });
+                                  }
+                                  return acc;
+                                }, [] as any[]).length;
+                              }
+                            })()} items)
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                      <Dropdown
+                        isOpen={isProjectFilterOpen}
+                        onSelect={() => setIsProjectFilterOpen(false)}
+                        onOpenChange={(isOpen: boolean) => setIsProjectFilterOpen(isOpen)}
+                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                          <MenuToggle 
+                            ref={toggleRef} 
+                            onClick={() => setIsProjectFilterOpen(!isProjectFilterOpen)} 
+                            isExpanded={isProjectFilterOpen}
+                            variant="default"
+                          >
+                            {projectFilterType}
+                          </MenuToggle>
+                        )}
+                        popperProps={{
+                          appendTo: () => document.body,
+                          
+                          
+                        }}
+                      >
+                        <DropdownList>
+                          <DropdownItem onClick={() => { setProjectFilterType('Name'); setIsProjectFilterOpen(false); }}>
+                            Name
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                      <SearchInput
+                        placeholder="Search projects"
+                        value={projectSearch}
+                        onChange={(_event, value) => setProjectSearch(value)}
+                        onClear={() => setProjectSearch('')}
+                      />
+                    </ToolbarItem>
+                    {selectedClusters.length > 1 && (filteredProjectsForClusters.length > 0 || createdCommonProjects.length > 0) && (
+                      <ToolbarItem>
+                        <Button 
+                          variant="primary"
+                          onClick={() => setIsCreatingCommonProject(true)}
+                        >
+                          Create common project
+                        </Button>
+                      </ToolbarItem>
+                    )}
+                  </ToolbarContent>
+                </Toolbar>
+                
+                {/* Form for creating common projects - replaces table when active */}
+                {isCreatingCommonProject ? (
+                  <div style={{ padding: '16px', backgroundColor: '#f5f5f5', marginBottom: '16px', borderRadius: '4px' }}>
+                    <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
+                      Create common project
+                    </Title>
+                    <Form style={{ maxWidth: '600px' }}>
+                      <FormGroup label="Name" isRequired>
+                        <TextInput
+                          type="text"
+                          value={commonProjectName}
+                          onChange={(_event, value) => setCommonProjectName(value)}
+                          placeholder="Enter project name"
+                        />
+                      </FormGroup>
+                      
+                      <FormGroup label="Display name">
+                        <TextInput
+                          type="text"
+                          value={commonProjectDisplayName}
+                          onChange={(_event, value) => setCommonProjectDisplayName(value)}
+                          placeholder="Enter display name (optional)"
+                        />
+                      </FormGroup>
+                      
+                      <FormGroup label="Description">
+                        <TextInput
+                          type="text"
+                          value={commonProjectDescription}
+                          onChange={(_event, value) => setCommonProjectDescription(value)}
+                          placeholder="Enter description (optional)"
+                        />
+                      </FormGroup>
+
+                      <div style={{ marginTop: 'var(--pf-t--global--spacer--md)', display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                        <Button 
+                          variant="primary"
+                          onClick={() => {
+                            // Create temporary project entries for each selected cluster
+                            const newProjects = selectedClusters.map((clusterIndex) => {
+                              const cluster = dbClusters[clusterIndex - 1]; // Convert 1-based index to 0-based
+                              const tempId = -(Date.now() + Math.random()); // Negative ID to distinguish from real projects
+                              
+                              return {
+                                id: tempId,
+                                dbId: `temp-${Date.now()}-${cluster?.id}`,
+                                name: commonProjectName,
+                                displayName: commonProjectDisplayName,
+                                description: commonProjectDescription,
+                                clusterId: cluster?.id || '',
+                                clusterName: cluster?.name || 'Unknown',
+                                type: 'application', // Default type
+                                labels: {},
+                                isPending: true,
+                              };
+                            });
+                            
+                            setCreatedCommonProjects([...createdCommonProjects, ...newProjects]);
+                            // Auto-select the newly created projects
+                            setSelectedProjects(newProjects.map(p => p.id));
+                            // Close form and clear fields
+                            setIsCreatingCommonProject(false);
+                            setCommonProjectName('');
+                            setCommonProjectDisplayName('');
+                            setCommonProjectDescription('');
+                          }}
+                          isDisabled={!commonProjectName.trim()}
+                        >
+                          Save
+                        </Button>
+                        <Button 
+                          variant="link"
+                          onClick={() => {
+                            setIsCreatingCommonProject(false);
+                            setCommonProjectName('');
+                            setCommonProjectDisplayName('');
+                            setCommonProjectDescription('');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </Form>
+                  </div>
+                ) : (
+                <Table aria-label="Projects table" variant="compact">
+                  <Thead>
+                    <Tr>
+                      <Th />
                       <Th>Name</Th>
                       {createdCommonProjects.length === 0 && <Th>Type</Th>}
                       <Th>Clusters</Th>
@@ -2670,7 +3388,7 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                         </Tr>
                         ))
                     ) : (
-                          // Multiple clusters: Show COMMON projects, allow only ONE selection
+                          // Multiple clusters: Show COMMON projects, allow multiple selection
                       (() => {
                             // Group projects by name to show as common (including created common projects)
                             const commonProjects = new Map<string, typeof filteredProjectsForClusters>();
@@ -2695,7 +3413,8 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                               });
                             
                             return Array.from(commonProjects.entries()).map(([name, projects]) => {
-                              const isSelected = projects.every(p => selectedProjects.includes(p.id));
+                              const projectIds = projects.map(p => p.id);
+                              const isSelected = projectIds.every(id => selectedProjects.includes(id));
                           
                           return (
                             <Tr
@@ -2705,22 +3424,21 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                               isRowSelected={isSelected}
                               onRowClick={() => {
                                 if (isSelected) {
-                                      setSelectedProjects([]);
+                                  setSelectedProjects(selectedProjects.filter(id => !projectIds.includes(id)));
                                 } else {
-                                      setSelectedProjects(projects.map(p => p.id));
+                                  setSelectedProjects([...selectedProjects, ...projectIds]);
                                 }
                               }}
                             >
                               <Td>
-                                    <Radio
+                                    <Checkbox
                                       id={`project-${name}`}
-                                      name="common-project-selection"
                                   isChecked={isSelected}
                                   onChange={() => {
                                     if (isSelected) {
-                                          setSelectedProjects([]);
+                                      setSelectedProjects(selectedProjects.filter(id => !projectIds.includes(id)));
                                     } else {
-                                          setSelectedProjects(projects.map(p => p.id));
+                                      setSelectedProjects([...selectedProjects, ...projectIds]);
                                     }
                                   }}
                                 />
@@ -3011,7 +3729,7 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
-                  Resources
+                  Scope
                 </Title>
                 <Button 
                   variant="link" 
@@ -3088,7 +3806,8 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                             selectedProjects.length > 0 
                               ? selectedProjects.map(id => {
                             const project = mockProjects.find(p => p.id === id);
-                            return project?.name;
+                            const createdProject = createdCommonProjects.find(p => p.id === id);
+                            return project?.name || createdProject?.name;
                                 }).filter(Boolean).join(', ')
                               : 'None selected'
                           }
@@ -3145,7 +3864,8 @@ export const GroupRoleAssignmentWizard: React.FC<GroupRoleAssignmentWizardProps>
                         selectedProjects.length > 0 
                           ? selectedProjects.map(id => {
                               const project = mockProjects.find(p => p.id === id);
-                              return project?.name;
+                              const createdProject = createdCommonProjects.find(p => p.id === id);
+                              return project?.name || createdProject?.name;
                             }).filter(Boolean).join(', ')
                           : 'None selected'
                       }
