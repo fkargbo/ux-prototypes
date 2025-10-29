@@ -316,15 +316,13 @@ const CreatePolicy: React.FunctionComponent = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
-      {/* Breadcrumb section */}
-      <div style={{ 
+      {/* Header area with breadcrumb, title and description */}
+      <header style={{ 
         backgroundColor: '#ffffff', 
-        paddingTop: '24px',
-        paddingRight: '24px',
-        paddingBottom: '8px',
-        paddingLeft: '24px'
+        padding: '24px',
+        borderBottom: '1px solid #d2d2d2'
       }}>
-        <Breadcrumb>
+        <Breadcrumb style={{ marginBottom: '16px' }}>
           <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
             Governance
           </BreadcrumbItem>
@@ -333,24 +331,14 @@ const CreatePolicy: React.FunctionComponent = () => {
           </BreadcrumbItem>
           <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
         </Breadcrumb>
-      </div>
-
-      {/* Title section */}
-      <div style={{ 
-        backgroundColor: '#ffffff', 
-        paddingTop: '16px',
-        paddingRight: '24px',
-        paddingBottom: '24px',
-        paddingLeft: '24px',
-        borderBottom: '1px solid #d2d2d2'
-      }}>
+        
         <Title headingLevel="h1" size="2xl">
           Create policy
         </Title>
         <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
           Create a new governance policy to enforce compliance across your clusters.
         </Content>
-      </div>
+      </header>
 
       {/* Wizard content */}
       <div style={{ flex: 1, overflow: 'hidden', backgroundColor: '#ffffff' }}>
