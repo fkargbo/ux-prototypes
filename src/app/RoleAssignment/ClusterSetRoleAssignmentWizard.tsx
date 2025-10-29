@@ -1081,16 +1081,34 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
           }}>
             {renderStepIndicator(1, 'Identities')}
             {renderStepIndicator(2, 'Scope')}
+            
+            {/* Substep for cluster selection */}
+            {currentStep === 2 && resourceScope === 'clusters' && (
+              <div style={{ marginLeft: '3.5rem', marginTop: '0', marginBottom: '0.5rem' }}>
+                <div style={{ 
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '14px',
+                  color: '#6a6e73',
+                  cursor: 'default',
+                  backgroundColor: currentStep === 2 && !showAccessLevel ? '#f5f5f5' : 'transparent',
+                  borderRadius: '4px',
+                  marginBottom: '0'
+                }}>
+                  Select clusters
+                </div>
+              </div>
+            )}
+            
             {currentStep === 2 && showAccessLevel && (
               <div style={{ marginLeft: '3.5rem', marginTop: '0', marginBottom: '0.5rem' }}>
                 <div style={{ 
                   padding: '0.5rem 0.75rem',
                   fontSize: '14px',
-                  color: '#151515',
+                  color: '#6a6e73',
                   cursor: 'default',
                   backgroundColor: '#f5f5f5',
                   borderRadius: '4px',
-                  fontWeight: '600'
+                  marginBottom: '0'
                 }}>
                   Choose access level
                 </div>
