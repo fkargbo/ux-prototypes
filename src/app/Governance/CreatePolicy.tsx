@@ -316,35 +316,32 @@ const CreatePolicy: React.FunctionComponent = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
-      {/* Header area with breadcrumb, title and description */}
-      <header style={{ 
-        backgroundColor: '#ffffff', 
-        borderBottom: '1px solid #d2d2d2',
-        paddingTop: '24px',
-        paddingRight: '24px',
-        paddingBottom: '24px',
-        paddingLeft: '24px',
-        margin: '0',
-        boxSizing: 'border-box',
-        width: '100%'
-      }}>
-        <Breadcrumb style={{ marginBottom: '16px' }}>
-          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-            Governance
-          </BreadcrumbItem>
-          <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
-            Policies
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
-        </Breadcrumb>
-        
-        <Title headingLevel="h1" size="2xl">
-          Create policy
-        </Title>
-        <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
-          Create a new governance policy to enforce compliance across your clusters.
-        </Content>
-      </header>
+      {/* Breadcrumb section */}
+      <section className="pf-v6-c-page__main-breadcrumb pf-m-limit-width">
+        <div className="pf-v6-c-page__main-body">
+          <Breadcrumb>
+            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+              Governance
+            </BreadcrumbItem>
+            <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
+              Policies
+            </BreadcrumbItem>
+            <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
+          </Breadcrumb>
+        </div>
+      </section>
+
+      {/* Page header with title and description */}
+      <section className="pf-v6-c-page__main-section pf-m-limit-width" style={{ borderBottom: '1px solid #d2d2d2' }}>
+        <div className="pf-v6-c-page__main-body">
+          <Title headingLevel="h1" size="2xl" className="pf-m-page-title">
+            Create policy
+          </Title>
+          <Content component="p">
+            Create a new governance policy to enforce compliance across your clusters.
+          </Content>
+        </div>
+      </section>
 
       {/* Wizard content */}
       <div style={{ flex: 1, overflow: 'hidden', backgroundColor: '#ffffff' }}>
