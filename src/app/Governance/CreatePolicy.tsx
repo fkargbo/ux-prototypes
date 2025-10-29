@@ -317,9 +317,16 @@ const CreatePolicy: React.FunctionComponent = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
       {/* Header area with breadcrumb, title and description */}
-      <header className="wizard-page-header" style={{ 
+      <header style={{ 
         backgroundColor: '#ffffff', 
-        borderBottom: '1px solid #d2d2d2'
+        borderBottom: '1px solid #d2d2d2',
+        paddingTop: '24px',
+        paddingRight: '24px',
+        paddingBottom: '24px',
+        paddingLeft: '24px',
+        margin: '0',
+        boxSizing: 'border-box',
+        width: '100%'
       }}>
         <Breadcrumb style={{ marginBottom: '16px' }}>
           <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); navigate('/governance'); }}>
