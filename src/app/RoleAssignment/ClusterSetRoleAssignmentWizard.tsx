@@ -1657,14 +1657,14 @@ export const ClusterSetRoleAssignmentWizard: React.FC<ClusterSetRoleAssignmentWi
           </>
         )}
 
-        {/* Step 2: Select Resources */}
+        {/* Step 2: Scope */}
         {currentStep === 2 && (
           <>
             {!showAccessLevel ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <Title headingLevel="h2" size="xl" style={{ margin: 0 }}>
-                    Select resources
+                    Scope
                   </Title>
                   <Button 
                     variant="link" 
