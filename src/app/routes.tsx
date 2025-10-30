@@ -4,27 +4,27 @@ import { Dashboard } from '@app/Dashboard/Dashboard';
 import { Support } from '@app/Support/Support';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
-import { IdentityDetail } from '@app/Identities/IdentityDetail';
-import { GroupDetail } from '@app/Identities/GroupDetail';
-import CreateGroup from '@app/Identities/CreateGroup';
-import { CreateRole } from '@app/Roles/CreateRole';
-import { RoleDetail } from '@app/Roles/RoleDetail';
-import { IdentityProviderDetail } from '@app/IdentityProvider/IdentityProviderDetail';
-import { AddLDAPProvider } from '@app/IdentityProvider/AddLDAPProvider';
-import { ProjectDetail } from '@app/Projects/ProjectDetail';
 import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
 import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 import { NotFound } from '@app/NotFound/NotFound';
-import { GovernancePage } from '@app/navigation/governance/GovernancePage';
-import { CreatePolicy } from '@app/Governance/CreatePolicy';
 import {
   ClustersPage,
   ClusterDetailPage,
   IdentitiesPage,
   RolesPage,
-  IdentityProvidersPage
-} from '@app/navigation';
-import { ProjectsPage } from '@app/navigation/core-platforms';
+  IdentityProvidersPage,
+  ProjectsPage,
+  GovernancePage,
+  CreatePolicy,
+  IdentityDetail,
+  GroupDetail,
+  CreateGroup,
+  CreateRole,
+  RoleDetail,
+  IdentityProviderDetail,
+  AddLDAPProvider,
+  ProjectDetail,
+} from '@app/utils/useCaseComponents';
 import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
 import Virtualization from '@app/FleetVirtualization/Virtualization';
 import { Catalog } from '@app/FleetVirtualization/Catalog';
