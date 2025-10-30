@@ -12,7 +12,14 @@ import {
   ActionList,
   ActionListItem,
   Checkbox,
+  Radio,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  MenuToggle,
+  MenuToggleElement,
 } from '@patternfly/react-core';
+import { PlusIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
@@ -26,8 +33,8 @@ const CreatePolicy: React.FunctionComponent = () => {
   const [policyDescription, setPolicyDescription] = React.useState('');
   const [projectSelector, setProjectSelector] = React.useState('');
   const [disablePolicy, setDisablePolicy] = React.useState(false);
-  const [templateType, setTemplateType] = React.useState('');
-  const [apiVersion, setApiVersion] = React.useState('');
+  const [remediation, setRemediation] = React.useState('inform');
+  const [isAddTemplateDropdownOpen, setIsAddTemplateDropdownOpen] = React.useState(false);
   const [clusterSelector, setClusterSelector] = React.useState('');
   const [labelSelector, setLabelSelector] = React.useState('');
   const [annotations, setAnnotations] = React.useState('');
@@ -43,8 +50,7 @@ const CreatePolicy: React.FunctionComponent = () => {
       policyDescription,
       projectSelector,
       disablePolicy,
-      templateType,
-      apiVersion,
+      remediation,
       clusterSelector,
       labelSelector,
       annotations,
@@ -130,28 +136,91 @@ const CreatePolicy: React.FunctionComponent = () => {
     // Step 2: Policy templates
     if (currentStep === 2) {
       return (
-        <Form>
-          <FormGroup label="Template type" fieldId="template-type">
-            <TextInput
-              type="text"
-              id="template-type"
-              name="template-type"
-              value={templateType}
-              onChange={(_event, value) => setTemplateType(value)}
-              placeholder="Select a policy template"
-            />
-          </FormGroup>
-          <FormGroup label="API version" fieldId="api-version">
-            <TextInput
-              type="text"
-              id="api-version"
-              name="api-version"
-              value={apiVersion}
-              onChange={(_event, value) => setApiVersion(value)}
-              placeholder="policy.open-cluster-management.io/v1"
-            />
-          </FormGroup>
-        </Form>
+        <div>
+          <Title headingLevel="h2" size="xl" style={{ marginBottom: '8px' }}>
+            Templates
+          </Title>
+          <Content component="p" style={{ marginBottom: '24px', color: '#6a6e73' }}>
+            A policy contains policy templates that create policies on managed clusters.
+          </Content>
+
+          <Form>
+            <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
+              Remediations
+            </Title>
+            <FormGroup fieldId="remediation">
+              <Radio
+                id="remediation-inform"
+                name="remediation"
+                label="Inform"
+                description="Reports the violation, which requires manual remediation."
+                isChecked={remediation === 'inform'}
+                onChange={() => setRemediation('inform')}
+                style={{ marginBottom: '12px' }}
+              />
+              <Radio
+                id="remediation-enforce"
+                name="remediation"
+                label="Enforce"
+                description="Automatically runs remediation action that is defined in the source, if the feature is supported."
+                isChecked={remediation === 'enforce'}
+                onChange={() => setRemediation('enforce')}
+                style={{ marginBottom: '12px' }}
+              />
+              <Radio
+                id="remediation-template"
+                name="remediation"
+                label="Use policy template remediation"
+                description="Remediation action will be determined by what is set in the policy template definitions."
+                isChecked={remediation === 'template'}
+                onChange={() => setRemediation('template')}
+              />
+            </FormGroup>
+
+            <div style={{ marginTop: '32px' }}>
+              <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
+                Policy templates
+              </Title>
+              <Dropdown
+                isOpen={isAddTemplateDropdownOpen}
+                onSelect={() => setIsAddTemplateDropdownOpen(false)}
+                onOpenChange={(isOpen) => setIsAddTemplateDropdownOpen(isOpen)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsAddTemplateDropdownOpen(!isAddTemplateDropdownOpen)}
+                    isExpanded={isAddTemplateDropdownOpen}
+                    variant="primary"
+                    icon={<PlusIcon />}
+                    splitButtonOptions={{
+                      variant: 'action',
+                      items: [
+                        <MenuToggle
+                          key="add-template-toggle"
+                          ref={toggleRef}
+                          aria-label="Add policy template"
+                          variant="primary"
+                          onClick={() => setIsAddTemplateDropdownOpen(!isAddTemplateDropdownOpen)}
+                          isExpanded={isAddTemplateDropdownOpen}
+                        >
+                          Add policy template
+                        </MenuToggle>
+                      ]
+                    }}
+                  >
+                    <CaretDownIcon />
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem key="template-1">Template option 1</DropdownItem>
+                  <DropdownItem key="template-2">Template option 2</DropdownItem>
+                  <DropdownItem key="template-3">Template option 3</DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </div>
+          </Form>
+        </div>
       );
     }
 
@@ -243,10 +312,12 @@ const CreatePolicy: React.FunctionComponent = () => {
               Policy templates
             </Title>
             <dl style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '8px', fontSize: '14px' }}>
-              <dt style={{ fontWeight: 600 }}>Template type:</dt>
-              <dd>{templateType || '—'}</dd>
-              <dt style={{ fontWeight: 600 }}>API version:</dt>
-              <dd>{apiVersion || '—'}</dd>
+              <dt style={{ fontWeight: 600 }}>Remediation:</dt>
+              <dd>
+                {remediation === 'inform' && 'Inform'}
+                {remediation === 'enforce' && 'Enforce'}
+                {remediation === 'template' && 'Use policy template remediation'}
+              </dd>
             </dl>
           </div>
 
