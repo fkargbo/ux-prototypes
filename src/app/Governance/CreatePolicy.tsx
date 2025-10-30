@@ -413,9 +413,12 @@ const CreatePolicy: React.FunctionComponent = () => {
                       className={`pf-v6-c-wizard__nav-link ${currentStep === 1 ? 'pf-m-current' : ''}`}
                       type="button"
                       onClick={() => handleStepClick(1)}
+                      aria-current={currentStep === 1 ? 'step' : undefined}
                     >
                       <span className="pf-v6-c-wizard__nav-link-main">
-                        <span className="pf-v6-c-wizard__nav-link-text">Details</span>
+                        <span className="pf-v6-c-wizard__nav-link-text">
+                          <span className="pf-v6-c-wizard__nav-link-text-name">Details</span>
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -425,9 +428,12 @@ const CreatePolicy: React.FunctionComponent = () => {
                       className={`pf-v6-c-wizard__nav-link ${currentStep === 2 ? 'pf-m-current' : ''}`}
                       type="button"
                       onClick={() => handleStepClick(2)}
+                      aria-current={currentStep === 2 ? 'step' : undefined}
                     >
                       <span className="pf-v6-c-wizard__nav-link-main">
-                        <span className="pf-v6-c-wizard__nav-link-text">Policy templates</span>
+                        <span className="pf-v6-c-wizard__nav-link-text">
+                          <span className="pf-v6-c-wizard__nav-link-text-name">Policy templates</span>
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -437,9 +443,12 @@ const CreatePolicy: React.FunctionComponent = () => {
                       className={`pf-v6-c-wizard__nav-link ${currentStep === 3 ? 'pf-m-current' : ''}`}
                       type="button"
                       onClick={() => handleStepClick(3)}
+                      aria-current={currentStep === 3 ? 'step' : undefined}
                     >
                       <span className="pf-v6-c-wizard__nav-link-main">
-                        <span className="pf-v6-c-wizard__nav-link-text">Placement</span>
+                        <span className="pf-v6-c-wizard__nav-link-text">
+                          <span className="pf-v6-c-wizard__nav-link-text-name">Placement</span>
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -449,9 +458,12 @@ const CreatePolicy: React.FunctionComponent = () => {
                       className={`pf-v6-c-wizard__nav-link ${currentStep === 4 ? 'pf-m-current' : ''}`}
                       type="button"
                       onClick={() => handleStepClick(4)}
+                      aria-current={currentStep === 4 ? 'step' : undefined}
                     >
                       <span className="pf-v6-c-wizard__nav-link-main">
-                        <span className="pf-v6-c-wizard__nav-link-text">Policy annotations</span>
+                        <span className="pf-v6-c-wizard__nav-link-text">
+                          <span className="pf-v6-c-wizard__nav-link-text-name">Policy annotations</span>
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -462,10 +474,13 @@ const CreatePolicy: React.FunctionComponent = () => {
                       type="button"
                       onClick={() => currentStep >= 5 && handleStepClick(5)}
                       aria-disabled={currentStep < 5}
+                      aria-current={currentStep === 5 ? 'step' : undefined}
                       tabIndex={currentStep < 5 ? -1 : 0}
                     >
                       <span className="pf-v6-c-wizard__nav-link-main">
-                        <span className="pf-v6-c-wizard__nav-link-text">Review</span>
+                        <span className="pf-v6-c-wizard__nav-link-text">
+                          <span className="pf-v6-c-wizard__nav-link-text-name">Review</span>
+                        </span>
                       </span>
                     </button>
                   </li>
