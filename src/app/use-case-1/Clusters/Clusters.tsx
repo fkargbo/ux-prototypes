@@ -31,7 +31,7 @@ import {
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn, IAction } from '@patternfly/react-table';
 import { FilterIcon, InfoCircleIcon, ExternalLinkAltIcon, CheckIcon, ArrowUpIcon, SyncAltIcon, RedoIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-import { getAllClusters, getAllClusterSets, getAllNamespaces } from '../data/queries';
+import { getAllClusters, getAllClusterSets, getAllNamespaces, getClustersByClusterSet } from '../data/queries';
 
 // Transform centralized database data to component format (using globalMockDatabase)
 const dbClusters = getAllClusters();
