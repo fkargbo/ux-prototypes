@@ -236,7 +236,7 @@ const routes: AppRouteConfig[] = [
         title: 'ACM | Role Detail',
       },
       {
-        element: <IdentityProvidersPage />,
+        element: <IdentityProvidersPage showClustersColumn={true} />,
         label: 'Identity providers',
         path: '/user-management/identity-providers',
         title: 'ACM | Identity Providers',
