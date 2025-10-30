@@ -101,6 +101,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const { useCase } = useUseCaseContext();
   const navigate = useNavigate();
   const hasNavigatedRef = React.useRef(false);
+  const hasShownModalRef = React.useRef(false);
 
   // When impersonation starts, switch to Fleet virtualization perspective and navigate to Virtual machines (only once)
   React.useEffect(() => {
@@ -113,6 +114,17 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       hasNavigatedRef.current = false;
     }
   }, [impersonatingUser, navigate]);
+
+  // Automatically open the task modal when entering a use case (only once per use case selection)
+  React.useEffect(() => {
+    if (useCase && !hasShownModalRef.current) {
+      setIsTaskModalOpen(true);
+      hasShownModalRef.current = true;
+    } else if (!useCase) {
+      // Reset the flag when returning to use case selector
+      hasShownModalRef.current = false;
+    }
+  }, [useCase]);
 
   const allPerspectives = [
     { name: 'Core platforms', disabled: false },
@@ -715,54 +727,103 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             title="Your role"
             style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}
           >
-            <strong>Walter Joseph Kovacs</strong> — Tenant administrator
+            {useCase === 'use-case-1' ? (
+              <><strong>Adrian Veidt</strong> — Fleet administrator</>
+            ) : (
+              <><strong>Walter Joseph Kovacs</strong> — Tenant administrator</>
+            )}
           </Alert>
 
           <Title headingLevel="h2" size="xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
             Task
           </Title>
 
-          <Content component="p" style={{ 
-            marginBottom: 'var(--pf-t--global--spacer--md)',
-            fontSize: '15px',
-          }}>
-            Grant virtual machine management permissions:
-          </Content>
+          {useCase === 'use-case-1' ? (
+            <Card>
+              <CardBody>
+                <DescriptionList isHorizontal isCompact>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>User</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Label color="blue" isCompact>Walter Joseph Kovacs</Label>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Role</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Label color="green" isCompact>Cluster set admin</Label>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Scope</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <div style={{ marginBottom: '6px' }}>
+                        <Label color="purple" isCompact>petemobile-na-prod</Label>
+                      </div>
+                      <div style={{ marginBottom: '6px' }}>
+                        <Label color="purple" isCompact>petemobile-eu-prod</Label>
+                      </div>
+                      <div style={{ marginBottom: '6px' }}>
+                        <Label color="purple" isCompact>petemobile-sa-prod</Label>
+                      </div>
+                      <div style={{ marginBottom: '6px' }}>
+                        <Label color="purple" isCompact>petemobile-apac-prod</Label>
+                      </div>
+                      <div>
+                        <Label color="purple" isCompact>petemobile-dev-clusters</Label>
+                      </div>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                </DescriptionList>
+              </CardBody>
+            </Card>
+          ) : (
+            <>
+              <Content component="p" style={{ 
+                marginBottom: 'var(--pf-t--global--spacer--md)',
+                fontSize: '15px',
+              }}>
+                Grant virtual machine management permissions:
+              </Content>
 
-          <Card>
-            <CardBody>
-              <DescriptionList isHorizontal isCompact>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Group</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Label color="blue" isCompact>dev-team-alpha</Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Role</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Label color="green" isCompact>Virtualization admin</Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Scope</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div style={{ marginBottom: '6px' }}>
-                      Cluster set: <Label color="purple" isCompact>petemobile-dev-clusters</Label>
-                    </div>
-                    <div style={{ marginBottom: '6px' }}>
-                      Clusters: <Label color="orange" isCompact>dev-team-a</Label> <Label color="orange" isCompact>dev-team-b</Label>
-                    </div>
-                    <div>
-                      Project: <Label color="teal" isCompact>project-starlight-dev</Label>
-                    </div>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </DescriptionList>
-            </CardBody>
-          </Card>
+              <Card>
+                <CardBody>
+                  <DescriptionList isHorizontal isCompact>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Group</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Label color="blue" isCompact>dev-team-alpha</Label>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Role</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Label color="green" isCompact>Virtualization admin</Label>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Scope</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <div style={{ marginBottom: '6px' }}>
+                          Cluster set: <Label color="purple" isCompact>petemobile-dev-clusters</Label>
+                        </div>
+                        <div style={{ marginBottom: '6px' }}>
+                          Clusters: <Label color="orange" isCompact>dev-team-a</Label> <Label color="orange" isCompact>dev-team-b</Label>
+                        </div>
+                        <div>
+                          Project: <Label color="teal" isCompact>project-starlight-dev</Label>
+                        </div>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  </DescriptionList>
+                </CardBody>
+              </Card>
+            </>
+          )}
 
           <Alert 
             variant="custom" 
@@ -772,6 +833,15 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
           >
             Navigate naturally. There are no wrong approaches.
           </Alert>
+
+          <Content component="p" style={{ 
+            marginTop: 'var(--pf-t--global--spacer--md)',
+            fontSize: '14px',
+            color: 'var(--pf-t--global--text--color--subtle)',
+            textAlign: 'center'
+          }}>
+            You can reopen this task at any time by clicking the info icon in the bottom right corner.
+          </Content>
 
           <div style={{ 
             marginTop: 'var(--pf-t--global--spacer--lg)', 

@@ -18,6 +18,15 @@ export const UseCaseBanner: React.FC = () => {
   };
 
   const bannerColor = useCase === 'use-case-1' ? '#667eea' : '#764ba2';
+  
+  const getBannerText = () => {
+    if (useCase === 'use-case-1') {
+      return 'Prototype mode: Use case 1: Fleet admin - Tenant delegation';
+    } else if (useCase === 'use-case-2') {
+      return 'Prototype mode: Use case 2: Tenant admin - Project access';
+    }
+    return `Demo Mode: ${useCaseTitle}`;
+  };
 
   return (
     <div
@@ -41,10 +50,7 @@ export const UseCaseBanner: React.FC = () => {
           <InfoCircleIcon style={{ marginRight: '12px', fontSize: '18px' }} />
         </FlexItem>
         <FlexItem style={{ fontWeight: 600, fontSize: '15px' }}>
-          Demo Mode: {useCaseTitle}
-        </FlexItem>
-        <FlexItem style={{ marginLeft: '16px', opacity: 0.9, fontSize: '14px' }}>
-          Persona: {useCasePersona}
+          {getBannerText()}
         </FlexItem>
         <FlexItem align={{ default: 'alignRight' }} style={{ marginLeft: 'auto' }}>
           <Button
@@ -58,7 +64,7 @@ export const UseCaseBanner: React.FC = () => {
               textDecoration: 'none',
             }}
           >
-            Back to Use Case Selector
+            Back to prototypes page
           </Button>
         </FlexItem>
       </Flex>
