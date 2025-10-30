@@ -43,7 +43,7 @@ import { CubesIcon, CheckIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
-import { RoleDetailRoleAssignmentWizard } from '@app/RoleAssignment/RoleDetailRoleAssignmentWizard';
+import { RoleDetailRoleAssignmentWizard } from '../RoleAssignment/RoleDetailRoleAssignmentWizard';
 import { getAllClusters, getAllClusterSets, getAllNamespaces } from '../data/queries';
 
 const RoleDetail: React.FunctionComponent = () => {

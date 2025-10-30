@@ -43,7 +43,7 @@ import {
   Pagination, 
   PaginationVariant 
 } from '@patternfly/react-core';
-import { RoleAssignmentWizard } from '@app/RoleAssignment/RoleAssignmentWizard';
+import { RoleAssignmentWizard } from '../RoleAssignment/RoleAssignmentWizard';
 
 // Interface for role assignment entries
 interface RoleAssignment {

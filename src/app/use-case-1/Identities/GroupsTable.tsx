@@ -33,7 +33,7 @@ import { SyncAltIcon, CogIcon, EllipsisVIcon, TrashIcon, CaretDownIcon } from '@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getAllGroups } from '../data/queries';
 import { useImpersonation } from '@app/contexts/ImpersonationContext';
-import { GroupRoleAssignmentWizard } from '@app/RoleAssignment/GroupRoleAssignmentWizard';
+import { GroupRoleAssignmentWizard } from '../RoleAssignment/GroupRoleAssignmentWizard';
 
 // Get groups from centralized database
 const dbGroups = getAllGroups();
