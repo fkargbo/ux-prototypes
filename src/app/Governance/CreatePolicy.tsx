@@ -12,7 +12,6 @@ import {
   ActionList,
   ActionListItem,
 } from '@patternfly/react-core';
-import { AngleRightIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
@@ -21,16 +20,12 @@ const CreatePolicy: React.FunctionComponent = () => {
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = React.useState(1);
-  const [currentSubstep, setCurrentSubstep] = React.useState<number | null>(null);
-  const [isStep2Expanded, setIsStep2Expanded] = React.useState(false);
 
   const [policyName, setPolicyName] = React.useState('');
   const [policyDescription, setPolicyDescription] = React.useState('');
   const [namespace, setNamespace] = React.useState('');
   const [templateType, setTemplateType] = React.useState('');
   const [apiVersion, setApiVersion] = React.useState('');
-  const [remediation, setRemediation] = React.useState('inform');
-  const [severity, setSeverity] = React.useState('');
   const [clusterSelector, setClusterSelector] = React.useState('');
   const [labelSelector, setLabelSelector] = React.useState('');
   const [annotations, setAnnotations] = React.useState('');
@@ -45,78 +40,38 @@ const CreatePolicy: React.FunctionComponent = () => {
       policyName,
       policyDescription,
       namespace,
-      remediation,
-      severity,
+      templateType,
+      apiVersion,
+      clusterSelector,
+      labelSelector,
+      annotations,
+      labels,
     });
     navigate('/governance');
   };
 
   const handleStepClick = (step: number) => {
-    if (step === 2) {
-      setIsStep2Expanded(!isStep2Expanded);
-      if (!isStep2Expanded) {
-        setCurrentStep(2);
-        setCurrentSubstep(1);
-      }
-    } else {
-      setCurrentStep(step);
-      setCurrentSubstep(null);
-      setIsStep2Expanded(false);
-    }
-  };
-
-  const handleSubstepClick = (substep: number) => {
-    setCurrentStep(2);
-    setCurrentSubstep(substep);
+    setCurrentStep(step);
   };
 
   const handleNext = () => {
-    if (currentStep === 1) {
-      setCurrentStep(2);
-      setCurrentSubstep(1);
-      setIsStep2Expanded(true);
-    } else if (currentStep === 2 && currentSubstep !== null) {
-      if (currentSubstep < 3) {
-        setCurrentSubstep(currentSubstep + 1);
-      } else {
-        setCurrentStep(3);
-        setCurrentSubstep(null);
-        setIsStep2Expanded(false);
-      }
-    } else if (currentStep === 3) {
-      setCurrentStep(4);
+    if (currentStep < 5) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
   const handleBack = () => {
-    if (currentStep === 2 && currentSubstep !== null) {
-      if (currentSubstep > 1) {
-        setCurrentSubstep(currentSubstep - 1);
-      } else {
-        setCurrentStep(1);
-        setCurrentSubstep(null);
-        setIsStep2Expanded(false);
-      }
-    } else if (currentStep === 3) {
-      setCurrentStep(2);
-      setCurrentSubstep(3);
-      setIsStep2Expanded(true);
-    } else if (currentStep === 4) {
-      setCurrentStep(3);
-    } else if (currentStep > 1) {
+    if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
   };
 
   const getCurrentStepName = () => {
     if (currentStep === 1) return 'Details';
-    if (currentStep === 2) {
-      if (currentSubstep === 1) return 'Policy template';
-      if (currentSubstep === 2) return 'Specifications';
-      if (currentSubstep === 3) return 'Placement';
-    }
-    if (currentStep === 3) return 'Additional';
-    if (currentStep === 4) return 'Review';
+    if (currentStep === 2) return 'Policy templates';
+    if (currentStep === 3) return 'Placement';
+    if (currentStep === 4) return 'Policy annotations';
+    if (currentStep === 5) return 'Review';
     return '';
   };
 
@@ -160,91 +115,64 @@ const CreatePolicy: React.FunctionComponent = () => {
       );
     }
 
-    // Step 2: Configuration substeps
+    // Step 2: Policy templates
     if (currentStep === 2) {
-      if (currentSubstep === 1) {
-        return (
-          <Form>
-            <FormGroup label="Template type" fieldId="template-type">
-              <TextInput
-                type="text"
-                id="template-type"
-                name="template-type"
-                value={templateType}
-                onChange={(_event, value) => setTemplateType(value)}
-                placeholder="Select a policy template"
-              />
-            </FormGroup>
-            <FormGroup label="API version" fieldId="api-version">
-              <TextInput
-                type="text"
-                id="api-version"
-                name="api-version"
-                value={apiVersion}
-                onChange={(_event, value) => setApiVersion(value)}
-                placeholder="policy.open-cluster-management.io/v1"
-              />
-            </FormGroup>
-          </Form>
-        );
-      }
-      if (currentSubstep === 2) {
-        return (
-          <Form>
-            <FormGroup label="Remediation" isRequired fieldId="remediation">
-              <TextInput
-                isRequired
-                type="text"
-                id="remediation"
-                name="remediation"
-                value={remediation}
-                onChange={(_event, value) => setRemediation(value)}
-                placeholder="inform or enforce"
-              />
-            </FormGroup>
-            <FormGroup label="Severity" fieldId="severity">
-              <TextInput
-                type="text"
-                id="severity"
-                name="severity"
-                value={severity}
-                onChange={(_event, value) => setSeverity(value)}
-                placeholder="low, medium, high, critical"
-              />
-            </FormGroup>
-          </Form>
-        );
-      }
-      if (currentSubstep === 3) {
-        return (
-          <Form>
-            <FormGroup label="Cluster selector" fieldId="cluster-selector">
-              <TextInput
-                type="text"
-                id="cluster-selector"
-                name="cluster-selector"
-                value={clusterSelector}
-                onChange={(_event, value) => setClusterSelector(value)}
-                placeholder="Select clusters or cluster sets"
-              />
-            </FormGroup>
-            <FormGroup label="Label selector" fieldId="label-selector">
-              <TextInput
-                type="text"
-                id="label-selector"
-                name="label-selector"
-                value={labelSelector}
-                onChange={(_event, value) => setLabelSelector(value)}
-                placeholder="key=value"
-              />
-            </FormGroup>
-          </Form>
-        );
-      }
+      return (
+        <Form>
+          <FormGroup label="Template type" fieldId="template-type">
+            <TextInput
+              type="text"
+              id="template-type"
+              name="template-type"
+              value={templateType}
+              onChange={(_event, value) => setTemplateType(value)}
+              placeholder="Select a policy template"
+            />
+          </FormGroup>
+          <FormGroup label="API version" fieldId="api-version">
+            <TextInput
+              type="text"
+              id="api-version"
+              name="api-version"
+              value={apiVersion}
+              onChange={(_event, value) => setApiVersion(value)}
+              placeholder="policy.open-cluster-management.io/v1"
+            />
+          </FormGroup>
+        </Form>
+      );
     }
 
-    // Step 3: Additional
+    // Step 3: Placement
     if (currentStep === 3) {
+      return (
+        <Form>
+          <FormGroup label="Cluster selector" fieldId="cluster-selector">
+            <TextInput
+              type="text"
+              id="cluster-selector"
+              name="cluster-selector"
+              value={clusterSelector}
+              onChange={(_event, value) => setClusterSelector(value)}
+              placeholder="Select clusters or cluster sets"
+            />
+          </FormGroup>
+          <FormGroup label="Label selector" fieldId="label-selector">
+            <TextInput
+              type="text"
+              id="label-selector"
+              name="label-selector"
+              value={labelSelector}
+              onChange={(_event, value) => setLabelSelector(value)}
+              placeholder="key=value"
+            />
+          </FormGroup>
+        </Form>
+      );
+    }
+
+    // Step 4: Policy annotations
+    if (currentStep === 4) {
       return (
         <Form>
           <FormGroup label="Annotations" fieldId="annotations">
@@ -271,8 +199,8 @@ const CreatePolicy: React.FunctionComponent = () => {
       );
     }
 
-    // Step 4: Review
-    if (currentStep === 4) {
+    // Step 5: Review
+    if (currentStep === 5) {
       return (
         <div>
           <Title headingLevel="h2" size="xl" style={{ marginBottom: '16px' }}>
@@ -298,13 +226,37 @@ const CreatePolicy: React.FunctionComponent = () => {
 
           <div style={{ marginBottom: '24px' }}>
             <Title headingLevel="h3" size="md" style={{ marginBottom: '8px' }}>
-              Configuration
+              Policy templates
             </Title>
             <dl style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '8px', fontSize: '14px' }}>
-              <dt style={{ fontWeight: 600 }}>Remediation:</dt>
-              <dd>{remediation || '—'}</dd>
-              <dt style={{ fontWeight: 600 }}>Severity:</dt>
-              <dd>{severity || '—'}</dd>
+              <dt style={{ fontWeight: 600 }}>Template type:</dt>
+              <dd>{templateType || '—'}</dd>
+              <dt style={{ fontWeight: 600 }}>API version:</dt>
+              <dd>{apiVersion || '—'}</dd>
+            </dl>
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <Title headingLevel="h3" size="md" style={{ marginBottom: '8px' }}>
+              Placement
+            </Title>
+            <dl style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '8px', fontSize: '14px' }}>
+              <dt style={{ fontWeight: 600 }}>Cluster selector:</dt>
+              <dd>{clusterSelector || '—'}</dd>
+              <dt style={{ fontWeight: 600 }}>Label selector:</dt>
+              <dd>{labelSelector || '—'}</dd>
+            </dl>
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <Title headingLevel="h3" size="md" style={{ marginBottom: '8px' }}>
+              Policy annotations
+            </Title>
+            <dl style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '8px', fontSize: '14px' }}>
+              <dt style={{ fontWeight: 600 }}>Annotations:</dt>
+              <dd>{annotations || '—'}</dd>
+              <dt style={{ fontWeight: 600 }}>Labels:</dt>
+              <dd>{labels || '—'}</dd>
             </dl>
           </div>
         </div>
@@ -374,60 +326,16 @@ const CreatePolicy: React.FunctionComponent = () => {
                     </button>
                   </li>
 
-                  <li className={`pf-v6-c-wizard__nav-item pf-m-expandable ${isStep2Expanded ? 'pf-m-expanded' : ''}`}>
+                  <li className="pf-v6-c-wizard__nav-item">
                     <button
                       className={`pf-v6-c-wizard__nav-link ${currentStep === 2 ? 'pf-m-current' : ''}`}
                       type="button"
-                      aria-expanded={isStep2Expanded}
                       onClick={() => handleStepClick(2)}
                     >
                       <span className="pf-v6-c-wizard__nav-link-main">
-                        <span className="pf-v6-c-wizard__nav-link-text">Configuration</span>
-                        <span className="pf-v6-c-wizard__nav-link-toggle">
-                          <span className="pf-v6-c-wizard__nav-link-toggle-icon">
-                            <AngleRightIcon />
-                          </span>
-                        </span>
+                        <span className="pf-v6-c-wizard__nav-link-text">Policy templates</span>
                       </span>
                     </button>
-
-                    {isStep2Expanded && (
-                      <ol className="pf-v6-c-wizard__nav-list" role="list">
-                        <li className="pf-v6-c-wizard__nav-item">
-                          <button
-                            className={`pf-v6-c-wizard__nav-link ${currentStep === 2 && currentSubstep === 1 ? 'pf-m-current' : ''}`}
-                            type="button"
-                            onClick={() => handleSubstepClick(1)}
-                          >
-                            <span className="pf-v6-c-wizard__nav-link-main">
-                              <span className="pf-v6-c-wizard__nav-link-text">Policy template</span>
-                            </span>
-                          </button>
-                        </li>
-                        <li className="pf-v6-c-wizard__nav-item">
-                          <button
-                            className={`pf-v6-c-wizard__nav-link ${currentStep === 2 && currentSubstep === 2 ? 'pf-m-current' : ''}`}
-                            type="button"
-                            onClick={() => handleSubstepClick(2)}
-                          >
-                            <span className="pf-v6-c-wizard__nav-link-main">
-                              <span className="pf-v6-c-wizard__nav-link-text">Specifications</span>
-                            </span>
-                          </button>
-                        </li>
-                        <li className="pf-v6-c-wizard__nav-item">
-                          <button
-                            className={`pf-v6-c-wizard__nav-link ${currentStep === 2 && currentSubstep === 3 ? 'pf-m-current' : ''}`}
-                            type="button"
-                            onClick={() => handleSubstepClick(3)}
-                          >
-                            <span className="pf-v6-c-wizard__nav-link-main">
-                              <span className="pf-v6-c-wizard__nav-link-text">Placement</span>
-                            </span>
-                          </button>
-                        </li>
-                      </ol>
-                    )}
                   </li>
 
                   <li className="pf-v6-c-wizard__nav-item">
@@ -437,18 +345,30 @@ const CreatePolicy: React.FunctionComponent = () => {
                       onClick={() => handleStepClick(3)}
                     >
                       <span className="pf-v6-c-wizard__nav-link-main">
-                        <span className="pf-v6-c-wizard__nav-link-text">Additional</span>
+                        <span className="pf-v6-c-wizard__nav-link-text">Placement</span>
                       </span>
                     </button>
                   </li>
 
                   <li className="pf-v6-c-wizard__nav-item">
                     <button
-                      className={`pf-v6-c-wizard__nav-link ${currentStep === 4 ? 'pf-m-current' : ''} ${currentStep < 4 ? 'pf-m-disabled' : ''}`}
+                      className={`pf-v6-c-wizard__nav-link ${currentStep === 4 ? 'pf-m-current' : ''}`}
                       type="button"
-                      onClick={() => currentStep >= 4 && handleStepClick(4)}
-                      aria-disabled={currentStep < 4}
-                      tabIndex={currentStep < 4 ? -1 : 0}
+                      onClick={() => handleStepClick(4)}
+                    >
+                      <span className="pf-v6-c-wizard__nav-link-main">
+                        <span className="pf-v6-c-wizard__nav-link-text">Policy annotations</span>
+                      </span>
+                    </button>
+                  </li>
+
+                  <li className="pf-v6-c-wizard__nav-item">
+                    <button
+                      className={`pf-v6-c-wizard__nav-link ${currentStep === 5 ? 'pf-m-current' : ''} ${currentStep < 5 ? 'pf-m-disabled' : ''}`}
+                      type="button"
+                      onClick={() => currentStep >= 5 && handleStepClick(5)}
+                      aria-disabled={currentStep < 5}
+                      tabIndex={currentStep < 5 ? -1 : 0}
                     >
                       <span className="pf-v6-c-wizard__nav-link-main">
                         <span className="pf-v6-c-wizard__nav-link-text">Review</span>
@@ -481,9 +401,9 @@ const CreatePolicy: React.FunctionComponent = () => {
                 <ActionListItem>
                   <Button
                     variant="primary"
-                    onClick={currentStep === 4 ? onSave : handleNext}
+                    onClick={currentStep === 5 ? onSave : handleNext}
                   >
-                    {currentStep === 4 ? 'Create' : 'Next'}
+                    {currentStep === 5 ? 'Create' : 'Next'}
                   </Button>
                 </ActionListItem>
                 <ActionListItem>
