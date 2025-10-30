@@ -12,9 +12,6 @@ import {
   ActionList,
   ActionListItem,
   Checkbox,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
@@ -123,14 +120,8 @@ const CreatePolicy: React.FunctionComponent = () => {
               label="Disable policy"
               isChecked={disablePolicy}
               onChange={(_event, checked) => setDisablePolicy(checked)}
+              description="Select to disable the policy from being propagated to managed clusters"
             />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>
-                  Select to disable the policy from being propagated to managed clusters
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
           </FormGroup>
         </Form>
       );
