@@ -287,7 +287,7 @@ const CreatePolicy: React.FunctionComponent = () => {
           Create policy
         </Title>
         <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
-          Create a new governance policy to enforce compliance across your clusters.
+          A policy generates reports and validates cluster violations based on specified security standards, categories, and controls.
         </Content>
       </div>
 
