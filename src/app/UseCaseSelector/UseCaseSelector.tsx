@@ -36,21 +36,21 @@ export const UseCaseSelector: React.FC = () => {
         padding: '40px 20px',
       }}
     >
-      <div style={{ maxWidth: '1200px', width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+      <div style={{ maxWidth: '1200px', width: '100%', paddingLeft: '64px' }}>
+        <div style={{ textAlign: 'left', marginBottom: '48px' }}>
           <Title headingLevel="h1" size="4xl" style={{ color: '#ffffff', marginBottom: '16px' }}>
             Advanced Cluster Management (ACM)
           </Title>
           <Title headingLevel="h2" size="2xl" style={{ color: '#e0e7ff', marginBottom: '24px' }}>
             RBAC Demo - Use Case Selector
           </Title>
-          <Content component="p" style={{ color: '#e0e7ff', fontSize: '18px', maxWidth: '700px', margin: '0 auto' }}>
+          <Content component="p" style={{ color: '#e0e7ff', fontSize: '18px', maxWidth: '700px' }}>
             Select a use case to explore role-based access control in a multi-tenant environment
           </Content>
         </div>
 
         <Grid hasGutter>
-          <GridItem span={12}>
+          <GridItem span={8}>
             <Card
               isCompact
               style={{
@@ -91,7 +91,7 @@ export const UseCaseSelector: React.FC = () => {
             </Card>
           </GridItem>
 
-          <GridItem span={12}>
+          <GridItem span={8}>
             <Card
               isCompact
               style={{
