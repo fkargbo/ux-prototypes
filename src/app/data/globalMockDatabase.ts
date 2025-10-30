@@ -1112,6 +1112,35 @@ export const identityProviders: IdentityProvider[] = [
 // ============================================================================
 
 export const roles: Role[] = [
+  // Open Cluster Management (ACM) Roles
+  {
+    id: 'role-cluster-set-admin',
+    name: 'open-cluster-management:cluster-set-admin',
+    displayName: 'Cluster set admin',
+    type: 'default',
+    category: 'open-cluster-management',
+    description: 'Full administrative access to cluster sets, including creating, editing, and deleting cluster sets and managing cluster set bindings',
+    permissions: ['managedclustersets.*', 'managedclustersetbindings.*', 'placements.*', 'placementdecisions.*'],
+  },
+  {
+    id: 'role-cluster-set-bind',
+    name: 'open-cluster-management:cluster-set-bind',
+    displayName: 'Cluster set bind',
+    type: 'default',
+    category: 'open-cluster-management',
+    description: 'Ability to bind cluster sets to namespaces, allowing workloads in those namespaces to be deployed to clusters in the cluster set',
+    permissions: ['managedclustersetbindings.create', 'managedclustersetbindings.update', 'managedclustersetbindings.delete', 'managedclustersets.get', 'managedclustersets.list'],
+  },
+  {
+    id: 'role-cluster-set-viewer',
+    name: 'open-cluster-management:cluster-set-viewer',
+    displayName: 'Cluster set viewer',
+    type: 'default',
+    category: 'open-cluster-management',
+    description: 'Read-only access to cluster sets and cluster set bindings',
+    permissions: ['managedclustersets.get', 'managedclustersets.list', 'managedclustersetbindings.get', 'managedclustersetbindings.list'],
+  },
+  
   // Default KubeVirt Roles
   {
     id: 'role-kubevirt-admin',

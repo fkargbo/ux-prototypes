@@ -5,7 +5,7 @@ export interface Role {
   name: string;
   displayName: string; // Natural language name like "Virtualization admin"
   type: 'default' | 'custom';
-  category: 'kubevirt' | 'cluster' | 'namespace' | 'application';
+  category: 'kubevirt' | 'cluster' | 'namespace' | 'application' | 'open-cluster-management';
   description: string;
   permissions: string[];
   created?: string;
