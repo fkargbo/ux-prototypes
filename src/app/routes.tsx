@@ -31,7 +31,6 @@ import { Catalog } from '@app/FleetVirtualization/Catalog';
 import { Templates } from '@app/FleetVirtualization/Templates';
 import { InstanceTypes } from '@app/FleetVirtualization/InstanceTypes';
 import { Search } from '@app/Search/Search';
-import { UseCaseSelector } from '@app/UseCaseSelector/UseCaseSelector';
 
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
@@ -83,17 +82,12 @@ const routes: AppRouteConfig[] = [
     title: 'Hub Virtual Machines',
   },
   {
-    element: <UseCaseSelector />,
-    path: '/',
-    title: 'ACM | Use Case Selector',
-  },
-  {
     label: 'Home',
     routes: [
       {
         element: <Dashboard />,
         label: 'Overview',
-        path: '/dashboard',
+        path: '/',
         title: 'ACM | Home',
       },
     ],
