@@ -18,6 +18,8 @@ import {
   DropdownItem,
   MenuToggle,
   MenuToggleElement,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +37,7 @@ const CreatePolicy: React.FunctionComponent = () => {
   const [disablePolicy, setDisablePolicy] = React.useState(false);
   const [remediation, setRemediation] = React.useState('inform');
   const [isAddTemplateDropdownOpen, setIsAddTemplateDropdownOpen] = React.useState(false);
+  const [placementType, setPlacementType] = React.useState('no-placement');
   const [clusterSelector, setClusterSelector] = React.useState('');
   const [labelSelector, setLabelSelector] = React.useState('');
   const [annotations, setAnnotations] = React.useState('');
@@ -212,28 +215,47 @@ const CreatePolicy: React.FunctionComponent = () => {
     // Step 3: Placement
     if (currentStep === 3) {
       return (
-        <Form>
-          <FormGroup label="Cluster selector" fieldId="cluster-selector">
-            <TextInput
-              type="text"
-              id="cluster-selector"
-              name="cluster-selector"
-              value={clusterSelector}
-              onChange={(_event, value) => setClusterSelector(value)}
-              placeholder="Select clusters or cluster sets"
-            />
-          </FormGroup>
-          <FormGroup label="Label selector" fieldId="label-selector">
-            <TextInput
-              type="text"
-              id="label-selector"
-              name="label-selector"
-              value={labelSelector}
-              onChange={(_event, value) => setLabelSelector(value)}
-              placeholder="key=value"
-            />
-          </FormGroup>
-        </Form>
+        <div>
+          <Title headingLevel="h2" size="xl" style={{ marginBottom: '8px' }}>
+            Placement
+          </Title>
+          <Content component="p" style={{ marginBottom: '24px', color: '#6a6e73' }}>
+            Use Placement resources to select clusters from the cluster sets that you have bound to the
+            resource namespace. An empty Placement returns all available clusters from all bound cluster sets.
+          </Content>
+
+          <div style={{ marginBottom: '16px' }}>
+            <Content component="p" style={{ marginBottom: '12px', fontWeight: 600 }}>
+              How do you want to select clusters?
+            </Content>
+            <ToggleGroup aria-label="Placement type selection">
+              <ToggleGroupItem
+                text="New placement"
+                buttonId="new-placement"
+                isSelected={placementType === 'new-placement'}
+                onChange={() => setPlacementType('new-placement')}
+              />
+              <ToggleGroupItem
+                text="Existing placement"
+                buttonId="existing-placement"
+                isSelected={placementType === 'existing-placement'}
+                onChange={() => setPlacementType('existing-placement')}
+              />
+              <ToggleGroupItem
+                text="No placement"
+                buttonId="no-placement"
+                isSelected={placementType === 'no-placement'}
+                onChange={() => setPlacementType('no-placement')}
+              />
+            </ToggleGroup>
+          </div>
+
+          {placementType === 'no-placement' && (
+            <Content component="p" style={{ marginTop: '16px', color: '#6a6e73' }}>
+              Do not add a placement if you want to place this policy using policy set placement.
+            </Content>
+          )}
+        </div>
       );
     }
 
