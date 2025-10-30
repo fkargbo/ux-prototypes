@@ -19,7 +19,7 @@ import {
   MenuToggle,
   MenuToggleElement,
 } from '@patternfly/react-core';
-import { PlusIcon, CaretDownIcon } from '@patternfly/react-icons';
+import { PlusIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
@@ -194,7 +194,6 @@ const CreatePolicy: React.FunctionComponent = () => {
                   >
                     <PlusIcon style={{ marginRight: '8px' }} />
                     Add policy template
-                    <CaretDownIcon style={{ marginLeft: '8px' }} />
                   </MenuToggle>
                 )}
               >
