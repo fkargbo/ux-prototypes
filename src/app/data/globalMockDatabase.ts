@@ -760,6 +760,107 @@ export const namespaces: Namespace[] = [
   // QA namespaces
   { id: 'ns-qa-testing', name: 'qa-testing-ns', clusterId: 'cluster-qa-env', type: 'qa', labels: { env: 'qa', type: 'testing' } },
   { id: 'ns-qa-performance', name: 'qa-performance-ns', clusterId: 'cluster-qa-env', type: 'qa', labels: { env: 'qa', type: 'performance' } },
+  
+  // 5G Edge Computing - Los Angeles
+  { id: 'ns-5g-slice-gaming-la', name: '5g-slice-gaming', clusterId: 'cluster-5g-edge-la-01', type: 'application', labels: { env: 'prod', app: '5g-edge', region: 'us-west' } },
+  { id: 'ns-5g-slice-ar-vr-la', name: '5g-slice-ar-vr', clusterId: 'cluster-5g-edge-la-01', type: 'application', labels: { env: 'prod', app: '5g-edge', region: 'us-west' } },
+  { id: 'ns-5g-core-la', name: '5g-core-network', clusterId: 'cluster-5g-edge-la-01', type: 'infrastructure', labels: { env: 'prod', app: '5g-core', region: 'us-west' } },
+  
+  // 5G Edge Computing - Chicago
+  { id: 'ns-5g-slice-iot-chi', name: '5g-slice-iot', clusterId: 'cluster-5g-edge-chicago-02', type: 'application', labels: { env: 'prod', app: '5g-edge', region: 'us-central' } },
+  { id: 'ns-5g-slice-industrial-chi', name: '5g-slice-industrial', clusterId: 'cluster-5g-edge-chicago-02', type: 'application', labels: { env: 'prod', app: '5g-edge', region: 'us-central' } },
+  { id: 'ns-5g-core-chi', name: '5g-core-network', clusterId: 'cluster-5g-edge-chicago-02', type: 'infrastructure', labels: { env: 'prod', app: '5g-core', region: 'us-central' } },
+  
+  // 5G Edge Computing - London
+  { id: 'ns-5g-slice-streaming-lon', name: '5g-slice-streaming', clusterId: 'cluster-5g-edge-london-03', type: 'application', labels: { env: 'prod', app: '5g-edge', region: 'eu-west' } },
+  { id: 'ns-5g-slice-healthcare-lon', name: '5g-slice-healthcare', clusterId: 'cluster-5g-edge-london-03', type: 'application', labels: { env: 'prod', app: '5g-edge', region: 'eu-west' } },
+  { id: 'ns-5g-core-lon', name: '5g-core-network', clusterId: 'cluster-5g-edge-london-03', type: 'infrastructure', labels: { env: 'prod', app: '5g-core', region: 'eu-west' } },
+  
+  // 5G Edge Computing - Tokyo
+  { id: 'ns-5g-slice-autonomous-tok', name: '5g-slice-autonomous', clusterId: 'cluster-5g-edge-tokyo-04', type: 'application', labels: { env: 'prod', app: '5g-edge', region: 'apac' } },
+  { id: 'ns-5g-slice-smart-retail-tok', name: '5g-slice-smart-retail', clusterId: 'cluster-5g-edge-tokyo-04', type: 'application', labels: { env: 'prod', app: '5g-edge', region: 'apac' } },
+  { id: 'ns-5g-core-tok', name: '5g-core-network', clusterId: 'cluster-5g-edge-tokyo-04', type: 'infrastructure', labels: { env: 'prod', app: '5g-core', region: 'apac' } },
+  
+  // Disaster Recovery - West Backup
+  { id: 'ns-dr-billing-backup', name: 'billing-backup', clusterId: 'cluster-dr-west-backup-01', type: 'application', labels: { env: 'prod', app: 'dr', purpose: 'backup' } },
+  { id: 'ns-dr-customer-data-backup', name: 'customer-data-backup', clusterId: 'cluster-dr-west-backup-01', type: 'database', labels: { env: 'prod', app: 'dr', purpose: 'backup' } },
+  { id: 'ns-dr-core-services', name: 'core-services-backup', clusterId: 'cluster-dr-west-backup-01', type: 'infrastructure', labels: { env: 'prod', app: 'dr', purpose: 'backup' } },
+  
+  // Disaster Recovery - Central Backup
+  { id: 'ns-dr-5g-core-backup', name: '5g-core-backup', clusterId: 'cluster-dr-central-backup-02', type: 'infrastructure', labels: { env: 'prod', app: 'dr', purpose: 'backup' } },
+  { id: 'ns-dr-network-config-backup', name: 'network-config-backup', clusterId: 'cluster-dr-central-backup-02', type: 'infrastructure', labels: { env: 'prod', app: 'dr', purpose: 'backup' } },
+  { id: 'ns-dr-security-policies', name: 'security-policies-backup', clusterId: 'cluster-dr-central-backup-02', type: 'infrastructure', labels: { env: 'prod', app: 'dr', purpose: 'backup' } },
+  
+  // Disaster Recovery - Asia Backup
+  { id: 'ns-dr-asia-billing-backup', name: 'asia-billing-backup', clusterId: 'cluster-dr-asia-backup-03', type: 'application', labels: { env: 'prod', app: 'dr', region: 'apac', purpose: 'backup' } },
+  { id: 'ns-dr-asia-customer-data', name: 'asia-customer-data-backup', clusterId: 'cluster-dr-asia-backup-03', type: 'database', labels: { env: 'prod', app: 'dr', region: 'apac', purpose: 'backup' } },
+  { id: 'ns-dr-asia-services', name: 'asia-services-backup', clusterId: 'cluster-dr-asia-backup-03', type: 'infrastructure', labels: { env: 'prod', app: 'dr', region: 'apac', purpose: 'backup' } },
+  
+  // Customer Experience - Billing NA
+  { id: 'ns-cx-billing-engine', name: 'billing-engine', clusterId: 'cluster-cx-billing-na-01', type: 'application', labels: { env: 'prod', app: 'cx-billing', region: 'north-america' } },
+  { id: 'ns-cx-payment-gateway', name: 'payment-gateway', clusterId: 'cluster-cx-billing-na-01', type: 'application', labels: { env: 'prod', app: 'cx-billing', region: 'north-america' } },
+  { id: 'ns-cx-invoice-processing', name: 'invoice-processing', clusterId: 'cluster-cx-billing-na-01', type: 'application', labels: { env: 'prod', app: 'cx-billing', region: 'north-america' } },
+  
+  // Customer Experience - Billing EU
+  { id: 'ns-cx-eu-billing-engine', name: 'eu-billing-engine', clusterId: 'cluster-cx-billing-eu-02', type: 'application', labels: { env: 'prod', app: 'cx-billing', region: 'europe' } },
+  { id: 'ns-cx-eu-payment-gateway', name: 'eu-payment-gateway', clusterId: 'cluster-cx-billing-eu-02', type: 'application', labels: { env: 'prod', app: 'cx-billing', region: 'europe' } },
+  { id: 'ns-cx-eu-invoice', name: 'eu-invoice-processing', clusterId: 'cluster-cx-billing-eu-02', type: 'application', labels: { env: 'prod', app: 'cx-billing', region: 'europe' } },
+  
+  // Customer Experience - Portal Global
+  { id: 'ns-cx-customer-portal', name: 'customer-portal', clusterId: 'cluster-cx-portal-global-01', type: 'application', labels: { env: 'prod', app: 'cx-portal' } },
+  { id: 'ns-cx-self-service', name: 'self-service', clusterId: 'cluster-cx-portal-global-01', type: 'application', labels: { env: 'prod', app: 'cx-portal' } },
+  { id: 'ns-cx-mobile-app-api', name: 'mobile-app-api', clusterId: 'cluster-cx-portal-global-01', type: 'application', labels: { env: 'prod', app: 'cx-portal' } },
+  
+  // Customer Experience - CRM Analytics
+  { id: 'ns-cx-crm-data', name: 'crm-data-warehouse', clusterId: 'cluster-cx-crm-analytics-01', type: 'database', labels: { env: 'prod', app: 'cx-analytics' } },
+  { id: 'ns-cx-customer-insights', name: 'customer-insights', clusterId: 'cluster-cx-crm-analytics-01', type: 'application', labels: { env: 'prod', app: 'cx-analytics' } },
+  { id: 'ns-cx-reporting-dashboards', name: 'reporting-dashboards', clusterId: 'cluster-cx-crm-analytics-01', type: 'application', labels: { env: 'prod', app: 'cx-analytics' } },
+  
+  // NFV - Core NA
+  { id: 'ns-nfv-vran-na-core', name: 'vran-core-network', clusterId: 'cluster-nfv-core-na-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv', region: 'north-america' } },
+  { id: 'ns-nfv-epc-na', name: 'epc-network-functions', clusterId: 'cluster-nfv-core-na-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv', region: 'north-america' } },
+  { id: 'ns-nfv-ims-na', name: 'ims-network-functions', clusterId: 'cluster-nfv-core-na-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv', region: 'north-america' } },
+  
+  // NFV - Core EU
+  { id: 'ns-nfv-vran-eu-core', name: 'vran-core-network', clusterId: 'cluster-nfv-core-eu-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv', region: 'europe' } },
+  { id: 'ns-nfv-epc-eu', name: 'epc-network-functions', clusterId: 'cluster-nfv-core-eu-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv', region: 'europe' } },
+  { id: 'ns-nfv-ims-eu', name: 'ims-network-functions', clusterId: 'cluster-nfv-core-eu-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv', region: 'europe' } },
+  
+  // NFV - Core APAC
+  { id: 'ns-nfv-vran-apac-core', name: 'vran-core-network', clusterId: 'cluster-nfv-core-apac-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv', region: 'apac' } },
+  { id: 'ns-nfv-epc-apac', name: 'epc-network-functions', clusterId: 'cluster-nfv-core-apac-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv', region: 'apac' } },
+  { id: 'ns-nfv-ims-apac', name: 'ims-network-functions', clusterId: 'cluster-nfv-core-apac-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv', region: 'apac' } },
+  
+  // NFV - RAN NA
+  { id: 'ns-nfv-vran-cu', name: 'vran-centralized-unit', clusterId: 'cluster-nfv-ran-na-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv-ran', region: 'north-america' } },
+  { id: 'ns-nfv-vran-du', name: 'vran-distributed-unit', clusterId: 'cluster-nfv-ran-na-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv-ran', region: 'north-america' } },
+  { id: 'ns-nfv-fronthaul', name: 'fronthaul-network', clusterId: 'cluster-nfv-ran-na-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv-ran', region: 'north-america' } },
+  
+  // NFV - RAN EU
+  { id: 'ns-nfv-vran-eu-cu', name: 'vran-eu-centralized-unit', clusterId: 'cluster-nfv-ran-eu-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv-ran', region: 'europe' } },
+  { id: 'ns-nfv-vran-eu-du', name: 'vran-eu-distributed-unit', clusterId: 'cluster-nfv-ran-eu-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv-ran', region: 'europe' } },
+  { id: 'ns-nfv-eu-fronthaul', name: 'eu-fronthaul-network', clusterId: 'cluster-nfv-ran-eu-01', type: 'infrastructure', labels: { env: 'prod', app: 'nfv-ran', region: 'europe' } },
+  
+  // IoT & Smart Cities - Platform NA
+  { id: 'ns-iot-device-mgmt', name: 'iot-device-management', clusterId: 'cluster-iot-platform-na-01', type: 'application', labels: { env: 'prod', app: 'iot', region: 'north-america' } },
+  { id: 'ns-iot-data-ingestion', name: 'iot-data-ingestion', clusterId: 'cluster-iot-platform-na-01', type: 'application', labels: { env: 'prod', app: 'iot', region: 'north-america' } },
+  { id: 'ns-iot-analytics', name: 'iot-analytics-engine', clusterId: 'cluster-iot-platform-na-01', type: 'application', labels: { env: 'prod', app: 'iot', region: 'north-america' } },
+  
+  // IoT & Smart Cities - Platform EU
+  { id: 'ns-iot-device-mgmt-eu', name: 'iot-device-management-eu', clusterId: 'cluster-iot-platform-eu-01', type: 'application', labels: { env: 'prod', app: 'iot', region: 'europe' } },
+  { id: 'ns-iot-data-ingestion-eu', name: 'iot-data-ingestion-eu', clusterId: 'cluster-iot-platform-eu-01', type: 'application', labels: { env: 'prod', app: 'iot', region: 'europe' } },
+  { id: 'ns-iot-analytics-eu', name: 'iot-analytics-eu', clusterId: 'cluster-iot-platform-eu-01', type: 'application', labels: { env: 'prod', app: 'iot', region: 'europe' } },
+  
+  // IoT & Smart Cities - Sensors
+  { id: 'ns-smart-traffic-mgmt', name: 'smart-traffic-management', clusterId: 'cluster-smartcity-sensors-01', type: 'application', labels: { env: 'prod', app: 'smart-city' } },
+  { id: 'ns-smart-parking', name: 'smart-parking-system', clusterId: 'cluster-smartcity-sensors-01', type: 'application', labels: { env: 'prod', app: 'smart-city' } },
+  { id: 'ns-air-quality-monitoring', name: 'air-quality-monitoring', clusterId: 'cluster-smartcity-sensors-01', type: 'application', labels: { env: 'prod', app: 'smart-city' } },
+  
+  // IoT & Smart Cities - Analytics
+  { id: 'ns-smart-city-analytics', name: 'smart-city-analytics', clusterId: 'cluster-smartcity-analytics-01', type: 'application', labels: { env: 'prod', app: 'smart-city' } },
+  { id: 'ns-smart-energy-grid', name: 'smart-energy-grid', clusterId: 'cluster-smartcity-analytics-01', type: 'application', labels: { env: 'prod', app: 'smart-city' } },
+  { id: 'ns-smart-waste-mgmt', name: 'smart-waste-management', clusterId: 'cluster-smartcity-analytics-01', type: 'application', labels: { env: 'prod', app: 'smart-city' } },
+  { id: 'ns-public-safety', name: 'public-safety-systems', clusterId: 'cluster-smartcity-analytics-01', type: 'application', labels: { env: 'prod', app: 'smart-city' } },
 ];
 
 // Sample Virtual Machines (representative set - in production, you'd generate 15,000)
