@@ -193,7 +193,8 @@ const CreatePolicy: React.FunctionComponent = () => {
                     ref={toggleRef}
                     onClick={() => setIsAddTemplateDropdownOpen(!isAddTemplateDropdownOpen)}
                     isExpanded={isAddTemplateDropdownOpen}
-                    variant="link"
+                    variant="plain"
+                    style={{ color: 'var(--pf-t--global--color--brand--default)', textDecoration: 'none' }}
                   >
                     <PlusIcon style={{ marginRight: '8px' }} />
                     Add policy template
