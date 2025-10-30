@@ -190,25 +190,11 @@ const CreatePolicy: React.FunctionComponent = () => {
                     ref={toggleRef}
                     onClick={() => setIsAddTemplateDropdownOpen(!isAddTemplateDropdownOpen)}
                     isExpanded={isAddTemplateDropdownOpen}
-                    variant="primary"
-                    icon={<PlusIcon />}
-                    splitButtonOptions={{
-                      variant: 'action',
-                      items: [
-                        <MenuToggle
-                          key="add-template-toggle"
-                          ref={toggleRef}
-                          aria-label="Add policy template"
-                          variant="primary"
-                          onClick={() => setIsAddTemplateDropdownOpen(!isAddTemplateDropdownOpen)}
-                          isExpanded={isAddTemplateDropdownOpen}
-                        >
-                          Add policy template
-                        </MenuToggle>
-                      ]
-                    }}
+                    variant="link"
                   >
-                    <CaretDownIcon />
+                    <PlusIcon style={{ marginRight: '8px' }} />
+                    Add policy template
+                    <CaretDownIcon style={{ marginLeft: '8px' }} />
                   </MenuToggle>
                 )}
               >
