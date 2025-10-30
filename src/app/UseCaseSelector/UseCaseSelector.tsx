@@ -13,7 +13,6 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { ArrowRightIcon } from '@patternfly/react-icons';
 import { useUseCaseContext } from '@app/contexts/UseCaseContext';
 
 export const UseCaseSelector: React.FC = () => {
@@ -51,6 +50,7 @@ export const UseCaseSelector: React.FC = () => {
             <Card
               isCompact
               style={{
+                maxWidth: '600px',
                 boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
                 transition: 'transform 0.2s, box-shadow 0.2s',
               }}
@@ -64,8 +64,8 @@ export const UseCaseSelector: React.FC = () => {
               }}
             >
               <CardBody>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
-                  <FlexItem>
+                <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                  <FlexItem flex={{ default: 'flex_1' }}>
                     <Title headingLevel="h3" size="xl" style={{ marginBottom: '8px' }}>
                       ACM RBAC Use case 1:
                     </Title>
@@ -73,14 +73,12 @@ export const UseCaseSelector: React.FC = () => {
                       Fleet admin → Tenant delegation.
                     </Content>
                   </FlexItem>
-                  <FlexItem>
+                  <FlexItem style={{ marginLeft: '16px' }}>
                     <Button
                       variant="primary"
                       onClick={() => handleUseCaseSelect('use-case-1')}
-                      icon={<ArrowRightIcon />}
-                      iconPosition="end"
                     >
-                      Start use case
+                      Explore
                     </Button>
                   </FlexItem>
                 </Flex>
@@ -92,6 +90,7 @@ export const UseCaseSelector: React.FC = () => {
             <Card
               isCompact
               style={{
+                maxWidth: '600px',
                 boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
                 transition: 'transform 0.2s, box-shadow 0.2s',
               }}
@@ -105,8 +104,8 @@ export const UseCaseSelector: React.FC = () => {
               }}
             >
               <CardBody>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
-                  <FlexItem>
+                <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                  <FlexItem flex={{ default: 'flex_1' }}>
                     <Title headingLevel="h3" size="xl" style={{ marginBottom: '8px' }}>
                       ACM RBAC Use case 2:
                     </Title>
@@ -114,14 +113,44 @@ export const UseCaseSelector: React.FC = () => {
                       Tenant admin → Project access.
                     </Content>
                   </FlexItem>
-                  <FlexItem>
+                  <FlexItem style={{ marginLeft: '16px' }}>
                     <Button
                       variant="primary"
                       onClick={() => handleUseCaseSelect('use-case-2')}
-                      icon={<ArrowRightIcon />}
-                      iconPosition="end"
                     >
-                      Start use case
+                      Explore
+                    </Button>
+                  </FlexItem>
+                </Flex>
+              </CardBody>
+            </Card>
+          </GridItem>
+
+          <GridItem span={12}>
+            <Card
+              isCompact
+              style={{
+                maxWidth: '600px',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+            >
+              <CardBody>
+                <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                  <FlexItem flex={{ default: 'flex_1' }}>
+                    <Title headingLevel="h3" size="xl" style={{ marginBottom: '8px' }}>
+                      AAQ
+                    </Title>
+                    <Content component="p" style={{ color: '#6a6e73', fontSize: '16px', margin: 0 }}>
+                      Explore AAQ operator quota management experience in CNV
+                    </Content>
+                  </FlexItem>
+                  <FlexItem style={{ marginLeft: '16px' }}>
+                    <Button
+                      variant="primary"
+                      isDisabled
+                    >
+                      Explore
                     </Button>
                   </FlexItem>
                 </Flex>
