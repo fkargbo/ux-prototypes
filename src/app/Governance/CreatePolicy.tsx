@@ -11,6 +11,10 @@ import {
   Content,
   ActionList,
   ActionListItem,
+  Checkbox,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
@@ -23,7 +27,8 @@ const CreatePolicy: React.FunctionComponent = () => {
 
   const [policyName, setPolicyName] = React.useState('');
   const [policyDescription, setPolicyDescription] = React.useState('');
-  const [namespace, setNamespace] = React.useState('');
+  const [projectSelector, setProjectSelector] = React.useState('');
+  const [disablePolicy, setDisablePolicy] = React.useState(false);
   const [templateType, setTemplateType] = React.useState('');
   const [apiVersion, setApiVersion] = React.useState('');
   const [clusterSelector, setClusterSelector] = React.useState('');
@@ -39,7 +44,8 @@ const CreatePolicy: React.FunctionComponent = () => {
     console.log('Creating policy:', {
       policyName,
       policyDescription,
-      namespace,
+      projectSelector,
+      disablePolicy,
       templateType,
       apiVersion,
       clusterSelector,
@@ -100,16 +106,31 @@ const CreatePolicy: React.FunctionComponent = () => {
               rows={4}
             />
           </FormGroup>
-          <FormGroup label="Namespace" isRequired fieldId="policy-namespace">
+          <FormGroup label="Project selector" isRequired fieldId="project-selector">
             <TextInput
               isRequired
               type="text"
-              id="policy-namespace"
-              name="policy-namespace"
-              value={namespace}
-              onChange={(_event, value) => setNamespace(value)}
-              placeholder="e.g., default"
+              id="project-selector"
+              name="project-selector"
+              value={projectSelector}
+              onChange={(_event, value) => setProjectSelector(value)}
+              placeholder="Select a project"
             />
+          </FormGroup>
+          <FormGroup fieldId="disable-policy">
+            <Checkbox
+              id="disable-policy"
+              label="Disable policy"
+              isChecked={disablePolicy}
+              onChange={(_event, checked) => setDisablePolicy(checked)}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Select to disable the policy from being propagated to managed clusters
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
           </FormGroup>
         </Form>
       );
@@ -219,8 +240,10 @@ const CreatePolicy: React.FunctionComponent = () => {
               <dd>{policyName || '—'}</dd>
               <dt style={{ fontWeight: 600 }}>Description:</dt>
               <dd>{policyDescription || '—'}</dd>
-              <dt style={{ fontWeight: 600 }}>Namespace:</dt>
-              <dd>{namespace || '—'}</dd>
+              <dt style={{ fontWeight: 600 }}>Project selector:</dt>
+              <dd>{projectSelector || '—'}</dd>
+              <dt style={{ fontWeight: 600 }}>Disable policy:</dt>
+              <dd>{disablePolicy ? 'Yes' : 'No'}</dd>
             </dl>
           </div>
 
