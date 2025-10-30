@@ -70,7 +70,7 @@ export const UseCaseSelector: React.FC = () => {
               <CardHeader>
                 <CardTitle>
                   <Title headingLevel="h3" size="xl">
-                    Use Case 1
+                    ACMsRBACUseCase1
                   </Title>
                 </CardTitle>
               </CardHeader>
@@ -115,7 +115,7 @@ export const UseCaseSelector: React.FC = () => {
                   icon={<ArrowRightIcon />}
                   iconPosition="end"
                 >
-                  Enter Use Case 1
+                  Enter ACMsRBACUseCase1
                 </Button>
               </CardFooter>
             </Card>
@@ -140,7 +140,7 @@ export const UseCaseSelector: React.FC = () => {
               <CardHeader>
                 <CardTitle>
                   <Title headingLevel="h3" size="xl">
-                    Use Case 2
+                    ACMsRBACUseCase2
                   </Title>
                 </CardTitle>
               </CardHeader>
@@ -185,7 +185,7 @@ export const UseCaseSelector: React.FC = () => {
                   icon={<ArrowRightIcon />}
                   iconPosition="end"
                 >
-                  Enter Use Case 2
+                  Enter ACMsRBACUseCase2
                 </Button>
               </CardFooter>
             </Card>

@@ -20,9 +20,9 @@ export const UseCaseProvider: React.FC<{ children: ReactNode }> = ({ children })
   const database = useCase === 'use-case-1' ? globalMockDatabase : mockDatabase;
   
   const useCaseTitle = useCase === 'use-case-1' 
-    ? 'Use Case 1: Fleet Admin - Tenant Delegation'
+    ? 'ACMsRBACUseCase1: Fleet Admin - Tenant Delegation'
     : useCase === 'use-case-2'
-    ? 'Use Case 2: Tenant Admin - Project Access (Walter Joseph Kovacs)'
+    ? 'ACMsRBACUseCase2: Tenant Admin - Project Access (Walter Joseph Kovacs)'
     : '';
 
   const useCasePersona = useCase === 'use-case-1'
