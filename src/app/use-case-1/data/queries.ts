@@ -1,9 +1,6 @@
 // Use Case 1 (Fleet Admin) - Query functions using globalMockDatabase
 import { globalMockDatabase } from '@app/data/globalMockDatabase';
 
-// Debug logging
-console.log('📦 USE CASE 1 queries.ts - globalMockDatabase.clusters.length:', globalMockDatabase.clusters.length);
-
 // Re-export all data from globalMockDatabase
 export const getAllClusters = () => globalMockDatabase.clusters;
 export const getAllClusterSets = () => globalMockDatabase.clusterSets;

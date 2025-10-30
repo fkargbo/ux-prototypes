@@ -1623,13 +1623,6 @@ virtualMachines.push(...smartCityAnalyticsVMs);
 // EXPORT ALL DATA
 // ============================================================================
 
-// Debug logging
-console.log('🌍 globalMockDatabase.ts - Building database...');
-console.log('🌍 Total clusters:', clusters.length);
-console.log('🌍 Total cluster sets:', clusterSets.length);
-console.log('🌍 Total users:', users.length);
-console.log('🌍 Total groups:', groups.length);
-
 export const globalMockDatabase = {
   clusterSets,
   clusters,
