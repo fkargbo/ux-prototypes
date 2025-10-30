@@ -79,7 +79,7 @@ export const UseCaseSelector: React.FC = () => {
                   Fleet Admin - Tenant Delegation
                 </Title>
                 <Content component="p" style={{ marginBottom: '16px', color: '#6a6e73' }}>
-                  As Adrien Veidt (Fleet Admin) with global access to all 10 cluster sets, delegate tenant admin 
+                  As Adrian Veidt (Fleet Admin) with global access to all 10 cluster sets, delegate tenant admin 
                   access to Walter Joseph Kovacs for 5 specific cluster sets.
                 </Content>
                 <div style={{ marginTop: '24px' }}>
@@ -100,7 +100,7 @@ export const UseCaseSelector: React.FC = () => {
                 </div>
                 <div style={{ marginTop: '24px', padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
                   <Content component="p" style={{ fontSize: '13px', color: '#6a6e73', margin: 0 }}>
-                    <strong>Persona:</strong> Adrien Veidt (Fleet Admin)
+                    <strong>Persona:</strong> Adrian Veidt (Fleet Admin)
                   </Content>
                   <Content component="p" style={{ fontSize: '13px', color: '#6a6e73', margin: '4px 0 0 0' }}>
                     <strong>Scope:</strong> Global (10 cluster sets)
