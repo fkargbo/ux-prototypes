@@ -21,6 +21,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
+import '@patternfly/react-styles/css/components/Wizard/wizard.css';
 import { PlusIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
