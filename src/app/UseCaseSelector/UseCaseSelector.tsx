@@ -29,25 +29,25 @@ export const UseCaseSelector: React.FC = () => {
     <div
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: '#f5f5f5',
         padding: '40px 64px',
       }}
     >
       <div style={{ maxWidth: '1200px', width: '100%' }}>
         <div style={{ textAlign: 'left', marginBottom: '48px' }}>
-          <Title headingLevel="h1" size="4xl" style={{ color: '#ffffff', marginBottom: '16px' }}>
+          <Title headingLevel="h1" size="4xl" style={{ color: '#000000', marginBottom: '16px' }}>
             Advanced Cluster Management (ACM)
           </Title>
-          <Title headingLevel="h2" size="2xl" style={{ color: '#e0e7ff', marginBottom: '24px' }}>
+          <Title headingLevel="h2" size="2xl" style={{ color: '#000000', marginBottom: '24px' }}>
             RBAC Demo - Use Case Selector
           </Title>
-          <Content component="p" style={{ color: '#e0e7ff', fontSize: '18px', maxWidth: '700px' }}>
+          <Content component="p" style={{ color: '#000000', fontSize: '18px', maxWidth: '700px' }}>
             Select a use case to explore role-based access control in a multi-tenant environment
           </Content>
         </div>
 
         <Grid hasGutter>
-          <GridItem span={8}>
+          <GridItem span={12}>
             <Card
               isCompact
               style={{
@@ -64,7 +64,7 @@ export const UseCaseSelector: React.FC = () => {
               }}
             >
               <CardBody>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItems2xl' }}>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
                   <FlexItem>
                     <Title headingLevel="h3" size="xl" style={{ marginBottom: '8px' }}>
                       ACM RBAC Use case 1:
@@ -88,7 +88,7 @@ export const UseCaseSelector: React.FC = () => {
             </Card>
           </GridItem>
 
-          <GridItem span={8}>
+          <GridItem span={12}>
             <Card
               isCompact
               style={{
@@ -105,7 +105,7 @@ export const UseCaseSelector: React.FC = () => {
               }}
             >
               <CardBody>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItems2xl' }}>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
                   <FlexItem>
                     <Title headingLevel="h3" size="xl" style={{ marginBottom: '8px' }}>
                       ACM RBAC Use case 2:
