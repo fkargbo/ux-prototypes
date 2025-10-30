@@ -15,7 +15,7 @@ import {
   PaginationVariant,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { getAllServiceAccounts } from '@app/data';
+import { getAllServiceAccounts } from '../data/queries';
 
 // Get service accounts from centralized database
 const dbServiceAccounts = getAllServiceAccounts();

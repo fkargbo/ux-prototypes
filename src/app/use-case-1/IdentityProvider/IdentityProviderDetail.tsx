@@ -36,7 +36,7 @@ import {
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-import { getAllIdentityProviders, getUsersByIdentityProvider } from '@app/data';
+import { getAllIdentityProviders, getUsersByIdentityProvider } from '../data/queries';
 
 const IdentityProviderDetail: React.FunctionComponent = () => {
   const { providerName } = useParams<{ providerName: string }>();

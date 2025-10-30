@@ -39,7 +39,7 @@ import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/reac
 import { DownloadIcon, TimesIcon, FilterIcon, CaretDownIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-import { getAllUsers, getAllIdentityProviders, getIdentityProviderById, getGroupByName, getUsersByGroup } from '@app/data';
+import { getAllUsers, getAllIdentityProviders, getIdentityProviderById, getGroupByName, getUsersByGroup } from '../data/queries';
 
 const CreateGroup: React.FunctionComponent = () => {
   const navigate = useNavigate();

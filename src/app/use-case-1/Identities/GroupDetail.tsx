@@ -46,7 +46,7 @@ import { CubesIcon, FilterIcon, InfoCircleIcon, EllipsisVIcon, CheckIcon, SyncAl
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { GroupRoleAssignmentWizard } from '@app/RoleAssignment/GroupRoleAssignmentWizard';
-import { getAllGroups, getUsersByGroup, getAllClusters, getAllClusterSets, getAllNamespaces, getAllRoles } from '@app/data';
+import { getAllGroups, getUsersByGroup, getAllClusters, getAllClusterSets, getAllNamespaces, getAllRoles } from '../data/queries';
 
 const GroupDetail: React.FunctionComponent = () => {
   const { groupName } = useParams<{ groupName: string }>();

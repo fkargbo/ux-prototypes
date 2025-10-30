@@ -30,7 +30,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { EllipsisVIcon, FilterIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { useNavigate } from 'react-router-dom';
-import { getAllRoles } from '@app/data';
+import { getAllRoles } from '../data/queries';
 import { RoleDetailRoleAssignmentWizard } from '@app/RoleAssignment/RoleDetailRoleAssignmentWizard';
 
 // Get roles from centralized database

@@ -33,7 +33,7 @@ import {
 } from '@patternfly/react-core';
 import { CaretDownIcon, FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { getAllUsers, getAllGroups, getAllClusters, getAllClusterSets, getAllNamespaces, getAllRoles } from '@app/data';
+import { getAllUsers, getAllGroups, getAllClusters, getAllClusterSets, getAllNamespaces, getAllRoles } from '../data/queries';
 
 interface RoleAssignmentWizardProps {
   isOpen: boolean;

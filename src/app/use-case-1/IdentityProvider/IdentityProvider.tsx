@@ -34,7 +34,7 @@ import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn, IAction } from '@patter
 import { PlusCircleIcon, FilterIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { useNavigate } from 'react-router-dom';
-import { getAllIdentityProviders, getUsersByIdentityProvider, getClustersByIdentityProvider } from '@app/data';
+import { getAllIdentityProviders, getUsersByIdentityProvider, getClustersByIdentityProvider } from '../data/queries';
 
 // Get identity providers from centralized database
 const dbIdentityProviders = getAllIdentityProviders();

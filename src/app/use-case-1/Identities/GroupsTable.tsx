@@ -31,7 +31,7 @@ import {
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { SyncAltIcon, CogIcon, EllipsisVIcon, TrashIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getAllGroups } from '@app/data';
+import { getAllGroups } from '../data/queries';
 import { useImpersonation } from '@app/contexts/ImpersonationContext';
 import { GroupRoleAssignmentWizard } from '@app/RoleAssignment/GroupRoleAssignmentWizard';
 

@@ -47,7 +47,7 @@ import { CubesIcon } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { ClusterSetRoleAssignmentWizard } from '@app/RoleAssignment/ClusterSetRoleAssignmentWizard';
 import { ClusterRoleAssignmentWizard } from '@app/RoleAssignment/ClusterRoleAssignmentWizard';
-import { getAllClusterSets, getClustersByClusterSet, getAllRoles } from '@app/data';
+import { getAllClusterSets, getClustersByClusterSet, getAllRoles } from '../data/queries';
 
 // Interface for role assignment entries
 interface RoleAssignment {

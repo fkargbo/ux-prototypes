@@ -29,7 +29,7 @@ import {
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { EllipsisVIcon, HelpIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { getAllUsers } from '@app/data';
+import { getAllUsers } from '../data/queries';
 import { useImpersonation } from '@app/contexts/ImpersonationContext';
 
 // Get users from centralized database

@@ -44,7 +44,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
 import { RoleDetailRoleAssignmentWizard } from '@app/RoleAssignment/RoleDetailRoleAssignmentWizard';
-import { getAllClusters, getAllClusterSets, getAllNamespaces } from '@app/data';
+import { getAllClusters, getAllClusterSets, getAllNamespaces } from '../data/queries';
 
 const RoleDetail: React.FunctionComponent = () => {
   const { roleName } = useParams<{ roleName: string }>();
