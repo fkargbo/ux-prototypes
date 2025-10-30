@@ -32,16 +32,28 @@ import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { useNavigate } from 'react-router-dom';
 
 // Mock data for policies
-const mockPolicies = Array.from({ length: 50 }, (_, i) => ({
-  id: i + 1,
-  name: `policy-${i + 1}`,
-  projects: i % 3 === 0 ? ['default', 'openshift-*'] : ['default'],
-  remediation: i % 2 === 0 ? 'enforce' : 'inform',
-  policySet: i % 4 === 0 ? 'security-policies' : i % 4 === 1 ? 'compliance-policies' : '',
-  violations: Math.floor(Math.random() * 10),
-  totalClusters: 15,
-  source: i % 3 === 0 ? 'Git' : 'Local',
-}));
+const mockPolicies = [
+  {
+    id: 1,
+    name: 'policy-1',
+    projects: ['default', 'openshift-*'],
+    remediation: 'enforce',
+    policySet: 'security-policies',
+    violations: 3,
+    totalClusters: 15,
+    source: 'Git',
+  },
+  {
+    id: 2,
+    name: 'policy-2',
+    projects: ['default'],
+    remediation: 'inform',
+    policySet: 'compliance-policies',
+    violations: 0,
+    totalClusters: 15,
+    source: 'Local',
+  },
+];
 
 const Policies: React.FunctionComponent = () => {
   useDocumentTitle('ACM RBAC | Governance');
