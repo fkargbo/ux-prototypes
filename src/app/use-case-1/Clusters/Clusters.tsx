@@ -38,6 +38,11 @@ const dbClusters = getAllClusters();
 const dbClusterSets = getAllClusterSets();
 const dbNamespaces = getAllNamespaces();
 
+// Debug: Log cluster count
+console.log('🔍 USE CASE 1 - dbClusters count:', dbClusters.length);
+console.log('🔍 USE CASE 1 - First 5 cluster names:', dbClusters.slice(0, 5).map(c => c.name));
+console.log('🔍 USE CASE 1 - Last 5 cluster names:', dbClusters.slice(-5).map(c => c.name));
+
 const mockClusters = dbClusters.map((cluster, index) => ({
   id: index + 1,
   name: cluster.name,
