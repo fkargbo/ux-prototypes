@@ -315,18 +315,26 @@ div.pf-v6-c-wizard__main div.pf-v6-c-wizard__main-body {
   box-sizing: border-box !important;
 }
 
-/* Create policy page breadcrumb and header sections */
-.create-policy-breadcrumb {
-  padding: 24px 24px 8px 24px !important;
+/* Create policy page breadcrumb and header sections - must come after global resets */
+div.create-policy-breadcrumb {
+  padding-top: 24px !important;
+  padding-right: 24px !important;
+  padding-bottom: 8px !important;
+  padding-left: 24px !important;
   background-color: #ffffff !important;
   box-sizing: border-box !important;
+  margin: 0 !important;
 }
 
-.create-policy-header {
-  padding: 16px 24px 24px 24px !important;
+div.create-policy-header {
+  padding-top: 16px !important;
+  padding-right: 24px !important;
+  padding-bottom: 24px !important;
+  padding-left: 24px !important;
   background-color: #ffffff !important;
   border-bottom: 1px solid #d2d2d2 !important;
   box-sizing: border-box !important;
+  margin: 0 !important;
 }
 
 /* Projects page container - same layout as identity providers */
