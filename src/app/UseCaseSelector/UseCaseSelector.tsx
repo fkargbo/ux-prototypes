@@ -30,13 +30,10 @@ export const UseCaseSelector: React.FC = () => {
       style={{
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px 20px',
+        padding: '40px 64px',
       }}
     >
-      <div style={{ maxWidth: '1200px', width: '100%', paddingLeft: '64px' }}>
+      <div style={{ maxWidth: '1200px', width: '100%' }}>
         <div style={{ textAlign: 'left', marginBottom: '48px' }}>
           <Title headingLevel="h1" size="4xl" style={{ color: '#ffffff', marginBottom: '16px' }}>
             Advanced Cluster Management (ACM)
@@ -67,7 +64,7 @@ export const UseCaseSelector: React.FC = () => {
               }}
             >
               <CardBody>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItems2xl' }}>
                   <FlexItem>
                     <Title headingLevel="h3" size="xl" style={{ marginBottom: '8px' }}>
                       ACM RBAC Use case 1:
@@ -108,7 +105,7 @@ export const UseCaseSelector: React.FC = () => {
               }}
             >
               <CardBody>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItems2xl' }}>
                   <FlexItem>
                     <Title headingLevel="h3" size="xl" style={{ marginBottom: '8px' }}>
                       ACM RBAC Use case 2:
