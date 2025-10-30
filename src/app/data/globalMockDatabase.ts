@@ -78,6 +78,71 @@ export const clusterSets: ClusterSet[] = [
     type: 'development',
     clusterIds: ['cluster-dev-team-a', 'cluster-dev-team-b', 'cluster-qa-env'],
   },
+  {
+    id: 'cs-5g-edge',
+    name: 'petemobile-5g-edge',
+    description: '5G Edge Computing Network Slicing Infrastructure',
+    region: 'Global',
+    type: 'production',
+    clusterIds: [
+      'cluster-5g-edge-la-01',
+      'cluster-5g-edge-chicago-02',
+      'cluster-5g-edge-london-03',
+      'cluster-5g-edge-tokyo-04',
+    ],
+  },
+  {
+    id: 'cs-dr',
+    name: 'petemobile-disaster-recovery',
+    description: 'Disaster Recovery and Business Continuity Sites',
+    region: 'Global',
+    type: 'production',
+    clusterIds: [
+      'cluster-dr-west-backup-01',
+      'cluster-dr-central-backup-02',
+      'cluster-dr-asia-backup-03',
+    ],
+  },
+  {
+    id: 'cs-customer-exp',
+    name: 'petemobile-customer-experience',
+    description: 'Customer Experience, Billing, and CRM Platforms',
+    region: 'Global',
+    type: 'production',
+    clusterIds: [
+      'cluster-cx-billing-na-01',
+      'cluster-cx-billing-eu-02',
+      'cluster-cx-portal-global-01',
+      'cluster-cx-crm-analytics-01',
+    ],
+  },
+  {
+    id: 'cs-nfv',
+    name: 'petemobile-network-functions',
+    description: 'Network Function Virtualization (NFV) Core Infrastructure',
+    region: 'Global',
+    type: 'production',
+    clusterIds: [
+      'cluster-nfv-core-na-01',
+      'cluster-nfv-core-eu-01',
+      'cluster-nfv-core-apac-01',
+      'cluster-nfv-ran-na-01',
+      'cluster-nfv-ran-eu-01',
+    ],
+  },
+  {
+    id: 'cs-iot-smart',
+    name: 'petemobile-iot-smartcities',
+    description: 'IoT Device Management and Smart City Infrastructure',
+    region: 'Global',
+    type: 'production',
+    clusterIds: [
+      'cluster-iot-platform-na-01',
+      'cluster-iot-platform-eu-01',
+      'cluster-smartcity-sensors-01',
+      'cluster-smartcity-analytics-01',
+    ],
+  },
 ];
 
 // ============================================================================
@@ -330,6 +395,236 @@ export const clusters: Cluster[] = [
     location: 'US East QA',
     nodes: 15,
     namespaceIds: ['ns-qa-testing', 'ns-qa-performance'],
+  },
+
+  // 5G Edge Computing Clusters
+  {
+    id: 'cluster-5g-edge-la-01',
+    name: '5g-edge-la-01',
+    clusterSetId: 'cs-5g-edge',
+    status: 'Ready',
+    kubernetesVersion: '1.29.2',
+    region: 'North America',
+    location: 'Los Angeles Edge',
+    nodes: 24,
+    namespaceIds: ['ns-5g-slice-gaming-la', 'ns-5g-slice-ar-vr-la', 'ns-5g-core-la'],
+  },
+  {
+    id: 'cluster-5g-edge-chicago-02',
+    name: '5g-edge-chicago-02',
+    clusterSetId: 'cs-5g-edge',
+    status: 'Ready',
+    kubernetesVersion: '1.29.2',
+    region: 'North America',
+    location: 'Chicago Edge',
+    nodes: 22,
+    namespaceIds: ['ns-5g-slice-iot-chi', 'ns-5g-slice-industrial-chi', 'ns-5g-core-chi'],
+  },
+  {
+    id: 'cluster-5g-edge-london-03',
+    name: '5g-edge-london-03',
+    clusterSetId: 'cs-5g-edge',
+    status: 'Ready',
+    kubernetesVersion: '1.29.2',
+    region: 'Europe',
+    location: 'London Edge',
+    nodes: 26,
+    namespaceIds: ['ns-5g-slice-streaming-lon', 'ns-5g-slice-healthcare-lon', 'ns-5g-core-lon'],
+  },
+  {
+    id: 'cluster-5g-edge-tokyo-04',
+    name: '5g-edge-tokyo-04',
+    clusterSetId: 'cs-5g-edge',
+    status: 'Ready',
+    kubernetesVersion: '1.29.2',
+    region: 'Asia-Pacific',
+    location: 'Tokyo Edge',
+    nodes: 28,
+    namespaceIds: ['ns-5g-slice-autonomous-tok', 'ns-5g-slice-smart-factory-tok', 'ns-5g-core-tok'],
+  },
+
+  // Disaster Recovery Clusters
+  {
+    id: 'cluster-dr-west-backup-01',
+    name: 'dr-west-backup-01',
+    clusterSetId: 'cs-dr',
+    status: 'Ready',
+    kubernetesVersion: '1.28.3',
+    region: 'North America',
+    location: 'US West DR Site',
+    nodes: 40,
+    namespaceIds: ['ns-dr-billing-backup', 'ns-dr-customer-data-backup', 'ns-dr-core-services'],
+  },
+  {
+    id: 'cluster-dr-central-backup-02',
+    name: 'dr-central-backup-02',
+    clusterSetId: 'cs-dr',
+    status: 'Ready',
+    kubernetesVersion: '1.28.3',
+    region: 'North America',
+    location: 'US Central DR Site',
+    nodes: 38,
+    namespaceIds: ['ns-dr-network-backup', 'ns-dr-oss-bss-backup', 'ns-dr-monitoring'],
+  },
+  {
+    id: 'cluster-dr-asia-backup-03',
+    name: 'dr-asia-backup-03',
+    clusterSetId: 'cs-dr',
+    status: 'Ready',
+    kubernetesVersion: '1.28.3',
+    region: 'Asia-Pacific',
+    location: 'Singapore DR Site',
+    nodes: 36,
+    namespaceIds: ['ns-dr-apac-services', 'ns-dr-apac-data', 'ns-dr-apac-network'],
+  },
+
+  // Customer Experience Clusters
+  {
+    id: 'cluster-cx-billing-na-01',
+    name: 'cx-billing-na-01',
+    clusterSetId: 'cs-customer-exp',
+    status: 'Ready',
+    kubernetesVersion: '1.29.0',
+    region: 'North America',
+    location: 'US Central',
+    nodes: 32,
+    namespaceIds: ['ns-cx-billing-engine', 'ns-cx-payment-gateway', 'ns-cx-invoicing', 'ns-cx-charging'],
+  },
+  {
+    id: 'cluster-cx-billing-eu-02',
+    name: 'cx-billing-eu-02',
+    clusterSetId: 'cs-customer-exp',
+    status: 'Ready',
+    kubernetesVersion: '1.29.0',
+    region: 'Europe',
+    location: 'Frankfurt',
+    nodes: 30,
+    namespaceIds: ['ns-cx-billing-eu', 'ns-cx-payment-eu', 'ns-cx-fraud-detection'],
+  },
+  {
+    id: 'cluster-cx-portal-global-01',
+    name: 'cx-portal-global-01',
+    clusterSetId: 'cs-customer-exp',
+    status: 'Ready',
+    kubernetesVersion: '1.29.0',
+    region: 'North America',
+    location: 'US East',
+    nodes: 28,
+    namespaceIds: ['ns-cx-web-portal', 'ns-cx-mobile-app-backend', 'ns-cx-self-service', 'ns-cx-chatbot'],
+  },
+  {
+    id: 'cluster-cx-crm-analytics-01',
+    name: 'cx-crm-analytics-01',
+    clusterSetId: 'cs-customer-exp',
+    status: 'Ready',
+    kubernetesVersion: '1.29.0',
+    region: 'North America',
+    location: 'US West',
+    nodes: 34,
+    namespaceIds: ['ns-cx-crm-platform', 'ns-cx-customer-analytics', 'ns-cx-churn-prediction', 'ns-cx-loyalty'],
+  },
+
+  // Network Function Virtualization (NFV) Clusters
+  {
+    id: 'cluster-nfv-core-na-01',
+    name: 'nfv-core-na-01',
+    clusterSetId: 'cs-nfv',
+    status: 'Ready',
+    kubernetesVersion: '1.28.3',
+    region: 'North America',
+    location: 'US Central Core',
+    nodes: 50,
+    namespaceIds: ['ns-nfv-epc-core', 'ns-nfv-hss', 'ns-nfv-pcrf', 'ns-nfv-pgw', 'ns-nfv-sgw'],
+  },
+  {
+    id: 'cluster-nfv-core-eu-01',
+    name: 'nfv-core-eu-01',
+    clusterSetId: 'cs-nfv',
+    status: 'Ready',
+    kubernetesVersion: '1.28.3',
+    region: 'Europe',
+    location: 'Frankfurt Core',
+    nodes: 48,
+    namespaceIds: ['ns-nfv-epc-eu', 'ns-nfv-mme-eu', 'ns-nfv-ims-core', 'ns-nfv-volte'],
+  },
+  {
+    id: 'cluster-nfv-core-apac-01',
+    name: 'nfv-core-apac-01',
+    clusterSetId: 'cs-nfv',
+    status: 'Ready',
+    kubernetesVersion: '1.28.3',
+    region: 'Asia-Pacific',
+    location: 'Singapore Core',
+    nodes: 46,
+    namespaceIds: ['ns-nfv-epc-apac', 'ns-nfv-policy-engine', 'ns-nfv-subscriber-db'],
+  },
+  {
+    id: 'cluster-nfv-ran-na-01',
+    name: 'nfv-ran-na-01',
+    clusterSetId: 'cs-nfv',
+    status: 'Ready',
+    kubernetesVersion: '1.29.0',
+    region: 'North America',
+    location: 'US West RAN',
+    nodes: 42,
+    namespaceIds: ['ns-nfv-vran-cu', 'ns-nfv-vran-du', 'ns-nfv-ran-intelligent-controller'],
+  },
+  {
+    id: 'cluster-nfv-ran-eu-01',
+    name: 'nfv-ran-eu-01',
+    clusterSetId: 'cs-nfv',
+    status: 'Ready',
+    kubernetesVersion: '1.29.0',
+    region: 'Europe',
+    location: 'London RAN',
+    nodes: 40,
+    namespaceIds: ['ns-nfv-vran-eu-cu', 'ns-nfv-vran-eu-du', 'ns-nfv-open-ran'],
+  },
+
+  // IoT & Smart Cities Clusters
+  {
+    id: 'cluster-iot-platform-na-01',
+    name: 'iot-platform-na-01',
+    clusterSetId: 'cs-iot-smart',
+    status: 'Ready',
+    kubernetesVersion: '1.29.1',
+    region: 'North America',
+    location: 'US Central',
+    nodes: 30,
+    namespaceIds: ['ns-iot-device-mgmt', 'ns-iot-connectivity-mgmt', 'ns-iot-data-ingestion', 'ns-iot-analytics'],
+  },
+  {
+    id: 'cluster-iot-platform-eu-01',
+    name: 'iot-platform-eu-01',
+    clusterSetId: 'cs-iot-smart',
+    status: 'Ready',
+    kubernetesVersion: '1.29.1',
+    region: 'Europe',
+    location: 'Amsterdam',
+    nodes: 28,
+    namespaceIds: ['ns-iot-device-mgmt-eu', 'ns-iot-nb-iot-platform', 'ns-iot-lte-m-platform'],
+  },
+  {
+    id: 'cluster-smartcity-sensors-01',
+    name: 'smartcity-sensors-01',
+    clusterSetId: 'cs-iot-smart',
+    status: 'Ready',
+    kubernetesVersion: '1.29.1',
+    region: 'North America',
+    location: 'Smart City Pilot - Austin',
+    nodes: 26,
+    namespaceIds: ['ns-smart-traffic-mgmt', 'ns-smart-parking', 'ns-smart-lighting', 'ns-environmental-sensors'],
+  },
+  {
+    id: 'cluster-smartcity-analytics-01',
+    name: 'smartcity-analytics-01',
+    clusterSetId: 'cs-iot-smart',
+    status: 'Ready',
+    kubernetesVersion: '1.29.1',
+    region: 'North America',
+    location: 'US East',
+    nodes: 32,
+    namespaceIds: ['ns-smart-city-analytics', 'ns-smart-energy-grid', 'ns-smart-waste-mgmt', 'ns-public-safety'],
   },
 ];
 
@@ -670,6 +965,76 @@ export const groups: Group[] = [
     name: 'eu-region-ops',
     description: 'Europe Regional Operations',
     type: 'regional',
+    userIds: [],
+  },
+  {
+    id: 'group-5g-core-engineers',
+    name: '5g-core-network-engineers',
+    description: '5G Core Network Engineering Team - EPC, 5GC, Network Slicing',
+    type: 'team',
+    userIds: [],
+  },
+  {
+    id: 'group-edge-computing',
+    name: 'edge-computing-team',
+    description: 'Edge Computing and MEC (Multi-Access Edge Computing) Team',
+    type: 'team',
+    userIds: [],
+  },
+  {
+    id: 'group-customer-experience',
+    name: 'customer-experience-platform',
+    description: 'Customer Experience, CRM, and Self-Service Platform Team',
+    type: 'team',
+    userIds: [],
+  },
+  {
+    id: 'group-disaster-recovery',
+    name: 'disaster-recovery-team',
+    description: 'Disaster Recovery and Business Continuity Team',
+    type: 'team',
+    userIds: [],
+  },
+  {
+    id: 'group-nfv-ops',
+    name: 'network-function-ops',
+    description: 'Network Function Virtualization Operations Team',
+    type: 'team',
+    userIds: [],
+  },
+  {
+    id: 'group-iot-platform',
+    name: 'iot-platform-engineers',
+    description: 'IoT Platform and Device Management Engineering Team',
+    type: 'team',
+    userIds: [],
+  },
+  {
+    id: 'group-billing-systems',
+    name: 'billing-systems-team',
+    description: 'Billing, Charging, and Revenue Assurance Systems Team',
+    type: 'team',
+    userIds: [],
+  },
+  {
+    id: 'group-mobile-app-dev',
+    name: 'mobile-app-development',
+    description: 'Mobile Application Development Team - iOS and Android',
+    type: 'team',
+    userIds: [],
+  },
+  {
+    id: 'group-perf-testing-lab',
+    name: 'performance-testing-lab',
+    description: 'Performance Testing and Network Optimization Lab',
+    type: 'team',
+    userIds: [],
+  },
+  {
+    id: 'group-partner-integration',
+    name: 'partner-integration-team',
+    description: 'Partner Integration and Ecosystem Management Team',
+    type: 'team',
     userIds: [],
   },
 ];
@@ -1098,8 +1463,161 @@ virtualMachines.push(...devTeamBVMs);
 const qaEnvVMs = generateVirtualMachines('cluster-qa-env', 'ns-qa-testing', 1, 25);
 virtualMachines.push(...qaEnvVMs);
 
-// Total VMs: ~1,300+ (can be scaled to 15,000 by generating more per cluster)
-// Total Users: ~270+ (can be scaled to 400+ by adding more groups/users)
+// ============================================================================
+// NEW TELCO-SPECIFIC GROUPS AND USERS (200 additional users)
+// ============================================================================
+
+// 5G Core Network Engineers (25 users) - user-269 to user-293
+const fivegCoreEngineersUsers = generateGroupUsers('group-5g-core-engineers', '5g-core-network-engineers', 269, 25);
+users.push(...fivegCoreEngineersUsers);
+const fivegCoreEngineersGroup = groups.find(g => g.id === 'group-5g-core-engineers');
+if (fivegCoreEngineersGroup) {
+  fivegCoreEngineersGroup.userIds = fivegCoreEngineersUsers.map(u => u.id);
+}
+
+// Edge Computing Team (30 users) - user-294 to user-323
+const edgeComputingUsers = generateGroupUsers('group-edge-computing', 'edge-computing-team', 294, 30);
+users.push(...edgeComputingUsers);
+const edgeComputingGroup = groups.find(g => g.id === 'group-edge-computing');
+if (edgeComputingGroup) {
+  edgeComputingGroup.userIds = edgeComputingUsers.map(u => u.id);
+}
+
+// Customer Experience Platform Team (22 users) - user-324 to user-345
+const customerExperienceUsers = generateGroupUsers('group-customer-experience', 'customer-experience-platform', 324, 22);
+users.push(...customerExperienceUsers);
+const customerExperienceGroup = groups.find(g => g.id === 'group-customer-experience');
+if (customerExperienceGroup) {
+  customerExperienceGroup.userIds = customerExperienceUsers.map(u => u.id);
+}
+
+// Disaster Recovery Team (15 users) - user-346 to user-360
+const disasterRecoveryUsers = generateGroupUsers('group-disaster-recovery', 'disaster-recovery-team', 346, 15);
+users.push(...disasterRecoveryUsers);
+const disasterRecoveryGroup = groups.find(g => g.id === 'group-disaster-recovery');
+if (disasterRecoveryGroup) {
+  disasterRecoveryGroup.userIds = disasterRecoveryUsers.map(u => u.id);
+}
+
+// Network Function Ops (28 users) - user-361 to user-388
+const nfvOpsUsers = generateGroupUsers('group-nfv-ops', 'network-function-ops', 361, 28);
+users.push(...nfvOpsUsers);
+const nfvOpsGroup = groups.find(g => g.id === 'group-nfv-ops');
+if (nfvOpsGroup) {
+  nfvOpsGroup.userIds = nfvOpsUsers.map(u => u.id);
+}
+
+// IoT Platform Engineers (20 users) - user-389 to user-408
+const iotPlatformUsers = generateGroupUsers('group-iot-platform', 'iot-platform-engineers', 389, 20);
+users.push(...iotPlatformUsers);
+const iotPlatformGroup = groups.find(g => g.id === 'group-iot-platform');
+if (iotPlatformGroup) {
+  iotPlatformGroup.userIds = iotPlatformUsers.map(u => u.id);
+}
+
+// Billing Systems Team (18 users) - user-409 to user-426
+const billingSystemsUsers = generateGroupUsers('group-billing-systems', 'billing-systems-team', 409, 18);
+users.push(...billingSystemsUsers);
+const billingSystemsGroup = groups.find(g => g.id === 'group-billing-systems');
+if (billingSystemsGroup) {
+  billingSystemsGroup.userIds = billingSystemsUsers.map(u => u.id);
+}
+
+// Mobile App Development (16 users) - user-427 to user-442
+const mobileAppDevUsers = generateGroupUsers('group-mobile-app-dev', 'mobile-app-development', 427, 16);
+users.push(...mobileAppDevUsers);
+const mobileAppDevGroup = groups.find(g => g.id === 'group-mobile-app-dev');
+if (mobileAppDevGroup) {
+  mobileAppDevGroup.userIds = mobileAppDevUsers.map(u => u.id);
+}
+
+// Performance Testing Lab (12 users) - user-443 to user-454
+const perfTestingLabUsers = generateGroupUsers('group-perf-testing-lab', 'performance-testing-lab', 443, 12);
+users.push(...perfTestingLabUsers);
+const perfTestingLabGroup = groups.find(g => g.id === 'group-perf-testing-lab');
+if (perfTestingLabGroup) {
+  perfTestingLabGroup.userIds = perfTestingLabUsers.map(u => u.id);
+}
+
+// Partner Integration Team (14 users) - user-455 to user-468
+const partnerIntegrationUsers = generateGroupUsers('group-partner-integration', 'partner-integration-team', 455, 14);
+users.push(...partnerIntegrationUsers);
+const partnerIntegrationGroup = groups.find(g => g.id === 'group-partner-integration');
+if (partnerIntegrationGroup) {
+  partnerIntegrationGroup.userIds = partnerIntegrationUsers.map(u => u.id);
+}
+
+// ============================================================================
+// VMs FOR NEW CLUSTERS (Double the VMs - add ~1,300 more)
+// ============================================================================
+
+// 5G Edge Computing Clusters
+const fiveGEdgeLAVMs = generateVirtualMachines('cluster-5g-edge-la-01', 'ns-5g-slice-gaming-la', 1, 70);
+virtualMachines.push(...fiveGEdgeLAVMs);
+
+const fiveGEdgeChicagoVMs = generateVirtualMachines('cluster-5g-edge-chicago-02', 'ns-5g-slice-iot-chi', 1, 65);
+virtualMachines.push(...fiveGEdgeChicagoVMs);
+
+const fiveGEdgeLondonVMs = generateVirtualMachines('cluster-5g-edge-london-03', 'ns-5g-slice-streaming-lon', 1, 75);
+virtualMachines.push(...fiveGEdgeLondonVMs);
+
+const fiveGEdgeTokyoVMs = generateVirtualMachines('cluster-5g-edge-tokyo-04', 'ns-5g-slice-autonomous-tok', 1, 80);
+virtualMachines.push(...fiveGEdgeTokyoVMs);
+
+// Disaster Recovery Clusters
+const drWestBackupVMs = generateVirtualMachines('cluster-dr-west-backup-01', 'ns-dr-billing-backup', 1, 55);
+virtualMachines.push(...drWestBackupVMs);
+
+const drCentralBackupVMs = generateVirtualMachines('cluster-dr-central-backup-02', 'ns-dr-network-backup', 1, 50);
+virtualMachines.push(...drCentralBackupVMs);
+
+const drAsiaBackupVMs = generateVirtualMachines('cluster-dr-asia-backup-03', 'ns-dr-apac-services', 1, 45);
+virtualMachines.push(...drAsiaBackupVMs);
+
+// Customer Experience Clusters
+const cxBillingNAVMs = generateVirtualMachines('cluster-cx-billing-na-01', 'ns-cx-billing-engine', 1, 85);
+virtualMachines.push(...cxBillingNAVMs);
+
+const cxBillingEUVMs = generateVirtualMachines('cluster-cx-billing-eu-02', 'ns-cx-billing-eu', 1, 80);
+virtualMachines.push(...cxBillingEUVMs);
+
+const cxPortalGlobalVMs = generateVirtualMachines('cluster-cx-portal-global-01', 'ns-cx-web-portal', 1, 75);
+virtualMachines.push(...cxPortalGlobalVMs);
+
+const cxCRMAnalyticsVMs = generateVirtualMachines('cluster-cx-crm-analytics-01', 'ns-cx-crm-platform', 1, 70);
+virtualMachines.push(...cxCRMAnalyticsVMs);
+
+// Network Function Virtualization (NFV) Clusters
+const nfvCoreNAVMs = generateVirtualMachines('cluster-nfv-core-na-01', 'ns-nfv-epc-core', 1, 90);
+virtualMachines.push(...nfvCoreNAVMs);
+
+const nfvCoreEUVMs = generateVirtualMachines('cluster-nfv-core-eu-01', 'ns-nfv-epc-eu', 1, 85);
+virtualMachines.push(...nfvCoreEUVMs);
+
+const nfvCoreAPACVMs = generateVirtualMachines('cluster-nfv-core-apac-01', 'ns-nfv-epc-apac', 1, 80);
+virtualMachines.push(...nfvCoreAPACVMs);
+
+const nfvRANNAVMs = generateVirtualMachines('cluster-nfv-ran-na-01', 'ns-nfv-vran-cu', 1, 75);
+virtualMachines.push(...nfvRANNAVMs);
+
+const nfvRANEUVMs = generateVirtualMachines('cluster-nfv-ran-eu-01', 'ns-nfv-vran-eu-cu', 1, 70);
+virtualMachines.push(...nfvRANEUVMs);
+
+// IoT & Smart Cities Clusters
+const iotPlatformNAVMs = generateVirtualMachines('cluster-iot-platform-na-01', 'ns-iot-device-mgmt', 1, 65);
+virtualMachines.push(...iotPlatformNAVMs);
+
+const iotPlatformEUVMs = generateVirtualMachines('cluster-iot-platform-eu-01', 'ns-iot-device-mgmt-eu', 1, 60);
+virtualMachines.push(...iotPlatformEUVMs);
+
+const smartCitySensorsVMs = generateVirtualMachines('cluster-smartcity-sensors-01', 'ns-smart-traffic-mgmt', 1, 55);
+virtualMachines.push(...smartCitySensorsVMs);
+
+const smartCityAnalyticsVMs = generateVirtualMachines('cluster-smartcity-analytics-01', 'ns-smart-city-analytics', 1, 50);
+virtualMachines.push(...smartCityAnalyticsVMs);
+
+// Total VMs: ~2,600+ (doubled from original ~1,300)
+// Total Users: ~470+ (added 200 new users across 10 new telco groups)
 
 // ============================================================================
 // EXPORT ALL DATA
