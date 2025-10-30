@@ -67,6 +67,8 @@ import {
 } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { useImpersonation } from '@app/contexts/ImpersonationContext';
+import { useUseCaseContext } from '@app/contexts/UseCaseContext';
+import { UseCaseBanner } from '@app/UseCaseSelector/UseCaseBanner';
 import virtIcon from '@app/bgimages/virt-icon.png';
 import multiclusterIcon from '@app/bgimages/pficon-multicluster.svg';
 import redHatOpenShiftLogo from '@app/bgimages/redhatopenshift.svg';
@@ -96,6 +98,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [activePerspective, setActivePerspective] = React.useState('Fleet management');
   const [isTaskModalOpen, setIsTaskModalOpen] = React.useState(false);
   const { impersonatingUser, impersonatingGroups, isLoading, stopImpersonation } = useImpersonation();
+  const { useCase } = useUseCaseContext();
   const navigate = useNavigate();
   const hasNavigatedRef = React.useRef(false);
 
@@ -626,6 +629,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   return (
     <>
+    <UseCaseBanner />
+    <div style={{ paddingTop: useCase ? '48px' : '0' }}>
     <Page
       mainContainerId={pageId}
       masthead={masthead}
@@ -779,7 +784,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
           </div>
         </div>
       </Modal>
-
+    </div>
     </>
   );
 };
