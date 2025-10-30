@@ -422,7 +422,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               </ToolbarItem>
               <ToolbarItem>
                 <Button variant="plain" aria-label="User menu">
-                  <span style={{ color: '#000000' }}>Walter Joseph Kovacs</span>
+                  <span style={{ color: '#000000' }}>
+                    {useCase === 'use-case-1' ? 'Adrien Veidt' : 'Walter Joseph Kovacs'}
+                  </span>
                   <Icon>
                     <CaretDownIcon />
                   </Icon>

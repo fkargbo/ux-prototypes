@@ -26,7 +26,7 @@ export const UseCaseProvider: React.FC<{ children: ReactNode }> = ({ children })
     : '';
 
   const useCasePersona = useCase === 'use-case-1'
-    ? 'Fleet Admin'
+    ? 'Adrien Veidt (Fleet Admin)'
     : useCase === 'use-case-2'
     ? 'Walter Joseph Kovacs (Tenant Admin)'
     : '';
