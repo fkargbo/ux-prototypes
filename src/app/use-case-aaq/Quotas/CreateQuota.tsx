@@ -24,7 +24,7 @@ import {
   SelectList,
   NumberInput,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon, InfoCircleIcon, PlusCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
+import { ExternalLinkAltIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { useQuotas } from '@app/contexts/QuotasContext';
 
@@ -251,7 +251,7 @@ export const CreateQuota: React.FC = () => {
                       }}
                       onOpenChange={(isOpen) => setIsProjectsOpen(isOpen)}
                       toggle={(toggleRef) => (
-                        <MenuToggle ref={toggleRef} onClick={() => setIsProjectsOpen(!isProjectsOpen)} isExpanded={isProjectsOpen} style={{ width: '100%' }}>
+                        <MenuToggle ref={toggleRef} onClick={() => setIsProjectsOpen(!isProjectsOpen)} isExpanded={isProjectsOpen} style={{ width: '400px' }}>
                           {selectedProjects.length > 0 ? selectedProjects.join(', ') : 'Select projects'}
                         </MenuToggle>
                       )}
@@ -332,14 +332,14 @@ export const CreateQuota: React.FC = () => {
                           {labelSelectors.length > 1 && (
                             <div style={{ paddingTop: index === 0 ? '32px' : '0' }}>
                               <Button variant="plain" onClick={() => removeLabelSelector(index)} aria-label="Remove label selector">
-                                <MinusCircleIcon />
+                                -
                               </Button>
                             </div>
                           )}
                         </div>
                       ))}
-                      <Button variant="link" icon={<PlusCircleIcon />} onClick={addLabelSelector}>
-                        Add value
+                      <Button variant="link" onClick={addLabelSelector}>
+                        + Add value
                       </Button>
                     </>
                   )}
@@ -348,13 +348,15 @@ export const CreateQuota: React.FC = () => {
 
               {/* Name */}
               <FormGroup label="Name" isRequired>
-                <TextInput
-                  type="text"
-                  value={quotaName}
-                  onChange={(_event, value) => setQuotaName(value)}
-                  placeholder="Virtualization quota name"
-                  aria-label="Quota name"
-                />
+                <div style={{ width: '400px' }}>
+                  <TextInput
+                    type="text"
+                    value={quotaName}
+                    onChange={(_event, value) => setQuotaName(value)}
+                    placeholder="Virtualization quota name"
+                    aria-label="Quota name"
+                  />
+                </div>
                 <FormHelperText>
                   <HelperText>
                     <HelperTextItem>A unique name for the virtualization quota</HelperTextItem>
@@ -376,7 +378,7 @@ export const CreateQuota: React.FC = () => {
                       ref={toggleRef}
                       onClick={() => setIsResourceTypeOpen(!isResourceTypeOpen)}
                       isExpanded={isResourceTypeOpen}
-                      style={{ width: '100%' }}
+                      style={{ width: '400px' }}
                     >
                       {resourceType || 'Resource type'}
                     </MenuToggle>
@@ -407,9 +409,6 @@ export const CreateQuota: React.FC = () => {
                 {/* CPU limits */}
                 <FormGroup label="CPU limits" isRequired style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Button variant="control" onClick={() => setCpuLimits(Math.max(0, cpuLimits - 1))}>
-                      <MinusCircleIcon />
-                    </Button>
                     <NumberInput
                       value={cpuLimits}
                       onMinus={() => setCpuLimits(Math.max(0, cpuLimits - 1))}
@@ -424,9 +423,6 @@ export const CreateQuota: React.FC = () => {
                       plusBtnAriaLabel="Increase CPU limits"
                       widthChars={10}
                     />
-                    <Button variant="control" onClick={() => setCpuLimits(cpuLimits + 1)}>
-                      <PlusCircleIcon />
-                    </Button>
                     <span style={{ marginLeft: '8px', color: '#6a6e73' }}>cores</span>
                   </div>
                 </FormGroup>
@@ -434,9 +430,6 @@ export const CreateQuota: React.FC = () => {
                 {/* Memory limits */}
                 <FormGroup label="Memory limits" isRequired style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Button variant="control" onClick={() => setMemoryLimits(Math.max(0, memoryLimits - 1))}>
-                      <MinusCircleIcon />
-                    </Button>
                     <NumberInput
                       value={memoryLimits}
                       onMinus={() => setMemoryLimits(Math.max(0, memoryLimits - 1))}
@@ -451,9 +444,6 @@ export const CreateQuota: React.FC = () => {
                       plusBtnAriaLabel="Increase memory limits"
                       widthChars={10}
                     />
-                    <Button variant="control" onClick={() => setMemoryLimits(memoryLimits + 1)}>
-                      <PlusCircleIcon />
-                    </Button>
                     <span style={{ marginLeft: '8px', color: '#6a6e73' }}>Gi</span>
                   </div>
                 </FormGroup>
@@ -461,9 +451,6 @@ export const CreateQuota: React.FC = () => {
                 {/* VM limits */}
                 <FormGroup label="VM limits" isRequired style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Button variant="control" onClick={() => setVmLimits(Math.max(0, vmLimits - 1))}>
-                      <MinusCircleIcon />
-                    </Button>
                     <NumberInput
                       value={vmLimits}
                       onMinus={() => setVmLimits(Math.max(0, vmLimits - 1))}
@@ -478,9 +465,6 @@ export const CreateQuota: React.FC = () => {
                       plusBtnAriaLabel="Increase VM limits"
                       widthChars={10}
                     />
-                    <Button variant="control" onClick={() => setVmLimits(vmLimits + 1)}>
-                      <PlusCircleIcon />
-                    </Button>
                     <span style={{ marginLeft: '8px', color: '#6a6e73' }}>VMs</span>
                   </div>
                 </FormGroup>
