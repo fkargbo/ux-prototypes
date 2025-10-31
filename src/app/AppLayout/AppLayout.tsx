@@ -415,7 +415,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             <img src={redHatOpenShiftLogo} alt="Red Hat OpenShift" style={{ height: '40px' }} />
             <Label color="orange" isCompact>UXD prototype - work in progress</Label>
             <span style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>
-              Contact: {useCase === 'use-case-aaq' ? 'Anna Walker (slack @Anna Walker)' : 'Stefan Kukla (slack @stefan)'}
+              Contact: {useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' ? 'Anna Walker (slack @Anna Walker)' : 'Stefan Kukla (slack @stefan)'}
             </span>
           </div>
         </MastheadBrand>

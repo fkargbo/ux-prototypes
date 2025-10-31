@@ -35,8 +35,11 @@ export const UseCaseSelector: React.FC = () => {
       navigate('/core/virtualization/quotas');
     } else if (useCaseId === 'use-case-cclm') {
       navigate('/virtualization/virtual-machines');
+    } else if (useCaseId === 'use-case-empty-states') {
+      // For RBAC empty states, go to Identities page with User management navigation expanded
+      navigate('/user-management/identities');
     } else {
-      // For use-case-1, use-case-2, and use-case-empty-states all go to clusters
+      // For use-case-1 and use-case-2, go to clusters
       navigate('/clusters');
     }
   };
