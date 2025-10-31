@@ -17,13 +17,19 @@ export const UseCaseBanner: React.FC = () => {
     navigate('/');
   };
 
-  const bannerColor = useCase === 'use-case-1' ? '#667eea' : '#764ba2';
+  const bannerColor = useCase === 'use-case-1' 
+    ? '#667eea' 
+    : useCase === 'use-case-2' 
+    ? '#764ba2'
+    : '#2e7d32'; // Green for AAQ
   
   const getBannerText = () => {
     if (useCase === 'use-case-1') {
       return 'Prototype mode: Use case 1: Fleet admin - Tenant delegation';
     } else if (useCase === 'use-case-2') {
       return 'Prototype mode: Use case 2: Tenant admin - Project access';
+    } else if (useCase === 'use-case-aaq') {
+      return 'Prototype mode: AAQ - Application Aware Quota management';
     }
     return `Demo Mode: ${useCaseTitle}`;
   };

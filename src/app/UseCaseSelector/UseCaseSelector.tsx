@@ -19,9 +19,14 @@ export const UseCaseSelector: React.FC = () => {
   const navigate = useNavigate();
   const { setUseCase } = useUseCaseContext();
 
-  const handleUseCaseSelect = (useCaseId: 'use-case-1' | 'use-case-2') => {
+  const handleUseCaseSelect = (useCaseId: 'use-case-1' | 'use-case-2' | 'use-case-aaq') => {
     setUseCase(useCaseId);
-    navigate('/clusters');
+    // Navigate to appropriate starting page based on use case
+    if (useCaseId === 'use-case-aaq') {
+      navigate('/core/virtualization/overview');
+    } else {
+      navigate('/clusters');
+    }
   };
 
   return (
@@ -148,20 +153,20 @@ export const UseCaseSelector: React.FC = () => {
                     <Flex alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem flex={{ default: 'flex_1' }}>
                         <Title headingLevel="h3" size="xl" style={{ marginBottom: '8px' }}>
-                          AAQ (TBD)
+                          AAQ
                         </Title>
                         <Content component="p" style={{ color: '#6a6e73', fontSize: '16px', margin: 0 }}>
                           AAQ operator quota management experience
                         </Content>
                       </FlexItem>
-                      <FlexItem style={{ marginLeft: '16px' }}>
-                        <Button
-                          variant="primary"
-                          isDisabled
-                        >
-                          Explore
-                        </Button>
-                      </FlexItem>
+                  <FlexItem style={{ marginLeft: '16px' }}>
+                    <Button
+                      variant="primary"
+                      onClick={() => handleUseCaseSelect('use-case-aaq')}
+                    >
+                      Explore
+                    </Button>
+                  </FlexItem>
                     </Flex>
                   </CardBody>
                 </Card>

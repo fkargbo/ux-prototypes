@@ -6,6 +6,7 @@ import { AppLayout } from '@app/AppLayout/AppLayout';
 import { AppRoutes } from '@app/routes';
 import { UseCaseProvider, useUseCaseContext } from '@app/contexts/UseCaseContext';
 import { ImpersonationProvider } from '@app/contexts/ImpersonationContext';
+import { QuotasProvider } from '@app/contexts/QuotasContext';
 import { UseCaseSelector } from '@app/UseCaseSelector/UseCaseSelector';
 import '@app/app.css';
 
@@ -25,9 +26,11 @@ const AppContent: React.FunctionComponent = () => {
   // If use case is selected, show the full app with layout
   return (
     <ImpersonationProvider>
-      <AppLayout>
-        <AppRoutes />
-      </AppLayout>
+      <QuotasProvider>
+        <AppLayout>
+          <AppRoutes />
+        </AppLayout>
+      </QuotasProvider>
     </ImpersonationProvider>
   );
 };

@@ -29,6 +29,11 @@ import { IdentityProviderDetail as IdentityProviderDetailUC1 } from '@app/use-ca
 import { AddLDAPProvider as AddLDAPProviderUC1 } from '@app/use-case-1/IdentityProvider/AddLDAPProvider';
 import { ProjectDetail as ProjectDetailUC1 } from '@app/use-case-1/Projects/ProjectDetail';
 
+// Use Case AAQ (Virtualization Admin) - AAQ-specific implementation
+import { QuotasPage as QuotasPageAAQ, VirtualizationWrapper as VirtualizationWrapperAAQ } from '@app/use-case-aaq/navigation';
+import { QuotaDetail as QuotaDetailAAQ } from '@app/use-case-aaq/Quotas/QuotaDetail';
+import { CreateQuota as CreateQuotaAAQ } from '@app/use-case-aaq/Quotas/CreateQuota';
+
 // Export wrapped components
 export const ClustersPage: React.FC = () => {
   const { useCase } = useUseCaseContext();
@@ -110,5 +115,22 @@ export const AddLDAPProvider: React.FC = () => {
 export const ProjectDetail: React.FC = () => {
   const { useCase } = useUseCaseContext();
   return useCase === 'use-case-1' ? <ProjectDetailUC1 /> : <ProjectDetailUC2 />;
+};
+
+// AAQ-specific exports
+export const QuotasPage: React.FC = () => {
+  return <QuotasPageAAQ />;
+};
+
+export const QuotaDetail: React.FC = () => {
+  return <QuotaDetailAAQ />;
+};
+
+export const CreateQuota: React.FC = () => {
+  return <CreateQuotaAAQ />;
+};
+
+export const VirtualizationOverview: React.FC = () => {
+  return <VirtualizationWrapperAAQ />;
 };
 

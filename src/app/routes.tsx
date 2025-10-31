@@ -24,6 +24,10 @@ import {
   IdentityProviderDetail,
   AddLDAPProvider,
   ProjectDetail,
+  QuotasPage,
+  QuotaDetail,
+  CreateQuota,
+  VirtualizationOverview,
 } from '@app/utils/useCaseComponents';
 import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
 import Virtualization from '@app/FleetVirtualization/Virtualization';
@@ -77,9 +81,29 @@ const routes: AppRouteConfig[] = [
     title: 'Templates',
   },
   {
+    element: <VirtualizationOverview />,
+    path: '/core/virtualization/overview',
+    title: 'Virtualization Overview',
+  },
+  {
     element: <HubVirtualMachines />,
     path: '/core/virtualization/vms',
     title: 'Hub Virtual Machines',
+  },
+  {
+    element: <QuotasPage />,
+    path: '/core/virtualization/quotas',
+    title: 'Quotas',
+  },
+  {
+    element: <CreateQuota />,
+    path: '/core/virtualization/quotas/create',
+    title: 'Create Quota',
+  },
+  {
+    element: <QuotaDetail />,
+    path: '/core/virtualization/quotas/:quotaName',
+    title: 'Quota Details',
   },
   {
     label: 'Home',
