@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { mockDatabase } from '@app/data/mockDatabase';
 import { globalMockDatabase } from '@app/data/globalMockDatabase';
 
-export type UseCaseType = 'use-case-1' | 'use-case-2' | 'use-case-aaq' | 'use-case-cclm' | null;
+export type UseCaseType = 'use-case-1' | 'use-case-2' | 'use-case-aaq' | 'use-case-cclm' | 'use-case-empty-states' | null;
 
 interface UseCaseContextType {
   useCase: UseCaseType;
@@ -27,6 +27,8 @@ export const UseCaseProvider: React.FC<{ children: ReactNode }> = ({ children })
     ? 'AAQ: Virtualization Quota Management'
     : useCase === 'use-case-cclm'
     ? 'Cross Cluster Live Migration'
+    : useCase === 'use-case-empty-states'
+    ? 'ACM RBAC Empty State Designs'
     : '';
 
   const useCasePersona = useCase === 'use-case-1'
@@ -37,6 +39,8 @@ export const UseCaseProvider: React.FC<{ children: ReactNode }> = ({ children })
     ? 'Dan Dreiberg (Virtualization Administrator)'
     : useCase === 'use-case-cclm'
     ? 'Nelson Gardner (Platform Administrator)'
+    : useCase === 'use-case-empty-states'
+    ? 'Jane Designer (UX Designer)'
     : '';
 
   return (

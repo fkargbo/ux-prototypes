@@ -34,6 +34,10 @@ import { QuotasPage as QuotasPageAAQ, VirtualizationWrapper as VirtualizationWra
 import { QuotaDetail as QuotaDetailAAQ } from '@app/use-case-aaq/Quotas/QuotaDetail';
 import { CreateQuota as CreateQuotaAAQ } from '@app/use-case-aaq/Quotas/CreateQuota';
 
+// Use Case Empty States - Empty state designs
+import { IdentitiesPage as IdentitiesPageEmpty } from '@app/use-case-empty-states/navigation';
+import { IdentityProvidersPageEmpty } from '@app/use-case-empty-states/IdentityProvider/IdentityProvidersPageEmpty';
+
 // Export wrapped components
 export const ClustersPage: React.FC = () => {
   const { useCase } = useUseCaseContext();
@@ -47,6 +51,9 @@ export const ClusterDetailPage: React.FC = () => {
 
 export const IdentitiesPage: React.FC = () => {
   const { useCase } = useUseCaseContext();
+  if (useCase === 'use-case-empty-states') {
+    return <IdentitiesPageEmpty />;
+  }
   return useCase === 'use-case-1' ? <IdentitiesPageUC1 /> : <IdentitiesPageUC2 />;
 };
 
@@ -57,6 +64,9 @@ export const RolesPage: React.FC = () => {
 
 export const IdentityProvidersPage: React.FC<{ showClustersColumn: boolean }> = ({ showClustersColumn }) => {
   const { useCase } = useUseCaseContext();
+  if (useCase === 'use-case-empty-states') {
+    return <IdentityProvidersPageEmpty />;
+  }
   return useCase === 'use-case-1' 
     ? <IdentityProvidersPageUC1 showClustersColumn={showClustersColumn} /> 
     : <IdentityProvidersPageUC2 showClustersColumn={showClustersColumn} />;

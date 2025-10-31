@@ -23,7 +23,9 @@ export const UseCaseBanner: React.FC = () => {
     ? '#764ba2'
     : useCase === 'use-case-aaq'
     ? '#2e7d32' // Green for AAQ
-    : '#0066cc'; // Blue for CCLM
+    : useCase === 'use-case-cclm'
+    ? '#0066cc' // Blue for CCLM
+    : '#f57c00'; // Orange for Empty States
   
   const getBannerText = () => {
     if (useCase === 'use-case-1') {
@@ -34,6 +36,8 @@ export const UseCaseBanner: React.FC = () => {
       return 'Prototype mode: AAQ - Application Aware Quota management';
     } else if (useCase === 'use-case-cclm') {
       return 'Prototype mode: Cross Cluster Live Migration';
+    } else if (useCase === 'use-case-empty-states') {
+      return 'Prototype mode: ACM RBAC Empty State Designs';
     }
     return `Demo Mode: ${useCaseTitle}`;
   };

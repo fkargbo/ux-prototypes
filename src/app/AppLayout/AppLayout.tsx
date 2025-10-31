@@ -116,8 +116,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   }, [impersonatingUser, navigate]);
 
   // Automatically open the task modal when entering a use case (only once per use case selection)
+  // Skip modal for empty states use case
   React.useEffect(() => {
-    if (useCase && !hasShownModalRef.current) {
+    if (useCase && useCase !== 'use-case-empty-states' && !hasShownModalRef.current) {
       setIsTaskModalOpen(true);
       hasShownModalRef.current = true;
     } else if (!useCase) {
@@ -132,7 +133,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       setActivePerspective('Core platforms');
     } else if (useCase === 'use-case-cclm') {
       setActivePerspective('Fleet virtualization');
-    } else if (useCase === 'use-case-1' || useCase === 'use-case-2') {
+    } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states') {
       setActivePerspective('Fleet management');
     }
   }, [useCase]);
@@ -453,6 +454,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
                       ? 'Walter Joseph Kovacs' 
                       : useCase === 'use-case-cclm'
                       ? 'Nelson Gardner'
+                      : useCase === 'use-case-empty-states'
+                      ? 'Jane Designer'
                       : 'Dan Dreiberg'}
                   </span>
                   <Icon>
@@ -865,6 +868,38 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
                     margin: 0
                   }}>
                     Move <strong>80 running VMs</strong> from <strong>core-billing</strong> project in the <strong>us-east-prod-02</strong> cluster to <strong>us-west-prod-01</strong> cluster. Because you are planning to delete the Cluster.
+                  </Content>
+                </CardBody>
+              </Card>
+            </>
+          )}
+
+          {useCase === 'use-case-empty-states' && (
+            <>
+              <Content component="p" style={{ 
+                marginBottom: 'var(--pf-t--global--spacer--md)',
+                fontSize: '15px',
+                lineHeight: '1.6'
+              }}>
+                Get in the role of Jane Designer, UX Designer exploring ACM RBAC empty state patterns.
+              </Content>
+
+              <Card style={{ backgroundColor: '#f0f8ff', border: '1px solid #cce5ff' }}>
+                <CardBody>
+                  <Content component="p" style={{ 
+                    marginBottom: 'var(--pf-t--global--spacer--sm)',
+                    fontSize: '15px',
+                    fontWeight: 600
+                  }}>
+                    Your task is to:
+                  </Content>
+
+                  <Content component="p" style={{ 
+                    fontSize: '15px',
+                    lineHeight: '1.8',
+                    margin: 0
+                  }}>
+                    Explore and evaluate ACM RBAC empty state designs across clusters, users, groups, roles, and projects pages.
                   </Content>
                 </CardBody>
               </Card>
