@@ -36,11 +36,11 @@ import {
   PlusIcon, 
   FilterIcon, 
   ExternalLinkAltIcon, 
-  InfoCircleIcon,
   CheckCircleIcon,
   ArrowsAltVIcon,
   CaretDownIcon,
   EllipsisVIcon,
+  QuestionCircleIcon,
 } from '@patternfly/react-icons';
 import { ChartDonut, ChartThemeColor } from '@patternfly/react-charts/victory';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
@@ -624,7 +624,7 @@ export const Quotas: React.FC = () => {
                     Name <ArrowsAltVIcon style={{ marginLeft: '4px', fontSize: '12px' }} />
                   </Th>
                   <Th>
-                    Scope <InfoCircleIcon style={{ marginLeft: '4px', fontSize: '14px', color: '#6a6e73' }} />
+                    Scope <ArrowsAltVIcon style={{ marginLeft: '4px', fontSize: '12px' }} /> <QuestionCircleIcon style={{ marginLeft: '4px', fontSize: '14px', color: '#6a6e73' }} />
                   </Th>
                   <Th>
                     CPU limits <ArrowsAltVIcon style={{ marginLeft: '4px', fontSize: '12px' }} />
