@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { mockDatabase } from '@app/data/mockDatabase';
 import { globalMockDatabase } from '@app/data/globalMockDatabase';
 
-export type UseCaseType = 'use-case-1' | 'use-case-2' | 'use-case-aaq' | null;
+export type UseCaseType = 'use-case-1' | 'use-case-2' | 'use-case-aaq' | 'use-case-cclm' | null;
 
 interface UseCaseContextType {
   useCase: UseCaseType;
@@ -25,6 +25,8 @@ export const UseCaseProvider: React.FC<{ children: ReactNode }> = ({ children })
     ? 'ACMsRBACUseCase2: Tenant Admin - Project Access (Walter Joseph Kovacs)'
     : useCase === 'use-case-aaq'
     ? 'AAQ: Virtualization Quota Management'
+    : useCase === 'use-case-cclm'
+    ? 'Cross Cluster Live Migration'
     : '';
 
   const useCasePersona = useCase === 'use-case-1'
@@ -32,7 +34,9 @@ export const UseCaseProvider: React.FC<{ children: ReactNode }> = ({ children })
     : useCase === 'use-case-2'
     ? 'Walter Joseph Kovacs (Tenant Admin)'
     : useCase === 'use-case-aaq'
-    ? 'Virtualization Administrator'
+    ? 'Dan Dreiberg (Virtualization Administrator)'
+    : useCase === 'use-case-cclm'
+    ? 'Nelson Gardner (Platform Administrator)'
     : '';
 
   return (

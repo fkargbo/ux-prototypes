@@ -48,7 +48,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { FilterIcon, EllipsisVIcon, CogIcon, AngleLeftIcon, AngleRightIcon, SyncAltIcon, RedoIcon, CheckIcon, PlusCircleIcon, ColumnsIcon, ServerIcon, ProjectDiagramIcon, ExclamationCircleIcon, OffIcon, PauseCircleIcon, MulticlusterIcon, CubesIcon, AngleDoubleDownIcon, AngleDoubleUpIcon } from '@patternfly/react-icons';
+import { FilterIcon, EllipsisVIcon, CogIcon, AngleLeftIcon, AngleRightIcon, SyncAltIcon, RedoIcon, CheckIcon, PlusCircleIcon, ColumnsIcon, ServerIcon, ProjectDiagramIcon, ExclamationCircleIcon, OffIcon, PauseCircleIcon, MulticlusterIcon, CubesIcon, AngleDoubleDownIcon, AngleDoubleUpIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import './VirtualMachines.css';
 import { getAllClusterSets, getClustersByClusterSet, getNamespacesByCluster, getVirtualMachinesByNamespace, getVirtualMachinesByCluster, getVirtualMachinesByClusterSet, getAllVirtualMachines } from '@app/data';
@@ -135,6 +135,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   const migrateItemRef = React.useRef<HTMLDivElement>(null);
   
   // Dropdown states
+  const [isBulkSelectOpen, setIsBulkSelectOpen] = React.useState(false);
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [isStatusFilterOpen, setIsStatusFilterOpen] = React.useState(false);
   const [isOSFilterOpen, setIsOSFilterOpen] = React.useState(false);
@@ -290,6 +291,32 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
       setSelectedVMs([]);
     }
   };
+
+  // Handle selecting VMs on current page only
+  const handleSelectPage = () => {
+    const paginatedVMs = filteredVMs.slice((page - 1) * perPage, page * perPage);
+    const paginatedIds = paginatedVMs.map(vm => vm.id);
+    setSelectedVMs(paginatedIds);
+    setIsBulkSelectOpen(false);
+  };
+
+  // Handle selecting all filtered VMs
+  const handleSelectAll = () => {
+    setSelectedVMs(filteredVMs.map(vm => vm.id));
+    setIsBulkSelectOpen(false);
+  };
+
+  // Handle deselecting all VMs
+  const handleDeselectAll = () => {
+    setSelectedVMs([]);
+    setIsBulkSelectOpen(false);
+  };
+
+  // Check if all VMs on current page are selected
+  const isAllPageSelected = React.useMemo(() => {
+    const paginatedVMs = filteredVMs.slice((page - 1) * perPage, page * perPage);
+    return paginatedVMs.length > 0 && paginatedVMs.every(vm => selectedVMs.includes(vm.id));
+  }, [filteredVMs, page, perPage, selectedVMs]);
 
   // Manage columns handlers
   const handleToggleColumn = (column: string) => {
@@ -1019,12 +1046,55 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
             <Toolbar>
               <ToolbarContent style={{ gap: '8px' }}>
                 <ToolbarItem>
-                  <Checkbox
-                    id="select-all-vms"
-                    aria-label="Select all VMs"
-                    isChecked={selectedVMs.length === filteredVMs.length && filteredVMs.length > 0}
-                    onChange={(_event, checked) => handleSelectAllVMs(checked)}
-                  />
+                  <Dropdown
+                    isOpen={isBulkSelectOpen}
+                    onSelect={() => {}}
+                    onOpenChange={(isOpen: boolean) => setIsBulkSelectOpen(isOpen)}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsBulkSelectOpen(!isBulkSelectOpen)}
+                        isExpanded={isBulkSelectOpen}
+                        variant="plain"
+                        style={{
+                          border: '1px solid var(--pf-t--global--border--color--default)',
+                          borderRadius: 'var(--pf-t--global--border--radius--small)',
+                          padding: '6px 8px',
+                          minWidth: 'auto',
+                        }}
+                      >
+                        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <FlexItem>
+                            <Checkbox
+                              isChecked={isAllPageSelected}
+                              onChange={(event, checked) => {
+                                event.stopPropagation();
+                                if (checked) {
+                                  handleSelectPage();
+                                } else {
+                                  handleDeselectAll();
+                                }
+                              }}
+                              aria-label="Select all"
+                              id="select-all-vms-checkbox"
+                            />
+                          </FlexItem>
+                          <FlexItem>
+                            <CaretDownIcon />
+                          </FlexItem>
+                        </Flex>
+                      </MenuToggle>
+                    )}
+                  >
+                    <DropdownList>
+                      <DropdownItem key="select-page" onClick={handleSelectPage}>
+                        Select page ({filteredVMs.slice((page - 1) * perPage, page * perPage).length} items)
+                      </DropdownItem>
+                      <DropdownItem key="select-all" onClick={handleSelectAll}>
+                        Select all ({filteredVMs.length} items)
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
                 </ToolbarItem>
                 <ToolbarItem>
                   <Dropdown

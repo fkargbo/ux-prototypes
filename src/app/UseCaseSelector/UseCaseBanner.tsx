@@ -21,7 +21,9 @@ export const UseCaseBanner: React.FC = () => {
     ? '#667eea' 
     : useCase === 'use-case-2' 
     ? '#764ba2'
-    : '#2e7d32'; // Green for AAQ
+    : useCase === 'use-case-aaq'
+    ? '#2e7d32' // Green for AAQ
+    : '#0066cc'; // Blue for CCLM
   
   const getBannerText = () => {
     if (useCase === 'use-case-1') {
@@ -30,6 +32,8 @@ export const UseCaseBanner: React.FC = () => {
       return 'Prototype mode: Use case 2: Tenant admin - Project access';
     } else if (useCase === 'use-case-aaq') {
       return 'Prototype mode: AAQ - Application Aware Quota management';
+    } else if (useCase === 'use-case-cclm') {
+      return 'Prototype mode: Cross Cluster Live Migration';
     }
     return `Demo Mode: ${useCaseTitle}`;
   };

@@ -130,6 +130,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   React.useEffect(() => {
     if (useCase === 'use-case-aaq') {
       setActivePerspective('Core platforms');
+    } else if (useCase === 'use-case-cclm') {
+      setActivePerspective('Fleet virtualization');
     } else if (useCase === 'use-case-1' || useCase === 'use-case-2') {
       setActivePerspective('Fleet management');
     }
@@ -445,7 +447,13 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               <ToolbarItem>
                 <Button variant="plain" aria-label="User menu">
                   <span style={{ color: '#000000' }}>
-                    {useCase === 'use-case-1' ? 'Adrian Veidt' : useCase === 'use-case-2' ? 'Walter Joseph Kovacs' : 'Dan Dreiberg'}
+                    {useCase === 'use-case-1' 
+                      ? 'Adrian Veidt' 
+                      : useCase === 'use-case-2' 
+                      ? 'Walter Joseph Kovacs' 
+                      : useCase === 'use-case-cclm'
+                      ? 'Nelson Gardner'
+                      : 'Dan Dreiberg'}
                   </span>
                   <Icon>
                     <CaretDownIcon />
@@ -825,6 +833,38 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
                     margin: 0
                   }}>
                     Create a quota, based on your needs.
+                  </Content>
+                </CardBody>
+              </Card>
+            </>
+          )}
+
+          {useCase === 'use-case-cclm' && (
+            <>
+              <Content component="p" style={{ 
+                marginBottom: 'var(--pf-t--global--spacer--md)',
+                fontSize: '15px',
+                lineHeight: '1.6'
+              }}>
+                Get in the role of Nelson Gardner, Platform administrator managing OpenShift Virtualization at Petemobile, a telco company.
+              </Content>
+
+              <Card style={{ backgroundColor: '#f0f8ff', border: '1px solid #cce5ff' }}>
+                <CardBody>
+                  <Content component="p" style={{ 
+                    marginBottom: 'var(--pf-t--global--spacer--sm)',
+                    fontSize: '15px',
+                    fontWeight: 600
+                  }}>
+                    Your task is to:
+                  </Content>
+
+                  <Content component="p" style={{ 
+                    fontSize: '15px',
+                    lineHeight: '1.8',
+                    margin: 0
+                  }}>
+                    Move <strong>80 running VMs</strong> from <strong>core-billing</strong> project in the <strong>us-east-prod-02</strong> cluster to <strong>us-west-prod-01</strong> cluster. Because you are planning to delete the Cluster.
                   </Content>
                 </CardBody>
               </Card>

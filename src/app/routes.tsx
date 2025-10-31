@@ -29,6 +29,7 @@ import {
   CreateQuota,
   VirtualizationOverview,
 } from '@app/utils/useCaseComponents';
+import { CCLMOverview } from '@app/use-case-cclm/CCLMOverview';
 import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
 import Virtualization from '@app/FleetVirtualization/Virtualization';
 import { Catalog } from '@app/FleetVirtualization/Catalog';
@@ -299,10 +300,22 @@ const routes: AppRouteConfig[] = [
   },
 ];
 
-const flattenedRoutes: IAppRoute[] = routes.reduce(
-  (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
-  [] as IAppRoute[],
-);
+// Additional routes without navigation labels (won't appear in sidebar)
+const hiddenRoutes: IAppRoute[] = [
+  {
+    element: <CCLMOverview />,
+    path: '/cclm/overview',
+    title: 'Cross Cluster Live Migration',
+  },
+];
+
+const flattenedRoutes: IAppRoute[] = [
+  ...routes.reduce(
+    (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
+    [] as IAppRoute[],
+  ),
+  ...hiddenRoutes,
+];
 
 const AppRoutes = (): React.ReactElement => (
   <Routes>
