@@ -5,7 +5,7 @@ import { merge } from 'webpack-merge';
 import common from './webpack.common.js';
 import { stylePaths } from './stylePaths.js';
 const HOST = process.env.HOST || 'localhost';
-const PORT = process.env.PORT || '9000';
+const PORT = process.env.PORT || '3000';
 
 export default merge(common('development'), {
   mode: 'development',

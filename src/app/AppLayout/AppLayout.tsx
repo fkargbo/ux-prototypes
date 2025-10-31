@@ -67,6 +67,8 @@ import {
 } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { useImpersonation } from '@app/contexts/ImpersonationContext';
+import { useUseCaseContext } from '@app/contexts/UseCaseContext';
+import { UseCaseBanner } from '@app/UseCaseSelector/UseCaseBanner';
 import virtIcon from '@app/bgimages/virt-icon.png';
 import multiclusterIcon from '@app/bgimages/pficon-multicluster.svg';
 import redHatOpenShiftLogo from '@app/bgimages/redhatopenshift.svg';
@@ -96,8 +98,10 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [activePerspective, setActivePerspective] = React.useState('Fleet management');
   const [isTaskModalOpen, setIsTaskModalOpen] = React.useState(false);
   const { impersonatingUser, impersonatingGroups, isLoading, stopImpersonation } = useImpersonation();
+  const { useCase } = useUseCaseContext();
   const navigate = useNavigate();
   const hasNavigatedRef = React.useRef(false);
+  const hasShownModalRef = React.useRef(false);
 
   // When impersonation starts, switch to Fleet virtualization perspective and navigate to Virtual machines (only once)
   React.useEffect(() => {
@@ -110,6 +114,26 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       hasNavigatedRef.current = false;
     }
   }, [impersonatingUser, navigate]);
+
+  // Automatically open the task modal when entering a use case (only once per use case selection)
+  React.useEffect(() => {
+    if (useCase && !hasShownModalRef.current) {
+      setIsTaskModalOpen(true);
+      hasShownModalRef.current = true;
+    } else if (!useCase) {
+      // Reset the flag when returning to use case selector
+      hasShownModalRef.current = false;
+    }
+  }, [useCase]);
+
+  // Set the active perspective based on the use case
+  React.useEffect(() => {
+    if (useCase === 'use-case-aaq') {
+      setActivePerspective('Core platforms');
+    } else if (useCase === 'use-case-1' || useCase === 'use-case-2') {
+      setActivePerspective('Fleet management');
+    }
+  }, [useCase]);
 
   const allPerspectives = [
     { name: 'Core platforms', disabled: false },
@@ -186,6 +210,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         { element: <></>, label: 'Bootable volumes', path: '/core/virtualization/bootable-volumes', title: 'Bootable volumes' },
         { element: <></>, label: 'MigrationPolicies', path: '/core/virtualization/migration-policies', title: 'MigrationPolicies' },
         { element: <></>, label: 'Checkups', path: '/core/virtualization/checkups', title: 'Checkups' },
+        ...(useCase === 'use-case-aaq' ? [{ element: <></>, label: 'Quotas', path: '/core/virtualization/quotas', title: 'Quotas' }] : []),
       ],
     },
     {
@@ -387,7 +412,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             <img src={redHatOpenShiftLogo} alt="Red Hat OpenShift" style={{ height: '40px' }} />
             <Label color="orange" isCompact>UXD prototype - work in progress</Label>
             <span style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>
-              Contact: Stefan Kukla (slack: @stefan)
+              Contact: {useCase === 'use-case-aaq' ? 'Anna Walker (slack @Anna Walker)' : 'Stefan Kukla (slack @stefan)'}
             </span>
           </div>
         </MastheadBrand>
@@ -419,7 +444,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               </ToolbarItem>
               <ToolbarItem>
                 <Button variant="plain" aria-label="User menu">
-                  <span style={{ color: '#000000' }}>Walter Joseph Kovacs</span>
+                  <span style={{ color: '#000000' }}>
+                    {useCase === 'use-case-1' ? 'Adrian Veidt' : useCase === 'use-case-2' ? 'Walter Joseph Kovacs' : 'Dan Dreiberg'}
+                  </span>
                   <Icon>
                     <CaretDownIcon />
                   </Icon>
@@ -626,6 +653,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   return (
     <>
+    <UseCaseBanner />
+    <div style={{ paddingTop: useCase ? '48px' : '0' }}>
     <Page
       mainContainerId={pageId}
       masthead={masthead}
@@ -684,14 +713,14 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
       {/* Task Details Modal */}
       <Modal
-        variant={ModalVariant.large}
+        variant={ModalVariant.medium}
         isOpen={isTaskModalOpen}
         onClose={() => setIsTaskModalOpen(false)}
         aria-label="Research task instructions"
       >
         <div style={{ padding: '24px' }}>
           <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            Research Task
+            Your task
           </Title>
           
           <Content component="p" style={{ 
@@ -699,87 +728,135 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             fontSize: '16px',
             lineHeight: '1.6'
           }}>
-            Complete this task naturally and think aloud. Share what you're looking for and what you expect to happen.
+            Complete the task, navigate naturally, there are no wrong approaches. Share what you are looking for and what you expect to happen.
           </Content>
 
-          <Alert 
-            variant="info" 
-            isInline 
-            title="Your role"
-            style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}
-          >
-            <strong>Walter Joseph Kovacs</strong> — Tenant administrator
-          </Alert>
+          {useCase === 'use-case-1' && (
+            <>
+              <Content component="p" style={{ 
+                marginBottom: 'var(--pf-t--global--spacer--md)',
+                fontSize: '15px',
+                lineHeight: '1.6'
+              }}>
+                Get in the role of Adrian Veidt, Fleet administrator in a telco company called Petemobile.
+              </Content>
 
-          <Title headingLevel="h2" size="xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            Task
-          </Title>
+              <Card style={{ backgroundColor: '#f0f8ff', border: '1px solid #cce5ff' }}>
+                <CardBody>
+                  <Content component="p" style={{ 
+                    marginBottom: 'var(--pf-t--global--spacer--sm)',
+                    fontSize: '15px',
+                    fontWeight: 600
+                  }}>
+                    Your task is to:
+                  </Content>
 
-          <Content component="p" style={{ 
-            marginBottom: 'var(--pf-t--global--spacer--md)',
-            fontSize: '15px',
+                  <Content component="p" style={{ 
+                    fontSize: '15px',
+                    lineHeight: '1.8',
+                    margin: 0
+                  }}>
+                    Give user <strong>Walter Kovacs</strong><br />
+                    Role <strong>Cluster set admin</strong><br />
+                    on these cluster sets <strong>petemobile-na-prod</strong>, <strong>petemobile-eu-prod</strong>, <strong>petemobile-sa-prod</strong>, <strong>petemobile-apac-prod</strong>, <strong>petemobile-dev-clusters</strong>
+                  </Content>
+                </CardBody>
+              </Card>
+            </>
+          )}
+
+          {useCase === 'use-case-2' && (
+            <>
+              <Content component="p" style={{ 
+                marginBottom: 'var(--pf-t--global--spacer--md)',
+                fontSize: '15px',
+                lineHeight: '1.6'
+              }}>
+                Get in the role of Walter Joseph Kovacs, Tenant administrator in a telco company called Petemobile.
+              </Content>
+
+              <Card style={{ backgroundColor: '#f0f8ff', border: '1px solid #cce5ff' }}>
+                <CardBody>
+                  <Content component="p" style={{ 
+                    marginBottom: 'var(--pf-t--global--spacer--sm)',
+                    fontSize: '15px',
+                    fontWeight: 600
+                  }}>
+                    Your task is to:
+                  </Content>
+
+                  <Content component="p" style={{ 
+                    fontSize: '15px',
+                    lineHeight: '1.8',
+                    margin: 0
+                  }}>
+                    Give group <strong>dev-team-alpha</strong><br />
+                    Role <strong>Virtualization admin</strong><br />
+                    on the project <strong>project-starlight-dev</strong>, that span across clusters <strong>dev-team-a</strong> and <strong>dev-team-b</strong>, on the cluster set <strong>petemobile-dev-clusters</strong>
+                  </Content>
+                </CardBody>
+              </Card>
+            </>
+          )}
+
+          {useCase === 'use-case-aaq' && (
+            <>
+              <Content component="p" style={{ 
+                marginBottom: 'var(--pf-t--global--spacer--md)',
+                fontSize: '15px',
+                lineHeight: '1.6'
+              }}>
+                Get in the role of Dan Dreiberg, Virtualization administrator managing OpenShift Virtualization (CNV) at Petemobile, a telco company.
+              </Content>
+
+              <Card style={{ backgroundColor: '#f0f8ff', border: '1px solid #cce5ff' }}>
+                <CardBody>
+                  <Content component="p" style={{ 
+                    marginBottom: 'var(--pf-t--global--spacer--sm)',
+                    fontSize: '15px',
+                    fontWeight: 600
+                  }}>
+                    Your task is to:
+                  </Content>
+
+                  <Content component="p" style={{ 
+                    fontSize: '15px',
+                    lineHeight: '1.8',
+                    margin: 0
+                  }}>
+                    Create a quota, based on your needs.
+                  </Content>
+                </CardBody>
+              </Card>
+            </>
+          )}
+
+          <div style={{
+            marginTop: 'var(--pf-t--global--spacer--lg)',
+            paddingTop: 'var(--pf-t--global--spacer--md)',
+            borderTop: '1px solid var(--pf-t--global--border--color--default)'
           }}>
-            Grant virtual machine management permissions:
-          </Content>
+            <Content component="p" style={{ 
+              fontSize: '14px',
+              color: 'var(--pf-t--global--text--color--subtle)',
+              textAlign: 'center',
+              marginBottom: 'var(--pf-t--global--spacer--md)'
+            }}>
+              You can reopen this task at any time by clicking the info icon in the bottom right corner.
+            </Content>
 
-          <Card>
-            <CardBody>
-              <DescriptionList isHorizontal isCompact>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Group</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Label color="blue" isCompact>dev-team-alpha</Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Role</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Label color="green" isCompact>Virtualization admin</Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Scope</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div style={{ marginBottom: '6px' }}>
-                      Cluster set: <Label color="purple" isCompact>petemobile-dev-clusters</Label>
-                    </div>
-                    <div style={{ marginBottom: '6px' }}>
-                      Clusters: <Label color="orange" isCompact>dev-team-a</Label> <Label color="orange" isCompact>dev-team-b</Label>
-                    </div>
-                    <div>
-                      Project: <Label color="teal" isCompact>project-starlight-dev</Label>
-                    </div>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </DescriptionList>
-            </CardBody>
-          </Card>
-
-          <Alert 
-            variant="custom" 
-            isInline 
-            title="Note"
-            style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
-          >
-            Navigate naturally. There are no wrong approaches.
-          </Alert>
-
-          <div style={{ 
-            marginTop: 'var(--pf-t--global--spacer--lg)', 
-            paddingTop: 'var(--pf-t--global--spacer--md)', 
-            borderTop: '1px solid var(--pf-t--global--border--color--default)',
-            display: 'flex',
-            justifyContent: 'flex-end'
-          }}>
-            <Button variant="primary" onClick={() => setIsTaskModalOpen(false)}>
-              Start task
-            </Button>
+            <div style={{ 
+              display: 'flex',
+              justifyContent: 'flex-end'
+            }}>
+              <Button variant="primary" onClick={() => setIsTaskModalOpen(false)}>
+                Start task
+              </Button>
+            </div>
           </div>
         </div>
       </Modal>
-
+    </div>
     </>
   );
 };

@@ -13,3 +13,6 @@ export * from './mockDatabase';
 // Export query functions
 export * from './queries';
 
+// Export context-aware data hook
+export * from './useData';
+

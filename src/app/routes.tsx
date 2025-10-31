@@ -4,13 +4,6 @@ import { Dashboard } from '@app/Dashboard/Dashboard';
 import { Support } from '@app/Support/Support';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
-import { IdentityDetail } from '@app/Identities/IdentityDetail';
-import { GroupDetail } from '@app/Identities/GroupDetail';
-import { CreateRole } from '@app/Roles/CreateRole';
-import { RoleDetail } from '@app/Roles/RoleDetail';
-import { IdentityProviderDetail } from '@app/IdentityProvider/IdentityProviderDetail';
-import { AddLDAPProvider } from '@app/IdentityProvider/AddLDAPProvider';
-import { ProjectDetail } from '@app/Projects/ProjectDetail';
 import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
 import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 import { NotFound } from '@app/NotFound/NotFound';
@@ -19,9 +12,23 @@ import {
   ClusterDetailPage,
   IdentitiesPage,
   RolesPage,
-  IdentityProvidersPage
-} from '@app/navigation';
-import { ProjectsPage } from '@app/navigation/core-platforms';
+  IdentityProvidersPage,
+  ProjectsPage,
+  GovernancePage,
+  CreatePolicy,
+  IdentityDetail,
+  GroupDetail,
+  CreateGroup,
+  CreateRole,
+  RoleDetail,
+  IdentityProviderDetail,
+  AddLDAPProvider,
+  ProjectDetail,
+  QuotasPage,
+  QuotaDetail,
+  CreateQuota,
+  VirtualizationOverview,
+} from '@app/utils/useCaseComponents';
 import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
 import Virtualization from '@app/FleetVirtualization/Virtualization';
 import { Catalog } from '@app/FleetVirtualization/Catalog';
@@ -74,9 +81,29 @@ const routes: AppRouteConfig[] = [
     title: 'Templates',
   },
   {
+    element: <VirtualizationOverview />,
+    path: '/core/virtualization/overview',
+    title: 'Virtualization Overview',
+  },
+  {
     element: <HubVirtualMachines />,
     path: '/core/virtualization/vms',
     title: 'Hub Virtual Machines',
+  },
+  {
+    element: <QuotasPage />,
+    path: '/core/virtualization/quotas',
+    title: 'Quotas',
+  },
+  {
+    element: <CreateQuota />,
+    path: '/core/virtualization/quotas/create',
+    title: 'Create Quota',
+  },
+  {
+    element: <QuotaDetail />,
+    path: '/core/virtualization/quotas/:quotaName',
+    title: 'Quota Details',
   },
   {
     label: 'Home',
@@ -136,16 +163,15 @@ const routes: AppRouteConfig[] = [
     ],
   },
   {
+    element: <GovernancePage />,
     label: 'Governance',
-    disabled: true,
-    routes: [
-      {
-        element: <Dashboard />,
-        label: 'Overview',
-        path: '/governance/overview',
-        title: 'ACM | Governance',
-      },
-    ],
+    path: '/governance',
+    title: 'ACM | Governance',
+  },
+  {
+    element: <CreatePolicy />,
+    path: '/governance/policies/create',
+    title: 'ACM | Create Policy',
   },
   {
     label: 'Credentials',
@@ -193,6 +219,16 @@ const routes: AppRouteConfig[] = [
         title: 'ACM | Identities',
       },
       {
+        element: <CreateGroup />,
+        path: '/user-management/groups/create',
+        title: 'ACM | Create Group',
+      },
+      {
+        element: <CreateGroup />,
+        path: '/user-management/groups/edit/:groupName',
+        title: 'ACM | Edit Group',
+      },
+      {
         element: <GroupDetail />,
         path: '/user-management/groups/:groupName',
         title: 'ACM | Group Detail',
@@ -214,12 +250,17 @@ const routes: AppRouteConfig[] = [
         title: 'ACM | Create Role',
       },
       {
+        element: <CreateRole />,
+        path: '/user-management/roles/edit/:roleName',
+        title: 'ACM | Edit Role',
+      },
+      {
         element: <RoleDetail />,
         path: '/user-management/roles/:roleName',
         title: 'ACM | Role Detail',
       },
       {
-        element: <IdentityProvidersPage />,
+        element: <IdentityProvidersPage showClustersColumn={true} />,
         label: 'Identity providers',
         path: '/user-management/identity-providers',
         title: 'ACM | Identity Providers',
