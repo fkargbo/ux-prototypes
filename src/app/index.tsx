@@ -35,12 +35,17 @@ const AppContent: React.FunctionComponent = () => {
   );
 };
 
-const App: React.FunctionComponent = () => (
-  <Router>
-    <UseCaseProvider>
-      <AppContent />
-    </UseCaseProvider>
-  </Router>
-);
+const App: React.FunctionComponent = () => {
+  // Set basename for GitHub Pages in production
+  const basename = process.env.NODE_ENV === 'production' ? '/acm-user-interface' : '/';
+  
+  return (
+    <Router basename={basename}>
+      <UseCaseProvider>
+        <AppContent />
+      </UseCaseProvider>
+    </Router>
+  );
+};
 
 export default App;
