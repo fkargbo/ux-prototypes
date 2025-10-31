@@ -38,6 +38,8 @@ export const UseCaseBanner: React.FC = () => {
       return 'Prototype mode: Cross Cluster Live Migration';
     } else if (useCase === 'use-case-empty-states') {
       return 'Prototype mode: ACM RBAC Empty State Designs';
+    } else if (useCase === 'use-case-aaq-empty-states') {
+      return 'Prototype mode: AAQ Empty State Designs';
     }
     return `Demo Mode: ${useCaseTitle}`;
   };

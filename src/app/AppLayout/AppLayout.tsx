@@ -116,9 +116,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   }, [impersonatingUser, navigate]);
 
   // Automatically open the task modal when entering a use case (only once per use case selection)
-  // Skip modal for empty states use case
+  // Skip modal for empty states use cases
   React.useEffect(() => {
-    if (useCase && useCase !== 'use-case-empty-states' && !hasShownModalRef.current) {
+    if (useCase && useCase !== 'use-case-empty-states' && useCase !== 'use-case-aaq-empty-states' && !hasShownModalRef.current) {
       setIsTaskModalOpen(true);
       hasShownModalRef.current = true;
     } else if (!useCase) {
@@ -129,7 +129,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   // Set the active perspective based on the use case
   React.useEffect(() => {
-    if (useCase === 'use-case-aaq') {
+    if (useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states') {
       setActivePerspective('Core platforms');
     } else if (useCase === 'use-case-cclm') {
       setActivePerspective('Fleet virtualization');
@@ -213,7 +213,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         { element: <></>, label: 'Bootable volumes', path: '/core/virtualization/bootable-volumes', title: 'Bootable volumes' },
         { element: <></>, label: 'MigrationPolicies', path: '/core/virtualization/migration-policies', title: 'MigrationPolicies' },
         { element: <></>, label: 'Checkups', path: '/core/virtualization/checkups', title: 'Checkups' },
-        ...(useCase === 'use-case-aaq' ? [{ element: <></>, label: 'Quotas', path: '/core/virtualization/quotas', title: 'Quotas' }] : []),
+        ...(useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' ? [{ element: <></>, label: 'Quotas', path: '/core/virtualization/quotas', title: 'Quotas' }] : []),
       ],
     },
     {
@@ -454,7 +454,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
                       ? 'Walter Joseph Kovacs' 
                       : useCase === 'use-case-cclm'
                       ? 'Nelson Gardner'
-                      : useCase === 'use-case-empty-states'
+                      : useCase === 'use-case-empty-states' || useCase === 'use-case-aaq-empty-states'
                       ? 'Jane Designer'
                       : 'Dan Dreiberg'}
                   </span>

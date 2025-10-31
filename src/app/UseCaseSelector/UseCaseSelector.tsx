@@ -24,12 +24,15 @@ export const UseCaseSelector: React.FC = () => {
   const navigate = useNavigate();
   const { setUseCase } = useUseCaseContext();
   const [isUseCase1DropdownOpen, setIsUseCase1DropdownOpen] = React.useState(false);
+  const [isAAQDropdownOpen, setIsAAQDropdownOpen] = React.useState(false);
 
-  const handleUseCaseSelect = (useCaseId: 'use-case-1' | 'use-case-2' | 'use-case-aaq' | 'use-case-cclm' | 'use-case-empty-states') => {
+  const handleUseCaseSelect = (useCaseId: 'use-case-1' | 'use-case-2' | 'use-case-aaq' | 'use-case-cclm' | 'use-case-empty-states' | 'use-case-aaq-empty-states') => {
     setUseCase(useCaseId);
     // Navigate to appropriate starting page based on use case
     if (useCaseId === 'use-case-aaq') {
       navigate('/core/virtualization/overview');
+    } else if (useCaseId === 'use-case-aaq-empty-states') {
+      navigate('/core/virtualization/quotas');
     } else if (useCaseId === 'use-case-cclm') {
       navigate('/virtualization/virtual-machines');
     } else {
@@ -44,6 +47,14 @@ export const UseCaseSelector: React.FC = () => {
 
   const onUseCase1DropdownSelect = () => {
     setIsUseCase1DropdownOpen(false);
+  };
+
+  const onAAQDropdownToggle = () => {
+    setIsAAQDropdownOpen(!isAAQDropdownOpen);
+  };
+
+  const onAAQDropdownSelect = () => {
+    setIsAAQDropdownOpen(false);
   };
 
   return (
@@ -189,13 +200,57 @@ export const UseCaseSelector: React.FC = () => {
                           AAQ operator quota management experience
                         </Content>
                       </FlexItem>
-                  <FlexItem style={{ marginLeft: '16px' }}>
+                  <FlexItem style={{ marginLeft: '16px', display: 'flex', gap: '0' }}>
                     <Button
                       variant="primary"
                       onClick={() => handleUseCaseSelect('use-case-aaq')}
+                      style={{ 
+                        borderTopRightRadius: 0, 
+                        borderBottomRightRadius: 0,
+                        borderRight: '1px solid rgba(255, 255, 255, 0.3)'
+                      }}
                     >
                       Explore
                     </Button>
+                    <Dropdown
+                      isOpen={isAAQDropdownOpen}
+                      onSelect={onAAQDropdownSelect}
+                      onOpenChange={(isOpen) => setIsAAQDropdownOpen(isOpen)}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          variant="primary"
+                          isExpanded={isAAQDropdownOpen}
+                          onClick={onAAQDropdownToggle}
+                          style={{ 
+                            borderTopLeftRadius: 0, 
+                            borderBottomLeftRadius: 0,
+                            minWidth: '44px'
+                          }}
+                        />
+                      )}
+                    >
+                      <DropdownList>
+                        <DropdownItem
+                          key="aaq"
+                          onClick={() => {
+                            handleUseCaseSelect('use-case-aaq');
+                          }}
+                          description="Create virtualization quota"
+                        >
+                          Explore
+                        </DropdownItem>
+                        <DropdownItem
+                          key="aaq-empty-states"
+                          onClick={() => {
+                            handleUseCaseSelect('use-case-aaq-empty-states');
+                          }}
+                          description="AAQ empty state designs"
+                        >
+                          AAQ Empty states
+                        </DropdownItem>
+                      </DropdownList>
+                    </Dropdown>
                   </FlexItem>
                     </Flex>
                   </CardBody>

@@ -38,6 +38,9 @@ import { CreateQuota as CreateQuotaAAQ } from '@app/use-case-aaq/Quotas/CreateQu
 import { IdentitiesPage as IdentitiesPageEmpty } from '@app/use-case-empty-states/navigation';
 import { IdentityProvidersPageEmpty } from '@app/use-case-empty-states/IdentityProvider/IdentityProvidersPageEmpty';
 
+// Use Case AAQ Empty States - Empty state designs for AAQ
+import { QuotasPageEmpty } from '@app/use-case-aaq-empty-states/Quotas/QuotasPageEmpty';
+
 // Export wrapped components
 export const ClustersPage: React.FC = () => {
   const { useCase } = useUseCaseContext();
@@ -127,20 +130,47 @@ export const ProjectDetail: React.FC = () => {
   return useCase === 'use-case-1' ? <ProjectDetailUC1 /> : <ProjectDetailUC2 />;
 };
 
-// AAQ-specific exports
+// AAQ-specific exports - isolated per use case
 export const QuotasPage: React.FC = () => {
+  const { useCase } = useUseCaseContext();
+  // AAQ Empty States will use its own dedicated components
+  if (useCase === 'use-case-aaq-empty-states') {
+    return <QuotasPageEmpty />;
+  }
+  // Regular AAQ use case
   return <QuotasPageAAQ />;
 };
 
 export const QuotaDetail: React.FC = () => {
+  const { useCase } = useUseCaseContext();
+  // AAQ Empty States will use its own dedicated components
+  if (useCase === 'use-case-aaq-empty-states') {
+    // TODO: Create empty state version when needed
+    return <QuotaDetailAAQ />;
+  }
+  // Regular AAQ use case
   return <QuotaDetailAAQ />;
 };
 
 export const CreateQuota: React.FC = () => {
+  const { useCase } = useUseCaseContext();
+  // AAQ Empty States will use its own dedicated components
+  if (useCase === 'use-case-aaq-empty-states') {
+    // TODO: Create empty state version when needed
+    return <CreateQuotaAAQ />;
+  }
+  // Regular AAQ use case
   return <CreateQuotaAAQ />;
 };
 
 export const VirtualizationOverview: React.FC = () => {
+  const { useCase } = useUseCaseContext();
+  // AAQ Empty States will use its own dedicated components
+  if (useCase === 'use-case-aaq-empty-states') {
+    // TODO: Create empty state version when needed
+    return <VirtualizationWrapperAAQ />;
+  }
+  // Regular AAQ use case
   return <VirtualizationWrapperAAQ />;
 };
 
