@@ -164,11 +164,6 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   // Summary card expand/collapse state
   const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
   
-  // Context menu state
-  const [contextMenuVisible, setContextMenuVisible] = React.useState(false);
-  const [contextMenuPosition, setContextMenuPosition] = React.useState({ x: 0, y: 0 });
-  const [contextMenuNode, setContextMenuNode] = React.useState<{ type: string; id: string; name: string } | null>(null);
-  
   // Manage columns modal state
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
   const [isMigrateWizardOpen, setIsMigrateWizardOpen] = React.useState(false);
@@ -458,54 +453,6 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
     }
   };
 
-  // Handle context menu
-  const handleContextMenu = (event: React.MouseEvent, type: string, id: string, name: string) => {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Get the position of the clicked element (the tree item)
-    const target = event.currentTarget as HTMLElement;
-    
-    // Find the icon within the clicked element
-    const icon = target.querySelector('svg');
-    
-    if (icon) {
-      // Use the icon's position as the anchor point
-      const iconRect = icon.getBoundingClientRect();
-      // Use viewport-relative coordinates for fixed positioning
-      const position = { 
-        x: iconRect.left, 
-        y: iconRect.bottom 
-      };
-      setContextMenuPosition(position);
-    } else {
-      // Fallback to element position if no icon found
-      const rect = target.getBoundingClientRect();
-      const position = { 
-        x: rect.left, 
-        y: rect.bottom 
-      };
-      setContextMenuPosition(position);
-    }
-    
-    setContextMenuNode({ type, id, name });
-    setContextMenuVisible(true);
-  };
-
-  // Close context menu on outside click
-  React.useEffect(() => {
-    const handleClickOutside = () => {
-      if (contextMenuVisible) {
-        setContextMenuVisible(false);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [contextMenuVisible]);
-
   // Handle selecting VMs on current page only
   const handleSelectPage = () => {
     const paginatedVMs = filteredVMs.slice((page - 1) * perPage, page * perPage);
@@ -685,7 +632,6 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                 borderRadius: '4px',
                 fontWeight: isSelected ? 600 : 400
               }}
-              onContextMenu={(e) => handleContextMenu(e, 'clusterset', clusterSet.id, clusterSet.name)}
             >
               <MulticlusterIcon />
               <span>{clusterSet.name}</span>
@@ -721,7 +667,6 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     borderRadius: '4px',
                     fontWeight: isSelected ? 600 : 400
                   }}
-                  onContextMenu={(e) => handleContextMenu(e, 'cluster', cluster.id, cluster.name)}
                 >
                   <ServerIcon />
                   <span>{cluster.name}</span>
@@ -751,7 +696,6 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                         borderRadius: '4px',
                         fontWeight: isSelected ? 600 : 400
                       }}
-                      onContextMenu={(e) => handleContextMenu(e, 'namespace', namespace.id, namespace.name)}
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <ProjectDiagramIcon />
@@ -779,7 +723,6 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                             borderRadius: '4px',
                             fontWeight: isSelected ? 600 : 400
                           }}
-                          onContextMenu={(e) => handleContextMenu(e, 'vm', vm.id, vm.name)}
                         >
                           {vm.name}
                         </span>
@@ -2759,116 +2702,6 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
       selectedVMs={selectedVMs}
     />
 
-    {/* Context Menu - Using same Dropdown as table */}
-    {contextMenuVisible && contextMenuNode && (
-      <div style={{ position: 'fixed', top: contextMenuPosition.y, left: contextMenuPosition.x, zIndex: 9999 }}>
-        <Dropdown
-          isOpen={true}
-          onSelect={() => setContextMenuVisible(false)}
-          onOpenChange={(isOpen: boolean) => { if (!isOpen) setContextMenuVisible(false); }}
-          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-            <MenuToggle ref={toggleRef} variant="plain" style={{ display: 'none' }} />
-          )}
-        >
-          <DropdownList>
-            {contextMenuNode.type === 'clusterset' && (
-              <>
-                <DropdownItem key="view" onClick={() => { console.log('View cluster set details'); setContextMenuVisible(false); }}>
-                  View cluster set details
-                </DropdownItem>
-                <DropdownItem key="access" onClick={() => { console.log('Manage access'); setContextMenuVisible(false); }}>
-                  Manage access
-                </DropdownItem>
-                <DropdownItem key="add" onClick={() => { console.log('Add cluster to set'); setContextMenuVisible(false); }}>
-                  Add cluster to set
-                </DropdownItem>
-                <Divider key="div1" />
-                <DropdownItem key="remove" onClick={() => { console.log('Remove cluster set'); setContextMenuVisible(false); }}>
-                  Remove cluster set
-                </DropdownItem>
-              </>
-            )}
-
-            {contextMenuNode.type === 'cluster' && (
-              <>
-                <DropdownItem key="view" onClick={() => { console.log('View cluster details'); setContextMenuVisible(false); }}>
-                  View cluster details
-                </DropdownItem>
-                <DropdownItem key="create" onClick={() => { console.log('Create project'); setContextMenuVisible(false); }}>
-                  Create project
-                </DropdownItem>
-                <DropdownItem key="import" onClick={() => { console.log('Import VMs'); setContextMenuVisible(false); }}>
-                  Import virtual machines
-                </DropdownItem>
-                <DropdownItem key="settings" onClick={() => { console.log('Manage settings'); setContextMenuVisible(false); }}>
-                  Manage cluster settings
-                </DropdownItem>
-                <Divider key="div1" />
-                <DropdownItem key="remove" onClick={() => { console.log('Remove cluster'); setContextMenuVisible(false); }}>
-                  Remove cluster from set
-                </DropdownItem>
-              </>
-            )}
-
-            {contextMenuNode.type === 'namespace' && (
-              <>
-                <DropdownItem key="view" onClick={() => { console.log('View project'); setContextMenuVisible(false); }}>
-                  View project details
-                </DropdownItem>
-                <DropdownItem key="create" onClick={() => { console.log('Create VM'); setContextMenuVisible(false); }}>
-                  Create virtual machine
-                </DropdownItem>
-                <DropdownItem key="access" onClick={() => { console.log('Manage access'); setContextMenuVisible(false); }}>
-                  Manage project access
-                </DropdownItem>
-                <DropdownItem key="edit" onClick={() => { console.log('Edit project'); setContextMenuVisible(false); }}>
-                  Edit project
-                </DropdownItem>
-                <Divider key="div1" />
-                <DropdownItem key="delete" onClick={() => { console.log('Delete project'); setContextMenuVisible(false); }}>
-                  Delete project
-                </DropdownItem>
-              </>
-            )}
-
-            {contextMenuNode.type === 'vm' && (
-              <>
-                <DropdownItem key="view" onClick={() => { console.log('View VM'); setContextMenuVisible(false); }}>
-                  View VM details
-                </DropdownItem>
-                <Divider key="div1" />
-                <DropdownItem key="start" onClick={() => { console.log('Start'); setContextMenuVisible(false); }}>
-                  Start
-                </DropdownItem>
-                <DropdownItem key="stop" onClick={() => { console.log('Stop'); setContextMenuVisible(false); }}>
-                  Stop
-                </DropdownItem>
-                <DropdownItem key="restart" onClick={() => { console.log('Restart'); setContextMenuVisible(false); }}>
-                  Restart
-                </DropdownItem>
-                <DropdownItem key="pause" onClick={() => { console.log('Pause'); setContextMenuVisible(false); }}>
-                  Pause
-                </DropdownItem>
-                <Divider key="div2" />
-                <DropdownItem key="migrate" onClick={() => { console.log('Migrate'); setContextMenuVisible(false); }}>
-                  Migrate VM
-                </DropdownItem>
-                <DropdownItem key="clone" onClick={() => { console.log('Clone'); setContextMenuVisible(false); }}>
-                  Clone VM
-                </DropdownItem>
-                <Divider key="div3" />
-                <DropdownItem key="edit" onClick={() => { console.log('Edit'); setContextMenuVisible(false); }}>
-                  Edit VM
-                </DropdownItem>
-                <DropdownItem key="delete" onClick={() => { console.log('Delete'); setContextMenuVisible(false); }}>
-                  Delete VM
-                </DropdownItem>
-              </>
-            )}
-          </DropdownList>
-        </Dropdown>
-      </div>
-    )}
     </>
   );
 };
