@@ -211,34 +211,3 @@ body.resizing-sidebar * {
   background-color: var(--pf-t--global--background--color--primary--default);
 }
 
-/* Custom context menu */
-.custom-context-menu {
-  background-color: var(--pf-t--global--background--color--primary--default);
-  border: 1px solid var(--pf-t--global--border--color--default);
-  border-radius: 4px;
-  box-shadow: var(--pf-t--global--box-shadow--lg);
-  padding: 4px 0;
-  width: 180px !important;
-  max-width: 180px !important;
-  min-width: 180px !important;
-}
-
-.context-menu-item {
-  padding: 6px 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  font-size: 14px;
-  color: var(--pf-t--global--text--color--regular);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.context-menu-item:hover {
-  background-color: var(--pf-t--global--background--color--action--hover--default);
-}
-
-.context-menu-divider {
-  height: 1px;
-  background-color: var(--pf-t--global--border--color--default);
-  margin: 4px 0;
-}

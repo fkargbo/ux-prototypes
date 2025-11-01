@@ -41,6 +41,11 @@ import { IdentityProvidersPageEmpty } from '@app/use-case-empty-states/IdentityP
 // Use Case AAQ Empty States - Empty state designs for AAQ
 import { QuotasPageEmpty } from '@app/use-case-aaq-empty-states/Quotas/QuotasPageEmpty';
 
+// Shared components - CCLM will use these originals directly
+// CCLM uses original, others use shared copy
+import { VirtualMachines as VirtualMachinesCCLM } from '@app/VirtualMachines/VirtualMachines';
+import { VirtualMachines as VirtualMachinesShared } from '@app/shared-virtual-machines/VirtualMachines';
+
 // Export wrapped components
 export const ClustersPage: React.FC = () => {
   const { useCase } = useUseCaseContext();
@@ -172,5 +177,15 @@ export const VirtualizationOverview: React.FC = () => {
   }
   // Regular AAQ use case
   return <VirtualizationWrapperAAQ />;
+};
+
+// VirtualMachines export - CCLM uses the originals, others use shared
+// This means editing /src/app/VirtualMachines/* and /src/app/FleetVirtualization/* 
+// will ONLY affect CCLM!
+export const VirtualMachines: React.FC = () => {
+  const { useCase } = useUseCaseContext();
+  // CCLM uses the ORIGINAL files (editing them ONLY affects CCLM)
+  // All other use cases use SHARED COPY (protected from CCLM edits)
+  return useCase === 'use-case-cclm' ? <VirtualMachinesCCLM /> : <VirtualMachinesShared />;
 };
 

@@ -46,12 +46,20 @@ import {
   Form,
   FormGroup,
   Tooltip,
+  Select,
+  SelectOption,
+  SelectList,
+  TextArea,
+  TextInput,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateActions,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { FilterIcon, EllipsisVIcon, CogIcon, AngleLeftIcon, AngleRightIcon, SyncAltIcon, RedoIcon, CheckIcon, PlusCircleIcon, ColumnsIcon, ServerIcon, ProjectDiagramIcon, ExclamationCircleIcon, OffIcon, PauseCircleIcon, MulticlusterIcon, CubesIcon, AngleDoubleDownIcon, AngleDoubleUpIcon, CaretDownIcon } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import './VirtualMachines.css';
-import { getAllClusterSets, getClustersByClusterSet, getNamespacesByCluster, getVirtualMachinesByNamespace, getVirtualMachinesByCluster, getVirtualMachinesByClusterSet, getAllVirtualMachines } from '@app/data';
+import { getAllClusterSets, getClustersByClusterSet, getNamespacesByCluster, getVirtualMachinesByNamespace, getVirtualMachinesByCluster, getVirtualMachinesByClusterSet, getAllVirtualMachines, getAllNamespaces, getAllClusters } from '@app/data';
 import { MigrateVMsWizard } from './MigrateVMsWizard';
 import { useImpersonation } from '@app/contexts/ImpersonationContext';
 import { VirtualMachine } from '@app/data/schemas/virtualization';
@@ -121,6 +129,8 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   const [sidebarSearch, setSidebarSearch] = React.useState('');
   const [showOnlyWithVMs, setShowOnlyWithVMs] = React.useState(true);
   const [isTreeExpanded, setIsTreeExpanded] = React.useState(true);
+  const [expandedNodes, setExpandedNodes] = React.useState<string[]>([]);
+  const [treeKey, setTreeKey] = React.useState(0);
   const [selectedVMs, setSelectedVMs] = React.useState<number[]>([]);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(10);
@@ -144,21 +154,60 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   const [isToolbarActionsOpen, setIsToolbarActionsOpen] = React.useState(false);
   const [isMigrateMenuOpen, setIsMigrateMenuOpen] = React.useState(false);
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-  const [isRefreshDropdownOpen, setIsRefreshDropdownOpen] = React.useState(false);
   
   // Filter states
   const [statusFilter, setStatusFilter] = React.useState<string>('All');
   const [osFilter, setOSFilter] = React.useState<string>('All');
   
-  // Refresh state
-  const [refreshMode, setRefreshMode] = React.useState<'auto' | 'manual'>('auto');
-  const [lastUpdated, setLastUpdated] = React.useState(new Date());
-  
   const [selectedCluster, setSelectedCluster] = React.useState('test');
+  
+  // Summary card expand/collapse state
+  const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
+  
+  // Context menu state
+  const [contextMenuVisible, setContextMenuVisible] = React.useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = React.useState({ x: 0, y: 0 });
+  const [contextMenuNode, setContextMenuNode] = React.useState<{ type: string; id: string; name: string } | null>(null);
   
   // Manage columns modal state
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
   const [isMigrateWizardOpen, setIsMigrateWizardOpen] = React.useState(false);
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = React.useState(false);
+  
+  // Advanced search form state
+  const [advancedSearchName, setAdvancedSearchName] = React.useState('');
+  const [advancedSearchCluster, setAdvancedSearchCluster] = React.useState('all');
+  const [advancedSearchProject, setAdvancedSearchProject] = React.useState('all');
+  const [advancedSearchDescription, setAdvancedSearchDescription] = React.useState('');
+  const [advancedSearchStatus, setAdvancedSearchStatus] = React.useState('');
+  const [advancedSearchOS, setAdvancedSearchOS] = React.useState('');
+  const [advancedSearchVCPUOperator, setAdvancedSearchVCPUOperator] = React.useState('greater');
+  const [advancedSearchVCPUValue, setAdvancedSearchVCPUValue] = React.useState('');
+  const [advancedSearchMemoryOperator, setAdvancedSearchMemoryOperator] = React.useState('greater');
+  const [advancedSearchMemoryValue, setAdvancedSearchMemoryValue] = React.useState('');
+  const [advancedSearchMemoryUnit, setAdvancedSearchMemoryUnit] = React.useState('GiB');
+  const [advancedSearchStorageClass, setAdvancedSearchStorageClass] = React.useState('');
+  const [advancedSearchGPU, setAdvancedSearchGPU] = React.useState(false);
+  const [advancedSearchHostDevices, setAdvancedSearchHostDevices] = React.useState(false);
+  const [advancedSearchDateCreated, setAdvancedSearchDateCreated] = React.useState('any');
+  const [advancedSearchIPAddress, setAdvancedSearchIPAddress] = React.useState('');
+  const [isDetailsExpanded, setIsDetailsExpanded] = React.useState(true);
+  const [isNetworkExpanded, setIsNetworkExpanded] = React.useState(false);
+  
+  // Track if advanced search filters are active
+  const [isAdvancedSearchActive, setIsAdvancedSearchActive] = React.useState(false);
+  
+  // Advanced search dropdown states
+  const [isAdvSearchClusterOpen, setIsAdvSearchClusterOpen] = React.useState(false);
+  const [isAdvSearchProjectOpen, setIsAdvSearchProjectOpen] = React.useState(false);
+  const [isAdvSearchStatusOpen, setIsAdvSearchStatusOpen] = React.useState(false);
+  const [isAdvSearchOSOpen, setIsAdvSearchOSOpen] = React.useState(false);
+  const [isAdvSearchVCPUOpOpen, setIsAdvSearchVCPUOpOpen] = React.useState(false);
+  const [isAdvSearchMemoryOpOpen, setIsAdvSearchMemoryOpOpen] = React.useState(false);
+  const [isAdvSearchMemoryUnitOpen, setIsAdvSearchMemoryUnitOpen] = React.useState(false);
+  const [isAdvSearchStorageOpen, setIsAdvSearchStorageOpen] = React.useState(false);
+  const [isAdvSearchDateOpen, setIsAdvSearchDateOpen] = React.useState(false);
+  
   const [openRowMenuId, setOpenRowMenuId] = React.useState<number | null>(null);
   const [openRowMigrateMenuId, setOpenRowMigrateMenuId] = React.useState<number | null>(null);
   const [rowMigrateMenuPosition, setRowMigrateMenuPosition] = React.useState<{ top: number; left: number } | null>(null);
@@ -234,9 +283,70 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
     // Transform VMs from database to table format and apply filters
     return vmsFromDB
       .filter(vm => {
+        // Apply advanced search filters if active
+        if (isAdvancedSearchActive) {
+          // Name filter
+          if (advancedSearchName && !vm.name.toLowerCase().includes(advancedSearchName.toLowerCase())) {
+            return false;
+          }
+          
+          // Cluster filter
+          if (advancedSearchCluster !== 'all' && vm.clusterId !== advancedSearchCluster) {
+            return false;
+          }
+          
+          // Project filter
+          if (advancedSearchProject !== 'all' && vm.namespaceId !== advancedSearchProject) {
+            return false;
+          }
+          
+          // Status filter
+          if (advancedSearchStatus && vm.status !== advancedSearchStatus) {
+            return false;
+          }
+          
+          // OS filter
+          if (advancedSearchOS && vm.os !== advancedSearchOS) {
+            return false;
+          }
+          
+          // vCPU filter
+          if (advancedSearchVCPUValue) {
+            const vcpuValue = parseInt(advancedSearchVCPUValue);
+            if (advancedSearchVCPUOperator === 'greater' && vm.cpu <= vcpuValue) return false;
+            if (advancedSearchVCPUOperator === 'less' && vm.cpu >= vcpuValue) return false;
+            if (advancedSearchVCPUOperator === 'equals' && vm.cpu !== vcpuValue) return false;
+          }
+          
+          // Memory filter
+          if (advancedSearchMemoryValue) {
+            const memoryValue = parseInt(advancedSearchMemoryValue);
+            const vmMemory = parseInt(vm.memory);
+            if (advancedSearchMemoryOperator === 'greater' && vmMemory <= memoryValue) return false;
+            if (advancedSearchMemoryOperator === 'less' && vmMemory >= memoryValue) return false;
+            if (advancedSearchMemoryOperator === 'equals' && vmMemory !== memoryValue) return false;
+          }
+          
+          // IP Address filter
+          if (advancedSearchIPAddress && !vm.ipAddress.includes(advancedSearchIPAddress)) {
+            return false;
+          }
+          
+          return true;
+        }
+        
+        // Regular filters
         const matchesStatus = statusFilter === 'All' || vm.status === statusFilter;
         const matchesOS = osFilter === 'All' || vm.os === osFilter;
-        const matchesSearch = !searchValue || vm.name.toLowerCase().includes(searchValue.toLowerCase());
+        
+        // Enhanced search: searches across name, IP address, cluster, and namespace
+        const searchLower = searchValue.toLowerCase();
+        const matchesSearch = !searchValue || 
+          vm.name.toLowerCase().includes(searchLower) ||
+          vm.ipAddress.toLowerCase().includes(searchLower) ||
+          vm.clusterId.toLowerCase().includes(searchLower) ||
+          vm.namespaceId.toLowerCase().includes(searchLower);
+        
         return matchesStatus && matchesOS && matchesSearch;
       })
       .map((vm, index) => ({
@@ -251,7 +361,12 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         labels: ['app:web', 'env:prod'], // Placeholder
         moreLabels: 0,
       }));
-  }, [selectedTreeNode, statusFilter, osFilter, searchValue, impersonatingUser, hubClusterOnly]);
+  }, [
+    selectedTreeNode, statusFilter, osFilter, searchValue, impersonatingUser, hubClusterOnly,
+    isAdvancedSearchActive, advancedSearchName, advancedSearchCluster, advancedSearchProject,
+    advancedSearchStatus, advancedSearchOS, advancedSearchVCPUValue, advancedSearchVCPUOperator,
+    advancedSearchMemoryValue, advancedSearchMemoryOperator, advancedSearchIPAddress
+  ]);
 
   // Get unique statuses and operating systems for filter options
   const allVMs = React.useMemo(() => getVMsForSelection(selectedTreeNode, impersonatingUser, hubClusterOnly), [selectedTreeNode, impersonatingUser, hubClusterOnly]);
@@ -283,6 +398,57 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
     return counts;
   }, [allVMs]);
 
+  // Get breadcrumb hierarchy from selected tree node
+  const breadcrumbHierarchy = React.useMemo(() => {
+    // Default to "All" when nothing is selected or root is selected
+    if (!selectedTreeNode || selectedTreeNode === 'all-cluster-sets') {
+      return { 
+        clusterSet: null, 
+        cluster: null, 
+        namespace: null,
+        isAllSelected: true 
+      };
+    }
+
+    const parts = selectedTreeNode.split('-');
+    const type = parts[0];
+    const id = parts.slice(1).join('-');
+
+    let clusterSet;
+    let cluster;
+    let namespace;
+
+    if (type === 'clusterset') {
+      clusterSet = getAllClusterSets().find(cs => cs.id === id);
+    } else if (type === 'cluster') {
+      cluster = getAllClusters().find(c => c.id === id);
+      if (cluster) {
+        clusterSet = getAllClusterSets().find(cs => cs.id === cluster.clusterSetId);
+      }
+    } else if (type === 'namespace') {
+      namespace = getAllNamespaces().find(ns => ns.id === id);
+      if (namespace) {
+        cluster = getAllClusters().find(c => c.id === namespace.clusterId);
+        if (cluster) {
+          clusterSet = getAllClusterSets().find(cs => cs.id === cluster.clusterSetId);
+        }
+      }
+    } else if (type === 'vm') {
+      const vm = getAllVirtualMachines().find(v => v.id === id);
+      if (vm) {
+        namespace = getAllNamespaces().find(ns => ns.id === vm.namespaceId);
+        if (namespace) {
+          cluster = getAllClusters().find(c => c.id === namespace.clusterId);
+          if (cluster) {
+            clusterSet = getAllClusterSets().find(cs => cs.id === cluster.clusterSetId);
+          }
+        }
+      }
+    }
+
+    return { clusterSet, cluster, namespace, isAllSelected: false };
+  }, [selectedTreeNode]);
+
   // Handle selecting all VMs
   const handleSelectAllVMs = (isSelected: boolean) => {
     if (isSelected) {
@@ -291,6 +457,54 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
       setSelectedVMs([]);
     }
   };
+
+  // Handle context menu
+  const handleContextMenu = (event: React.MouseEvent, type: string, id: string, name: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Get the position of the clicked element (the tree item)
+    const target = event.currentTarget as HTMLElement;
+    
+    // Find the icon within the clicked element
+    const icon = target.querySelector('svg');
+    
+    if (icon) {
+      // Use the icon's position as the anchor point
+      const iconRect = icon.getBoundingClientRect();
+      // Use viewport-relative coordinates for fixed positioning
+      const position = { 
+        x: iconRect.left, 
+        y: iconRect.bottom 
+      };
+      setContextMenuPosition(position);
+    } else {
+      // Fallback to element position if no icon found
+      const rect = target.getBoundingClientRect();
+      const position = { 
+        x: rect.left, 
+        y: rect.bottom 
+      };
+      setContextMenuPosition(position);
+    }
+    
+    setContextMenuNode({ type, id, name });
+    setContextMenuVisible(true);
+  };
+
+  // Close context menu on outside click
+  React.useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenuVisible) {
+        setContextMenuVisible(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [contextMenuVisible]);
 
   // Handle selecting VMs on current page only
   const handleSelectPage = () => {
@@ -455,14 +669,32 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         const clustersInSet = getClustersByClusterSet(clusterSet.id)
           .filter(cluster => !allowedClusterIds || allowedClusterIds.includes(cluster.id));
         
+        const clusterSetId = `clusterset-${clusterSet.id}`;
+        const isSelected = selectedTreeNode === clusterSetId;
+        
         return {
           name: (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                backgroundColor: isSelected ? '#E7F1FA' : 'transparent',
+                padding: '4px 8px',
+                margin: '0 -8px',
+                borderRadius: '4px',
+                fontWeight: isSelected ? 600 : 400
+              }}
+              onContextMenu={(e) => handleContextMenu(e, 'clusterset', clusterSet.id, clusterSet.name)}
+            >
               <MulticlusterIcon />
               <span>{clusterSet.name}</span>
             </span>
           ),
-          id: `clusterset-${clusterSet.id}`,
+          id: clusterSetId,
+          defaultExpanded: expandedNodes.length > 0 
+            ? expandedNodes.includes(`clusterset-${clusterSet.id}`) 
+            : (isTreeExpanded || false),
           children: clustersInSet.map(cluster => {
             const namespacesInCluster = getNamespacesByCluster(cluster.id)
               .filter(namespace => !allowedNamespaceIds || allowedNamespaceIds.includes(namespace.id))
@@ -473,20 +705,54 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                 return vmsInNamespace.length > 0;
               });
             
+            const clusterId = `cluster-${cluster.id}`;
+            const isSelected = selectedTreeNode === clusterId;
+            
             return {
               name: (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    backgroundColor: isSelected ? '#E7F1FA' : 'transparent',
+                    padding: '4px 8px',
+                    margin: '0 -8px',
+                    borderRadius: '4px',
+                    fontWeight: isSelected ? 600 : 400
+                  }}
+                  onContextMenu={(e) => handleContextMenu(e, 'cluster', cluster.id, cluster.name)}
+                >
                   <ServerIcon />
                   <span>{cluster.name}</span>
                 </span>
               ),
-              id: `cluster-${cluster.id}`,
+              id: clusterId,
+              defaultExpanded: expandedNodes.length > 0 
+                ? expandedNodes.includes(`cluster-${cluster.id}`) 
+                : (isTreeExpanded || false),
               children: namespacesInCluster.map(namespace => {
                 const vmsInNamespace = getVirtualMachinesByNamespace(namespace.id);
+                const namespaceId = `namespace-${namespace.id}`;
+                const isSelected = selectedTreeNode === namespaceId;
                 
                 return {
                   name: (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingRight: '16px' }}>
+                    <div 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        width: '100%', 
+                        paddingRight: '16px',
+                        backgroundColor: isSelected ? '#E7F1FA' : 'transparent',
+                        padding: '4px 8px',
+                        margin: '0 -8px',
+                        borderRadius: '4px',
+                        fontWeight: isSelected ? 600 : 400
+                      }}
+                      onContextMenu={(e) => handleContextMenu(e, 'namespace', namespace.id, namespace.name)}
+                    >
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <ProjectDiagramIcon />
                         <span>{namespace.name}</span>
@@ -494,12 +760,33 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                       <Label isCompact color="grey" style={{ flexShrink: 0 }}>{vmsInNamespace.length}</Label>
                     </div>
                   ),
-                  id: `namespace-${namespace.id}`,
-                  defaultExpanded: false,
-                  children: vmsInNamespace.map(vm => ({
-                    name: vm.name,
-                    id: `vm-${vm.id}`,
-                  })),
+                  id: namespaceId,
+                  defaultExpanded: expandedNodes.length > 0 
+                    ? expandedNodes.includes(`namespace-${namespace.id}`) 
+                    : (isTreeExpanded || false),
+                  children: vmsInNamespace.map(vm => {
+                    const vmId = `vm-${vm.id}`;
+                    const isSelected = selectedTreeNode === vmId;
+                    
+                    return {
+                      name: (
+                        <span 
+                          style={{
+                            display: 'block',
+                            backgroundColor: isSelected ? '#E7F1FA' : 'transparent',
+                            padding: '4px 8px',
+                            margin: '0 -8px',
+                            borderRadius: '4px',
+                            fontWeight: isSelected ? 600 : 400
+                          }}
+                          onContextMenu={(e) => handleContextMenu(e, 'vm', vm.id, vm.name)}
+                        >
+                          {vm.name}
+                        </span>
+                      ),
+                      id: vmId,
+                    };
+                  }),
                 };
               }),
             };
@@ -528,10 +815,10 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         </div>
       ),
       id: 'all-cluster-sets',
-      defaultExpanded: true,
+      defaultExpanded: true, // Always expand the root
       children: clusterSetNodes,
     }];
-  }, [dbClusterSets, impersonatingUser, hubClusterOnly, showProjectsOnly, showOnlyWithVMs]);
+  }, [dbClusterSets, impersonatingUser, hubClusterOnly, showProjectsOnly, showOnlyWithVMs, expandedNodes, isTreeExpanded, selectedTreeNode]);
   
   const sidebar = (
     <div 
@@ -563,7 +850,11 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
             <Button
               variant="plain"
               aria-label={isTreeExpanded ? 'Collapse all' : 'Expand all'}
-              onClick={() => setIsTreeExpanded(!isTreeExpanded)}
+              onClick={() => {
+                setIsTreeExpanded(!isTreeExpanded);
+                setExpandedNodes([]); // Reset specific expansions
+                setTreeKey(prev => prev + 1); // Force tree re-render
+              }}
               style={{ padding: '4px' }}
             >
               {isTreeExpanded ? <AngleDoubleUpIcon /> : <AngleDoubleDownIcon />}
@@ -585,8 +876,8 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
       </div>
 
       <TreeView
+        key={treeKey}
         data={treeData}
-        allExpanded={isTreeExpanded}
         hasGuides
         onSelect={(_event, item) => {
           if (item.id) {
@@ -763,6 +1054,419 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         </div>
       </Modal>
 
+      {/* Advanced Search Modal */}
+      <Modal
+        width="60%"
+        isOpen={isAdvancedSearchOpen}
+        onClose={() => setIsAdvancedSearchOpen(false)}
+        tabIndex={0}
+        aria-label="Advanced search"
+      >
+        {/* Sticky Header */}
+        <div style={{ 
+          padding: '24px',
+          paddingBottom: '16px',
+          borderBottom: '1px solid var(--pf-t--global--border--color--default)',
+          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Title headingLevel="h1" size="2xl">
+            Advanced search
+          </Title>
+          <Button
+            variant="plain"
+            aria-label="Close"
+            onClick={() => setIsAdvancedSearchOpen(false)}
+            style={{ padding: '8px' }}
+          >
+            <svg fill="currentColor" height="1em" width="1em" viewBox="0 0 352 512" aria-hidden="true">
+              <path d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path>
+            </svg>
+          </Button>
+        </div>
+        
+        {/* Scrollable Content */}
+        <div style={{ 
+          padding: '24px',
+          maxHeight: '60vh',
+          overflowY: 'auto'
+        }}>
+          <Form>
+            {/* Details Section */}
+            <ExpandableSection
+              toggleText="Details"
+              onToggle={(_event, isExpanded) => setIsDetailsExpanded(isExpanded)}
+              isExpanded={isDetailsExpanded}
+              isIndented
+            >
+              <FormGroup label="Name" fieldId="adv-search-name">
+                <TextInput
+                  id="adv-search-name"
+                  value={advancedSearchName}
+                  onChange={(_event, value) => setAdvancedSearchName(value)}
+                  placeholder="Name"
+                />
+              </FormGroup>
+
+              <FormGroup label="Cluster" fieldId="adv-search-cluster">
+                <Dropdown
+                  isOpen={isAdvSearchClusterOpen}
+                  onSelect={() => setIsAdvSearchClusterOpen(false)}
+                  onOpenChange={(isOpen: boolean) => setIsAdvSearchClusterOpen(isOpen)}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsAdvSearchClusterOpen(!isAdvSearchClusterOpen)}
+                      isExpanded={isAdvSearchClusterOpen}
+                      style={{ width: '100%' }}
+                    >
+                      {advancedSearchCluster === 'all' ? 'All clusters' : advancedSearchCluster}
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    <DropdownItem key="all" onClick={() => setAdvancedSearchCluster('all')}>
+                      All clusters
+                    </DropdownItem>
+                    {getAllClusters().map(cluster => (
+                      <DropdownItem key={cluster.id} onClick={() => setAdvancedSearchCluster(cluster.name)}>
+                        {cluster.name}
+                      </DropdownItem>
+                    ))}
+                  </DropdownList>
+                </Dropdown>
+              </FormGroup>
+
+              <FormGroup label="Project" fieldId="adv-search-project">
+                <Dropdown
+                  isOpen={isAdvSearchProjectOpen}
+                  onSelect={() => setIsAdvSearchProjectOpen(false)}
+                  onOpenChange={(isOpen: boolean) => setIsAdvSearchProjectOpen(isOpen)}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsAdvSearchProjectOpen(!isAdvSearchProjectOpen)}
+                      isExpanded={isAdvSearchProjectOpen}
+                      style={{ width: '100%' }}
+                    >
+                      {advancedSearchProject === 'all' ? 'All projects' : advancedSearchProject}
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    <DropdownItem key="all" onClick={() => setAdvancedSearchProject('all')}>
+                      All projects
+                    </DropdownItem>
+                    {getAllNamespaces().map(project => (
+                      <DropdownItem key={project.id} onClick={() => setAdvancedSearchProject(project.name)}>
+                        {project.name}
+                      </DropdownItem>
+                    ))}
+                  </DropdownList>
+                </Dropdown>
+              </FormGroup>
+
+              <FormGroup label="Description" fieldId="adv-search-description">
+                <TextInput
+                  id="adv-search-description"
+                  value={advancedSearchDescription}
+                  onChange={(_event, value) => setAdvancedSearchDescription(value)}
+                  placeholder="Description"
+                />
+              </FormGroup>
+
+              <FormGroup label="Status" fieldId="adv-search-status">
+                <Dropdown
+                  isOpen={isAdvSearchStatusOpen}
+                  onSelect={() => setIsAdvSearchStatusOpen(false)}
+                  onOpenChange={(isOpen: boolean) => setIsAdvSearchStatusOpen(isOpen)}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsAdvSearchStatusOpen(!isAdvSearchStatusOpen)}
+                      isExpanded={isAdvSearchStatusOpen}
+                      style={{ width: '100%' }}
+                    >
+                      {advancedSearchStatus || 'Select status'}
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    {availableStatuses.filter(s => s !== 'All').map(status => (
+                      <DropdownItem key={status} onClick={() => setAdvancedSearchStatus(status)}>
+                        {status}
+                      </DropdownItem>
+                    ))}
+                  </DropdownList>
+                </Dropdown>
+              </FormGroup>
+
+              <FormGroup label="Operating system" fieldId="adv-search-os">
+                <Dropdown
+                  isOpen={isAdvSearchOSOpen}
+                  onSelect={() => setIsAdvSearchOSOpen(false)}
+                  onOpenChange={(isOpen: boolean) => setIsAdvSearchOSOpen(isOpen)}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsAdvSearchOSOpen(!isAdvSearchOSOpen)}
+                      isExpanded={isAdvSearchOSOpen}
+                      style={{ width: '100%' }}
+                    >
+                      {advancedSearchOS || 'Select OS'}
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    {availableOSs.filter(os => os !== 'All').map(os => (
+                      <DropdownItem key={os} onClick={() => setAdvancedSearchOS(os)}>
+                        {os}
+                      </DropdownItem>
+                    ))}
+                  </DropdownList>
+                </Dropdown>
+              </FormGroup>
+
+              <FormGroup label="vCPU" fieldId="adv-search-vcpu">
+                <Split hasGutter>
+                  <SplitItem>
+                    <Dropdown
+                      isOpen={isAdvSearchVCPUOpOpen}
+                      onSelect={() => setIsAdvSearchVCPUOpOpen(false)}
+                      onOpenChange={(isOpen: boolean) => setIsAdvSearchVCPUOpOpen(isOpen)}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsAdvSearchVCPUOpOpen(!isAdvSearchVCPUOpOpen)}
+                          isExpanded={isAdvSearchVCPUOpOpen}
+                          style={{ width: '150px' }}
+                        >
+                          Greater than
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        <DropdownItem>Greater than</DropdownItem>
+                        <DropdownItem>Less than</DropdownItem>
+                        <DropdownItem>Equal to</DropdownItem>
+                      </DropdownList>
+                    </Dropdown>
+                  </SplitItem>
+                  <SplitItem isFilled>
+                    <TextInput
+                      id="adv-search-vcpu-value"
+                      type="number"
+                      value={advancedSearchVCPUValue}
+                      onChange={(_event, value) => setAdvancedSearchVCPUValue(value)}
+                      placeholder="vCPU value"
+                    />
+                  </SplitItem>
+                </Split>
+              </FormGroup>
+
+              <FormGroup label="Memory" fieldId="adv-search-memory">
+                <Split hasGutter>
+                  <SplitItem>
+                    <Dropdown
+                      isOpen={isAdvSearchMemoryOpOpen}
+                      onSelect={() => setIsAdvSearchMemoryOpOpen(false)}
+                      onOpenChange={(isOpen: boolean) => setIsAdvSearchMemoryOpOpen(isOpen)}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsAdvSearchMemoryOpOpen(!isAdvSearchMemoryOpOpen)}
+                          isExpanded={isAdvSearchMemoryOpOpen}
+                          style={{ width: '150px' }}
+                        >
+                          Greater than
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        <DropdownItem>Greater than</DropdownItem>
+                        <DropdownItem>Less than</DropdownItem>
+                        <DropdownItem>Equal to</DropdownItem>
+                      </DropdownList>
+                    </Dropdown>
+                  </SplitItem>
+                  <SplitItem isFilled>
+                    <TextInput
+                      id="adv-search-memory-value"
+                      type="number"
+                      value={advancedSearchMemoryValue}
+                      onChange={(_event, value) => setAdvancedSearchMemoryValue(value)}
+                      placeholder="Memory value"
+                    />
+                  </SplitItem>
+                  <SplitItem>
+                    <Dropdown
+                      isOpen={isAdvSearchMemoryUnitOpen}
+                      onSelect={() => setIsAdvSearchMemoryUnitOpen(false)}
+                      onOpenChange={(isOpen: boolean) => setIsAdvSearchMemoryUnitOpen(isOpen)}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsAdvSearchMemoryUnitOpen(!isAdvSearchMemoryUnitOpen)}
+                          isExpanded={isAdvSearchMemoryUnitOpen}
+                          style={{ width: '100px' }}
+                        >
+                          GiB
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        <DropdownItem onClick={() => setAdvancedSearchMemoryUnit('GiB')}>GiB</DropdownItem>
+                        <DropdownItem onClick={() => setAdvancedSearchMemoryUnit('MiB')}>MiB</DropdownItem>
+                      </DropdownList>
+                    </Dropdown>
+                  </SplitItem>
+                </Split>
+              </FormGroup>
+
+              <FormGroup label="Storage class" fieldId="adv-search-storage">
+                <Dropdown
+                  isOpen={isAdvSearchStorageOpen}
+                  onSelect={() => setIsAdvSearchStorageOpen(false)}
+                  onOpenChange={(isOpen: boolean) => setIsAdvSearchStorageOpen(isOpen)}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsAdvSearchStorageOpen(!isAdvSearchStorageOpen)}
+                      isExpanded={isAdvSearchStorageOpen}
+                      style={{ width: '100%' }}
+                    >
+                      {advancedSearchStorageClass || 'Select storage class'}
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    <DropdownItem onClick={() => setAdvancedSearchStorageClass('standard')}>standard</DropdownItem>
+                    <DropdownItem onClick={() => setAdvancedSearchStorageClass('premium')}>premium</DropdownItem>
+                  </DropdownList>
+                </Dropdown>
+              </FormGroup>
+
+              <FormGroup label="Hardware devices" fieldId="adv-search-hardware">
+                <Checkbox
+                  id="adv-search-gpu"
+                  label="GPU devices"
+                  isChecked={advancedSearchGPU}
+                  onChange={(_event, checked) => setAdvancedSearchGPU(checked)}
+                  style={{ marginBottom: '8px' }}
+                />
+                <Checkbox
+                  id="adv-search-host-devices"
+                  label="Host devices"
+                  isChecked={advancedSearchHostDevices}
+                  onChange={(_event, checked) => setAdvancedSearchHostDevices(checked)}
+                />
+              </FormGroup>
+
+              <FormGroup label="Date created" fieldId="adv-search-date">
+                <Dropdown
+                  isOpen={isAdvSearchDateOpen}
+                  onSelect={() => setIsAdvSearchDateOpen(false)}
+                  onOpenChange={(isOpen: boolean) => setIsAdvSearchDateOpen(isOpen)}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsAdvSearchDateOpen(!isAdvSearchDateOpen)}
+                      isExpanded={isAdvSearchDateOpen}
+                      style={{ width: '100%' }}
+                    >
+                      {advancedSearchDateCreated === 'any' ? 'Any time' : advancedSearchDateCreated}
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    <DropdownItem onClick={() => setAdvancedSearchDateCreated('any')}>Any time</DropdownItem>
+                    <DropdownItem onClick={() => setAdvancedSearchDateCreated('today')}>Today</DropdownItem>
+                    <DropdownItem onClick={() => setAdvancedSearchDateCreated('week')}>Last 7 days</DropdownItem>
+                    <DropdownItem onClick={() => setAdvancedSearchDateCreated('month')}>Last 30 days</DropdownItem>
+                  </DropdownList>
+                </Dropdown>
+              </FormGroup>
+            </ExpandableSection>
+
+            {/* Divider between sections */}
+            <Divider style={{ margin: '16px 0' }} />
+
+            {/* Network Section */}
+            <ExpandableSection
+              toggleText="Network"
+              onToggle={(_event, isExpanded) => setIsNetworkExpanded(isExpanded)}
+              isExpanded={isNetworkExpanded}
+              isIndented
+            >
+              <FormGroup label="IP address" fieldId="adv-search-ip">
+                <TextInput
+                  id="adv-search-ip"
+                  value={advancedSearchIPAddress}
+                  onChange={(_event, value) => setAdvancedSearchIPAddress(value)}
+                  placeholder="IP address"
+                />
+              </FormGroup>
+
+              <FormGroup label="Network Attachment Definitions" fieldId="adv-search-nad">
+                <TextInput
+                  id="adv-search-nad"
+                  value=""
+                  placeholder="Find by name"
+                />
+              </FormGroup>
+            </ExpandableSection>
+          </Form>
+          
+          {/* Spacer below last field */}
+          <div style={{ height: '24px' }} />
+        </div>
+        
+        {/* Sticky Footer with Action Buttons */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '16px', 
+          padding: '16px 24px 24px 24px',
+          borderTop: '1px solid var(--pf-t--global--border--color--default)',
+          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+          position: 'sticky',
+          bottom: 0,
+          marginTop: '-24px'
+        }}>
+          <Button variant="primary" onClick={() => {
+            // Apply advanced search filters
+            setIsAdvancedSearchActive(true);
+            setIsAdvancedSearchOpen(false);
+          }}>
+            Search
+          </Button>
+          <Button variant="secondary" onClick={() => {
+            // Reset all advanced search fields
+            setAdvancedSearchName('');
+            setAdvancedSearchCluster('all');
+            setAdvancedSearchProject('all');
+            setAdvancedSearchDescription('');
+            setAdvancedSearchStatus('');
+            setAdvancedSearchOS('');
+            setAdvancedSearchVCPUValue('');
+            setAdvancedSearchMemoryValue('');
+            setAdvancedSearchStorageClass('');
+            setAdvancedSearchGPU(false);
+            setAdvancedSearchHostDevices(false);
+            setAdvancedSearchDateCreated('any');
+            setAdvancedSearchIPAddress('');
+            // Deactivate advanced search filters
+            setIsAdvancedSearchActive(false);
+          }}>
+            Reset
+          </Button>
+        </div>
+      </Modal>
+
       <div className="vm-page">
         <div className="vm-header">
         <div style={{ padding: '24px' }}>
@@ -774,7 +1478,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
               <div style={{ position: 'relative' }}>
                 <div ref={searchInputRef}>
                   <SearchInput
-                    placeholder="Search VirtualMachines"
+                    placeholder="Search cluster sets, clusters, projects, and VMs"
                     value={sidebarSearch}
                     onChange={(_event, value) => {
                       setSidebarSearch(value);
@@ -787,76 +1491,259 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     onFocus={() => sidebarSearch.length > 0 && setIsSearchMenuOpen(true)}
                   />
                 </div>
-                {isSearchMenuOpen && (
-                  <div
-                    className="search-dropdown-menu"
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      marginTop: '4px',
-                      zIndex: 1000,
-                    }}
-                  >
-                    <Menu>
-                      <MenuContent>
-                        <MenuList>
-                          {vmSearchSuggestions
-                            .filter(vm => vm.toLowerCase().includes(sidebarSearch.toLowerCase()))
-                            .map((vm, index) => (
-                              <MenuItem 
-                                key={index}
-                                onClick={() => {
-                                  setSidebarSearch(vm);
-                                  setIsSearchMenuOpen(false);
-                                }}
-                              >
-                                <span>
-                                  <span style={{ color: 'var(--pf-t--global--color--brand--default)', fontWeight: 600 }}>
-                                    {vm.substring(0, sidebarSearch.length)}
-                                  </span>
-                                  {vm.substring(sidebarSearch.length)}
-                                </span>
-                              </MenuItem>
-                            ))}
-                          <Divider />
-                          <MenuItem isDisabled>
-                            <strong>Related suggestions</strong>
-                          </MenuItem>
-                          <MenuItem onClick={() => setIsSearchMenuOpen(false)}>
-                            Label <Label color="blue" isCompact>(3)</Label>
-                          </MenuItem>
-                          <MenuItem onClick={() => setIsSearchMenuOpen(false)}>
-                            IP <Label color="blue" isCompact>(2)</Label>
-                          </MenuItem>
-                          <Divider />
-                          <MenuItem>
-                            <Flex spaceItems={{ default: 'spaceItemsMd' }} style={{ width: '100%', padding: '8px 0' }}>
-                              <FlexItem>
-                                <Button variant="primary" size="sm" onClick={() => setIsSearchMenuOpen(false)}>Search</Button>
-                              </FlexItem>
-                              <FlexItem>
-                                <Button variant="secondary" size="sm" onClick={() => setIsSearchMenuOpen(false)}>
-                                  <svg fill="currentColor" height="1em" width="1em" viewBox="0 0 512 512" style={{ marginRight: '8px' }}>
-                                    <path d="M0 416c0 17.7 14.3 32 32 32l54.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 448c17.7 0 32-14.3 32-32s-14.3-32-32-32l-246.7 0c-12.3-28.3-40.5-48-73.3-48s-61 19.7-73.3 48L32 384c-17.7 0-32 14.3-32 32zm128 0a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zM320 256a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm32-80c-32.8 0-61 19.7-73.3 48L32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l246.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48l54.7 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-54.7 0c-12.3-28.3-40.5-48-73.3-48zM192 128a32 32 0 1 1 0-64 32 32 0 1 1 0 64zm73.3-64C253 35.7 224.8 16 192 16s-61 19.7-73.3 48L32 64C14.3 64 0 78.3 0 96s14.3 32 32 32l86.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 128c17.7 0 32-14.3 32-32s-14.3-32-32-32L265.3 64z"/>
-                                  </svg>
-                                  Advanced search
-                                </Button>
-                              </FlexItem>
-                            </Flex>
-                          </MenuItem>
-                        </MenuList>
-                      </MenuContent>
-                    </Menu>
-                  </div>
-                )}
+                {isSearchMenuOpen && (() => {
+                  // Get all data from database and filter by search
+                  const searchLower = sidebarSearch.toLowerCase();
+                  
+                  // Helper function to expand parent nodes
+                  const expandParentNodes = (nodeId: string) => {
+                    const nodesToExpand: string[] = ['all-cluster-sets']; // Always expand root
+                    
+                    if (nodeId.startsWith('vm-')) {
+                      // Find VM and expand its parent path
+                      const vm = getAllVirtualMachines().find(v => v.id === nodeId.replace('vm-', ''));
+                      if (vm) {
+                        const cluster = getAllClusters().find(c => c.id === vm.clusterId);
+                        if (cluster) {
+                          nodesToExpand.push(`clusterset-${cluster.clusterSetId}`);
+                          nodesToExpand.push(`cluster-${cluster.id}`);
+                          nodesToExpand.push(`namespace-${vm.namespaceId}`);
+                        }
+                      }
+                    } else if (nodeId.startsWith('namespace-')) {
+                      // Find namespace and expand its parent path
+                      const namespace = getAllNamespaces().find(ns => ns.id === nodeId.replace('namespace-', ''));
+                      if (namespace) {
+                        const cluster = getAllClusters().find(c => c.id === namespace.clusterId);
+                        if (cluster) {
+                          nodesToExpand.push(`clusterset-${cluster.clusterSetId}`);
+                          nodesToExpand.push(`cluster-${cluster.id}`);
+                        }
+                      }
+                    } else if (nodeId.startsWith('cluster-')) {
+                      // Find cluster and expand its parent path
+                      const cluster = getAllClusters().find(c => c.id === nodeId.replace('cluster-', ''));
+                      if (cluster) {
+                        nodesToExpand.push(`clusterset-${cluster.clusterSetId}`);
+                      }
+                    }
+                    
+                    return nodesToExpand;
+                  };
+                  
+                  // Search cluster sets
+                  const matchingClusterSets = getAllClusterSets()
+                    .filter(cs => cs.name.toLowerCase().includes(searchLower))
+                    .slice(0, 3);
+                  
+                  // Search clusters
+                  const matchingClusters = getAllClusters()
+                    .filter(cluster => cluster.name.toLowerCase().includes(searchLower))
+                    .slice(0, 5);
+                  
+                  // Search projects/namespaces
+                  const matchingProjects = getAllNamespaces()
+                    .filter(ns => ns.name.toLowerCase().includes(searchLower))
+                    .slice(0, 5);
+                  
+                  // Search virtual machines
+                  const matchingVMs = getAllVirtualMachines()
+                    .filter(vm => vm.name.toLowerCase().includes(searchLower))
+                    .slice(0, 5);
+                  
+                  const hasResults = matchingClusterSets.length > 0 || matchingClusters.length > 0 || 
+                                    matchingProjects.length > 0 || matchingVMs.length > 0;
+                  
+                  return (
+                    <div
+                      className="search-dropdown-menu"
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        marginTop: '4px',
+                        zIndex: 1000,
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      <Menu>
+                        <MenuContent>
+                          <MenuList>
+                            {matchingClusterSets.length > 0 && (
+                              <>
+                                <MenuItem isDisabled>
+                                  <strong>Cluster Sets</strong>
+                                </MenuItem>
+                                {matchingClusterSets.map((clusterSet) => (
+                                  <MenuItem 
+                                    key={clusterSet.id}
+                                    icon={<MulticlusterIcon />}
+                                    onClick={() => {
+                                      const nodeId = `clusterset-${clusterSet.id}`;
+                                      setSelectedTreeNode(nodeId);
+                                      const nodesToExpand = [...expandParentNodes(nodeId), nodeId];
+                                      setExpandedNodes(nodesToExpand);
+                                      setTreeKey(prev => prev + 1);
+                                      setSidebarSearch(clusterSet.name);
+                                      setIsSearchMenuOpen(false);
+                                      setPage(1);
+                                    }}
+                                  >
+                                    <span>
+                                      <span style={{ color: 'var(--pf-t--global--color--brand--default)', fontWeight: 600 }}>
+                                        {clusterSet.name.substring(0, sidebarSearch.length)}
+                                      </span>
+                                      {clusterSet.name.substring(sidebarSearch.length)}
+                                    </span>
+                                  </MenuItem>
+                                ))}
+                                <Divider />
+                              </>
+                            )}
+                            {matchingClusters.length > 0 && (
+                              <>
+                                <MenuItem isDisabled>
+                                  <strong>Clusters</strong>
+                                </MenuItem>
+                                {matchingClusters.map((cluster) => (
+                                  <MenuItem 
+                                    key={cluster.id}
+                                    icon={<ServerIcon />}
+                                    onClick={() => {
+                                      const nodeId = `cluster-${cluster.id}`;
+                                      setSelectedTreeNode(nodeId);
+                                      const nodesToExpand = [...expandParentNodes(nodeId), nodeId];
+                                      setExpandedNodes(nodesToExpand);
+                                      setTreeKey(prev => prev + 1);
+                                      setSidebarSearch(cluster.name);
+                                      setIsSearchMenuOpen(false);
+                                      setPage(1);
+                                    }}
+                                  >
+                                    <span>
+                                      <span style={{ color: 'var(--pf-t--global--color--brand--default)', fontWeight: 600 }}>
+                                        {cluster.name.substring(0, sidebarSearch.length)}
+                                      </span>
+                                      {cluster.name.substring(sidebarSearch.length)}
+                                    </span>
+                                  </MenuItem>
+                                ))}
+                                <Divider />
+                              </>
+                            )}
+                            {matchingProjects.length > 0 && (
+                              <>
+                                <MenuItem isDisabled>
+                                  <strong>Projects</strong>
+                                </MenuItem>
+                                {matchingProjects.map((project) => {
+                                  const cluster = getAllClusters().find(c => c.id === project.clusterId);
+                                  return (
+                                    <MenuItem 
+                                      key={project.id}
+                                      icon={<ProjectDiagramIcon />}
+                                      onClick={() => {
+                                        const nodeId = `namespace-${project.id}`;
+                                        setSelectedTreeNode(nodeId);
+                                        const nodesToExpand = [...expandParentNodes(nodeId), nodeId];
+                                        setExpandedNodes(nodesToExpand);
+                                        setTreeKey(prev => prev + 1);
+                                        setSidebarSearch(project.name);
+                                        setIsSearchMenuOpen(false);
+                                        setPage(1);
+                                      }}
+                                    >
+                                      <span>
+                                        <span style={{ color: 'var(--pf-t--global--color--brand--default)', fontWeight: 600 }}>
+                                          {project.name.substring(0, sidebarSearch.length)}
+                                        </span>
+                                        {project.name.substring(sidebarSearch.length)}
+                                        {cluster && (
+                                          <span style={{ color: '#6A6E73', fontSize: '0.875rem', marginLeft: '8px' }}>
+                                            ({cluster.name})
+                                          </span>
+                                        )}
+                                      </span>
+                                    </MenuItem>
+                                  );
+                                })}
+                                <Divider />
+                              </>
+                            )}
+                            {matchingVMs.length > 0 && (
+                              <>
+                                <MenuItem isDisabled>
+                                  <strong>Virtual Machines</strong>
+                                </MenuItem>
+                                {matchingVMs.map((vm) => {
+                                  const cluster = getAllClusters().find(c => c.id === vm.clusterId);
+                                  return (
+                                    <MenuItem 
+                                      key={vm.id}
+                                      icon={<CubesIcon />}
+                                      onClick={() => {
+                                        const nodeId = `vm-${vm.id}`;
+                                        setSelectedTreeNode(nodeId);
+                                        const nodesToExpand = [...expandParentNodes(nodeId), nodeId];
+                                        setExpandedNodes(nodesToExpand);
+                                        setTreeKey(prev => prev + 1);
+                                        setSidebarSearch(vm.name);
+                                        setIsSearchMenuOpen(false);
+                                        setPage(1);
+                                      }}
+                                    >
+                                      <span>
+                                        <span style={{ color: 'var(--pf-t--global--color--brand--default)', fontWeight: 600 }}>
+                                          {vm.name.substring(0, sidebarSearch.length)}
+                                        </span>
+                                        {vm.name.substring(sidebarSearch.length)}
+                                        {cluster && (
+                                          <span style={{ color: '#6A6E73', fontSize: '0.875rem', marginLeft: '8px' }}>
+                                            ({cluster.name})
+                                          </span>
+                                        )}
+                                      </span>
+                                    </MenuItem>
+                                  );
+                                })}
+                              </>
+                            )}
+                            {!hasResults && (
+                              <div style={{ padding: '24px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '16px', color: '#151515' }}>
+                                  No results found for "{sidebarSearch}"
+                                </div>
+                                <div style={{ color: '#6A6E73' }}>
+                                  Try using the{' '}
+                                  <Button
+                                    variant="link"
+                                    isInline
+                                    onClick={() => {
+                                      setIsAdvancedSearchOpen(true);
+                                      setIsSearchMenuOpen(false);
+                                    }}
+                                    style={{ padding: 0, fontSize: 'inherit' }}
+                                  >
+                                    advanced search
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </MenuList>
+                        </MenuContent>
+                      </Menu>
+                    </div>
+                  );
+                })()}
               </div>
             </FlexItem>
             <FlexItem>
               <Button 
                 variant="control" 
-                aria-label="Filter"
+                aria-label="Advanced search"
+                onClick={() => setIsAdvancedSearchOpen(true)}
                 style={{
                   border: '0.5px solid var(--pf-t--global--border--color--default)',
                   padding: '0.5rem',
@@ -870,7 +1757,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
               </Button>
             </FlexItem>
             <FlexItem>
-              <Button variant="secondary" isDisabled>Save search</Button>
+              <Button variant="secondary" isDisabled={!isAdvancedSearchActive}>Save search</Button>
             </FlexItem>
             <FlexItem>
               <Dropdown
@@ -920,12 +1807,230 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
               </Dropdown>
             </FlexItem>
           </Flex>
+          
+          {/* Divider between header and search results */}
+          {isAdvancedSearchActive && (
+            <div style={{ 
+              margin: '24px 0',
+              borderTop: '1px solid var(--pf-t--global--border--color--default)',
+              width: '100%'
+            }} />
+          )}
+          
+          {/* Search Results Toolbar with Filters */}
+          {isAdvancedSearchActive && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <Title headingLevel="h2" size="xl">Search results</Title>
+                <Button 
+                  variant="link" 
+                  icon={<AngleLeftIcon />}
+                  onClick={() => {
+                    setIsAdvancedSearchActive(false);
+                    // Reset all advanced search fields
+                    setAdvancedSearchName('');
+                    setAdvancedSearchCluster('all');
+                    setAdvancedSearchProject('all');
+                    setAdvancedSearchDescription('');
+                    setAdvancedSearchStatus('');
+                    setAdvancedSearchOS('');
+                    setAdvancedSearchVCPUValue('');
+                    setAdvancedSearchMemoryValue('');
+                    setAdvancedSearchStorageClass('');
+                    setAdvancedSearchGPU(false);
+                    setAdvancedSearchHostDevices(false);
+                    setAdvancedSearchDateCreated('any');
+                    setAdvancedSearchIPAddress('');
+                  }}
+                >
+                  Back to VirtualMachines list
+                </Button>
+              </div>
+              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
+                <FlexItem>
+                  <MenuToggle
+                    variant="default"
+                    onClick={() => {}}
+                    isExpanded={false}
+                  >
+                    Project: {advancedSearchProject !== 'all' ? getAllNamespaces().find(ns => ns.id === advancedSearchProject)?.name : 'All'}
+                  </MenuToggle>
+                </FlexItem>
+                <FlexItem>
+                  <MenuToggle
+                    variant="default"
+                    onClick={() => {}}
+                    isExpanded={false}
+                  >
+                    Status: {advancedSearchStatus || 'All'}
+                  </MenuToggle>
+                </FlexItem>
+                <FlexItem>
+                  <MenuToggle
+                    variant="default"
+                    onClick={() => {}}
+                    isExpanded={false}
+                  >
+                    Operating system: {advancedSearchOS || 'All'}
+                  </MenuToggle>
+                </FlexItem>
+                <FlexItem>
+                  <MenuToggle
+                    variant="default"
+                    onClick={() => {}}
+                    isExpanded={false}
+                  >
+                    Storage class
+                  </MenuToggle>
+                </FlexItem>
+                <FlexItem>
+                  <MenuToggle
+                    variant="default"
+                    onClick={() => {}}
+                    isExpanded={false}
+                  >
+                    Hardware devices
+                  </MenuToggle>
+                </FlexItem>
+                <FlexItem>
+                  <MenuToggle
+                    variant="default"
+                    onClick={() => {}}
+                    isExpanded={false}
+                  >
+                    Scheduling
+                  </MenuToggle>
+                </FlexItem>
+                <FlexItem>
+                  <MenuToggle
+                    variant="default"
+                    onClick={() => {}}
+                    isExpanded={false}
+                  >
+                    Node
+                  </MenuToggle>
+                </FlexItem>
+              </Flex>
+              <Flex style={{ marginTop: '12px' }} alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                {advancedSearchName && (
+                  <FlexItem>
+                    <Label 
+                      color="grey" 
+                      onClose={() => setAdvancedSearchName('')}
+                      closeBtnAriaLabel="Remove name filter"
+                    >
+                      Name: {advancedSearchName}
+                    </Label>
+                  </FlexItem>
+                )}
+                {advancedSearchCluster !== 'all' && (
+                  <FlexItem>
+                    <Label 
+                      color="grey" 
+                      onClose={() => setAdvancedSearchCluster('all')}
+                      closeBtnAriaLabel="Remove cluster filter"
+                    >
+                      Cluster: {getAllClusters().find(c => c.id === advancedSearchCluster)?.name || advancedSearchCluster}
+                    </Label>
+                  </FlexItem>
+                )}
+                {advancedSearchProject !== 'all' && (
+                  <FlexItem>
+                    <Label 
+                      color="grey" 
+                      onClose={() => setAdvancedSearchProject('all')}
+                      closeBtnAriaLabel="Remove project filter"
+                    >
+                      Project: {getAllNamespaces().find(ns => ns.id === advancedSearchProject)?.name || advancedSearchProject}
+                    </Label>
+                  </FlexItem>
+                )}
+                {advancedSearchStatus && (
+                  <FlexItem>
+                    <Label 
+                      color="grey" 
+                      onClose={() => setAdvancedSearchStatus('')}
+                      closeBtnAriaLabel="Remove status filter"
+                    >
+                      Status: {advancedSearchStatus}
+                    </Label>
+                  </FlexItem>
+                )}
+                {advancedSearchOS && (
+                  <FlexItem>
+                    <Label 
+                      color="grey" 
+                      onClose={() => setAdvancedSearchOS('')}
+                      closeBtnAriaLabel="Remove OS filter"
+                    >
+                      Operating system: {advancedSearchOS}
+                    </Label>
+                  </FlexItem>
+                )}
+                {advancedSearchVCPUValue && (
+                  <FlexItem>
+                    <Label 
+                      color="grey" 
+                      onClose={() => setAdvancedSearchVCPUValue('')}
+                      closeBtnAriaLabel="Remove vCPU filter"
+                    >
+                      vCPU: {advancedSearchVCPUOperator} {advancedSearchVCPUValue}
+                    </Label>
+                  </FlexItem>
+                )}
+                {advancedSearchMemoryValue && (
+                  <FlexItem>
+                    <Label 
+                      color="grey" 
+                      onClose={() => setAdvancedSearchMemoryValue('')}
+                      closeBtnAriaLabel="Remove memory filter"
+                    >
+                      Memory: {advancedSearchMemoryOperator} {advancedSearchMemoryValue} {advancedSearchMemoryUnit}
+                    </Label>
+                  </FlexItem>
+                )}
+                {advancedSearchIPAddress && (
+                  <FlexItem>
+                    <Label 
+                      color="grey" 
+                      onClose={() => setAdvancedSearchIPAddress('')}
+                      closeBtnAriaLabel="Remove IP address filter"
+                    >
+                      IP address: {advancedSearchIPAddress}
+                    </Label>
+                  </FlexItem>
+                )}
+                {(advancedSearchName || advancedSearchCluster !== 'all' || advancedSearchProject !== 'all' || 
+                  advancedSearchStatus || advancedSearchOS || advancedSearchVCPUValue || 
+                  advancedSearchMemoryValue || advancedSearchIPAddress) && (
+                  <FlexItem>
+                    <Button 
+                      variant="link" 
+                      onClick={() => {
+                        setAdvancedSearchName('');
+                        setAdvancedSearchCluster('all');
+                        setAdvancedSearchProject('all');
+                        setAdvancedSearchStatus('');
+                        setAdvancedSearchOS('');
+                        setAdvancedSearchVCPUValue('');
+                        setAdvancedSearchMemoryValue('');
+                        setAdvancedSearchIPAddress('');
+                      }}
+                    >
+                      Clear all filters
+                    </Button>
+                  </FlexItem>
+                )}
+              </Flex>
+            </div>
+          )}
         </div>
       </div>
       
-      <div className={`vm-content-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        {!isSidebarCollapsed && sidebar}
+      <div className={`vm-content-wrapper ${isSidebarCollapsed || isAdvancedSearchActive ? 'sidebar-collapsed' : ''}`}>
+        {!isSidebarCollapsed && !isAdvancedSearchActive && sidebar}
         
+        {!isAdvancedSearchActive && (
         <Button
           variant="plain"
           className="sidebar-toggle"
@@ -935,18 +2040,81 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         >
           {isSidebarCollapsed ? <AngleRightIcon /> : <AngleLeftIcon />}
         </Button>
+        )}
         
         <div className="vm-main-content">
-          <Breadcrumb style={{ marginBottom: '16px' }}>
-            <BreadcrumbItem to="#">All clusters</BreadcrumbItem>
-            <BreadcrumbItem to="#">Cluster: hub</BreadcrumbItem>
-            <BreadcrumbItem to="#" isActive>Project: default</BreadcrumbItem>
-          </Breadcrumb>
+          {!isAdvancedSearchActive && breadcrumbHierarchy && (
+          <div style={{ marginBottom: '16px', marginLeft: '-8px' }}>
+            <Button
+              variant="plain"
+              onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+              style={{
+                padding: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                fontSize: '14px',
+                fontWeight: 400,
+                color: 'var(--pf-t--global--text--color--regular)',
+                background: 'transparent',
+                border: 'none'
+              }}
+            >
+              <span style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center',
+                transition: 'transform 0.2s',
+                transform: isSummaryExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                marginRight: '4px'
+              }}>
+                <CaretDownIcon style={{ fontSize: '12px' }} />
+              </span>
+              {breadcrumbHierarchy.isAllSelected ? (
+                <>
+                  <MulticlusterIcon style={{ fontSize: '16px', marginRight: '4px' }} />
+                  <span style={{ marginRight: '4px' }}>All cluster sets</span>
+                  <AngleRightIcon style={{ fontSize: '12px', marginRight: '4px' }} />
+                  <ServerIcon style={{ fontSize: '16px', marginRight: '4px' }} />
+                  <span style={{ marginRight: '4px' }}>All clusters</span>
+                  <AngleRightIcon style={{ fontSize: '12px', marginRight: '4px' }} />
+                  <ProjectDiagramIcon style={{ fontSize: '16px', marginRight: '4px' }} />
+                  <span>All projects</span>
+                </>
+              ) : (
+                <>
+                  {breadcrumbHierarchy.clusterSet && (
+                    <>
+                      <MulticlusterIcon style={{ fontSize: '16px', marginRight: '4px' }} />
+                      <span style={{ marginRight: '4px' }}>{breadcrumbHierarchy.clusterSet.name} (cluster set)</span>
+                      {breadcrumbHierarchy.cluster && (
+                        <AngleRightIcon style={{ fontSize: '12px', marginRight: '4px' }} />
+                      )}
+                    </>
+                  )}
+                  {breadcrumbHierarchy.cluster && (
+                    <>
+                      <ServerIcon style={{ fontSize: '16px', marginRight: '4px' }} />
+                      <span style={{ marginRight: '4px' }}>{breadcrumbHierarchy.cluster.name} (cluster)</span>
+                      {breadcrumbHierarchy.namespace && (
+                        <AngleRightIcon style={{ fontSize: '12px', marginRight: '4px' }} />
+                      )}
+                    </>
+                  )}
+                  {breadcrumbHierarchy.namespace && (
+                    <>
+                      <ProjectDiagramIcon style={{ fontSize: '16px', marginRight: '4px' }} />
+                      <span>{breadcrumbHierarchy.namespace.name} (project)</span>
+                    </>
+                  )}
+                </>
+              )}
+            </Button>
+          </div>
+          )}
 
+          {!isAdvancedSearchActive && isSummaryExpanded && (
           <Card style={{ marginBottom: '16px' }}>
             <CardBody>
-              <ExpandableSection toggleText="Summary" isExpanded={true}>
-                <Flex style={{ marginTop: '16px' }}>
+                <Flex>
                   <FlexItem flex={{ default: 'flex_1' }} style={{ paddingRight: '24px' }}>
                     <Flex direction={{ default: 'column' }}>
                       <FlexItem>
@@ -1038,10 +2206,38 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     </Flex>
                   </FlexItem>
                 </Flex>
-              </ExpandableSection>
             </CardBody>
           </Card>
+          )}
           
+          {/* Search Results Content Area */}
+          {isAdvancedSearchActive && filteredVMs.length === 0 ? (
+            <EmptyState>
+              <Title headingLevel="h2" size="lg">
+                No results found
+              </Title>
+              <EmptyStateBody>
+                No virtual machines match the selected filters. Try adjusting your search criteria.
+              </EmptyStateBody>
+              <EmptyStateActions>
+                <Button 
+                  variant="primary"
+                  onClick={() => {
+                    setAdvancedSearchName('');
+                    setAdvancedSearchCluster('all');
+                    setAdvancedSearchProject('all');
+                    setAdvancedSearchStatus('');
+                    setAdvancedSearchOS('');
+                    setAdvancedSearchVCPUValue('');
+                    setAdvancedSearchMemoryValue('');
+                    setAdvancedSearchIPAddress('');
+                  }}
+                >
+                  Clear all filters
+                </Button>
+              </EmptyStateActions>
+            </EmptyState>
+          ) : (
           <div className="table-content-card">
             <Toolbar>
               <ToolbarContent style={{ gap: '8px' }}>
@@ -1160,7 +2356,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                 </ToolbarItem>
                 <ToolbarItem>
                   <SearchInput
-                    placeholder="Search by name"
+                    placeholder="Search by name, IP, cluster, or namespace"
                     value={searchValue}
                     onChange={(_event, value) => setSearchValue(value)}
                     onClear={() => setSearchValue('')}
@@ -1335,58 +2531,6 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                       variant={PaginationVariant.top}
                       isCompact
                     />
-                    <span style={{ whiteSpace: 'nowrap', color: 'var(--pf-t--global--text--color--regular)' }}>
-                      Last updated: {refreshMode === 'auto' ? 'Live' : '13 minutes ago'}
-                    </span>
-                    <Dropdown
-                      isOpen={isRefreshDropdownOpen}
-                      onSelect={() => setIsRefreshDropdownOpen(false)}
-                      onOpenChange={(isOpen: boolean) => setIsRefreshDropdownOpen(isOpen)}
-                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setIsRefreshDropdownOpen(!isRefreshDropdownOpen)}
-                          isExpanded={isRefreshDropdownOpen}
-                          variant="default"
-                          aria-label="Refresh settings"
-                          icon={refreshMode === 'auto' ? <SyncAltIcon /> : <RedoIcon />}
-                        >
-                        </MenuToggle>
-                      )}
-                      popperProps={{ position: 'right' }}
-                    >
-                      <DropdownList>
-                        <DropdownItem
-                          key="manual"
-                          onClick={() => setRefreshMode('manual')}
-                          description="New data only adds when you click to refresh the page."
-                        >
-                          <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                            <FlexItem>
-                              <RedoIcon />
-                            </FlexItem>
-                            <FlexItem>Manual refresh</FlexItem>
-                          </Flex>
-                        </DropdownItem>
-                        <DropdownItem
-                          key="auto"
-                          onClick={() => setRefreshMode('auto')}
-                          description="Keeps your data updated automatically. This setting changes to manual refresh after 10 minutes of inactivity."
-                        >
-                          <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                            <FlexItem>
-                              <SyncAltIcon />
-                            </FlexItem>
-                            <FlexItem>Auto refresh</FlexItem>
-                            {refreshMode === 'auto' && (
-                              <FlexItem>
-                                <CheckIcon color="var(--pf-t--global--color--brand--default)" />
-                              </FlexItem>
-                            )}
-                          </Flex>
-                        </DropdownItem>
-                      </DropdownList>
-                    </Dropdown>
                   </div>
                 </ToolbarItem>
               </ToolbarContent>
@@ -1604,6 +2748,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
               </ToolbarContent>
             </Toolbar>
           </div>
+          )}
         </div>
       </div>
     </div>
@@ -1613,6 +2758,117 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
       onClose={() => setIsMigrateWizardOpen(false)}
       selectedVMs={selectedVMs}
     />
+
+    {/* Context Menu - Using same Dropdown as table */}
+    {contextMenuVisible && contextMenuNode && (
+      <div style={{ position: 'fixed', top: contextMenuPosition.y, left: contextMenuPosition.x, zIndex: 9999 }}>
+        <Dropdown
+          isOpen={true}
+          onSelect={() => setContextMenuVisible(false)}
+          onOpenChange={(isOpen: boolean) => { if (!isOpen) setContextMenuVisible(false); }}
+          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+            <MenuToggle ref={toggleRef} variant="plain" style={{ display: 'none' }} />
+          )}
+        >
+          <DropdownList>
+            {contextMenuNode.type === 'clusterset' && (
+              <>
+                <DropdownItem key="view" onClick={() => { console.log('View cluster set details'); setContextMenuVisible(false); }}>
+                  View cluster set details
+                </DropdownItem>
+                <DropdownItem key="access" onClick={() => { console.log('Manage access'); setContextMenuVisible(false); }}>
+                  Manage access
+                </DropdownItem>
+                <DropdownItem key="add" onClick={() => { console.log('Add cluster to set'); setContextMenuVisible(false); }}>
+                  Add cluster to set
+                </DropdownItem>
+                <Divider key="div1" />
+                <DropdownItem key="remove" onClick={() => { console.log('Remove cluster set'); setContextMenuVisible(false); }}>
+                  Remove cluster set
+                </DropdownItem>
+              </>
+            )}
+
+            {contextMenuNode.type === 'cluster' && (
+              <>
+                <DropdownItem key="view" onClick={() => { console.log('View cluster details'); setContextMenuVisible(false); }}>
+                  View cluster details
+                </DropdownItem>
+                <DropdownItem key="create" onClick={() => { console.log('Create project'); setContextMenuVisible(false); }}>
+                  Create project
+                </DropdownItem>
+                <DropdownItem key="import" onClick={() => { console.log('Import VMs'); setContextMenuVisible(false); }}>
+                  Import virtual machines
+                </DropdownItem>
+                <DropdownItem key="settings" onClick={() => { console.log('Manage settings'); setContextMenuVisible(false); }}>
+                  Manage cluster settings
+                </DropdownItem>
+                <Divider key="div1" />
+                <DropdownItem key="remove" onClick={() => { console.log('Remove cluster'); setContextMenuVisible(false); }}>
+                  Remove cluster from set
+                </DropdownItem>
+              </>
+            )}
+
+            {contextMenuNode.type === 'namespace' && (
+              <>
+                <DropdownItem key="view" onClick={() => { console.log('View project'); setContextMenuVisible(false); }}>
+                  View project details
+                </DropdownItem>
+                <DropdownItem key="create" onClick={() => { console.log('Create VM'); setContextMenuVisible(false); }}>
+                  Create virtual machine
+                </DropdownItem>
+                <DropdownItem key="access" onClick={() => { console.log('Manage access'); setContextMenuVisible(false); }}>
+                  Manage project access
+                </DropdownItem>
+                <DropdownItem key="edit" onClick={() => { console.log('Edit project'); setContextMenuVisible(false); }}>
+                  Edit project
+                </DropdownItem>
+                <Divider key="div1" />
+                <DropdownItem key="delete" onClick={() => { console.log('Delete project'); setContextMenuVisible(false); }}>
+                  Delete project
+                </DropdownItem>
+              </>
+            )}
+
+            {contextMenuNode.type === 'vm' && (
+              <>
+                <DropdownItem key="view" onClick={() => { console.log('View VM'); setContextMenuVisible(false); }}>
+                  View VM details
+                </DropdownItem>
+                <Divider key="div1" />
+                <DropdownItem key="start" onClick={() => { console.log('Start'); setContextMenuVisible(false); }}>
+                  Start
+                </DropdownItem>
+                <DropdownItem key="stop" onClick={() => { console.log('Stop'); setContextMenuVisible(false); }}>
+                  Stop
+                </DropdownItem>
+                <DropdownItem key="restart" onClick={() => { console.log('Restart'); setContextMenuVisible(false); }}>
+                  Restart
+                </DropdownItem>
+                <DropdownItem key="pause" onClick={() => { console.log('Pause'); setContextMenuVisible(false); }}>
+                  Pause
+                </DropdownItem>
+                <Divider key="div2" />
+                <DropdownItem key="migrate" onClick={() => { console.log('Migrate'); setContextMenuVisible(false); }}>
+                  Migrate VM
+                </DropdownItem>
+                <DropdownItem key="clone" onClick={() => { console.log('Clone'); setContextMenuVisible(false); }}>
+                  Clone VM
+                </DropdownItem>
+                <Divider key="div3" />
+                <DropdownItem key="edit" onClick={() => { console.log('Edit'); setContextMenuVisible(false); }}>
+                  Edit VM
+                </DropdownItem>
+                <DropdownItem key="delete" onClick={() => { console.log('Delete'); setContextMenuVisible(false); }}>
+                  Delete VM
+                </DropdownItem>
+              </>
+            )}
+          </DropdownList>
+        </Dropdown>
+      </div>
+    )}
     </>
   );
 };

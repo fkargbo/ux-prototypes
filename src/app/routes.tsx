@@ -4,7 +4,6 @@ import { Dashboard } from '@app/Dashboard/Dashboard';
 import { Support } from '@app/Support/Support';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
-import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
 import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 import { NotFound } from '@app/NotFound/NotFound';
 import {
@@ -28,13 +27,15 @@ import {
   QuotaDetail,
   CreateQuota,
   VirtualizationOverview,
+  VirtualMachines,
 } from '@app/utils/useCaseComponents';
 import { CCLMOverview } from '@app/use-case-cclm/CCLMOverview';
-import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
-import Virtualization from '@app/FleetVirtualization/Virtualization';
-import { Catalog } from '@app/FleetVirtualization/Catalog';
-import { Templates } from '@app/FleetVirtualization/Templates';
-import { InstanceTypes } from '@app/FleetVirtualization/InstanceTypes';
+// Shared copies for non-CCLM routes (so editing originals only affects CCLM)
+import { OverviewPage } from '@app/shared-fleet-virtualization/EmptyPages';
+import Virtualization from '@app/shared-fleet-virtualization/Virtualization';
+import { Catalog } from '@app/shared-fleet-virtualization/Catalog';
+import { Templates } from '@app/shared-fleet-virtualization/Templates';
+import { InstanceTypes } from '@app/shared-fleet-virtualization/InstanceTypes';
 import { Search } from '@app/Search/Search';
 
 export interface IAppRoute {
