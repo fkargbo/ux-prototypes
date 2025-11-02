@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, Routes, Route, useLocation } from 'react-router-dom';
+import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import {
   Page,
   PageSection,
@@ -63,6 +63,7 @@ import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import './VirtualMachines.css';
 import { getAllClusterSets, getClustersByClusterSet, getNamespacesByCluster, getVirtualMachinesByNamespace, getVirtualMachinesByCluster, getVirtualMachinesByClusterSet, getAllVirtualMachines, getAllNamespaces, getAllClusters } from '@app/data';
 import { MigrateVMsWizard } from './MigrateVMsWizard';
+import { CloneVMsWizard } from './CloneVMsWizard';
 import { VirtualMachineDetail } from './VirtualMachineDetail';
 import { useImpersonation } from '@app/contexts/ImpersonationContext';
 import { VirtualMachine } from '@app/data/schemas/virtualization';
@@ -128,6 +129,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   useDocumentTitle('Virtual machines');
   const { impersonatingUser } = useImpersonation();
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Check if we're on a detail page
   const isDetailPage = location.pathname.includes('/virtual-machines/') && location.pathname.split('/').length > 3;
@@ -170,6 +172,17 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   const [projectDescription, setProjectDescription] = React.useState('');
   const [isClusterDropdownOpen, setIsClusterDropdownOpen] = React.useState(false);
   const [clusterSearchValue, setClusterSearchValue] = React.useState('');
+
+  // Add Escape key handler to deselect VMs
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedVMs.length > 0) {
+        setSelectedVMs([]);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [selectedVMs]);
   
   // Filter states
   const [statusFilter, setStatusFilter] = React.useState<string>('All');
@@ -183,7 +196,13 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   // Manage columns modal state
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
   const [isMigrateWizardOpen, setIsMigrateWizardOpen] = React.useState(false);
+  const [isCloneWizardOpen, setIsCloneWizardOpen] = React.useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = React.useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [vmToDelete, setVmToDelete] = React.useState<string | null>(null);
+  const [dropTargetClusterId, setDropTargetClusterId] = React.useState<string | undefined>(undefined);
+  const [dropTargetNamespaceId, setDropTargetNamespaceId] = React.useState<string | undefined>(undefined);
+  const [isWizardFromDragDrop, setIsWizardFromDragDrop] = React.useState(false);
   
   // Advanced search form state
   const [advancedSearchName, setAdvancedSearchName] = React.useState('');
@@ -226,6 +245,11 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   // Tree view context menu state
   const [treeContextMenuOpen, setTreeContextMenuOpen] = React.useState<string | null>(null);
   const [treeContextMenuPosition, setTreeContextMenuPosition] = React.useState<{ top: number; left: number } | null>(null);
+  
+  // Drag and drop state
+  const [draggedVMId, setDraggedVMId] = React.useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = React.useState<string | null>(null);
+  const [isDragCloneMode, setIsDragCloneMode] = React.useState(false);
   const [selectedColumns, setSelectedColumns] = React.useState({
     name: true,
     namespace: false,
@@ -611,6 +635,10 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
 
   const handleRowMigrateVM = (vmId: string) => {
     setSelectedVMs([vmId]);
+    // Clear drop targets (not from drag-and-drop)
+    setDropTargetClusterId(undefined);
+    setDropTargetNamespaceId(undefined);
+    setIsWizardFromDragDrop(false);
     setIsMigrateWizardOpen(true);
     setOpenRowMenuId(null);
     setOpenRowMigrateMenuId(null);
@@ -637,26 +665,258 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
       const projectNodes = hubNamespaces
         .map(namespace => {
           const vmsInNamespace = getVirtualMachinesByNamespace(namespace.id);
+          const namespaceId = `namespace-${namespace.id}`;
+          const isDropTarget = dropTargetId === namespaceId;
+          const canDrop = draggedVMId && draggedVMId !== namespaceId;
           
           return {
             namespace,
             vmsInNamespace,
             node: {
               name: (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingRight: '16px' }}>
+                <div 
+                  draggable={vmsInNamespace.length > 0}
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    width: '100%', 
+                    paddingRight: '16px',
+                    backgroundColor: isDropTarget && canDrop ? '#d4edda' : 'transparent',
+                    padding: '4px 8px',
+                    margin: '0 -8px',
+                    borderRadius: '4px',
+                    border: isDropTarget && canDrop ? '2px dashed #28a745' : '2px solid transparent',
+                    transition: 'all 0.2s ease',
+                    cursor: vmsInNamespace.length > 0 ? 'grab' : 'default',
+                    opacity: draggedVMId === `project-${namespaceId}` ? 0.5 : 1,
+                    position: 'relative',
+                  }}
+                  onDragStart={(e) => {
+                    if (vmsInNamespace.length > 0) {
+                      // Detect Ctrl/Cmd for clone mode
+                      const isCloneMode = e.ctrlKey || e.metaKey;
+                      setIsDragCloneMode(isCloneMode);
+                      console.log('🎯 PROJECT DRAG START - Clone mode:', isCloneMode, 'Ctrl:', e.ctrlKey, 'Cmd:', e.metaKey);
+                      
+                      const projectVMIds = vmsInNamespace.map(vm => vm.id);
+                      setDraggedVMId(`project-${namespaceId}`);
+                      e.dataTransfer.setData('text/plain', JSON.stringify(projectVMIds));
+                      e.dataTransfer.effectAllowed = isCloneMode ? 'copy' : 'move';
+                    }
+                  }}
+                  onDragEnd={() => {
+                    setDraggedVMId(null);
+                    setDropTargetId(null);
+                    setIsDragCloneMode(false);
+                  }}
+                  onDragOver={(e) => {
+                    if (draggedVMId && draggedVMId !== `project-${namespaceId}`) {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                    }
+                  }}
+                  onDragEnter={(e) => {
+                    if (draggedVMId && draggedVMId !== `project-${namespaceId}`) {
+                      e.preventDefault();
+                      setDropTargetId(namespaceId);
+                    }
+                  }}
+                  onDragLeave={(e) => {
+                    if (e.currentTarget === e.target) {
+                      setDropTargetId(null);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggedVMId && draggedVMId !== `project-${namespaceId}`) {
+                      let vmsToMigrate: string[] = [];
+                      const action = isDragCloneMode ? 'Clone' : 'Migrate';
+                      
+                      if (draggedVMId.startsWith('project-')) {
+                        // Entire project being dragged
+                        const dataStr = e.dataTransfer.getData('text/plain');
+                        try {
+                          vmsToMigrate = JSON.parse(dataStr);
+                        } catch {
+                          vmsToMigrate = [];
+                        }
+                        console.log(`${action} project with ${vmsToMigrate.length} VMs to project ${namespace.name}`);
+                      } else if (draggedVMId.startsWith('multiple-')) {
+                        // Multiple VMs being dragged
+                        const dataStr = e.dataTransfer.getData('text/plain');
+                        try {
+                          vmsToMigrate = JSON.parse(dataStr);
+                        } catch {
+                          vmsToMigrate = selectedVMs;
+                        }
+                        console.log(`${action} ${vmsToMigrate.length} VMs to project ${namespace.name}`);
+                      } else {
+                        // Single VM
+                        const vmIdParts = draggedVMId.split('-');
+                        const vmOriginalId = vmIdParts.slice(1).join('-');
+                        vmsToMigrate = [vmOriginalId];
+                        console.log(`${action} VM ${draggedVMId} to project ${namespace.name}`);
+                      }
+                      
+                      // Open appropriate wizard based on mode
+                      setSelectedVMs(vmsToMigrate);
+                      console.log('🚀 DROP - Opening wizard:', isDragCloneMode ? 'Clone' : 'Migrate', 'VMs:', vmsToMigrate);
+                      console.log('🔍 State check - isDragCloneMode:', isDragCloneMode);
+                      
+                      // Set drop target for pre-selection in wizard
+                      setDropTargetClusterId(namespace.clusterId);
+                      setDropTargetNamespaceId(namespace.id);
+                      setIsWizardFromDragDrop(true);
+                      console.log('🎯 Drop target set:', namespace.clusterId, namespace.id);
+                      
+                      if (isDragCloneMode) {
+                        console.log('✅ Setting isCloneWizardOpen to TRUE');
+                        setIsCloneWizardOpen(true);
+                      } else {
+                        console.log('✅ Setting isMigrateWizardOpen to TRUE');
+                        setIsMigrateWizardOpen(true);
+                      }
+                      
+                      setDraggedVMId(null);
+                      setDropTargetId(null);
+                      setIsDragCloneMode(false);
+                    }
+                  }}
+                >
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <ProjectDiagramIcon />
                     <span>{namespace.name}</span>
                   </span>
                   <Label isCompact color="grey" style={{ flexShrink: 0 }}>{vmsInNamespace.length}</Label>
+                  {draggedVMId === `project-${namespaceId}` && vmsInNamespace.length > 0 && (
+                    <Label 
+                      color={isDragCloneMode ? "green" : "blue"}
+                      isCompact 
+                      style={{ 
+                        position: 'absolute', 
+                        top: '-8px', 
+                        right: '8px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {isDragCloneMode ? `Clone Project (${vmsInNamespace.length} VMs)` : `Migrate Project (${vmsInNamespace.length} VMs)`}
+                    </Label>
+                  )}
                 </div>
               ),
-              id: `namespace-${namespace.id}`,
+              id: namespaceId,
               defaultExpanded: false,
-              children: vmsInNamespace.map(vm => ({
-                name: vm.name,
-                id: `vm-${vm.id}`,
-              })),
+              children: vmsInNamespace.map(vm => {
+                const vmId = `vm-${vm.id}`;
+                const vmOriginalId = vm.id;
+                const isVMSelected = selectedVMs.includes(vmOriginalId);
+                const isDraggingMultiple = draggedVMId && draggedVMId.startsWith('multiple-');
+                const dragCount = isDraggingMultiple ? parseInt(draggedVMId.split('-')[1]) : 0;
+                
+                return {
+                  name: (
+                    <span
+                      draggable
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        backgroundColor: isVMSelected ? 'var(--pf-t--global--background--color--primary--clicked)' : 'transparent',
+                        padding: '4px 8px',
+                        margin: '0 -8px',
+                        borderRadius: '4px',
+                        cursor: 'grab',
+                        opacity: draggedVMId === vmId || (isDraggingMultiple && isVMSelected) ? 0.5 : 1,
+                        position: 'relative',
+                        transition: 'background-color 0.1s ease',
+                      }}
+                      onDragStart={(e) => {
+                        // Detect Ctrl/Cmd for clone mode
+                        const isCloneMode = e.ctrlKey || e.metaKey;
+                        setIsDragCloneMode(isCloneMode);
+                        console.log('🎯 DRAG START - Clone mode:', isCloneMode, 'Ctrl:', e.ctrlKey, 'Cmd:', e.metaKey);
+                        
+                        // If this VM is part of a multi-selection, drag all selected VMs
+                        if (isVMSelected && selectedVMs.length > 1) {
+                          setDraggedVMId(`multiple-${selectedVMs.length}`);
+                          e.dataTransfer.setData('text/plain', JSON.stringify(selectedVMs));
+                        } else {
+                          setDraggedVMId(vmId);
+                          e.dataTransfer.setData('text/plain', vmOriginalId);
+                        }
+                        e.dataTransfer.effectAllowed = isCloneMode ? 'copy' : 'move';
+                      }}
+                      onDragEnd={() => {
+                        setDraggedVMId(null);
+                        setDropTargetId(null);
+                        setIsDragCloneMode(false);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (e.shiftKey && selectedVMs.length > 0) {
+                          // Shift+click: Select range
+                          const allVMsInView = getAllVirtualMachines();
+                          const lastSelectedId = selectedVMs[selectedVMs.length - 1];
+                          const lastIndex = allVMsInView.findIndex(v => v.id === lastSelectedId);
+                          const currentIndex = allVMsInView.findIndex(v => v.id === vmOriginalId);
+                          
+                          if (lastIndex !== -1 && currentIndex !== -1) {
+                            const start = Math.min(lastIndex, currentIndex);
+                            const end = Math.max(lastIndex, currentIndex);
+                            const rangeIds = allVMsInView.slice(start, end + 1).map(v => v.id);
+                            const combinedIds = selectedVMs.concat(rangeIds);
+                            setSelectedVMs(Array.from(new Set(combinedIds)));
+                          }
+                        } else if (e.ctrlKey || e.metaKey) {
+                          // Ctrl/Cmd+click: Toggle individual
+                          if (isVMSelected) {
+                            setSelectedVMs(selectedVMs.filter(id => id !== vmOriginalId));
+                          } else {
+                            setSelectedVMs([...selectedVMs, vmOriginalId]);
+                          }
+                        } else {
+                          // Regular click: Single select
+                          setSelectedVMs([vmOriginalId]);
+                        }
+                      }}
+                    >
+                      <DesktopIcon />
+                      <span>{vm.name}</span>
+                      {draggedVMId === vmId && (
+                        <Label 
+                          color={isDragCloneMode ? "green" : "blue"}
+                          isCompact 
+                          style={{ 
+                            position: 'absolute', 
+                            top: '-8px', 
+                            right: '8px',
+                            fontSize: '11px'
+                          }}
+                        >
+                          {isDragCloneMode ? 'Clone' : 'Migrate'}
+                        </Label>
+                      )}
+                      {isDraggingMultiple && isVMSelected && dragCount > 1 && (
+                        <Label 
+                          color={isDragCloneMode ? "green" : "blue"}
+                          isCompact 
+                          style={{ 
+                            position: 'absolute', 
+                            top: '-8px', 
+                            right: '8px',
+                            fontSize: '11px'
+                          }}
+                        >
+                          {isDragCloneMode ? `Clone ${dragCount}` : `Migrate ${dragCount}`}
+                        </Label>
+                      )}
+                    </span>
+                  ),
+                  id: vmId,
+                };
+              }),
             }
           };
         })
@@ -778,20 +1038,114 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                 const namespaceId = `namespace-${namespace.id}`;
                 const isSelected = selectedTreeNode === namespaceId;
                 
+                const isDropTarget = dropTargetId === namespaceId;
+                const canDrop = draggedVMId && draggedVMId !== namespaceId;
+                
                 return {
                   name: (
                     <div 
+                      draggable={vmsInNamespace.length > 0}
                       style={{ 
                         display: 'flex', 
                         justifyContent: 'space-between', 
                         alignItems: 'center', 
                         width: '100%', 
                         paddingRight: '16px',
-                        backgroundColor: isSelected ? '#E7F1FA' : 'transparent',
+                        backgroundColor: isDropTarget && canDrop ? '#d4edda' : isSelected ? '#E7F1FA' : 'transparent',
                         padding: '4px 8px',
                         margin: '0 -8px',
                         borderRadius: '4px',
-                        fontWeight: isSelected ? 600 : 400
+                        fontWeight: isSelected ? 600 : 400,
+                        border: isDropTarget && canDrop ? '2px dashed #28a745' : '2px solid transparent',
+                        transition: 'all 0.2s ease',
+                        cursor: vmsInNamespace.length > 0 ? 'grab' : 'default',
+                        opacity: draggedVMId === `project-${namespaceId}` ? 0.5 : 1,
+                        position: 'relative',
+                      }}
+                      onDragStart={(e) => {
+                        if (vmsInNamespace.length > 0) {
+                          const projectVMIds = vmsInNamespace.map(vm => vm.id);
+                          setDraggedVMId(`project-${namespaceId}`);
+                          e.dataTransfer.setData('text/plain', JSON.stringify(projectVMIds));
+                          e.dataTransfer.effectAllowed = 'move';
+                        }
+                      }}
+                      onDragEnd={() => {
+                        setDraggedVMId(null);
+                        setDropTargetId(null);
+                      }}
+                      onDragOver={(e) => {
+                        if (draggedVMId && draggedVMId !== `project-${namespaceId}`) {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                        }
+                      }}
+                      onDragEnter={(e) => {
+                        if (draggedVMId && draggedVMId !== `project-${namespaceId}`) {
+                          e.preventDefault();
+                          setDropTargetId(namespaceId);
+                        }
+                      }}
+                      onDragLeave={(e) => {
+                        if (e.currentTarget === e.target) {
+                          setDropTargetId(null);
+                        }
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (draggedVMId && draggedVMId !== `project-${namespaceId}`) {
+                          let vmsToMigrate: string[] = [];
+                          const action = isDragCloneMode ? 'Clone' : 'Migrate';
+                          
+                          if (draggedVMId.startsWith('project-')) {
+                            // Entire project being dragged
+                            const dataStr = e.dataTransfer.getData('text/plain');
+                            try {
+                              vmsToMigrate = JSON.parse(dataStr);
+                            } catch {
+                              vmsToMigrate = [];
+                            }
+                            console.log(`${action} project with ${vmsToMigrate.length} VMs to project ${namespace.name}`);
+                          } else if (draggedVMId.startsWith('multiple-')) {
+                            // Multiple VMs being dragged
+                            const dataStr = e.dataTransfer.getData('text/plain');
+                            try {
+                              vmsToMigrate = JSON.parse(dataStr);
+                            } catch {
+                              vmsToMigrate = selectedVMs;
+                            }
+                            console.log(`${action} ${vmsToMigrate.length} VMs to project ${namespace.name}`);
+                          } else {
+                            // Single VM
+                            const vmIdParts = draggedVMId.split('-');
+                            const vmOriginalId = vmIdParts.slice(1).join('-');
+                            vmsToMigrate = [vmOriginalId];
+                            console.log(`${action} VM ${draggedVMId} to project ${namespace.name}`);
+                          }
+                          
+                          // Open appropriate wizard based on mode
+                          setSelectedVMs(vmsToMigrate);
+                          console.log('🚀 DROP - Opening wizard:', isDragCloneMode ? 'Clone' : 'Migrate', 'VMs:', vmsToMigrate);
+                          console.log('🔍 State check - isDragCloneMode:', isDragCloneMode);
+                          
+                          // Set drop target for pre-selection in wizard
+                          setDropTargetClusterId(namespace.clusterId);
+                          setDropTargetNamespaceId(namespace.id);
+                          setIsWizardFromDragDrop(true);
+                          console.log('🎯 Drop target set:', namespace.clusterId, namespace.id);
+                          
+                          if (isDragCloneMode) {
+                            console.log('✅ Setting isCloneWizardOpen to TRUE');
+                            setIsCloneWizardOpen(true);
+                          } else {
+                            console.log('✅ Setting isMigrateWizardOpen to TRUE');
+                            setIsMigrateWizardOpen(true);
+                          }
+                          
+                          setDraggedVMId(null);
+                          setDropTargetId(null);
+                          setIsDragCloneMode(false);
+                        }
                       }}
                       onContextMenu={(e) => {
                         e.preventDefault();
@@ -805,6 +1159,21 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                         <span>{namespace.name}</span>
                       </span>
                       <Label isCompact color="grey" style={{ flexShrink: 0 }}>{vmsInNamespace.length}</Label>
+                      {draggedVMId === `project-${namespaceId}` && vmsInNamespace.length > 0 && (
+                        <Label 
+                          color={isDragCloneMode ? "green" : "blue"}
+                          isCompact 
+                          style={{ 
+                            position: 'absolute', 
+                            top: '-8px', 
+                            right: '8px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {isDragCloneMode ? `Clone Project (${vmsInNamespace.length} VMs)` : `Migrate Project (${vmsInNamespace.length} VMs)`}
+                        </Label>
+                      )}
                     </div>
                   ),
                   id: namespaceId,
@@ -815,18 +1184,48 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     const vmId = `vm-${vm.id}`;
                     const isSelected = selectedTreeNode === vmId;
                     
+                    const vmOriginalId = vm.id;
+                    const isVMSelected = selectedVMs.includes(vmOriginalId);
+                    const isDraggingMultiple = draggedVMId && draggedVMId.startsWith('multiple-');
+                    const dragCount = isDraggingMultiple ? parseInt(draggedVMId.split('-')[1]) : 0;
+                    
                     return {
                       name: (
                         <span 
+                          draggable
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            backgroundColor: isSelected ? '#E7F1FA' : 'transparent',
+                            backgroundColor: isVMSelected ? 'var(--pf-t--global--background--color--primary--clicked)' : (isSelected ? '#E7F1FA' : 'transparent'),
                             padding: '4px 8px',
                             margin: '0 -8px',
                             borderRadius: '4px',
-                            fontWeight: isSelected ? 600 : 400
+                            fontWeight: isSelected ? 600 : 400,
+                            cursor: 'grab',
+                            opacity: draggedVMId === vmId || (isDraggingMultiple && isVMSelected) ? 0.5 : 1,
+                            position: 'relative',
+                            transition: 'background-color 0.1s ease',
+                          }}
+                          onDragStart={(e) => {
+                            // Detect Ctrl/Cmd for clone mode
+                            const isCloneMode = e.ctrlKey || e.metaKey;
+                            setIsDragCloneMode(isCloneMode);
+                            
+                            // If this VM is part of a multi-selection, drag all selected VMs
+                            if (isVMSelected && selectedVMs.length > 1) {
+                              setDraggedVMId(`multiple-${selectedVMs.length}`);
+                              e.dataTransfer.setData('text/plain', JSON.stringify(selectedVMs));
+                            } else {
+                              setDraggedVMId(vmId);
+                              e.dataTransfer.setData('text/plain', vmOriginalId);
+                            }
+                            e.dataTransfer.effectAllowed = isCloneMode ? 'copy' : 'move';
+                          }}
+                          onDragEnd={() => {
+                            setDraggedVMId(null);
+                            setDropTargetId(null);
+                            setIsDragCloneMode(false);
                           }}
                           onContextMenu={(e) => {
                             e.preventDefault();
@@ -834,9 +1233,65 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                             setTreeContextMenuPosition({ top: rect.bottom, left: rect.left });
                             setTreeContextMenuOpen(vmId);
                           }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (e.shiftKey && selectedVMs.length > 0) {
+                              // Shift+click: Select range
+                              const allVMsInView = getAllVirtualMachines();
+                              const lastSelectedId = selectedVMs[selectedVMs.length - 1];
+                              const lastIndex = allVMsInView.findIndex(v => v.id === lastSelectedId);
+                              const currentIndex = allVMsInView.findIndex(v => v.id === vmOriginalId);
+                              
+                              if (lastIndex !== -1 && currentIndex !== -1) {
+                                const start = Math.min(lastIndex, currentIndex);
+                                const end = Math.max(lastIndex, currentIndex);
+                                const rangeIds = allVMsInView.slice(start, end + 1).map(v => v.id);
+                                const combinedIds = selectedVMs.concat(rangeIds);
+                                setSelectedVMs(Array.from(new Set(combinedIds)));
+                              }
+                            } else if (e.ctrlKey || e.metaKey) {
+                              // Ctrl/Cmd+click: Toggle individual
+                              if (isVMSelected) {
+                                setSelectedVMs(selectedVMs.filter(id => id !== vmOriginalId));
+                              } else {
+                                setSelectedVMs([...selectedVMs, vmOriginalId]);
+                              }
+                            } else {
+                              // Regular click: Single select
+                              setSelectedVMs([vmOriginalId]);
+                            }
+                          }}
                         >
                           <DesktopIcon />
                           <span>{vm.name}</span>
+                          {draggedVMId === vmId && (
+                            <Label 
+                              color={isDragCloneMode ? "green" : "blue"}
+                              isCompact 
+                              style={{ 
+                                position: 'absolute', 
+                                top: '-8px', 
+                                right: '8px',
+                                fontSize: '11px'
+                              }}
+                            >
+                              {isDragCloneMode ? 'Clone' : 'Migrate'}
+                            </Label>
+                          )}
+                          {isDraggingMultiple && isVMSelected && dragCount > 1 && (
+                            <Label 
+                              color={isDragCloneMode ? "green" : "blue"}
+                              isCompact 
+                              style={{ 
+                                position: 'absolute', 
+                                top: '-8px', 
+                                right: '8px',
+                                fontSize: '11px'
+                              }}
+                            >
+                              {isDragCloneMode ? `Clone ${dragCount}` : `Migrate ${dragCount}`}
+                            </Label>
+                          )}
                         </span>
                       ),
                       id: vmId,
@@ -873,13 +1328,33 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
       defaultExpanded: true, // Always expand the root
       children: clusterSetNodes,
     }];
-  }, [dbClusterSets, impersonatingUser, hubClusterOnly, showProjectsOnly, showOnlyWithVMs, expandedNodes, isTreeExpanded, selectedTreeNode]);
+  }, [dbClusterSets, impersonatingUser, hubClusterOnly, showProjectsOnly, showOnlyWithVMs, expandedNodes, isTreeExpanded, selectedTreeNode, draggedVMId, dropTargetId]);
   
   const sidebar = (
     <div 
       ref={sidebarRef}
       className="vm-sidebar" 
       style={{ width: `${sidebarWidth}px`, minWidth: '200px', maxWidth: '600px' }}
+      onClick={(e) => {
+        // Deselect all VMs when clicking on empty space in sidebar
+        const target = e.target as HTMLElement;
+        
+        // Check if we're clicking on the actual VM item (with the blue background)
+        const isClickingVM = target.closest('[draggable="true"]')?.querySelector('svg[data-icon-name="DesktopIcon"]');
+        
+        // Check if clicking on empty tree space or non-VM elements
+        const isEmptySpace = 
+          target === e.currentTarget || 
+          target.classList?.contains('vm-sidebar') ||
+          target.classList?.contains('pf-v6-c-tree-view__list') ||
+          target.classList?.contains('pf-v6-c-tree-view') ||
+          target.classList?.contains('pf-v6-c-tree-view__list-item');
+        
+        // Only clear if not clicking on a VM and clicking on empty space
+        if (!isClickingVM && isEmptySpace && selectedVMs.length > 0) {
+          setSelectedVMs([]);
+        }
+      }}
     >
       <div style={{ marginBottom: '16px' }}>
         <Switch
@@ -934,6 +1409,10 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         data={treeData}
         onSelect={(_event, item) => {
           if (item.id) {
+            // If we're on a detail page, navigate back to the main table view first
+            if (isDetailPage) {
+              navigate('/virtualization/virtual-machines');
+            }
             setSelectedTreeNode(item.id);
             setPage(1); // Reset to first page when changing selection
           }
@@ -1004,14 +1483,83 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                 )}
                 {treeContextMenuOpen.startsWith('vm-') && (
                   <>
-                    <DropdownItem key="view">View details</DropdownItem>
+                    <DropdownItem 
+                      key="view"
+                      onClick={() => {
+                        const vmId = treeContextMenuOpen.split('-').slice(1).join('-');
+                        navigate(`/virtualization/virtual-machines/${vmId}`);
+                        setTreeContextMenuOpen(null);
+                        setTreeContextMenuPosition(null);
+                      }}
+                    >
+                      View details
+                    </DropdownItem>
                     <DropdownItem key="console">Open console</DropdownItem>
-                    <DropdownItem key="start">Start</DropdownItem>
-                    <DropdownItem key="stop">Stop</DropdownItem>
-                    <DropdownItem key="restart">Restart</DropdownItem>
-                    <DropdownItem key="migrate">Migrate</DropdownItem>
+                    <DropdownItem 
+                      key="start"
+                      onClick={() => {
+                        const vmId = treeContextMenuOpen.split('-').slice(1).join('-');
+                        console.log('Start VM:', vmId);
+                        // Update VM status to Running
+                        setTreeContextMenuOpen(null);
+                        setTreeContextMenuPosition(null);
+                      }}
+                    >
+                      Start
+                    </DropdownItem>
+                    <DropdownItem 
+                      key="stop"
+                      onClick={() => {
+                        const vmId = treeContextMenuOpen.split('-').slice(1).join('-');
+                        console.log('Stop VM:', vmId);
+                        // Update VM status to Stopped
+                        setTreeContextMenuOpen(null);
+                        setTreeContextMenuPosition(null);
+                      }}
+                    >
+                      Stop
+                    </DropdownItem>
+                    <DropdownItem 
+                      key="restart"
+                      onClick={() => {
+                        const vmId = treeContextMenuOpen.split('-').slice(1).join('-');
+                        console.log('Restart VM:', vmId);
+                        // Update VM status to Starting then Running
+                        setTreeContextMenuOpen(null);
+                        setTreeContextMenuPosition(null);
+                      }}
+                    >
+                      Restart
+                    </DropdownItem>
+                    <DropdownItem 
+                      key="migrate"
+                      onClick={() => {
+                        const vmId = treeContextMenuOpen.split('-').slice(1).join('-');
+                        setSelectedVMs([vmId]);
+                        // Clear drop targets (not from drag-and-drop)
+                        setDropTargetClusterId(undefined);
+                        setDropTargetNamespaceId(undefined);
+                        setIsWizardFromDragDrop(false);
+                        setIsMigrateWizardOpen(true);
+                        setTreeContextMenuOpen(null);
+                        setTreeContextMenuPosition(null);
+                      }}
+                    >
+                      Migrate
+                    </DropdownItem>
                     <Divider />
-                    <DropdownItem key="delete">Delete</DropdownItem>
+                    <DropdownItem 
+                      key="delete"
+                      onClick={() => {
+                        const vmId = treeContextMenuOpen.split('-').slice(1).join('-');
+                        setVmToDelete(vmId);
+                        setIsDeleteModalOpen(true);
+                        setTreeContextMenuOpen(null);
+                        setTreeContextMenuPosition(null);
+                      }}
+                    >
+                      Delete
+                    </DropdownItem>
                   </>
                 )}
               </DropdownList>
@@ -2384,7 +2932,26 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         </div>
       </div>
       
-      <div className={`vm-content-wrapper ${isSidebarCollapsed || isAdvancedSearchActive ? 'sidebar-collapsed' : ''}`}>
+      <div 
+        className={`vm-content-wrapper ${isSidebarCollapsed || isAdvancedSearchActive ? 'sidebar-collapsed' : ''}`}
+        onClick={(e) => {
+          // Clear VM selection when clicking in main content area
+          const target = e.target as HTMLElement;
+          // Don't clear if:
+          // - Clicking on the sidebar itself
+          // - Clicking on toolbar elements (buttons, dropdowns, inputs)
+          // - Clicking on the table (checkboxes, rows)
+          const isToolbarElement = target.closest('.pf-v6-c-toolbar') || 
+                                   target.closest('.pf-v6-c-dropdown') || 
+                                   target.closest('.pf-v6-c-menu') ||
+                                   target.closest('button') ||
+                                   target.closest('.pf-v6-c-table');
+          
+          if (!target.closest('.vm-sidebar') && !isToolbarElement && selectedVMs.length > 0) {
+            setSelectedVMs([]);
+          }
+        }}
+      >
         {!isSidebarCollapsed && !isAdvancedSearchActive && sidebar}
         
         {!isAdvancedSearchActive && (
@@ -2392,7 +2959,10 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
           variant="plain"
           className="sidebar-toggle"
           style={{ left: isSidebarCollapsed ? '0px' : `${sidebarWidth - 14}px` }}
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsSidebarCollapsed(!isSidebarCollapsed);
+          }}
           aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isSidebarCollapsed ? <AngleRightIcon /> : <AngleLeftIcon />}
@@ -2647,7 +3217,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                         <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                           <FlexItem>
                   <Checkbox
-                              isChecked={isAllPageSelected}
+                              isChecked={isAllPageSelected || selectedVMs.length > 0}
                               onChange={(event, checked) => {
                                 event.stopPropagation();
                                 if (checked) {
@@ -2660,6 +3230,13 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                               id="select-all-vms-checkbox"
                             />
                           </FlexItem>
+                          {selectedVMs.length > 0 && (
+                            <FlexItem>
+                              <span style={{ fontWeight: '600', fontSize: '0.875rem' }}>
+                                {selectedVMs.length} selected
+                              </span>
+                            </FlexItem>
+                          )}
                           <FlexItem>
                             <CaretDownIcon />
                           </FlexItem>
@@ -2668,6 +3245,9 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     )}
                   >
                     <DropdownList>
+                      <DropdownItem key="select-none" onClick={handleDeselectAll}>
+                        Select none
+                      </DropdownItem>
                       <DropdownItem key="select-page" onClick={handleSelectPage}>
                         Select page ({filteredVMs.slice((page - 1) * perPage, page * perPage).length} items)
                       </DropdownItem>
@@ -2874,6 +3454,10 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                             <MenuItem
                               onClick={() => {
                                 console.log('Migrate across clusters');
+                                // Clear drop targets (not from drag-and-drop)
+                                setDropTargetClusterId(undefined);
+                                setDropTargetNamespaceId(undefined);
+                                setIsWizardFromDragDrop(false);
                                 setIsMigrateWizardOpen(true);
                                 setIsToolbarActionsOpen(false);
                                 setIsMigrateMenuOpen(false);
@@ -3208,9 +3792,64 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
 
     <MigrateVMsWizard
       isOpen={isMigrateWizardOpen}
-      onClose={() => setIsMigrateWizardOpen(false)}
+      onClose={() => {
+        setIsMigrateWizardOpen(false);
+        setDropTargetClusterId(undefined);
+        setDropTargetNamespaceId(undefined);
+        setIsWizardFromDragDrop(false);
+      }}
+      selectedVMs={selectedVMs}
+      preselectedTargetCluster={dropTargetClusterId}
+      preselectedTargetNamespace={dropTargetNamespaceId}
+      isFromDragAndDrop={isWizardFromDragDrop}
+    />
+
+    <CloneVMsWizard
+      isOpen={isCloneWizardOpen}
+      onClose={() => setIsCloneWizardOpen(false)}
       selectedVMs={selectedVMs}
     />
+
+    <Modal
+      variant={ModalVariant.small}
+      isOpen={isDeleteModalOpen}
+      onClose={() => {
+        setIsDeleteModalOpen(false);
+        setVmToDelete(null);
+      }}
+      aria-label="Delete virtual machine"
+    >
+      <div style={{ padding: '24px' }}>
+        <Title headingLevel="h1" size="2xl" style={{ marginBottom: '16px' }}>
+          Delete virtual machine
+        </Title>
+        <Content style={{ marginBottom: '24px' }}>
+          Are you sure you want to delete this virtual machine? This action cannot be undone.
+        </Content>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setIsDeleteModalOpen(false);
+              setVmToDelete(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="danger"
+            onClick={() => {
+              console.log('Delete VM:', vmToDelete);
+              // TODO: Actually delete the VM from data
+              setIsDeleteModalOpen(false);
+              setVmToDelete(null);
+            }}
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+    </Modal>
 
     </>
   );

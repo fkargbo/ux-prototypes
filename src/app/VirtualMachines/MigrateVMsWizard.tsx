@@ -10,23 +10,184 @@ import {
   FormSelect,
   FormSelectOption,
   Title,
+  Alert,
+  Select,
+  SelectOption,
+  SelectList,
+  MenuToggle,
+  MenuToggleElement,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerPanelContent,
+  DrawerHead,
+  DrawerActions,
+  DrawerCloseButton,
 } from '@patternfly/react-core';
+import { CheckCircleIcon, OffIcon, ExclamationCircleIcon, PauseCircleIcon } from '@patternfly/react-icons';
+import { 
+  getVirtualMachineById, 
+  getAllClusters, 
+  getNamespacesByCluster,
+  getClusterById,
+  getNamespaceById,
+  getAllVirtualMachines
+} from '../data/queries';
+import { virtualMachines } from '../data/mockDatabase';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 
 interface MigrateVMsWizardProps {
   isOpen: boolean;
   onClose: () => void;
   selectedVMs: string[];
+  preselectedTargetCluster?: string;
+  preselectedTargetNamespace?: string;
+  isFromDragAndDrop?: boolean;
 }
 
 export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = ({
   isOpen,
   onClose,
   selectedVMs,
+  preselectedTargetCluster,
+  preselectedTargetNamespace,
+  isFromDragAndDrop = false,
 }) => {
   const [migrationName, setMigrationName] = React.useState('');
-  const [migrationReason, setMigrationReason] = React.useState('not-stated');
+  const [migrationReason, setMigrationReason] = React.useState('Not stated');
+  const [customReason, setCustomReason] = React.useState('');
   const [showProgress, setShowProgress] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
+  const [isReasonSelectOpen, setIsReasonSelectOpen] = React.useState(false);
+  const [isVMDrawerOpen, setIsVMDrawerOpen] = React.useState(false);
+  const [isStatusWarningModalOpen, setIsStatusWarningModalOpen] = React.useState(false);
+  const [filteredVMIds, setFilteredVMIds] = React.useState<string[]>(selectedVMs);
+  const [showWizardContent, setShowWizardContent] = React.useState(false);
+  
+  // Predefined migration reasons
+  const predefinedReasons = [
+    'Not stated',
+    'Hardware maintenance',
+    'Load balancing',
+    'Disaster recovery',
+    'Resource optimization',
+    'Other'
+  ];
+  
+  // Get the actual reason value (custom if "Other" is selected)
+  const actualMigrationReason = migrationReason === 'Other' ? customReason : migrationReason;
+  
+  // Helper function to get icon and color for each status
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Running':
+        return { Icon: CheckCircleIcon, color: 'var(--pf-t--global--icon--color--status--success--default)' };
+      case 'Stopped':
+        return { Icon: OffIcon, color: 'var(--pf-t--global--text--color--regular)' };
+      case 'Error':
+        return { Icon: ExclamationCircleIcon, color: 'var(--pf-t--global--icon--color--status--danger--default)' };
+      case 'Paused':
+        return { Icon: PauseCircleIcon, color: 'var(--pf-t--global--icon--color--status--warning--default)' };
+      case 'Starting':
+      case 'Stopping':
+        return { Icon: PauseCircleIcon, color: 'var(--pf-t--global--text--color--subtle)' };
+      default:
+        return { Icon: OffIcon, color: 'var(--pf-t--global--text--color--regular)' };
+    }
+  };
+  
+  // Get VM data
+  const vmsToMigrate = React.useMemo(() => {
+    return filteredVMIds.map(vmId => getVirtualMachineById(vmId)).filter(Boolean);
+  }, [filteredVMIds]);
+  
+  // Get all selected VMs with their full data
+  const allSelectedVMs = React.useMemo(() => {
+    return selectedVMs
+      .map(vmId => getVirtualMachineById(vmId))
+      .filter((vm): vm is NonNullable<typeof vm> => vm !== null && vm !== undefined);
+  }, [selectedVMs]);
+
+  // Calculate VM status counts - break down by each status type
+  const vmStatusCounts = React.useMemo(() => {
+    const statusBreakdown: Record<string, number> = {};
+    allSelectedVMs.forEach(vm => {
+      statusBreakdown[vm.status] = (statusBreakdown[vm.status] || 0) + 1;
+    });
+    
+    const running = allSelectedVMs.filter(vm => vm.status === 'Running');
+    const nonRunning = allSelectedVMs.filter(vm => vm.status !== 'Running');
+    
+    return {
+      running: running.length,
+      nonRunning: nonRunning.length,
+      total: allSelectedVMs.length,
+      breakdown: statusBreakdown
+    };
+  }, [allSelectedVMs]);
+
+  // Check VM statuses when wizard opens
+  React.useEffect(() => {
+    if (isOpen && selectedVMs.length > 0) {
+      console.log('VM Status Check:', {
+        total: vmStatusCounts.total,
+        running: vmStatusCounts.running,
+        nonRunning: vmStatusCounts.nonRunning,
+        breakdown: vmStatusCounts.breakdown,
+        vms: allSelectedVMs.map(vm => ({ id: vm.id, name: vm.name, status: vm.status }))
+      });
+
+      if (vmStatusCounts.nonRunning > 0) {
+        // Show warning modal first, don't show wizard yet
+        setIsStatusWarningModalOpen(true);
+        setShowWizardContent(false);
+      } else {
+        // All VMs are running, proceed normally
+        setFilteredVMIds(selectedVMs);
+        setShowWizardContent(true);
+      }
+    } else if (!isOpen) {
+      // Reset when closed
+      setShowWizardContent(false);
+      setIsStatusWarningModalOpen(false);
+    }
+  }, [isOpen, selectedVMs, vmStatusCounts, allSelectedVMs]);
+  
+  // Get source info from first VM (assuming all VMs are from same source)
+  const sourceVM = vmsToMigrate[0];
+  const sourceCluster = sourceVM ? getClusterById(sourceVM.clusterId) : null;
+  const sourceNamespace = sourceVM ? getNamespaceById(sourceVM.namespaceId) : null;
+  
+  // Get all clusters and namespaces
+  const allClusters = React.useMemo(() => getAllClusters(), []);
+  const [targetCluster, setTargetCluster] = React.useState('');
+  const [targetProject, setTargetProject] = React.useState('');
+  
+  // Pre-select target cluster and namespace when provided (from drag-and-drop)
+  React.useEffect(() => {
+    if (isOpen && showWizardContent) {
+      if (preselectedTargetCluster) {
+        console.log('Pre-selecting target cluster from drag-and-drop:', preselectedTargetCluster);
+        setTargetCluster(preselectedTargetCluster);
+      }
+      if (preselectedTargetNamespace) {
+        console.log('Pre-selecting target namespace from drag-and-drop:', preselectedTargetNamespace);
+        setTargetProject(preselectedTargetNamespace);
+      }
+    }
+  }, [isOpen, showWizardContent, preselectedTargetCluster, preselectedTargetNamespace]);
+  
+  // Get namespaces for target cluster
+  const targetNamespaces = React.useMemo(() => {
+    if (!targetCluster) return [];
+    return getNamespacesByCluster(targetCluster);
+  }, [targetCluster]);
+  
+  // Validation
+  const isSameLocation = React.useMemo(() => {
+    if (!targetCluster || !targetProject || !sourceVM) return false;
+    return targetCluster === sourceVM.clusterId && targetProject === sourceVM.namespaceId;
+  }, [targetCluster, targetProject, sourceVM]);
 
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -41,6 +202,18 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         });
       }, 200);
     }
+    
+    // When migration completes, close wizard after a short delay
+    if (showProgress && progress >= 100) {
+      const timeout = setTimeout(() => {
+        console.log('✅ Migration completed successfully!');
+        handleClose();
+        // Force page reload to refresh VM data
+        window.location.reload();
+      }, 1500);
+      return () => clearTimeout(timeout);
+    }
+    
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -49,18 +222,48 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const handleClose = () => {
     // Reset form
     setMigrationName('');
-    setMigrationReason('not-stated');
+    setMigrationReason('Not stated');
+    setCustomReason('');
     setShowProgress(false);
     setProgress(0);
+    setIsReasonSelectOpen(false);
+    setFilteredVMIds(selectedVMs);
+    setIsStatusWarningModalOpen(false);
+    setShowWizardContent(false);
     onClose();
   };
 
+  const handleContinueWithRunningVMs = () => {
+    const runningVMIds = allSelectedVMs
+      .filter(vm => vm.status === 'Running')
+      .map(vm => vm.id);
+    
+    console.log('Continuing with running VMs:', runningVMIds);
+    setFilteredVMIds(runningVMIds);
+    setIsStatusWarningModalOpen(false);
+    setShowWizardContent(true); // Now show the wizard
+  };
+
   const handleMigrateNow = () => {
-    console.log('Migration plan created:', {
-      name: migrationName,
-      reason: migrationReason,
+    console.log('Starting migration:', {
+      name: migrationName || `Migration-${new Date().toISOString().split('T')[0]}`,
+      reason: actualMigrationReason,
       vms: selectedVMs,
+      source: { cluster: sourceCluster?.name, namespace: sourceNamespace?.name },
+      target: { cluster: targetCluster, namespace: targetProject },
     });
+    
+    // Perform the actual migration
+    selectedVMs.forEach(vmId => {
+      const vmIndex = virtualMachines.findIndex(vm => vm.id === vmId);
+      if (vmIndex !== -1) {
+        // Update the VM's cluster and namespace
+        virtualMachines[vmIndex].clusterId = targetCluster;
+        virtualMachines[vmIndex].namespaceId = targetProject;
+        console.log(`✅ Migrated VM ${virtualMachines[vmIndex].name} to ${targetCluster}/${targetProject}`);
+      }
+    });
+    
     setShowProgress(true);
     setProgress(0);
   };
@@ -76,6 +279,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
 
   const handleCancelMigration = () => {
     console.log('Migration cancelled');
+    setIsStatusWarningModalOpen(false);
     handleClose();
   };
 
@@ -86,14 +290,14 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       </Title>
       
       <Form>
-        <FormGroup label="Name" isRequired>
+        <FormGroup label="Name">
           <TextInput
             type="text"
             id="migration-name"
             name="migration-name"
             value={migrationName}
             onChange={(_event, value) => setMigrationName(value)}
-            placeholder="Random-generated-name-with-a-date"
+            placeholder={`Migration-${new Date().toISOString().split('T')[0]}`}
           />
           <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '8px' }}>
             If you don't create a name, we'll generate a migration plan name for you
@@ -101,35 +305,73 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         </FormGroup>
 
         <FormGroup label="Migration reason (optional)">
-          <FormSelect
-            value={migrationReason}
-            onChange={(_event, value) => setMigrationReason(value as string)}
-            id="migration-reason"
-            name="migration-reason"
+          <Select
+            isOpen={isReasonSelectOpen}
+            selected={migrationReason}
+            onSelect={(_event, value) => {
+              setMigrationReason(value as string);
+              setIsReasonSelectOpen(false);
+              // Clear custom reason if not selecting "Other"
+              if (value !== 'Other') {
+                setCustomReason('');
+              }
+            }}
+            onOpenChange={(isOpen) => setIsReasonSelectOpen(isOpen)}
+            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+              <MenuToggle
+                ref={toggleRef}
+                onClick={() => setIsReasonSelectOpen(!isReasonSelectOpen)}
+                isExpanded={isReasonSelectOpen}
+                isFullWidth
+              >
+                {migrationReason}
+              </MenuToggle>
+            )}
           >
-            <FormSelectOption value="not-stated" label="Not stated" />
-            <FormSelectOption value="hardware-maintenance" label="Hardware maintenance" />
-            <FormSelectOption value="load-balancing" label="Load balancing" />
-            <FormSelectOption value="disaster-recovery" label="Disaster recovery" />
-            <FormSelectOption value="resource-optimization" label="Resource optimization" />
-            <FormSelectOption value="other" label="Other" />
-          </FormSelect>
-          <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '8px' }}>
-            Select a reason for migration
-          </div>
+            <SelectList>
+              {predefinedReasons.map((reason) => (
+                <SelectOption key={reason} value={reason}>
+                  {reason}
+                </SelectOption>
+              ))}
+            </SelectList>
+          </Select>
+          {migrationReason === 'Other' && (
+            <>
+              <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '12px', marginBottom: '8px' }}>
+                Specify your custom reason
+              </div>
+              <TextInput
+                type="text"
+                id="custom-reason"
+                name="custom-reason"
+                value={customReason}
+                onChange={(_event, value) => setCustomReason(value)}
+                placeholder="Type your custom reason here..."
+              />
+            </>
+          )}
         </FormGroup>
       </Form>
     </div>
   );
 
-  const [targetCluster, setTargetCluster] = React.useState('');
-  const [targetProject, setTargetProject] = React.useState('');
-
   const targetPlacementStep = (
     <div>
-      <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-md">
+      <Title headingLevel="h2" size="xl" style={{ marginBottom: '24px' }}>
         Target placement
       </Title>
+      
+      {/* Validation warning */}
+      {isSameLocation && (
+        <Alert 
+          variant="warning" 
+          title="Same location selected" 
+          style={{ marginBottom: '24px' }}
+        >
+          The target location is the same as the source. Please select a different cluster or project.
+        </Alert>
+      )}
       
       <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
         {/* Source Section */}
@@ -142,21 +384,33 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '16px' }}>Source</h3>
           
-          <FormGroup label="Cluster">
+          <FormGroup label="Cluster" style={{ marginBottom: '16px' }}>
             <TextInput
               type="text"
-              value="test-west-eu"
-              isDisabled
+              value={sourceCluster?.name || 'N/A'}
+              readOnly
               aria-label="Source cluster"
+              style={{ 
+                cursor: 'default', 
+                pointerEvents: 'none',
+                color: 'var(--pf-t--global--text--color--subtle)',
+                backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
+              }}
             />
           </FormGroup>
 
           <FormGroup label="Project">
             <TextInput
               type="text"
-              value="test"
-              isDisabled
+              value={sourceNamespace?.name || 'N/A'}
+              readOnly
               aria-label="Source project"
+              style={{ 
+                cursor: 'default', 
+                pointerEvents: 'none',
+                color: 'var(--pf-t--global--text--color--subtle)',
+                backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
+              }}
             />
           </FormGroup>
         </div>
@@ -171,58 +425,94 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
           flex: 1, 
           border: '1px solid var(--pf-t--global--border--color--default)', 
           borderRadius: '8px',
-          padding: '16px'
+          padding: '16px',
+          backgroundColor: isFromDragAndDrop ? 'var(--pf-t--global--background--color--secondary--default)' : undefined
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 'bold' }}>Target *</h3>
-            <Button 
-              variant="link" 
-              onClick={() => {
-                setTargetCluster('');
-                setTargetProject('');
-              }}
-              style={{ padding: 0, fontSize: '0.875rem' }}
-            >
-              Clear all
-            </Button>
+            {!isFromDragAndDrop && (
+              <Button 
+                variant="link" 
+                onClick={() => {
+                  setTargetCluster('');
+                  setTargetProject('');
+                }}
+                style={{ padding: 0, fontSize: '0.875rem' }}
+              >
+                Clear all
+              </Button>
+            )}
           </div>
           
-          <FormGroup label="Cluster">
-            <FormSelect
-              value={targetCluster}
-              onChange={(_event, value) => {
-                setTargetCluster(value as string);
-                setTargetProject(''); // Reset project when cluster changes
-              }}
-              aria-label="Target cluster"
-            >
-              <FormSelectOption value="" label="Select Cluster" />
-              <FormSelectOption value="test-south-eu" label="test-south-eu" />
-              <FormSelectOption value="test-north-eu" label="test-north-eu" />
-              <FormSelectOption value="test-central-eu" label="test-central-eu" />
-            </FormSelect>
+          <FormGroup label="Cluster" style={{ marginBottom: '16px' }}>
+            {isFromDragAndDrop ? (
+              <TextInput
+                type="text"
+                value={allClusters.find(c => c.id === targetCluster)?.name || 'N/A'}
+                readOnly
+                aria-label="Target cluster"
+                style={{ 
+                  cursor: 'default', 
+                  pointerEvents: 'none',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
+                }}
+              />
+            ) : (
+              <FormSelect
+                value={targetCluster}
+                onChange={(_event, value) => {
+                  setTargetCluster(value as string);
+                  setTargetProject(''); // Reset project when cluster changes
+                }}
+                aria-label="Target cluster"
+              >
+                <FormSelectOption value="" label="Select Cluster" />
+                {allClusters.map(cluster => (
+                  <FormSelectOption 
+                    key={cluster.id} 
+                    value={cluster.id} 
+                    label={`${cluster.name} (${cluster.region})`} 
+                  />
+                ))}
+              </FormSelect>
+            )}
           </FormGroup>
 
           <FormGroup label="Project">
-            <FormSelect
-              value={targetProject}
-              onChange={(_event, value) => setTargetProject(value as string)}
-              isDisabled={!targetCluster}
-              aria-label="Target project"
-            >
-              <FormSelectOption 
-                value="" 
-                label={targetCluster ? "Select project" : "To select a project, pick a cluster"} 
+            {isFromDragAndDrop ? (
+              <TextInput
+                type="text"
+                value={targetNamespaces.find(ns => ns.id === targetProject)?.name || 'N/A'}
+                readOnly
+                aria-label="Target project"
+                style={{ 
+                  cursor: 'default', 
+                  pointerEvents: 'none',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
+                }}
               />
-              {targetCluster && (
-                <>
-                  <FormSelectOption value="test" label="test" />
-                  <FormSelectOption value="production" label="production" />
-                  <FormSelectOption value="staging" label="staging" />
-                  <FormSelectOption value="development" label="development" />
-                </>
-              )}
-            </FormSelect>
+            ) : (
+              <FormSelect
+                value={targetProject}
+                onChange={(_event, value) => setTargetProject(value as string)}
+                isDisabled={!targetCluster}
+                aria-label="Target project"
+              >
+                <FormSelectOption 
+                  value="" 
+                  label={targetCluster ? "Select project" : "To select a project, pick a cluster"} 
+                />
+                {targetNamespaces.map(namespace => (
+                  <FormSelectOption 
+                    key={namespace.id} 
+                    value={namespace.id} 
+                    label={namespace.name} 
+                  />
+                ))}
+              </FormSelect>
+            )}
           </FormGroup>
         </div>
       </div>
@@ -544,26 +834,68 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   );
 
   const reviewStep = (
-    <div>
-      <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-lg">
-        Review
-      </Title>
-      
-      {/* General information section */}
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold' }}>General information</h3>
-          <Button variant="link" onClick={() => setActiveStep(1)} style={{ padding: 0 }}>
-            Edit step
-          </Button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '12px', fontSize: '0.875rem' }}>
-          <div style={{ fontWeight: 'bold' }}>Name</div>
-          <div>test-west-eu</div>
-          <div style={{ fontWeight: 'bold' }}>Migration reason</div>
-          <div>Evacuating</div>
-        </div>
-      </div>
+    <Drawer isExpanded={isVMDrawerOpen}>
+      <DrawerContent
+        panelContent={
+          <DrawerPanelContent style={{ minWidth: '400px' }}>
+            <DrawerHead>
+              <Title headingLevel="h3" size="xl">
+                Virtual machines ({vmsToMigrate.length})
+              </Title>
+              <DrawerActions>
+                <DrawerCloseButton onClick={() => setIsVMDrawerOpen(false)} />
+              </DrawerActions>
+            </DrawerHead>
+            <div style={{ padding: '16px' }}>
+              <Table variant="compact" borders={false}>
+                <Thead>
+                  <Tr>
+                    <Th>Name</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {vmsToMigrate.map((vm, index) => (
+                    <Tr key={vm?.id}>
+                      <Td>{vm?.name}</Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </div>
+          </DrawerPanelContent>
+        }
+      >
+        <DrawerContentBody>
+          <div>
+            <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-lg">
+              Review
+            </Title>
+            
+            {/* General information section */}
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold' }}>General information</h3>
+                <Button variant="link" onClick={() => setActiveStep(1)} style={{ padding: 0 }}>
+                  Edit step
+                </Button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '12px', fontSize: '0.875rem' }}>
+                <div style={{ fontWeight: 'bold' }}>Virtual machines</div>
+                <div>
+                  <Button 
+                    variant="link" 
+                    onClick={() => setIsVMDrawerOpen(true)}
+                    style={{ padding: 0, fontSize: '0.875rem' }}
+                  >
+                    {vmsToMigrate.length} virtual machine{vmsToMigrate.length !== 1 ? 's' : ''}
+                  </Button>
+                </div>
+                <div style={{ fontWeight: 'bold' }}>Name</div>
+                <div>{migrationName || `Migration-${new Date().toISOString().split('T')[0]}`}</div>
+                <div style={{ fontWeight: 'bold' }}>Migration reason</div>
+                <div>{actualMigrationReason}</div>
+              </div>
+            </div>
 
       {/* Placement section */}
       <div style={{ marginBottom: '32px' }}>
@@ -575,16 +907,16 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 40px 200px 1fr', gap: '12px', fontSize: '0.875rem', alignItems: 'center' }}>
           <div style={{ fontWeight: 'bold' }}>Source cluster</div>
-          <div>test-west-eu</div>
+          <div>{sourceCluster?.name || 'N/A'}</div>
           <div style={{ textAlign: 'center', fontSize: '1.2rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
           <div style={{ fontWeight: 'bold' }}>Target cluster</div>
-          <div>test-south-eu</div>
+          <div>{allClusters.find(c => c.id === targetCluster)?.name || 'Not selected'}</div>
           
           <div style={{ fontWeight: 'bold' }}>Source project</div>
-          <div>test</div>
+          <div>{sourceNamespace?.name || 'N/A'}</div>
           <div style={{ textAlign: 'center', fontSize: '1.2rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
           <div style={{ fontWeight: 'bold' }}>Target project</div>
-          <div>test</div>
+          <div>{targetNamespaces.find(ns => ns.id === targetProject)?.name || 'Not selected'}</div>
         </div>
       </div>
 
@@ -619,7 +951,10 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         <span style={{ fontSize: '1.25rem', color: 'var(--pf-t--global--icon--color--status--info)' }}>ℹ</span>
         <span>During migration, VMs will be processed and moved in groups of 5.</span>
       </div>
-    </div>
+          </div>
+        </DrawerContentBody>
+      </DrawerContent>
+    </Drawer>
   );
 
   const [activeStep, setActiveStep] = React.useState(1);
@@ -719,9 +1054,10 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   );
 
   return (
+    <>
     <Modal
       variant={ModalVariant.large}
-      isOpen={isOpen}
+      isOpen={isOpen && showWizardContent}
       onClose={handleClose}
       aria-labelledby="migrate-vms-wizard-title"
       style={{ 
@@ -772,15 +1108,13 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
               <div
                 onClick={() => setActiveStep(1)}
                 style={{
-                  padding: '0.75rem 0.75rem',
+                  padding: '0.75rem 1rem',
                   cursor: 'pointer',
-                  backgroundColor: activeStep === 1 ? '#e7f1fa' : 'transparent',
-                  borderLeft: activeStep === 1 ? '4px solid #0066cc' : '4px solid transparent',
-                  marginBottom: '0.5rem',
+                  backgroundColor: activeStep === 1 ? '#fafafa' : 'transparent',
+                  marginBottom: '0',
                   display: 'flex',
                   alignItems: 'center',
-                  marginLeft: '-1rem',
-                  paddingLeft: 'calc(0.75rem + 4px)',
+                  borderRadius: '4px',
                 }}
               >
                 <span style={{ 
@@ -788,32 +1122,30 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: '28px',
-                  height: '28px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
-                  backgroundColor: activeStep >= 1 ? '#0066cc' : '#d2d2d2',
+                  backgroundColor: activeStep === 1 ? '#0066cc' : '#d2d2d2',
                   color: 'white',
-                  fontSize: '0.875rem',
-                  fontWeight: 'bold'
+                  fontSize: '0.75rem',
+                  fontWeight: '600'
                 }}>
                   1
                 </span>
-                <span style={{ fontSize: '0.875rem', fontWeight: activeStep === 1 ? '600' : '400' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '400', color: '#151515' }}>
                   General information
                 </span>
               </div>
               <div
                 onClick={() => setActiveStep(2)}
                 style={{
-                  padding: '0.75rem 0.75rem',
+                  padding: '0.75rem 1rem',
                   cursor: 'pointer',
-                  backgroundColor: activeStep === 2 ? '#e7f1fa' : 'transparent',
-                  borderLeft: activeStep === 2 ? '4px solid #0066cc' : '4px solid transparent',
-                  marginBottom: '0.5rem',
+                  backgroundColor: activeStep === 2 ? '#fafafa' : 'transparent',
+                  marginBottom: '0',
                   display: 'flex',
                   alignItems: 'center',
-                  marginLeft: '-1rem',
-                  paddingLeft: 'calc(0.75rem + 4px)',
+                  borderRadius: '4px',
                 }}
               >
                 <span style={{ 
@@ -821,32 +1153,30 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: '28px',
-                  height: '28px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
-                  backgroundColor: activeStep >= 2 ? '#0066cc' : '#d2d2d2',
+                  backgroundColor: activeStep === 2 ? '#0066cc' : '#d2d2d2',
                   color: 'white',
-                  fontSize: '0.875rem',
-                  fontWeight: 'bold'
+                  fontSize: '0.75rem',
+                  fontWeight: '600'
                 }}>
                   2
                 </span>
-                <span style={{ fontSize: '0.875rem', fontWeight: activeStep === 2 ? '600' : '400' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '400', color: '#151515' }}>
                   Target placement
                 </span>
               </div>
               <div
                 onClick={() => setActiveStep(3)}
                 style={{
-                  padding: '0.75rem 0.75rem',
+                  padding: '0.75rem 1rem',
                   cursor: 'pointer',
-                  backgroundColor: activeStep === 3 ? '#e7f1fa' : 'transparent',
-                  borderLeft: activeStep === 3 ? '4px solid #0066cc' : '4px solid transparent',
-                  marginBottom: '0.5rem',
+                  backgroundColor: activeStep === 3 ? '#fafafa' : 'transparent',
+                  marginBottom: '0',
                   display: 'flex',
                   alignItems: 'center',
-                  marginLeft: '-1rem',
-                  paddingLeft: 'calc(0.75rem + 4px)',
+                  borderRadius: '4px',
                 }}
               >
                 <span style={{ 
@@ -854,32 +1184,30 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: '28px',
-                  height: '28px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
-                  backgroundColor: activeStep >= 3 ? '#0066cc' : '#d2d2d2',
+                  backgroundColor: activeStep === 3 ? '#0066cc' : '#d2d2d2',
                   color: 'white',
-                  fontSize: '0.875rem',
-                  fontWeight: 'bold'
+                  fontSize: '0.75rem',
+                  fontWeight: '600'
                 }}>
                   3
                 </span>
-                <span style={{ fontSize: '0.875rem', fontWeight: activeStep === 3 ? '600' : '400' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '400', color: '#151515' }}>
                   Migration readiness
                 </span>
               </div>
               <div
                 onClick={() => setActiveStep(4)}
                 style={{
-                  padding: '0.75rem 0.75rem',
+                  padding: '0.75rem 1rem',
                   cursor: 'pointer',
-                  backgroundColor: activeStep === 4 ? '#e7f1fa' : 'transparent',
-                  borderLeft: activeStep === 4 ? '4px solid #0066cc' : '4px solid transparent',
-                  marginBottom: '0.5rem',
+                  backgroundColor: activeStep === 4 ? '#fafafa' : 'transparent',
+                  marginBottom: '0',
                   display: 'flex',
                   alignItems: 'center',
-                  marginLeft: '-1rem',
-                  paddingLeft: 'calc(0.75rem + 4px)',
+                  borderRadius: '4px',
                 }}
               >
                 <span style={{ 
@@ -887,17 +1215,17 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: '28px',
-                  height: '28px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
-                  backgroundColor: activeStep >= 4 ? '#0066cc' : '#d2d2d2',
+                  backgroundColor: activeStep === 4 ? '#0066cc' : '#d2d2d2',
                   color: 'white',
-                  fontSize: '0.875rem',
-                  fontWeight: 'bold'
+                  fontSize: '0.75rem',
+                  fontWeight: '600'
                 }}>
                   4
                 </span>
-                <span style={{ fontSize: '0.875rem', fontWeight: activeStep === 4 ? '600' : '400' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '400', color: '#151515' }}>
                   Review
                 </span>
               </div>
@@ -936,15 +1264,27 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
               </Button>
               {activeStep === 4 ? (
                 <>
-                  <Button variant="primary" onClick={handleMigrateNow}>
+                  <Button 
+                    variant="primary" 
+                    onClick={handleMigrateNow}
+                    isDisabled={!targetCluster || !targetProject || isSameLocation}
+                  >
                     Migrate now
                   </Button>
-                  <Button variant="secondary" onClick={handleSave}>
+                  <Button 
+                    variant="secondary" 
+                    onClick={handleSave}
+                    isDisabled={!targetCluster || !targetProject || isSameLocation}
+                  >
                     Save and migrate later
                   </Button>
                 </>
               ) : (
-                <Button variant="primary" onClick={onNext}>
+                <Button 
+                  variant="primary" 
+                  onClick={onNext}
+                  isDisabled={activeStep === 2 && (!targetCluster || !targetProject || isSameLocation)}
+                >
                   Next
                 </Button>
               )}
@@ -958,6 +1298,87 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         </div>
       )}
     </Modal>
+
+      {/* Status Warning Modal */}
+      <Modal
+        isOpen={isStatusWarningModalOpen}
+        variant={ModalVariant.small}
+        onClose={handleCancelMigration}
+        aria-label="VM migration status warning"
+      >
+        <div style={{ padding: '24px' }}>
+          <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Not all VMs will migrate
+          </Title>
+
+          <Content component="p" style={{ 
+            marginBottom: 'var(--pf-t--global--spacer--lg)',
+            fontSize: '16px',
+            lineHeight: '1.6'
+          }}>
+            To (live) migrate a VM, it must be running. <strong>{vmStatusCounts.nonRunning}</strong> out of selected <strong>{vmStatusCounts.total}</strong> virtual machines {vmStatusCounts.nonRunning === 1 ? 'is' : 'are'} not running. We can continue the migration with just the running VMs or you can start the stopped ones now.
+          </Content>
+          
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+            <Content component="p" style={{ 
+              fontWeight: 'bold', 
+              marginBottom: 'var(--pf-t--global--spacer--sm)',
+              fontSize: '15px'
+            }}>
+              Virtual machines statuses
+            </Content>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+              {Object.entries(vmStatusCounts.breakdown)
+                .sort(([statusA], [statusB]) => {
+                  // Show Running first, then alphabetically
+                  if (statusA === 'Running') return -1;
+                  if (statusB === 'Running') return 1;
+                  return statusA.localeCompare(statusB);
+                })
+                .map(([status, count]) => {
+                  const { Icon, color } = getStatusIcon(status);
+                  return (
+                    <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Icon style={{ color }} />
+                      <span style={{ fontSize: '15px' }}>
+                        <strong>{count}</strong> {count === 1 ? 'VM' : 'VMs'} {status.toLowerCase()}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+          
+          <Content component="p" style={{ 
+            color: 'var(--pf-t--global--text--color--subtle)',
+            fontSize: '14px',
+            lineHeight: '1.6'
+          }}>
+            If you would like to continue, only the selected <strong>{vmStatusCounts.running}</strong> running VMs will be available for migration.
+          </Content>
+
+          {/* Footer with buttons */}
+          <div style={{ 
+            marginTop: 'var(--pf-t--global--spacer--lg)',
+            paddingTop: 'var(--pf-t--global--spacer--md)',
+            borderTop: '1px solid var(--pf-t--global--border--color--default)'
+          }}>
+            <div style={{ 
+              display: 'flex',
+              gap: '8px',
+              justifyContent: 'flex-end'
+            }}>
+              <Button variant="link" onClick={handleCancelMigration}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleContinueWithRunningVMs}>
+                Continue to next step
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 };
 
