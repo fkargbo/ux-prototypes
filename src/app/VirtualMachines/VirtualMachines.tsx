@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link, Routes, Route, useLocation } from 'react-router-dom';
 import {
   Page,
   PageSection,
@@ -54,13 +55,15 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateActions,
+  LabelGroup,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { FilterIcon, EllipsisVIcon, CogIcon, AngleLeftIcon, AngleRightIcon, SyncAltIcon, RedoIcon, CheckIcon, PlusCircleIcon, ColumnsIcon, ServerIcon, ProjectDiagramIcon, ExclamationCircleIcon, OffIcon, PauseCircleIcon, MulticlusterIcon, CubesIcon, AngleDoubleDownIcon, AngleDoubleUpIcon, CaretDownIcon } from '@patternfly/react-icons';
+import { FilterIcon, EllipsisVIcon, CogIcon, AngleLeftIcon, AngleRightIcon, SyncAltIcon, RedoIcon, CheckIcon, PlusCircleIcon, ColumnsIcon, ServerIcon, ProjectDiagramIcon, ExclamationCircleIcon, OffIcon, PauseCircleIcon, MulticlusterIcon, CubesIcon, AngleDoubleDownIcon, AngleDoubleUpIcon, CaretDownIcon, DesktopIcon, CheckCircleIcon, ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import './VirtualMachines.css';
 import { getAllClusterSets, getClustersByClusterSet, getNamespacesByCluster, getVirtualMachinesByNamespace, getVirtualMachinesByCluster, getVirtualMachinesByClusterSet, getAllVirtualMachines, getAllNamespaces, getAllClusters } from '@app/data';
 import { MigrateVMsWizard } from './MigrateVMsWizard';
+import { VirtualMachineDetail } from './VirtualMachineDetail';
 import { useImpersonation } from '@app/contexts/ImpersonationContext';
 import { VirtualMachine } from '@app/data/schemas/virtualization';
 
@@ -124,6 +127,10 @@ interface VirtualMachinesProps {
 const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClusterOnly = false, showProjectsOnly = false }) => {
   useDocumentTitle('Virtual machines');
   const { impersonatingUser } = useImpersonation();
+  const location = useLocation();
+  
+  // Check if we're on a detail page
+  const isDetailPage = location.pathname.includes('/virtual-machines/') && location.pathname.split('/').length > 3;
   
   const [searchValue, setSearchValue] = React.useState('');
   const [sidebarSearch, setSidebarSearch] = React.useState('');
@@ -131,7 +138,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   const [isTreeExpanded, setIsTreeExpanded] = React.useState(true);
   const [expandedNodes, setExpandedNodes] = React.useState<string[]>([]);
   const [treeKey, setTreeKey] = React.useState(0);
-  const [selectedVMs, setSelectedVMs] = React.useState<number[]>([]);
+  const [selectedVMs, setSelectedVMs] = React.useState<string[]>([]);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(10);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
@@ -154,6 +161,15 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   const [isToolbarActionsOpen, setIsToolbarActionsOpen] = React.useState(false);
   const [isMigrateMenuOpen, setIsMigrateMenuOpen] = React.useState(false);
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = React.useState(false);
+  
+  // Create project form state
+  const [projectName, setProjectName] = React.useState('');
+  const [projectCluster, setProjectCluster] = React.useState('');
+  const [projectDisplayName, setProjectDisplayName] = React.useState('');
+  const [projectDescription, setProjectDescription] = React.useState('');
+  const [isClusterDropdownOpen, setIsClusterDropdownOpen] = React.useState(false);
+  const [clusterSearchValue, setClusterSearchValue] = React.useState('');
   
   // Filter states
   const [statusFilter, setStatusFilter] = React.useState<string>('All');
@@ -203,12 +219,16 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   const [isAdvSearchStorageOpen, setIsAdvSearchStorageOpen] = React.useState(false);
   const [isAdvSearchDateOpen, setIsAdvSearchDateOpen] = React.useState(false);
   
-  const [openRowMenuId, setOpenRowMenuId] = React.useState<number | null>(null);
-  const [openRowMigrateMenuId, setOpenRowMigrateMenuId] = React.useState<number | null>(null);
+  const [openRowMenuId, setOpenRowMenuId] = React.useState<string | null>(null);
+  const [openRowMigrateMenuId, setOpenRowMigrateMenuId] = React.useState<string | null>(null);
   const [rowMigrateMenuPosition, setRowMigrateMenuPosition] = React.useState<{ top: number; left: number } | null>(null);
+  
+  // Tree view context menu state
+  const [treeContextMenuOpen, setTreeContextMenuOpen] = React.useState<string | null>(null);
+  const [treeContextMenuPosition, setTreeContextMenuPosition] = React.useState<{ top: number; left: number } | null>(null);
   const [selectedColumns, setSelectedColumns] = React.useState({
     name: true,
-    namespace: true,
+    namespace: false,
     status: true,
     conditions: true,
     node: true,
@@ -344,18 +364,57 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         
         return matchesStatus && matchesOS && matchesSearch;
       })
-      .map((vm, index) => ({
-        id: index + 1,
+      .map((vm, index) => {
+        // Generate conditions for this VM
+        const conditions: string[] = [];
+        if (vm.status === 'Running') {
+          conditions.push('LiveMigratable=True');
+          conditions.push('DataVolumesReady=True');
+        } else if (vm.status === 'Starting') {
+          conditions.push('DataVolumesReady=True');
+        }
+        
+        // Some VMs don't have node or IP (e.g., when stopped or starting)
+        const hasNode = vm.status === 'Running' || vm.status === 'Paused';
+        const hasIP = vm.status === 'Running';
+        
+        // Get cluster, cluster set, and namespace/project names
+        const cluster = getAllClusters().find(c => c.id === vm.clusterId);
+        const clusterName = cluster?.name || vm.clusterId;
+        
+        // Find cluster set by checking which cluster set contains this cluster
+        const clusterSet = getAllClusterSets().find(cs => 
+          getClustersByClusterSet(cs.id).some(c => c.id === vm.clusterId)
+        );
+        const clusterSetName = clusterSet?.name || '-';
+        
+        const namespace = getAllNamespaces().find(ns => ns.id === vm.namespaceId);
+        const projectName = namespace?.name || vm.namespaceId;
+        
+        return {
+          id: vm.id, // Keep the original VM ID
+          originalId: vm.id, // Store for linking
         name: vm.name,
+          namespace: vm.namespaceId,
+          project: projectName,
+          cluster: clusterName,
+          clusterSet: clusterSetName,
         status: vm.status,
         os: vm.os,
         cpu: `${vm.cpu} vCPU`,
         memory: `${vm.memory}`,
         disk: `${vm.storage}`,
-        ip: vm.ipAddress,
+          ip: hasIP ? vm.ipAddress : undefined,
+          node: hasNode ? `worker-node-0${(index % 5) + 1}` : undefined,
+          conditions,
+          created: vm.created || 'N/A',
+          network: 'pod-network',
+          deletionProtection: index % 3 === 0,
+          storageClass: 'standard',
         labels: ['app:web', 'env:prod'], // Placeholder
         moreLabels: 0,
-      }));
+        };
+      });
   }, [
     selectedTreeNode, statusFilter, osFilter, searchValue, impersonatingUser, hubClusterOnly,
     isAdvancedSearchActive, advancedSearchName, advancedSearchCluster, advancedSearchProject,
@@ -365,6 +424,24 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
 
   // Get unique statuses and operating systems for filter options
   const allVMs = React.useMemo(() => getVMsForSelection(selectedTreeNode, impersonatingUser, hubClusterOnly), [selectedTreeNode, impersonatingUser, hubClusterOnly]);
+  
+  // Determine which context columns to show based on tree selection
+  const contextColumns = React.useMemo(() => {
+    if (!selectedTreeNode || selectedTreeNode === 'all-cluster-sets') {
+      return { showClusterSet: true, showCluster: true, showProject: true };
+    }
+    if (selectedTreeNode === 'all-projects-hub') {
+      // For Core Platforms "All projects" view, don't show cluster set or cluster
+      return { showClusterSet: false, showCluster: false, showProject: false };
+    }
+    if (selectedTreeNode.startsWith('clusterset-')) {
+      return { showClusterSet: false, showCluster: true, showProject: true };
+    }
+    if (selectedTreeNode.startsWith('cluster-')) {
+      return { showClusterSet: false, showCluster: false, showProject: true };
+    }
+    return { showClusterSet: false, showCluster: false, showProject: false };
+  }, [selectedTreeNode]);
   const availableStatuses = React.useMemo(() => 
     ['All', ...Array.from(new Set(allVMs.map(vm => vm.status)))],
     [allVMs]
@@ -490,7 +567,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   const handleRestoreDefaultColumns = () => {
     setSelectedColumns({
       name: true,
-      namespace: true,
+      namespace: false,
       status: true,
       conditions: true,
       node: true,
@@ -510,7 +587,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   };
 
   
-  const handleSelectVM = (vmId: number, isSelected: boolean) => {
+  const handleSelectVM = (vmId: string, isSelected: boolean) => {
     if (isSelected) {
       setSelectedVMs([...selectedVMs, vmId]);
     } else {
@@ -527,12 +604,12 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   };
   
   // Per-row actions dropdown handlers
-  const toggleRowMenu = (vmId: number) => {
+  const toggleRowMenu = (vmId: string) => {
     setOpenRowMenuId(openRowMenuId === vmId ? null : vmId);
     setOpenRowMigrateMenuId(null);
   };
 
-  const handleRowMigrateVM = (vmId: number) => {
+  const handleRowMigrateVM = (vmId: string) => {
     setSelectedVMs([vmId]);
     setIsMigrateWizardOpen(true);
     setOpenRowMenuId(null);
@@ -632,6 +709,12 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                 borderRadius: '4px',
                 fontWeight: isSelected ? 600 : 400
               }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTreeContextMenuPosition({ top: rect.bottom, left: rect.left });
+                setTreeContextMenuOpen(clusterSetId);
+              }}
             >
               <MulticlusterIcon />
               <span>{clusterSet.name}</span>
@@ -654,23 +737,37 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
             const clusterId = `cluster-${cluster.id}`;
             const isSelected = selectedTreeNode === clusterId;
             
+            // Calculate total VMs in this cluster
+            const vmsInCluster = getVirtualMachinesByCluster(cluster.id);
+            
             return {
               name: (
-                <span 
+                <div 
                   style={{ 
                     display: 'flex', 
+                    justifyContent: 'space-between', 
                     alignItems: 'center', 
-                    gap: '8px',
+                    width: '100%', 
+                    paddingRight: '16px',
                     backgroundColor: isSelected ? '#E7F1FA' : 'transparent',
                     padding: '4px 8px',
                     margin: '0 -8px',
                     borderRadius: '4px',
                     fontWeight: isSelected ? 600 : 400
                   }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setTreeContextMenuPosition({ top: rect.bottom, left: rect.left });
+                    setTreeContextMenuOpen(clusterId);
+                  }}
                 >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ServerIcon />
                   <span>{cluster.name}</span>
                 </span>
+                  <Label isCompact color="grey" style={{ flexShrink: 0 }}>{vmsInCluster.length}</Label>
+                </div>
               ),
               id: clusterId,
               defaultExpanded: expandedNodes.length > 0 
@@ -696,6 +793,12 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                         borderRadius: '4px',
                         fontWeight: isSelected ? 600 : 400
                       }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setTreeContextMenuPosition({ top: rect.bottom, left: rect.left });
+                        setTreeContextMenuOpen(namespaceId);
+                      }}
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <ProjectDiagramIcon />
@@ -716,15 +819,24 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                       name: (
                         <span 
                           style={{
-                            display: 'block',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
                             backgroundColor: isSelected ? '#E7F1FA' : 'transparent',
                             padding: '4px 8px',
                             margin: '0 -8px',
                             borderRadius: '4px',
                             fontWeight: isSelected ? 600 : 400
                           }}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTreeContextMenuPosition({ top: rect.bottom, left: rect.left });
+                            setTreeContextMenuOpen(vmId);
+                          }}
                         >
-                          {vm.name}
+                          <DesktopIcon />
+                          <span>{vm.name}</span>
                         </span>
                       ),
                       id: vmId,
@@ -778,7 +890,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         />
       </div>
 
-      <Divider style={{ margin: '16px 0' }} />
+      <Divider style={{ margin: '16px calc(-16px - 8px) 16px -16px', width: 'calc(100% + 32px + 8px)' }} />
 
       {/* Header above tree view */}
       <div style={{ 
@@ -810,8 +922,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
           icon={<PlusCircleIcon />}
           iconPosition="start"
           onClick={() => {
-            // TODO: Open create project modal/wizard
-            console.log('Create project clicked');
+            setIsCreateProjectModalOpen(true);
           }}
         >
           Create project
@@ -821,7 +932,6 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
       <TreeView
         key={treeKey}
         data={treeData}
-        hasGuides
         onSelect={(_event, item) => {
           if (item.id) {
             setSelectedTreeNode(item.id);
@@ -829,6 +939,86 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
           }
         }}
       />
+      
+      {/* Context Menu */}
+      {treeContextMenuOpen && treeContextMenuPosition && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 999,
+            }}
+            onClick={() => {
+              setTreeContextMenuOpen(null);
+              setTreeContextMenuPosition(null);
+            }}
+          />
+          <Dropdown
+            isOpen={true}
+            onSelect={() => {
+              setTreeContextMenuOpen(null);
+              setTreeContextMenuPosition(null);
+            }}
+            toggle={() => null}
+          >
+            <div
+              style={{
+                position: 'fixed',
+                top: `${treeContextMenuPosition.top}px`,
+                left: `${treeContextMenuPosition.left}px`,
+                zIndex: 1000,
+                backgroundColor: 'var(--pf-t--global--background--color--floating--default)',
+                border: '1px solid var(--pf-t--global--border--color--default)',
+                borderRadius: 'var(--pf-t--global--border--radius--small)',
+                boxShadow: 'var(--pf-t--global--box-shadow--md)',
+                minWidth: '200px',
+              }}
+            >
+              <DropdownList>
+                {treeContextMenuOpen.startsWith('clusterset-') && (
+                  <>
+                    <DropdownItem key="view">View cluster set details</DropdownItem>
+                    <DropdownItem key="manage">Manage cluster set</DropdownItem>
+                  </>
+                )}
+                {treeContextMenuOpen.startsWith('cluster-') && (
+                  <>
+                    <DropdownItem key="view">View cluster details</DropdownItem>
+                    <DropdownItem key="import">Import resources</DropdownItem>
+                    <DropdownItem key="manage">Manage cluster</DropdownItem>
+                  </>
+                )}
+                {treeContextMenuOpen.startsWith('namespace-') && (
+                  <>
+                    <DropdownItem key="view">View project details</DropdownItem>
+                    <DropdownItem key="create">Create virtual machine</DropdownItem>
+                    <DropdownItem key="manage">Manage project access</DropdownItem>
+                    <DropdownItem key="edit">Edit project</DropdownItem>
+                    <Divider />
+                    <DropdownItem key="delete">Delete project</DropdownItem>
+                  </>
+                )}
+                {treeContextMenuOpen.startsWith('vm-') && (
+                  <>
+                    <DropdownItem key="view">View details</DropdownItem>
+                    <DropdownItem key="console">Open console</DropdownItem>
+                    <DropdownItem key="start">Start</DropdownItem>
+                    <DropdownItem key="stop">Stop</DropdownItem>
+                    <DropdownItem key="restart">Restart</DropdownItem>
+                    <DropdownItem key="migrate">Migrate</DropdownItem>
+                    <Divider />
+                    <DropdownItem key="delete">Delete</DropdownItem>
+                  </>
+                )}
+              </DropdownList>
+            </div>
+          </Dropdown>
+        </>
+      )}
       
       <div
         className="sidebar-resize-handle"
@@ -860,6 +1050,186 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
   
   return (
     <>
+      {/* Create Project Modal */}
+      <Modal
+        variant={ModalVariant.medium}
+        isOpen={isCreateProjectModalOpen}
+        onClose={() => {
+          setIsCreateProjectModalOpen(false);
+          setProjectName('');
+          setProjectCluster('');
+          setProjectDisplayName('');
+          setProjectDescription('');
+          setClusterSearchValue('');
+        }}
+        aria-label="Create project"
+      >
+        <div style={{ padding: '24px' }}>
+          <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Create project
+          </Title>
+          
+          <Content component="p" style={{ 
+            marginBottom: 'var(--pf-t--global--spacer--md)',
+            fontSize: '15px',
+            lineHeight: '1.6'
+          }}>
+            An OpenShift project is an alternative representation of a Kubernetes namespace.
+          </Content>
+          
+          <Button 
+            component="a" 
+            variant="link" 
+            isInline 
+            icon={<ExternalLinkAltIcon />}
+            iconPosition="end"
+            style={{ padding: 0, marginBottom: '24px' }}
+          >
+            Learn more about working with projects
+          </Button>
+
+          <Form>
+            <FormGroup
+              label={
+                <span>
+                  Name{' '}
+                  <Tooltip content="A unique name for the project">
+                    <Button variant="plain" aria-label="More info" style={{ padding: 0, marginLeft: '4px', verticalAlign: 'middle' }}>
+                      <QuestionCircleIcon style={{ fontSize: '14px' }} />
+                    </Button>
+                  </Tooltip>
+                </span>
+              }
+              isRequired
+              fieldId="project-name"
+            >
+              <TextInput
+                isRequired
+                type="text"
+                id="project-name"
+                value={projectName}
+                onChange={(_event, value) => setProjectName(value)}
+              />
+            </FormGroup>
+
+            <FormGroup
+              label="Cluster"
+              fieldId="project-cluster"
+            >
+              <Select
+                isOpen={isClusterDropdownOpen}
+                selected={projectCluster}
+                onSelect={(_event, selection) => {
+                  setProjectCluster(selection as string);
+                  setIsClusterDropdownOpen(false);
+                  setClusterSearchValue('');
+                }}
+                onOpenChange={(isOpen) => {
+                  setIsClusterDropdownOpen(isOpen);
+                  if (!isOpen) {
+                    setClusterSearchValue('');
+                  }
+                }}
+                toggle={(toggleRef) => (
+                  <MenuToggle 
+                    ref={toggleRef}
+                    onClick={() => setIsClusterDropdownOpen(!isClusterDropdownOpen)}
+                    isExpanded={isClusterDropdownOpen}
+                    style={{ width: '100%' }}
+                  >
+                    {projectCluster || 'Select cluster'}
+                  </MenuToggle>
+                )}
+              >
+                <div style={{ padding: '8px' }}>
+                  <TextInput
+                    type="text"
+                    placeholder="Search clusters..."
+                    value={clusterSearchValue}
+                    onChange={(_event, value) => setClusterSearchValue(value)}
+                    aria-label="Search clusters"
+                  />
+                </div>
+                <Divider />
+                <SelectList>
+                  {getAllClusters()
+                    .filter(cluster => 
+                      cluster.name.toLowerCase().includes(clusterSearchValue.toLowerCase())
+                    )
+                    .map(cluster => (
+                      <SelectOption key={cluster.id} value={cluster.name}>
+                        {cluster.name}
+                      </SelectOption>
+                    ))}
+                  {getAllClusters().filter(cluster => 
+                    cluster.name.toLowerCase().includes(clusterSearchValue.toLowerCase())
+                  ).length === 0 && (
+                    <SelectOption isDisabled>No clusters found</SelectOption>
+                  )}
+                </SelectList>
+              </Select>
+            </FormGroup>
+
+            <FormGroup
+              label="Display name"
+              fieldId="project-display-name"
+            >
+              <TextInput
+                type="text"
+                id="project-display-name"
+                value={projectDisplayName}
+                onChange={(_event, value) => setProjectDisplayName(value)}
+              />
+            </FormGroup>
+
+            <FormGroup
+              label="Description"
+              fieldId="project-description"
+            >
+              <TextArea
+                id="project-description"
+                value={projectDescription}
+                onChange={(_event, value) => setProjectDescription(value)}
+                rows={3}
+              />
+            </FormGroup>
+          </Form>
+
+          <div style={{ marginTop: '24px', display: 'flex', gap: '16px' }}>
+            <Button 
+              key="create" 
+              variant="primary" 
+              isDisabled={!projectName}
+              onClick={() => {
+                console.log('Create project:', { projectName, projectCluster, projectDisplayName, projectDescription });
+                setIsCreateProjectModalOpen(false);
+                setProjectName('');
+                setProjectCluster('');
+                setProjectDisplayName('');
+                setProjectDescription('');
+                setClusterSearchValue('');
+              }}
+            >
+              Create
+            </Button>
+            <Button 
+              key="cancel" 
+              variant="link" 
+              onClick={() => {
+                setIsCreateProjectModalOpen(false);
+                setProjectName('');
+                setProjectCluster('');
+                setProjectDisplayName('');
+                setProjectDescription('');
+                setClusterSearchValue('');
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         variant={ModalVariant.medium}
         title="Manage columns"
@@ -1485,9 +1855,25 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     .slice(0, 5);
                   
                   // Search projects/namespaces
-                  const matchingProjects = getAllNamespaces()
-                    .filter(ns => ns.name.toLowerCase().includes(searchLower))
+                  const allMatchingProjects = getAllNamespaces()
+                    .filter(ns => ns.name.toLowerCase().includes(searchLower));
+                  
+                  // Filter projects based on toggle
+                  const matchingProjects = allMatchingProjects
+                    .filter(ns => {
+                      if (!showOnlyWithVMs) return true;
+                      const vmsInNamespace = getVirtualMachinesByNamespace(ns.id);
+                      return vmsInNamespace.length > 0;
+                    })
                     .slice(0, 5);
+                  
+                  // Count hidden projects (those with 0 VMs when toggle is on)
+                  const hiddenProjectsCount = showOnlyWithVMs 
+                    ? allMatchingProjects.filter(ns => {
+                        const vmsInNamespace = getVirtualMachinesByNamespace(ns.id);
+                        return vmsInNamespace.length === 0;
+                      }).length
+                    : 0;
                   
                   // Search virtual machines
                   const matchingVMs = getAllVirtualMachines()
@@ -1495,61 +1881,61 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     .slice(0, 5);
                   
                   const hasResults = matchingClusterSets.length > 0 || matchingClusters.length > 0 || 
-                                    matchingProjects.length > 0 || matchingVMs.length > 0;
+                                    matchingProjects.length > 0 || matchingVMs.length > 0 || hiddenProjectsCount > 0;
                   
                   return (
-                    <div
-                      className="search-dropdown-menu"
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        marginTop: '4px',
-                        zIndex: 1000,
+                  <div
+                    className="search-dropdown-menu"
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      marginTop: '4px',
+                      zIndex: 1000,
                         maxHeight: '400px',
                         overflowY: 'auto',
-                      }}
-                    >
-                      <Menu>
-                        <MenuContent>
-                          <MenuList>
+                    }}
+                  >
+                    <Menu>
+                      <MenuContent>
+                        <MenuList>
                             {matchingClusterSets.length > 0 && (
                               <>
                                 <MenuItem isDisabled>
                                   <strong>Cluster Sets</strong>
                                 </MenuItem>
                                 {matchingClusterSets.map((clusterSet) => (
-                                  <MenuItem 
+                              <MenuItem 
                                     key={clusterSet.id}
                                     icon={<MulticlusterIcon />}
-                                    onClick={() => {
+                                onClick={() => {
                                       const nodeId = `clusterset-${clusterSet.id}`;
                                       setSelectedTreeNode(nodeId);
                                       const nodesToExpand = [...expandParentNodes(nodeId), nodeId];
                                       setExpandedNodes(nodesToExpand);
                                       setTreeKey(prev => prev + 1);
                                       setSidebarSearch(clusterSet.name);
-                                      setIsSearchMenuOpen(false);
+                                  setIsSearchMenuOpen(false);
                                       setPage(1);
-                                    }}
-                                  >
-                                    <span>
-                                      <span style={{ color: 'var(--pf-t--global--color--brand--default)', fontWeight: 600 }}>
+                                }}
+                              >
+                                <span>
+                                  <span style={{ color: 'var(--pf-t--global--color--brand--default)', fontWeight: 600 }}>
                                         {clusterSet.name.substring(0, sidebarSearch.length)}
-                                      </span>
+                                  </span>
                                       {clusterSet.name.substring(sidebarSearch.length)}
-                                    </span>
-                                  </MenuItem>
-                                ))}
-                                <Divider />
+                                </span>
+                              </MenuItem>
+                            ))}
+                          <Divider />
                               </>
                             )}
                             {matchingClusters.length > 0 && (
                               <>
-                                <MenuItem isDisabled>
+                          <MenuItem isDisabled>
                                   <strong>Clusters</strong>
-                                </MenuItem>
+                          </MenuItem>
                                 {matchingClusters.map((cluster) => (
                                   <MenuItem 
                                     key={cluster.id}
@@ -1571,12 +1957,12 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                                       </span>
                                       {cluster.name.substring(sidebarSearch.length)}
                                     </span>
-                                  </MenuItem>
+                          </MenuItem>
                                 ))}
-                                <Divider />
+                          <Divider />
                               </>
                             )}
-                            {matchingProjects.length > 0 && (
+                            {(matchingProjects.length > 0 || hiddenProjectsCount > 0) && (
                               <>
                                 <MenuItem isDisabled>
                                   <strong>Projects</strong>
@@ -1612,6 +1998,32 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                                     </MenuItem>
                                   );
                                 })}
+                                {hiddenProjectsCount > 0 && (
+                                  <>
+                                    <MenuItem isDisabled>
+                                      <span style={{ 
+                                        color: 'var(--pf-t--global--text--color--subtle)', 
+                                        fontSize: '0.875rem'
+                                      }}>
+                                        {hiddenProjectsCount} project{hiddenProjectsCount > 1 ? 's' : ''} hidden (no VMs)
+                                      </span>
+                                    </MenuItem>
+                                    <MenuItem 
+                                      onClick={() => {
+                                        setShowOnlyWithVMs(false);
+                                        // Keep search open so user sees the newly revealed projects
+                                      }}
+                                    >
+                                      <Button 
+                                        variant="link" 
+                                        isInline 
+                                        style={{ padding: 0, fontSize: '0.875rem' }}
+                                      >
+                                        Show all projects
+                                </Button>
+                          </MenuItem>
+                                  </>
+                                )}
                                 <Divider />
                               </>
                             )}
@@ -1622,10 +2034,11 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                                 </MenuItem>
                                 {matchingVMs.map((vm) => {
                                   const cluster = getAllClusters().find(c => c.id === vm.clusterId);
+                                  const project = getAllNamespaces().find(n => n.id === vm.namespaceId);
                                   return (
                                     <MenuItem 
                                       key={vm.id}
-                                      icon={<CubesIcon />}
+                                      icon={<DesktopIcon />}
                                       onClick={() => {
                                         const nodeId = `vm-${vm.id}`;
                                         setSelectedTreeNode(nodeId);
@@ -1642,9 +2055,9 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                                           {vm.name.substring(0, sidebarSearch.length)}
                                         </span>
                                         {vm.name.substring(sidebarSearch.length)}
-                                        {cluster && (
+                                        {project && cluster && (
                                           <span style={{ color: '#6A6E73', fontSize: '0.875rem', marginLeft: '8px' }}>
-                                            ({cluster.name})
+                                            ({project.name} · {cluster.name})
                                           </span>
                                         )}
                                       </span>
@@ -1674,10 +2087,10 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                                 </div>
                               </div>
                             )}
-                          </MenuList>
-                        </MenuContent>
-                      </Menu>
-                    </div>
+                        </MenuList>
+                      </MenuContent>
+                    </Menu>
+                  </div>
                   );
                 })()}
               </div>
@@ -1719,8 +2132,18 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                 )}
               >
                 <DropdownList>
-                  <DropdownItem key="search1">Search 1</DropdownItem>
-                  <DropdownItem key="search2">Search 2</DropdownItem>
+                  <DropdownItem isDisabled>
+                    <div style={{ 
+                      padding: '16px',
+                      textAlign: 'center',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      width: '280px',
+                      whiteSpace: 'normal',
+                      lineHeight: '1.5'
+                    }}>
+                      When you search for something and click 'Save search', it'll show up here.
+                    </div>
+                  </DropdownItem>
                 </DropdownList>
               </Dropdown>
             </FlexItem>
@@ -1796,6 +2219,15 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     onClick={() => {}}
                     isExpanded={false}
                   >
+                    Cluster: {advancedSearchCluster !== 'all' ? getAllClusters().find(c => c.id === advancedSearchCluster)?.name : 'All'}
+                  </MenuToggle>
+                </FlexItem>
+                <FlexItem>
+                  <MenuToggle
+                    variant="default"
+                    onClick={() => {}}
+                    isExpanded={false}
+                  >
                     Project: {advancedSearchProject !== 'all' ? getAllNamespaces().find(ns => ns.id === advancedSearchProject)?.name : 'All'}
                   </MenuToggle>
                 </FlexItem>
@@ -1805,7 +2237,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     onClick={() => {}}
                     isExpanded={false}
                   >
-                    Status: {advancedSearchStatus || 'All'}
+                    Storage class: {advancedSearchStorageClass || 'All'}
                   </MenuToggle>
                 </FlexItem>
                 <FlexItem>
@@ -1814,7 +2246,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     onClick={() => {}}
                     isExpanded={false}
                   >
-                    Operating system: {advancedSearchOS || 'All'}
+                    Hardware devices: {advancedSearchGPU || advancedSearchHostDevices ? 'Selected' : 'All'}
                   </MenuToggle>
                 </FlexItem>
                 <FlexItem>
@@ -1823,7 +2255,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     onClick={() => {}}
                     isExpanded={false}
                   >
-                    Storage class
+                    Scheduling: {advancedSearchDateCreated !== 'any' ? advancedSearchDateCreated : 'All'}
                   </MenuToggle>
                 </FlexItem>
                 <FlexItem>
@@ -1832,25 +2264,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     onClick={() => {}}
                     isExpanded={false}
                   >
-                    Hardware devices
-                  </MenuToggle>
-                </FlexItem>
-                <FlexItem>
-                  <MenuToggle
-                    variant="default"
-                    onClick={() => {}}
-                    isExpanded={false}
-                  >
-                    Scheduling
-                  </MenuToggle>
-                </FlexItem>
-                <FlexItem>
-                  <MenuToggle
-                    variant="default"
-                    onClick={() => {}}
-                    isExpanded={false}
-                  >
-                    Node
+                    Node: All
                   </MenuToggle>
                 </FlexItem>
               </Flex>
@@ -1977,7 +2391,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         <Button
           variant="plain"
           className="sidebar-toggle"
-          style={{ left: isSidebarCollapsed ? '-14px' : `${sidebarWidth - 14}px` }}
+          style={{ left: isSidebarCollapsed ? '0px' : `${sidebarWidth - 14}px` }}
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
@@ -1986,6 +2400,10 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
         )}
         
         <div className="vm-main-content">
+          {isDetailPage ? (
+            <VirtualMachineDetail />
+          ) : (
+          <>
           {!isAdvancedSearchActive && breadcrumbHierarchy && (
           <div style={{ marginBottom: '16px', marginLeft: '-8px' }}>
             <Button
@@ -2066,48 +2484,72 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                       <FlexItem>
                         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
                           <FlexItem>
+                            <Button
+                              variant="plain"
+                              onClick={() => setStatusFilter('Error')}
+                              style={{ padding: '8px', cursor: 'pointer' }}
+                            >
                             <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                               <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                                 <FlexItem>
                                   <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--danger--default)', fontSize: '16px' }} />
                                 </FlexItem>
-                                <FlexItem style={{ fontSize: '24px' }}>{vmStatusCounts.Error}</FlexItem>
+                                  <FlexItem style={{ fontSize: '24px', color: 'var(--pf-t--global--color--brand--default)' }}>{vmStatusCounts.Error}</FlexItem>
                               </Flex>
                               <FlexItem style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>Error</FlexItem>
                             </Flex>
+                            </Button>
                           </FlexItem>
                           <FlexItem>
+                            <Button
+                              variant="plain"
+                              onClick={() => setStatusFilter('Running')}
+                              style={{ padding: '8px', cursor: 'pointer' }}
+                            >
                             <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                               <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                                 <FlexItem>
                                   <SyncAltIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)', fontSize: '16px' }} />
                                 </FlexItem>
-                                <FlexItem style={{ fontSize: '24px' }}>{vmStatusCounts.Running}</FlexItem>
+                                  <FlexItem style={{ fontSize: '24px', color: 'var(--pf-t--global--color--brand--default)' }}>{vmStatusCounts.Running}</FlexItem>
                               </Flex>
                               <FlexItem style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>Running</FlexItem>
                             </Flex>
+                            </Button>
                           </FlexItem>
                           <FlexItem>
+                            <Button
+                              variant="plain"
+                              onClick={() => setStatusFilter('Stopped')}
+                              style={{ padding: '8px', cursor: 'pointer' }}
+                            >
                             <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                               <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                                 <FlexItem>
                                   <OffIcon style={{ color: 'var(--pf-t--global--icon--color--regular)', fontSize: '16px' }} />
                                 </FlexItem>
-                                <FlexItem style={{ fontSize: '24px' }}>{vmStatusCounts.Stopped}</FlexItem>
+                                  <FlexItem style={{ fontSize: '24px', color: 'var(--pf-t--global--color--brand--default)' }}>{vmStatusCounts.Stopped}</FlexItem>
                               </Flex>
                               <FlexItem style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>Stopped</FlexItem>
                             </Flex>
+                            </Button>
                           </FlexItem>
                           <FlexItem>
+                            <Button
+                              variant="plain"
+                              onClick={() => setStatusFilter('Paused')}
+                              style={{ padding: '8px', cursor: 'pointer' }}
+                            >
                             <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                               <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                                 <FlexItem>
                                   <PauseCircleIcon style={{ color: 'var(--pf-t--global--icon--color--regular)', fontSize: '16px' }} />
                                 </FlexItem>
-                                <FlexItem style={{ fontSize: '24px' }}>{vmStatusCounts.Paused}</FlexItem>
+                                  <FlexItem style={{ fontSize: '24px', color: 'var(--pf-t--global--color--brand--default)' }}>{vmStatusCounts.Paused}</FlexItem>
                               </Flex>
                               <FlexItem style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>Paused</FlexItem>
                             </Flex>
+                            </Button>
                           </FlexItem>
                         </Flex>
                       </FlexItem>
@@ -2181,7 +2623,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
               </EmptyStateActions>
             </EmptyState>
           ) : (
-          <div className="table-content-card">
+          <>
             <Toolbar>
               <ToolbarContent style={{ gap: '8px' }}>
                 <ToolbarItem>
@@ -2204,7 +2646,7 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                       >
                         <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                           <FlexItem>
-                            <Checkbox
+                  <Checkbox
                               isChecked={isAllPageSelected}
                               onChange={(event, checked) => {
                                 event.stopPropagation();
@@ -2235,6 +2677,8 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     </DropdownList>
                   </Dropdown>
                 </ToolbarItem>
+                {!isAdvancedSearchActive && (
+                  <>
                 <ToolbarItem>
                   <Dropdown
                     isOpen={isStatusFilterOpen}
@@ -2297,6 +2741,17 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                     </DropdownList>
                   </Dropdown>
                 </ToolbarItem>
+                  </>
+                )}
+                {!isAdvancedSearchActive && statusFilter !== 'All' && (
+                  <ToolbarItem>
+                    <LabelGroup categoryName="Status">
+                      <Label color="blue" onClose={() => setStatusFilter('All')}>
+                        {statusFilter}
+                      </Label>
+                    </LabelGroup>
+                  </ToolbarItem>
+                )}
                 <ToolbarItem>
                   <SearchInput
                     placeholder="Search by name, IP, cluster, or namespace"
@@ -2483,13 +2938,21 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
               <Thead>
                 <Tr>
                   <Th></Th>
-                  <Th>Name</Th>
-                  <Th>Status</Th>
-                  <Th>CPU usage</Th>
-                  <Th>Memory usage</Th>
-                  <Th>Disk usage</Th>
-                  <Th>IP address</Th>
-                  <Th>Labels</Th>
+                  {selectedColumns.name && <Th>Name</Th>}
+                  {contextColumns.showClusterSet && <Th>Cluster set</Th>}
+                  {contextColumns.showCluster && <Th>Cluster</Th>}
+                  {contextColumns.showProject && <Th>Project</Th>}
+                  {selectedColumns.namespace && <Th>Namespace</Th>}
+                  {selectedColumns.status && <Th>Status</Th>}
+                  {selectedColumns.conditions && <Th>Conditions</Th>}
+                  {selectedColumns.node && <Th>Node</Th>}
+                  {selectedColumns.ipAddress && <Th>IP address</Th>}
+                  {selectedColumns.created && <Th>Created</Th>}
+                  {selectedColumns.memory && <Th>Memory</Th>}
+                  {selectedColumns.cpu && <Th>CPU</Th>}
+                  {selectedColumns.network && <Th>Network</Th>}
+                  {selectedColumns.deletionProtection && <Th>Deletion protection</Th>}
+                  {selectedColumns.storageClass && <Th>Storage class</Th>}
                   <Th></Th>
                 </Tr>
               </Thead>
@@ -2504,30 +2967,75 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                         onChange={(_event, checked) => handleSelectVM(vm.id, checked)}
                       />
                     </Td>
-                    <Td dataLabel="Name">{vm.name}</Td>
+                    {selectedColumns.name && (
+                      <Td dataLabel="Name">
+                        <Link to={`/virtualization/virtual-machines/${vm.id}`} style={{ color: 'var(--pf-t--global--color--brand--default)', textDecoration: 'none' }}>
+                          {vm.name}
+                        </Link>
+                      </Td>
+                    )}
+                    {contextColumns.showClusterSet && (
+                      <Td dataLabel="Cluster set">{vm.clusterSet}</Td>
+                    )}
+                    {contextColumns.showCluster && (
+                      <Td dataLabel="Cluster">{vm.cluster}</Td>
+                    )}
+                    {contextColumns.showProject && (
+                      <Td dataLabel="Project">{vm.project}</Td>
+                    )}
+                    {selectedColumns.namespace && (
+                      <Td dataLabel="Namespace">{vm.namespace || 'default'}</Td>
+                    )}
+                    {selectedColumns.status && (
                     <Td dataLabel="Status">
                       <Label color={vm.status === 'Running' ? 'green' : vm.status === 'Error' ? 'red' : 'grey'}>
                         {vm.status}
                       </Label>
                     </Td>
-                    <Td dataLabel="CPU usage">{vm.cpu}</Td>
-                    <Td dataLabel="Memory usage">{vm.memory}</Td>
-                    <Td dataLabel="Disk usage">{vm.disk}</Td>
-                    <Td dataLabel="IP address">{vm.ip}</Td>
-                    <Td dataLabel="Labels">
-                      <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-                        {vm.labels.slice(0, 2).map((label, idx) => (
-                          <FlexItem key={idx}>
-                            <Label>{label}</Label>
-                          </FlexItem>
-                        ))}
-                        {vm.moreLabels > 0 && (
-                          <FlexItem>
-                            <Label>{vm.moreLabels} more</Label>
-                          </FlexItem>
-                        )}
-                      </Flex>
+                    )}
+                    {selectedColumns.conditions && (
+                      <Td dataLabel="Conditions">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {vm.conditions && vm.conditions.length > 0 ? (
+                            vm.conditions.map((condition, idx) => (
+                              <div key={idx}>
+                                <Label color="grey" isCompact>{condition}</Label>
+                              </div>
+                            ))
+                          ) : (
+                            <span>-</span>
+                          )}
+                        </div>
                     </Td>
+                    )}
+                    {selectedColumns.node && (
+                      <Td dataLabel="Node">{vm.node || '-'}</Td>
+                    )}
+                    {selectedColumns.ipAddress && (
+                      <Td dataLabel="IP address">{vm.ip || '-'}</Td>
+                    )}
+                    {selectedColumns.created && (
+                      <Td dataLabel="Created">{vm.created || 'N/A'}</Td>
+                    )}
+                    {selectedColumns.memory && (
+                      <Td dataLabel="Memory">{vm.memory}</Td>
+                    )}
+                    {selectedColumns.cpu && (
+                      <Td dataLabel="CPU">{vm.cpu}</Td>
+                    )}
+                    {selectedColumns.network && (
+                      <Td dataLabel="Network">{vm.network || 'pod-network'}</Td>
+                    )}
+                    {selectedColumns.deletionProtection && (
+                      <Td dataLabel="Deletion protection">
+                        <Label color={vm.deletionProtection ? 'blue' : 'grey'}>
+                          {vm.deletionProtection ? 'Enabled' : 'Disabled'}
+                        </Label>
+                    </Td>
+                    )}
+                    {selectedColumns.storageClass && (
+                      <Td dataLabel="Storage class">{vm.storageClass || 'standard'}</Td>
+                    )}
                     <Td isActionCell style={{ textAlign: 'right', position: 'relative' }}>
                       <Dropdown
                         isOpen={openRowMenuId === vm.id}
@@ -2690,7 +3198,9 @@ const VirtualMachines: React.FunctionComponent<VirtualMachinesProps> = ({ hubClu
                 </ToolbarItem>
               </ToolbarContent>
             </Toolbar>
-          </div>
+          </>
+          )}
+          </>
           )}
         </div>
       </div>

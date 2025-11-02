@@ -26,6 +26,7 @@
   flex: 1;
   overflow: hidden;
   position: relative;
+  isolation: isolate;
 }
 
 body.resizing-sidebar {
@@ -44,7 +45,7 @@ body.resizing-sidebar * {
 .sidebar-toggle {
   position: absolute;
   top: 80px;
-  z-index: 100;
+  z-index: 1000;
   background-color: var(--pf-t--global--background--color--primary--default);
   border: 1px solid var(--pf-t--global--border--color--default);
   border-radius: 50%;
@@ -71,7 +72,7 @@ body.resizing-sidebar * {
 }
 
 .vm-content-wrapper.sidebar-collapsed .sidebar-toggle {
-  left: -14px;
+  left: 0px;
 }
 
 .vm-sidebar {
@@ -107,6 +108,9 @@ body.resizing-sidebar * {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
+  background-color: var(--pf-t--global--background--color--primary--default);
+  position: relative;
+  z-index: 1;
 }
 
 .vm-sidebar .pf-v6-c-tree-view {

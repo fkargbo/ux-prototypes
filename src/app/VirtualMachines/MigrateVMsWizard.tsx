@@ -15,7 +15,7 @@ import {
 interface MigrateVMsWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedVMs: number[];
+  selectedVMs: string[];
 }
 
 export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = ({

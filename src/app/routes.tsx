@@ -73,6 +73,11 @@ const routes: AppRouteConfig[] = [
     title: 'Virtual machines',
   },
   {
+    element: <VirtualMachines />,
+    path: '/virtualization/virtual-machines/:vmId',
+    title: 'Virtual Machine Details',
+  },
+  {
     element: <InstanceTypes />,
     path: '/virtualization/instance-types',
     title: 'InstanceTypes',
