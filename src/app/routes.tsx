@@ -30,6 +30,8 @@ import {
   VirtualMachines,
 } from '@app/utils/useCaseComponents';
 import { CCLMOverview } from '@app/use-case-cclm/CCLMOverview';
+import { MigrationPlans } from '@app/use-case-cclm/Migration/MigrationPlans';
+import { CreateMigrationPlan } from '@app/use-case-cclm/Migration/CreateMigrationPlan';
 // Shared copies for non-CCLM routes (so editing originals only affects CCLM)
 import { OverviewPage } from '@app/shared-fleet-virtualization/EmptyPages';
 import Virtualization from '@app/shared-fleet-virtualization/Virtualization';
@@ -76,6 +78,16 @@ const routes: AppRouteConfig[] = [
     element: <VirtualMachines />,
     path: '/virtualization/virtual-machines/:vmId',
     title: 'Virtual Machine Details',
+  },
+  {
+    element: <MigrationPlans />,
+    path: '/virtualization/migration',
+    title: 'Migration',
+  },
+  {
+    element: <CreateMigrationPlan />,
+    path: '/virtualization/migration/create',
+    title: 'Create migration plan',
   },
   {
     element: <InstanceTypes />,

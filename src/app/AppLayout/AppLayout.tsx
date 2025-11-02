@@ -56,6 +56,7 @@ import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
 import { Catalog } from '@app/FleetVirtualization/Catalog';
 import { Templates } from '@app/FleetVirtualization/Templates';
 import { InstanceTypes } from '@app/FleetVirtualization/InstanceTypes';
+import { MigrationPlans } from '@app/use-case-cclm/Migration/MigrationPlans';
 import {
   BarsIcon,
   CaretDownIcon,
@@ -344,6 +345,17 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         },
       ],
     },
+    ...(useCase === 'use-case-cclm' ? [{
+      label: 'Migration',
+      routes: [
+        {
+          element: <MigrationPlans />,
+          label: 'Migration plans',
+          path: '/virtualization/migration',
+          title: 'Migration plans',
+        },
+      ],
+    }] : []),
     {
       label: '',
       routes: [
