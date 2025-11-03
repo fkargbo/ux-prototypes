@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   AlertActionCloseButton,
+  Breadcrumb,
+  BreadcrumbItem,
   Bullseye,
   Button,
   Card,
@@ -17,6 +19,9 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
   Flex,
   FlexItem,
   Gallery,
@@ -25,6 +30,7 @@ import {
   LabelGroup,
   List,
   ListItem,
+  MenuToggle,
   Modal,
   PageSection,
   PageSectionVariants,
@@ -334,6 +340,7 @@ const OperatorHub: React.FunctionComponent = () => {
   const [updatesBannerDismissed, setUpdatesBannerDismissed] = React.useState(false);
   const [isMigrationGuideOpen, setIsMigrationGuideOpen] = React.useState(false);
   const [navigateToLifecycle, setNavigateToLifecycle] = React.useState(false);
+  const [isActionsOpen, setIsActionsOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (navigateToLifecycle) {
@@ -655,71 +662,54 @@ const OperatorHub: React.FunctionComponent = () => {
 
   return (
     <React.Fragment>
-      <div className="catalog-app" style={{ padding: '24px' }}>
-          <Stack hasGutter>
-            <StackItem>
-              <Split hasGutter className="pf-u-align-items-center">
-                <SplitItem isFilled>
-                  <Title headingLevel="h1" size="xl">
-                Software Catalog
-              </Title>
-                  <p className="pf-u-mt-sm pf-u-color-200">
-                    Discover and install software from multiple catalogs. Browse operators, applications, and services available for your OpenShift cluster.
-                  </p>
-                </SplitItem>
-              </Split>
-            </StackItem>
-            {showOllmControls && !updatesBannerDismissed && (
-              <StackItem>
-                <Alert
-                  variant="warning"
-                  title="5 software updates available"
-                  actionClose={<AlertActionCloseButton onClose={() => setUpdatesBannerDismissed(true)} />}
-                  isInline
-                >
-                  Review pending updates to keep your cluster healthy.{' '}
-                  <Button variant="link" isInline onClick={() => setNavigateToLifecycle(true)}>
-                    Manage software
-                  </Button>
-                </Alert>
-              </StackItem>
+      <div className="software-catalog-page">
+        {/* Breadcrumb */}
+        <div className="software-catalog-breadcrumb">
+          <Breadcrumb>
+            <BreadcrumbItem to="#">Ecosystem</BreadcrumbItem>
+            <BreadcrumbItem to="#" isActive>Software Catalog</BreadcrumbItem>
+          </Breadcrumb>
+        </div>
+
+        {/* Page Header */}
+        <div className="software-catalog-header">
+          <Title headingLevel="h1" size="2xl">
+            Software Catalog
+          </Title>
+          <p className="software-catalog-description">
+            Add shared applications, services, event sources, or source-to-image builders to your Project from the software catalog. Cluster administrators can customize the content made available in the catalog.
+          </p>
+        </div>
+
+        {/* Search and Actions */}
+        <div className="software-catalog-toolbar">
+          <SearchInput
+            placeholder="Find by name"
+            value={search}
+            onChange={(_, value) => setSearch(value)}
+            onClear={() => setSearch('')}
+            style={{ width: '300px' }}
+          />
+          <Dropdown
+            isOpen={isActionsOpen}
+            onSelect={() => setIsActionsOpen(false)}
+            onOpenChange={(isOpen: boolean) => setIsActionsOpen(isOpen)}
+            toggle={(toggleRef: React.Ref<any>) => (
+              <MenuToggle ref={toggleRef} onClick={() => setIsActionsOpen(!isActionsOpen)} isExpanded={isActionsOpen}>
+                Actions
+              </MenuToggle>
             )}
-            <StackItem>
-              <Toolbar inset={{ default: 'insetNone' }}>
-              <ToolbarContent>
-                  <ToolbarGroup variant="filter-group">
-                    <ToolbarItem>
-                  <SearchInput
-                        aria-label="Filter catalog by keyword"
-                        value={search}
-                        onChange={(_, value) => setSearch(value)}
-                        onClear={() => setSearch('')}
-                        placeholder="Filter by keyword..."
-                      />
-                    </ToolbarItem>
-                  </ToolbarGroup>
-                  {showOllmControls && mode === 'v1' && (
-                    <ToolbarGroup>
-                      <ToolbarItem>
-                        <Button variant="secondary" onClick={() => setManageSourcesOpen(true)}>
-                          Manage catalog sources
-                        </Button>
-                </ToolbarItem>
-                <ToolbarItem>
-                        <Button variant="secondary" onClick={() => setAddSourceOpen(true)}>
-                          Add catalog source
-                        </Button>
-                </ToolbarItem>
-                    </ToolbarGroup>
-                  )}
-              </ToolbarContent>
-            </Toolbar>
-            </StackItem>
-          </Stack>
+          >
+            <DropdownList>
+              <DropdownItem onClick={() => setManageSourcesOpen(true)}>Manage catalog sources</DropdownItem>
+              <DropdownItem onClick={() => setAddSourceOpen(true)}>Add catalog source</DropdownItem>
+            </DropdownList>
+          </Dropdown>
+        </div>
 
-        <Divider />
-
-          <Sidebar className="catalog-app__sidebar" hasGutter style={{ marginTop: '16px' }}>
+        {/* Main Content: Sidebar + Content */}
+        <div className="software-catalog-main">
+          <Sidebar className="catalog-app__sidebar" hasGutter>
             <SidebarPanel width={{ default: 'width_25' }} variant="sticky">
               <Stack hasGutter>
                 <StackItem>
@@ -1020,6 +1010,7 @@ const OperatorHub: React.FunctionComponent = () => {
               )}
             </SidebarContent>
           </Sidebar>
+        </div>
       </div>
 
       {renderInstallModal()}
