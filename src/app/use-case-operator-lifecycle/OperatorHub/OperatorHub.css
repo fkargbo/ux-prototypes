@@ -1,31 +1,24 @@
-/* Reset and base styles */
+/* Main page container - all white */
 .software-catalog-page {
   background-color: #fff;
   min-height: 100vh;
 }
 
-/* Breadcrumb section */
+/* Breadcrumb */
 .software-catalog-breadcrumb {
   padding: 16px 24px;
   border-bottom: 1px solid #d2d2d2;
-  background-color: #fff;
 }
 
-.software-catalog-breadcrumb .pf-c-breadcrumb {
-  margin: 0;
-}
-
-/* Page header */
+/* Page Header */
 .software-catalog-header {
-  padding: 20px 24px 16px 24px;
-  background-color: #fff;
+  padding: 24px 24px 16px 24px;
 }
 
 .software-catalog-header h1 {
   margin: 0 0 8px 0;
   font-size: 24px;
-  font-weight: 500;
-  color: #151515;
+  font-weight: 400;
 }
 
 .software-catalog-description {
@@ -35,82 +28,73 @@
   line-height: 1.5;
 }
 
-/* Search toolbar */
+/* Toolbar (Search + Actions) */
 .software-catalog-toolbar {
   padding: 16px 24px;
   display: flex;
   gap: 12px;
   align-items: center;
-  background-color: #fff;
   border-bottom: 1px solid #d2d2d2;
 }
 
-/* Main content area - sidebar + cards */
+/* Main Content Area - white background */
 .software-catalog-main {
   display: flex;
+  min-height: calc(100vh - 250px);
   background-color: #fff;
-  min-height: calc(100vh - 240px);
 }
 
-/* Sidebar panel styling */
+/* Sidebar Styling - white background */
 .software-catalog-main .pf-c-sidebar {
-  background-color: #fff;
+  margin: 0;
 }
 
 .software-catalog-main .pf-c-sidebar__panel {
   background-color: #fff;
   border-right: 1px solid #d2d2d2;
   padding: 24px 16px;
-  width: 240px;
-  min-width: 240px;
-  flex-shrink: 0;
+  width: 220px !important;
+  min-width: 220px;
 }
 
 .software-catalog-main .pf-c-sidebar__content {
   background-color: #fff;
   padding: 24px;
   flex: 1;
-  overflow-y: auto;
 }
 
-/* Remove default sidebar gaps */
-.software-catalog-main .pf-c-sidebar__main {
-  gap: 0 !important;
-}
-
-/* Catalog facets (filters in sidebar) */
+/* Filter Headings */
 .catalog-facets__heading {
   font-size: 14px;
   font-weight: 600;
-  color: #151515;
   margin: 0 0 12px 0;
+  color: #151515;
 }
 
 .catalog-facets__heading-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
+/* Filter Buttons */
 .catalog-facets__list {
   list-style: none;
   padding: 0;
   margin: 0 0 24px 0;
 }
 
-/* Filter buttons */
 .catalog-facets__button {
-  display: block;
+  justify-content: flex-start;
   width: 100%;
   text-align: left;
   padding: 6px 8px;
   font-size: 14px;
   color: #151515;
-  background: transparent;
   border: none;
+  background: transparent;
   cursor: pointer;
-  border-radius: 3px;
 }
 
 .catalog-facets__button:hover {
@@ -118,18 +102,16 @@
 }
 
 .catalog-facets__button--active {
-  color: #0066cc;
+  color: #06c;
   font-weight: 600;
-  background-color: transparent;
 }
 
 .catalog-facets__show-more {
   margin-top: 8px;
+  padding: 6px 8px;
   font-size: 14px;
-  padding: 4px 8px;
 }
 
-/* Catalog version toggle group */
 .catalog-facets__catalog-version {
   margin-bottom: 24px;
 }
@@ -137,21 +119,86 @@
 .catalog-version__toggle-text {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 14px;
 }
 
 .catalog-version__badge {
   font-size: 11px;
-  padding: 2px 6px;
+  line-height: 1;
 }
 
-/* Subheading in filters */
 .catalog-facets__subheading {
   font-size: 13px;
   font-weight: 600;
   color: #151515;
-  margin: 16px 0 8px 0;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+/* Operator Cards Grid */
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 0;
+}
+
+.catalog-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #fff;
+  border: 1px solid #d2d2d2;
+  border-radius: 3px;
+  transition: box-shadow 0.2s;
+}
+
+.catalog-card:hover {
+  box-shadow: 0 2px 8px rgba(3, 3, 3, 0.16);
+  cursor: pointer;
+}
+
+.catalog-card .pf-c-card__header {
+  padding: 16px 16px 0 16px;
+}
+
+.catalog-card__body {
+  flex: 1;
+  padding: 16px;
+}
+
+.catalog-card__body h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.catalog-card__description {
+  color: #6a6e73;
+  font-size: 14px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.catalog-card__footer {
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Labels in cards */
+.catalog-card .pf-c-label-group {
+  margin-bottom: 8px;
+}
+
+.catalog-card .pf-c-label {
+  font-size: 12px;
+  margin-right: 4px;
+  margin-bottom: 4px;
 }
 
 /* Checkboxes in sidebar */
@@ -164,117 +211,24 @@
   color: #151515;
 }
 
-/* Stack items in sidebar */
-.software-catalog-main .pf-c-sidebar__panel .pf-c-stack {
-  gap: 0;
-}
-
-.software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item {
-  margin-bottom: 24px;
-}
-
-.software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item:last-child {
-  margin-bottom: 0;
-}
-
-/* Divider in sidebar */
-.software-catalog-main .pf-c-divider {
-  margin: 24px 0;
-  background-color: #d2d2d2;
-}
-
-/* Operator cards grid */
-.catalog-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-/* Individual operator card */
-.catalog-card {
-  display: flex;
-  flex-direction: column;
-  background-color: #fff;
-  border: 1px solid #d2d2d2;
-  border-radius: 3px;
-  transition: box-shadow 0.2s ease;
-  height: 100%;
-}
-
-.catalog-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-}
-
-/* Card header with icon and labels */
-.catalog-card .pf-c-card__header {
-  padding: 16px 16px 0 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-/* Card body with title and description */
-.catalog-card__body {
-  flex: 1;
-  padding: 12px 16px 16px 16px;
-}
-
-.catalog-card__body h3 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #151515;
-  line-height: 1.3;
-}
-
-.catalog-card__description {
-  color: #6a6e73;
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Card footer with metadata */
-.catalog-card__footer {
-  padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* Labels in cards */
-.catalog-card .pf-c-label-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.catalog-card .pf-c-label {
-  font-size: 12px;
-}
-
-/* Details drawer */
+/* Drawer/Details */
 .catalog-details__header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 16px;
   margin-bottom: 16px;
 }
 
 .catalog-details__source {
   color: #6a6e73;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   font-size: 11px;
   font-weight: 600;
-  margin-bottom: 8px;
 }
 
-/* Install modal */
+/* Install Modal */
 .catalog-install__summary {
   display: flex;
   justify-content: space-between;
@@ -282,33 +236,47 @@
   gap: 16px;
 }
 
-/* Empty state */
+/* Empty State */
 .catalog-empty__icon {
   font-size: 48px;
   color: #6a6e73;
-  margin-bottom: 16px;
+  text-align: center;
 }
 
-/* Responsive adjustments */
+/* Remove extra gaps from Sidebar */
+.software-catalog-main .pf-c-sidebar__main {
+  gap: 0 !important;
+}
+
+/* Stack spacing inside sidebar */
+.software-catalog-main .pf-c-sidebar__panel .pf-c-stack {
+  gap: 0;
+}
+
+.software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item {
+  margin-bottom: 0;
+}
+
+/* Divider in sidebar */
+.software-catalog-main .pf-c-divider {
+  margin: 20px 0;
+  background-color: #d2d2d2;
+}
+
+/* Responsive */
 @media (max-width: 1200px) {
   .catalog-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 20px;
   }
 }
 
 @media (max-width: 768px) {
-  .software-catalog-main {
-    flex-direction: column;
+  .catalog-grid {
+    grid-template-columns: 1fr;
   }
   
   .software-catalog-main .pf-c-sidebar__panel {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #d2d2d2;
-  }
-  
-  .catalog-grid {
-    grid-template-columns: 1fr;
+    width: 180px !important;
+    min-width: 180px;
   }
 }
