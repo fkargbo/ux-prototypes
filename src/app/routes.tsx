@@ -32,6 +32,7 @@ import {
 import { CCLMOverview } from '@app/use-case-cclm/CCLMOverview';
 import { MigrationPlans } from '@app/use-case-cclm/Migration/MigrationPlans';
 import { CreateMigrationPlan } from '@app/use-case-cclm/Migration/CreateMigrationPlan';
+import { OperatorHub } from '@app/use-case-operator-lifecycle/OperatorHub/OperatorHub';
 // Shared copies for non-CCLM routes (so editing originals only affects CCLM)
 import { OverviewPage } from '@app/shared-fleet-virtualization/EmptyPages';
 import Virtualization from '@app/shared-fleet-virtualization/Virtualization';
@@ -324,6 +325,12 @@ const hiddenRoutes: IAppRoute[] = [
     element: <CCLMOverview />,
     path: '/cclm/overview',
     title: 'Cross Cluster Live Migration',
+  },
+  // Operator lifecycle use case routes
+  {
+    element: <OperatorHub />,
+    path: '/ecosystem/softwarecatalog',
+    title: 'Software Catalog',
   },
 ];
 

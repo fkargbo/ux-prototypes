@@ -130,7 +130,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   // Set the active perspective based on the use case
   React.useEffect(() => {
-    if (useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states') {
+    if (useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' || useCase === 'use-case-operator-lifecycle') {
       setActivePerspective('Core platforms');
     } else if (useCase === 'use-case-cclm') {
       setActivePerspective('Fleet virtualization');
@@ -170,8 +170,10 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       ],
     },
     {
-      label: 'Operators',
-      routes: [
+      label: useCase === 'use-case-operator-lifecycle' ? 'Ecosystem' : 'Operators',
+      routes: useCase === 'use-case-operator-lifecycle' ? [
+        { element: <></>, label: 'Software Catalog', path: '/ecosystem/softwarecatalog', title: 'Software Catalog' },
+      ] : [
         { element: <></>, label: 'OperatorHub', path: '/core/operators/hub', title: 'OperatorHub' },
         { element: <></>, label: 'Installed Operators', path: '/core/operators/installed', title: 'Installed Operators' },
       ],
@@ -427,7 +429,11 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             <img src={redHatOpenShiftLogo} alt="Red Hat OpenShift" style={{ height: '40px' }} />
             <Label color="orange" isCompact>UXD prototype - work in progress</Label>
             <span style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>
-              Contact: {useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' ? 'Anna Walker (slack @Anna Walker)' : 'Stefan Kukla (slack @stefan)'}
+              Contact: {useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' 
+                ? 'Anna Walker (slack @Anna Walker)' 
+                : useCase === 'use-case-operator-lifecycle'
+                ? 'Kevin Hatchoua (slack @Kevin Hatchoua)'
+                : 'Stefan Kukla (slack @stefan)'}
             </span>
           </div>
         </MastheadBrand>
@@ -466,6 +472,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
                       ? 'Walter Joseph Kovacs' 
                       : useCase === 'use-case-cclm'
                       ? 'Nelson Gardner'
+                      : useCase === 'use-case-operator-lifecycle'
+                      ? 'Kevin Hatchoua'
                       : useCase === 'use-case-empty-states' || useCase === 'use-case-aaq-empty-states'
                       ? 'Jane Designer'
                       : 'Dan Dreiberg'}
@@ -880,6 +888,38 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
                     margin: 0
                   }}>
                     Move <strong>80 running VMs</strong> from <strong>core-billing</strong> project in the <strong>us-east-prod-02</strong> cluster to <strong>us-west-prod-01</strong> cluster. Because you are planning to delete the Cluster.
+                  </Content>
+                </CardBody>
+              </Card>
+            </>
+          )}
+
+          {useCase === 'use-case-operator-lifecycle' && (
+            <>
+              <Content component="p" style={{ 
+                marginBottom: 'var(--pf-t--global--spacer--md)',
+                fontSize: '15px',
+                lineHeight: '1.6'
+              }}>
+                Get in the role of Kevin Hatchoua, OpenShift Administrator managing operator lifecycle at Petemobile, a telco company.
+              </Content>
+
+              <Card style={{ backgroundColor: '#f0f8ff', border: '1px solid #cce5ff' }}>
+                <CardBody>
+                  <Content component="p" style={{ 
+                    marginBottom: 'var(--pf-t--global--spacer--sm)',
+                    fontSize: '15px',
+                    fontWeight: 600
+                  }}>
+                    Your task is to:
+                  </Content>
+
+                  <Content component="p" style={{ 
+                    fontSize: '15px',
+                    lineHeight: '1.8',
+                    margin: 0
+                  }}>
+                    Explore the unified software catalog to discover and browse operators available from multiple sources (Marketplace, Community, Red Hat).
                   </Content>
                 </CardBody>
               </Card>

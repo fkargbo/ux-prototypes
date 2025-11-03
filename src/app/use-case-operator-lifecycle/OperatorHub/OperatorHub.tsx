@@ -1,0 +1,1076 @@
+import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Bullseye,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Divider,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerHead,
+  DrawerPanelBody,
+  DrawerPanelContent,
+  Flex,
+  FlexItem,
+  Gallery,
+  GalleryItem,
+  Label,
+  LabelGroup,
+  List,
+  ListItem,
+  Modal,
+  PageSection,
+  PageSectionVariants,
+  SearchInput,
+  Sidebar,
+  SidebarContent,
+  SidebarPanel,
+  Split,
+  SplitItem,
+  Stack,
+  StackItem,
+  Switch,
+  Title,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
+  Tooltip,
+} from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon, TimesIcon, ExternalLinkAltIcon, SearchIcon } from '@patternfly/react-icons';
+import { useDocumentTitle } from '@app/utils/useDocumentTitle';
+import { MigrationGuide } from './MigrationGuide';
+import { CatalogMode, InstalledItem } from '@app/use-case-operator-lifecycle/SoftwareCatalog/types';
+import './OperatorHub.css';
+
+type CatalogItem = {
+  id: string;
+  name: string;
+  description: string;
+  provider: string;
+  tags: string[];
+  catalog: string;
+  priority?: number;
+  status?: string;
+  badges?: string[];
+  providerType?: 'redhat' | 'community' | 'internal';
+  installState?: 'available' | 'installed' | 'preview';
+  updateAvailable?: boolean;
+  categories?: string[];
+  type: string;
+  matchingModes: CatalogMode[];
+  repositoryUrl?: string;
+  ctaLabel?: string;
+  documentationUrl?: string;
+};
+
+type FacetOption = { id: string; label: string };
+
+const CATEGORY_OPTIONS: FacetOption[] = [
+  { id: 'all', label: 'All items' },
+  { id: 'ai-ml', label: 'AI/Machine Learning' },
+  { id: 'application-runtime', label: 'Application Runtime' },
+  { id: 'big-data', label: 'Big Data' },
+  { id: 'ci-cd', label: 'CI/CD' },
+  { id: 'cloud-provider', label: 'Cloud Provider' },
+  { id: 'database', label: 'Databases' },
+  { id: 'developer-tools', label: 'Developer Tools' },
+  { id: 'integration-delivery', label: 'Integration & Delivery' },
+  { id: 'languages', label: 'Languages' },
+  { id: 'logging-tracing', label: 'Logging & Tracing' },
+  { id: 'middleware', label: 'Middleware' },
+  { id: 'modernization', label: 'Modernization & Migration' },
+  { id: 'monitoring', label: 'Monitoring' },
+  { id: 'networking', label: 'Networking' },
+  { id: 'observability', label: 'Observability' },
+  { id: 'openshift-optional', label: 'OpenShift Optional' },
+  { id: 'security', label: 'Security' },
+  { id: 'storage', label: 'Storage' },
+  { id: 'streaming-messaging', label: 'Streaming & Messaging' },
+  { id: 'other', label: 'Other' },
+];
+
+const CATEGORY_LABEL_MAP = CATEGORY_OPTIONS.reduce<Record<string, string>>((acc, option) => {
+  acc[option.id] = option.label;
+  return acc;
+}, {});
+
+const TYPE_OPTIONS: FacetOption[] = [
+  { id: 'operators', label: 'Operators' },
+  { id: 'helm-charts', label: 'Helm Charts' },
+  { id: 'event-sources', label: 'Event Sources' },
+  { id: 'internal-tools', label: 'Internal Tools' },
+];
+
+const TYPE_LABEL_MAP = TYPE_OPTIONS.reduce<Record<string, string>>((acc, option) => {
+  acc[option.id] = option.label;
+  return acc;
+}, {});
+
+const CATALOG_ITEMS: CatalogItem[] = [
+  {
+    id: 'net-olm-v0',
+    name: '.NET',
+    description: 'A helm chart to build and deploy .NET applications.',
+    provider: 'Provided by Red Hat',
+    tags: ['Helm Charts'],
+    catalog: 'redhat-operators',
+    priority: 100,
+    matchingModes: ['v0', 'v1'],
+    providerType: 'redhat',
+    installState: 'available',
+    categories: ['languages', 'application-runtime'],
+    type: 'helm-charts',
+    repositoryUrl: 'https://github.com/redhat-developer/s2i-dotnetcore',
+  },
+  {
+    id: 'acm-v0',
+    name: 'Advanced Cluster Management for Kubernetes',
+    description: 'Advanced provisioning and management of OpenShift and Kubernetes clusters.',
+    provider: 'Provided by Red Hat',
+    tags: ['Red Hat'],
+    catalog: 'redhat-operators',
+    priority: 100,
+    matchingModes: ['v0', 'v1'],
+    providerType: 'redhat',
+    installState: 'available',
+    categories: ['integration-delivery', 'observability'],
+    type: 'operators',
+    documentationUrl: 'https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/',
+  },
+  {
+    id: 'ansible-automation-v1',
+    name: 'Ansible Automation Platform',
+    description: 'Manage everything automation with declarative ClusterExtensions.',
+    provider: 'Provided by Red Hat',
+    tags: ['OLMv1'],
+    catalog: 'redhat-operators-v1',
+    priority: 200,
+    badges: ['Least privilege ready'],
+    matchingModes: ['v1'],
+    providerType: 'redhat',
+    installState: 'available',
+    categories: ['ci-cd'],
+    type: 'operators',
+    documentationUrl: 'https://access.redhat.com/documentation/en-us/red_hat_ansible_automation_platform/',
+  },
+  {
+    id: 'apiserver-source-v1',
+    name: 'ApiServerSource',
+    description: 'Connect Kubernetes events and GitOps workflows via ClusterExtensions.',
+    provider: 'Provided by Red Hat',
+    tags: ['Event Sources'],
+    catalog: 'community-extensions',
+    priority: 50,
+    badges: ['GitOps friendly'],
+    matchingModes: ['v0', 'v1'],
+    providerType: 'community',
+    installState: 'available',
+    categories: ['streaming-messaging'],
+    type: 'event-sources',
+  },
+  {
+    id: 'metering-dual',
+    name: 'Application Services Metering Operator',
+    description: 'Collect usage across Application Services portfolios into a single view.',
+    provider: 'Provided by Red Hat',
+    tags: ['Community'],
+    catalog: 'redhat-operators',
+    priority: 100,
+    badges: ['Available in both catalogs'],
+    matchingModes: ['v0', 'v1'],
+    providerType: 'redhat',
+    installState: 'installed',
+    categories: ['observability'],
+    type: 'operators',
+  },
+  {
+    id: 'custom-internal-v1',
+    name: 'Internal Cost Insights',
+    description: 'Visualize platform spend with curated extensions scoped by service account.',
+    provider: 'Provided by Internal',
+    tags: ['Internal'],
+    catalog: 'internal-secure',
+    priority: 10,
+    status: 'Tech preview',
+    badges: ['Requires review'],
+    matchingModes: ['v1'],
+    providerType: 'internal',
+    installState: 'preview',
+    categories: ['other'],
+    type: 'operators',
+  },
+  {
+    id: 'serverless-func',
+    name: 'Serverless Functions',
+    description: 'Deploy event-driven workloads with OLMv1 ClusterExtensions.',
+    provider: 'Provided by Red Hat',
+    tags: ['Serverless'],
+    catalog: 'redhat-operators-v1',
+    priority: 180,
+    badges: ['OLMv1 first'],
+    matchingModes: ['v1'],
+    providerType: 'redhat',
+    installState: 'available',
+    categories: ['application-runtime', 'streaming-messaging'],
+    type: 'operators',
+  },
+  {
+    id: 'keda-v1',
+    name: 'KEDA Autoscaler',
+    description: 'Event driven autoscaling for Kubernetes workloads.',
+    provider: 'Provided by Community',
+    tags: ['Community'],
+    catalog: 'community-extensions',
+    priority: 40,
+    matchingModes: ['v0', 'v1'],
+    providerType: 'community',
+    installState: 'available',
+    categories: ['modernization'],
+    type: 'operators',
+  },
+  {
+    id: 'openshift-data-foundation',
+    name: 'OpenShift Data Foundation',
+    description: 'Software-defined storage for OpenShift clusters.',
+    provider: 'Provided by Red Hat',
+    tags: ['Storage'],
+    catalog: 'redhat-operators',
+    priority: 160,
+    matchingModes: ['v0', 'v1'],
+    providerType: 'redhat',
+    installState: 'installed',
+    categories: ['storage'],
+    type: 'operators',
+  },
+  {
+    id: 'openshift-gitops',
+    name: 'OpenShift GitOps',
+    description: 'Manage cluster state declaratively using Argo CD.',
+    provider: 'Provided by Red Hat',
+    tags: ['GitOps'],
+    catalog: 'redhat-operators-v1',
+    priority: 190,
+    matchingModes: ['v1'],
+    providerType: 'redhat',
+    installState: 'available',
+    categories: ['ci-cd', 'modernization'],
+    type: 'operators',
+  },
+  {
+    id: 'nvidia-gpu',
+    name: 'NVIDIA GPU Operator',
+    description: 'Automate deployment of the NVIDIA software stack for AI workloads.',
+    provider: 'Provided by Nvidia',
+    tags: ['AI'],
+    catalog: 'community-extensions',
+    priority: 150,
+    matchingModes: ['v0', 'v1'],
+    providerType: 'community',
+    installState: 'available',
+    categories: ['ai-ml'],
+    type: 'operators',
+  },
+];
+
+const UPDATE_IDS = ['acm-v0', 'metering-dual', 'openshift-data-foundation', 'openshift-gitops', 'nvidia-gpu'];
+
+const V1_CATALOG_OPTIONS = [
+  { id: 'all', label: 'All catalogs' },
+  { id: 'redhat-operators-v1', label: 'Red Hat (ClusterCatalog)' },
+  { id: 'community-extensions', label: 'Community extensions' },
+  { id: 'internal-secure', label: 'Internal secure registry' },
+];
+
+const DEFAULT_CATEGORY = 'all';
+const DEFAULT_TYPE = 'operators';
+const PROVIDER_OPTIONS: FacetOption[] = [
+  { id: 'redhat', label: 'Red Hat' },
+  { id: 'community', label: 'Community' },
+  { id: 'internal', label: 'Internal' },
+];
+
+const STATE_OPTIONS: FacetOption[] = [
+  { id: 'available', label: 'Available' },
+  { id: 'installed', label: 'Installed' },
+  { id: 'preview', label: 'Tech preview' },
+];
+
+const MAX_VISIBLE_CATEGORIES = 7;
+const CATEGORY_EXPANDED_TEXT = (remaining: number) => `Show ${remaining} more`;
+const CATEGORY_COLLAPSED_TEXT = 'Show fewer';
+
+const getInstallBadgeColor = (mode: CatalogMode) => (mode === 'v1' ? 'blue' : 'green');
+
+const isItemInstalledInMode = (items: InstalledItem[], item: CatalogItem, mode: CatalogMode) =>
+  items.some((installed) => installed.id === item.id && installed.mode === mode);
+
+const OperatorHub: React.FunctionComponent = () => {
+  useDocumentTitle('Software Catalog');
+  const navigate = useNavigate();
+
+  const [mode, setMode] = React.useState<CatalogMode>('v1');
+  const [search, setSearch] = React.useState('');
+  const [selectedCatalog, setSelectedCatalog] = React.useState(V1_CATALOG_OPTIONS[0]);
+  const [providerFilters, setProviderFilters] = React.useState<string[]>([]);
+  const [stateFilters, setStateFilters] = React.useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = React.useState(DEFAULT_CATEGORY);
+  const [selectedType, setSelectedType] = React.useState(DEFAULT_TYPE);
+  const [isCategoryExpanded, setCategoryExpanded] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState<CatalogItem | undefined>();
+  const [isInstallOpen, setInstallOpen] = React.useState(false);
+  const [installTarget, setInstallTarget] = React.useState<CatalogItem | undefined>();
+  const [installedItems, setInstalledItems] = React.useState<InstalledItem[]>([]);
+  const [isManageSourcesOpen, setManageSourcesOpen] = React.useState(false);
+  const [isAddSourceOpen, setAddSourceOpen] = React.useState(false);
+  const [showBanner, setShowBanner] = React.useState(true);
+  const [updatesBannerDismissed, setUpdatesBannerDismissed] = React.useState(false);
+  const [isMigrationGuideOpen, setIsMigrationGuideOpen] = React.useState(false);
+  const [navigateToLifecycle, setNavigateToLifecycle] = React.useState(false);
+
+  React.useEffect(() => {
+    if (navigateToLifecycle) {
+      navigate('/software/lifecycle');
+      setNavigateToLifecycle(false);
+    }
+  }, [navigateToLifecycle, navigate]);
+
+  const showOllmControls = selectedType === 'operators';
+
+  React.useEffect(() => {
+    if (!showOllmControls && mode === 'v0') {
+      setMode('v1');
+    }
+  }, [showOllmControls, mode]);
+
+  const categoryCounts = React.useMemo(() => {
+    const counts: Record<string, number> = { [DEFAULT_CATEGORY]: CATALOG_ITEMS.length };
+    CATEGORY_OPTIONS.filter((option) => option.id !== DEFAULT_CATEGORY).forEach((option) => {
+      counts[option.id] = CATALOG_ITEMS.filter((item) => item.categories?.includes(option.id)).length;
+    });
+    return counts;
+  }, []);
+
+  const orderedCategories = React.useMemo(() => {
+    const options = CATEGORY_OPTIONS.filter((option) => option.id !== DEFAULT_CATEGORY);
+    return isCategoryExpanded ? options : options.slice(0, MAX_VISIBLE_CATEGORIES);
+  }, [isCategoryExpanded]);
+
+  const typeCounts = React.useMemo(() => {
+    const counts: Record<string, number> = { all: CATALOG_ITEMS.length };
+    TYPE_OPTIONS.forEach((option) => {
+      counts[option.id] = CATALOG_ITEMS.filter((item) => item.type === option.id).length;
+    });
+    return counts;
+  }, []);
+
+  const itemsByFacet = React.useMemo(() =>
+    CATALOG_ITEMS.filter((item) => {
+      const matchesCategory = selectedCategory === DEFAULT_CATEGORY || item.categories?.includes(selectedCategory);
+      const matchesType = selectedType === 'all' || item.type === selectedType;
+      return matchesCategory && matchesType;
+    }),
+  [selectedCategory, selectedType]);
+
+  const itemsForMode = React.useMemo(() => {
+    if (!showOllmControls) {
+      return itemsByFacet;
+    }
+    return itemsByFacet.filter((item) => item.matchingModes.includes(mode));
+  }, [itemsByFacet, showOllmControls, mode]);
+
+  const filteredItems = React.useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return itemsForMode.filter((item) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        item.name.toLowerCase().includes(normalizedSearch) ||
+        item.description.toLowerCase().includes(normalizedSearch) ||
+        item.provider.toLowerCase().includes(normalizedSearch);
+
+      const matchesCatalog =
+        !showOllmControls || mode === 'v0' || selectedCatalog.id === 'all' || item.catalog === selectedCatalog.id;
+
+      const matchesProvider =
+        providerFilters.length === 0 || (item.providerType && providerFilters.includes(item.providerType));
+
+      const matchesState = stateFilters.length === 0 || (item.installState && stateFilters.includes(item.installState));
+
+      return matchesSearch && matchesCatalog && matchesProvider && matchesState;
+    });
+  }, [itemsForMode, search, showOllmControls, selectedCatalog, mode, providerFilters, stateFilters]);
+
+  const itemsWithUpdateState = React.useMemo(
+    () =>
+      filteredItems.map((item) =>
+        UPDATE_IDS.includes(item.id)
+          ? {
+              ...item,
+              updateAvailable: true,
+              installState: 'installed' as const,
+            }
+          : item,
+      ),
+    [filteredItems],
+  );
+
+  const displayedItems = itemsWithUpdateState;
+
+  const getInstallStateForMode = React.useMemo(() => {
+    const map = new Map<string, CatalogMode[]>();
+    installedItems.forEach((item) => {
+      const current = map.get(item.id) ?? [];
+      if (!current.includes(item.mode)) {
+        current.push(item.mode);
+        map.set(item.id, current);
+      }
+    });
+    return map;
+  }, [installedItems]);
+
+  const cardPrimaryCtaLabel = (item: CatalogItem) => {
+    if (item.updateAvailable || isItemInstalledInMode(installedItems, item, showOllmControls ? mode : 'v1')) {
+      return 'Update software';
+    }
+    return 'Install';
+  };
+
+  const handleInstall = (item: CatalogItem) => {
+    setInstallTarget(item);
+    setInstallOpen(true);
+  };
+
+  const handleConfirmInstall = () => {
+    if (!installTarget) {
+      return;
+    }
+    const installMode: CatalogMode = showOllmControls ? mode : 'v1';
+    const record: InstalledItem = {
+      id: installTarget.id,
+      mode: installMode,
+      name: installTarget.name,
+      description: installTarget.description,
+      provider: installTarget.provider,
+      type: installTarget.type,
+      installedAt: new Date().toISOString(),
+    };
+
+    setInstalledItems((prev) => {
+      const others = prev.filter((item) => item.id !== record.id || item.mode !== record.mode);
+      return [...others, record];
+    });
+    setInstallOpen(false);
+  };
+
+  const resetFilters = () => {
+    setSelectedCategory(DEFAULT_CATEGORY);
+    setSelectedType(DEFAULT_TYPE);
+    setProviderFilters([]);
+    setStateFilters([]);
+    setSelectedCatalog(V1_CATALOG_OPTIONS[0]);
+  };
+
+  const hasFilters =
+    selectedCategory !== DEFAULT_CATEGORY ||
+    selectedType !== DEFAULT_TYPE ||
+    providerFilters.length > 0 ||
+    stateFilters.length > 0 ||
+    (showOllmControls && selectedCatalog.id !== V1_CATALOG_OPTIONS[0].id);
+
+  const renderDrawer = () => (
+    <Drawer
+      isExpanded={Boolean(selectedItem)}
+      onExpand={(event) => {
+        const drawer = event.currentTarget as HTMLElement | null;
+        if (!drawer?.classList.contains('pf-m-expanded')) {
+          setSelectedItem(undefined);
+        }
+      }}
+      position="right"
+    >
+      <DrawerContent
+        panelContent={
+          <DrawerPanelContent widths={{ default: 'width_33' }}>
+            <DrawerHead className="catalog-details__header">
+              <Title headingLevel="h2" size="lg">
+                {selectedItem?.name}
+              </Title>
+              <Button variant="plain" aria-label="Close details" onClick={() => setSelectedItem(undefined)}>
+                <TimesIcon />
+              </Button>
+            </DrawerHead>
+            <DrawerPanelBody>
+              <Stack hasGutter>
+                <StackItem>
+                  <small className="catalog-details__source">{selectedItem?.catalog}</small>
+                </StackItem>
+                <StackItem>
+                  <Title headingLevel="h3" size="md">
+                    Description
+                  </Title>
+                  <p>{selectedItem?.description}</p>
+                </StackItem>
+                <StackItem>
+                  <Title headingLevel="h3" size="md">
+                    Metadata
+                  </Title>
+                  <LabelGroup numLabels={4} collapsedText="Show more" expandedText="Show less">
+                    {selectedItem?.provider && (
+                      <Label variant="outline" isCompact>
+                        {selectedItem.provider}
+                      </Label>
+                    )}
+                    {selectedItem?.type && (
+                      <Label variant="outline" isCompact>
+                        {TYPE_LABEL_MAP[selectedItem.type] ?? selectedItem.type}
+                      </Label>
+                    )}
+                    {selectedItem?.categories?.map((categoryId) => (
+                      <Label key={`${selectedItem.id}-${categoryId}`} variant="outline" isCompact>
+                        {CATEGORY_LABEL_MAP[categoryId] ?? categoryId}
+                      </Label>
+                    ))}
+                  </LabelGroup>
+                </StackItem>
+                {selectedItem?.repositoryUrl && (
+                  <StackItem>
+                    <Button
+                      variant="link"
+                      icon={<ExternalLinkAltIcon />}
+                      iconPosition="end"
+                      component="a"
+                      href={selectedItem.repositoryUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View repository
+                    </Button>
+                  </StackItem>
+                )}
+                {selectedItem?.documentationUrl && (
+                  <StackItem>
+                    <Button
+                      variant="link"
+                      icon={<ExternalLinkAltIcon />}
+                      iconPosition="end"
+                      component="a"
+                      href={selectedItem.documentationUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View documentation
+                    </Button>
+                  </StackItem>
+                )}
+                {selectedItem && (
+                  <StackItem>
+                    <Button variant="secondary" onClick={() => handleInstall(selectedItem)}>
+                      {isItemInstalledInMode(installedItems, selectedItem, showOllmControls ? mode : 'v1')
+                        ? 'Update software'
+                        : 'Install'}
+              </Button>
+                  </StackItem>
+                )}
+              </Stack>
+            </DrawerPanelBody>
+          </DrawerPanelContent>
+        }
+      >
+        <DrawerContentBody />
+      </DrawerContent>
+    </Drawer>
+  );
+
+  const renderInstallModal = () => (
+    <Modal
+      title={mode === 'v1' && showOllmControls ? 'Create extension (OLMv1)' : 'Install operator (OLM v0)'}
+      isOpen={isInstallOpen && Boolean(installTarget)}
+      onClose={() => setInstallOpen(false)}
+      variant="medium"
+    >
+      {installTarget && (
+        <Stack hasGutter>
+          <StackItem>
+            <div className="catalog-install__summary">
+              <LabelGroup numLabels={3} collapsedText="Show more" expandedText="Show less">
+                <Label variant="outline" isCompact>
+                  {TYPE_LABEL_MAP[installTarget.type] ?? installTarget.type}
+                </Label>
+                {installTarget.categories?.map((categoryId) => (
+                  <Label key={`${installTarget.id}-${categoryId}`} variant="outline" isCompact>
+                    {CATEGORY_LABEL_MAP[categoryId] ?? categoryId}
+                  </Label>
+                ))}
+              </LabelGroup>
+              <Button variant="link" onClick={() => setSelectedItem(installTarget)}>
+                View details
+              </Button>
+            </div>
+          </StackItem>
+          <StackItem>
+            <Title headingLevel="h3" size="lg">
+              {installTarget.name}
+            </Title>
+          </StackItem>
+          <StackItem>
+            <Title headingLevel="h4" size="md">
+              Installation target
+              </Title>
+            <List isPlain>
+              <ListItem>{mode === 'v1' && showOllmControls ? 'ClusterExtension (OLMv1)' : 'Subscription (OLM v0)'}</ListItem>
+              <ListItem>Source catalog: {installTarget.catalog}</ListItem>
+              <ListItem>Provider: {installTarget.provider}</ListItem>
+            </List>
+          </StackItem>
+          {mode === 'v1' && showOllmControls && (
+            <StackItem>
+              <Title headingLevel="h4" size="md">
+                Service account
+              </Title>
+              <SearchInput placeholder="Select or create service account" aria-label="Service account" />
+            </StackItem>
+          )}
+          <StackItem>
+            <Title headingLevel="h4" size="md">
+              Version selection
+              </Title>
+            <SearchInput placeholder="e.g. >=1.0.0 <2.0.0" aria-label="Version range" />
+          </StackItem>
+          <StackItem>
+            <Button variant="primary" onClick={handleConfirmInstall}>
+              Confirm install
+                </Button>
+          </StackItem>
+        </Stack>
+      )}
+    </Modal>
+  );
+
+  return (
+    <React.Fragment>
+      <div className="catalog-app" style={{ padding: '24px' }}>
+          <Stack hasGutter>
+            <StackItem>
+              <Split hasGutter className="pf-u-align-items-center">
+                <SplitItem isFilled>
+                  <Title headingLevel="h1" size="xl">
+                Software Catalog
+              </Title>
+                  <p className="pf-u-mt-sm pf-u-color-200">
+                    Discover and install software from multiple catalogs. Browse operators, applications, and services available for your OpenShift cluster.
+                  </p>
+                </SplitItem>
+              </Split>
+            </StackItem>
+            {showOllmControls && !updatesBannerDismissed && (
+              <StackItem>
+                <Alert
+                  variant="warning"
+                  title="5 software updates available"
+                  actionClose={<AlertActionCloseButton onClose={() => setUpdatesBannerDismissed(true)} />}
+                  isInline
+                >
+                  Review pending updates to keep your cluster healthy.{' '}
+                  <Button variant="link" isInline onClick={() => setNavigateToLifecycle(true)}>
+                    Manage software
+                  </Button>
+                </Alert>
+              </StackItem>
+            )}
+            <StackItem>
+              <Toolbar inset={{ default: 'insetNone' }}>
+              <ToolbarContent>
+                  <ToolbarGroup variant="filter-group">
+                    <ToolbarItem>
+                  <SearchInput
+                        aria-label="Filter catalog by keyword"
+                        value={search}
+                        onChange={(_, value) => setSearch(value)}
+                        onClear={() => setSearch('')}
+                        placeholder="Filter by keyword..."
+                      />
+                    </ToolbarItem>
+                  </ToolbarGroup>
+                  {showOllmControls && mode === 'v1' && (
+                    <ToolbarGroup>
+                      <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setManageSourcesOpen(true)}>
+                          Manage catalog sources
+                        </Button>
+                </ToolbarItem>
+                <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setAddSourceOpen(true)}>
+                          Add catalog source
+                        </Button>
+                </ToolbarItem>
+                    </ToolbarGroup>
+                  )}
+              </ToolbarContent>
+            </Toolbar>
+            </StackItem>
+          </Stack>
+
+        <Divider />
+
+          <Sidebar className="catalog-app__sidebar" hasGutter style={{ marginTop: '16px' }}>
+            <SidebarPanel width={{ default: 'width_25' }} variant="sticky">
+              <Stack hasGutter>
+                <StackItem>
+                  <div className="catalog-facets__heading-row">
+                    <Title headingLevel="h2" size="md" className="catalog-facets__heading">
+                      Type
+                    </Title>
+                    <Tooltip content="Filter catalog items by delivery format">
+                      <Button variant="plain" aria-label="Type filter help" className="pf-u-p-0">
+                        <OutlinedQuestionCircleIcon />
+                      </Button>
+                    </Tooltip>
+                  </div>
+                  <List isPlain className="catalog-facets__list">
+                    <ListItem>
+                      <Button
+                        variant="plain"
+                        className={`catalog-facets__button ${selectedType === 'all' ? 'catalog-facets__button--active' : ''}`}
+                        onClick={() => setSelectedType('all')}
+                      >
+                        All ({typeCounts.all ?? 0})
+                      </Button>
+                    </ListItem>
+                    {TYPE_OPTIONS.map((option) => (
+                      <ListItem key={option.id}>
+                        <Button
+                          variant="plain"
+                          className={`catalog-facets__button ${
+                            selectedType === option.id ? 'catalog-facets__button--active' : ''
+                          }`}
+                          onClick={() => setSelectedType(option.id)}
+                        >
+                          {option.label} ({typeCounts[option.id] ?? 0})
+                        </Button>
+                        {option.id === 'operators' && showOllmControls && selectedType === 'operators' && (
+                          <div className="catalog-facets__catalog-version">
+                            <div className="catalog-facets__heading-row">
+                              <span className="catalog-facets__subheading">Catalog version</span>
+                              <Tooltip content="Switch between OLM v0 subscriptions and OLMv1 extensions">
+                                <Button variant="plain" aria-label="Catalog version info" className="pf-u-p-0">
+                                  <OutlinedQuestionCircleIcon />
+                                </Button>
+                              </Tooltip>
+                            </div>
+                            <div className="pf-u-display-flex pf-u-gap-sm">
+                              <Button
+                                variant={mode === 'v0' ? 'primary' : 'secondary'}
+                                onClick={() => setMode('v0')}
+                              >
+                                OLM v0
+                              </Button>
+                              <Button
+                                variant={mode === 'v1' ? 'primary' : 'secondary'}
+                                onClick={() => setMode('v1')}
+                              >
+                                OLMv1
+                                <Label variant="filled" color="orange" isCompact className="catalog-version__badge">
+                                  Tech preview
+                                </Label>
+                              </Button>
+                            </div>
+                </div>
+                        )}
+                      </ListItem>
+                    ))}
+                  </List>
+                </StackItem>
+
+                <Divider />
+
+                <StackItem>
+                  <Title headingLevel="h2" size="md" className="catalog-facets__heading">
+                    Categories
+                  </Title>
+                  <List isPlain className="catalog-facets__list">
+                    <ListItem>
+                      <Button
+                        variant="plain"
+                        className={`catalog-facets__button ${
+                          selectedCategory === DEFAULT_CATEGORY ? 'catalog-facets__button--active' : ''
+                        }`}
+                        onClick={() => setSelectedCategory(DEFAULT_CATEGORY)}
+                      >
+                        All items ({categoryCounts[DEFAULT_CATEGORY] ?? 0})
+                      </Button>
+                    </ListItem>
+                    {orderedCategories.map((option) => (
+                      <ListItem key={option.id}>
+                        <Button
+                          variant="plain"
+                          className={`catalog-facets__button ${
+                            selectedCategory === option.id ? 'catalog-facets__button--active' : ''
+                          }`}
+                          onClick={() => setSelectedCategory(option.id)}
+                        >
+                          {option.label} ({categoryCounts[option.id] ?? 0})
+                        </Button>
+                      </ListItem>
+                    ))}
+                  </List>
+                  {CATEGORY_OPTIONS.length - 1 > MAX_VISIBLE_CATEGORIES && (
+                    <Button
+                      variant="link"
+                      isInline
+                      className="catalog-facets__show-more"
+                      onClick={() => setCategoryExpanded((prev) => !prev)}
+                    >
+                      {isCategoryExpanded
+                        ? CATEGORY_COLLAPSED_TEXT
+                        : CATEGORY_EXPANDED_TEXT(CATEGORY_OPTIONS.length - 1 - MAX_VISIBLE_CATEGORIES)}
+                    </Button>
+                  )}
+                </StackItem>
+
+                <Divider />
+
+                <StackItem>
+                  <Title headingLevel="h2" size="md" className="catalog-facets__heading">
+                    Provider
+                  </Title>
+                  <List isPlain className="catalog-facets__list">
+                    {PROVIDER_OPTIONS.map((provider) => (
+                      <ListItem key={provider.id}>
+                        <Button
+                          variant="plain"
+                          className={`catalog-facets__button ${
+                            providerFilters.includes(provider.id) ? 'catalog-facets__button--active' : ''
+                          }`}
+                          onClick={() =>
+                            setProviderFilters((prev) =>
+                              prev.includes(provider.id)
+                                ? prev.filter((id) => id !== provider.id)
+                                : [...prev, provider.id],
+                            )
+                          }
+                        >
+                          {provider.label}
+                        </Button>
+                      </ListItem>
+                    ))}
+                  </List>
+                </StackItem>
+
+                <Divider />
+
+                <StackItem>
+                  <Title headingLevel="h2" size="md" className="catalog-facets__heading">
+                    Install state
+                </Title>
+                  <List isPlain className="catalog-facets__list">
+                    {STATE_OPTIONS.map((state) => (
+                      <ListItem key={state.id}>
+                        <Button
+                          variant="plain"
+                          className={`catalog-facets__button ${
+                            stateFilters.includes(state.id) ? 'catalog-facets__button--active' : ''
+                          }`}
+                          onClick={() =>
+                            setStateFilters((prev) =>
+                              prev.includes(state.id)
+                                ? prev.filter((id) => id !== state.id)
+                                : [...prev, state.id],
+                            )
+                          }
+                        >
+                          {state.label}
+                        </Button>
+                      </ListItem>
+                    ))}
+                  </List>
+                </StackItem>
+
+                <StackItem>
+                  <Switch
+                    id="toggle-installed"
+                    label="Show installed only"
+                    isChecked={stateFilters.includes('installed')}
+                    onChange={(event, isChecked) =>
+                      setStateFilters((prev) => {
+                        if (isChecked) {
+                          return prev.includes('installed') ? prev : [...prev, 'installed'];
+                        }
+                        return prev.filter((id) => id !== 'installed');
+                      })
+                    }
+                  />
+                </StackItem>
+
+                {hasFilters && (
+                  <StackItem>
+                    <Button variant="link" onClick={resetFilters}>
+                      Clear filters
+                    </Button>
+                  </StackItem>
+                )}
+              </Stack>
+            </SidebarPanel>
+
+            <SidebarContent>
+              {displayedItems.length === 0 ? (
+                <Bullseye className="pf-u-p-xl">
+                  <Stack hasGutter>
+                    <StackItem>
+                      <div className="catalog-empty__icon">
+                        <SearchIcon />
+                      </div>
+                    </StackItem>
+                    <StackItem>
+                      <Title headingLevel="h3" size="lg">
+                        No software found
+                      </Title>
+                    </StackItem>
+                    <StackItem>
+                      <p>Adjust your search or filter criteria to find software.</p>
+                    </StackItem>
+                  </Stack>
+                </Bullseye>
+              ) : (
+                <Gallery hasGutter className="catalog-grid">
+                  {displayedItems.map((item) => {
+                    const installedModes = getInstallStateForMode.get(item.id) ?? [];
+                    return (
+                      <GalleryItem key={item.id}>
+                        <Card isCompact isSelectable className="catalog-card">
+                          <CardHeader>
+                            <LabelGroup numLabels={3} collapsedText="Show more" expandedText="Show less">
+                              <Label variant="outline" isCompact>
+                                {TYPE_LABEL_MAP[item.type] ?? item.type}
+                              </Label>
+                              <Label variant="outline" isCompact>
+                                Catalog: {item.catalog}
+                              </Label>
+                              <Label variant="outline" isCompact>
+                                Provider: {item.provider}
+                              </Label>
+                              {item.categories?.map((categoryId) => (
+                                <Label key={`${item.id}-${categoryId}`} variant="outline" isCompact>
+                                  {CATEGORY_LABEL_MAP[categoryId] ?? categoryId}
+                                </Label>
+                              ))}
+                              {item.badges?.map((badge) => (
+                                <Label key={`${item.id}-${badge}`} variant="outline" color="green" isCompact>
+                                  {badge}
+                                </Label>
+                              ))}
+                            </LabelGroup>
+                          </CardHeader>
+                          <CardBody className="catalog-card__body">
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Title headingLevel="h3" size="md">
+                                  {item.name}
+                                </Title>
+                              </StackItem>
+                              <StackItem>
+                                <p className="catalog-card__description">{item.description}</p>
+                              </StackItem>
+                            </Stack>
+                          </CardBody>
+                          <CardFooter className="catalog-card__footer">
+                            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <FlexItem>
+                                <Button variant="primary" onClick={() => handleInstall(item)}>
+                                  {cardPrimaryCtaLabel(item)}
+                                </Button>
+                              </FlexItem>
+                              <FlexItem>
+                                <Button variant="link" onClick={() => setSelectedItem(item)}>
+                                  View details
+                                </Button>
+        </FlexItem>
+      </Flex>
+                            {(item.updateAvailable || installedModes.length > 0) && (
+                              <LabelGroup numLabels={2} collapsedText="Show more" expandedText="Show less">
+                                {item.updateAvailable && (
+                                  <Label variant="filled" color="orange" isCompact>
+                                    Update available
+                                  </Label>
+                                )}
+                                {installedModes.map((installedMode) => (
+                                  <Label
+                                    key={`${item.id}-${installedMode}`}
+                                    variant="outline"
+                                    isCompact
+                                    color={getInstallBadgeColor(installedMode)}
+                                  >
+                                    Installed via OLM {installedMode.toUpperCase()}
+                                  </Label>
+                                ))}
+                              </LabelGroup>
+                            )}
+                          </CardFooter>
+                        </Card>
+                      </GalleryItem>
+                    );
+                  })}
+                </Gallery>
+              )}
+            </SidebarContent>
+          </Sidebar>
+      </div>
+
+      {renderInstallModal()}
+      {renderDrawer()}
+
+      <Modal
+        title="Manage catalog sources"
+        isOpen={isManageSourcesOpen}
+        onClose={() => setManageSourcesOpen(false)}
+        variant="medium"
+      >
+        <Stack hasGutter>
+          <StackItem>
+            <Title headingLevel="h3" size="md">
+              Existing sources
+            </Title>
+          </StackItem>
+          <StackItem>
+            <List isPlain>
+              {V1_CATALOG_OPTIONS.filter((option) => option.id !== 'all').map((option) => (
+                <ListItem key={option.id}>{option.label}</ListItem>
+              ))}
+            </List>
+          </StackItem>
+          <StackItem>
+            <Button variant="secondary" onClick={() => setAddSourceOpen(true)}>
+              Add catalog source
+            </Button>
+          </StackItem>
+        </Stack>
+      </Modal>
+
+      <Modal title="Add catalog source" isOpen={isAddSourceOpen} onClose={() => setAddSourceOpen(false)} variant="medium">
+        <Stack hasGutter>
+          <StackItem>
+            <SearchInput placeholder="Catalog name" aria-label="Catalog name" />
+          </StackItem>
+          <StackItem>
+            <SearchInput placeholder="Image reference" aria-label="Catalog image" />
+          </StackItem>
+          <StackItem>
+            <Button variant="primary" onClick={() => setAddSourceOpen(false)}>
+              Save catalog source
+            </Button>
+          </StackItem>
+        </Stack>
+      </Modal>
+
+      <MigrationGuide isOpen={isMigrationGuideOpen} onClose={() => setIsMigrationGuideOpen(false)} />
+    </React.Fragment>
+  );
+};
+
+export { OperatorHub };
