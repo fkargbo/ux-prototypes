@@ -12,6 +12,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Checkbox,
   Divider,
   Drawer,
   DrawerContent,
@@ -833,21 +834,18 @@ const OperatorHub: React.FunctionComponent = () => {
                   <List isPlain className="catalog-facets__list">
                     {PROVIDER_OPTIONS.map((provider) => (
                       <ListItem key={provider.id}>
-                        <Button
-                          variant="plain"
-                          className={`catalog-facets__button ${
-                            providerFilters.includes(provider.id) ? 'catalog-facets__button--active' : ''
-                          }`}
-                          onClick={() =>
+                        <Checkbox
+                          id={`provider-${provider.id}`}
+                          label={provider.label}
+                          isChecked={providerFilters.includes(provider.id)}
+                          onChange={(event, checked) =>
                             setProviderFilters((prev) =>
-                              prev.includes(provider.id)
-                                ? prev.filter((id) => id !== provider.id)
-                                : [...prev, provider.id],
+                              checked
+                                ? [...prev, provider.id]
+                                : prev.filter((id) => id !== provider.id),
                             )
                           }
-                        >
-                          {provider.label}
-                        </Button>
+                        />
                       </ListItem>
                     ))}
                   </List>

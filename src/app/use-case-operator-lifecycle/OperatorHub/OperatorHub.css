@@ -6,17 +6,17 @@
 
 /* Breadcrumb */
 .software-catalog-breadcrumb {
-  padding: 16px 24px;
+  padding: 24px;
   border-bottom: 1px solid #d2d2d2;
 }
 
 /* Page Header */
 .software-catalog-header {
-  padding: 24px 24px 16px 24px;
+  padding: 24px;
 }
 
 .software-catalog-header h1 {
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
   font-size: 24px;
   font-weight: 400;
 }
@@ -30,7 +30,7 @@
 
 /* Toolbar (Search + Actions) */
 .software-catalog-toolbar {
-  padding: 16px 24px;
+  padding: 24px;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -52,7 +52,7 @@
 .software-catalog-main .pf-c-sidebar__panel {
   background-color: #fff;
   border-right: 1px solid #d2d2d2;
-  padding: 16px;
+  padding: 24px;
   width: 240px !important;
   min-width: 240px;
   overflow-y: auto;
@@ -61,7 +61,7 @@
 /* Content area - right side with cards */
 .software-catalog-main .pf-c-sidebar__content {
   background-color: #fff;
-  padding: 24px 32px;
+  padding: 24px;
   flex: 1;
 }
 
@@ -84,11 +84,15 @@
 .catalog-facets__list {
   list-style: none;
   padding: 0;
-  margin: 0 0 20px 0;
+  margin: 0;
 }
 
 .catalog-facets__list li {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.catalog-facets__list li:last-child {
+  margin-bottom: 0;
 }
 
 /* Filter Buttons (for Type section) */
@@ -278,7 +282,7 @@
 }
 
 .software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item:last-child {
@@ -287,7 +291,7 @@
 
 /* Divider in sidebar */
 .software-catalog-main .pf-c-divider {
-  margin: 16px 0;
+  margin: 24px 0;
   background-color: #d2d2d2;
   height: 1px;
 }
@@ -324,9 +328,16 @@
   .software-catalog-main .pf-c-sidebar__panel {
     width: 200px !important;
     min-width: 200px;
+    padding: 16px;
   }
   
   .software-catalog-main .pf-c-sidebar__content {
+    padding: 16px;
+  }
+  
+  .software-catalog-header,
+  .software-catalog-breadcrumb,
+  .software-catalog-toolbar {
     padding: 16px;
   }
 }
