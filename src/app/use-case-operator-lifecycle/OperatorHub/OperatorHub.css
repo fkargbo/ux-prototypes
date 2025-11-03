@@ -44,17 +44,18 @@
   background-color: #fff;
 }
 
-/* Sidebar Styling - collapsible filter area */
+/* Sidebar Styling - filter area */
 .software-catalog-main .pf-c-sidebar {
   margin: 0;
 }
 
 .software-catalog-main .pf-c-sidebar__panel {
-  background-color: #f5f5f5;
+  background-color: #fff;
   border-right: 1px solid #d2d2d2;
-  padding: 24px 16px;
-  width: 220px !important;
-  min-width: 220px;
+  padding: 16px;
+  width: 240px !important;
+  min-width: 240px;
+  overflow-y: auto;
 }
 
 /* Content area - right side with cards */
@@ -66,7 +67,7 @@
 
 /* Filter Headings */
 .catalog-facets__heading {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   margin: 0 0 12px 0;
   color: #151515;
@@ -76,26 +77,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
-/* Filter Buttons */
+/* Filter Lists */
 .catalog-facets__list {
   list-style: none;
   padding: 0;
-  margin: 0 0 24px 0;
+  margin: 0 0 20px 0;
 }
 
+.catalog-facets__list li {
+  margin-bottom: 8px;
+}
+
+/* Filter Buttons (for Type section) */
 .catalog-facets__button {
   justify-content: flex-start;
   width: 100%;
   text-align: left;
-  padding: 6px 8px;
+  padding: 4px 8px;
   font-size: 14px;
   color: #151515;
   border: none;
   background: transparent;
   cursor: pointer;
+  border-radius: 3px;
 }
 
 .catalog-facets__button:hover {
@@ -105,12 +112,14 @@
 .catalog-facets__button--active {
   color: #06c;
   font-weight: 600;
+  background-color: #e7f1fa;
 }
 
 .catalog-facets__show-more {
-  margin-top: 8px;
-  padding: 6px 8px;
+  margin-top: 4px;
+  padding: 4px 8px;
   font-size: 14px;
+  color: #06c;
 }
 
 .catalog-facets__catalog-version {
@@ -212,12 +221,18 @@
 
 /* Checkboxes in sidebar */
 .catalog-facets__list .pf-c-check {
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .catalog-facets__list .pf-c-check__label {
   font-size: 14px;
   color: #151515;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.catalog-facets__list .pf-c-check__input:checked + .pf-c-check__label {
+  font-weight: 600;
 }
 
 /* Drawer/Details */
@@ -263,13 +278,29 @@
 }
 
 .software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item {
+  margin-bottom: 20px;
+}
+
+.software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item:last-child {
   margin-bottom: 0;
 }
 
 /* Divider in sidebar */
 .software-catalog-main .pf-c-divider {
-  margin: 20px 0;
+  margin: 16px 0;
   background-color: #d2d2d2;
+  height: 1px;
+}
+
+/* Catalog version dropdown */
+.catalog-facets__catalog-version .pf-c-select,
+.catalog-facets__catalog-version .pf-c-dropdown {
+  width: 100%;
+}
+
+.catalog-facets__catalog-version .pf-c-select__toggle,
+.catalog-facets__catalog-version .pf-c-menu-toggle {
+  width: 100%;
 }
 
 /* Responsive - adjust grid columns */
