@@ -181,14 +181,10 @@
   transform: translateY(-2px);
 }
 
-/* Card header - icon left, label right, same row */
+/* Card header - icon left, label positioned top-right */
 .catalog-card__header {
-  padding: 20px 20px 16px 20px;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  position: relative;
+  padding: 20px;
 }
 
 .catalog-card__icon {
@@ -196,8 +192,9 @@
 }
 
 .catalog-card__label {
-  display: flex;
-  align-items: flex-start;
+  position: absolute;
+  top: 20px;
+  right: 20px;
 }
 
 /* Card body */
