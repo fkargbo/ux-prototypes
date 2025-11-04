@@ -24,8 +24,6 @@ import {
   FormGroup,
   FormSelect,
   FormSelectOption,
-  Gallery,
-  GalleryItem,
   Label,
   LabelGroup,
   List,
@@ -826,7 +824,7 @@ const OperatorHub: React.FunctionComponent = () => {
                   </Stack>
                 </Bullseye>
               ) : (
-                <Gallery hasGutter className="catalog-grid">
+                <div className="catalog-grid">
                   {displayedItems.map((item) => {
                     const catalogLabel = item.catalog === 'marketplace' ? 'Marketplace' : 
                                        item.catalog === 'community-extensions' ? 'Community' : 
@@ -836,40 +834,39 @@ const OperatorHub: React.FunctionComponent = () => {
                                       'red';
                     
                     return (
-                      <GalleryItem key={item.id}>
-                        <Card 
-                          isClickable 
-                          isSelectable 
-                          className="catalog-card"
-                          onClick={() => setSelectedItem(item)}
-                        >
-                          <CardHeader className="catalog-card__header">
-                            <div className="catalog-card__icon">
-                              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                                <rect width="40" height="40" rx="4" fill="#0066CC" fillOpacity="0.1"/>
-                                <path d="M20 10L28 15V25L20 30L12 25V15L20 10Z" fill="#0066CC"/>
-                              </svg>
-                            </div>
-                            <div className="catalog-card__label">
-                              <Label color={labelColor} isCompact>
-                                {catalogLabel}
-                              </Label>
-                            </div>
-                          </CardHeader>
-                          <CardBody className="catalog-card__body">
-                            <Title headingLevel="h3" size="md" className="catalog-card__title">
-                              {item.name}
-                            </Title>
-                            <div className="catalog-card__provider">
-                              Provided by {item.provider}
-                            </div>
-                            <p className="catalog-card__description">{item.description}</p>
-                          </CardBody>
-                        </Card>
-                      </GalleryItem>
+                      <Card 
+                        key={item.id}
+                        isClickable 
+                        isSelectable 
+                        className="catalog-card"
+                        onClick={() => setSelectedItem(item)}
+                      >
+                        <CardHeader className="catalog-card__header">
+                          <div className="catalog-card__icon">
+                            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                              <rect width="40" height="40" rx="4" fill="#0066CC" fillOpacity="0.1"/>
+                              <path d="M20 10L28 15V25L20 30L12 25V15L20 10Z" fill="#0066CC"/>
+                            </svg>
+                          </div>
+                          <div className="catalog-card__label">
+                            <Label color={labelColor} isCompact>
+                              {catalogLabel}
+                            </Label>
+                          </div>
+                        </CardHeader>
+                        <CardBody className="catalog-card__body">
+                          <Title headingLevel="h3" size="md" className="catalog-card__title">
+                            {item.name}
+                          </Title>
+                          <div className="catalog-card__provider">
+                            Provided by {item.provider}
+                          </div>
+                          <p className="catalog-card__description">{item.description}</p>
+                        </CardBody>
+                      </Card>
                     );
                   })}
-                </Gallery>
+                </div>
               )}
             </SidebarContent>
           </Sidebar>

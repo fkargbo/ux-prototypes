@@ -95,15 +95,10 @@ div.software-catalog-toolbar {
   box-sizing: border-box !important;
 }
 
-/* Gallery inside content - ensure it doesn't have its own padding */
+/* Grid container - ensure it doesn't have PatternFly's default padding */
 .software-catalog-main .pf-c-sidebar__content > *,
 .software-catalog-main .pf-v6-c-sidebar__content > * {
   margin: 0 !important;
-}
-
-.software-catalog-main .pf-c-sidebar__content > .pf-v6-c-gallery,
-.software-catalog-main .pf-v6-c-sidebar__content > .pf-v6-c-gallery {
-  margin-top: 0 !important;
 }
 
 /* Filter Headings */
