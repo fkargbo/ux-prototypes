@@ -407,33 +407,15 @@ div.software-catalog-toolbar {
 }
 
 /* Operator details drawer - fixed overlay */
-.operator-details-drawer.pf-c-drawer,
-.operator-details-drawer.pf-v6-c-drawer {
+.operator-details-drawer .pf-c-drawer__panel,
+.operator-details-drawer .pf-v6-c-drawer__panel {
   position: fixed !important;
   top: 73px !important;
   right: 0 !important;
   bottom: 0 !important;
-  left: auto !important;
-  width: auto !important;
-  height: calc(100vh - 73px) !important;
-  z-index: 400 !important;
-}
-
-.operator-details-drawer .pf-c-drawer__content,
-.operator-details-drawer .pf-v6-c-drawer__content {
-  height: 100% !important;
-  position: relative !important;
-}
-
-.operator-details-drawer .pf-c-drawer__panel,
-.operator-details-drawer .pf-v6-c-drawer__panel {
-  position: absolute !important;
-  right: 0 !important;
-  top: 0 !important;
-  bottom: 0 !important;
   border-left: 1px solid #d2d2d2 !important;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
-  height: 100% !important;
+  height: calc(100vh - 73px) !important;
   width: 50vw !important;
   max-width: 800px !important;
   min-width: 400px !important;
@@ -441,7 +423,7 @@ div.software-catalog-toolbar {
   flex-direction: column !important;
   overflow: hidden !important;
   background-color: #ffffff !important;
-  z-index: 1 !important;
+  z-index: 400 !important;
 }
 
 .operator-details-drawer .pf-c-drawer__head,
