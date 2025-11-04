@@ -950,24 +950,39 @@ const OperatorHub: React.FunctionComponent = () => {
               left: 0,
               top: 0,
               bottom: 0,
-              width: '5px',
+              width: '12px',
               cursor: 'col-resize',
               backgroundColor: 'transparent',
               zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               transition: 'background-color 0.2s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#0066cc';
+              e.currentTarget.style.backgroundColor = 'rgba(0, 102, 204, 0.1)';
             }}
             onMouseLeave={(e) => {
               if (!isResizing) {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }
             }}
-          />
+          >
+            {/* Visual drag indicator - three vertical dots */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              opacity: 0.4,
+            }}>
+              <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: '#6a6e73' }} />
+              <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: '#6a6e73' }} />
+              <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: '#6a6e73' }} />
+            </div>
+          </div>
 
           {/* Header */}
-          <div style={{ padding: '24px', paddingLeft: '29px', borderBottom: '1px solid #e0e0e0' }}>
+          <div style={{ padding: '24px', paddingLeft: '36px', borderBottom: '1px solid #e0e0e0' }}>
             <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
               <FlexItem>
                 <Title headingLevel="h2" size="xl">{selectedItem.name}</Title>
@@ -987,7 +1002,7 @@ const OperatorHub: React.FunctionComponent = () => {
           </div>
 
           {/* Body */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', paddingLeft: '29px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', paddingLeft: '36px' }}>
             <Flex>
               <FlexItem style={{ width: '200px', marginRight: '32px' }}>
                 <Stack hasGutter>
