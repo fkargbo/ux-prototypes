@@ -765,7 +765,7 @@ const OperatorHub: React.FunctionComponent = () => {
                   </FormGroup>
                 </StackItem>
 
-                <StackItem>
+                <StackItem className="catalog-facets__type-section">
                   <div className="catalog-facets__heading-row">
                     <Title headingLevel="h2" size="md" className="catalog-facets__heading">
                       Type
