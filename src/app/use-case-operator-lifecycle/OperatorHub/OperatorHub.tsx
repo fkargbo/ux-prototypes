@@ -331,6 +331,7 @@ const OperatorHub: React.FunctionComponent = () => {
   const [selectedCatalog, setSelectedCatalog] = React.useState(V1_CATALOG_OPTIONS[0]);
   const [providerFilters, setProviderFilters] = React.useState<string[]>([]);
   const [stateFilters, setStateFilters] = React.useState<string[]>([]);
+  const [categoryFilters, setCategoryFilters] = React.useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = React.useState(DEFAULT_CATEGORY);
   const [selectedType, setSelectedType] = React.useState(DEFAULT_TYPE);
   const [isCategoryExpanded, setCategoryExpanded] = React.useState(false);
@@ -384,11 +385,12 @@ const OperatorHub: React.FunctionComponent = () => {
 
   const itemsByFacet = React.useMemo(() =>
     CATALOG_ITEMS.filter((item) => {
-      const matchesCategory = selectedCategory === DEFAULT_CATEGORY || item.categories?.includes(selectedCategory);
+      const matchesCategory = categoryFilters.length === 0 || 
+        (item.categories && item.categories.some(cat => categoryFilters.includes(cat)));
       const matchesType = selectedType === 'all' || item.type === selectedType;
       return matchesCategory && matchesType;
     }),
-  [selectedCategory, selectedType]);
+  [categoryFilters, selectedType]);
 
   const itemsForMode = React.useMemo(() => {
     if (!showOllmControls) {
@@ -483,6 +485,7 @@ const OperatorHub: React.FunctionComponent = () => {
   const resetFilters = () => {
     setSelectedCategory(DEFAULT_CATEGORY);
     setSelectedType(DEFAULT_TYPE);
+    setCategoryFilters([]);
     setProviderFilters([]);
     setStateFilters([]);
     setSelectedCatalog(V1_CATALOG_OPTIONS[0]);
@@ -491,6 +494,7 @@ const OperatorHub: React.FunctionComponent = () => {
   const hasFilters =
     selectedCategory !== DEFAULT_CATEGORY ||
     selectedType !== DEFAULT_TYPE ||
+    categoryFilters.length > 0 ||
     providerFilters.length > 0 ||
     stateFilters.length > 0 ||
     (showOllmControls && selectedCatalog.id !== V1_CATALOG_OPTIONS[0].id);
@@ -807,32 +811,21 @@ const OperatorHub: React.FunctionComponent = () => {
                 <Divider />
 
                 <StackItem>
-                  <Title headingLevel="h2" size="md" className="catalog-facets__heading">
-                    Categories
-                  </Title>
                   <List isPlain className="catalog-facets__list">
-                    <ListItem>
-                      <Button
-                        variant="plain"
-                        className={`catalog-facets__button ${
-                          selectedCategory === DEFAULT_CATEGORY ? 'catalog-facets__button--active' : ''
-                        }`}
-                        onClick={() => setSelectedCategory(DEFAULT_CATEGORY)}
-                      >
-                        All items ({categoryCounts[DEFAULT_CATEGORY] ?? 0})
-                      </Button>
-                    </ListItem>
                     {orderedCategories.map((option) => (
                       <ListItem key={option.id}>
-                        <Button
-                          variant="plain"
-                          className={`catalog-facets__button ${
-                            selectedCategory === option.id ? 'catalog-facets__button--active' : ''
-                          }`}
-                          onClick={() => setSelectedCategory(option.id)}
-                        >
-                          {option.label} ({categoryCounts[option.id] ?? 0})
-                        </Button>
+                        <Checkbox
+                          id={`category-${option.id}`}
+                          label={option.label}
+                          isChecked={categoryFilters.includes(option.id)}
+                          onChange={(event, checked) =>
+                            setCategoryFilters((prev) =>
+                              checked
+                                ? [...prev, option.id]
+                                : prev.filter((id) => id !== option.id),
+                            )
+                          }
+                        />
                       </ListItem>
                     ))}
                   </List>
