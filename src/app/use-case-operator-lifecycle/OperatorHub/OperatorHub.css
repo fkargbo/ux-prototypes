@@ -407,6 +407,15 @@ div.software-catalog-toolbar {
 }
 
 /* Operator details drawer - fixed overlay */
+.operator-details-drawer {
+  position: relative !important;
+}
+
+.operator-details-drawer .pf-c-drawer__content,
+.operator-details-drawer .pf-v6-c-drawer__content {
+  position: static !important;
+}
+
 .operator-details-drawer .pf-c-drawer__panel,
 .operator-details-drawer .pf-v6-c-drawer__panel {
   position: fixed !important;
@@ -414,26 +423,29 @@ div.software-catalog-toolbar {
   right: 0 !important;
   bottom: 0 !important;
   left: auto !important;
-  border-left: 1px solid #d2d2d2 !important;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
-  height: calc(100vh - 73px) !important;
   width: 50vw !important;
   max-width: 800px !important;
   min-width: 400px !important;
-  overflow-y: auto !important;
+  height: calc(100vh - 73px) !important;
+  border-left: 1px solid #d2d2d2 !important;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
   background-color: #ffffff !important;
   z-index: 400 !important;
-  display: flex !important;
-  flex-direction: column !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
-.operator-details-drawer .pf-c-drawer__head,
-.operator-details-drawer .pf-v6-c-drawer__head {
+.operator-details-drawer .pf-c-drawer__panel-main,
+.operator-details-drawer .pf-v6-c-drawer__panel-main {
+  height: 100% !important;
+}
+
+.operator-details-drawer .pf-v6-c-drawer__head,
+.operator-details-drawer .pf-c-drawer__head {
   position: sticky !important;
   top: 0 !important;
   z-index: 1 !important;
   background-color: #ffffff !important;
-  border-bottom: 1px solid #e0e0e0 !important;
   padding: 24px !important;
   flex-shrink: 0 !important;
 }

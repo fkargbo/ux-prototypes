@@ -580,30 +580,31 @@ const OperatorHub: React.FunctionComponent = () => {
                 defaultSize="50%"
                 minSize="400px"
               >
-                <DrawerHead>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h2" size="xl">
-                        {selectedItem.name}
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Button variant="plain" onClick={() => setSelectedItem(null)}>
-                        <TimesIcon />
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <DrawerHead>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+                      <FlexItem>
+                        <Title headingLevel="h2" size="xl">
+                          {selectedItem.name}
+                        </Title>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button variant="plain" onClick={() => setSelectedItem(null)}>
+                          <TimesIcon />
+                        </Button>
+                      </FlexItem>
+                    </Flex>
+                    <Content component="p" style={{ color: '#6a6e73', fontSize: '14px', marginTop: '8px' }}>
+                      Provided by {selectedItem.provider}
+                    </Content>
+                    <div style={{ marginTop: '16px' }}>
+                      <Button variant="primary" onClick={() => handleInstall(selectedItem)}>
+                        Install
                       </Button>
-                    </FlexItem>
-                  </Flex>
-                  <Content component="p" style={{ color: '#6a6e73', fontSize: '14px', marginTop: '8px' }}>
-                    Provided by {selectedItem.provider}
-                  </Content>
-                  <div style={{ marginTop: '16px' }}>
-                    <Button variant="primary" onClick={() => handleInstall(selectedItem)}>
-                      Install
-                    </Button>
-                  </div>
-                  <Divider style={{ marginTop: '16px' }} />
-                </DrawerHead>
-                <div style={{ padding: '24px' }}>
+                    </div>
+                    <Divider style={{ marginTop: '16px' }} />
+                  </DrawerHead>
+                  <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
                   <Flex>
                     <FlexItem style={{ maxWidth: '200px', marginRight: '32px' }}>
                       <Stack hasGutter>
@@ -675,6 +676,7 @@ const OperatorHub: React.FunctionComponent = () => {
                       </Stack>
                     </FlexItem>
                   </Flex>
+                  </div>
                 </div>
               </DrawerPanelContent>
             ) : undefined
