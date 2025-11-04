@@ -66,13 +66,17 @@ div.software-catalog-toolbar {
 /* Sidebar Styling - filter area with white background */
 .software-catalog-main .pf-c-sidebar,
 .software-catalog-main .pf-v6-c-sidebar,
-.catalog-app__sidebar {
+.catalog-app__sidebar,
+.pf-v6-c-sidebar.catalog-app__sidebar {
   margin: 0 !important;
   width: 100% !important;
-  max-width: none !important;
+  max-width: 100% !important;
   flex: 1 1 100% !important;
   display: flex !important;
   flex-direction: row !important;
+  --pf-v6-c-sidebar--MaxWidth: 100% !important;
+  --pf-v6-c-sidebar__content--MaxWidth: 100% !important;
+  --pf-v6-c-sidebar__content--Width: auto !important;
 }
 
 .software-catalog-main .pf-c-sidebar__panel,
@@ -94,7 +98,8 @@ div.software-catalog-toolbar {
 .software-catalog-main .pf-c-sidebar__content,
 .software-catalog-main .pf-v6-c-sidebar__content,
 .software-catalog-main .catalog-app__sidebar .pf-c-sidebar__content,
-.software-catalog-main .catalog-app__sidebar .pf-v6-c-sidebar__content {
+.software-catalog-main .catalog-app__sidebar .pf-v6-c-sidebar__content,
+.pf-v6-c-sidebar__content {
   background-color: #f5f5f5 !important;
   padding: 24px !important;
   flex: 1 1 0 !important;
@@ -104,6 +109,8 @@ div.software-catalog-toolbar {
   overflow-x: hidden !important;
   box-sizing: border-box !important;
   display: block !important;
+  --pf-v6-c-sidebar__content--MaxWidth: none !important;
+  --pf-v6-c-sidebar__content--FlexBasis: auto !important;
 }
 
 /* Grid container - ensure it takes full width */
@@ -232,15 +239,17 @@ div.software-catalog-toolbar {
 }
 
 /* Operator Cards Grid - Flexible, adapts to screen size */
-.catalog-grid {
+.catalog-grid,
+div.catalog-grid {
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
   gap: 20px !important;
   padding: 0 !important;
   margin: 0 !important;
   width: 100% !important;
-  max-width: none !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
+  position: relative !important;
 }
 
 .catalog-card {
