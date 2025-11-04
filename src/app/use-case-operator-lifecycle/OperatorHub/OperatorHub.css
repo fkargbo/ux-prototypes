@@ -336,19 +336,9 @@
   width: 100%;
 }
 
-/* Operator details drawer - overlay that stops at masthead */
-.operator-details-drawer.pf-c-drawer {
-  position: fixed !important;
-  top: 73px !important; /* Masthead height */
-  left: 0 !important;
-  width: 100% !important;
-  height: calc(100vh - 73px) !important;
-  z-index: 200 !important;
-  pointer-events: none;
-}
-
-.operator-details-drawer.pf-c-drawer.pf-m-expanded {
-  pointer-events: auto;
+/* Operator details drawer - inline, fills available space */
+.operator-details-drawer {
+  height: 100%;
 }
 
 .operator-details-drawer .pf-c-drawer__content {
