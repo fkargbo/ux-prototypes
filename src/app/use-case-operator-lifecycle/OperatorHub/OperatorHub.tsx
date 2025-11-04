@@ -343,6 +343,36 @@ const OperatorHub: React.FunctionComponent = () => {
   const [isMigrationGuideOpen, setIsMigrationGuideOpen] = React.useState(false);
   const [navigateToLifecycle, setNavigateToLifecycle] = React.useState(false);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
+  const [drawerWidth, setDrawerWidth] = React.useState(50); // percentage of viewport
+  const [isResizing, setIsResizing] = React.useState(false);
+
+  // Handle drawer resize
+  React.useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
+      if (newWidth >= 30 && newWidth <= 70) {
+        setDrawerWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
 
   React.useEffect(() => {
     if (navigateToLifecycle) {
@@ -902,9 +932,7 @@ const OperatorHub: React.FunctionComponent = () => {
             right: 0,
             bottom: 0,
             left: 'auto',
-            width: '50%',
-            maxWidth: '800px',
-            minWidth: '400px',
+            width: `${drawerWidth}vw`,
             backgroundColor: '#ffffff',
             borderLeft: '1px solid #d2d2d2',
             boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.1)',
@@ -914,8 +942,32 @@ const OperatorHub: React.FunctionComponent = () => {
             pointerEvents: 'auto',
           }}
         >
+          {/* Resize Handle */}
+          <div
+            onMouseDown={() => setIsResizing(true)}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '5px',
+              cursor: 'col-resize',
+              backgroundColor: 'transparent',
+              zIndex: 10,
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0066cc';
+            }}
+            onMouseLeave={(e) => {
+              if (!isResizing) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }
+            }}
+          />
+
           {/* Header */}
-          <div style={{ padding: '24px', borderBottom: '1px solid #e0e0e0' }}>
+          <div style={{ padding: '24px', paddingLeft: '29px', borderBottom: '1px solid #e0e0e0' }}>
             <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
               <FlexItem>
                 <Title headingLevel="h2" size="xl">{selectedItem.name}</Title>
@@ -935,7 +987,7 @@ const OperatorHub: React.FunctionComponent = () => {
           </div>
 
           {/* Body */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', paddingLeft: '29px' }}>
             <Flex>
               <FlexItem style={{ width: '200px', marginRight: '32px' }}>
                 <Stack hasGutter>
