@@ -419,28 +419,9 @@ div.software-catalog-toolbar {
   width: 50vw !important;
   max-width: 800px !important;
   min-width: 400px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
   background-color: #ffffff !important;
   z-index: 400 !important;
-}
-
-.operator-details-drawer .pf-c-drawer__head,
-.operator-details-drawer .pf-v6-c-drawer__head {
-  flex-shrink: 0 !important;
-  padding: 24px !important;
-  border-bottom: 1px solid #e0e0e0 !important;
-  background-color: #ffffff !important;
-}
-
-.operator-details-drawer .pf-c-drawer__body,
-.operator-details-drawer .pf-v6-c-drawer__body {
-  flex: 1 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 24px !important;
-  background-color: #ffffff !important;
 }
 
 /* Responsive - adjust grid columns */
