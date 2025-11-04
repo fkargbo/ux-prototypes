@@ -65,11 +65,14 @@ div.software-catalog-toolbar {
 
 /* Sidebar Styling - filter area with white background */
 .software-catalog-main .pf-c-sidebar,
-.software-catalog-main .pf-v6-c-sidebar {
-  margin: 0;
+.software-catalog-main .pf-v6-c-sidebar,
+.catalog-app__sidebar {
+  margin: 0 !important;
   width: 100% !important;
-  flex: 1 !important;
+  max-width: none !important;
+  flex: 1 1 100% !important;
   display: flex !important;
+  flex-direction: row !important;
 }
 
 .software-catalog-main .pf-c-sidebar__panel,
@@ -94,19 +97,24 @@ div.software-catalog-toolbar {
 .software-catalog-main .catalog-app__sidebar .pf-v6-c-sidebar__content {
   background-color: #f5f5f5 !important;
   padding: 24px !important;
-  flex: 1 1 auto !important;
+  flex: 1 1 0 !important;
   min-width: 0 !important;
+  max-width: none !important;
   width: 100% !important;
   overflow-x: hidden !important;
   box-sizing: border-box !important;
+  display: block !important;
 }
 
 /* Grid container - ensure it takes full width */
 .software-catalog-main .pf-c-sidebar__content > *,
-.software-catalog-main .pf-v6-c-sidebar__content > * {
+.software-catalog-main .pf-v6-c-sidebar__content > *,
+.software-catalog-main .pf-c-sidebar__content > div,
+.software-catalog-main .pf-v6-c-sidebar__content > div {
   margin: 0 !important;
   width: 100% !important;
   max-width: none !important;
+  box-sizing: border-box !important;
 }
 
 /* Filter Headings */
