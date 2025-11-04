@@ -56,7 +56,7 @@
 .software-catalog-main .pf-c-sidebar__panel {
   background-color: #ffffff;
   border-right: 1px solid #e0e0e0;
-  padding: 24px 24px 24px 24px;
+  padding: 24px;
   width: 280px !important;
   min-width: 280px;
   overflow-y: auto;
@@ -320,11 +320,11 @@
 
 /* Stack spacing inside sidebar - 24px between all sections */
 .software-catalog-main .pf-c-sidebar__panel .pf-c-stack {
-  gap: 24px;
+  gap: 0 !important;
 }
 
 .software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item {
-  margin-bottom: 0;
+  margin-bottom: 24px;
 }
 
 .software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item:last-child {

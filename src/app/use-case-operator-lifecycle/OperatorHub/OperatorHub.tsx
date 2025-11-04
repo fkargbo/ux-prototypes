@@ -739,9 +739,9 @@ const OperatorHub: React.FunctionComponent = () => {
 
         {/* Main Content: Sidebar + Content */}
         <div className="software-catalog-main">
-          <Sidebar className="catalog-app__sidebar" hasGutter>
+          <Sidebar className="catalog-app__sidebar">
             <SidebarPanel width={{ default: 'width_25' }} variant="sticky">
-              <Stack hasGutter>
+              <Stack>
                 <StackItem className="catalog-facets__catalog-version-section">
                   <div className="catalog-facets__heading-row">
                     <Title headingLevel="h2" size="md" className="catalog-facets__heading">
