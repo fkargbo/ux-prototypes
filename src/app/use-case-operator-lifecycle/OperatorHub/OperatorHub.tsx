@@ -113,10 +113,11 @@ const CATEGORY_LABEL_MAP = CATEGORY_OPTIONS.reduce<Record<string, string>>((acc,
 }, {});
 
 const TYPE_OPTIONS: FacetOption[] = [
-  { id: 'operators', label: 'Operators' },
+  { id: 'builder-images', label: 'Builder images' },
+  { id: 'devfiles', label: 'Devfiles' },
   { id: 'helm-charts', label: 'Helm Charts' },
-  { id: 'event-sources', label: 'Event Sources' },
-  { id: 'internal-tools', label: 'Internal Tools' },
+  { id: 'operators', label: 'Operators' },
+  { id: 'templates', label: 'Templates' },
 ];
 
 const TYPE_LABEL_MAP = TYPE_OPTIONS.reduce<Record<string, string>>((acc, option) => {
