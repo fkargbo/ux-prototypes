@@ -6,16 +6,16 @@
 
 /* Breadcrumb - white background with border */
 .software-catalog-breadcrumb {
-  padding: 24px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 24px !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e0e0e0 !important;
 }
 
 /* Page Header - white background with border */
 .software-catalog-header {
-  padding: 24px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 24px !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e0e0e0 !important;
 }
 
 .software-catalog-header h1 {
@@ -33,12 +33,12 @@
 
 /* Toolbar (Search + Actions) - white background with border */
 .software-catalog-toolbar {
-  padding: 24px;
+  padding: 24px !important;
   display: flex;
   gap: 12px;
   align-items: center;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e0e0e0 !important;
 }
 
 /* Main Content Area - gray background */
@@ -415,6 +415,6 @@
   .software-catalog-header,
   .software-catalog-breadcrumb,
   .software-catalog-toolbar {
-    padding: 16px;
+    padding: 16px !important;
   }
 }
