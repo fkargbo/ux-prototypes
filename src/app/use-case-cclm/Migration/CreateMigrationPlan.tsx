@@ -357,7 +357,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
         </Title>
         <Button variant="link" onClick={() => {
           setSourceCluster('');
-          setSourceProject('');
+          setSourceProjects([]);
           setTargetCluster('');
           setTargetProject('');
         }}>
