@@ -217,10 +217,10 @@ div.software-catalog-toolbar {
   margin-bottom: 8px;
 }
 
-/* Operator Cards Grid - 4 cards per row */
+/* Operator Cards Grid - 3 cards per row by default */
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   padding: 0;
   margin-top: 24px;
@@ -413,23 +413,19 @@ div.software-catalog-toolbar {
 }
 
 /* Responsive - adjust grid columns */
-@media (max-width: 1600px) {
-  .catalog-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .catalog-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .catalog-grid {
     grid-template-columns: 1fr;
   }
-  
+}
+
+@media (max-width: 768px) {
   .software-catalog-main .pf-c-sidebar__panel,
   .software-catalog-main .pf-v6-c-sidebar__panel {
     width: 200px !important;
