@@ -190,16 +190,12 @@
 }
 
 .catalog-card__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
+  line-height: 0;
 }
 
 .catalog-card__label {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 /* Card body */
