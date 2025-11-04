@@ -745,6 +745,28 @@ const OperatorHub: React.FunctionComponent = () => {
                 <StackItem>
                   <div className="catalog-facets__heading-row">
                     <Title headingLevel="h2" size="md" className="catalog-facets__heading">
+                      Catalog version
+                    </Title>
+                    <Tooltip content="Select catalog version">
+                      <Button variant="plain" aria-label="Catalog version help" className="pf-u-p-0">
+                        <OutlinedQuestionCircleIcon />
+                      </Button>
+                    </Tooltip>
+                  </div>
+                  <FormGroup>
+                    <FormSelect 
+                      value="olmv1" 
+                      aria-label="Catalog version"
+                    >
+                      <FormSelectOption label="Operator Lifecycle Management v1" value="olmv1" />
+                      <FormSelectOption label="Operator Lifecycle Management v0" value="olmv0" />
+                    </FormSelect>
+                  </FormGroup>
+                </StackItem>
+
+                <StackItem>
+                  <div className="catalog-facets__heading-row">
+                    <Title headingLevel="h2" size="md" className="catalog-facets__heading">
                       Type
                     </Title>
                     <Tooltip content="Filter catalog items by delivery format">
@@ -754,15 +776,6 @@ const OperatorHub: React.FunctionComponent = () => {
                     </Tooltip>
                   </div>
                   <List isPlain className="catalog-facets__list">
-                    <ListItem>
-                      <Button
-                        variant="plain"
-                        className={`catalog-facets__button ${selectedType === 'all' ? 'catalog-facets__button--active' : ''}`}
-                        onClick={() => setSelectedType('all')}
-                      >
-                        All ({typeCounts.all ?? 0})
-                      </Button>
-                    </ListItem>
                     {TYPE_OPTIONS.map((option) => (
                       <ListItem key={option.id}>
                         <Button
@@ -774,35 +787,6 @@ const OperatorHub: React.FunctionComponent = () => {
                         >
                           {option.label} ({typeCounts[option.id] ?? 0})
                         </Button>
-                        {option.id === 'operators' && showOllmControls && selectedType === 'operators' && (
-                          <div className="catalog-facets__catalog-version">
-                            <div className="catalog-facets__heading-row">
-                              <span className="catalog-facets__subheading">Catalog version</span>
-                              <Tooltip content="Switch between OLM v0 subscriptions and OLMv1 extensions">
-                                <Button variant="plain" aria-label="Catalog version info" className="pf-u-p-0">
-                                  <OutlinedQuestionCircleIcon />
-                                </Button>
-                              </Tooltip>
-                            </div>
-                            <div className="pf-u-display-flex pf-u-gap-sm">
-                              <Button
-                                variant={mode === 'v0' ? 'primary' : 'secondary'}
-                                onClick={() => setMode('v0')}
-                              >
-                                OLM v0
-                              </Button>
-                              <Button
-                                variant={mode === 'v1' ? 'primary' : 'secondary'}
-                                onClick={() => setMode('v1')}
-                              >
-                                OLMv1
-                                <Label variant="filled" color="orange" isCompact className="catalog-version__badge">
-                                  Tech preview
-                                </Label>
-                              </Button>
-                            </div>
-                </div>
-                        )}
                       </ListItem>
                     ))}
                   </List>
