@@ -943,12 +943,17 @@ const OperatorHub: React.FunctionComponent = () => {
                           className="catalog-card"
                           onClick={() => setSelectedItem(item)}
                         >
-                          <CardHeader>
+                          <CardHeader className="catalog-card__header">
                             <div className="catalog-card__icon">
                               <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
                                 <rect width="40" height="40" rx="4" fill="#0066CC" fillOpacity="0.1"/>
                                 <path d="M20 10L28 15V25L20 30L12 25V15L20 10Z" fill="#0066CC"/>
                               </svg>
+                            </div>
+                            <div className="catalog-card__label">
+                              <Label color={labelColor} isCompact>
+                                {catalogLabel}
+                              </Label>
                             </div>
                           </CardHeader>
                           <CardBody className="catalog-card__body">
@@ -957,11 +962,6 @@ const OperatorHub: React.FunctionComponent = () => {
                             </Title>
                             <div className="catalog-card__provider">
                               Provided by {item.provider}
-                            </div>
-                            <div className="catalog-card__label-container">
-                              <Label color={labelColor} isCompact>
-                                {catalogLabel}
-                              </Label>
                             </div>
                             <p className="catalog-card__description">{item.description}</p>
                           </CardBody>
