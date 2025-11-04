@@ -342,6 +342,37 @@ const OperatorHub: React.FunctionComponent = () => {
   const [isMigrationGuideOpen, setIsMigrationGuideOpen] = React.useState(false);
   const [navigateToLifecycle, setNavigateToLifecycle] = React.useState(false);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
+  const [drawerWidth, setDrawerWidth] = React.useState(50); // percentage
+  const [isResizing, setIsResizing] = React.useState(false);
+
+  // Handle drawer resize
+  React.useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
+      if (newWidth >= 25 && newWidth <= 75) {
+        setDrawerWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
 
   React.useEffect(() => {
     if (navigateToLifecycle) {
@@ -894,7 +925,11 @@ const OperatorHub: React.FunctionComponent = () => {
 
       {/* Custom Drawer Overlay */}
       {selectedItem && (
-        <div className="custom-drawer-overlay">
+        <div className="custom-drawer-overlay" style={{ width: `${drawerWidth}vw` }}>
+          <div 
+            className="custom-drawer-resize-handle"
+            onMouseDown={() => setIsResizing(true)}
+          />
           <div className="custom-drawer-panel">
             <div className="custom-drawer-header">
               <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
