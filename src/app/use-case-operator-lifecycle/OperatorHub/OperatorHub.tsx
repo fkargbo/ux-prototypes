@@ -928,78 +928,43 @@ const OperatorHub: React.FunctionComponent = () => {
               ) : (
                 <Gallery hasGutter className="catalog-grid">
                   {displayedItems.map((item) => {
-                    const installedModes = getInstallStateForMode.get(item.id) ?? [];
+                    const catalogLabel = item.catalog === 'marketplace' ? 'Marketplace' : 
+                                       item.catalog === 'community-extensions' ? 'Community' : 
+                                       'Red Hat';
+                    const labelColor = item.catalog === 'marketplace' ? 'blue' : 
+                                      item.catalog === 'community-extensions' ? 'orange' : 
+                                      'red';
+                    
                     return (
                       <GalleryItem key={item.id}>
-                        <Card isCompact isSelectable className="catalog-card">
+                        <Card 
+                          isClickable 
+                          isSelectable 
+                          className="catalog-card"
+                          onClick={() => setSelectedItem(item)}
+                        >
                           <CardHeader>
-                            <LabelGroup numLabels={3} collapsedText="Show more" expandedText="Show less">
-                              <Label variant="outline" isCompact>
-                                {TYPE_LABEL_MAP[item.type] ?? item.type}
-                              </Label>
-                              <Label variant="outline" isCompact>
-                                Catalog: {item.catalog}
-                              </Label>
-                              <Label variant="outline" isCompact>
-                                Provider: {item.provider}
-                              </Label>
-                              {item.categories?.map((categoryId) => (
-                                <Label key={`${item.id}-${categoryId}`} variant="outline" isCompact>
-                                  {CATEGORY_LABEL_MAP[categoryId] ?? categoryId}
-                                </Label>
-                              ))}
-                              {item.badges?.map((badge) => (
-                                <Label key={`${item.id}-${badge}`} variant="outline" color="green" isCompact>
-                                  {badge}
-                                </Label>
-                              ))}
-                            </LabelGroup>
+                            <div className="catalog-card__icon">
+                              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                                <rect width="40" height="40" rx="4" fill="#0066CC" fillOpacity="0.1"/>
+                                <path d="M20 10L28 15V25L20 30L12 25V15L20 10Z" fill="#0066CC"/>
+                              </svg>
+                            </div>
                           </CardHeader>
                           <CardBody className="catalog-card__body">
-                            <Stack hasGutter>
-                              <StackItem>
-                                <Title headingLevel="h3" size="md">
-                                  {item.name}
-                                </Title>
-                              </StackItem>
-                              <StackItem>
-                                <p className="catalog-card__description">{item.description}</p>
-                              </StackItem>
-                            </Stack>
+                            <Title headingLevel="h3" size="md" className="catalog-card__title">
+                              {item.name}
+                            </Title>
+                            <div className="catalog-card__provider">
+                              Provided by {item.provider}
+                            </div>
+                            <div className="catalog-card__label-container">
+                              <Label color={labelColor} isCompact>
+                                {catalogLabel}
+                              </Label>
+                            </div>
+                            <p className="catalog-card__description">{item.description}</p>
                           </CardBody>
-                          <CardFooter className="catalog-card__footer">
-                            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <FlexItem>
-                                <Button variant="primary" onClick={() => handleInstall(item)}>
-                                  {cardPrimaryCtaLabel(item)}
-                                </Button>
-                              </FlexItem>
-                              <FlexItem>
-                                <Button variant="link" onClick={() => setSelectedItem(item)}>
-                                  View details
-                                </Button>
-        </FlexItem>
-      </Flex>
-                            {(item.updateAvailable || installedModes.length > 0) && (
-                              <LabelGroup numLabels={2} collapsedText="Show more" expandedText="Show less">
-                                {item.updateAvailable && (
-                                  <Label variant="filled" color="orange" isCompact>
-                                    Update available
-                                  </Label>
-                                )}
-                                {installedModes.map((installedMode) => (
-                                  <Label
-                                    key={`${item.id}-${installedMode}`}
-                                    variant="outline"
-                                    isCompact
-                                    color={getInstallBadgeColor(installedMode)}
-                                  >
-                                    Installed via OLM {installedMode.toUpperCase()}
-                                  </Label>
-                                ))}
-                              </LabelGroup>
-                            )}
-                          </CardFooter>
                         </Card>
                       </GalleryItem>
                     );
