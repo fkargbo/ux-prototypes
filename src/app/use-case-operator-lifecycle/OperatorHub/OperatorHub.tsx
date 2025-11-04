@@ -492,109 +492,151 @@ const OperatorHub: React.FunctionComponent = () => {
     stateFilters.length > 0 ||
     (showOllmControls && selectedCatalog.id !== V1_CATALOG_OPTIONS[0].id);
 
-  const renderDrawer = () => (
-    <Drawer
-      isExpanded={Boolean(selectedItem)}
-      onExpand={(event) => {
-        const drawer = event.currentTarget as HTMLElement | null;
-        if (!drawer?.classList.contains('pf-m-expanded')) {
-          setSelectedItem(undefined);
-        }
-      }}
-      position="right"
-    >
-      <DrawerContent
-        panelContent={
-          <DrawerPanelContent widths={{ default: 'width_33' }}>
-            <DrawerHead className="catalog-details__header">
-              <Title headingLevel="h2" size="lg">
-                {selectedItem?.name}
-              </Title>
-              <Button variant="plain" aria-label="Close details" onClick={() => setSelectedItem(undefined)}>
-                <TimesIcon />
-              </Button>
-            </DrawerHead>
-            <DrawerPanelBody>
-              <Stack hasGutter>
-                <StackItem>
-                  <small className="catalog-details__source">{selectedItem?.catalog}</small>
-                </StackItem>
-                <StackItem>
-                  <Title headingLevel="h3" size="md">
-                    Description
-                  </Title>
-                  <p>{selectedItem?.description}</p>
-                </StackItem>
-                <StackItem>
-                  <Title headingLevel="h3" size="md">
-                    Metadata
-                  </Title>
-                  <LabelGroup numLabels={4} collapsedText="Show more" expandedText="Show less">
-                    {selectedItem?.provider && (
-                      <Label variant="outline" isCompact>
-                        {selectedItem.provider}
-                      </Label>
-                    )}
-                    {selectedItem?.type && (
-                      <Label variant="outline" isCompact>
-                        {TYPE_LABEL_MAP[selectedItem.type] ?? selectedItem.type}
-                      </Label>
-                    )}
-                    {selectedItem?.categories?.map((categoryId) => (
-                      <Label key={`${selectedItem.id}-${categoryId}`} variant="outline" isCompact>
-                        {CATEGORY_LABEL_MAP[categoryId] ?? categoryId}
-                      </Label>
-                    ))}
-                  </LabelGroup>
-                </StackItem>
-                {selectedItem?.repositoryUrl && (
-                  <StackItem>
-                    <Button
-                      variant="link"
-                      icon={<ExternalLinkAltIcon />}
-                      iconPosition="end"
-                      component="a"
-                      href={selectedItem.repositoryUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      View repository
-                    </Button>
-                  </StackItem>
-                )}
-                {selectedItem?.documentationUrl && (
-                  <StackItem>
-                    <Button
-                      variant="link"
-                      icon={<ExternalLinkAltIcon />}
-                      iconPosition="end"
-                      component="a"
-                      href={selectedItem.documentationUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      View documentation
-                    </Button>
-                  </StackItem>
-                )}
-                {selectedItem && (
-                  <StackItem>
-                    <Button variant="secondary" onClick={() => handleInstall(selectedItem)}>
-                      {isItemInstalledInMode(installedItems, selectedItem, showOllmControls ? mode : 'v1')
-                        ? 'Update software'
-                        : 'Install'}
-              </Button>
-                  </StackItem>
-                )}
-              </Stack>
-            </DrawerPanelBody>
-          </DrawerPanelContent>
-        }
+  const renderDrawer = () => {
+    if (!selectedItem) return null;
+
+    const catalogLabel = selectedItem.catalog === 'marketplace' ? 'Marketplace Operator' : 
+                        selectedItem.catalog === 'community-extensions' ? 'Community Operator' : 
+                        'Red Hat Operator';
+
+    return (
+      <Drawer
+        isExpanded={Boolean(selectedItem)}
+        isInline
+        position="right"
+        className="operator-details-drawer"
       >
-        <DrawerContentBody />
-      </DrawerContent>
-    </Drawer>
-  );
+        <DrawerContent
+          panelContent={
+            <DrawerPanelContent 
+              isResizable
+              defaultSize="50%"
+              minSize="400px"
+            >
+              <DrawerHead>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+                  <FlexItem>
+                    <Title headingLevel="h2" size="xl">
+                      {selectedItem.name}
+                    </Title>
+                  </FlexItem>
+                  <FlexItem>
+                    <Button variant="plain" aria-label="Close" onClick={() => setSelectedItem(undefined)}>
+                      <TimesIcon />
+                    </Button>
+                  </FlexItem>
+                </Flex>
+              </DrawerHead>
+              <DrawerPanelBody>
+                <Stack hasGutter>
+                  <StackItem>
+                    <div style={{ color: '#6a6e73', fontSize: '14px' }}>
+                      {selectedItem.type} provided by {selectedItem.provider}
+                    </div>
+                  </StackItem>
+                  <StackItem>
+                    <Button variant="primary" onClick={() => handleInstall(selectedItem)}>
+                      Install
+                    </Button>
+                  </StackItem>
+                  <StackItem>
+                    <Divider />
+                  </StackItem>
+                  <StackItem>
+                    <Flex>
+                      <FlexItem flex={{ default: 'flex_1' }} style={{ maxWidth: '200px' }}>
+                        <Stack hasGutter>
+                          <StackItem>
+                            <div style={{ marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>Channel</div>
+                            <select style={{ width: '100%', padding: '8px', border: '1px solid #d2d2d2', borderRadius: '3px' }}>
+                              <option>alpha</option>
+                              <option>stable</option>
+                            </select>
+                          </StackItem>
+                          <StackItem>
+                            <div style={{ marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>Version</div>
+                            <select style={{ width: '100%', padding: '8px', border: '1px solid #d2d2d2', borderRadius: '3px' }}>
+                              <option>3.0.0</option>
+                            </select>
+                          </StackItem>
+                          <StackItem>
+                            <div style={{ marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>OLM version</div>
+                            <select style={{ width: '100%', padding: '8px', border: '1px solid #d2d2d2', borderRadius: '3px' }}>
+                              <option>v0</option>
+                              <option>v1</option>
+                            </select>
+                          </StackItem>
+                        </Stack>
+                      </FlexItem>
+                      <FlexItem flex={{ default: 'flex_2' }} style={{ paddingLeft: '24px' }}>
+                        <Stack hasGutter>
+                          <StackItem>
+                            <div style={{ 
+                              backgroundColor: '#e7f1fa', 
+                              padding: '16px', 
+                              borderRadius: '4px',
+                              marginBottom: '16px'
+                            }}>
+                              <Title headingLevel="h3" size="md" style={{ marginBottom: '12px' }}>
+                                {catalogLabel}
+                              </Title>
+                              <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                                This Operator is purchased through Red Hat Marketplace. After completing the purchase 
+                                process, you can install the Operator on this or other OpenShift clusters. Visit Red Hat 
+                                Marketplace for more details and to track your usage of this application.
+                              </p>
+                              <Button 
+                                variant="link" 
+                                isInline 
+                                component="a" 
+                                href="#" 
+                                style={{ paddingLeft: 0, marginTop: '8px' }}
+                              >
+                                Learn more about the Red Hat Marketplace →
+                              </Button>
+                            </div>
+                          </StackItem>
+                          <StackItem>
+                            <p style={{ fontSize: '14px', lineHeight: '1.5', color: '#151515' }}>
+                              {selectedItem.description}
+                            </p>
+                          </StackItem>
+                          <StackItem>
+                            <Title headingLevel="h3" size="md" style={{ marginTop: '16px', marginBottom: '12px' }}>
+                              Related software
+                            </Title>
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Button variant="link" isInline style={{ paddingLeft: 0 }}>
+                                  Advanced Cluster Security
+                                </Button>
+                              </StackItem>
+                              <StackItem>
+                                <Button variant="link" isInline style={{ paddingLeft: 0 }}>
+                                  Advanced Cluster Management
+                                </Button>
+                              </StackItem>
+                              <StackItem>
+                                <Button variant="link" isInline style={{ paddingLeft: 0 }}>
+                                  Migration Toolkit for OpenShift Virtualization
+                                </Button>
+                              </StackItem>
+                            </Stack>
+                          </StackItem>
+                        </Stack>
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                </Stack>
+              </DrawerPanelBody>
+            </DrawerPanelContent>
+          }
+        >
+          <DrawerContentBody />
+        </DrawerContent>
+      </Drawer>
+    );
+  };
 
   const renderInstallModal = () => (
     <Modal

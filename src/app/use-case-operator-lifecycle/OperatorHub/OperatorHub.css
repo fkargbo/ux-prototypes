@@ -336,6 +336,25 @@
   width: 100%;
 }
 
+/* Operator details drawer - full page, stops at masthead */
+.operator-details-drawer {
+  position: fixed;
+  top: 73px; /* Masthead height */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+.operator-details-drawer .pf-c-drawer__content {
+  height: calc(100vh - 73px);
+}
+
+.operator-details-drawer .pf-c-drawer__panel {
+  border-left: 1px solid #d2d2d2;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
 /* Responsive - adjust grid columns */
 @media (max-width: 1600px) {
   .catalog-grid {
