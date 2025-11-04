@@ -25,6 +25,9 @@ import {
   DropdownItem,
   Flex,
   FlexItem,
+  FormGroup,
+  FormSelect,
+  FormSelectOption,
   Gallery,
   GalleryItem,
   Label,
@@ -547,24 +550,27 @@ const OperatorHub: React.FunctionComponent = () => {
                       <FlexItem flex={{ default: 'flex_1' }} style={{ maxWidth: '200px' }}>
                         <Stack hasGutter>
                           <StackItem>
-                            <div style={{ marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>Channel</div>
-                            <select style={{ width: '100%', padding: '8px', border: '1px solid #d2d2d2', borderRadius: '3px' }}>
-                              <option>alpha</option>
-                              <option>stable</option>
-                            </select>
+                            <FormGroup label="Channel" fieldId="channel-select">
+                              <FormSelect id="channel-select" value="alpha" aria-label="Channel">
+                                <FormSelectOption value="alpha" label="alpha" />
+                                <FormSelectOption value="stable" label="stable" />
+                              </FormSelect>
+                            </FormGroup>
                           </StackItem>
                           <StackItem>
-                            <div style={{ marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>Version</div>
-                            <select style={{ width: '100%', padding: '8px', border: '1px solid #d2d2d2', borderRadius: '3px' }}>
-                              <option>3.0.0</option>
-                            </select>
+                            <FormGroup label="Version" fieldId="version-select">
+                              <FormSelect id="version-select" value="3.0.0" aria-label="Version">
+                                <FormSelectOption value="3.0.0" label="3.0.0" />
+                              </FormSelect>
+                            </FormGroup>
                           </StackItem>
                           <StackItem>
-                            <div style={{ marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>OLM version</div>
-                            <select style={{ width: '100%', padding: '8px', border: '1px solid #d2d2d2', borderRadius: '3px' }}>
-                              <option>v0</option>
-                              <option>v1</option>
-                            </select>
+                            <FormGroup label="OLM version" fieldId="olm-version-select">
+                              <FormSelect id="olm-version-select" value="v0" aria-label="OLM version">
+                                <FormSelectOption value="v0" label="v0" />
+                                <FormSelectOption value="v1" label="v1" />
+                              </FormSelect>
+                            </FormGroup>
                           </StackItem>
                         </Stack>
                       </FlexItem>
