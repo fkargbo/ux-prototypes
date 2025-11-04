@@ -343,7 +343,7 @@ const OperatorHub: React.FunctionComponent = () => {
   const [isMigrationGuideOpen, setIsMigrationGuideOpen] = React.useState(false);
   const [navigateToLifecycle, setNavigateToLifecycle] = React.useState(false);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
-  const [drawerWidth, setDrawerWidth] = React.useState(50); // percentage of viewport
+  const [drawerWidth, setDrawerWidth] = React.useState(35); // percentage of viewport
   const [isResizing, setIsResizing] = React.useState(false);
 
   // Handle drawer resize
