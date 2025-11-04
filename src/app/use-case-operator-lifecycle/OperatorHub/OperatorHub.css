@@ -407,25 +407,21 @@ div.software-catalog-toolbar {
 }
 
 /* Operator details drawer - fixed overlay */
-.operator-details-drawer {
+.operator-details-drawer.pf-c-drawer,
+.operator-details-drawer.pf-v6-c-drawer {
   position: fixed !important;
   top: 73px !important;
   right: 0 !important;
   bottom: 0 !important;
   left: auto !important;
-  width: 50% !important;
-  max-width: 800px !important;
-  min-width: 400px !important;
+  width: auto !important;
   height: calc(100vh - 73px) !important;
   z-index: 400 !important;
-  pointer-events: auto !important;
 }
 
 .operator-details-drawer .pf-c-drawer__content,
 .operator-details-drawer .pf-v6-c-drawer__content {
   height: 100% !important;
-  display: flex !important;
-  flex-direction: row !important;
 }
 
 .operator-details-drawer .pf-c-drawer__panel,
@@ -433,7 +429,9 @@ div.software-catalog-toolbar {
   border-left: 1px solid #d2d2d2 !important;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
   height: 100% !important;
-  width: 100% !important;
+  width: 50vw !important;
+  max-width: 800px !important;
+  min-width: 400px !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
@@ -446,9 +444,6 @@ div.software-catalog-toolbar {
   padding: 24px !important;
   border-bottom: 1px solid #e0e0e0 !important;
   background-color: #ffffff !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 1 !important;
 }
 
 .operator-details-drawer .pf-c-drawer__body,
@@ -457,6 +452,7 @@ div.software-catalog-toolbar {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   padding: 24px !important;
+  background-color: #ffffff !important;
 }
 
 /* Responsive - adjust grid columns */
