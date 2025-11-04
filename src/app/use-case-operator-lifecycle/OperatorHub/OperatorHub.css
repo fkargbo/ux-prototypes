@@ -73,7 +73,7 @@
 .catalog-facets__heading {
   font-size: 13px;
   font-weight: 600;
-  margin: 0 0 12px 0;
+  margin: 0 0 24px 0;
   color: #151515;
 }
 
@@ -81,11 +81,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 /* Catalog version section spacing */
 .catalog-facets__catalog-version-section {
+  padding-bottom: 24px;
+  margin-bottom: 0;
+}
+
+.catalog-facets__catalog-version-section .catalog-facets__heading-row {
   margin-bottom: 24px;
 }
 
