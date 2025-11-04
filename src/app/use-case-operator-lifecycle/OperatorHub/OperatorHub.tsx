@@ -900,15 +900,17 @@ const OperatorHub: React.FunctionComponent = () => {
             top: '73px',
             right: 0,
             bottom: 0,
+            left: 'auto',
             width: '50%',
             maxWidth: '800px',
             minWidth: '400px',
             backgroundColor: '#ffffff',
             borderLeft: '1px solid #d2d2d2',
             boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.1)',
-            zIndex: 400,
+            zIndex: 9999,
             display: 'flex',
             flexDirection: 'column',
+            pointerEvents: 'auto',
           }}
         >
           {/* Header */}

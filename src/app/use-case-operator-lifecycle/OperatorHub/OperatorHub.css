@@ -406,6 +406,11 @@ div.software-catalog-toolbar {
   width: 100%;
 }
 
+/* Ensure page doesn't shift when drawer opens */
+.software-catalog-page {
+  position: relative;
+  width: 100%;
+}
 
 /* Responsive - adjust grid columns */
 @media (max-width: 1600px) {
