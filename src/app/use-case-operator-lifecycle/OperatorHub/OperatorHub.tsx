@@ -580,7 +580,7 @@ const OperatorHub: React.FunctionComponent = () => {
                 defaultSize="50%"
                 minSize="400px"
               >
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div className="operator-details-drawer__container">
                   <DrawerHead>
                     <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
                       <FlexItem>
@@ -604,8 +604,8 @@ const OperatorHub: React.FunctionComponent = () => {
                     </div>
                     <Divider style={{ marginTop: '16px' }} />
                   </DrawerHead>
-                  <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-                  <Flex>
+                  <div className="operator-details-drawer__body" style={{ padding: '24px' }}>
+                    <Flex>
                     <FlexItem style={{ maxWidth: '200px', marginRight: '32px' }}>
                       <Stack hasGutter>
                         <StackItem>
