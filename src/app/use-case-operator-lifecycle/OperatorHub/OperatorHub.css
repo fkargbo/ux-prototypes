@@ -70,13 +70,13 @@ div.software-catalog-toolbar {
 .pf-v6-c-sidebar.catalog-app__sidebar {
   margin: 0 !important;
   width: 100% !important;
-  max-width: 100% !important;
-  flex: 1 1 100% !important;
-  display: flex !important;
-  flex-direction: row !important;
-  --pf-v6-c-sidebar--MaxWidth: 100% !important;
-  --pf-v6-c-sidebar__content--MaxWidth: 100% !important;
-  --pf-v6-c-sidebar__content--Width: auto !important;
+  max-width: none !important;
+  flex: none !important;
+  display: grid !important;
+  grid-template-columns: 260px 1fr !important;
+  --pf-v6-c-sidebar--MaxWidth: none !important;
+  --pf-v6-c-sidebar__content--MaxWidth: none !important;
+  --pf-v6-c-sidebar__content--Width: 100% !important;
 }
 
 .software-catalog-main .pf-c-sidebar__panel,
@@ -89,9 +89,9 @@ div.software-catalog-toolbar {
   width: 260px !important;
   min-width: 260px !important;
   max-width: 260px !important;
-  flex-shrink: 0 !important;
   overflow-y: auto !important;
   box-sizing: border-box !important;
+  grid-column: 1 !important;
 }
 
 /* Content area - right side with cards on gray background */
@@ -103,13 +103,13 @@ div.software-catalog-toolbar {
 .catalog-app__sidebar > .pf-v6-c-sidebar__content {
   background-color: #f5f5f5 !important;
   padding: 24px !important;
-  flex: 1 1 auto !important;
   min-width: 0 !important;
   max-width: none !important;
   width: 100% !important;
   overflow-x: hidden !important;
   box-sizing: border-box !important;
   display: block !important;
+  grid-column: 2 !important;
   --pf-v6-c-sidebar__content--MaxWidth: none !important;
   --pf-v6-c-sidebar__content--FlexBasis: auto !important;
   --pf-v6-c-sidebar__content--Width: 100% !important;
