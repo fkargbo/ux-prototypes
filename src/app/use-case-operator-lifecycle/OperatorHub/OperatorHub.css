@@ -406,62 +406,43 @@ div.software-catalog-toolbar {
   width: 100%;
 }
 
-/* Operator details drawer - fixed overlay */
-.operator-details-drawer {
-  position: relative !important;
+/* Custom Drawer Overlay */
+.custom-drawer-overlay {
+  position: fixed;
+  top: 73px;
+  right: 0;
+  bottom: 0;
+  width: 50vw;
+  max-width: 800px;
+  min-width: 400px;
+  background-color: #ffffff;
+  border-left: 1px solid #d2d2d2;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.operator-details-drawer .pf-c-drawer__content,
-.operator-details-drawer .pf-v6-c-drawer__content {
-  position: static !important;
+.custom-drawer-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
-.operator-details-drawer .pf-c-drawer__panel,
-.operator-details-drawer .pf-v6-c-drawer__panel {
-  position: fixed !important;
-  top: 73px !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  left: auto !important;
-  width: 50vw !important;
-  max-width: 800px !important;
-  min-width: 400px !important;
-  height: calc(100vh - 73px) !important;
-  border-left: 1px solid #d2d2d2 !important;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
-  background-color: #ffffff !important;
-  z-index: 400 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
+.custom-drawer-header {
+  flex-shrink: 0;
+  padding: 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
 }
 
-.operator-details-drawer .pf-c-drawer__panel-main,
-.operator-details-drawer .pf-v6-c-drawer__panel-main {
-  height: 100% !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-.operator-details-drawer__container {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100% !important;
-}
-
-.operator-details-drawer .pf-v6-c-drawer__head,
-.operator-details-drawer .pf-c-drawer__head {
-  flex-shrink: 0 !important;
-  background-color: #ffffff !important;
-  padding: 24px !important;
-  border-bottom: 1px solid #e0e0e0 !important;
-}
-
-.operator-details-drawer__body {
-  flex: 1 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+.custom-drawer-body {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Responsive - adjust grid columns */

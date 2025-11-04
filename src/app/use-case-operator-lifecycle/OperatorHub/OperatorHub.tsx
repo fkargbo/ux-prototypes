@@ -15,11 +15,6 @@ import {
   Checkbox,
   Content,
   Divider,
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  DrawerHead,
-  DrawerPanelContent,
   Dropdown,
   DropdownList,
   DropdownItem,
@@ -567,123 +562,7 @@ const OperatorHub: React.FunctionComponent = () => {
 
   return (
     <React.Fragment>
-      <Drawer
-        isExpanded={!!selectedItem}
-        position="right"
-        className="operator-details-drawer"
-      >
-        <DrawerContent
-          panelContent={
-            selectedItem ? (
-              <DrawerPanelContent 
-                isResizable
-                defaultSize="50%"
-                minSize="400px"
-              >
-                <div className="operator-details-drawer__container">
-                  <DrawerHead>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                      <FlexItem>
-                        <Title headingLevel="h2" size="xl">
-                          {selectedItem.name}
-                        </Title>
-                      </FlexItem>
-                      <FlexItem>
-                        <Button variant="plain" onClick={() => setSelectedItem(null)}>
-                          <TimesIcon />
-                        </Button>
-                      </FlexItem>
-                    </Flex>
-                    <Content component="p" style={{ color: '#6a6e73', fontSize: '14px', marginTop: '8px' }}>
-                      Provided by {selectedItem.provider}
-                    </Content>
-                    <div style={{ marginTop: '16px' }}>
-                      <Button variant="primary" onClick={() => handleInstall(selectedItem)}>
-                        Install
-                      </Button>
-                    </div>
-                    <Divider style={{ marginTop: '16px' }} />
-                  </DrawerHead>
-                  <div className="operator-details-drawer__body" style={{ padding: '24px' }}>
-                    <Flex>
-                    <FlexItem style={{ maxWidth: '200px', marginRight: '32px' }}>
-                      <Stack hasGutter>
-                        <StackItem>
-                          <FormGroup label="Channel" isRequired>
-                            <FormSelect aria-label="Select channel">
-                              <FormSelectOption label="stable" value="stable" />
-                              <FormSelectOption label="candidate" value="candidate" />
-                              <FormSelectOption label="fast" value="fast" />
-                            </FormSelect>
-                          </FormGroup>
-                        </StackItem>
-                        <StackItem>
-                          <FormGroup label="Version" isRequired>
-                            <FormSelect aria-label="Select version">
-                              <FormSelectOption label="v4.12.0" value="v4.12.0" />
-                              <FormSelectOption label="v4.11.0" value="v4.11.0" />
-                              <FormSelectOption label="v4.10.0" value="v4.10.0" />
-                            </FormSelect>
-                          </FormGroup>
-                        </StackItem>
-                        <StackItem>
-                          <FormGroup label="OLM version" isRequired>
-                            <FormSelect aria-label="Select OLM version">
-                              <FormSelectOption label="OLM v0" value="v0" />
-                              <FormSelectOption label="OLM v1" value="v1" />
-                            </FormSelect>
-                          </FormGroup>
-                        </StackItem>
-                      </Stack>
-                    </FlexItem>
-                    <FlexItem flex={{ default: 'flex_1' }}>
-                      <Stack hasGutter>
-                        {selectedItem.catalog === 'marketplace' && (
-                          <StackItem>
-                            <Alert
-                              variant="info"
-                              isInline
-                              title={<>This is a <strong>Marketplace Operator</strong></>}
-                            >
-                              <p>
-                                Purchase required for use. Purchase a subscription from{' '}
-                                <a href="#">Red Hat Marketplace</a>.
-                              </p>
-                            </Alert>
-                          </StackItem>
-                        )}
-                        <StackItem>
-                          <Title headingLevel="h3" size="md">
-                            Description
-                          </Title>
-                          <Content component="p" style={{ marginTop: '8px' }}>
-                            {selectedItem.description}
-                          </Content>
-                        </StackItem>
-                        <StackItem>
-                          <Title headingLevel="h3" size="md">
-                            Related software
-                          </Title>
-                          <List>
-                            <ListItem>
-                              <a href="#">OpenShift Logging</a>
-                            </ListItem>
-                            <ListItem>
-                              <a href="#">OpenShift Monitoring</a>
-                            </ListItem>
-                          </List>
-                        </StackItem>
-                      </Stack>
-                    </FlexItem>
-                  </Flex>
-                  </div>
-                </div>
-              </DrawerPanelContent>
-            ) : undefined
-          }
-        >
-          <DrawerContentBody>
-            <div className="software-catalog-page">
+      <div className="software-catalog-page">
         {/* Breadcrumb */}
         <div className="software-catalog-breadcrumb">
           <Breadcrumb>
@@ -965,9 +844,6 @@ const OperatorHub: React.FunctionComponent = () => {
           </Sidebar>
         </div>
       </div>
-          </DrawerContentBody>
-        </DrawerContent>
-      </Drawer>
 
       {renderInstallModal()}
 
@@ -1015,6 +891,110 @@ const OperatorHub: React.FunctionComponent = () => {
       </Modal>
 
       <MigrationGuide isOpen={isMigrationGuideOpen} onClose={() => setIsMigrationGuideOpen(false)} />
+
+      {/* Custom Drawer Overlay */}
+      {selectedItem && (
+        <div className="custom-drawer-overlay">
+          <div className="custom-drawer-panel">
+            <div className="custom-drawer-header">
+              <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+                <FlexItem>
+                  <Title headingLevel="h2" size="xl">
+                    {selectedItem.name}
+                  </Title>
+                </FlexItem>
+                <FlexItem>
+                  <Button variant="plain" onClick={() => setSelectedItem(null)}>
+                    <TimesIcon />
+                  </Button>
+                </FlexItem>
+              </Flex>
+              <p style={{ color: '#6a6e73', fontSize: '14px', marginTop: '8px' }}>
+                Provided by {selectedItem.provider}
+              </p>
+              <div style={{ marginTop: '16px' }}>
+                <Button variant="primary" onClick={() => handleInstall(selectedItem)}>
+                  Install
+                </Button>
+              </div>
+              <Divider style={{ marginTop: '16px' }} />
+            </div>
+            <div className="custom-drawer-body">
+              <Flex>
+                <FlexItem style={{ maxWidth: '200px', marginRight: '32px' }}>
+                  <Stack hasGutter>
+                    <StackItem>
+                      <FormGroup label="Channel" isRequired>
+                        <FormSelect aria-label="Select channel">
+                          <FormSelectOption label="stable" value="stable" />
+                          <FormSelectOption label="candidate" value="candidate" />
+                          <FormSelectOption label="fast" value="fast" />
+                        </FormSelect>
+                      </FormGroup>
+                    </StackItem>
+                    <StackItem>
+                      <FormGroup label="Version" isRequired>
+                        <FormSelect aria-label="Select version">
+                          <FormSelectOption label="v4.12.0" value="v4.12.0" />
+                          <FormSelectOption label="v4.11.0" value="v4.11.0" />
+                          <FormSelectOption label="v4.10.0" value="v4.10.0" />
+                        </FormSelect>
+                      </FormGroup>
+                    </StackItem>
+                    <StackItem>
+                      <FormGroup label="OLM version" isRequired>
+                        <FormSelect aria-label="Select OLM version">
+                          <FormSelectOption label="OLM v0" value="v0" />
+                          <FormSelectOption label="OLM v1" value="v1" />
+                        </FormSelect>
+                      </FormGroup>
+                    </StackItem>
+                  </Stack>
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <Stack hasGutter>
+                    {selectedItem.catalog === 'marketplace' && (
+                      <StackItem>
+                        <Alert
+                          variant="info"
+                          isInline
+                          title={<>This is a <strong>Marketplace Operator</strong></>}
+                        >
+                          <p>
+                            Purchase required for use. Purchase a subscription from{' '}
+                            <a href="#">Red Hat Marketplace</a>.
+                          </p>
+                        </Alert>
+                      </StackItem>
+                    )}
+                    <StackItem>
+                      <Title headingLevel="h3" size="md">
+                        Description
+                      </Title>
+                      <p style={{ marginTop: '8px' }}>
+                        {selectedItem.description}
+                      </p>
+                    </StackItem>
+                    <StackItem>
+                      <Title headingLevel="h3" size="md">
+                        Related software
+                      </Title>
+                      <List>
+                        <ListItem>
+                          <a href="#">OpenShift Logging</a>
+                        </ListItem>
+                        <ListItem>
+                          <a href="#">OpenShift Monitoring</a>
+                        </ListItem>
+                      </List>
+                    </StackItem>
+                  </Stack>
+                </FlexItem>
+              </Flex>
+            </div>
+          </div>
+        </div>
+      )}
     </React.Fragment>
   );
 };
