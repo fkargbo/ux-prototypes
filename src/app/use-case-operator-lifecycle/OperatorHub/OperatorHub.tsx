@@ -342,37 +342,6 @@ const OperatorHub: React.FunctionComponent = () => {
   const [isMigrationGuideOpen, setIsMigrationGuideOpen] = React.useState(false);
   const [navigateToLifecycle, setNavigateToLifecycle] = React.useState(false);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
-  const [drawerWidth, setDrawerWidth] = React.useState(50); // percentage
-  const [isResizing, setIsResizing] = React.useState(false);
-
-  // Handle drawer resize
-  React.useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
-      if (newWidth >= 25 && newWidth <= 75) {
-        setDrawerWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-  }, [isResizing]);
 
   React.useEffect(() => {
     if (navigateToLifecycle) {
@@ -923,110 +892,96 @@ const OperatorHub: React.FunctionComponent = () => {
 
       <MigrationGuide isOpen={isMigrationGuideOpen} onClose={() => setIsMigrationGuideOpen(false)} />
 
-      {/* Custom Drawer Overlay */}
+      {/* Operator Details Drawer */}
       {selectedItem && (
-        <div className="custom-drawer-overlay" style={{ width: `${drawerWidth}vw` }}>
-          <div 
-            className="custom-drawer-resize-handle"
-            onMouseDown={() => setIsResizing(true)}
-          />
-          <div className="custom-drawer-panel">
-            <div className="custom-drawer-header">
-              <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                <FlexItem>
-                  <Title headingLevel="h2" size="xl">
-                    {selectedItem.name}
-                  </Title>
-                </FlexItem>
-                <FlexItem>
-                  <Button variant="plain" onClick={() => setSelectedItem(null)}>
-                    <TimesIcon />
-                  </Button>
-                </FlexItem>
-              </Flex>
-              <p style={{ color: '#6a6e73', fontSize: '14px', marginTop: '8px' }}>
-                Provided by {selectedItem.provider}
-              </p>
-              <div style={{ marginTop: '16px' }}>
-                <Button variant="primary" onClick={() => handleInstall(selectedItem)}>
-                  Install
+        <div 
+          style={{
+            position: 'fixed',
+            top: '73px',
+            right: 0,
+            bottom: 0,
+            width: '50%',
+            maxWidth: '800px',
+            minWidth: '400px',
+            backgroundColor: '#ffffff',
+            borderLeft: '1px solid #d2d2d2',
+            boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.1)',
+            zIndex: 400,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* Header */}
+          <div style={{ padding: '24px', borderBottom: '1px solid #e0e0e0' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+              <FlexItem>
+                <Title headingLevel="h2" size="xl">{selectedItem.name}</Title>
+              </FlexItem>
+              <FlexItem>
+                <Button variant="plain" onClick={() => setSelectedItem(undefined)}>
+                  <TimesIcon />
                 </Button>
-              </div>
-              <Divider style={{ marginTop: '16px' }} />
+              </FlexItem>
+            </Flex>
+            <div style={{ color: '#6a6e73', fontSize: '14px', marginTop: '8px' }}>
+              Provided by {selectedItem.provider}
             </div>
-            <div className="custom-drawer-body">
-              <Flex>
-                <FlexItem style={{ maxWidth: '200px', marginRight: '32px' }}>
-                  <Stack hasGutter>
-                    <StackItem>
-                      <FormGroup label="Channel" isRequired>
-                        <FormSelect aria-label="Select channel">
-                          <FormSelectOption label="stable" value="stable" />
-                          <FormSelectOption label="candidate" value="candidate" />
-                          <FormSelectOption label="fast" value="fast" />
-                        </FormSelect>
-                      </FormGroup>
-                    </StackItem>
-                    <StackItem>
-                      <FormGroup label="Version" isRequired>
-                        <FormSelect aria-label="Select version">
-                          <FormSelectOption label="v4.12.0" value="v4.12.0" />
-                          <FormSelectOption label="v4.11.0" value="v4.11.0" />
-                          <FormSelectOption label="v4.10.0" value="v4.10.0" />
-                        </FormSelect>
-                      </FormGroup>
-                    </StackItem>
-                    <StackItem>
-                      <FormGroup label="OLM version" isRequired>
-                        <FormSelect aria-label="Select OLM version">
-                          <FormSelectOption label="OLM v0" value="v0" />
-                          <FormSelectOption label="OLM v1" value="v1" />
-                        </FormSelect>
-                      </FormGroup>
-                    </StackItem>
-                  </Stack>
-                </FlexItem>
-                <FlexItem flex={{ default: 'flex_1' }}>
-                  <Stack hasGutter>
-                    {selectedItem.catalog === 'marketplace' && (
-                      <StackItem>
-                        <Alert
-                          variant="info"
-                          isInline
-                          title={<>This is a <strong>Marketplace Operator</strong></>}
-                        >
-                          <p>
-                            Purchase required for use. Purchase a subscription from{' '}
-                            <a href="#">Red Hat Marketplace</a>.
-                          </p>
-                        </Alert>
-                      </StackItem>
-                    )}
-                    <StackItem>
-                      <Title headingLevel="h3" size="md">
-                        Description
-                      </Title>
-                      <p style={{ marginTop: '8px' }}>
-                        {selectedItem.description}
-                      </p>
-                    </StackItem>
-                    <StackItem>
-                      <Title headingLevel="h3" size="md">
-                        Related software
-                      </Title>
-                      <List>
-                        <ListItem>
-                          <a href="#">OpenShift Logging</a>
-                        </ListItem>
-                        <ListItem>
-                          <a href="#">OpenShift Monitoring</a>
-                        </ListItem>
-                      </List>
-                    </StackItem>
-                  </Stack>
-                </FlexItem>
-              </Flex>
+            <div style={{ marginTop: '16px' }}>
+              <Button variant="primary">Install</Button>
             </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            <Flex>
+              <FlexItem style={{ width: '200px', marginRight: '32px' }}>
+                <Stack hasGutter>
+                  <StackItem>
+                    <FormGroup label="Channel" isRequired>
+                      <FormSelect aria-label="Channel">
+                        <FormSelectOption label="stable" value="stable" />
+                      </FormSelect>
+                    </FormGroup>
+                  </StackItem>
+                  <StackItem>
+                    <FormGroup label="Version" isRequired>
+                      <FormSelect aria-label="Version">
+                        <FormSelectOption label="v4.12.0" value="v4.12.0" />
+                      </FormSelect>
+                    </FormGroup>
+                  </StackItem>
+                  <StackItem>
+                    <FormGroup label="OLM version" isRequired>
+                      <FormSelect aria-label="OLM version">
+                        <FormSelectOption label="OLM v0" value="v0" />
+                      </FormSelect>
+                    </FormGroup>
+                  </StackItem>
+                </Stack>
+              </FlexItem>
+              <FlexItem flex={{ default: 'flex_1' }}>
+                <Stack hasGutter>
+                  {selectedItem.catalog === 'marketplace' && (
+                    <StackItem>
+                      <Alert variant="info" isInline title={<>This is a <strong>Marketplace Operator</strong></>}>
+                        <p>Purchase required for use. Purchase a subscription from <a href="#">Red Hat Marketplace</a>.</p>
+                      </Alert>
+                    </StackItem>
+                  )}
+                  <StackItem>
+                    <Title headingLevel="h3" size="md">Description</Title>
+                    <div style={{ marginTop: '8px' }}>{selectedItem.description}</div>
+                  </StackItem>
+                  <StackItem>
+                    <Title headingLevel="h3" size="md">Related software</Title>
+                    <List>
+                      <ListItem><a href="#">OpenShift Logging</a></ListItem>
+                      <ListItem><a href="#">OpenShift Monitoring</a></ListItem>
+                    </List>
+                  </StackItem>
+                </Stack>
+              </FlexItem>
+            </Flex>
           </div>
         </div>
       )}

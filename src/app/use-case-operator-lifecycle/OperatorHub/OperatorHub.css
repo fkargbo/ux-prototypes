@@ -406,64 +406,6 @@ div.software-catalog-toolbar {
   width: 100%;
 }
 
-/* Custom Drawer Overlay */
-.custom-drawer-overlay {
-  position: fixed;
-  top: 73px;
-  right: 0;
-  bottom: 0;
-  max-width: 75vw;
-  min-width: 25vw;
-  background-color: #ffffff;
-  border-left: 1px solid #d2d2d2;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
-  z-index: 400;
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-}
-
-.custom-drawer-resize-handle {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  cursor: col-resize;
-  background-color: transparent;
-  z-index: 1;
-}
-
-.custom-drawer-resize-handle:hover {
-  background-color: #0066cc;
-}
-
-.custom-drawer-resize-handle:active {
-  background-color: #004080;
-}
-
-.custom-drawer-panel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  padding-left: 4px;
-}
-
-.custom-drawer-header {
-  flex-shrink: 0;
-  padding: 24px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.custom-drawer-body {
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
 
 /* Responsive - adjust grid columns */
 @media (max-width: 1600px) {
