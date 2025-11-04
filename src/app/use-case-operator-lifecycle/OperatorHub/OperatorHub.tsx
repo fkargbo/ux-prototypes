@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -892,8 +893,8 @@ const OperatorHub: React.FunctionComponent = () => {
 
       <MigrationGuide isOpen={isMigrationGuideOpen} onClose={() => setIsMigrationGuideOpen(false)} />
 
-      {/* Operator Details Drawer */}
-      {selectedItem && (
+      {/* Operator Details Drawer - Rendered via Portal */}
+      {selectedItem && ReactDOM.createPortal(
         <div 
           style={{
             position: 'fixed',
@@ -985,7 +986,8 @@ const OperatorHub: React.FunctionComponent = () => {
               </FlexItem>
             </Flex>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </React.Fragment>
   );
