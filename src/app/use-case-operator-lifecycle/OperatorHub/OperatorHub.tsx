@@ -885,21 +885,18 @@ const OperatorHub: React.FunctionComponent = () => {
                   <List isPlain className="catalog-facets__list">
                     {STATE_OPTIONS.map((state) => (
                       <ListItem key={state.id}>
-                        <Button
-                          variant="plain"
-                          className={`catalog-facets__button ${
-                            stateFilters.includes(state.id) ? 'catalog-facets__button--active' : ''
-                          }`}
-                          onClick={() =>
+                        <Checkbox
+                          id={`state-${state.id}`}
+                          label={state.label}
+                          isChecked={stateFilters.includes(state.id)}
+                          onChange={(event, checked) =>
                             setStateFilters((prev) =>
-                              prev.includes(state.id)
-                                ? prev.filter((id) => id !== state.id)
-                                : [...prev, state.id],
+                              checked
+                                ? [...prev, state.id]
+                                : prev.filter((id) => id !== state.id),
                             )
                           }
-                        >
-                          {state.label}
-                        </Button>
+                        />
                       </ListItem>
                     ))}
                   </List>
