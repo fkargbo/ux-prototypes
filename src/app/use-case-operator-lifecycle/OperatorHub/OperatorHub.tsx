@@ -572,7 +572,6 @@ const OperatorHub: React.FunctionComponent = () => {
         isExpanded={Boolean(selectedItem)}
         position="right"
         className="operator-details-drawer"
-        isInline
       >
         <DrawerContent
           panelContent={

@@ -392,25 +392,41 @@
   width: 100%;
 }
 
-/* Operator details drawer - inline, fills available space */
+/* Operator details drawer - fixed overlay */
 .operator-details-drawer {
-  height: 100%;
+  position: fixed !important;
+  top: 73px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  width: auto !important;
+  height: calc(100vh - 73px) !important;
+  z-index: 400 !important;
+  pointer-events: none !important;
 }
 
-.operator-details-drawer .pf-c-drawer__content {
+.operator-details-drawer[class*="pf-m-expanded"] {
+  pointer-events: auto !important;
+}
+
+.operator-details-drawer .pf-c-drawer__content,
+.operator-details-drawer .pf-v6-c-drawer__content {
   height: 100% !important;
 }
 
-.operator-details-drawer .pf-c-drawer__panel {
-  border-left: 1px solid #d2d2d2;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+.operator-details-drawer .pf-c-drawer__panel,
+.operator-details-drawer .pf-v6-c-drawer__panel {
+  border-left: 1px solid #d2d2d2 !important;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  background-color: #ffffff !important;
 }
 
-.operator-details-drawer .pf-c-drawer__head {
+.operator-details-drawer .pf-c-drawer__head,
+.operator-details-drawer .pf-v6-c-drawer__head {
   flex-shrink: 0 !important;
   padding: 24px !important;
   border-bottom: 1px solid #e0e0e0 !important;
@@ -420,7 +436,8 @@
   z-index: 1 !important;
 }
 
-.operator-details-drawer .pf-c-drawer__body {
+.operator-details-drawer .pf-c-drawer__body,
+.operator-details-drawer .pf-v6-c-drawer__body {
   flex: 1 !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
