@@ -80,6 +80,16 @@ div.software-catalog-toolbar {
   --pf-v6-c-sidebar__content--FlexBasis: 0 !important;
 }
 
+/* PatternFly v6 sidebar__main wrapper - ensure it takes full width */
+.software-catalog-main .pf-v6-c-sidebar__main,
+.catalog-app__sidebar > .pf-v6-c-sidebar__main {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  max-width: none !important;
+  flex: 1 1 100% !important;
+}
+
 .software-catalog-main .pf-c-sidebar__panel,
 .software-catalog-main .pf-v6-c-sidebar__panel,
 .software-catalog-main .catalog-app__sidebar .pf-c-sidebar__panel,
