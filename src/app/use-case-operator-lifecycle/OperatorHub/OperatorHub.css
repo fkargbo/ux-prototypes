@@ -81,7 +81,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+/* Catalog version section spacing */
+.catalog-facets__catalog-version-section {
+  margin-bottom: 24px;
+}
+
+.catalog-facets__catalog-version-section .pf-c-form__group {
+  margin-bottom: 0;
 }
 
 /* Filter Lists */
