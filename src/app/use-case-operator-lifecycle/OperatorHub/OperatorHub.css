@@ -56,9 +56,9 @@
 .software-catalog-main .pf-c-sidebar__panel {
   background-color: #ffffff;
   border-right: 1px solid #e0e0e0;
-  padding: 24px;
-  width: 240px !important;
-  min-width: 240px;
+  padding: 24px 24px 24px 24px;
+  width: 280px !important;
+  min-width: 280px;
   overflow-y: auto;
 }
 
@@ -71,9 +71,9 @@
 
 /* Filter Headings */
 .catalog-facets__heading {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  margin: 0 0 24px 0;
+  margin: 0 0 16px 0;
   color: #151515;
 }
 
@@ -81,17 +81,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 /* Catalog version section spacing */
 .catalog-facets__catalog-version-section {
-  padding-bottom: 24px;
-  margin-bottom: 0;
+  margin-bottom: 24px;
 }
 
 .catalog-facets__catalog-version-section .catalog-facets__heading-row {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .catalog-facets__catalog-version-section .pf-c-form__group {
@@ -106,7 +105,7 @@
 }
 
 .catalog-facets__list li {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .catalog-facets__list li:last-child {
@@ -319,22 +318,22 @@
   gap: 0 !important;
 }
 
-/* Stack spacing inside sidebar */
+/* Stack spacing inside sidebar - 24px between all sections */
 .software-catalog-main .pf-c-sidebar__panel .pf-c-stack {
-  gap: 0;
+  gap: 24px;
 }
 
 .software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item {
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .software-catalog-main .pf-c-sidebar__panel .pf-c-stack__item:last-child {
   margin-bottom: 0;
 }
 
-/* Divider in sidebar */
+/* Divider in sidebar - no extra margin, gap handles spacing */
 .software-catalog-main .pf-c-divider {
-  margin: 24px 0;
+  margin: 0;
   background-color: #e0e0e0;
   height: 1px;
 }
