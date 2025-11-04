@@ -220,10 +220,11 @@ div.software-catalog-toolbar {
 /* Operator Cards Grid - Flexible, adapts to screen size */
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   padding: 0;
   margin-top: 24px;
+  width: 100%;
 }
 
 .catalog-card {
