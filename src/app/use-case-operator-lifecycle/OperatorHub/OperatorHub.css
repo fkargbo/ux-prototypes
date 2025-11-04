@@ -99,10 +99,11 @@ div.software-catalog-toolbar {
 .software-catalog-main .pf-v6-c-sidebar__content,
 .software-catalog-main .catalog-app__sidebar .pf-c-sidebar__content,
 .software-catalog-main .catalog-app__sidebar .pf-v6-c-sidebar__content,
-.pf-v6-c-sidebar__content {
+.pf-v6-c-sidebar__content,
+.catalog-app__sidebar > .pf-v6-c-sidebar__content {
   background-color: #f5f5f5 !important;
   padding: 24px !important;
-  flex: 1 1 0 !important;
+  flex: 1 1 auto !important;
   min-width: 0 !important;
   max-width: none !important;
   width: 100% !important;
@@ -111,6 +112,10 @@ div.software-catalog-toolbar {
   display: block !important;
   --pf-v6-c-sidebar__content--MaxWidth: none !important;
   --pf-v6-c-sidebar__content--FlexBasis: auto !important;
+  --pf-v6-c-sidebar__content--Width: 100% !important;
+  --pf-v6-c-sidebar__content--md--MaxWidth: none !important;
+  --pf-v6-c-sidebar__content--lg--MaxWidth: none !important;
+  --pf-v6-c-sidebar__content--xl--MaxWidth: none !important;
 }
 
 /* Grid container - ensure it takes full width */
