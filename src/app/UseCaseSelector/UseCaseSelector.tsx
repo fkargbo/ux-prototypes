@@ -355,7 +355,7 @@ export const UseCaseSelector: React.FC = () => {
                           variant="primary"
                           onClick={() => handleUseCaseSelect('use-case-operator-lifecycle')}
                         >
-                          Explore
+                          Explore v1
                         </Button>
                       </FlexItem>
                     </Flex>
