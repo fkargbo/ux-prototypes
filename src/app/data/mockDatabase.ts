@@ -331,6 +331,18 @@ export const clusters: Cluster[] = [
     nodes: 15,
     namespaceIds: ['ns-qa-testing', 'ns-qa-performance'],
   },
+  // Standalone cluster - not part of any cluster set
+  {
+    id: 'testcluster',
+    name: 'testcluster',
+    clusterSetId: '',
+    status: 'Ready',
+    kubernetesVersion: '1.29.0',
+    region: 'North America',
+    location: 'US Central Test',
+    nodes: 3,
+    namespaceIds: [],
+  },
 ];
 
 // Note: Due to size constraints, I'm creating a representative sample of namespaces and VMs

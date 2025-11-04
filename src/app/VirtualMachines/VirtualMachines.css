@@ -245,3 +245,18 @@ body.resizing-sidebar * {
   margin: 4px 0;
 }
 
+/* Multi-selected tree nodes styling */
+.custom-tree-node.multi-selected {
+  background-color: #E7F1FA !important;
+  border: 2px solid #0066CC !important;
+}
+
+/* Override PatternFly TreeView selection styles for multi-selected items */
+.vm-sidebar .pf-v6-c-tree-view__node:has(.multi-selected) {
+  background-color: transparent !important;
+}
+
+.vm-sidebar .pf-v6-c-tree-view__node .custom-tree-node.multi-selected {
+  background-color: #E7F1FA !important;
+}
+

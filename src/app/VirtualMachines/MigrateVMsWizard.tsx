@@ -126,23 +126,66 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
     };
   }, [allSelectedVMs]);
 
-  // Check VM statuses when wizard opens
+  // Detect if VMs are from multiple projects
+  const projectInfo = React.useMemo(() => {
+    const projectsMap: Record<string, { id: string; name: string; vmCount: number }> = {};
+    
+    allSelectedVMs.forEach(vm => {
+      if (!projectsMap[vm.namespaceId]) {
+        const namespace = getNamespaceById(vm.namespaceId);
+        projectsMap[vm.namespaceId] = {
+          id: vm.namespaceId,
+          name: namespace?.name || vm.namespaceId,
+          vmCount: 0
+        };
+      }
+      projectsMap[vm.namespaceId].vmCount++;
+    });
+    
+    const projects = Object.values(projectsMap);
+    return {
+      isMultiProject: projects.length > 1,
+      projectCount: projects.length,
+      projects: projects
+    };
+  }, [allSelectedVMs]);
+
+  // Check VM statuses and project mixing when wizard opens
   React.useEffect(() => {
     if (isOpen && selectedVMs.length > 0) {
-      console.log('VM Status Check:', {
+      console.log('VM Status & Project Check:', {
         total: vmStatusCounts.total,
         running: vmStatusCounts.running,
         nonRunning: vmStatusCounts.nonRunning,
         breakdown: vmStatusCounts.breakdown,
-        vms: allSelectedVMs.map(vm => ({ id: vm.id, name: vm.name, status: vm.status }))
+        projectCount: projectInfo.projectCount,
+        isMultiProject: projectInfo.isMultiProject,
+        projects: projectInfo.projects,
+        vms: allSelectedVMs.map(vm => ({ id: vm.id, name: vm.name, status: vm.status, projectId: vm.namespaceId }))
       });
 
-      if (vmStatusCounts.nonRunning > 0) {
-        // Show warning modal first, don't show wizard yet
+      // Scenario 1: All stopped + any project mix = BLOCK
+      if (vmStatusCounts.running === 0) {
         setIsStatusWarningModalOpen(true);
         setShowWizardContent(false);
-      } else {
-        // All VMs are running, proceed normally
+      }
+      // Scenario 2: Some stopped + multi-project = WARN about both
+      else if (vmStatusCounts.nonRunning > 0 && projectInfo.isMultiProject) {
+        setIsStatusWarningModalOpen(true);
+        setShowWizardContent(false);
+      }
+      // Scenario 3: All running + multi-project = WARN about projects
+      else if (projectInfo.isMultiProject) {
+        setIsStatusWarningModalOpen(true);
+        setShowWizardContent(false);
+      }
+      // Scenario 4: Some stopped + single project = Current behavior
+      else if (vmStatusCounts.nonRunning > 0) {
+        setIsStatusWarningModalOpen(true);
+        setShowWizardContent(false);
+      }
+      // All good, proceed
+      else {
         setFilteredVMIds(selectedVMs);
         setShowWizardContent(true);
       }
@@ -151,7 +194,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       setShowWizardContent(false);
       setIsStatusWarningModalOpen(false);
     }
-  }, [isOpen, selectedVMs, vmStatusCounts, allSelectedVMs]);
+  }, [isOpen, selectedVMs, vmStatusCounts, projectInfo, allSelectedVMs]);
   
   // Get source info from first VM (assuming all VMs are from same source)
   const sourceVM = vmsToMigrate[0];
@@ -1299,83 +1342,220 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       )}
     </Modal>
 
-      {/* Status Warning Modal */}
+      {/* Status & Project Warning Modal */}
       <Modal
         isOpen={isStatusWarningModalOpen}
         variant={ModalVariant.small}
         onClose={handleCancelMigration}
-        aria-label="VM migration status warning"
+        aria-label="VM migration warning"
       >
         <div style={{ padding: '24px' }}>
-          <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            Not all VMs will migrate
-          </Title>
+          {/* Scenario 1: All VMs are stopped - BLOCK */}
+          {vmStatusCounts.running === 0 ? (
+            <>
+              <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                Cannot proceed with migration
+              </Title>
 
-          <Content component="p" style={{ 
-            marginBottom: 'var(--pf-t--global--spacer--lg)',
-            fontSize: '16px',
-            lineHeight: '1.6'
-          }}>
-            To (live) migrate a VM, it must be running. <strong>{vmStatusCounts.nonRunning}</strong> out of selected <strong>{vmStatusCounts.total}</strong> virtual machines {vmStatusCounts.nonRunning === 1 ? 'is' : 'are'} not running. We can continue the migration with just the running VMs or you can start the stopped ones now.
-          </Content>
-          
-          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-            <Content component="p" style={{ 
-              fontWeight: 'bold', 
-              marginBottom: 'var(--pf-t--global--spacer--sm)',
-              fontSize: '15px'
-            }}>
-              Virtual machines statuses
-            </Content>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
-              {Object.entries(vmStatusCounts.breakdown)
-                .sort(([statusA], [statusB]) => {
-                  // Show Running first, then alphabetically
-                  if (statusA === 'Running') return -1;
-                  if (statusB === 'Running') return 1;
-                  return statusA.localeCompare(statusB);
-                })
-                .map(([status, count]) => {
-                  const { Icon, color } = getStatusIcon(status);
-                  return (
-                    <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Icon style={{ color }} />
-                      <span style={{ fontSize: '15px' }}>
-                        <strong>{count}</strong> {count === 1 ? 'VM' : 'VMs'} {status.toLowerCase()}
-                      </span>
+              <Content component="p" style={{ 
+                marginBottom: 'var(--pf-t--global--spacer--lg)',
+                fontSize: '16px',
+                lineHeight: '1.6'
+              }}>
+                To (live) migrate a VM, it must be running. All <strong>{vmStatusCounts.total}</strong> selected virtual machines are stopped. Please start at least one VM to proceed with migration.
+              </Content>
+
+              {/* Show project info if multi-project */}
+              {projectInfo.isMultiProject && (
+                <>
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title={`VMs from ${projectInfo.projectCount} different projects selected`}
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                  >
+                    <Content component="p" style={{ fontSize: '14px', marginTop: '8px' }}>
+                      The selected virtual machines are from multiple projects. All VMs must be running to proceed with migration.
+                    </Content>
+                  </Alert>
+
+                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+                    <Content component="p" style={{ 
+                      fontWeight: 'bold', 
+                      marginBottom: 'var(--pf-t--global--spacer--sm)',
+                      fontSize: '15px'
+                    }}>
+                      Source projects
+                    </Content>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                      {projectInfo.projects.map(project => (
+                        <div key={project.id} style={{ fontSize: '15px' }}>
+                          <strong>{project.name}</strong>: {project.vmCount} {project.vmCount === 1 ? 'VM' : 'VMs'}
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
-            </div>
-          </div>
-          
-          <Content component="p" style={{ 
-            color: 'var(--pf-t--global--text--color--subtle)',
-            fontSize: '14px',
-            lineHeight: '1.6'
-          }}>
-            If you would like to continue, only the selected <strong>{vmStatusCounts.running}</strong> running VMs will be available for migration.
-          </Content>
+                  </div>
+                </>
+              )}
+              
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+                <Content component="p" style={{ 
+                  fontWeight: 'bold', 
+                  marginBottom: 'var(--pf-t--global--spacer--sm)',
+                  fontSize: '15px'
+                }}>
+                  Virtual machines statuses
+                </Content>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                  {Object.entries(vmStatusCounts.breakdown).map(([status, count]) => {
+                    const { Icon, color } = getStatusIcon(status);
+                    return (
+                      <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Icon style={{ color }} />
+                        <span style={{ fontSize: '15px' }}>
+                          <strong>{count}</strong> {count === 1 ? 'VM' : 'VMs'} {status.toLowerCase()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {/* Footer with buttons */}
-          <div style={{ 
-            marginTop: 'var(--pf-t--global--spacer--lg)',
-            paddingTop: 'var(--pf-t--global--spacer--md)',
-            borderTop: '1px solid var(--pf-t--global--border--color--default)'
-          }}>
-            <div style={{ 
-              display: 'flex',
-              gap: '8px',
-              justifyContent: 'flex-end'
-            }}>
-              <Button variant="link" onClick={handleCancelMigration}>
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={handleContinueWithRunningVMs}>
-                Continue to next step
-              </Button>
-            </div>
-          </div>
+              {/* Footer with only Cancel button */}
+              <div style={{ 
+                marginTop: 'var(--pf-t--global--spacer--lg)',
+                paddingTop: 'var(--pf-t--global--spacer--md)',
+                borderTop: '1px solid var(--pf-t--global--border--color--default)'
+              }}>
+                <div style={{ 
+                  display: 'flex',
+                  gap: '8px',
+                  justifyContent: 'flex-end'
+                }}>
+                  <Button variant="primary" onClick={handleCancelMigration}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Scenarios 2-4: Some issues but can proceed */}
+              <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                {projectInfo.isMultiProject && vmStatusCounts.nonRunning > 0
+                  ? 'Multiple projects and VM statuses detected'
+                  : projectInfo.isMultiProject
+                  ? 'Multiple projects detected'
+                  : 'Not all VMs will migrate'}
+              </Title>
+
+              {/* Multi-project warning */}
+              {projectInfo.isMultiProject && (
+                <>
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title={`VMs from ${projectInfo.projectCount} different projects selected`}
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                  >
+                    <Content component="p" style={{ fontSize: '14px', marginTop: '8px' }}>
+                      You have selected virtual machines from multiple projects. All VMs will be migrated to a single target project.
+                    </Content>
+                  </Alert>
+
+                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+                    <Content component="p" style={{ 
+                      fontWeight: 'bold', 
+                      marginBottom: 'var(--pf-t--global--spacer--sm)',
+                      fontSize: '15px'
+                    }}>
+                      Source projects
+                    </Content>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                      {projectInfo.projects.map(project => (
+                        <div key={project.id} style={{ fontSize: '15px' }}>
+                          <strong>{project.name}</strong>: {project.vmCount} {project.vmCount === 1 ? 'VM' : 'VMs'}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* VM status warning */}
+              {vmStatusCounts.nonRunning > 0 && (
+                <>
+                  <Content component="p" style={{ 
+                    marginBottom: 'var(--pf-t--global--spacer--lg)',
+                    fontSize: '16px',
+                    lineHeight: '1.6'
+                  }}>
+                    To (live) migrate a VM, it must be running. <strong>{vmStatusCounts.nonRunning}</strong> out of selected <strong>{vmStatusCounts.total}</strong> virtual machines {vmStatusCounts.nonRunning === 1 ? 'is' : 'are'} not running.
+                  </Content>
+                  
+                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+                    <Content component="p" style={{ 
+                      fontWeight: 'bold', 
+                      marginBottom: 'var(--pf-t--global--spacer--sm)',
+                      fontSize: '15px'
+                    }}>
+                      Virtual machines statuses
+                    </Content>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                      {Object.entries(vmStatusCounts.breakdown)
+                        .sort(([statusA], [statusB]) => {
+                          if (statusA === 'Running') return -1;
+                          if (statusB === 'Running') return 1;
+                          return statusA.localeCompare(statusB);
+                        })
+                        .map(([status, count]) => {
+                          const { Icon, color } = getStatusIcon(status);
+                          return (
+                            <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <Icon style={{ color }} />
+                              <span style={{ fontSize: '15px' }}>
+                                <strong>{count}</strong> {count === 1 ? 'VM' : 'VMs'} {status.toLowerCase()}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              <Content component="p" style={{ 
+                color: 'var(--pf-t--global--text--color--subtle)',
+                fontSize: '14px',
+                lineHeight: '1.6'
+              }}>
+                {vmStatusCounts.nonRunning > 0 
+                  ? `If you would like to continue, only the selected ${vmStatusCounts.running} running VMs will be available for migration.`
+                  : 'You can proceed with the migration of all selected VMs.'
+                }
+              </Content>
+
+              {/* Footer with buttons */}
+              <div style={{ 
+                marginTop: 'var(--pf-t--global--spacer--lg)',
+                paddingTop: 'var(--pf-t--global--spacer--md)',
+                borderTop: '1px solid var(--pf-t--global--border--color--default)'
+              }}>
+                <div style={{ 
+                  display: 'flex',
+                  gap: '8px',
+                  justifyContent: 'flex-end'
+                }}>
+                  <Button variant="link" onClick={handleCancelMigration}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" onClick={handleContinueWithRunningVMs}>
+                    Continue to next step
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </>

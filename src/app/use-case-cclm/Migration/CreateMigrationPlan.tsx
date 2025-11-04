@@ -53,7 +53,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
   const [name, setName] = React.useState('');
   const [migrationReason, setMigrationReason] = React.useState('Not stated');
   const [sourceCluster, setSourceCluster] = React.useState('');
-  const [sourceProject, setSourceProject] = React.useState('');
+  const [sourceProjects, setSourceProjects] = React.useState<string[]>([]); // Changed to array for multi-select
   const [targetCluster, setTargetCluster] = React.useState('');
   const [targetProject, setTargetProject] = React.useState('');
   const [vmSelectionMode, setVmSelectionMode] = React.useState<'all' | 'manual'>('all');
@@ -124,11 +124,20 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
     project.name.toLowerCase().includes(targetProjectFilter.toLowerCase())
   );
 
-  // Get VMs from source and calculate status counts
+  // Get VMs from all selected source projects and calculate status counts
   const sourceVMs = React.useMemo(() => {
-    if (!sourceCluster || !sourceProject) return [];
-    return getVirtualMachinesByNamespace(sourceProject);
-  }, [sourceCluster, sourceProject]);
+    if (!sourceCluster || sourceProjects.length === 0) return [];
+    // Combine VMs from all selected projects, adding project info to each VM
+    const allVMs: any[] = [];
+    sourceProjects.forEach(projectId => {
+      const vms = getVirtualMachinesByNamespace(projectId);
+      const projectName = allNamespaces.find(ns => ns.id === projectId)?.name || projectId;
+      // Add project info to each VM
+      const vmsWithProject = vms.map(vm => ({ ...vm, projectId, projectName }));
+      allVMs.push(...vmsWithProject);
+    });
+    return allVMs;
+  }, [sourceCluster, sourceProjects, allNamespaces]);
 
   const vmStatusCounts = React.useMemo(() => {
     const breakdown: Record<string, number> = {};
@@ -375,7 +384,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <Title headingLevel="h3" size="md">Source</Title>
-            <Button variant="link" onClick={() => { setSourceCluster(''); setSourceProject(''); }}>
+            <Button variant="link" onClick={() => { setSourceCluster(''); setSourceProjects([]); }}>
               Clear all
             </Button>
           </div>
@@ -386,7 +395,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
                 isOpen={isSourceClusterOpen}
                 onSelect={(_event, value) => {
                   setSourceCluster(value as string);
-                  setSourceProject('');
+                  setSourceProjects([]);
                   setSourceClusterFilter('');
                   setIsSourceClusterOpen(false);
                 }}
@@ -431,15 +440,19 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
               </Select>
             </FormGroup>
 
-            <FormGroup label="Project" style={{ marginTop: '16px' }}>
+            <FormGroup label="Projects (select one or more)" style={{ marginTop: '16px' }}>
               <Select
                 isOpen={isSourceProjectOpen}
+                selected={sourceProjects}
                 onSelect={(_event, value) => {
                   const vmCount = namespaceVMCounts[value as string] || 0;
                   if (vmCount > 0) {
-                    setSourceProject(value as string);
-                    setSourceProjectFilter('');
-                    setIsSourceProjectOpen(false);
+                    // Toggle selection for multi-select
+                    if (sourceProjects.includes(value as string)) {
+                      setSourceProjects(sourceProjects.filter(id => id !== value));
+                    } else {
+                      setSourceProjects([...sourceProjects, value as string]);
+                    }
                   }
                 }}
                 onOpenChange={(isOpen) => {
@@ -456,9 +469,9 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
                     isDisabled={!sourceCluster}
                     style={{ width: '100%' }}
                   >
-                    {sourceProject 
-                      ? sourceProjectOptions.find(p => p.id === sourceProject)?.name 
-                      : (sourceCluster ? 'Select Project' : 'To select project, fill cluster first')}
+                    {sourceProjects.length > 0
+                      ? `${sourceProjects.length} project${sourceProjects.length > 1 ? 's' : ''} selected`
+                      : (sourceCluster ? 'Select Projects' : 'To select projects, fill cluster first')}
                   </MenuToggle>
                 )}
               >
@@ -474,11 +487,14 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
                   {filteredSourceProjects.map(project => {
                     const vmCount = namespaceVMCounts[project.id] || 0;
                     const hasNoVMs = vmCount === 0;
+                    const isSelected = sourceProjects.includes(project.id);
                     return (
                       <SelectOption 
                         key={project.id} 
                         value={project.id}
                         isDisabled={hasNoVMs}
+                        hasCheckbox
+                        isSelected={isSelected}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                           <span style={{ opacity: hasNoVMs ? 0.6 : 1 }}>{project.name}</span>
@@ -492,6 +508,15 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
                   )}
                 </SelectList>
               </Select>
+              {sourceProjects.length > 0 && (
+                <Content component="p" style={{ 
+                  marginTop: '8px', 
+                  fontSize: '14px',
+                  color: 'var(--pf-t--global--text--color--subtle)' 
+                }}>
+                  {sourceProjects.length} project{sourceProjects.length > 1 ? 's' : ''} selected
+                </Content>
+              )}
             </FormGroup>
           </Form>
         </div>
@@ -625,13 +650,41 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
         </div>
       </div>
 
+      {/* Project Mapping Information */}
+      {sourceProjects.length > 0 && targetCluster && targetProject && (
+        <Alert
+          variant="info"
+          isInline
+          title={`Migration plan: ${sourceProjects.length} source project${sourceProjects.length > 1 ? 's' : ''} → 1 target project`}
+          style={{ marginBottom: '24px' }}
+        >
+          <div style={{ marginTop: '8px' }}>
+            <Content component="p" style={{ fontSize: '14px', marginBottom: '12px' }}>
+              All virtual machines from the following source projects will be migrated to <strong>{targetProjectOptions.find(p => p.id === targetProject)?.name}</strong>:
+            </Content>
+            <ul style={{ marginLeft: '20px', fontSize: '14px' }}>
+              {sourceProjects.map(projectId => {
+                const projectName = allNamespaces.find(ns => ns.id === projectId)?.name || projectId;
+                const vmCount = namespaceVMCounts[projectId] || 0;
+                const runningCount = getVirtualMachinesByNamespace(projectId).filter(vm => vm.status === 'Running').length;
+                return (
+                  <li key={projectId}>
+                    <strong>{projectName}</strong>: {runningCount} running VM{runningCount !== 1 ? 's' : ''} (out of {vmCount} total)
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </Alert>
+      )}
+
       <div>
         <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
           Virtual machines
         </Title>
 
         {/* VM Status Information */}
-        {sourceCluster && sourceProject && vmStatusCounts.total > 0 && (
+        {sourceCluster && sourceProjects.length > 0 && vmStatusCounts.total > 0 && (
           <div style={{ 
             marginBottom: '16px',
             padding: '16px',
@@ -681,11 +734,11 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
           </div>
         )}
 
-        {sourceCluster && sourceProject && vmStatusCounts.total === 0 && (
+        {sourceCluster && sourceProjects.length > 0 && vmStatusCounts.total === 0 && (
           <Alert
             variant="warning"
             isInline
-            title="No virtual machines found in the selected source"
+            title="No virtual machines found in the selected source projects"
             style={{ marginBottom: '16px' }}
           />
         )}
@@ -694,23 +747,23 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
           <Radio
             name="vm-selection"
             id="select-all-vms"
-            label="Select all virtual machines from the source"
+            label="Select all virtual machines from the source projects"
             isChecked={vmSelectionMode === 'all'}
             onChange={() => setVmSelectionMode('all')}
-            isDisabled={!sourceCluster || !sourceProject}
+            isDisabled={!sourceCluster || sourceProjects.length === 0}
           />
           <Radio
             name="vm-selection"
             id="manual-select-vms"
-            label="Manually select specific virtual machines from the source"
+            label="Manually select specific virtual machines from the source projects"
             isChecked={vmSelectionMode === 'manual'}
             onChange={() => setVmSelectionMode('manual')}
-            isDisabled={!sourceCluster || !sourceProject}
+            isDisabled={!sourceCluster || sourceProjects.length === 0}
           />
         </div>
 
         {/* VM Selection Table */}
-        {vmSelectionMode === 'manual' && sourceCluster && sourceProject && sourceVMs.length > 0 && (
+        {vmSelectionMode === 'manual' && sourceCluster && sourceProjects.length > 0 && sourceVMs.length > 0 && (
           <div style={{ marginTop: '24px' }}>
             <div style={{ 
               display: 'flex', 
@@ -784,6 +837,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
                 <Tr>
                   <Th />
                   <Th>Name</Th>
+                  <Th>Project</Th>
                   <Th>Status</Th>
                   <Th>Node</Th>
                   <Th>IP Address</Th>
@@ -807,6 +861,9 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
                       />
                       <Td dataLabel="Name" style={{ opacity: isRunning ? 1 : 0.6 }}>
                         {vm.name}
+                      </Td>
+                      <Td dataLabel="Project" style={{ opacity: isRunning ? 1 : 0.6 }}>
+                        {vm.projectName || '-'}
                       </Td>
                       <Td dataLabel="Status">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -915,7 +972,9 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
 
   const renderReviewStep = () => {
     const sourceClusterName = clusters.find(c => c.id === sourceCluster)?.name || '';
-    const sourceProjectName = sourceProjectOptions.find(p => p.id === sourceProject)?.name || '';
+    const sourceProjectNames = sourceProjects.map(id => 
+      allNamespaces.find(p => p.id === id)?.name || id
+    );
     const targetClusterName = clusters.find(c => c.id === targetCluster)?.name || '';
     const targetProjectName = targetProjectOptions.find(p => p.id === targetProject)?.name || '';
 
@@ -956,8 +1015,26 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
                 <DescriptionListDescription>{sourceClusterName}</DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
-                <DescriptionListTerm>Source project</DescriptionListTerm>
-                <DescriptionListDescription>{sourceProjectName}</DescriptionListDescription>
+                <DescriptionListTerm>Source projects</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {sourceProjectNames.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {sourceProjectNames.map((name, idx) => (
+                        <span key={idx}>{name}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    '-'
+                  )}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Total VMs to migrate</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {vmSelectionMode === 'all' 
+                    ? `${vmStatusCounts.running} VMs (all running VMs)` 
+                    : `${selectedVMsForMigration.size} VMs (manually selected)`}
+                </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
             <DescriptionList>
