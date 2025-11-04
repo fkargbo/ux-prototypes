@@ -413,6 +413,7 @@ div.software-catalog-toolbar {
   top: 73px !important;
   right: 0 !important;
   bottom: 0 !important;
+  left: auto !important;
   border-left: 1px solid #d2d2d2 !important;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
   height: calc(100vh - 73px) !important;
@@ -422,6 +423,19 @@ div.software-catalog-toolbar {
   overflow-y: auto !important;
   background-color: #ffffff !important;
   z-index: 400 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.operator-details-drawer .pf-c-drawer__head,
+.operator-details-drawer .pf-v6-c-drawer__head {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1 !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  padding: 24px !important;
+  flex-shrink: 0 !important;
 }
 
 /* Responsive - adjust grid columns */
