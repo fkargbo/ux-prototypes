@@ -75,8 +75,9 @@ div.software-catalog-toolbar {
   background-color: #ffffff !important;
   border-right: 1px solid #e0e0e0 !important;
   padding: 24px !important;
-  width: 240px !important;
-  min-width: 240px !important;
+  width: 220px !important;
+  min-width: 220px !important;
+  max-width: 220px !important;
   overflow-y: auto !important;
   box-sizing: border-box !important;
 }
@@ -89,6 +90,8 @@ div.software-catalog-toolbar {
   background-color: #f5f5f5 !important;
   padding: 24px !important;
   flex: 1 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
@@ -220,11 +223,12 @@ div.software-catalog-toolbar {
 /* Operator Cards Grid - Flexible, adapts to screen size */
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   padding: 0;
   margin-top: 24px;
   width: 100%;
+  max-width: 100%;
 }
 
 .catalog-card {
@@ -416,7 +420,7 @@ div.software-catalog-toolbar {
 /* Responsive - adjust grid minimum size on small screens */
 @media (max-width: 768px) {
   .catalog-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
   
   .software-catalog-main .pf-c-sidebar__panel,
