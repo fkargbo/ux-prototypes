@@ -232,6 +232,8 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const [isStorageEditMode, setIsStorageEditMode] = React.useState(false);
   const [selectedTargetNetwork, setSelectedTargetNetwork] = React.useState('network1');
   const [selectedTargetStorage, setSelectedTargetStorage] = React.useState('storage1');
+  const [tempTargetNetwork, setTempTargetNetwork] = React.useState('network1');
+  const [tempTargetStorage, setTempTargetStorage] = React.useState('storage1');
   const [isNetworkDropdownOpen, setIsNetworkDropdownOpen] = React.useState(false);
   const [isStorageDropdownOpen, setIsStorageDropdownOpen] = React.useState(false);
 
@@ -934,46 +936,72 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                   <div style={{ fontWeight: 600 }}>Target network</div>
-                  <Button 
-                    variant="link" 
-                    style={{ 
-                      padding: 0,
-                      backgroundColor: 'transparent',
-                      opacity: checksCompleted.network ? 1 : 0.5,
-                      cursor: checksCompleted.network ? 'pointer' : 'not-allowed'
-                    }} 
-                    isDisabled={!checksCompleted.network}
-                    onClick={() => {
-                      console.log('Edit clicked - setting edit mode to true');
-                      setIsNetworkEditMode(true);
-                      setTimeout(() => {
-                        setIsNetworkDropdownOpen(true);
-                      }, 50);
-                    }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <PencilAltIcon /> Edit
-                    </span>
-                  </Button>
+                  {!isNetworkEditMode ? (
+                    <Button 
+                      variant="link" 
+                      style={{ 
+                        padding: 0,
+                        backgroundColor: 'transparent',
+                        opacity: checksCompleted.network ? 1 : 0.5,
+                        cursor: checksCompleted.network ? 'pointer' : 'not-allowed'
+                      }} 
+                      isDisabled={!checksCompleted.network}
+                      onClick={() => {
+                        console.log('Edit clicked - setting edit mode to true');
+                        setTempTargetNetwork(selectedTargetNetwork);
+                        setIsNetworkEditMode(true);
+                        setTimeout(() => {
+                          setIsNetworkDropdownOpen(true);
+                        }, 50);
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <PencilAltIcon /> Edit
+                      </span>
+                    </Button>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Button 
+                        variant="plain"
+                        onClick={() => {
+                          console.log('Confirm clicked - saving change');
+                          setSelectedTargetNetwork(tempTargetNetwork);
+                          setIsNetworkEditMode(false);
+                          setIsNetworkDropdownOpen(false);
+                        }}
+                        style={{ padding: '4px' }}
+                      >
+                        <CheckCircleIcon style={{ fontSize: '1.25rem', color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+                      </Button>
+                      <Button 
+                        variant="plain"
+                        onClick={() => {
+                          console.log('Cancel clicked - reverting change');
+                          setTempTargetNetwork(selectedTargetNetwork);
+                          setIsNetworkEditMode(false);
+                          setIsNetworkDropdownOpen(false);
+                        }}
+                        style={{ padding: '4px' }}
+                      >
+                        <TimesIcon style={{ fontSize: '1.25rem' }} />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div style={{ marginTop: '16px' }}>
                   {isNetworkEditMode ? (
                     <Select
                       id="network-inline-select"
                       isOpen={isNetworkDropdownOpen}
-                      selected={selectedTargetNetwork}
+                      selected={tempTargetNetwork}
                       onSelect={(_event, value) => {
                         console.log('Network selected:', value);
-                        setSelectedTargetNetwork(value as string);
-                        setIsNetworkDropdownOpen(false);
-                        setIsNetworkEditMode(false);
+                        setTempTargetNetwork(value as string);
+                        // Keep dropdown open after selection
                       }}
                       onOpenChange={(isOpen) => {
                         console.log('Dropdown open change:', isOpen);
                         setIsNetworkDropdownOpen(isOpen);
-                        if (!isOpen) {
-                          setIsNetworkEditMode(false);
-                        }
                       }}
                       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                         <MenuToggle
@@ -988,7 +1016,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                             backgroundColor: '#ffffff'
                           }}
                         >
-                          {selectedTargetNetwork}
+                          {tempTargetNetwork}
                         </MenuToggle>
                       )}
                     >
@@ -1019,46 +1047,72 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                   <div style={{ fontWeight: 600 }}>Target storage</div>
-                  <Button 
-                    variant="link" 
-                    style={{ 
-                      padding: 0,
-                      backgroundColor: 'transparent',
-                      opacity: checksCompleted.storage ? 1 : 0.5,
-                      cursor: checksCompleted.storage ? 'pointer' : 'not-allowed'
-                    }} 
-                    isDisabled={!checksCompleted.storage}
-                    onClick={() => {
-                      console.log('Storage Edit clicked - setting edit mode to true');
-                      setIsStorageEditMode(true);
-                      setTimeout(() => {
-                        setIsStorageDropdownOpen(true);
-                      }, 50);
-                    }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <PencilAltIcon /> Edit
-                    </span>
-                  </Button>
+                  {!isStorageEditMode ? (
+                    <Button 
+                      variant="link" 
+                      style={{ 
+                        padding: 0,
+                        backgroundColor: 'transparent',
+                        opacity: checksCompleted.storage ? 1 : 0.5,
+                        cursor: checksCompleted.storage ? 'pointer' : 'not-allowed'
+                      }} 
+                      isDisabled={!checksCompleted.storage}
+                      onClick={() => {
+                        console.log('Storage Edit clicked - setting edit mode to true');
+                        setTempTargetStorage(selectedTargetStorage);
+                        setIsStorageEditMode(true);
+                        setTimeout(() => {
+                          setIsStorageDropdownOpen(true);
+                        }, 50);
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <PencilAltIcon /> Edit
+                      </span>
+                    </Button>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Button 
+                        variant="plain"
+                        onClick={() => {
+                          console.log('Storage Confirm clicked - saving change');
+                          setSelectedTargetStorage(tempTargetStorage);
+                          setIsStorageEditMode(false);
+                          setIsStorageDropdownOpen(false);
+                        }}
+                        style={{ padding: '4px' }}
+                      >
+                        <CheckCircleIcon style={{ fontSize: '1.25rem', color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+                      </Button>
+                      <Button 
+                        variant="plain"
+                        onClick={() => {
+                          console.log('Storage Cancel clicked - reverting change');
+                          setTempTargetStorage(selectedTargetStorage);
+                          setIsStorageEditMode(false);
+                          setIsStorageDropdownOpen(false);
+                        }}
+                        style={{ padding: '4px' }}
+                      >
+                        <TimesIcon style={{ fontSize: '1.25rem' }} />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div style={{ marginTop: '16px' }}>
                   {isStorageEditMode ? (
                     <Select
                       id="storage-inline-select"
                       isOpen={isStorageDropdownOpen}
-                      selected={selectedTargetStorage}
+                      selected={tempTargetStorage}
                       onSelect={(_event, value) => {
                         console.log('Storage selected:', value);
-                        setSelectedTargetStorage(value as string);
-                        setIsStorageDropdownOpen(false);
-                        setIsStorageEditMode(false);
+                        setTempTargetStorage(value as string);
+                        // Keep dropdown open after selection
                       }}
                       onOpenChange={(isOpen) => {
                         console.log('Storage dropdown open change:', isOpen);
                         setIsStorageDropdownOpen(isOpen);
-                        if (!isOpen) {
-                          setIsStorageEditMode(false);
-                        }
                       }}
                       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                         <MenuToggle
@@ -1073,7 +1127,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                             backgroundColor: '#ffffff'
                           }}
                         >
-                          {selectedTargetStorage}
+                          {tempTargetStorage}
                         </MenuToggle>
                       )}
                     >
