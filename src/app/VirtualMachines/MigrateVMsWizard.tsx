@@ -75,6 +75,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const [showProgress, setShowProgress] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const [currentMigrationPlanId, setCurrentMigrationPlanId] = React.useState<string>('');
+  const [isCancelRevertModalOpen, setIsCancelRevertModalOpen] = React.useState(false);
   const [isReasonSelectOpen, setIsReasonSelectOpen] = React.useState(false);
   const [isVMDrawerOpen, setIsVMDrawerOpen] = React.useState(false);
   const [isStatusWarningModalOpen, setIsStatusWarningModalOpen] = React.useState(false);
@@ -562,7 +563,14 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   };
   
   const handleRevertMigration = () => {
-    console.log('Reverting migration and cancelling plan');
+    console.log('Opening cancel and revert confirmation modal');
+    setIsCancelRevertModalOpen(true);
+  };
+  
+  const handleConfirmCancelAndRevert = () => {
+    console.log('Confirmed: Reverting migration and cancelling plan');
+    // Close the modal
+    setIsCancelRevertModalOpen(false);
     // Close the progress screen and wizard
     setShowProgress(false);
     setProgress(0);
@@ -1902,9 +1910,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
             padding: 0
           }}
         >
-          {isCompleted 
-            ? 'Revert migration plan on all migrated VMs' 
-            : 'Cancel migration process'}
+          Cancel and revert changes
       </Button>
       </div>
     </div>
@@ -2377,6 +2383,81 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
           )}
         </div>
       </Modal>
+
+      {/* Cancel and Revert Confirmation Modal */}
+      {isCancelRevertModalOpen && (
+        <Modal
+          variant={ModalVariant.small}
+          isOpen={isCancelRevertModalOpen}
+          onClose={() => setIsCancelRevertModalOpen(false)}
+          aria-labelledby="cancel-revert-title"
+          aria-describedby="cancel-revert-description"
+        >
+          <div style={{ padding: '24px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '20px' }}>
+              <ExclamationCircleIcon 
+                style={{ 
+                  fontSize: '1.5rem', 
+                  color: 'var(--pf-t--global--icon--color--status--danger--default)',
+                  marginTop: '2px'
+                }} 
+              />
+              <div style={{ flex: 1 }}>
+                <Title headingLevel="h2" size="xl" id="cancel-revert-title">
+                  Cancel and revert changes?
+                </Title>
+              </div>
+              <Button
+                variant="plain"
+                onClick={() => setIsCancelRevertModalOpen(false)}
+                style={{ marginTop: '-8px', marginRight: '-8px' }}
+              >
+                <span style={{ fontSize: '1.25rem' }}>×</span>
+              </Button>
+            </div>
+            
+            {/* Description */}
+            <div id="cancel-revert-description" style={{ marginBottom: '24px', fontSize: '0.875rem' }}>
+              Migration is in progress. If you cancel the migration plan, you can't resume it and will need to create a new plan.
+            </div>
+            
+            {/* Warning Alert */}
+            <Alert
+              variant="warning"
+              isInline
+              title="All changes will be reverted"
+              style={{ marginBottom: '24px' }}
+            >
+              <Content component="p" style={{ fontSize: '0.875rem' }}>
+                All virtual machines will be reverted to their original state and location.
+              </Content>
+            </Alert>
+            
+            {/* Footer with buttons */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'flex-end',
+              paddingTop: 'var(--pf-t--global--spacer--md)',
+              borderTop: '1px solid var(--pf-t--global--border--color--default)'
+            }}>
+              <Button 
+                variant="secondary" 
+                onClick={() => setIsCancelRevertModalOpen(false)}
+              >
+                Back
+              </Button>
+              <Button 
+                variant="danger" 
+                onClick={handleConfirmCancelAndRevert}
+              >
+                Cancel migration and revert changes
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
     </>
   );
