@@ -29,6 +29,7 @@ import {
   Divider,
 } from '@patternfly/react-core';
 import { CheckCircleIcon, OffIcon, ExclamationCircleIcon, PauseCircleIcon, PencilAltIcon, InProgressIcon, SearchIcon, TimesIcon, CheckIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
 import { 
   getVirtualMachineById, 
   getAllClusters, 
@@ -67,11 +68,13 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   preselectedTargetNamespace,
   isFromDragAndDrop = false,
 }) => {
+  const navigate = useNavigate();
   const [migrationName, setMigrationName] = React.useState('');
   const [migrationReason, setMigrationReason] = React.useState('Not stated');
   const [customReason, setCustomReason] = React.useState('');
   const [showProgress, setShowProgress] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
+  const [currentMigrationPlanId, setCurrentMigrationPlanId] = React.useState<string>('');
   const [isReasonSelectOpen, setIsReasonSelectOpen] = React.useState(false);
   const [isVMDrawerOpen, setIsVMDrawerOpen] = React.useState(false);
   const [isStatusWarningModalOpen, setIsStatusWarningModalOpen] = React.useState(false);
@@ -393,6 +396,9 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
     
     console.log(`📋 Created migration plan: ${migrationPlan.id}`);
     
+    // Store the migration plan ID for navigation
+    setCurrentMigrationPlanId(migrationPlan.id);
+    
     // Trigger migration state in parent component (only running VMs)
     if (onMigrationStart) {
       onMigrationStart(runningVMIds, originalLocations, {
@@ -542,8 +548,24 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   };
 
   const handleCancelMigration = () => {
-    console.log('Migration cancelled');
+    console.log('Migration cancelled from warning modal');
     setIsStatusWarningModalOpen(false);
+    handleClose();
+  };
+  
+  const handleViewMigrationPlan = () => {
+    if (currentMigrationPlanId) {
+      console.log(`Navigating to migration plan: ${currentMigrationPlanId}`);
+      navigate(`/virtualization/migration/${currentMigrationPlanId}`);
+      handleClose();
+    }
+  };
+  
+  const handleRevertMigration = () => {
+    console.log('Reverting migration and cancelling plan');
+    // Close the progress screen and wizard
+    setShowProgress(false);
+    setProgress(0);
     handleClose();
   };
 
@@ -1867,16 +1889,16 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         
         {/* Buttons */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-        <Button variant="primary">View migration plan</Button>
+        <Button variant="primary" onClick={handleViewMigrationPlan}>View migration plan</Button>
         <Button variant="secondary" onClick={handleClose}>Close</Button>
       </div>
         
         {/* Bottom Link */}
         <Button 
           variant="link" 
-          onClick={handleCancelMigration} 
+          onClick={handleRevertMigration} 
           style={{ 
-            color: isCompleted ? 'var(--pf-t--global--icon--color--status--warning--default)' : 'var(--pf-t--global--icon--color--status--danger--default)',
+            color: 'var(--pf-t--global--icon--color--status--danger--default)',
             padding: 0
           }}
         >
