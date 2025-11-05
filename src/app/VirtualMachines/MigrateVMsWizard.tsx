@@ -234,6 +234,12 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const [selectedTargetStorage, setSelectedTargetStorage] = React.useState('storage1');
   const [isNetworkDropdownOpen, setIsNetworkDropdownOpen] = React.useState(false);
   const [isStorageDropdownOpen, setIsStorageDropdownOpen] = React.useState(false);
+
+  // Debug: Track state changes
+  React.useEffect(() => {
+    console.log('Network edit mode changed:', isNetworkEditMode);
+    console.log('Network dropdown open changed:', isNetworkDropdownOpen);
+  }, [isNetworkEditMode, isNetworkDropdownOpen]);
   
   // Pre-select target cluster and namespace when provided (from drag-and-drop)
   React.useEffect(() => {
@@ -943,8 +949,12 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     }} 
                     isDisabled={!checksCompleted.network}
                     onClick={() => {
+                      console.log('Network Edit clicked, setting edit mode to true');
+                      console.log('Current isNetworkEditMode:', isNetworkEditMode);
+                      console.log('Current isNetworkDropdownOpen:', isNetworkDropdownOpen);
                       setIsNetworkEditMode(true);
                       setIsNetworkDropdownOpen(true);
+                      console.log('States set to true');
                     }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
