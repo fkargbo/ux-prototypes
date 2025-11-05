@@ -943,12 +943,8 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     }} 
                     isDisabled={!checksCompleted.network}
                     onClick={() => {
-                      if (checksCompleted.network) {
-                        setIsNetworkEditMode(!isNetworkEditMode);
-                        if (!isNetworkEditMode) {
-                          setIsNetworkDropdownOpen(true);
-                        }
-                      }
+                      setIsNetworkEditMode(true);
+                      setIsNetworkDropdownOpen(true);
                     }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1022,12 +1018,8 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     }} 
                     isDisabled={!checksCompleted.storage}
                     onClick={() => {
-                      if (checksCompleted.storage) {
-                        setIsStorageEditMode(!isStorageEditMode);
-                        if (!isStorageEditMode) {
-                          setIsStorageDropdownOpen(true);
-                        }
-                      }
+                      setIsStorageEditMode(true);
+                      setIsStorageDropdownOpen(true);
                     }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
