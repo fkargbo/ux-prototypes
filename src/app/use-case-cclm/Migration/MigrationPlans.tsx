@@ -35,9 +35,15 @@ const MigrationPlans: React.FunctionComponent = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(10);
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
   
-  // Get all migration plans
-  const allPlans = getAllMigrationPlans();
+  // Get all migration plans - re-fetch when refreshTrigger changes
+  const allPlans = React.useMemo(() => getAllMigrationPlans(), [refreshTrigger]);
+  
+  // Refresh plans on mount
+  React.useEffect(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
   
   // Filter plans based on search
   const filteredPlans = React.useMemo(() => {
@@ -167,7 +173,7 @@ const MigrationPlans: React.FunctionComponent = () => {
           {/* Toolbar */}
           <Toolbar>
           <ToolbarContent>
-            <ToolbarItem style={{ flexGrow: 1 }}>
+            <ToolbarItem>
               <SearchInput
                 placeholder="Search by name"
                 value={searchValue}
@@ -175,7 +181,7 @@ const MigrationPlans: React.FunctionComponent = () => {
                 onClear={() => setSearchValue('')}
               />
             </ToolbarItem>
-            <ToolbarItem variant="pagination">
+            <ToolbarItem align={{ default: 'alignEnd' }}>
               <Pagination
                 itemCount={filteredPlans.length}
                 perPage={perPage}
@@ -295,22 +301,26 @@ const MigrationPlans: React.FunctionComponent = () => {
           ))}
         </Tbody>
       </Table>
-      </div>
       
-        {/* Bottom Pagination */}
-        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
-          <Pagination
-            itemCount={filteredPlans.length}
-            perPage={perPage}
-            page={page}
-            onSetPage={(_evt, newPage) => setPage(newPage)}
-            onPerPageSelect={(_evt, newPerPage) => {
-              setPerPage(newPerPage);
-              setPage(1);
-            }}
-            variant={PaginationVariant.bottom}
-          />
-        </div>
+      {/* Bottom Pagination */}
+      <Toolbar>
+        <ToolbarContent>
+          <ToolbarItem align={{ default: 'alignEnd' }}>
+            <Pagination
+              itemCount={filteredPlans.length}
+              perPage={perPage}
+              page={page}
+              onSetPage={(_evt, newPage) => setPage(newPage)}
+              onPerPageSelect={(_evt, newPerPage) => {
+                setPerPage(newPerPage);
+                setPage(1);
+              }}
+              variant={PaginationVariant.bottom}
+            />
+          </ToolbarItem>
+        </ToolbarContent>
+      </Toolbar>
+      </div>
       </div>
     </div>
   );
