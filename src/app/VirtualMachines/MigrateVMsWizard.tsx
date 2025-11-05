@@ -927,9 +927,9 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         return (
           <div>
             <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Network mapping</Title>
-            <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
               <div style={{ minWidth: '150px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source network</div>
+                <div style={{ fontWeight: 600, marginBottom: '8px', minHeight: '32px', display: 'flex', alignItems: 'center' }}>Source network</div>
                 {isNetworkEditMode ? (
                   <TextInput
                     value="network1"
@@ -945,9 +945,9 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                   <div>network1</div>
                 )}
               </div>
-              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
+              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', paddingTop: '32px' }}>→</div>
               <div style={{ minWidth: '150px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', minHeight: '32px' }}>
                   <div style={{ fontWeight: 600 }}>Target network</div>
                   {!isNetworkEditMode ? (
                     <Button 
@@ -1051,9 +1051,9 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         return (
           <div>
             <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Storage mapping</Title>
-            <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
               <div style={{ minWidth: '150px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source storage</div>
+                <div style={{ fontWeight: 600, marginBottom: '8px', minHeight: '32px', display: 'flex', alignItems: 'center' }}>Source storage</div>
                 {isStorageEditMode ? (
                   <TextInput
                     value="storage1"
@@ -1069,9 +1069,9 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                   <div>storage1</div>
                 )}
               </div>
-              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
+              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', paddingTop: '32px' }}>→</div>
               <div style={{ minWidth: '150px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', minHeight: '32px' }}>
                   <div style={{ fontWeight: 600 }}>Target storage</div>
                   {!isStorageEditMode ? (
                     <Button 

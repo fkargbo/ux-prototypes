@@ -24,7 +24,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { PlusCircleIcon, EllipsisVIcon, FilterIcon, CheckCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-import { getAllMigrationPlans } from '@app/data/queries';
+import { getAllMigrationPlans, getClusterById, getNamespaceById } from '@app/data/queries';
 
 const MigrationPlans: React.FunctionComponent = () => {
   useDocumentTitle('Migration plans');
@@ -163,36 +163,37 @@ const MigrationPlans: React.FunctionComponent = () => {
       </div>
       
       <div className="page-content-section">
-        {/* Toolbar */}
-        <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem style={{ flexGrow: 1 }}>
-            <SearchInput
-              placeholder="Search by name"
-              value={searchValue}
-              onChange={(_event, value) => setSearchValue(value)}
-              onClear={() => setSearchValue('')}
-            />
-          </ToolbarItem>
-          <ToolbarItem variant="pagination">
-            <Pagination
-              itemCount={filteredPlans.length}
-              perPage={perPage}
-              page={page}
-              onSetPage={(_evt, newPage) => setPage(newPage)}
-              onPerPageSelect={(_evt, newPerPage) => {
-                setPerPage(newPerPage);
-                setPage(1);
-              }}
-              variant={PaginationVariant.top}
-              isCompact
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-      
-      {/* Table */}
-      <Table aria-label="Migration plans table" variant="compact">
+        <div className="table-content-card">
+          {/* Toolbar */}
+          <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem style={{ flexGrow: 1 }}>
+              <SearchInput
+                placeholder="Search by name"
+                value={searchValue}
+                onChange={(_event, value) => setSearchValue(value)}
+                onClear={() => setSearchValue('')}
+              />
+            </ToolbarItem>
+            <ToolbarItem variant="pagination">
+              <Pagination
+                itemCount={filteredPlans.length}
+                perPage={perPage}
+                page={page}
+                onSetPage={(_evt, newPage) => setPage(newPage)}
+                onPerPageSelect={(_evt, newPerPage) => {
+                  setPerPage(newPerPage);
+                  setPage(1);
+                }}
+                variant={PaginationVariant.top}
+                isCompact
+              />
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+        
+        {/* Table */}
+        <Table aria-label="Migration plans table" variant="compact">
         <Thead>
           <Tr>
             <Th>Name</Th>
@@ -224,7 +225,12 @@ const MigrationPlans: React.FunctionComponent = () => {
                   {plan.name}
                 </a>
               </Td>
-              <Td dataLabel="Source provider">-</Td>
+              <Td dataLabel="Source provider">
+                {(() => {
+                  const sourceCluster = getClusterById(plan.sourceClusterId);
+                  return sourceCluster ? sourceCluster.name : '-';
+                })()}
+              </Td>
               <Td dataLabel="Migration readiness">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
@@ -289,6 +295,7 @@ const MigrationPlans: React.FunctionComponent = () => {
           ))}
         </Tbody>
       </Table>
+      </div>
       
         {/* Bottom Pagination */}
         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
