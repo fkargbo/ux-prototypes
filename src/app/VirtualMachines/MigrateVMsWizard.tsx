@@ -227,13 +227,11 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const [clusterSearchValue, setClusterSearchValue] = React.useState('');
   const [projectSearchValue, setProjectSearchValue] = React.useState('');
   
-  // Edit modal states for network and storage mapping
-  const [isNetworkEditOpen, setIsNetworkEditOpen] = React.useState(false);
-  const [isStorageEditOpen, setIsStorageEditOpen] = React.useState(false);
+  // Edit inline states for network and storage mapping
+  const [isNetworkEditMode, setIsNetworkEditMode] = React.useState(false);
+  const [isStorageEditMode, setIsStorageEditMode] = React.useState(false);
   const [selectedTargetNetwork, setSelectedTargetNetwork] = React.useState('network1');
   const [selectedTargetStorage, setSelectedTargetStorage] = React.useState('storage1');
-  const [tempSelectedTargetNetwork, setTempSelectedTargetNetwork] = React.useState('network1');
-  const [tempSelectedTargetStorage, setTempSelectedTargetStorage] = React.useState('storage1');
   const [isNetworkDropdownOpen, setIsNetworkDropdownOpen] = React.useState(false);
   const [isStorageDropdownOpen, setIsStorageDropdownOpen] = React.useState(false);
   
@@ -926,35 +924,76 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         return (
           <div>
             <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Network mapping</Title>
-            <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source network</div>
                 <div>network1</div>
               </div>
-              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Target network</div>
-                <div>{selectedTargetNetwork}</div>
+              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '24px' }}>→</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: 600 }}>Target network</div>
+                  <Button 
+                    variant="link" 
+                    style={{ 
+                      padding: 0,
+                      opacity: allChecksCompleted ? 1 : 0.5,
+                      cursor: allChecksCompleted ? 'pointer' : 'not-allowed',
+                      backgroundColor: 'transparent'
+                    }} 
+                    isDisabled={!allChecksCompleted}
+                    onClick={() => {
+                      setIsNetworkEditMode(!isNetworkEditMode);
+                      if (!isNetworkEditMode) {
+                        setIsNetworkDropdownOpen(true);
+                      }
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <PencilAltIcon /> Edit
+                    </span>
+                  </Button>
+                </div>
+                {isNetworkEditMode ? (
+                  <Select
+                    id="network-inline-select"
+                    isOpen={isNetworkDropdownOpen}
+                    selected={selectedTargetNetwork}
+                    onSelect={(_event, value) => {
+                      setSelectedTargetNetwork(value as string);
+                      setIsNetworkDropdownOpen(false);
+                      setIsNetworkEditMode(false);
+                    }}
+                    onOpenChange={(isOpen) => {
+                      setIsNetworkDropdownOpen(isOpen);
+                      if (!isOpen) {
+                        setIsNetworkEditMode(false);
+                      }
+                    }}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsNetworkDropdownOpen(!isNetworkDropdownOpen)}
+                        isExpanded={isNetworkDropdownOpen}
+                        style={{
+                          width: '280px',
+                          backgroundColor: '#2b2b2b'
+                        }}
+                      >
+                        {selectedTargetNetwork}
+                      </MenuToggle>
+                    )}
+                  >
+                    <SelectList>
+                      <SelectOption value="network1">network1</SelectOption>
+                      <SelectOption value="network2">network2</SelectOption>
+                      <SelectOption value="network3">network3</SelectOption>
+                    </SelectList>
+                  </Select>
+                ) : (
+                  <div>{selectedTargetNetwork}</div>
+                )}
               </div>
-              <Button 
-                variant="link" 
-                style={{ 
-                  marginLeft: 'auto', 
-                  padding: 0,
-                  opacity: allChecksCompleted ? 1 : 0.5,
-                  cursor: allChecksCompleted ? 'pointer' : 'not-allowed',
-                  backgroundColor: 'transparent'
-                }} 
-                isDisabled={!allChecksCompleted}
-                onClick={() => {
-                  setTempSelectedTargetNetwork(selectedTargetNetwork);
-                  setIsNetworkEditOpen(true);
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <PencilAltIcon /> Edit
-                </span>
-              </Button>
             </div>
           </div>
         );
@@ -962,35 +1001,76 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         return (
           <div>
             <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Storage mapping</Title>
-            <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source storage</div>
                 <div>storage1</div>
               </div>
-              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Target storage</div>
-                <div>{selectedTargetStorage}</div>
+              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '24px' }}>→</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: 600 }}>Target storage</div>
+                  <Button 
+                    variant="link" 
+                    style={{ 
+                      padding: 0,
+                      opacity: allChecksCompleted ? 1 : 0.5,
+                      cursor: allChecksCompleted ? 'pointer' : 'not-allowed',
+                      backgroundColor: 'transparent'
+                    }} 
+                    isDisabled={!allChecksCompleted}
+                    onClick={() => {
+                      setIsStorageEditMode(!isStorageEditMode);
+                      if (!isStorageEditMode) {
+                        setIsStorageDropdownOpen(true);
+                      }
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <PencilAltIcon /> Edit
+                    </span>
+                  </Button>
+                </div>
+                {isStorageEditMode ? (
+                  <Select
+                    id="storage-inline-select"
+                    isOpen={isStorageDropdownOpen}
+                    selected={selectedTargetStorage}
+                    onSelect={(_event, value) => {
+                      setSelectedTargetStorage(value as string);
+                      setIsStorageDropdownOpen(false);
+                      setIsStorageEditMode(false);
+                    }}
+                    onOpenChange={(isOpen) => {
+                      setIsStorageDropdownOpen(isOpen);
+                      if (!isOpen) {
+                        setIsStorageEditMode(false);
+                      }
+                    }}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsStorageDropdownOpen(!isStorageDropdownOpen)}
+                        isExpanded={isStorageDropdownOpen}
+                        style={{
+                          width: '280px',
+                          backgroundColor: '#2b2b2b'
+                        }}
+                      >
+                        {selectedTargetStorage}
+                      </MenuToggle>
+                    )}
+                  >
+                    <SelectList>
+                      <SelectOption value="storage1">storage1</SelectOption>
+                      <SelectOption value="storage2">storage2</SelectOption>
+                      <SelectOption value="storage3">storage3</SelectOption>
+                    </SelectList>
+                  </Select>
+                ) : (
+                  <div>{selectedTargetStorage}</div>
+                )}
               </div>
-              <Button 
-                variant="link" 
-                style={{ 
-                  marginLeft: 'auto', 
-                  padding: 0,
-                  opacity: allChecksCompleted ? 1 : 0.5,
-                  cursor: allChecksCompleted ? 'pointer' : 'not-allowed',
-                  backgroundColor: 'transparent'
-                }} 
-                isDisabled={!allChecksCompleted}
-                onClick={() => {
-                  setTempSelectedTargetStorage(selectedTargetStorage);
-                  setIsStorageEditOpen(true);
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <PencilAltIcon /> Edit
-                </span>
-              </Button>
             </div>
           </div>
         );
@@ -2140,189 +2220,6 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         </div>
       </Modal>
 
-      {/* Network Edit Modal */}
-      <Modal
-        isOpen={isNetworkEditOpen}
-        onClose={() => {
-          setIsNetworkEditOpen(false);
-          setIsNetworkDropdownOpen(false);
-        }}
-        variant={ModalVariant.small}
-      >
-        <div style={{ padding: '24px' }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: '24px'
-          }}>
-            <Title headingLevel="h2" size="xl">Target network</Title>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Button
-                variant="plain"
-                onClick={() => {
-                  setSelectedTargetNetwork(tempSelectedTargetNetwork);
-                  setIsNetworkEditOpen(false);
-                  setIsNetworkDropdownOpen(false);
-                }}
-                style={{ padding: '4px 8px' }}
-              >
-                <CheckCircleIcon style={{ fontSize: '1.5rem' }} />
-              </Button>
-              <Button
-                variant="plain"
-                onClick={() => {
-                  setIsNetworkEditOpen(false);
-                  setIsNetworkDropdownOpen(false);
-                }}
-                style={{ padding: '4px 8px' }}
-              >
-                <TimesIcon style={{ fontSize: '1.5rem' }} />
-              </Button>
-            </div>
-          </div>
-          
-          <Select
-            id="network-edit-select"
-            isOpen={isNetworkDropdownOpen}
-            selected={tempSelectedTargetNetwork}
-            onSelect={(_event, value) => {
-              setTempSelectedTargetNetwork(value as string);
-              setIsNetworkDropdownOpen(false);
-            }}
-            onOpenChange={(isOpen) => setIsNetworkDropdownOpen(isOpen)}
-            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-              <MenuToggle
-                ref={toggleRef}
-                onClick={() => setIsNetworkDropdownOpen(!isNetworkDropdownOpen)}
-                isExpanded={isNetworkDropdownOpen}
-                style={{
-                  width: '100%',
-                  backgroundColor: '#2b2b2b',
-                  borderColor: tempSelectedTargetNetwork !== 'network1' ? '#f0ab00' : undefined
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {tempSelectedTargetNetwork !== 'network1' && (
-                    <ExclamationCircleIcon style={{ color: '#f0ab00' }} />
-                  )}
-                  {tempSelectedTargetNetwork}
-                </div>
-              </MenuToggle>
-            )}
-          >
-            <SelectList>
-              <SelectOption value="network1">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  network1
-                </div>
-              </SelectOption>
-              <SelectOption value="network2">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  network2
-                </div>
-              </SelectOption>
-              <SelectOption value="network3">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  network3
-                </div>
-              </SelectOption>
-            </SelectList>
-          </Select>
-        </div>
-      </Modal>
-
-      {/* Storage Edit Modal */}
-      <Modal
-        isOpen={isStorageEditOpen}
-        onClose={() => {
-          setIsStorageEditOpen(false);
-          setIsStorageDropdownOpen(false);
-        }}
-        variant={ModalVariant.small}
-      >
-        <div style={{ padding: '24px' }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: '24px'
-          }}>
-            <Title headingLevel="h2" size="xl">Target storage</Title>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Button
-                variant="plain"
-                onClick={() => {
-                  setSelectedTargetStorage(tempSelectedTargetStorage);
-                  setIsStorageEditOpen(false);
-                  setIsStorageDropdownOpen(false);
-                }}
-                style={{ padding: '4px 8px' }}
-              >
-                <CheckCircleIcon style={{ fontSize: '1.5rem' }} />
-              </Button>
-              <Button
-                variant="plain"
-                onClick={() => {
-                  setIsStorageEditOpen(false);
-                  setIsStorageDropdownOpen(false);
-                }}
-                style={{ padding: '4px 8px' }}
-              >
-                <TimesIcon style={{ fontSize: '1.5rem' }} />
-              </Button>
-            </div>
-          </div>
-          
-          <Select
-            id="storage-edit-select"
-            isOpen={isStorageDropdownOpen}
-            selected={tempSelectedTargetStorage}
-            onSelect={(_event, value) => {
-              setTempSelectedTargetStorage(value as string);
-              setIsStorageDropdownOpen(false);
-            }}
-            onOpenChange={(isOpen) => setIsStorageDropdownOpen(isOpen)}
-            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-              <MenuToggle
-                ref={toggleRef}
-                onClick={() => setIsStorageDropdownOpen(!isStorageDropdownOpen)}
-                isExpanded={isStorageDropdownOpen}
-                style={{
-                  width: '100%',
-                  backgroundColor: '#2b2b2b',
-                  borderColor: tempSelectedTargetStorage !== 'storage1' ? '#f0ab00' : undefined
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {tempSelectedTargetStorage !== 'storage1' && (
-                    <ExclamationCircleIcon style={{ color: '#f0ab00' }} />
-                  )}
-                  {tempSelectedTargetStorage}
-                </div>
-              </MenuToggle>
-            )}
-          >
-            <SelectList>
-              <SelectOption value="storage1">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  storage1
-                </div>
-              </SelectOption>
-              <SelectOption value="storage2">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  storage2
-                </div>
-              </SelectOption>
-              <SelectOption value="storage3">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  storage3
-                </div>
-              </SelectOption>
-            </SelectList>
-          </Select>
-        </div>
-      </Modal>
     </>
   );
 };
