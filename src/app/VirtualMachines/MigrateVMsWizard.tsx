@@ -930,16 +930,20 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
             <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
               <div style={{ minWidth: '200px' }}>
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source network</div>
-                <TextInput
-                  value="network1"
-                  type="text"
-                  aria-label="Source network"
-                  readOnly
-                  style={{
-                    backgroundColor: '#ffffff',
-                    width: '200px'
-                  }}
-                />
+                {isNetworkEditMode ? (
+                  <TextInput
+                    value="network1"
+                    type="text"
+                    aria-label="Source network"
+                    readOnly
+                    style={{
+                      backgroundColor: '#ffffff',
+                      width: '200px'
+                    }}
+                  />
+                ) : (
+                  <div>network1</div>
+                )}
               </div>
               <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '24px' }}>→</div>
               <div style={{ flex: 1 }}>
@@ -1050,16 +1054,20 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
             <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
               <div style={{ minWidth: '200px' }}>
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source storage</div>
-                <TextInput
-                  value="storage1"
-                  type="text"
-                  aria-label="Source storage"
-                  readOnly
-                  style={{
-                    backgroundColor: '#ffffff',
-                    width: '200px'
-                  }}
-                />
+                {isStorageEditMode ? (
+                  <TextInput
+                    value="storage1"
+                    type="text"
+                    aria-label="Source storage"
+                    readOnly
+                    style={{
+                      backgroundColor: '#ffffff',
+                      width: '200px'
+                    }}
+                  />
+                ) : (
+                  <div>storage1</div>
+                )}
               </div>
               <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '24px' }}>→</div>
               <div style={{ flex: 1 }}>
