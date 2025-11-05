@@ -494,11 +494,50 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   };
 
   const handleSave = () => {
-    console.log('Migration plan saved for later:', {
+    console.log('Saving migration plan for later:', {
       name: migrationName,
-      reason: migrationReason,
+      reason: actualMigrationReason,
       vms: selectedVMs,
+      source: { cluster: sourceCluster?.name, namespace: sourceNamespace?.name },
+      target: { cluster: targetCluster, namespace: targetProject },
     });
+    
+    // Create migration plan entry with "Ready to migrate" status (not started yet)
+    const targetNamespace = getNamespaceById(targetProject);
+    const targetClusterObj = getClusterById(targetCluster);
+    
+    // Get all selected VMs (not just running ones)
+    const allVMIds = selectedVMs;
+    
+    const migrationPlan = createMigrationPlan({
+      name: migrationName || `Migration plan: ${allVMIds.length} VMs`,
+      namespace: targetNamespace?.name || targetProject,
+      sourceProvider: 'host',
+      targetProvider: 'host',
+      sourceClusterId: sourceCluster?.id || allVMIds[0] ? virtualMachines.find(vm => vm.id === allVMIds[0])?.clusterId || '' : '',
+      targetClusterId: targetCluster,
+      targetNamespaceId: targetProject,
+      vmIds: allVMIds,
+      status: 'Ready to migrate', // Plan is saved, not started
+      migrationReadiness: 'Ready to migrate',
+      migrationType: 'Live',
+      createdAt: new Date().toISOString(),
+      // No startedAt - migration hasn't started yet
+      transferNetwork: 'Providers default',
+      conditions: [
+        {
+          type: 'Ready',
+          status: true,
+          updated: new Date().toISOString(),
+          reason: 'Saved',
+          message: 'The migration plan is saved and ready to execute',
+        },
+      ],
+    });
+    
+    console.log(`📋 Saved migration plan: ${migrationPlan.id} (Ready to migrate)`);
+    
+    // Close wizard without triggering migration
     handleClose();
   };
 
