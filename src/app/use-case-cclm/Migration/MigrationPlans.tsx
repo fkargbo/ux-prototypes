@@ -166,7 +166,7 @@ const MigrationPlans: React.FunctionComponent = () => {
         {/* Toolbar */}
         <Toolbar>
         <ToolbarContent>
-          <ToolbarItem variant="search-filter" style={{ flexGrow: 1 }}>
+          <ToolbarItem style={{ flexGrow: 1 }}>
             <SearchInput
               placeholder="Search by name"
               value={searchValue}
@@ -209,9 +209,8 @@ const MigrationPlans: React.FunctionComponent = () => {
           {paginatedPlans.map((plan) => (
             <Tr
               key={plan.id}
-              isHoverable
-              isClickable
-              onRowClick={() => handleRowClick(plan.id)}
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleRowClick(plan.id)}
             >
               <Td dataLabel="Name">
                 <a
