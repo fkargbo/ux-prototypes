@@ -937,11 +937,8 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     variant="link" 
                     style={{ 
                       padding: 0,
-                      opacity: allChecksCompleted ? 1 : 0.5,
-                      cursor: allChecksCompleted ? 'pointer' : 'not-allowed',
                       backgroundColor: 'transparent'
                     }} 
-                    isDisabled={!allChecksCompleted}
                     onClick={() => {
                       setIsNetworkEditMode(!isNetworkEditMode);
                       if (!isNetworkEditMode) {
@@ -1014,11 +1011,8 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     variant="link" 
                     style={{ 
                       padding: 0,
-                      opacity: allChecksCompleted ? 1 : 0.5,
-                      cursor: allChecksCompleted ? 'pointer' : 'not-allowed',
                       backgroundColor: 'transparent'
                     }} 
-                    isDisabled={!allChecksCompleted}
                     onClick={() => {
                       setIsStorageEditMode(!isStorageEditMode);
                       if (!isStorageEditMode) {
