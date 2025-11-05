@@ -28,7 +28,7 @@ import {
   TextInputGroupUtilities,
   Divider,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, OffIcon, ExclamationCircleIcon, PauseCircleIcon, PencilAltIcon, InProgressIcon, SearchIcon, TimesIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, OffIcon, ExclamationCircleIcon, PauseCircleIcon, PencilAltIcon, InProgressIcon, SearchIcon, TimesIcon, CheckIcon } from '@patternfly/react-icons';
 import { 
   getVirtualMachineById, 
   getAllClusters, 
@@ -928,9 +928,18 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
           <div>
             <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Network mapping</Title>
             <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
-              <div>
+              <div style={{ minWidth: '200px' }}>
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source network</div>
-                <div>network1</div>
+                <TextInput
+                  value="network1"
+                  type="text"
+                  aria-label="Source network"
+                  readOnly
+                  style={{
+                    backgroundColor: '#ffffff',
+                    width: '200px'
+                  }}
+                />
               </div>
               <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '24px' }}>→</div>
               <div style={{ flex: 1 }}>
@@ -971,7 +980,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                         }}
                         style={{ padding: '4px' }}
                       >
-                        <CheckCircleIcon style={{ fontSize: '1.25rem', color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+                        <CheckIcon style={{ fontSize: '1rem', color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
                       </Button>
                       <Button 
                         variant="plain"
@@ -983,7 +992,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                         }}
                         style={{ padding: '4px' }}
                       >
-                        <TimesIcon style={{ fontSize: '1.25rem' }} />
+                        <TimesIcon style={{ fontSize: '1rem' }} />
                       </Button>
                     </div>
                   )}
@@ -1039,9 +1048,18 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
           <div>
             <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Storage mapping</Title>
             <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
-              <div>
+              <div style={{ minWidth: '200px' }}>
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source storage</div>
-                <div>storage1</div>
+                <TextInput
+                  value="storage1"
+                  type="text"
+                  aria-label="Source storage"
+                  readOnly
+                  style={{
+                    backgroundColor: '#ffffff',
+                    width: '200px'
+                  }}
+                />
               </div>
               <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '24px' }}>→</div>
               <div style={{ flex: 1 }}>
@@ -1082,7 +1100,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                         }}
                         style={{ padding: '4px' }}
                       >
-                        <CheckCircleIcon style={{ fontSize: '1.25rem', color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+                        <CheckIcon style={{ fontSize: '1rem', color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
                       </Button>
                       <Button 
                         variant="plain"
@@ -1094,7 +1112,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                         }}
                         style={{ padding: '4px' }}
                       >
-                        <TimesIcon style={{ fontSize: '1.25rem' }} />
+                        <TimesIcon style={{ fontSize: '1rem' }} />
                       </Button>
                     </div>
                   )}
