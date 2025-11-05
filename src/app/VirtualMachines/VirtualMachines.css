@@ -260,3 +260,13 @@ body.resizing-sidebar * {
   background-color: #E7F1FA !important;
 }
 
+/* Spinning animation for migrating status icon */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+

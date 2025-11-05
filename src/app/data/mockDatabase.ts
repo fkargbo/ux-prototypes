@@ -9,6 +9,7 @@ import {
   VirtualMachine,
   InstanceType,
   Template,
+  MigrationPlan,
 } from './schemas/virtualization';
 import {
   User,
@@ -924,6 +925,12 @@ export const templates: Template[] = [
 ];
 
 // ============================================================================
+// MIGRATION PLANS
+// ============================================================================
+
+export const migrationPlans: MigrationPlan[] = [];
+
+// ============================================================================
 // GENERATE ADDITIONAL DATA
 // ============================================================================
 
@@ -1130,6 +1137,7 @@ export const mockDatabase = {
   roleBindings,
   instanceTypes,
   templates,
+  migrationPlans,
 };
 
 export default mockDatabase;

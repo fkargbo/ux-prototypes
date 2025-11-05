@@ -290,6 +290,33 @@ body,
   max-width: 100% !important;
 }
 
+/* Migration plan detail page container */
+.migration-plan-detail-page-container {
+  background-color: #f5f5f5 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: 100vh !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.migration-plan-detail-page-container .page-header-section {
+  background-color: #ffffff !important;
+  padding: 24px !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.migration-plan-detail-page-container .page-content-section {
+  background-color: #f5f5f5 !important;
+  padding: 24px !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 /* Governance page container */
 .governance-page-container {
   background-color: #f5f5f5 !important;

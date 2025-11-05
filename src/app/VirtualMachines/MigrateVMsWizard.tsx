@@ -23,15 +23,20 @@ import {
   DrawerHead,
   DrawerActions,
   DrawerCloseButton,
+  TextInputGroup,
+  TextInputGroupMain,
+  TextInputGroupUtilities,
+  Divider,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, OffIcon, ExclamationCircleIcon, PauseCircleIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, OffIcon, ExclamationCircleIcon, PauseCircleIcon, PencilAltIcon, InProgressIcon, SearchIcon, TimesIcon } from '@patternfly/react-icons';
 import { 
   getVirtualMachineById, 
   getAllClusters, 
   getNamespacesByCluster,
   getClusterById,
   getNamespaceById,
-  getAllVirtualMachines
+  getAllVirtualMachines,
+  createMigrationPlan
 } from '../data/queries';
 import { virtualMachines } from '../data/mockDatabase';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
@@ -39,6 +44,13 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 interface MigrateVMsWizardProps {
   isOpen: boolean;
   onClose: () => void;
+  onMigrationStart?: (
+    vmIds: string[], 
+    originalLocations: Record<string, { clusterId: string; namespaceId: string }>,
+    targetLocation: { clusterId: string; namespaceId: string },
+    migrationPlanId: string
+  ) => void;
+  onVMStatusChange?: () => void;
   selectedVMs: string[];
   preselectedTargetCluster?: string;
   preselectedTargetNamespace?: string;
@@ -48,6 +60,8 @@ interface MigrateVMsWizardProps {
 export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = ({
   isOpen,
   onClose,
+  onMigrationStart,
+  onVMStatusChange,
   selectedVMs,
   preselectedTargetCluster,
   preselectedTargetNamespace,
@@ -63,6 +77,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const [isStatusWarningModalOpen, setIsStatusWarningModalOpen] = React.useState(false);
   const [filteredVMIds, setFilteredVMIds] = React.useState<string[]>(selectedVMs);
   const [showWizardContent, setShowWizardContent] = React.useState(false);
+  const [activeStep, setActiveStep] = React.useState(1);
   
   // Predefined migration reasons
   const predefinedReasons = [
@@ -206,6 +221,22 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const [targetCluster, setTargetCluster] = React.useState('');
   const [targetProject, setTargetProject] = React.useState('');
   
+  // Dropdown states for search functionality
+  const [isTargetClusterOpen, setIsTargetClusterOpen] = React.useState(false);
+  const [isTargetProjectOpen, setIsTargetProjectOpen] = React.useState(false);
+  const [clusterSearchValue, setClusterSearchValue] = React.useState('');
+  const [projectSearchValue, setProjectSearchValue] = React.useState('');
+  
+  // Edit modal states for network and storage mapping
+  const [isNetworkEditOpen, setIsNetworkEditOpen] = React.useState(false);
+  const [isStorageEditOpen, setIsStorageEditOpen] = React.useState(false);
+  const [selectedTargetNetwork, setSelectedTargetNetwork] = React.useState('network1');
+  const [selectedTargetStorage, setSelectedTargetStorage] = React.useState('storage1');
+  const [tempSelectedTargetNetwork, setTempSelectedTargetNetwork] = React.useState('network1');
+  const [tempSelectedTargetStorage, setTempSelectedTargetStorage] = React.useState('storage1');
+  const [isNetworkDropdownOpen, setIsNetworkDropdownOpen] = React.useState(false);
+  const [isStorageDropdownOpen, setIsStorageDropdownOpen] = React.useState(false);
+  
   // Pre-select target cluster and namespace when provided (from drag-and-drop)
   React.useEffect(() => {
     if (isOpen && showWizardContent) {
@@ -225,6 +256,22 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
     if (!targetCluster) return [];
     return getNamespacesByCluster(targetCluster);
   }, [targetCluster]);
+  
+  // Filtered options for search
+  const filteredClusters = React.useMemo(() => {
+    if (!clusterSearchValue) return allClusters;
+    return allClusters.filter(cluster => 
+      cluster.name.toLowerCase().includes(clusterSearchValue.toLowerCase()) ||
+      cluster.region?.toLowerCase().includes(clusterSearchValue.toLowerCase())
+    );
+  }, [allClusters, clusterSearchValue]);
+
+  const filteredProjects = React.useMemo(() => {
+    if (!projectSearchValue) return targetNamespaces;
+    return targetNamespaces.filter(ns => 
+      ns.name.toLowerCase().includes(projectSearchValue.toLowerCase())
+    );
+  }, [targetNamespaces, projectSearchValue]);
   
   // Validation
   const isSameLocation = React.useMemo(() => {
@@ -246,15 +293,9 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       }, 200);
     }
     
-    // When migration completes, close wizard after a short delay
+    // When migration completes, just log it (don't auto-close)
     if (showProgress && progress >= 100) {
-      const timeout = setTimeout(() => {
         console.log('✅ Migration completed successfully!');
-        handleClose();
-        // Force page reload to refresh VM data
-        window.location.reload();
-      }, 1500);
-      return () => clearTimeout(timeout);
     }
     
     return () => {
@@ -263,6 +304,12 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   }, [showProgress, progress]);
 
   const handleClose = () => {
+    // If migration was completed, reload the page to show updated VM locations
+    if (showProgress && progress >= 100) {
+      window.location.reload();
+      return;
+    }
+    
     // Reset form
     setMigrationName('');
     setMigrationReason('Not stated');
@@ -296,16 +343,150 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       target: { cluster: targetCluster, namespace: targetProject },
     });
     
-    // Perform the actual migration
+    // Filter only Running VMs and store their original locations
+    const runningVMIds: string[] = [];
+    const originalLocations: Record<string, { clusterId: string; namespaceId: string }> = {};
+    
     selectedVMs.forEach(vmId => {
       const vmIndex = virtualMachines.findIndex(vm => vm.id === vmId);
-      if (vmIndex !== -1) {
-        // Update the VM's cluster and namespace
-        virtualMachines[vmIndex].clusterId = targetCluster;
-        virtualMachines[vmIndex].namespaceId = targetProject;
-        console.log(`✅ Migrated VM ${virtualMachines[vmIndex].name} to ${targetCluster}/${targetProject}`);
+      if (vmIndex !== -1 && virtualMachines[vmIndex].status === 'Running') {
+        runningVMIds.push(vmId);
+        // Store original location before migration
+        originalLocations[vmId] = {
+          clusterId: virtualMachines[vmIndex].clusterId,
+          namespaceId: virtualMachines[vmIndex].namespaceId
+        };
       }
     });
+    
+    console.log(`🚀 Migrating ${runningVMIds.length} running VMs out of ${selectedVMs.length} total selected`);
+    
+    // Create migration plan entry
+    const targetNamespace = getNamespaceById(targetProject);
+    const targetClusterObj = getClusterById(targetCluster);
+    const migrationPlan = createMigrationPlan({
+      name: migrationName || `Live migrating: ${runningVMIds.length} VMs`,
+      namespace: targetNamespace?.name || targetProject,
+      sourceProvider: 'host',
+      targetProvider: 'host',
+      sourceClusterId: sourceCluster?.id || runningVMIds[0] ? virtualMachines.find(vm => vm.id === runningVMIds[0])?.clusterId || '' : '',
+      targetClusterId: targetCluster,
+      targetNamespaceId: targetProject,
+      vmIds: runningVMIds,
+      status: 'In progress',
+      migrationReadiness: 'Ready to migrate',
+      migrationType: 'Live',
+      createdAt: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
+      transferNetwork: 'Providers default',
+      conditions: [
+        {
+          type: 'Ready',
+          status: true,
+          updated: new Date().toISOString(),
+          reason: 'Evacuating',
+          message: 'The migration plan is ready',
+        },
+      ],
+    });
+    
+    console.log(`📋 Created migration plan: ${migrationPlan.id}`);
+    
+    // Trigger migration state in parent component (only running VMs)
+    if (onMigrationStart) {
+      onMigrationStart(runningVMIds, originalLocations, {
+        clusterId: targetCluster,
+        namespaceId: targetProject
+      }, migrationPlan.id);
+    }
+    
+    // Set initial statuses for running VMs
+    // IMPORTANT: We DON'T update cluster/namespace - VMs stay in source location
+    // Only status and migrationProgress change to show progress to user
+    // VMs will remain visible in source table until user refreshes the page
+    runningVMIds.forEach((vmId, index) => {
+      const vmIndex = virtualMachines.findIndex(vm => vm.id === vmId);
+      if (vmIndex !== -1) {
+        // Set first 5 VMs to "Migrating" at 0%, rest to "Pending"
+        if (index < 5) {
+          virtualMachines[vmIndex].status = 'Migrating' as any;
+          virtualMachines[vmIndex].migrationProgress = 0;
+          console.log(`✅ VM ${virtualMachines[vmIndex].name} → Migrating 0% (group 1)`);
+        } else {
+          virtualMachines[vmIndex].status = 'Pending' as any;
+          virtualMachines[vmIndex].migrationProgress = 0;
+          console.log(`⏳ VM ${virtualMachines[vmIndex].name} → Pending`);
+        }
+      }
+    });
+    
+    // Trigger UI update
+    if (onVMStatusChange) {
+      onVMStatusChange();
+    }
+    
+    // Progressive migration with percentage updates
+    let currentGroup = 0;
+    let currentPercentage = 0;
+    const totalGroups = Math.ceil(runningVMIds.length / 5);
+    const percentageSteps = [25, 50, 75, 100];
+    let percentageIndex = 0;
+    
+    const migrationInterval = setInterval(() => {
+      const startIndex = currentGroup * 5;
+      const endIndex = Math.min(startIndex + 5, runningVMIds.length);
+      
+      // Update percentage for current group
+      currentPercentage = percentageSteps[percentageIndex];
+      
+      for (let i = startIndex; i < endIndex; i++) {
+        const vmId = runningVMIds[i];
+        const vmIndex = virtualMachines.findIndex(vm => vm.id === vmId);
+        if (vmIndex !== -1 && virtualMachines[vmIndex].status === 'Migrating') {
+          virtualMachines[vmIndex].migrationProgress = currentPercentage;
+          console.log(`📊 VM ${virtualMachines[vmIndex].name} → ${currentPercentage}%`);
+          
+          // If reached 100%, change status to Migrated
+          if (currentPercentage === 100) {
+            virtualMachines[vmIndex].status = 'Migrated' as any;
+            console.log(`✅ VM ${virtualMachines[vmIndex].name} → Migrated (group ${currentGroup + 1})`);
+          }
+        }
+      }
+      
+      percentageIndex++;
+      
+      // After reaching 100% for current group, move to next group
+      if (percentageIndex >= percentageSteps.length) {
+        percentageIndex = 0;
+        currentGroup++;
+        
+        // Start next group if available
+        if (currentGroup < totalGroups) {
+          const nextStartIndex = currentGroup * 5;
+          const nextEndIndex = Math.min(nextStartIndex + 5, runningVMIds.length);
+          
+          for (let i = nextStartIndex; i < nextEndIndex; i++) {
+            const vmId = runningVMIds[i];
+            const vmIndex = virtualMachines.findIndex(vm => vm.id === vmId);
+            if (vmIndex !== -1 && virtualMachines[vmIndex].status === 'Pending') {
+              virtualMachines[vmIndex].status = 'Migrating' as any;
+              virtualMachines[vmIndex].migrationProgress = 0;
+              console.log(`🚀 VM ${virtualMachines[vmIndex].name} → Migrating 0% (group ${currentGroup + 1})`);
+            }
+          }
+        } else {
+          // All done
+          clearInterval(migrationInterval);
+          console.log('🎉 All VMs migrated!');
+        }
+      }
+      
+      // Trigger UI update after each percentage change
+      if (onVMStatusChange) {
+        onVMStatusChange();
+      }
+    }, 1250); // 1.25 second intervals for percentage updates (25% → 50% → 75% → 100% = 5 seconds total per group)
     
     setShowProgress(true);
     setProgress(0);
@@ -502,23 +683,66 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                 }}
               />
             ) : (
-              <FormSelect
-                value={targetCluster}
-                onChange={(_event, value) => {
+              <Select
+                isOpen={isTargetClusterOpen}
+                selected={targetCluster}
+                onSelect={(_event, value) => {
                   setTargetCluster(value as string);
-                  setTargetProject(''); // Reset project when cluster changes
+                  setTargetProject('');
+                  setIsTargetClusterOpen(false);
+                  setClusterSearchValue('');
                 }}
-                aria-label="Target cluster"
+                onOpenChange={(isOpen) => {
+                  setIsTargetClusterOpen(isOpen);
+                  if (!isOpen) {
+                    setClusterSearchValue('');
+                  }
+                }}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsTargetClusterOpen(!isTargetClusterOpen)}
+                    isExpanded={isTargetClusterOpen}
+                    isFullWidth
+                  >
+                    {targetCluster 
+                      ? `${allClusters.find(c => c.id === targetCluster)?.name} (${allClusters.find(c => c.id === targetCluster)?.region})`
+                      : 'Select cluster'}
+                  </MenuToggle>
+                )}
               >
-                <FormSelectOption value="" label="Select Cluster" />
-                {allClusters.map(cluster => (
-                  <FormSelectOption 
-                    key={cluster.id} 
-                    value={cluster.id} 
-                    label={`${cluster.name} (${cluster.region})`} 
+                <TextInputGroup style={{ padding: '8px' }}>
+                  <TextInputGroupMain
+                    value={clusterSearchValue}
+                    onChange={(_event, value) => setClusterSearchValue(value)}
+                    placeholder="Search by name"
+                    icon={<SearchIcon />}
                   />
-                ))}
-              </FormSelect>
+                  {clusterSearchValue && (
+                    <TextInputGroupUtilities>
+                      <Button
+                        variant="plain"
+                        onClick={() => setClusterSearchValue('')}
+                        aria-label="Clear search"
+                      >
+                        <TimesIcon />
+                      </Button>
+                    </TextInputGroupUtilities>
+                  )}
+                </TextInputGroup>
+                <Divider />
+                <SelectList>
+                  {filteredClusters.length > 0 ? (
+                    filteredClusters.map(cluster => (
+                      <SelectOption key={cluster.id} value={cluster.id}>
+                        {cluster.name} ({cluster.region})
+                      </SelectOption>
+                    ))
+                  ) : (
+                    <SelectOption isDisabled>No results found</SelectOption>
+                  )}
+                </SelectList>
+              </Select>
             )}
           </FormGroup>
 
@@ -537,24 +761,74 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                 }}
               />
             ) : (
-              <FormSelect
-                value={targetProject}
-                onChange={(_event, value) => setTargetProject(value as string)}
+              <Select
+                isOpen={isTargetProjectOpen}
+                selected={targetProject}
+                onSelect={(_event, value) => {
+                  if (!targetCluster) return;
+                  setTargetProject(value as string);
+                  setIsTargetProjectOpen(false);
+                  setProjectSearchValue('');
+                }}
+                onOpenChange={(isOpen) => {
+                  if (!targetCluster) return;
+                  setIsTargetProjectOpen(isOpen);
+                  if (!isOpen) {
+                    setProjectSearchValue('');
+                  }
+                }}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => {
+                      if (targetCluster) {
+                        setIsTargetProjectOpen(!isTargetProjectOpen);
+                      }
+                    }}
+                    isExpanded={isTargetProjectOpen}
+                    isFullWidth
                 isDisabled={!targetCluster}
-                aria-label="Target project"
+                  >
+                    {targetProject 
+                      ? targetNamespaces.find(ns => ns.id === targetProject)?.name 
+                      : (targetCluster ? 'Select project' : 'To select a project, pick a cluster')}
+                  </MenuToggle>
+                )}
               >
-                <FormSelectOption 
-                  value="" 
-                  label={targetCluster ? "Select project" : "To select a project, pick a cluster"} 
-                />
-                {targetNamespaces.map(namespace => (
-                  <FormSelectOption 
-                    key={namespace.id} 
-                    value={namespace.id} 
-                    label={namespace.name} 
+                <TextInputGroup style={{ padding: '8px' }}>
+                  <TextInputGroupMain
+                    value={projectSearchValue}
+                    onChange={(_event, value) => setProjectSearchValue(value)}
+                    placeholder="Search by name"
+                    icon={<SearchIcon />}
                   />
-                ))}
-              </FormSelect>
+                  {projectSearchValue && (
+                    <TextInputGroupUtilities>
+                      <Button
+                        variant="plain"
+                        onClick={() => setProjectSearchValue('')}
+                        aria-label="Clear search"
+                      >
+                        <TimesIcon />
+                      </Button>
+                    </TextInputGroupUtilities>
+                  )}
+                </TextInputGroup>
+                <Divider />
+                <SelectList>
+                  {filteredProjects.length > 0 ? (
+                    filteredProjects.map(namespace => (
+                      <SelectOption key={namespace.id} value={namespace.id}>
+                        {namespace.name}
+                      </SelectOption>
+                    ))
+                  ) : (
+                    <SelectOption isDisabled>
+                      {targetNamespaces.length === 0 ? 'No projects available' : 'No results found'}
+                    </SelectOption>
+                  )}
+                </SelectList>
+              </Select>
             )}
           </FormGroup>
         </div>
@@ -563,25 +837,123 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   );
 
   const [selectedCheck, setSelectedCheck] = React.useState<string>('network');
+  
+  // Migration readiness checking state
+  const [checksCompleted, setChecksCompleted] = React.useState<{
+    network: boolean;
+    storage: boolean;
+    compute: boolean;
+    version: boolean;
+    resource: boolean;
+  }>({
+    network: false,
+    storage: false,
+    compute: false,
+    version: false,
+    resource: false
+  });
+
+  const allChecksCompleted = Object.values(checksCompleted).every(check => check);
+
+  // Run checks sequentially when user lands on Migration readiness step
+  React.useEffect(() => {
+    if (activeStep === 3) {
+      // Reset all checks first
+      setChecksCompleted({
+        network: false,
+        storage: false,
+        compute: false,
+        version: false,
+        resource: false
+      });
+
+      // Run checks sequentially with delays
+      const checkOrder: Array<keyof typeof checksCompleted> = ['network', 'storage', 'compute', 'version', 'resource'];
+      
+      checkOrder.forEach((checkName, index) => {
+        setTimeout(() => {
+          setChecksCompleted(prev => ({
+            ...prev,
+            [checkName]: true
+          }));
+        }, (index + 1) * 800); // 800ms delay between each check
+      });
+    }
+  }, [activeStep]);
+
+  // Get target cluster object
+  const targetClusterObj = React.useMemo(() => {
+    return targetCluster ? getClusterById(targetCluster) : null;
+  }, [targetCluster]);
+
+  // Get target namespace object
+  const targetNamespaceObj = React.useMemo(() => {
+    return targetProject ? getNamespaceById(targetProject) : null;
+  }, [targetProject]);
+
+  // Calculate total resources from selected VMs
+  const totalVMResources = React.useMemo(() => {
+    const totals = {
+      storage: 0,
+      memory: 0,
+      cpu: 0
+    };
+    
+    vmsToMigrate.forEach(vm => {
+      if (!vm) return;
+      
+      // Extract numbers from strings like "50 GB", "8 GiB"
+      if (vm.storage) {
+        const storageMatch = vm.storage.match(/(\d+)/);
+        if (storageMatch) totals.storage += parseInt(storageMatch[1]);
+      }
+      if (vm.memory) {
+        const memoryMatch = vm.memory.match(/(\d+)/);
+        if (memoryMatch) totals.memory += parseInt(memoryMatch[1]);
+      }
+      // CPU is already a number (cores)
+      if (vm.cpu) {
+        totals.cpu += vm.cpu;
+      }
+    });
+    
+    return totals;
+  }, [vmsToMigrate]);
 
   const renderCheckDetail = () => {
     switch (selectedCheck) {
       case 'network':
         return (
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '16px' }}>Network mapping</h3>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Network mapping</Title>
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Source network</div>
+                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source network</div>
                 <div>network1</div>
               </div>
               <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
               <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Target network</div>
-                <div>network1</div>
+                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Target network</div>
+                <div>{selectedTargetNetwork}</div>
               </div>
-              <Button variant="link" style={{ marginLeft: 'auto', padding: 0 }}>
-                Edit
+              <Button 
+                variant="link" 
+                style={{ 
+                  marginLeft: 'auto', 
+                  padding: 0,
+                  opacity: allChecksCompleted ? 1 : 0.5,
+                  cursor: allChecksCompleted ? 'pointer' : 'not-allowed',
+                  backgroundColor: 'transparent'
+                }} 
+                isDisabled={!allChecksCompleted}
+                onClick={() => {
+                  setTempSelectedTargetNetwork(selectedTargetNetwork);
+                  setIsNetworkEditOpen(true);
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <PencilAltIcon /> Edit
+                </span>
               </Button>
             </div>
           </div>
@@ -589,19 +961,35 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       case 'storage':
         return (
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '16px' }}>Storage mapping</h3>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Storage mapping</Title>
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Source storage</div>
+                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source storage</div>
                 <div>storage1</div>
               </div>
               <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
               <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Target storage</div>
-                <div>storage1</div>
+                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Target storage</div>
+                <div>{selectedTargetStorage}</div>
               </div>
-              <Button variant="link" style={{ marginLeft: 'auto', padding: 0 }}>
-                Edit
+              <Button 
+                variant="link" 
+                style={{ 
+                  marginLeft: 'auto', 
+                  padding: 0,
+                  opacity: allChecksCompleted ? 1 : 0.5,
+                  cursor: allChecksCompleted ? 'pointer' : 'not-allowed',
+                  backgroundColor: 'transparent'
+                }} 
+                isDisabled={!allChecksCompleted}
+                onClick={() => {
+                  setTempSelectedTargetStorage(selectedTargetStorage);
+                  setIsStorageEditOpen(true);
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <PencilAltIcon /> Edit
+                </span>
               </Button>
             </div>
           </div>
@@ -609,15 +997,15 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       case 'compute':
         return (
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '16px' }}>Compute compatibility</h3>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Compute compatibility</Title>
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Source cluster compute</div>
+                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source cluster compute</div>
                 <div>Compute1</div>
               </div>
               <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
               <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Target cluster compute</div>
+                <div style={{ fontWeight: 600, marginBottom: '8px' }}>Target cluster compute</div>
                 <div>Compute1</div>
               </div>
             </div>
@@ -626,29 +1014,29 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       case 'version':
         return (
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '24px' }}>Version compatibility</h3>
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: '24px' }}>Version compatibility</Title>
             <div style={{ marginBottom: '24px' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '12px' }}>OpenShift version</div>
+              <div style={{ fontWeight: 600, marginBottom: '12px' }}>OpenShift version</div>
               <div style={{ display: 'flex', gap: '48px' }}>
                 <div>
-                  <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '0.875rem' }}>Source cluster</div>
-                  <div>4.20</div>
+                  <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: '0.875rem' }}>Source cluster</div>
+                  <div>{sourceCluster?.kubernetesVersion || '4.20'}</div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '0.875rem' }}>Target cluster</div>
-                  <div>4.20</div>
+                  <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: '0.875rem' }}>Target cluster</div>
+                  <div>{targetClusterObj?.kubernetesVersion || '4.20'}</div>
                 </div>
               </div>
             </div>
             <div>
-              <div style={{ fontWeight: 'bold', marginBottom: '12px' }}>Virtualization operator version</div>
+              <div style={{ fontWeight: 600, marginBottom: '12px' }}>Virtualization operator version</div>
               <div style={{ display: 'flex', gap: '48px' }}>
                 <div>
-                  <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '0.875rm' }}>Source cluster</div>
+                  <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: '0.875rem' }}>Source cluster</div>
                   <div>4.19</div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '0.875rem' }}>Target cluster</div>
+                  <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: '0.875rem' }}>Target cluster</div>
                   <div>4.19</div>
                 </div>
               </div>
@@ -656,98 +1044,137 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
           </div>
         );
       case 'resource':
+        // Mock target capacity (in a real app, this would come from cluster metrics)
+        const targetCapacity = {
+          storage: { total: 238, used: 111, free: 127 },
+          memory: { total: 40, used: 30, free: 10 },
+          cpu: { total: 15, used: 10, free: 5 }
+        };
+        
         return (
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '24px' }}>Resource capacity</h3>
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: '24px' }}>Resource capacity</Title>
             <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ 
                   display: 'inline-block',
-                  width: '10px',
-                  height: '10px',
+                  width: '12px',
+                  height: '12px',
                   backgroundColor: 'var(--pf-t--global--color--brand--default)',
                   borderRadius: '2px'
                 }}></span>
                 Source size
               </div>
               <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                <div>Storage XXX GB</div>
-                <div>Memory XXX GB</div>
-                <div>CPU XXX cores</div>
+                <div>Storage {totalVMResources.storage} GB</div>
+                <div>Memory {totalVMResources.memory} GB</div>
+                <div>CPU {totalVMResources.cpu} cores</div>
               </div>
             </div>
             <div>
-              <div style={{ fontWeight: 'bold', marginBottom: '16px' }}>Target cluster capacity (test-south-eu)</div>
+              <div style={{ fontWeight: 600, marginBottom: '16px' }}>
+                Target cluster capacity ({targetClusterObj?.name || 'test-south-eu'})
+              </div>
               
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: 'bold' }}>Storage: 238 GB</span>
+                  <span style={{ fontWeight: 600 }}>Storage: {targetCapacity.storage.total} GB</span>
                 </div>
                 <div style={{ 
                   width: '100%', 
-                  height: '20px', 
+                  height: '24px', 
                   backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
                   borderRadius: '4px',
                   overflow: 'hidden',
-                  marginBottom: '4px'
+                  marginBottom: '8px',
+                  display: 'flex'
                 }}>
                   <div style={{ 
-                    width: '46%', 
+                    width: `${(targetCapacity.storage.used / targetCapacity.storage.total) * 100}%`, 
                     height: '100%', 
                     backgroundColor: 'var(--pf-t--global--color--brand--default)'
                   }}></div>
+                  <div style={{ 
+                    width: `${(targetCapacity.storage.free / targetCapacity.storage.total) * 100}%`, 
+                    height: '100%', 
+                    backgroundColor: '#fff'
+                  }}></div>
                 </div>
-                <div style={{ display: 'flex', gap: '16px', fontSize: '0.875rem' }}>
-                  <span>■ 111 GB used</span>
-                  <span>□ 121 GB free</span>
+                <div style={{ display: 'flex', gap: '20px', fontSize: '0.875rem' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: 'var(--pf-t--global--color--brand--default)' }}>■</span> {targetCapacity.storage.used} GB used
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#d2d2d2' }}>■</span> {targetCapacity.storage.free} GB free
+                  </span>
                 </div>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: 'bold' }}>Memory: 40 GB</span>
+                  <span style={{ fontWeight: 600 }}>Memory: {targetCapacity.memory.total} GB</span>
                 </div>
                 <div style={{ 
                   width: '100%', 
-                  height: '20px', 
+                  height: '24px', 
                   backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
                   borderRadius: '4px',
                   overflow: 'hidden',
-                  marginBottom: '4px'
+                  marginBottom: '8px',
+                  display: 'flex'
                 }}>
                   <div style={{ 
-                    width: '75%', 
+                    width: `${(targetCapacity.memory.used / targetCapacity.memory.total) * 100}%`, 
                     height: '100%', 
                     backgroundColor: 'var(--pf-t--global--color--brand--default)'
                   }}></div>
+                  <div style={{ 
+                    width: `${(targetCapacity.memory.free / targetCapacity.memory.total) * 100}%`, 
+                    height: '100%', 
+                    backgroundColor: '#fff'
+                  }}></div>
                 </div>
-                <div style={{ display: 'flex', gap: '16px', fontSize: '0.875rem' }}>
-                  <span>■ 30 GB used</span>
-                  <span>□ 10 GB free</span>
+                <div style={{ display: 'flex', gap: '20px', fontSize: '0.875rem' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: 'var(--pf-t--global--color--brand--default)' }}>■</span> {targetCapacity.memory.used} GB used
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#d2d2d2' }}>■</span> {targetCapacity.memory.free} GB free
+                  </span>
                 </div>
               </div>
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: 'bold' }}>CPU: 15 cores</span>
+                  <span style={{ fontWeight: 600 }}>CPU: {targetCapacity.cpu.total} cores</span>
                 </div>
                 <div style={{ 
                   width: '100%', 
-                  height: '20px', 
+                  height: '24px', 
                   backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
                   borderRadius: '4px',
                   overflow: 'hidden',
-                  marginBottom: '4px'
+                  marginBottom: '8px',
+                  display: 'flex'
                 }}>
                   <div style={{ 
-                    width: '66%', 
+                    width: `${(targetCapacity.cpu.used / targetCapacity.cpu.total) * 100}%`, 
                     height: '100%', 
                     backgroundColor: 'var(--pf-t--global--color--brand--default)'
                   }}></div>
+                  <div style={{ 
+                    width: `${(targetCapacity.cpu.free / targetCapacity.cpu.total) * 100}%`, 
+                    height: '100%', 
+                    backgroundColor: '#fff'
+                  }}></div>
                 </div>
-                <div style={{ display: 'flex', gap: '16px', fontSize: '0.875rem' }}>
-                  <span>■ 10 cores</span>
-                  <span>□ 5 cores</span>
+                <div style={{ display: 'flex', gap: '20px', fontSize: '0.875rem' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: 'var(--pf-t--global--color--brand--default)' }}>■</span> {targetCapacity.cpu.used} cores
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#d2d2d2' }}>■</span> {targetCapacity.cpu.free} cores
+                  </span>
                 </div>
               </div>
             </div>
@@ -758,118 +1185,210 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
     }
   };
 
+  const handleRunChecksAgain = () => {
+    // Reset all checks
+    setChecksCompleted({
+      network: false,
+      storage: false,
+      compute: false,
+      version: false,
+      resource: false
+    });
+
+    // Run checks sequentially with delays
+    const checkOrder: Array<keyof typeof checksCompleted> = ['network', 'storage', 'compute', 'version', 'resource'];
+    
+    checkOrder.forEach((checkName, index) => {
+      setTimeout(() => {
+        setChecksCompleted(prev => ({
+          ...prev,
+          [checkName]: true
+        }));
+      }, (index + 1) * 800);
+    });
+  };
+
   const migrationReadinessStep = (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
         <Title headingLevel="h2" size="xl">
           Migration readiness
         </Title>
-        <Button variant="link" style={{ padding: 0 }}>Run again</Button>
+        <Button 
+          variant="link" 
+          style={{ 
+            padding: 0,
+            opacity: allChecksCompleted ? 1 : 0.5,
+            cursor: allChecksCompleted ? 'pointer' : 'not-allowed',
+            backgroundColor: 'transparent'
+          }} 
+          onClick={allChecksCompleted ? handleRunChecksAgain : undefined}
+          isDisabled={!allChecksCompleted}
+        >
+          Run again
+        </Button>
       </div>
       
       <div style={{ 
         display: 'flex', 
         alignItems: 'center', 
-        gap: '8px', 
+        gap: '12px', 
         padding: '12px 16px',
         backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
         borderRadius: '8px',
         marginBottom: '24px'
       }}>
-        <span style={{ color: 'var(--pf-t--global--icon--color--status--success)' }}>✓</span>
-        <span style={{ fontWeight: 'bold' }}>Ready to migrate</span>
+        {allChecksCompleted ? (
+          <>
+            <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+            <span style={{ fontWeight: 600 }}>Ready to migrate</span>
         <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
           5 successful checks
         </span>
+          </>
+        ) : (
+          <>
+            <InProgressIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+            <span style={{ fontWeight: 600 }}>Migration readiness check in progress</span>
+            <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              {5 - Object.values(checksCompleted).filter(Boolean).length} checks in progress
+            </span>
+          </>
+        )}
       </div>
 
-      <div style={{ display: 'flex', gap: '24px', borderTop: '1px solid var(--pf-t--global--border--color--default)', paddingTop: '24px' }}>
+      <div style={{ 
+        display: 'flex', 
+        gap: '0', 
+        borderTop: '1px solid var(--pf-t--global--border--color--default)', 
+        paddingTop: '24px',
+        marginLeft: '-1.5rem',
+        marginRight: '-1.5rem',
+        paddingLeft: '1.5rem',
+        paddingRight: '1.5rem'
+      }}>
         {/* Left sidebar with checks */}
-        <div style={{ width: '200px', borderRight: '1px solid var(--pf-t--global--border--color--default)', paddingRight: '16px' }}>
+        <div style={{ 
+          minWidth: '220px', 
+          borderRight: '1px solid var(--pf-t--global--border--color--default)', 
+          paddingRight: '20px',
+          marginRight: '-1.5rem',
+          marginTop: '-24px',
+          paddingTop: '24px',
+          paddingBottom: '8rem',
+          marginBottom: '-8rem'
+        }}>
           <div
             onClick={() => setSelectedCheck('network')}
             style={{
-              padding: '8px 12px',
+              padding: '10px 12px',
               cursor: 'pointer',
               backgroundColor: selectedCheck === 'network' ? 'var(--pf-t--global--background--color--action--plain--clicked)' : 'transparent',
               borderRadius: '4px',
               marginBottom: '4px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '10px'
             }}
           >
-            <span style={{ color: 'var(--pf-t--global--icon--color--status--success)' }}>✓</span>
-            Network mapping
+            {checksCompleted.network ? (
+              <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+            ) : (
+              <InProgressIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+            )}
+            <span>Network mapping</span>
           </div>
           <div
             onClick={() => setSelectedCheck('storage')}
             style={{
-              padding: '8px 12px',
+              padding: '10px 12px',
               cursor: 'pointer',
               backgroundColor: selectedCheck === 'storage' ? 'var(--pf-t--global--background--color--action--plain--clicked)' : 'transparent',
               borderRadius: '4px',
               marginBottom: '4px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '10px'
             }}
           >
-            <span style={{ color: 'var(--pf-t--global--icon--color--status--success)' }}>✓</span>
-            Storage mapping
+            {checksCompleted.storage ? (
+              <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+            ) : (
+              <InProgressIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+            )}
+            <span>Storage mapping</span>
           </div>
           <div
             onClick={() => setSelectedCheck('compute')}
             style={{
-              padding: '8px 12px',
+              padding: '10px 12px',
               cursor: 'pointer',
               backgroundColor: selectedCheck === 'compute' ? 'var(--pf-t--global--background--color--action--plain--clicked)' : 'transparent',
               borderRadius: '4px',
               marginBottom: '4px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '10px'
             }}
           >
-            <span style={{ color: 'var(--pf-t--global--icon--color--status--success)' }}>✓</span>
-            Compute compatibility
+            {checksCompleted.compute ? (
+              <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+            ) : (
+              <InProgressIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+            )}
+            <span>Compute compatibility</span>
           </div>
           <div
             onClick={() => setSelectedCheck('version')}
             style={{
-              padding: '8px 12px',
+              padding: '10px 12px',
               cursor: 'pointer',
               backgroundColor: selectedCheck === 'version' ? 'var(--pf-t--global--background--color--action--plain--clicked)' : 'transparent',
               borderRadius: '4px',
               marginBottom: '4px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '10px'
             }}
           >
-            <span style={{ color: 'var(--pf-t--global--icon--color--status--success)' }}>✓</span>
-            Version compatibility
+            {checksCompleted.version ? (
+              <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+            ) : (
+              <InProgressIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+            )}
+            <span>Version compatibility</span>
           </div>
           <div
             onClick={() => setSelectedCheck('resource')}
             style={{
-              padding: '8px 12px',
+              padding: '10px 12px',
               cursor: 'pointer',
               backgroundColor: selectedCheck === 'resource' ? 'var(--pf-t--global--background--color--action--plain--clicked)' : 'transparent',
               borderRadius: '4px',
               marginBottom: '4px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '10px'
             }}
           >
-            <span style={{ color: 'var(--pf-t--global--icon--color--status--success)' }}>✓</span>
-            Resource capacity
+            {checksCompleted.resource ? (
+              <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+            ) : (
+              <InProgressIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+            )}
+            <span>Resource capacity</span>
           </div>
         </div>
 
         {/* Right panel with details */}
-        <div style={{ flex: 1 }}>
+        <div style={{ 
+          flex: 1,
+          marginTop: '-24px',
+          paddingTop: '24px',
+          paddingBottom: '8rem',
+          marginBottom: '-8rem',
+          paddingLeft: '48px'
+        }}>
           {renderCheckDetail()}
         </div>
       </div>
@@ -974,7 +1493,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '12px', fontSize: '0.875rem' }}>
           <div style={{ fontWeight: 'bold' }}>Status</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: 'var(--pf-t--global--icon--color--status--success)' }}>✓</span>
+            <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
             Ready to migrate
           </div>
         </div>
@@ -999,8 +1518,6 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       </DrawerContent>
     </Drawer>
   );
-
-  const [activeStep, setActiveStep] = React.useState(1);
 
   const onNext = () => {
     if (activeStep < 4) {
@@ -1046,27 +1563,66 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
     }
   };
 
+  const isCompleted = progress >= 100;
+
   const progressScreen = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Header Section */}
+      <div style={{ 
+        backgroundColor: '#f0f0f0', 
+        padding: '1.5rem', 
+        borderBottom: '1px solid #d2d2d2',
+        flexShrink: 0
+      }}>
+        <Title headingLevel="h1" size="2xl" id="migrate-vms-wizard-title">
+          Migrate virtual machines
+        </Title>
+        <Content component="p" style={{ marginTop: '0.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+          Choose the target location for your VMs, then adjust your migration plan if necessary.
+        </Content>
+      </div>
+
+      {/* Progress Content */}
     <div style={{ 
       display: 'flex', 
       flexDirection: 'column', 
       alignItems: 'center', 
       justifyContent: 'center',
-      minHeight: '400px',
-      padding: '48px'
-    }}>
-      <div style={{ fontSize: '3rem', marginBottom: '24px' }}>
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}>
-          <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
-        </svg>
+        flex: 1,
+        padding: '64px 48px',
+        backgroundColor: '#fff'
+      }}>
+        {/* Icon */}
+        <div style={{ fontSize: '4rem', marginBottom: '32px' }}>
+          {isCompleted ? (
+            <CheckCircleIcon 
+              style={{ 
+                color: 'var(--pf-t--global--icon--color--status--success--default)',
+                width: '80px',
+                height: '80px'
+              }} 
+            />
+          ) : (
+            <InProgressIcon 
+              style={{ 
+                color: 'var(--pf-t--global--icon--color--subtle)',
+                width: '80px',
+                height: '80px'
+              }} 
+            />
+          )}
       </div>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '24px' }}>
-        Migration in progress
-      </h2>
-      <div style={{ width: '100%', maxWidth: '500px', marginBottom: '8px' }}>
+        
+        {/* Title */}
+        <Title headingLevel="h2" size="2xl" style={{ marginBottom: '32px' }}>
+          {isCompleted ? 'Migration completed' : 'Migration in progress'}
+        </Title>
+        
+        {/* Progress Bar */}
+        <div style={{ width: '100%', maxWidth: '400px', marginBottom: '12px' }}>
         <div style={{ 
           width: '100%', 
-          height: '24px', 
+            height: '8px', 
           backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
           borderRadius: '4px',
           overflow: 'hidden',
@@ -1075,24 +1631,44 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
           <div style={{ 
             width: `${progress}%`, 
             height: '100%', 
-            backgroundColor: 'var(--pf-t--global--color--brand--default)',
-            transition: 'width 0.2s ease-in-out'
+              backgroundColor: isCompleted ? 'var(--pf-t--global--icon--color--status--success--default)' : 'var(--pf-t--global--color--brand--default)',
+              transition: 'width 0.2s ease-in-out, background-color 0.3s ease'
           }}></div>
         </div>
       </div>
-      <div style={{ marginBottom: '24px', fontSize: '0.875rem', fontWeight: 'bold' }}>
+        
+        {/* Percentage */}
+        <div style={{ marginBottom: '24px', fontSize: '0.875rem', fontWeight: 600 }}>
         {Math.round(progress)}%
       </div>
-      <div style={{ marginBottom: '32px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-        The migration will continue if you close this popup
+        
+        {/* Message */}
+        <div style={{ marginBottom: '40px', color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.9375rem' }}>
+          {isCompleted 
+            ? 'The migration is completed you can close the wizard.' 
+            : 'The migration will continue if you close this popup'}
       </div>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
         <Button variant="primary">View migration plan</Button>
         <Button variant="secondary" onClick={handleClose}>Close</Button>
       </div>
-      <Button variant="link" onClick={handleCancelMigration} style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>
-        Cancel migration process
+        
+        {/* Bottom Link */}
+        <Button 
+          variant="link" 
+          onClick={handleCancelMigration} 
+          style={{ 
+            color: isCompleted ? 'var(--pf-t--global--icon--color--status--warning--default)' : 'var(--pf-t--global--icon--color--status--danger--default)',
+            padding: 0
+          }}
+        >
+          {isCompleted 
+            ? 'Revert migration plan on all migrated VMs' 
+            : 'Cancel migration process'}
       </Button>
+      </div>
     </div>
   );
 
@@ -1300,7 +1876,10 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                 borderTop: '1px solid #d2d2d2', 
                 padding: '1rem 1.5rem', 
                 backgroundColor: '#ffffff',
-                flexShrink: 0
+                flexShrink: 0,
+                display: 'flex',
+                gap: '16px',
+                alignItems: 'center'
               }}>
               <Button variant="secondary" onClick={onBack} isDisabled={activeStep === 1}>
                 Back
@@ -1326,12 +1905,14 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                 <Button 
                   variant="primary" 
                   onClick={onNext}
-                  isDisabled={activeStep === 2 && (!targetCluster || !targetProject || isSameLocation)}
+                  isDisabled={
+                    (activeStep === 2 && (!targetCluster || !targetProject || isSameLocation)) ||
+                    (activeStep === 3 && !allChecksCompleted)
+                  }
                 >
                   Next
                 </Button>
               )}
-              {' '}
               <Button variant="link" onClick={handleClose}>
                 Cancel
               </Button>
@@ -1353,15 +1934,15 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
           {/* Scenario 1: All VMs are stopped - BLOCK */}
           {vmStatusCounts.running === 0 ? (
             <>
-              <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                 Cannot proceed with migration
-              </Title>
+          </Title>
 
-              <Content component="p" style={{ 
-                marginBottom: 'var(--pf-t--global--spacer--lg)',
-                fontSize: '16px',
-                lineHeight: '1.6'
-              }}>
+          <Content component="p" style={{ 
+            marginBottom: 'var(--pf-t--global--spacer--lg)',
+            fontSize: '16px',
+            lineHeight: '1.6'
+          }}>
                 To (live) migrate a VM, it must be running. All <strong>{vmStatusCounts.total}</strong> selected virtual machines are stopped. Please start at least one VM to proceed with migration.
               </Content>
 
@@ -1491,71 +2072,255 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     lineHeight: '1.6'
                   }}>
                     To (live) migrate a VM, it must be running. <strong>{vmStatusCounts.nonRunning}</strong> out of selected <strong>{vmStatusCounts.total}</strong> virtual machines {vmStatusCounts.nonRunning === 1 ? 'is' : 'are'} not running.
-                  </Content>
-                  
-                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-                    <Content component="p" style={{ 
-                      fontWeight: 'bold', 
-                      marginBottom: 'var(--pf-t--global--spacer--sm)',
-                      fontSize: '15px'
-                    }}>
-                      Virtual machines statuses
-                    </Content>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                      {Object.entries(vmStatusCounts.breakdown)
-                        .sort(([statusA], [statusB]) => {
-                          if (statusA === 'Running') return -1;
-                          if (statusB === 'Running') return 1;
-                          return statusA.localeCompare(statusB);
-                        })
-                        .map(([status, count]) => {
-                          const { Icon, color } = getStatusIcon(status);
-                          return (
-                            <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <Icon style={{ color }} />
-                              <span style={{ fontSize: '15px' }}>
-                                <strong>{count}</strong> {count === 1 ? 'VM' : 'VMs'} {status.toLowerCase()}
-                              </span>
-                            </div>
-                          );
-                        })}
+          </Content>
+          
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+            <Content component="p" style={{ 
+              fontWeight: 'bold', 
+              marginBottom: 'var(--pf-t--global--spacer--sm)',
+              fontSize: '15px'
+            }}>
+              Virtual machines statuses
+            </Content>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+              {Object.entries(vmStatusCounts.breakdown)
+                .sort(([statusA], [statusB]) => {
+                  if (statusA === 'Running') return -1;
+                  if (statusB === 'Running') return 1;
+                  return statusA.localeCompare(statusB);
+                })
+                .map(([status, count]) => {
+                  const { Icon, color } = getStatusIcon(status);
+                  return (
+                    <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Icon style={{ color }} />
+                      <span style={{ fontSize: '15px' }}>
+                        <strong>{count}</strong> {count === 1 ? 'VM' : 'VMs'} {status.toLowerCase()}
+                      </span>
                     </div>
-                  </div>
+                  );
+                })}
+            </div>
+          </div>
                 </>
               )}
-              
-              <Content component="p" style={{ 
-                color: 'var(--pf-t--global--text--color--subtle)',
-                fontSize: '14px',
-                lineHeight: '1.6'
-              }}>
+          
+          <Content component="p" style={{ 
+            color: 'var(--pf-t--global--text--color--subtle)',
+            fontSize: '14px',
+            lineHeight: '1.6'
+          }}>
                 {vmStatusCounts.nonRunning > 0 
                   ? `If you would like to continue, only the selected ${vmStatusCounts.running} running VMs will be available for migration.`
                   : 'You can proceed with the migration of all selected VMs.'
                 }
-              </Content>
+          </Content>
 
-              {/* Footer with buttons */}
-              <div style={{ 
-                marginTop: 'var(--pf-t--global--spacer--lg)',
-                paddingTop: 'var(--pf-t--global--spacer--md)',
-                borderTop: '1px solid var(--pf-t--global--border--color--default)'
-              }}>
-                <div style={{ 
-                  display: 'flex',
-                  gap: '8px',
-                  justifyContent: 'flex-end'
-                }}>
-                  <Button variant="link" onClick={handleCancelMigration}>
-                    Cancel
-                  </Button>
-                  <Button variant="primary" onClick={handleContinueWithRunningVMs}>
-                    Continue to next step
-                  </Button>
-                </div>
-              </div>
+          {/* Footer with buttons */}
+          <div style={{ 
+            marginTop: 'var(--pf-t--global--spacer--lg)',
+            paddingTop: 'var(--pf-t--global--spacer--md)',
+            borderTop: '1px solid var(--pf-t--global--border--color--default)'
+          }}>
+            <div style={{ 
+              display: 'flex',
+              gap: '8px',
+              justifyContent: 'flex-end'
+            }}>
+              <Button variant="link" onClick={handleCancelMigration}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleContinueWithRunningVMs}>
+                Continue to next step
+              </Button>
+            </div>
+          </div>
             </>
           )}
+        </div>
+      </Modal>
+
+      {/* Network Edit Modal */}
+      <Modal
+        isOpen={isNetworkEditOpen}
+        onClose={() => {
+          setIsNetworkEditOpen(false);
+          setIsNetworkDropdownOpen(false);
+        }}
+        variant={ModalVariant.small}
+      >
+        <div style={{ padding: '24px' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '24px'
+          }}>
+            <Title headingLevel="h2" size="xl">Target network</Title>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                variant="plain"
+                onClick={() => {
+                  setSelectedTargetNetwork(tempSelectedTargetNetwork);
+                  setIsNetworkEditOpen(false);
+                  setIsNetworkDropdownOpen(false);
+                }}
+                style={{ padding: '4px 8px' }}
+              >
+                <CheckCircleIcon style={{ fontSize: '1.5rem' }} />
+              </Button>
+              <Button
+                variant="plain"
+                onClick={() => {
+                  setIsNetworkEditOpen(false);
+                  setIsNetworkDropdownOpen(false);
+                }}
+                style={{ padding: '4px 8px' }}
+              >
+                <TimesIcon style={{ fontSize: '1.5rem' }} />
+              </Button>
+            </div>
+          </div>
+          
+          <Select
+            id="network-edit-select"
+            isOpen={isNetworkDropdownOpen}
+            selected={tempSelectedTargetNetwork}
+            onSelect={(_event, value) => {
+              setTempSelectedTargetNetwork(value as string);
+              setIsNetworkDropdownOpen(false);
+            }}
+            onOpenChange={(isOpen) => setIsNetworkDropdownOpen(isOpen)}
+            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+              <MenuToggle
+                ref={toggleRef}
+                onClick={() => setIsNetworkDropdownOpen(!isNetworkDropdownOpen)}
+                isExpanded={isNetworkDropdownOpen}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#2b2b2b',
+                  borderColor: tempSelectedTargetNetwork !== 'network1' ? '#f0ab00' : undefined
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {tempSelectedTargetNetwork !== 'network1' && (
+                    <ExclamationCircleIcon style={{ color: '#f0ab00' }} />
+                  )}
+                  {tempSelectedTargetNetwork}
+                </div>
+              </MenuToggle>
+            )}
+          >
+            <SelectList>
+              <SelectOption value="network1">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  network1
+                </div>
+              </SelectOption>
+              <SelectOption value="network2">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  network2
+                </div>
+              </SelectOption>
+              <SelectOption value="network3">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  network3
+                </div>
+              </SelectOption>
+            </SelectList>
+          </Select>
+        </div>
+      </Modal>
+
+      {/* Storage Edit Modal */}
+      <Modal
+        isOpen={isStorageEditOpen}
+        onClose={() => {
+          setIsStorageEditOpen(false);
+          setIsStorageDropdownOpen(false);
+        }}
+        variant={ModalVariant.small}
+      >
+        <div style={{ padding: '24px' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '24px'
+          }}>
+            <Title headingLevel="h2" size="xl">Target storage</Title>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                variant="plain"
+                onClick={() => {
+                  setSelectedTargetStorage(tempSelectedTargetStorage);
+                  setIsStorageEditOpen(false);
+                  setIsStorageDropdownOpen(false);
+                }}
+                style={{ padding: '4px 8px' }}
+              >
+                <CheckCircleIcon style={{ fontSize: '1.5rem' }} />
+              </Button>
+              <Button
+                variant="plain"
+                onClick={() => {
+                  setIsStorageEditOpen(false);
+                  setIsStorageDropdownOpen(false);
+                }}
+                style={{ padding: '4px 8px' }}
+              >
+                <TimesIcon style={{ fontSize: '1.5rem' }} />
+              </Button>
+            </div>
+          </div>
+          
+          <Select
+            id="storage-edit-select"
+            isOpen={isStorageDropdownOpen}
+            selected={tempSelectedTargetStorage}
+            onSelect={(_event, value) => {
+              setTempSelectedTargetStorage(value as string);
+              setIsStorageDropdownOpen(false);
+            }}
+            onOpenChange={(isOpen) => setIsStorageDropdownOpen(isOpen)}
+            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+              <MenuToggle
+                ref={toggleRef}
+                onClick={() => setIsStorageDropdownOpen(!isStorageDropdownOpen)}
+                isExpanded={isStorageDropdownOpen}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#2b2b2b',
+                  borderColor: tempSelectedTargetStorage !== 'storage1' ? '#f0ab00' : undefined
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {tempSelectedTargetStorage !== 'storage1' && (
+                    <ExclamationCircleIcon style={{ color: '#f0ab00' }} />
+                  )}
+                  {tempSelectedTargetStorage}
+                </div>
+              </MenuToggle>
+            )}
+          >
+            <SelectList>
+              <SelectOption value="storage1">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  storage1
+                </div>
+              </SelectOption>
+              <SelectOption value="storage2">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  storage2
+                </div>
+              </SelectOption>
+              <SelectOption value="storage3">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  storage3
+                </div>
+              </SelectOption>
+            </SelectList>
+          </Select>
         </div>
       </Modal>
     </>

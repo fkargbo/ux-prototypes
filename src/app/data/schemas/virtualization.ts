@@ -5,7 +5,7 @@ export interface VirtualMachine {
   name: string;
   clusterId: string;
   namespaceId: string;
-  status: 'Running' | 'Stopped' | 'Error' | 'Paused' | 'Starting' | 'Stopping';
+  status: 'Running' | 'Stopped' | 'Error' | 'Paused' | 'Starting' | 'Stopping' | 'Migrating' | 'Pending' | 'Migrated';
   os: 'RHEL 8' | 'RHEL 9' | 'Fedora 38' | 'Fedora 39' | 'Windows Server 2019' | 'Windows Server 2022' | 'Ubuntu 22.04';
   cpu: number; // cores
   memory: string; // e.g., "8 GiB"
@@ -13,6 +13,7 @@ export interface VirtualMachine {
   ipAddress: string;
   node: string;
   created: string; // ISO date string
+  migrationProgress?: number; // 0-100 for migration percentage
 }
 
 export interface InstanceType {
@@ -31,5 +32,34 @@ export interface Template {
   cpu: number;
   memory: string;
   storage: string;
+}
+
+export interface MigrationPlan {
+  id: string;
+  name: string;
+  namespace: string;
+  sourceProvider: string;
+  targetProvider: string;
+  sourceClusterId: string;
+  targetClusterId: string;
+  targetNamespaceId: string;
+  vmIds: string[]; // IDs of VMs being migrated
+  status: 'Ready to migrate' | 'In progress' | 'Completed' | 'Failed' | 'Cancelled';
+  migrationReadiness: 'Ready to migrate' | 'Not ready';
+  migrationType: 'Live' | 'Cold';
+  createdAt: string; // ISO date string
+  startedAt?: string; // ISO date string
+  completedAt?: string; // ISO date string
+  owner?: string;
+  transferNetwork?: string;
+  conditions: MigrationCondition[];
+}
+
+export interface MigrationCondition {
+  type: string;
+  status: boolean;
+  updated: string; // ISO date string
+  reason: string;
+  message: string;
 }
 

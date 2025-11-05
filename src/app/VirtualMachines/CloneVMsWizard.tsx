@@ -23,6 +23,8 @@ export const CloneVMsWizard: React.FunctionComponent<CloneVMsWizardProps> = ({
   onClose,
   selectedVMs,
 }) => {
+  console.log('🎭 CloneVMsWizard render - isOpen:', isOpen, 'selectedVMs:', selectedVMs);
+  
   const [cloneName, setCloneName] = React.useState('');
   const [startOnCreate, setStartOnCreate] = React.useState(false);
 
@@ -36,10 +38,18 @@ export const CloneVMsWizard: React.FunctionComponent<CloneVMsWizardProps> = ({
 
   // Set default name when modal opens
   React.useEffect(() => {
+    console.log('🔥 CloneVMsWizard useEffect - isOpen:', isOpen, 'sourceVM:', sourceVM?.name);
     if (isOpen && sourceVM) {
-      setCloneName(`${sourceVM.name}-clone`);
+      const defaultName = `${sourceVM.name}-clone`;
+      console.log('📝 Setting default clone name to:', defaultName);
+      setCloneName(defaultName);
     }
   }, [isOpen, sourceVM]);
+  
+  // Log when isOpen prop changes
+  React.useEffect(() => {
+    console.log('👁️ CloneVMsWizard isOpen changed to:', isOpen);
+  }, [isOpen]);
 
   const handleClose = () => {
     setCloneName('');
@@ -58,12 +68,23 @@ export const CloneVMsWizard: React.FunctionComponent<CloneVMsWizardProps> = ({
     handleClose();
   };
 
+  console.log('🎬 CloneVMsWizard return - About to render Modal with isOpen:', isOpen);
+  console.log('🎬 CloneVMsWizard return - sourceVM:', sourceVM);
+  console.log('🎬 CloneVMsWizard return - cloneName:', cloneName);
+  
+  // If no VM selected, don't render the modal at all
+  if (!sourceVM && isOpen) {
+    console.warn('⚠️ CloneVMsWizard: No sourceVM found but isOpen=true. This might be the issue!');
+  }
+  
   return (
     <Modal
       variant={ModalVariant.small}
       isOpen={isOpen}
       onClose={handleClose}
       aria-labelledby="clone-vm-modal-title"
+      data-testid="clone-vm-modal"
+      style={{ zIndex: 9999 }}
     >
       <div style={{ padding: '24px' }}>
         <Title headingLevel="h1" size="xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>

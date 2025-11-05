@@ -31,6 +31,7 @@ import {
 } from '@app/utils/useCaseComponents';
 import { CCLMOverview } from '@app/use-case-cclm/CCLMOverview';
 import { MigrationPlans } from '@app/use-case-cclm/Migration/MigrationPlans';
+import { MigrationPlanDetail } from '@app/use-case-cclm/Migration/MigrationPlanDetail';
 import { CreateMigrationPlan } from '@app/use-case-cclm/Migration/CreateMigrationPlan';
 import { OperatorHub } from '@app/use-case-operator-lifecycle/OperatorHub/OperatorHub';
 // Shared copies for non-CCLM routes (so editing originals only affects CCLM)
@@ -89,6 +90,11 @@ const routes: AppRouteConfig[] = [
     element: <CreateMigrationPlan />,
     path: '/virtualization/migration/create',
     title: 'Create migration plan',
+  },
+  {
+    element: <MigrationPlanDetail />,
+    path: '/virtualization/migration/:planId',
+    title: 'Migration plan details',
   },
   {
     element: <InstanceTypes />,
