@@ -937,12 +937,17 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     variant="link" 
                     style={{ 
                       padding: 0,
-                      backgroundColor: 'transparent'
+                      backgroundColor: 'transparent',
+                      opacity: checksCompleted.network ? 1 : 0.5,
+                      cursor: checksCompleted.network ? 'pointer' : 'not-allowed'
                     }} 
+                    isDisabled={!checksCompleted.network}
                     onClick={() => {
-                      setIsNetworkEditMode(!isNetworkEditMode);
-                      if (!isNetworkEditMode) {
-                        setIsNetworkDropdownOpen(true);
+                      if (checksCompleted.network) {
+                        setIsNetworkEditMode(!isNetworkEditMode);
+                        if (!isNetworkEditMode) {
+                          setIsNetworkDropdownOpen(true);
+                        }
                       }
                     }}
                   >
@@ -1011,12 +1016,17 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     variant="link" 
                     style={{ 
                       padding: 0,
-                      backgroundColor: 'transparent'
+                      backgroundColor: 'transparent',
+                      opacity: checksCompleted.storage ? 1 : 0.5,
+                      cursor: checksCompleted.storage ? 'pointer' : 'not-allowed'
                     }} 
+                    isDisabled={!checksCompleted.storage}
                     onClick={() => {
-                      setIsStorageEditMode(!isStorageEditMode);
-                      if (!isStorageEditMode) {
-                        setIsStorageDropdownOpen(true);
+                      if (checksCompleted.storage) {
+                        setIsStorageEditMode(!isStorageEditMode);
+                        if (!isStorageEditMode) {
+                          setIsStorageDropdownOpen(true);
+                        }
                       }
                     }}
                   >
