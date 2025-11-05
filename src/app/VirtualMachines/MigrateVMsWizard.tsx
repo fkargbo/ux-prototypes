@@ -885,6 +885,14 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
     }
   }, [activeStep]);
 
+  // Debug: Track checks completion
+  React.useEffect(() => {
+    console.log('Checks completed status:', checksCompleted);
+    console.log('Network check completed:', checksCompleted.network);
+    console.log('Storage check completed:', checksCompleted.storage);
+    console.log('All checks completed:', allChecksCompleted);
+  }, [checksCompleted, allChecksCompleted]);
+
   // Get target cluster object
   const targetClusterObj = React.useMemo(() => {
     return targetCluster ? getClusterById(targetCluster) : null;
@@ -948,17 +956,21 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                       cursor: checksCompleted.network ? 'pointer' : 'not-allowed'
                     }} 
                     isDisabled={!checksCompleted.network}
-                    onClick={() => {
-                      console.log('Network Edit clicked, setting edit mode to true');
+                    onClick={(e) => {
+                      console.log('========== EDIT BUTTON CLICKED ==========');
+                      console.log('Event:', e);
+                      console.log('Button isDisabled:', !checksCompleted.network);
+                      console.log('checksCompleted.network:', checksCompleted.network);
                       console.log('Current isNetworkEditMode:', isNetworkEditMode);
                       console.log('Current isNetworkDropdownOpen:', isNetworkDropdownOpen);
                       setIsNetworkEditMode(true);
                       setIsNetworkDropdownOpen(true);
                       console.log('States set to true');
+                      console.log('========================================');
                     }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <PencilAltIcon /> Edit
+                      <PencilAltIcon /> Edit {checksCompleted.network ? '✓' : '⏳'}
                     </span>
                   </Button>
                 </div>
