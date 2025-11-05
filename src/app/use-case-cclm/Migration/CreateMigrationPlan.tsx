@@ -473,7 +473,8 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
           'Migration readiness': 2,
           'Review': 3
         };
-        const stepIndex = stepMap[stepName] ?? 0;
+        const stepNameStr = typeof stepName === 'string' ? stepName : String(stepName);
+        const stepIndex = stepMap[stepNameStr] ?? 0;
         setCurrentWizardStep(stepIndex);
       }, [stepName]);
 
