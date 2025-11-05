@@ -927,8 +927,8 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         return (
           <div>
             <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Network mapping</Title>
-            <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
-              <div style={{ minWidth: '200px' }}>
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+              <div style={{ minWidth: '150px' }}>
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source network</div>
                 {isNetworkEditMode ? (
                   <TextInput
@@ -938,15 +938,15 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     readOnly
                     style={{
                       backgroundColor: '#ffffff',
-                      width: '200px'
+                      width: '150px'
                     }}
                   />
                 ) : (
                   <div>network1</div>
                 )}
               </div>
-              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '24px' }}>→</div>
-              <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
+              <div style={{ minWidth: '150px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                   <div style={{ fontWeight: 600 }}>Target network</div>
                   {!isNetworkEditMode ? (
@@ -1001,7 +1001,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     </div>
                   )}
                 </div>
-                <div style={{ marginTop: '16px' }}>
+                <div style={{ marginTop: '8px' }}>
                   {isNetworkEditMode ? (
                     <Select
                       id="network-inline-select"
@@ -1025,7 +1025,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                           }}
                           isExpanded={isNetworkDropdownOpen}
                           style={{
-                            width: '280px',
+                            width: '200px',
                             backgroundColor: '#ffffff'
                           }}
                         >
@@ -1051,8 +1051,8 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
         return (
           <div>
             <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>Storage mapping</Title>
-            <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
-              <div style={{ minWidth: '200px' }}>
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+              <div style={{ minWidth: '150px' }}>
                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>Source storage</div>
                 {isStorageEditMode ? (
                   <TextInput
@@ -1062,15 +1062,15 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     readOnly
                     style={{
                       backgroundColor: '#ffffff',
-                      width: '200px'
+                      width: '150px'
                     }}
                   />
                 ) : (
                   <div>storage1</div>
                 )}
               </div>
-              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: '24px' }}>→</div>
-              <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '1.5rem', color: 'var(--pf-t--global--text--color--subtle)' }}>→</div>
+              <div style={{ minWidth: '150px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                   <div style={{ fontWeight: 600 }}>Target storage</div>
                   {!isStorageEditMode ? (
@@ -1125,7 +1125,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     </div>
                   )}
                 </div>
-                <div style={{ marginTop: '16px' }}>
+                <div style={{ marginTop: '8px' }}>
                   {isStorageEditMode ? (
                     <Select
                       id="storage-inline-select"
@@ -1149,7 +1149,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                           }}
                           isExpanded={isStorageDropdownOpen}
                           style={{
-                            width: '280px',
+                            width: '200px',
                             backgroundColor: '#ffffff'
                           }}
                         >
