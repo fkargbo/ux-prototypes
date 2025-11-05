@@ -240,6 +240,11 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
       const stepName = activeStep?.name || '';
       const isReviewStep = stepName === 'Review';
       const isFirstStep = stepName === 'General information';
+      const isPlacementStep = stepName === 'Placement';
+
+      // Validation logic
+      const isPlacementValid = sourceCluster && sourceProjects.length > 0 && targetCluster && targetProject;
+      const canProceed = !isPlacementStep || isPlacementValid;
 
       const handleNext = () => {
         console.log('Next clicked, current step:', stepName);
@@ -284,7 +289,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
 
       return (
         <div style={{ display: 'flex', gap: '8px', padding: '16px 24px', borderTop: '1px solid var(--pf-t--global--border--color--default)', backgroundColor: '#fff' }}>
-          <Button variant="primary" onClick={handleNext}>
+          <Button variant="primary" onClick={handleNext} isDisabled={!canProceed}>
             Next
           </Button>
           {!isFirstStep && (
@@ -390,7 +395,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
           </div>
 
           <Form>
-            <FormGroup label="Cluster">
+            <FormGroup label="Cluster" isRequired>
               <Select
                 isOpen={isSourceClusterOpen}
                 onSelect={(_event, value) => {
@@ -440,7 +445,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
               </Select>
             </FormGroup>
 
-            <FormGroup label="Projects (select one or more)" style={{ marginTop: '16px' }}>
+            <FormGroup label="Projects (select one or more)" isRequired style={{ marginTop: '16px' }}>
               <Select
                 isOpen={isSourceProjectOpen}
                 selected={sourceProjects}
@@ -542,7 +547,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
           </div>
 
           <Form>
-            <FormGroup label="Cluster">
+            <FormGroup label="Cluster" isRequired>
               <Select
                 isOpen={isTargetClusterOpen}
                 onSelect={(_event, value) => {
@@ -592,7 +597,7 @@ const CreateMigrationPlan: React.FunctionComponent = () => {
               </Select>
             </FormGroup>
 
-            <FormGroup label="Project" style={{ marginTop: '16px' }}>
+            <FormGroup label="Project" isRequired style={{ marginTop: '16px' }}>
               <Select
                 isOpen={isTargetProjectOpen}
                 onSelect={(_event, value) => {
