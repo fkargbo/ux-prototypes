@@ -235,11 +235,6 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const [isNetworkDropdownOpen, setIsNetworkDropdownOpen] = React.useState(false);
   const [isStorageDropdownOpen, setIsStorageDropdownOpen] = React.useState(false);
 
-  // Debug: Track state changes
-  React.useEffect(() => {
-    console.log('Network edit mode changed:', isNetworkEditMode);
-    console.log('Network dropdown open changed:', isNetworkDropdownOpen);
-  }, [isNetworkEditMode, isNetworkDropdownOpen]);
   
   // Pre-select target cluster and namespace when provided (from drag-and-drop)
   React.useEffect(() => {
@@ -885,14 +880,6 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
     }
   }, [activeStep]);
 
-  // Debug: Track checks completion
-  React.useEffect(() => {
-    console.log('Checks completed status:', checksCompleted);
-    console.log('Network check completed:', checksCompleted.network);
-    console.log('Storage check completed:', checksCompleted.storage);
-    console.log('All checks completed:', allChecksCompleted);
-  }, [checksCompleted, allChecksCompleted]);
-
   // Get target cluster object
   const targetClusterObj = React.useMemo(() => {
     return targetCluster ? getClusterById(targetCluster) : null;
@@ -956,63 +943,65 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                       cursor: checksCompleted.network ? 'pointer' : 'not-allowed'
                     }} 
                     isDisabled={!checksCompleted.network}
-                    onClick={(e) => {
-                      console.log('========== EDIT BUTTON CLICKED ==========');
-                      console.log('Event:', e);
-                      console.log('Button isDisabled:', !checksCompleted.network);
-                      console.log('checksCompleted.network:', checksCompleted.network);
-                      console.log('Current isNetworkEditMode:', isNetworkEditMode);
-                      console.log('Current isNetworkDropdownOpen:', isNetworkDropdownOpen);
+                    onClick={() => {
+                      console.log('Edit clicked - setting edit mode to true');
                       setIsNetworkEditMode(true);
-                      setIsNetworkDropdownOpen(true);
-                      console.log('States set to true');
-                      console.log('========================================');
+                      setTimeout(() => {
+                        setIsNetworkDropdownOpen(true);
+                      }, 50);
                     }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <PencilAltIcon /> Edit {checksCompleted.network ? '✓' : '⏳'}
+                      <PencilAltIcon /> Edit
                     </span>
                   </Button>
                 </div>
-                {isNetworkEditMode ? (
-                  <Select
-                    id="network-inline-select"
-                    isOpen={isNetworkDropdownOpen}
-                    selected={selectedTargetNetwork}
-                    onSelect={(_event, value) => {
-                      setSelectedTargetNetwork(value as string);
-                      setIsNetworkDropdownOpen(false);
-                      setIsNetworkEditMode(false);
-                    }}
-                    onOpenChange={(isOpen) => {
-                      setIsNetworkDropdownOpen(isOpen);
-                      if (!isOpen) {
+                <div style={{ marginTop: '16px' }}>
+                  {isNetworkEditMode ? (
+                    <Select
+                      id="network-inline-select"
+                      isOpen={isNetworkDropdownOpen}
+                      selected={selectedTargetNetwork}
+                      onSelect={(_event, value) => {
+                        console.log('Network selected:', value);
+                        setSelectedTargetNetwork(value as string);
+                        setIsNetworkDropdownOpen(false);
                         setIsNetworkEditMode(false);
-                      }
-                    }}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        ref={toggleRef}
-                        onClick={() => setIsNetworkDropdownOpen(!isNetworkDropdownOpen)}
-                        isExpanded={isNetworkDropdownOpen}
-                        style={{
-                          width: '280px',
-                          backgroundColor: '#2b2b2b'
-                        }}
-                      >
-                        {selectedTargetNetwork}
-                      </MenuToggle>
-                    )}
-                  >
-                    <SelectList>
-                      <SelectOption value="network1">network1</SelectOption>
-                      <SelectOption value="network2">network2</SelectOption>
-                      <SelectOption value="network3">network3</SelectOption>
-                    </SelectList>
-                  </Select>
-                ) : (
-                  <div>{selectedTargetNetwork}</div>
-                )}
+                      }}
+                      onOpenChange={(isOpen) => {
+                        console.log('Dropdown open change:', isOpen);
+                        setIsNetworkDropdownOpen(isOpen);
+                        if (!isOpen) {
+                          setIsNetworkEditMode(false);
+                        }
+                      }}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => {
+                            console.log('Toggle clicked, current state:', isNetworkDropdownOpen);
+                            setIsNetworkDropdownOpen(!isNetworkDropdownOpen);
+                          }}
+                          isExpanded={isNetworkDropdownOpen}
+                          style={{
+                            width: '280px',
+                            backgroundColor: '#2b2b2b'
+                          }}
+                        >
+                          {selectedTargetNetwork}
+                        </MenuToggle>
+                      )}
+                    >
+                      <SelectList>
+                        <SelectOption value="network1">network1</SelectOption>
+                        <SelectOption value="network2">network2</SelectOption>
+                        <SelectOption value="network3">network3</SelectOption>
+                      </SelectList>
+                    </Select>
+                  ) : (
+                    <div>{selectedTargetNetwork}</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1040,8 +1029,11 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     }} 
                     isDisabled={!checksCompleted.storage}
                     onClick={() => {
+                      console.log('Storage Edit clicked - setting edit mode to true');
                       setIsStorageEditMode(true);
-                      setIsStorageDropdownOpen(true);
+                      setTimeout(() => {
+                        setIsStorageDropdownOpen(true);
+                      }, 50);
                     }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1049,45 +1041,52 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     </span>
                   </Button>
                 </div>
-                {isStorageEditMode ? (
-                  <Select
-                    id="storage-inline-select"
-                    isOpen={isStorageDropdownOpen}
-                    selected={selectedTargetStorage}
-                    onSelect={(_event, value) => {
-                      setSelectedTargetStorage(value as string);
-                      setIsStorageDropdownOpen(false);
-                      setIsStorageEditMode(false);
-                    }}
-                    onOpenChange={(isOpen) => {
-                      setIsStorageDropdownOpen(isOpen);
-                      if (!isOpen) {
+                <div style={{ marginTop: '16px' }}>
+                  {isStorageEditMode ? (
+                    <Select
+                      id="storage-inline-select"
+                      isOpen={isStorageDropdownOpen}
+                      selected={selectedTargetStorage}
+                      onSelect={(_event, value) => {
+                        console.log('Storage selected:', value);
+                        setSelectedTargetStorage(value as string);
+                        setIsStorageDropdownOpen(false);
                         setIsStorageEditMode(false);
-                      }
-                    }}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        ref={toggleRef}
-                        onClick={() => setIsStorageDropdownOpen(!isStorageDropdownOpen)}
-                        isExpanded={isStorageDropdownOpen}
-                        style={{
-                          width: '280px',
-                          backgroundColor: '#2b2b2b'
-                        }}
-                      >
-                        {selectedTargetStorage}
-                      </MenuToggle>
-                    )}
-                  >
-                    <SelectList>
-                      <SelectOption value="storage1">storage1</SelectOption>
-                      <SelectOption value="storage2">storage2</SelectOption>
-                      <SelectOption value="storage3">storage3</SelectOption>
-                    </SelectList>
-                  </Select>
-                ) : (
-                  <div>{selectedTargetStorage}</div>
-                )}
+                      }}
+                      onOpenChange={(isOpen) => {
+                        console.log('Storage dropdown open change:', isOpen);
+                        setIsStorageDropdownOpen(isOpen);
+                        if (!isOpen) {
+                          setIsStorageEditMode(false);
+                        }
+                      }}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => {
+                            console.log('Storage toggle clicked, current state:', isStorageDropdownOpen);
+                            setIsStorageDropdownOpen(!isStorageDropdownOpen);
+                          }}
+                          isExpanded={isStorageDropdownOpen}
+                          style={{
+                            width: '280px',
+                            backgroundColor: '#2b2b2b'
+                          }}
+                        >
+                          {selectedTargetStorage}
+                        </MenuToggle>
+                      )}
+                    >
+                      <SelectList>
+                        <SelectOption value="storage1">storage1</SelectOption>
+                        <SelectOption value="storage2">storage2</SelectOption>
+                        <SelectOption value="storage3">storage3</SelectOption>
+                      </SelectList>
+                    </Select>
+                  ) : (
+                    <div>{selectedTargetStorage}</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
