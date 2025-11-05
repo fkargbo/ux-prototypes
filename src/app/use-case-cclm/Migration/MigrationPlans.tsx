@@ -123,48 +123,9 @@ const MigrationPlans: React.FunctionComponent = () => {
               Explore your migration plans, to quickly find and see their status and details.
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <Dropdown
-              isOpen={isFilterOpen}
-              onSelect={() => setIsFilterOpen(false)}
-              onOpenChange={(isOpen: boolean) => setIsFilterOpen(isOpen)}
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  isExpanded={isFilterOpen}
-                  variant="secondary"
-                >
-                  <FilterIcon /> Filter
-                </MenuToggle>
-              )}
-            >
-              <DropdownList>
-                <DropdownItem key="all">All statuses</DropdownItem>
-                <DropdownItem key="in-progress">In progress</DropdownItem>
-                <DropdownItem key="completed">Completed</DropdownItem>
-                <DropdownItem key="ready">Ready to migrate</DropdownItem>
-              </DropdownList>
-            </Dropdown>
-            <Dropdown
-              isOpen={false}
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  variant="secondary"
-                >
-                  Menu toggle
-                </MenuToggle>
-              )}
-            >
-              <DropdownList>
-                <DropdownItem key="action1">Action</DropdownItem>
-              </DropdownList>
-            </Dropdown>
-            <Button variant="primary" onClick={() => navigate('/virtualization/migration/create')}>
-              Create plan
-            </Button>
-          </div>
+          <Button variant="primary" onClick={() => navigate('/virtualization/migration/create')}>
+            Create plan
+          </Button>
         </div>
       </div>
       
@@ -173,6 +134,45 @@ const MigrationPlans: React.FunctionComponent = () => {
           {/* Toolbar */}
           <Toolbar>
           <ToolbarContent>
+            <ToolbarItem>
+              <Dropdown
+                isOpen={isFilterOpen}
+                onSelect={() => setIsFilterOpen(false)}
+                onOpenChange={(isOpen: boolean) => setIsFilterOpen(isOpen)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    isExpanded={isFilterOpen}
+                  >
+                    <FilterIcon /> Filter
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem key="all">All statuses</DropdownItem>
+                  <DropdownItem key="in-progress">In progress</DropdownItem>
+                  <DropdownItem key="completed">Completed</DropdownItem>
+                  <DropdownItem key="ready">Ready to migrate</DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </ToolbarItem>
+            <ToolbarItem>
+              <Dropdown
+                isOpen={false}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                  >
+                    Menu toggle
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem key="action1">Action</DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </ToolbarItem>
             <ToolbarItem>
               <SearchInput
                 placeholder="Search by name"
