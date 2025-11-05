@@ -27,8 +27,11 @@ import {
   TextInputGroupMain,
   TextInputGroupUtilities,
   Divider,
+  Label,
+  Tooltip,
+  TextArea,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, OffIcon, ExclamationCircleIcon, PauseCircleIcon, PencilAltIcon, InProgressIcon, SearchIcon, TimesIcon, CheckIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, OffIcon, ExclamationCircleIcon, PauseCircleIcon, PencilAltIcon, InProgressIcon, SearchIcon, TimesIcon, CheckIcon, ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { 
   getVirtualMachineById, 
@@ -37,7 +40,9 @@ import {
   getClusterById,
   getNamespaceById,
   getAllVirtualMachines,
-  createMigrationPlan
+  createMigrationPlan,
+  createNamespace,
+  getVirtualMachinesByNamespace
 } from '../data/queries';
 import { virtualMachines } from '../data/mockDatabase';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
@@ -231,6 +236,14 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const [clusterSearchValue, setClusterSearchValue] = React.useState('');
   const [projectSearchValue, setProjectSearchValue] = React.useState('');
   
+  // Create project modal state
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = React.useState(false);
+  const [projectName, setProjectName] = React.useState('');
+  const [projectCluster, setProjectCluster] = React.useState('');
+  const [projectDisplayName, setProjectDisplayName] = React.useState('');
+  const [projectDescription, setProjectDescription] = React.useState('');
+  const [namespacesRefreshTrigger, setNamespacesRefreshTrigger] = React.useState(0);
+  
   // Edit inline states for network and storage mapping
   const [isNetworkEditMode, setIsNetworkEditMode] = React.useState(false);
   const [isStorageEditMode, setIsStorageEditMode] = React.useState(false);
@@ -260,7 +273,17 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
   const targetNamespaces = React.useMemo(() => {
     if (!targetCluster) return [];
     return getNamespacesByCluster(targetCluster);
-  }, [targetCluster]);
+  }, [targetCluster, namespacesRefreshTrigger]);
+  
+  // Calculate VM counts per namespace
+  const namespaceVMCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    targetNamespaces.forEach(namespace => {
+      const vms = getVirtualMachinesByNamespace(namespace.id);
+      counts[namespace.id] = vms.length;
+    });
+    return counts;
+  }, [targetNamespaces]);
   
   // Filtered options for search
   const filteredClusters = React.useMemo(() => {
@@ -884,14 +907,35 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                     </TextInputGroupUtilities>
                   )}
                 </TextInputGroup>
-                <Divider />
+                <div style={{ padding: '8px 4px', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
+                  <Button 
+                    variant="link" 
+                    isInline 
+                    onClick={() => {
+                      setIsTargetProjectOpen(false);
+                      // Pre-populate the cluster field with the selected target cluster
+                      const selectedClusterName = allClusters.find(c => c.id === targetCluster)?.name || '';
+                      setProjectCluster(selectedClusterName);
+                      setIsCreateProjectModalOpen(true);
+                    }}
+                    style={{ padding: '4px 8px', fontSize: '0.875rem' }}
+                  >
+                    + Create project
+                  </Button>
+                </div>
                 <SelectList>
                   {filteredProjects.length > 0 ? (
-                    filteredProjects.map(namespace => (
-                      <SelectOption key={namespace.id} value={namespace.id}>
-                        {namespace.name}
-                      </SelectOption>
-                    ))
+                    filteredProjects.map(namespace => {
+                      const vmCount = namespaceVMCounts[namespace.id] || 0;
+                      return (
+                        <SelectOption key={namespace.id} value={namespace.id}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            <span>{namespace.name}</span>
+                            <Label isCompact color="blue">{vmCount} VMs</Label>
+                          </div>
+                        </SelectOption>
+                      );
+                    })
                   ) : (
                     <SelectOption isDisabled>
                       {targetNamespaces.length === 0 ? 'No projects available' : 'No results found'}
@@ -2458,6 +2502,158 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
           </div>
         </Modal>
       )}
+
+      {/* Create Project Modal */}
+      <Modal
+        variant={ModalVariant.medium}
+        isOpen={isCreateProjectModalOpen}
+        onClose={() => {
+          setIsCreateProjectModalOpen(false);
+          setProjectName('');
+          setProjectCluster('');
+          setProjectDisplayName('');
+          setProjectDescription('');
+        }}
+        aria-label="Create project"
+      >
+        <div style={{ padding: '24px' }}>
+          <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Create project
+          </Title>
+          
+          <Content component="p" style={{ 
+            marginBottom: 'var(--pf-t--global--spacer--md)',
+            fontSize: '15px',
+            lineHeight: '1.6'
+          }}>
+            An OpenShift project is an alternative representation of a Kubernetes namespace.
+          </Content>
+          
+          <Button 
+            component="a" 
+            variant="link" 
+            isInline 
+            icon={<ExternalLinkAltIcon />}
+            iconPosition="end"
+            style={{ padding: 0, marginBottom: '24px' }}
+          >
+            Learn more about working with projects
+          </Button>
+
+          <Form>
+            <FormGroup
+              label={
+                <span>
+                  Name{' '}
+                  <Tooltip content="A unique name for the project">
+                    <Button variant="plain" aria-label="More info" style={{ padding: 0, marginLeft: '4px', verticalAlign: 'middle' }}>
+                      <QuestionCircleIcon style={{ fontSize: '14px' }} />
+                    </Button>
+                  </Tooltip>
+                </span>
+              }
+              isRequired
+              fieldId="project-name"
+            >
+              <TextInput
+                isRequired
+                type="text"
+                id="project-name"
+                value={projectName}
+                onChange={(_event, value) => setProjectName(value)}
+              />
+            </FormGroup>
+
+            <FormGroup
+              label="Cluster"
+              fieldId="project-cluster"
+            >
+              <TextInput
+                type="text"
+                id="project-cluster"
+                value={projectCluster}
+                isDisabled
+              />
+            </FormGroup>
+
+            <FormGroup
+              label="Display name"
+              fieldId="project-display-name"
+            >
+              <TextInput
+                type="text"
+                id="project-display-name"
+                value={projectDisplayName}
+                onChange={(_event, value) => setProjectDisplayName(value)}
+              />
+            </FormGroup>
+
+            <FormGroup
+              label="Description"
+              fieldId="project-description"
+            >
+              <TextArea
+                id="project-description"
+                value={projectDescription}
+                onChange={(_event, value) => setProjectDescription(value)}
+                rows={3}
+              />
+            </FormGroup>
+          </Form>
+
+          <div style={{ marginTop: '24px', display: 'flex', gap: '16px' }}>
+            <Button 
+              key="create" 
+              variant="primary" 
+              isDisabled={!projectName}
+              onClick={() => {
+                // Find the cluster ID from the cluster name
+                const cluster = allClusters.find(c => c.name === projectCluster);
+                if (cluster) {
+                  // Create the new namespace/project
+                  const newNamespace = createNamespace({
+                    name: projectName,
+                    clusterId: cluster.id,
+                    type: 'application', // Default type
+                    labels: {
+                      displayName: projectDisplayName || projectName,
+                      description: projectDescription || '',
+                    }
+                  });
+                  
+                  // Select the newly created project in the target project dropdown
+                  setTargetProject(newNamespace.id);
+                  
+                  // Trigger refresh to update the UI
+                  setNamespacesRefreshTrigger(prev => prev + 1);
+                }
+                
+                // Close modal and clear form
+                setIsCreateProjectModalOpen(false);
+                setProjectName('');
+                setProjectCluster('');
+                setProjectDisplayName('');
+                setProjectDescription('');
+              }}
+            >
+              Create
+            </Button>
+            <Button 
+              key="cancel" 
+              variant="link"
+              onClick={() => {
+                setIsCreateProjectModalOpen(false);
+                setProjectName('');
+                setProjectCluster('');
+                setProjectDisplayName('');
+                setProjectDescription('');
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
     </>
   );

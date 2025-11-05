@@ -64,6 +64,16 @@ export const getNamespacesByCluster = (clusterId: string) =>
 export const getNamespacesByType = (type: string) =>
   namespaces.filter(ns => ns.type === type);
 
+export const createNamespace = (namespace: Omit<import('./schemas/infrastructure').Namespace, 'id'>) => {
+  const id = `namespace-${Date.now()}`;
+  const newNamespace: import('./schemas/infrastructure').Namespace = {
+    id,
+    ...namespace,
+  };
+  namespaces.push(newNamespace);
+  return newNamespace;
+};
+
 // ============================================================================
 // VIRTUAL MACHINE QUERIES
 // ============================================================================
