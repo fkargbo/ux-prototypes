@@ -985,7 +985,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                           isExpanded={isNetworkDropdownOpen}
                           style={{
                             width: '280px',
-                            backgroundColor: '#2b2b2b'
+                            backgroundColor: '#ffffff'
                           }}
                         >
                           {selectedTargetNetwork}
@@ -1070,7 +1070,7 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                           isExpanded={isStorageDropdownOpen}
                           style={{
                             width: '280px',
-                            backgroundColor: '#2b2b2b'
+                            backgroundColor: '#ffffff'
                           }}
                         >
                           {selectedTargetStorage}
