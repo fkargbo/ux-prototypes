@@ -49,6 +49,49 @@ import { UserIcon } from '@patternfly/react-icons';
 - ✅ **Use semantic design tokens** for custom CSS (e.g., `var(--pf-t--global--text--color--regular)`), not base tokens with numbers (e.g., `--pf-t--global--text--color--100`) or hardcoded values
 - ❌ **Don't mix PatternFly versions** - Stick to v6 throughout
 
+### Layout & Spacing Rules
+
+**IMPORTANT: PatternFly's `Page` component ignores inline padding styles!**
+
+#### Use Plain `<div>` When You Need Custom Padding:
+
+```jsx
+// ✅ CORRECT - Full control over padding
+<div style={{ 
+  height: '100vh',
+  padding: '24px',
+  boxSizing: 'border-box',
+  backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)',
+  overflow: 'auto'
+}}>
+  {/* Your content */}
+</div>
+
+// ❌ WRONG - Page component ignores inline padding
+<Page style={{ padding: '24px' }}>
+  <PageSection>...</PageSection>
+</Page>
+```
+
+#### When to Use Each Approach:
+
+**Use Plain `<div>` for:**
+- Launcher pages with custom padding requirements
+- Full-page layouts that need precise spacing control (e.g., 24px padding on all sides)
+- Standalone pages without navigation/sidebar
+- When PatternFly's `Page` styling conflicts with your design
+
+**Use `<Page>` Component for:**
+- Standard application pages with masthead, sidebar, and navigation
+- Pages that follow PatternFly's standard layout patterns
+- When you need built-in responsive behavior
+
+#### Key Requirements for Custom Layouts:
+1. **Always use `boxSizing: 'border-box'`** - Prevents padding from adding to width/height
+2. **Set `overflow: 'auto'`** - Enables scrolling for long content
+3. **Use PatternFly design tokens** - For colors: `var(--pf-v5-global--BackgroundColor--100)`
+4. **Remove unused imports** - Don't import `Page`/`PageSection` if using plain divs
+
 ### Documentation Requirements
 
 1. **Check [PatternFly.org](https://www.patternfly.org/) first** - Primary source for APIs

@@ -56,7 +56,7 @@ import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
 import { Catalog } from '@app/FleetVirtualization/Catalog';
 import { Templates } from '@app/FleetVirtualization/Templates';
 import { InstanceTypes } from '@app/FleetVirtualization/InstanceTypes';
-import { MigrationPlans } from '@app/use-case-cclm/Migration/MigrationPlans';
+// import { MigrationPlans } from '@app/use-case-cclm/Migration/MigrationPlans'; // DEPRECATED - migrated to prototypes
 import {
   BarsIcon,
   CaretDownIcon,
@@ -76,6 +76,10 @@ import redHatOpenShiftLogo from '@app/bgimages/redhatopenshift.svg';
 
 interface IAppLayout {
   children: React.ReactNode;
+  customToolbarItems?: React.ReactNode; // Custom items to add to masthead toolbar
+  useCaseTitle?: string; // Optional use case title (for backward compat)
+  useCasePersona?: string; // Optional persona (for backward compat)
+  topBanner?: React.ReactNode; // Banner to show above masthead
 }
 
 // Custom Core Platforms icon component
@@ -93,7 +97,7 @@ const CorePlatformsIcon: React.FC<{ size?: string }> = ({ size = '20px' }) => (
   </svg>
 );
 
-const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
+const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolbarItems, useCaseTitle, useCasePersona, topBanner }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [perspectiveOpen, setPerspectiveOpen] = React.useState(false);
   const [activePerspective, setActivePerspective] = React.useState('Fleet management');
@@ -351,7 +355,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       label: 'Migration',
       routes: [
         {
-          element: <MigrationPlans />,
+          element: <div>Migration Plans - Migrated to prototypes</div>,
           label: 'Migration plans',
           path: '/virtualization/migration',
           title: 'Migration plans',
@@ -441,6 +445,15 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       <MastheadContent>
         <Toolbar isFullHeight isStatic>
           <ToolbarContent>
+            {/* Custom toolbar items (e.g. Prototype Selector) */}
+            {customToolbarItems && (
+              <ToolbarGroup>
+                <ToolbarItem>
+                  {customToolbarItems}
+                </ToolbarItem>
+              </ToolbarGroup>
+            )}
+            
             <ToolbarGroup align={{ default: 'alignEnd' }}>
               <ToolbarItem>
                 <Button variant="plain" aria-label="Settings">
@@ -684,6 +697,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   return (
     <>
+    {topBanner && topBanner}
     <UseCaseBanner />
     <div style={{ paddingTop: useCase ? '48px' : '0' }}>
     <Page

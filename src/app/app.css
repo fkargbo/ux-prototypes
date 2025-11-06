@@ -940,26 +940,3 @@ input[type="checkbox"] {
   padding-right: 24px !important;
   padding-bottom: 16px !important;
 }
-
-/* Override wizard padding for migration readiness step to allow full-width dividers */
-#migration-readiness-step .pf-v6-c-wizard__main-body {
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Also override for the step wrapper */
-.pf-v6-c-wizard__main div[id="migration-readiness-step"] {
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* More specific override for the wizard body when migration readiness is active */
-.pf-v6-c-wizard:has(#migration-readiness-step) .pf-v6-c-wizard__main-body {
-  padding: 0 !important;
-}
-
-/* Target the specific step container */
-div.pf-v6-c-wizard__main div.pf-v6-c-wizard__main-body:has(#migration-readiness-step > *) {
-  padding: 0 !important;
-  margin: 0 !important;
-}

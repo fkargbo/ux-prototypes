@@ -1,49 +1,58 @@
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import '@patternfly/react-styles/css/components/Wizard/wizard.css';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AppLayout } from '@app/AppLayout/AppLayout';
-import { AppRoutes } from '@app/routes';
-import { UseCaseProvider, useUseCaseContext } from '@app/contexts/UseCaseContext';
-import { ImpersonationProvider } from '@app/contexts/ImpersonationContext';
-import { QuotasProvider } from '@app/contexts/QuotasContext';
-import { UseCaseSelector } from '@app/UseCaseSelector/UseCaseSelector';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { PrototypeProvider, usePrototype } from '@app/core/PrototypeContext';
+import PrototypeLauncher from '@app/core/PrototypeLauncher';
 import '@app/app.css';
 
 const AppContent: React.FunctionComponent = () => {
-  const { useCase } = useUseCaseContext();
+  const { currentPrototype, isLoading, error } = usePrototype();
 
-  // If no use case is selected, show the standalone selector
-  if (!useCase) {
+  console.log('AppContent render:', { currentPrototype: currentPrototype?.config?.id, isLoading, error });
+
+  // Show error state
+  if (error) {
     return (
-      <Routes>
-        <Route path="/" element={<UseCaseSelector />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <div style={{ padding: '40px', color: 'red' }}>
+        <h1>Error Loading Prototypes</h1>
+        <pre>{error.message}</pre>
+      </div>
     );
   }
 
-  // If use case is selected, show the full app with layout
-  return (
-    <ImpersonationProvider>
-      <QuotasProvider>
-        <AppLayout>
-          <AppRoutes />
-        </AppLayout>
-      </QuotasProvider>
-    </ImpersonationProvider>
-  );
+  // Show loading state while prototype is being activated
+  if (isLoading) {
+    return <div style={{ padding: '40px' }}>Loading prototype...</div>;
+  }
+
+  // If no prototype is selected, show the launcher
+  if (!currentPrototype) {
+    console.log('Rendering PrototypeLauncher');
+    return <PrototypeLauncher />;
+  }
+
+  // If prototype is selected, render its component wrapper
+  const PrototypeApp = currentPrototype.component;
+  if (!PrototypeApp) {
+    return <div style={{ padding: '40px', color: 'red' }}>Error: Prototype component not found</div>;
+  }
+  
+  console.log('Rendering prototype:', currentPrototype.config.id);
+  return <PrototypeApp />;
 };
 
 const App: React.FunctionComponent = () => {
+  console.log('App component rendering');
+  
   // Set basename for GitHub Pages in production
   const basename = process.env.NODE_ENV === 'production' ? '/acm-user-interface' : '/';
   
   return (
     <Router basename={basename}>
-      <UseCaseProvider>
+      <PrototypeProvider>
         <AppContent />
-      </UseCaseProvider>
+      </PrototypeProvider>
     </Router>
   );
 };

@@ -1,0 +1,146 @@
+# PatternFly Layout & Spacing Rule
+
+## CRITICAL: PatternFly's `Page` Component Ignores Inline Padding!
+
+### The Problem
+PatternFly's `Page` component has internal CSS classes that override inline style padding. This is a common source of layout issues.
+
+### The Solution
+
+#### ✅ Use Plain `<div>` for Custom Padding:
+
+```jsx
+// ✅ CORRECT - Full control over spacing
+<div style={{ 
+  height: '100vh',
+  padding: '24px',                    // This WILL work
+  boxSizing: 'border-box',            // Include padding in height
+  backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)',
+  overflow: 'auto'                    // Enable scrolling
+}}>
+  <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+    <Title headingLevel="h1">Page Title</Title>
+  </div>
+  
+  <div>
+    {/* Your content */}
+  </div>
+</div>
+
+// ❌ WRONG - Page ignores inline padding
+<Page style={{ padding: '24px' }}>  // This will NOT work
+  <PageSection>...</PageSection>
+</Page>
+```
+
+### When to Use Each Approach
+
+#### Use Plain `<div>` When:
+- You need **custom padding** (e.g., 24px on all sides)
+- Building **launcher pages**, **dashboards**, or **landing pages**
+- Creating **full-page layouts** without navigation/sidebar
+- PatternFly's Page styling conflicts with your design
+- You need **precise control** over spacing
+
+#### Use PatternFly `<Page>` When:
+- Building **standard app pages** with masthead, sidebar, navigation
+- Following PatternFly's **standard layout patterns**
+- Using `PageSection`, `PageSidebar`, `Masthead` components
+- You want PatternFly's **built-in responsive behavior**
+
+### Required Patterns for Custom Layouts
+
+```jsx
+// Full-page layout pattern
+<div style={{ 
+  height: '100vh',              // Full viewport height
+  padding: '24px',              // Custom padding (adjust as needed)
+  boxSizing: 'border-box',      // REQUIRED: Include padding in height
+  backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)',
+  overflow: 'auto'              // REQUIRED: Enable scrolling
+}}>
+  {/* Content */}
+</div>
+```
+
+### Checklist for Custom Layouts
+
+- [ ] Using plain `<div>` instead of `<Page>` when custom padding is needed
+- [ ] Applied `boxSizing: 'border-box'` to prevent overflow
+- [ ] Set `overflow: 'auto'` for scrollable content
+- [ ] Using PatternFly design tokens for colors
+- [ ] Removed unused `Page`/`PageSection` imports
+
+### Common Mistakes to Avoid
+
+❌ **Don't do this:**
+```jsx
+// This won't work - Page ignores inline padding
+<Page style={{ padding: '24px' }}>
+```
+
+❌ **Don't do this:**
+```jsx
+// This causes overflow - missing boxSizing
+<div style={{ height: '100vh', padding: '24px' }}>
+```
+
+✅ **Do this:**
+```jsx
+// This works perfectly
+<div style={{ 
+  height: '100vh', 
+  padding: '24px', 
+  boxSizing: 'border-box' 
+}}>
+```
+
+### Examples
+
+**Launcher Page (Custom Padding):**
+```jsx
+const PrototypeLauncher: React.FC = () => {
+  return (
+    <div style={{ 
+      height: '100vh',
+      padding: '24px',
+      boxSizing: 'border-box',
+      backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)',
+      overflow: 'auto'
+    }}>
+      <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+        <Title headingLevel="h1" size="2xl">
+          Prototype Launcher
+        </Title>
+        <Content component="p">
+          Select a prototype to start testing.
+        </Content>
+      </div>
+      
+      <Card>
+        {/* Content */}
+      </Card>
+    </div>
+  );
+};
+```
+
+**Application Page (Standard Layout):**
+```jsx
+const ApplicationPage: React.FC = () => {
+  return (
+    <AppLayout>  {/* Uses <Page> internally */}
+      <PageSection>
+        {/* Content */}
+      </PageSection>
+    </AppLayout>
+  );
+};
+```
+
+---
+
+## Summary
+
+**Key Takeaway:** When you need custom padding (like 24px on all sides), use plain `<div>` elements. PatternFly's `Page` component is great for standard app layouts but won't respect custom padding applied via inline styles.
+
