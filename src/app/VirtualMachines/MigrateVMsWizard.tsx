@@ -1336,9 +1336,9 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
       case 'resource':
         // Mock target capacity (in a real app, this would come from cluster metrics)
         const targetCapacity = {
-          storage: { total: 238, used: 111, free: 127 },
-          memory: { total: 40, used: 30, free: 10 },
-          cpu: { total: 15, used: 10, free: 5 }
+          storage: { total: 500, used: 145, free: 355 },
+          memory: { total: 128, used: 42, free: 86 },
+          cpu: { total: 32, used: 11, free: 21 }
         };
         
         return (
@@ -1377,25 +1377,33 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                   borderRadius: '4px',
                   overflow: 'hidden',
                   marginBottom: '8px',
-                  display: 'flex'
+                  display: 'flex',
+                  position: 'relative'
                 }}>
                   <div style={{ 
                     width: `${(targetCapacity.storage.used / targetCapacity.storage.total) * 100}%`, 
                     height: '100%', 
-                    backgroundColor: 'var(--pf-t--global--color--brand--default)'
+                    backgroundColor: 'var(--pf-t--global--text--color--regular)',
+                    zIndex: 1
                   }}></div>
                   <div style={{ 
-                    width: `${(targetCapacity.storage.free / targetCapacity.storage.total) * 100}%`, 
+                    position: 'absolute',
+                    left: `${(targetCapacity.storage.used / targetCapacity.storage.total) * 100}%`,
+                    width: `${(totalVMResources.storage / targetCapacity.storage.total) * 100}%`, 
                     height: '100%', 
-                    backgroundColor: '#fff'
+                    backgroundColor: 'var(--pf-t--global--color--brand--default)',
+                    zIndex: 2
                   }}></div>
                 </div>
-                <div style={{ display: 'flex', gap: '20px', fontSize: '0.875rem' }}>
+                <div style={{ display: 'flex', gap: '20px', fontSize: '0.875rem', flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: 'var(--pf-t--global--color--brand--default)' }}>■</span> {targetCapacity.storage.used} GB used
+                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>■</span> {targetCapacity.storage.used} GB used
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: '#d2d2d2' }}>■</span> {targetCapacity.storage.free} GB free
+                    <span style={{ color: 'var(--pf-t--global--color--brand--default)' }}>■</span> {totalVMResources.storage} GB source
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#d2d2d2' }}>■</span> {Math.max(0, targetCapacity.storage.free - totalVMResources.storage)} GB free after migration
                   </span>
                 </div>
               </div>
@@ -1411,25 +1419,33 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                   borderRadius: '4px',
                   overflow: 'hidden',
                   marginBottom: '8px',
-                  display: 'flex'
+                  display: 'flex',
+                  position: 'relative'
                 }}>
                   <div style={{ 
                     width: `${(targetCapacity.memory.used / targetCapacity.memory.total) * 100}%`, 
                     height: '100%', 
-                    backgroundColor: 'var(--pf-t--global--color--brand--default)'
+                    backgroundColor: 'var(--pf-t--global--text--color--regular)',
+                    zIndex: 1
                   }}></div>
                   <div style={{ 
-                    width: `${(targetCapacity.memory.free / targetCapacity.memory.total) * 100}%`, 
+                    position: 'absolute',
+                    left: `${(targetCapacity.memory.used / targetCapacity.memory.total) * 100}%`,
+                    width: `${(totalVMResources.memory / targetCapacity.memory.total) * 100}%`, 
                     height: '100%', 
-                    backgroundColor: '#fff'
+                    backgroundColor: 'var(--pf-t--global--color--brand--default)',
+                    zIndex: 2
                   }}></div>
                 </div>
-                <div style={{ display: 'flex', gap: '20px', fontSize: '0.875rem' }}>
+                <div style={{ display: 'flex', gap: '20px', fontSize: '0.875rem', flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: 'var(--pf-t--global--color--brand--default)' }}>■</span> {targetCapacity.memory.used} GB used
+                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>■</span> {targetCapacity.memory.used} GB used
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: '#d2d2d2' }}>■</span> {targetCapacity.memory.free} GB free
+                    <span style={{ color: 'var(--pf-t--global--color--brand--default)' }}>■</span> {totalVMResources.memory} GB source
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#d2d2d2' }}>■</span> {Math.max(0, targetCapacity.memory.free - totalVMResources.memory)} GB free after migration
                   </span>
                 </div>
               </div>
@@ -1445,25 +1461,33 @@ export const MigrateVMsWizard: React.FunctionComponent<MigrateVMsWizardProps> = 
                   borderRadius: '4px',
                   overflow: 'hidden',
                   marginBottom: '8px',
-                  display: 'flex'
+                  display: 'flex',
+                  position: 'relative'
                 }}>
                   <div style={{ 
                     width: `${(targetCapacity.cpu.used / targetCapacity.cpu.total) * 100}%`, 
                     height: '100%', 
-                    backgroundColor: 'var(--pf-t--global--color--brand--default)'
+                    backgroundColor: 'var(--pf-t--global--text--color--regular)',
+                    zIndex: 1
                   }}></div>
                   <div style={{ 
-                    width: `${(targetCapacity.cpu.free / targetCapacity.cpu.total) * 100}%`, 
+                    position: 'absolute',
+                    left: `${(targetCapacity.cpu.used / targetCapacity.cpu.total) * 100}%`,
+                    width: `${(totalVMResources.cpu / targetCapacity.cpu.total) * 100}%`, 
                     height: '100%', 
-                    backgroundColor: '#fff'
+                    backgroundColor: 'var(--pf-t--global--color--brand--default)',
+                    zIndex: 2
                   }}></div>
                 </div>
-                <div style={{ display: 'flex', gap: '20px', fontSize: '0.875rem' }}>
+                <div style={{ display: 'flex', gap: '20px', fontSize: '0.875rem', flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: 'var(--pf-t--global--color--brand--default)' }}>■</span> {targetCapacity.cpu.used} cores
+                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>■</span> {targetCapacity.cpu.used} cores used
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: '#d2d2d2' }}>■</span> {targetCapacity.cpu.free} cores
+                    <span style={{ color: 'var(--pf-t--global--color--brand--default)' }}>■</span> {totalVMResources.cpu} cores source
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#d2d2d2' }}>■</span> {Math.max(0, targetCapacity.cpu.free - totalVMResources.cpu)} cores free after migration
                   </span>
                 </div>
               </div>
