@@ -486,7 +486,7 @@ const PrototypeLauncher: React.FC = () => {
                             (() => {
                               const fleetAdmin = childPrototypes.find(p => p.config.id === 'fleet-admin-rbac');
                               const tenantAdmin = childPrototypes.find(p => p.config.id === 'tenant-admin-access');
-                              const personas = [];
+                              const personas: string[] = [];
                               if (tenantAdmin) {
                                 personas.push(`${tenantAdmin.config.persona.name} (${tenantAdmin.config.persona.role})`);
                               }
@@ -787,7 +787,7 @@ const PrototypeLauncher: React.FC = () => {
                               (() => {
                                 const fleetAdmin = childPrototypes.find(p => p.config.id === 'fleet-admin-rbac');
                                 const tenantAdmin = childPrototypes.find(p => p.config.id === 'tenant-admin-access');
-                                const personas = [];
+                                const personas: string[] = [];
                                 if (tenantAdmin) {
                                   personas.push(`${tenantAdmin.config.persona.name} (${tenantAdmin.config.persona.role})`);
                                 }
