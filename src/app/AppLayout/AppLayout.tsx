@@ -655,6 +655,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
 
   // Check if RBAC prototype is active
   const isRBACPrototype = currentPrototypeId === 'fleet-admin-rbac' || 
+                          currentPrototypeId === 'fleet-admin-rbac-v1.1' ||
                           currentPrototypeId === 'tenant-admin-access' || 
                           currentPrototypeId === 'acm-empty-states';
 

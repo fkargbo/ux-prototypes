@@ -1,39 +1,21 @@
 /**
- * Routes for [Prototype Name]
+ * Routes for Fleet Admin RBAC Prototype v1.1
  * 
- * Define all routes for your prototype here.
+ * This is a new version - starting with blank template pages
  */
 
 import React from 'react';
 import { PageSection } from '@patternfly/react-core';
 import { RouteConfig } from '@app/core/types';
 
-// Import your page components
-import { HomePage } from './pages/HomePage';
-// import { OtherPage } from './pages/OtherPage';
-
 export const routes: RouteConfig[] = [
+  // Root route - blank page (template)
   {
-    // Route path (relative to root)
     path: '/',
-    
-    // React component to render
-    element: <HomePage />,
-    
-    // Label (if provided, shows in navigation)
-    label: 'Home',
-    
-    // Page title (shown in browser tab)
-    title: 'Home',
-    
-    // Optional: Navigation grouping
-    navigation: {
-      group: 'Main',
-      order: 1,
-      // icon: HomeIcon // Optional icon component
-    }
+    element: <PageSection />,
+    title: 'Fleet Admin RBAC v1.1'
   },
-  
+
   // User Management - Identities (Fleet management perspective)
   {
     path: '/user-management/identities',
@@ -69,17 +51,8 @@ export const routes: RouteConfig[] = [
       order: 3
     }
   },
-  
-  // Add more routes here...
-  // {
-  //   path: '/other',
-  //   element: <OtherPage />,
-  //   label: 'Other Page',
-  //   title: 'Other Page',
-  //   navigation: {
-  //     group: 'Main',
-  //     order: 2
-  //   }
-  // }
+
+  // All other routes show blank pages (template)
+  // Add your routes here as you build the prototype
 ];
 

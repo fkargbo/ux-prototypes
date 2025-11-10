@@ -45,9 +45,27 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   });
   
   // Check if this prototype is a child of a parent (has siblings)
-  const siblings = prototype.config.parentId 
+  const allSiblings = prototype.config.parentId 
     ? prototypeRegistry.getChildren(prototype.config.parentId)
     : [];
+  
+  // Filter siblings based on current prototype's version
+  // If current prototype has a versionGroup, only show siblings with the same versionGroup and version
+  // If current prototype has no versionGroup, show all siblings without versionGroup
+  const siblings = allSiblings.filter(sibling => {
+    // If current prototype has a versionGroup, filter by version
+    if (prototype.config.versionGroup) {
+      // If sibling has versionGroup, must match both versionGroup and version
+      if (sibling.config.versionGroup) {
+        return sibling.config.versionGroup === prototype.config.versionGroup &&
+               sibling.config.version === prototype.config.version;
+      }
+      // Siblings without versionGroup only show when v1.0 is selected
+      return prototype.config.version === 'v1.0';
+    }
+    // If current prototype has no versionGroup, only show siblings without versionGroup
+    return !sibling.config.versionGroup;
+  });
   
   const hasVersions = versions.length > 1;
   const hasUseCases = siblings.length > 1;

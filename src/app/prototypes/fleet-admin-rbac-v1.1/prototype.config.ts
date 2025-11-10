@@ -9,17 +9,17 @@ import { PrototypeConfig } from '@app/core/types';
 
 export const config: PrototypeConfig = {
   // Unique identifier
-  id: 'fleet-admin-rbac',
+  id: 'fleet-admin-rbac-v1.1',
   
   // Hierarchy
   parentId: 'acm-rbac-parent',
   childOrder: 1,
   
   // Display name
-  name: 'Fleet Admin - Tenant Delegation',
+  name: 'Fleet Admin - Tenant Delegation v1.1',
   
   // What this prototype explores
-  description: 'Explore how fleet administrators delegate cluster set access to tenant admins in a multi-tenant ACM environment. Testing role assignment workflows and permission models.',
+  description: 'Enhanced version: Explore how fleet administrators delegate cluster set access to tenant admins with improved workflows and better UX.',
   
   // Owner information
   owner: {
@@ -30,7 +30,8 @@ export const config: PrototypeConfig = {
   
   // Version (migrated from original use-case-1)
   versionGroup: 'fleet-admin-rbac',
-  version: 'v1.0',
+  version: 'v1.1',
+  versionLabel: 'Enhanced Design',
   
   // Status
   status: 'in-progress',
