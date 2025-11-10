@@ -11,6 +11,17 @@ import { OperatorHub } from './OperatorHub/OperatorHub';
 import { InstalledSoftware } from './Ecosystem/InstalledSoftware/InstalledSoftware';
 import { OperatorLifecycle } from './OperatorLifecycle/OperatorLifecycle';
 import { MigrationGuide } from './OperatorHub/MigrationGuide';
+import { PageSection } from '@patternfly/react-core';
+
+// Wrapper component for MigrationGuide modal
+const MigrationGuidePage: React.FC = () => {
+  const [isOpen, setIsOpen] = React.useState(true);
+  return (
+    <PageSection>
+      <MigrationGuide isOpen={isOpen} onClose={() => setIsOpen(false)} />
+    </PageSection>
+  );
+};
 
 export const routes: RouteConfig[] = [
   // Root route - redirect to OperatorHub in Core platforms
@@ -57,7 +68,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/migration-guide',
-    element: <MigrationGuide />,
+    element: <MigrationGuidePage />,
     title: 'Migration Guide'
   },
 ];

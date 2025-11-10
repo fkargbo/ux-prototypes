@@ -818,7 +818,14 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
             );
           }
           // Handle regular routes and groups
-          return route.label && (!route.routes ? renderNavItem(route, idx) : renderNavGroup(route, idx));
+          if (route.label) {
+            if ('routes' in route && route.routes) {
+              return renderNavGroup(route, idx);
+            } else if (!('routes' in route) && 'path' in route && 'element' in route && 'title' in route) {
+              return renderNavItem(route as unknown as IAppRoute, idx);
+            }
+          }
+          return null;
         })}
       </NavList>
     </Nav>

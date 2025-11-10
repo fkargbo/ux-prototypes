@@ -46,7 +46,7 @@ const App: React.FunctionComponent = () => {
   console.log('App component rendering');
   
   // Set basename for GitHub Pages in production
-  const basename = process.env.NODE_ENV === 'production' ? '/acm-user-interface' : '/';
+  const basename = process.env.NODE_ENV === 'production' ? '/HPUX-Prototypes' : '/';
   
   return (
     <Router basename={basename}>

@@ -85,7 +85,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   };
 
   const navigationBanner = (
-    <Banner variant="default">
+    <Banner>
       <Flex 
         alignItems={{ default: 'alignItemsCenter' }} 
         spaceItems={{ default: 'spaceItemsMd' }}

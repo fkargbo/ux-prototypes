@@ -56,11 +56,14 @@ type CatalogMode = 'available' | 'installed' | 'v0' | 'v1';
 interface InstalledItem {
   id: string;
   name: string;
-  namespace: string;
-  version: string;
-  status: string;
+  namespace?: string;
+  version?: string;
+  status?: string;
   mode?: CatalogMode;
   description?: string;
+  provider?: string;
+  type?: string;
+  installedAt?: string;
 }
 import './OperatorHub.css';
 
@@ -474,10 +477,12 @@ const OperatorHub: React.FunctionComponent = () => {
   const getInstallStateForMode = React.useMemo(() => {
     const map = new Map<string, CatalogMode[]>();
     installedItems.forEach((item) => {
-      const current = map.get(item.id) ?? [];
-      if (!current.includes(item.mode)) {
-        current.push(item.mode);
-        map.set(item.id, current);
+      if (item.mode) {
+        const current = map.get(item.id) ?? [];
+        if (!current.includes(item.mode)) {
+          current.push(item.mode);
+          map.set(item.id, current);
+        }
       }
     });
     return map;
