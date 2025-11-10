@@ -2,8 +2,8 @@
   "name": "acm-user-interface",
   "version": "1.0.0",
   "description": "Advanced Cluster Management User Interface with PatternFly",
-  "repository": "https://github.com/kuklas/acm-user-interface.git",
-  "homepage": "https://kuklas.github.io/acm-user-interface",
+  "repository": "https://github.com/kuklas/HPUX-Prototypes.git",
+  "homepage": "https://kuklas.github.io/HPUX-Prototypes",
   "license": "MIT",
   "private": true,
   "scripts": {
