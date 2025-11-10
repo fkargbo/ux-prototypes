@@ -4,8 +4,8 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/kuklas/acm-user-interface.git
-cd acm-user-interface
+git clone https://github.com/kuklas/HPUX-Prototypes.git
+cd HPUX-Prototypes
 ```
 
 ### 2. Install Dependencies
