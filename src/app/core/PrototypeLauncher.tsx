@@ -304,8 +304,6 @@ const PrototypeLauncher: React.FC = () => {
     switch (status) {
       case 'in-progress':
         return 'green';
-      case 'draft':
-        return 'blue';
       case 'done':
         return 'green';
       case 'archived':
