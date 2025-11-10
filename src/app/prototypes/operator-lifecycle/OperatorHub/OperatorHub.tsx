@@ -56,9 +56,9 @@ type CatalogMode = 'available' | 'installed' | 'v0' | 'v1';
 interface InstalledItem {
   id: string;
   name: string;
-  namespace: string;
-  version: string;
-  status: string;
+  namespace?: string;
+  version?: string;
+  status?: string;
   mode?: CatalogMode;
   description?: string;
   provider?: string;
