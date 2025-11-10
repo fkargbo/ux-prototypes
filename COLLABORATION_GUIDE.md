@@ -13,12 +13,18 @@ cd acm-user-interface
 npm install
 ```
 
-### 3. Create Your Branch
+### 3. Create Your Feature Branch
 ```bash
 git checkout ux-prototypes
 git pull origin ux-prototypes
-git checkout -b your-name-prototype
+git checkout -b your-name-feature
 ```
+
+**Branch naming by feature domain:**
+- `stefan-rbac` - RBAC prototypes (fleet-admin-rbac, tenant-admin-access, acm-empty-states)
+- `stefan-cclm` - Cross Cluster Migration prototype
+- `anna-aaq` - AAQ prototypes (virtualization-quotas, aaq-empty-states)
+- `kevin-operatorhub` - Operator Lifecycle prototype
 
 ### 4. Start Development Server
 ```bash
@@ -57,15 +63,22 @@ git merge ux-prototypes  # Get latest changes
 ```
 
 ### During Work
-- **ONLY edit files in your prototype directory**: `src/app/prototypes/your-prototype-name/`
+- **ONLY edit files in your prototype directories**: `src/app/prototypes/your-prototype-name/`
+- You can work on multiple related prototypes in the same branch (e.g., all RBAC prototypes in `stefan-rbac`)
 - Avoid modifying shared files unless absolutely necessary
 - Test your prototype: `npm run start:dev`
 
 ### End of Day
 ```bash
+# Add all your prototype changes
 git add src/app/prototypes/your-prototype-name/
-git commit -m "Add your-prototype-name"
-git push origin your-name-prototype
+# Or add multiple related prototypes:
+git add src/app/prototypes/fleet-admin-rbac/
+git add src/app/prototypes/tenant-admin-access/
+git add src/app/prototypes/acm-empty-states/
+
+git commit -m "Add/update [feature name] prototypes"
+git push origin your-name-feature
 ```
 
 ## Creating Versions
@@ -92,21 +105,40 @@ cp -r src/app/prototypes/original-name src/app/prototypes/original-name-v1.1
 
 ## Pull Request Workflow
 
-1. Push your branch:
+1. Push your feature branch:
 ```bash
-git push origin your-name-prototype
+git push origin your-name-feature
+# Examples:
+# git push origin stefan-rbac
+# git push origin anna-aaq
+# git push origin kevin-operatorhub
 ```
 
 2. Go to GitHub → Create Pull Request
-3. Select: `your-name-prototype` → `ux-prototypes`
-4. Add description
+3. Select: `your-name-feature` → `ux-prototypes`
+4. Add description (e.g., "Add RBAC prototypes: fleet admin, tenant admin, and empty states")
 5. Request review (optional)
 6. Merge when approved
+7. Delete branch after merge (GitHub will prompt you)
+
+## Branch Strategy
+
+**Feature-based branches (one branch per feature domain):**
+- `stefan-rbac` - All RBAC-related prototypes
+- `stefan-cclm` - Cross Cluster Migration prototype
+- `anna-aaq` - All AAQ-related prototypes
+- `kevin-operatorhub` - Operator Lifecycle prototype
+
+**Benefits:**
+- Related prototypes grouped together
+- Easier to review and manage
+- Clear ownership per feature area
 
 ## Important Rules
 
 ✅ **DO:**
-- Work in your own prototype directory
+- Work in your own prototype directories
+- Group related prototypes in the same branch
 - Pull before starting work
 - Commit frequently
 - Use descriptive commit messages
@@ -115,7 +147,7 @@ git push origin your-name-prototype
 - Modify other designers' prototypes
 - Modify shared files without discussion
 - Force push (`git push --force`)
-- Commit directly to `ux-prototypes` (use your branch)
+- Commit directly to `ux-prototypes` (use your feature branch)
 
 ## Getting Help
 
