@@ -687,11 +687,21 @@ const PrototypeLauncher: React.FC = () => {
                       // We have multiple versions - show dropdown
                       selectedParentVersion = getSelectedVersion(`${cardId}-parent-version`, versionsForGroup);
                       
-                      // Filter children: show only children matching selected version OR children without versionGroup
+                      // Filter children based on selected version
                       const selectedVersionGroup = selectedParentVersion.config.versionGroup;
-                      filteredChildren = children.filter(child => 
-                        !child.config.versionGroup || child.config.versionGroup === selectedVersionGroup
-                      );
+                      const selectedVersionValue = selectedParentVersion.config.version;
+                      
+                      filteredChildren = children.filter(child => {
+                        // If child has versionGroup, only show if it matches the selected version
+                        if (child.config.versionGroup) {
+                          // Must match both the versionGroup AND the specific version
+                          return child.config.versionGroup === selectedVersionGroup && 
+                                 child.config.version === selectedVersionValue;
+                        }
+                        // For children without versionGroup, only show them when v1.0 is selected
+                        // (v1.1 should only show the versioned child)
+                        return selectedVersionValue === 'v1.0';
+                      });
                     }
                   }
                 }
@@ -970,7 +980,7 @@ const PrototypeLauncher: React.FC = () => {
                                       }
                                       // Special handling for ACM RBAC parent
                                     } else if (prototype.config.id === 'acm-rbac-parent') {
-                                        if (child.config.id === 'fleet-admin-rbac' || child.config.id === 'fleet-admin-rbac-v1.1') {
+                                        if (child.config.id === 'fleet-admin-rbac') {
                                           items.push(
                                             <DropdownItem
                                               key={child.config.id}
