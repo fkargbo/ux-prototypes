@@ -9,10 +9,10 @@ export const config: PrototypeConfig = {
     slack: '@Kevin Hatchoua',
   },
   version: '1.0.0',
-  status: 'active',
+  status: 'in-progress',
   persona: {
-    name: 'Kevin Hatchoua',
-    role: 'OpenShift Administrator',
+    name: 'Dan Dreiberg',
+    role: 'Virtualization Administrator',
     organization: 'Petemobile (Telco)'
   },
   task: {

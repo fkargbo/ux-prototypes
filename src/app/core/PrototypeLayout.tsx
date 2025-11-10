@@ -16,6 +16,7 @@ import {
   SelectList,
   MenuToggle,
   MenuToggleElement,
+  PageSection,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
 import { AppLayout } from '@app/AppLayout/AppLayout';
@@ -159,12 +160,19 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
     </Banner>
   );
 
+  // Format owner name with slack handle if available
+  const ownerDisplayName = prototype.config.owner.slack
+    ? `${prototype.config.owner.name} (slack ${prototype.config.owner.slack})`
+    : prototype.config.owner.name;
+
   return (
     <QuotasProvider>
       <AppLayout
-        useCaseTitle={prototype.config.name}
-        useCasePersona={prototype.config.persona.role}
+        useCaseTitle={ownerDisplayName}
+        useCasePersona={prototype.config.persona.name}
         topBanner={navigationBanner}
+        enabledPerspectives={prototype.config.perspectives}
+        currentPrototypeId={prototype.config.id}
       >
         <Routes>
           {prototype.routes.map((route, index) => (
@@ -175,8 +183,8 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
             />
           ))}
           
-          {/* Fallback / catch-all route */}
-          <Route path="*" element={prototype.routes[0]?.element || <div>Not found</div>} />
+          {/* Fallback / catch-all route - show blank page instead of defaulting to first route */}
+          <Route path="*" element={<PageSection />} />
         </Routes>
       </AppLayout>
     </QuotasProvider>

@@ -192,8 +192,9 @@ class PrototypeRegistry {
     const all = this.getAll();
     return {
       total: all.length,
-      active: all.filter(p => p.config.status === 'active').length,
+      'in-progress': all.filter(p => p.config.status === 'in-progress').length,
       draft: all.filter(p => p.config.status === 'draft').length,
+      done: all.filter(p => p.config.status === 'done').length,
       archived: all.filter(p => p.config.status === 'archived').length,
       paused: all.filter(p => p.config.status === 'paused').length,
       owners: this.getAllOwners().length,
@@ -239,6 +240,12 @@ export async function discoverPrototypes(): Promise<void> {
     // Load each prototype
     for (const key of prototypeConfigs.keys()) {
       try {
+        // Skip the _template directory - it's a template, not a prototype
+        if (key.includes('/_template/') || key.includes('\\_template\\')) {
+          console.log(`⏭️  Skipping template directory: ${key}`);
+          continue;
+        }
+
         const configModule = prototypeConfigs(key);
         const config = configModule.config || configModule.default;
 
@@ -294,7 +301,7 @@ export async function discoverPrototypes(): Promise<void> {
     
     const stats = prototypeRegistry.getStats();
     console.log(`✅ Prototype discovery complete!`);
-    console.log(`   Total: ${stats.total} | Active: ${stats.active} | Draft: ${stats.draft} | Archived: ${stats.archived}`);
+            console.log(`   Total: ${stats.total} | In-progress: ${stats['in-progress']} | Draft: ${stats.draft} | Done: ${stats.done} | Archived: ${stats.archived}`);
   } catch (error) {
     console.error('❌ Failed to discover prototypes:', error);
     throw error;

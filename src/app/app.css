@@ -940,3 +940,13 @@ input[type="checkbox"] {
   padding-right: 24px !important;
   padding-bottom: 16px !important;
 }
+
+/* Prototype launcher cards - ALL cards must have identical styling */
+.prototype-launcher-card {
+  border: 1px solid #d2d2d2 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  border-radius: 8px !important;
+  height: 100% !important;
+  cursor: default !important;
+}

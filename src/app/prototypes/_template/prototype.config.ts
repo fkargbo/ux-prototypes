@@ -9,75 +9,41 @@ import { PrototypeConfig } from '@app/core/types';
 
 export const config: PrototypeConfig = {
   // Unique identifier (use kebab-case, no spaces)
-  // Example: 'my-awesome-prototype', 'rbac-research-v2', 'cluster-wizard-redesign'
-  id: 'my-prototype-template',
+  id: 'example-draft-prototype',
   
   // Display name (shown in prototype launcher)
-  name: 'My Prototype Template',
+  name: 'Example Draft Prototype',
   
   // Brief description (2-3 sentences max)
-  description: 'A template for creating new prototypes. Copy this directory and customize it for your research needs.',
+  description: 'This is an example draft prototype that demonstrates the template structure. Copy this directory to create your own prototype.',
   
   // Owner information
   owner: {
-    name: 'Your Name',
+    name: 'Designers name',
     slack: '@yourhandle',
-    email: 'you@redhat.com',
-    github: 'yourgithub'
+    email: 'your.email@redhat.com'
   },
   
-  // Version (use semantic versioning: major.minor.patch)
-  version: '0.1.0',
+  // Version (always start at 1.0.0 for new prototypes)
+  version: '1.0.0',
   
-  // Status: 'draft' | 'active' | 'paused' | 'archived'
-  // - draft: Work in progress, not ready for testing
-  // - active: Ready for user research
-  // - paused: Temporarily on hold
-  // - archived: Research complete, kept for reference
+  // Status: 'draft' | 'in-progress' | 'done' | 'paused' | 'archived'
   status: 'draft',
   
   // User persona for this prototype
   persona: {
-    name: 'Test User',
-    role: 'System Administrator',
-    organization: 'Example Corp'
-  },
-  
-  // Optional: Research task shown to users
-  task: {
-    title: 'Your Task',
-    description: 'This is the task you want users to complete during testing.',
-    steps: [
-      'Step 1: Do something',
-      'Step 2: Do something else',
-      'Step 3: Complete the task'
-    ]
+    name: 'Personas name',
+    role: 'Your Role Here',
   },
   
   // Which perspectives should be available
-  // Options: 'fleet-management' | 'fleet-virtualization' | 'core-platforms'
-  perspectives: ['fleet-management'],
+  // Core platforms is enabled, others are disabled
+  perspectives: ['core-platforms'],
   
   // Tags for filtering and discovery
-  // Use relevant keywords: feature names, product areas, research topics, etc.
-  tags: ['template', 'example', 'getting-started'],
+  tags: ['Draft', 'Template', 'Example'],
   
-  // Optional: Shared components this prototype uses
-  // List paths to help track dependencies
-  dependencies: [
-    '@app/shared/components/layouts/DetailPageLayout',
-    '@app/shared/components/layouts/TableLayout',
-  ],
-  
-  // Metadata (dates in YYYY-MM-DD format)
-  createdAt: new Date().toISOString().split('T')[0],
-  updatedAt: new Date().toISOString().split('T')[0],
-  
-  // Optional: Custom branding
-  branding: {
-    // icon: '/path/to/icon.svg',
-    // color: '#0066cc',
-    // banner: 'Custom banner text'
-  }
+  // Metadata
+  createdAt: '2025-01-10',
+  updatedAt: '2025-01-10',
 };
-

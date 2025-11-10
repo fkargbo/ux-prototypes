@@ -32,12 +32,12 @@ export const config: PrototypeConfig = {
   version: '1.0.0',
   
   // Status
-  status: 'active',
+  status: 'in-progress',
   
   // User persona
   persona: {
     name: 'Adrian Veidt',
-    role: 'Fleet Administrator',
+    role: 'Fleet admin',
     organization: 'Petemobile (Telco)'
   },
   

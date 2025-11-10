@@ -5,7 +5,10 @@
  */
 
 import React from 'react';
+import { PageSection } from '@patternfly/react-core';
 import { RouteConfig } from '@app/core/types';
+import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
+import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 
 // Import pages from navigation wrappers
 import {
@@ -140,20 +143,15 @@ export const routes: RouteConfig[] = [
     title: 'ACM | Identity Provider Detail'
   },
 
-  // Governance
+  // Governance - Show blank page (hidden from navigation)
   {
     path: '/governance',
-    element: <GovernancePage />,
-    label: 'Governance',
-    title: 'ACM | Governance',
-    navigation: {
-      group: 'Governance',
-      order: 1
-    }
+    element: <PageSection />,
+    title: 'ACM | Governance'
   },
   {
     path: '/governance/policies/create',
-    element: <CreatePolicy />,
+    element: <PageSection />,
     title: 'ACM | Create Policy'
   },
 
@@ -173,5 +171,148 @@ export const routes: RouteConfig[] = [
     element: <IdentityProvidersPage showClustersColumn={false} />,
     title: 'ACM | Identity Providers'
   },
+
+  // Fleet Virtualization - Virtual machines (must be before blank virtualization routes)
+  {
+    path: '/virtualization/virtual-machines',
+    element: <VirtualMachines />,
+    title: 'Virtual machines'
+  },
+
+  // Blank pages for Fleet management navigation items
+  {
+    path: '/infrastructure/automation',
+    element: <PageSection />,
+    title: 'ACM | Automation'
+  },
+  {
+    path: '/infrastructure/host-inventory',
+    element: <PageSection />,
+    title: 'ACM | Host Inventory'
+  },
+  {
+    path: '/applications/overview',
+    element: <PageSection />,
+    title: 'ACM | Applications'
+  },
+  {
+    path: '/credentials/overview',
+    element: <PageSection />,
+    title: 'ACM | Credentials'
+  },
+  {
+    path: '/observe/overview',
+    element: <PageSection />,
+    title: 'ACM | Observe'
+  },
+  {
+    path: '/edge-management/overview',
+    element: <PageSection />,
+    title: 'ACM | Edge Management'
+  },
+  {
+    path: '/search',
+    element: <PageSection />,
+    title: 'ACM | Search'
+  },
+
+  // Blank pages for Fleet virtualization navigation items (must be after Virtual machines route)
+  {
+    path: '/virtualization/overview',
+    element: <PageSection />,
+    title: 'Overview'
+  },
+  {
+    path: '/virtualization/catalog',
+    element: <PageSection />,
+    title: 'Catalog'
+  },
+  {
+    path: '/virtualization/instance-types',
+    element: <PageSection />,
+    title: 'InstanceTypes'
+  },
+  {
+    path: '/virtualization/templates',
+    element: <PageSection />,
+    title: 'Templates'
+  },
+
+  // Core Platforms - Virtualization - Virtual machines (Hub cluster only)
+  {
+    path: '/core/virtualization/vms',
+    element: <HubVirtualMachines />,
+    title: 'VirtualMachines'
+  },
+
+  // Blank pages for Core platforms Virtualization items (except VirtualMachines)
+  {
+    path: '/core/virtualization/overview',
+    element: <PageSection />,
+    title: 'Overview'
+  },
+  {
+    path: '/core/virtualization/catalog',
+    element: <PageSection />,
+    title: 'Catalog'
+  },
+  {
+    path: '/core/virtualization/templates',
+    element: <PageSection />,
+    title: 'Templates'
+  },
+  {
+    path: '/core/virtualization/instancetypes',
+    element: <PageSection />,
+    title: 'InstanceTypes'
+  },
+  {
+    path: '/core/virtualization/preferences',
+    element: <PageSection />,
+    title: 'Preferences'
+  },
+  {
+    path: '/core/virtualization/bootable-volumes',
+    element: <PageSection />,
+    title: 'Bootable volumes'
+  },
+  {
+    path: '/core/virtualization/migration-policies',
+    element: <PageSection />,
+    title: 'MigrationPolicies'
+  },
+  {
+    path: '/core/virtualization/checkups',
+    element: <PageSection />,
+    title: 'Checkups'
+  },
+
+  // Blank pages for Core platforms navigation items (except Projects and Virtualization)
+  {
+    path: '/core/home/overview',
+    element: <PageSection />,
+    title: 'Overview'
+  },
+  {
+    path: '/core/home/search',
+    element: <PageSection />,
+    title: 'Search'
+  },
+  {
+    path: '/core/home/catalog',
+    element: <PageSection />,
+    title: 'Software Catalog'
+  },
+  {
+    path: '/core/home/api-explorer',
+    element: <PageSection />,
+    title: 'API Explorer'
+  },
+  {
+    path: '/core/home/events',
+    element: <PageSection />,
+    title: 'Events'
+  },
+  // Add more Core platforms blank routes as needed
 ];
 

@@ -7,14 +7,14 @@ export const config: PrototypeConfig = {
   name: 'RBAC Empty States',
   description: 'Explore and evaluate ACM RBAC empty state designs across clusters, users, groups, roles, and projects pages.',
   owner: {
-    name: 'UX Design Team',
-    slack: '@ux-design',
+    name: 'Stefan Kukla',
+    slack: '@stefan',
   },
   version: '1.0.0',
-  status: 'active',
+  status: 'in-progress',
   persona: {
-    name: 'Jane Designer',
-    role: 'UX Designer',
+    name: 'Adrian Veidt',
+    role: 'Fleet admin',
     organization: 'Red Hat'
   },
   task: {

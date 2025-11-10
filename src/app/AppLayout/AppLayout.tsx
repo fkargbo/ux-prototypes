@@ -12,6 +12,7 @@ import {
   NavItem,
   NavList,
   Page,
+  PageSection,
   PageSidebar,
   PageSidebarBody,
   SkipToContent,
@@ -80,6 +81,8 @@ interface IAppLayout {
   useCaseTitle?: string; // Optional use case title (for backward compat)
   useCasePersona?: string; // Optional persona (for backward compat)
   topBanner?: React.ReactNode; // Banner to show above masthead
+  enabledPerspectives?: string[]; // List of enabled perspectives for this prototype
+  currentPrototypeId?: string; // Current prototype ID for conditional navigation
 }
 
 // Custom Core Platforms icon component
@@ -97,7 +100,7 @@ const CorePlatformsIcon: React.FC<{ size?: string }> = ({ size = '20px' }) => (
   </svg>
 );
 
-const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolbarItems, useCaseTitle, useCasePersona, topBanner }) => {
+const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolbarItems, useCaseTitle, useCasePersona, topBanner, enabledPerspectives, currentPrototypeId }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [perspectiveOpen, setPerspectiveOpen] = React.useState(false);
   const [activePerspective, setActivePerspective] = React.useState('Fleet management');
@@ -132,21 +135,34 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
     }
   }, [useCase]);
 
-  // Set the active perspective based on the use case
+  // Set the active perspective based on the use case or prototype
   React.useEffect(() => {
-    if (useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' || useCase === 'use-case-operator-lifecycle') {
+    if (useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' || useCase === 'use-case-operator-lifecycle' || currentPrototypeId === 'operator-lifecycle') {
       setActivePerspective('Core platforms');
-    } else if (useCase === 'use-case-cclm') {
+    } else if (useCase === 'use-case-cclm' || currentPrototypeId === 'cross-cluster-migration') {
       setActivePerspective('Fleet virtualization');
     } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states') {
       setActivePerspective('Fleet management');
+    } else if (enabledPerspectives && enabledPerspectives.length > 0) {
+      // Set to first enabled perspective for prototypes
+      const perspectiveMap = {
+        'core-platforms': 'Core platforms',
+        'fleet-management': 'Fleet management',
+        'fleet-virtualization': 'Fleet virtualization',
+      };
+      const firstEnabled = enabledPerspectives[0];
+      if (perspectiveMap[firstEnabled as keyof typeof perspectiveMap]) {
+        setActivePerspective(perspectiveMap[firstEnabled as keyof typeof perspectiveMap]);
+      }
     }
-  }, [useCase]);
+  }, [useCase, enabledPerspectives]);
 
+
+  // All perspectives are always enabled
   const allPerspectives = [
-    { name: 'Core platforms', disabled: false },
-    { name: 'Fleet management', disabled: false },
-    { name: 'Fleet virtualization', disabled: false },
+    { name: 'Core platforms', key: 'core-platforms', disabled: false },
+    { name: 'Fleet management', key: 'fleet-management', disabled: false },
+    { name: 'Fleet virtualization', key: 'fleet-virtualization', disabled: false },
   ];
 
   // Filter perspectives: only show Fleet virtualization when impersonating
@@ -174,10 +190,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
       ],
     },
     {
-      label: useCase === 'use-case-operator-lifecycle' ? 'Ecosystem' : 'Operators',
-      routes: useCase === 'use-case-operator-lifecycle' ? [
-        { element: <></>, label: 'Software Catalog', path: '/ecosystem/softwarecatalog', title: 'Software Catalog' },
-      ] : [
+      label: 'Operators',
+      routes: [
         { element: <></>, label: 'OperatorHub', path: '/core/operators/hub', title: 'OperatorHub' },
         { element: <></>, label: 'Installed Operators', path: '/core/operators/installed', title: 'Installed Operators' },
       ],
@@ -220,7 +234,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
         { element: <></>, label: 'Bootable volumes', path: '/core/virtualization/bootable-volumes', title: 'Bootable volumes' },
         { element: <></>, label: 'MigrationPolicies', path: '/core/virtualization/migration-policies', title: 'MigrationPolicies' },
         { element: <></>, label: 'Checkups', path: '/core/virtualization/checkups', title: 'Checkups' },
-        ...(useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' ? [{ element: <></>, label: 'Quotas', path: '/core/virtualization/quotas', title: 'Quotas' }] : []),
+        ...(useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' || currentPrototypeId === 'aaq-empty-states' || currentPrototypeId === 'virtualization-quotas' ? [{ element: <></>, label: 'Quotas', path: '/quotas', title: 'Quotas' }] : []),
       ],
     },
     {
@@ -351,11 +365,11 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
         },
       ],
     },
-    ...(useCase === 'use-case-cclm' ? [{
+    ...((useCase === 'use-case-cclm' || currentPrototypeId === 'cross-cluster-migration') ? [{
       label: 'Migration',
       routes: [
         {
-          element: <div>Migration Plans - Migrated to prototypes</div>,
+          element: <></>,
           label: 'Migration plans',
           path: '/virtualization/migration',
           title: 'Migration plans',
@@ -433,7 +447,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
             <img src={redHatOpenShiftLogo} alt="Red Hat OpenShift" style={{ height: '40px' }} />
             <Label color="orange" isCompact>UXD prototype - work in progress</Label>
             <span style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>
-              Contact: {useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' 
+              Contact: {useCaseTitle && useCaseTitle.trim() !== ''
+                ? useCaseTitle
+                : useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' 
                 ? 'Anna Walker (slack @Anna Walker)' 
                 : useCase === 'use-case-operator-lifecycle'
                 ? 'Kevin Hatchoua (slack @Kevin Hatchoua)'
@@ -479,7 +495,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
               <ToolbarItem>
                 <Button variant="plain" aria-label="User menu">
                   <span style={{ color: '#000000' }}>
-                    {useCase === 'use-case-1' 
+                    {useCasePersona && useCasePersona.trim() !== ''
+                      ? useCasePersona
+                      : useCase === 'use-case-1' 
                       ? 'Adrian Veidt' 
                       : useCase === 'use-case-2' 
                       ? 'Walter Joseph Kovacs' 
@@ -635,11 +653,142 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
   );
   };
 
+  // Check if RBAC prototype is active
+  const isRBACPrototype = currentPrototypeId === 'fleet-admin-rbac' || 
+                          currentPrototypeId === 'tenant-admin-access' || 
+                          currentPrototypeId === 'acm-empty-states';
+
+  // Helper function to create blank page route
+  const createBlankRoute = (label: string, path: string, title: string): IAppRoute => ({
+    element: <PageSection />,
+    label,
+    path,
+    title,
+  });
+
   // Select routes based on active perspective
-  let activeRoutes = 
-    activePerspective === 'Core platforms' ? corePlatformsRoutes :
-    activePerspective === 'Fleet virtualization' ? fleetVirtualizationRoutes : 
-    routes.filter(route => route.label !== 'Core Platforms');
+  let activeRoutes: IAppRouteGroup[] = [];
+  
+  if (isRBACPrototype && currentPrototypeId) {
+    // RBAC prototypes: Show all navigation items, but use blank pages for hidden content
+    if (activePerspective === 'Fleet management') {
+      // Fleet management: Show all items, but only Clusters and User management have content
+      const baseRoutes = routes.filter(route => route.label !== 'Core Platforms');
+      activeRoutes = baseRoutes
+        .filter((route): route is IAppRouteGroup => 'routes' in route && Array.isArray(route.routes))
+        .map(group => {
+          if (!group.routes || group.routes.length === 0) {
+            // Skip groups with no routes
+            return group;
+          }
+          
+          if (group.label === 'Infrastructure') {
+            // Only show Clusters, blank pages for others
+            return {
+              ...group,
+              routes: group.routes.map(route => 
+                route.label === 'Clusters' 
+                  ? route 
+                  : createBlankRoute(route.label || '', route.path, route.title)
+              ),
+            };
+          } else if (group.label === 'User management') {
+            // Keep User management as is (will be added below)
+            return group;
+          } else {
+            // All other groups show blank pages
+            return {
+              ...group,
+              routes: group.routes.map(route => 
+                createBlankRoute(route.label || '', route.path, route.title)
+              ),
+            };
+          }
+        });
+      
+      // Ensure User management exists
+      const hasUserManagement = activeRoutes.some(r => r.label === 'User management');
+      if (!hasUserManagement) {
+        const infrastructureIndex = activeRoutes.findIndex(r => r.label === 'Infrastructure');
+        activeRoutes.splice(infrastructureIndex + 1, 0, {
+          label: 'User management',
+          routes: [
+            { element: <div />, label: 'Identities', path: '/user-management/identities', title: 'ACM | Identities' },
+            { element: <div />, label: 'Roles', path: '/user-management/roles', title: 'ACM | Roles' },
+            { element: <IdentityProvider showClustersColumn={true} />, label: 'Identity providers', path: '/user-management/identity-providers', title: 'ACM | Identity Providers' },
+          ],
+        });
+      }
+    } else if (activePerspective === 'Fleet virtualization') {
+      // Fleet virtualization: Show all items, but only Virtual machines and User management have content
+      activeRoutes = fleetVirtualizationRoutes.map(group => {
+        if (!group.routes || group.routes.length === 0) {
+          // Skip groups with no routes
+          return group;
+        }
+        
+        if (group.label === '') {
+          // Show Virtual machines, blank pages for others
+          return {
+            ...group,
+            routes: group.routes.map(route => 
+              route.label === 'Virtual machines'
+                ? route
+                : createBlankRoute(route.label || '', route.path, route.title)
+            ),
+          };
+        } else if (group.label === 'User management') {
+          // Keep User management as is
+          return group;
+        } else {
+          // All other groups show blank pages
+          return {
+            ...group,
+            routes: group.routes.map(route => 
+              createBlankRoute(route.label || '', route.path, route.title)
+            ),
+          };
+        }
+      });
+    } else if (activePerspective === 'Core platforms') {
+      // Core platforms: Show all items, but only Projects, Virtualization, and User management have content
+      activeRoutes = corePlatformsRoutes.map(group => {
+        if (!group.routes || group.routes.length === 0) {
+          // Skip groups with no routes
+          return group;
+        }
+        
+        if (group.label === 'Home') {
+          // Only show Projects, blank pages for others
+          return {
+            ...group,
+            routes: group.routes.map(route => 
+              route.label === 'Projects'
+                ? route
+                : createBlankRoute(route.label || '', route.path, route.title)
+            ),
+          };
+        } else if (group.label === 'Virtualization' || group.label === 'User Management') {
+          // Keep Virtualization and User Management as is
+          return group;
+        } else {
+          // All other groups show blank pages
+          return {
+            ...group,
+            routes: group.routes.map(route => 
+              createBlankRoute(route.label || '', route.path, route.title)
+            ),
+          };
+        }
+      });
+    }
+  } else {
+    // Normal routing for non-RBAC prototypes
+    activeRoutes = 
+      activePerspective === 'Core platforms' ? corePlatformsRoutes :
+      activePerspective === 'Fleet virtualization' ? fleetVirtualizationRoutes : 
+      routes.filter(route => route.label !== 'Core Platforms') as IAppRouteGroup[];
+  }
 
   // Filter out "User management" from Fleet virtualization when impersonating
   if (impersonatingUser && activePerspective === 'Fleet virtualization') {

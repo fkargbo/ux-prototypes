@@ -7,15 +7,16 @@ export const config: PrototypeConfig = {
   name: 'Virtualization Empty States',
   description: 'Explore and evaluate AAQ virtualization quota empty state designs.',
   owner: {
-    name: 'UX Design Team',
-    slack: '@ux-design',
+    name: 'Anna Walker',
+    slack: '@Anna Walker',
+    email: 'awalker@redhat.com'
   },
   version: '1.0.0',
-  status: 'active',
+  status: 'in-progress',
   persona: {
-    name: 'Jane Designer',
-    role: 'UX Designer',
-    organization: 'Red Hat'
+    name: 'Dan Dreiberg',
+    role: 'Virtualization Administrator',
+    organization: 'Petemobile (Telco)'
   },
   task: {
     title: 'Review Empty States',

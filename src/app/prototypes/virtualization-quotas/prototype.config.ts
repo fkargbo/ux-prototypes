@@ -23,7 +23,7 @@ export const config: PrototypeConfig = {
   },
   
   version: '1.0.0',
-  status: 'active',
+  status: 'in-progress',
   
   persona: {
     name: 'Dan Dreiberg',

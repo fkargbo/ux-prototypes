@@ -22,7 +22,10 @@
     "build:bundle-profile": "webpack --config webpack.prod.js --profile --json > stats.json",
     "bundle-profile:analyze": "npm run build:bundle-profile && webpack-bundle-analyzer ./stats.json",
     "clean": "rimraf dist",
-    "deploy": "npm run build && gh-pages -d dist --add"
+    "deploy": "npm run build && gh-pages -d dist --add",
+    "create-prototype": "node scripts/create-prototype.cjs",
+    "create-draft": "node scripts/create-prototype.cjs",
+    "new-prototype": "node scripts/create-prototype.cjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",

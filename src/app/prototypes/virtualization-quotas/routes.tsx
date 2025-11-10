@@ -1,4 +1,5 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
 
 import { QuotasPage, Overview, VirtualizationWrapper } from './navigation/core-platforms';
@@ -8,9 +9,8 @@ import { QuotaDetail } from './Quotas/QuotaDetail';
 export const routes: RouteConfig[] = [
   {
     path: '/',
-    element: <Overview />,
-    label: 'Overview',
-    title: 'Virtualization Overview'
+    element: <Navigate to="/quotas" replace />,
+    title: 'Quotas'
   },
   {
     path: '/quotas',
@@ -31,6 +31,52 @@ export const routes: RouteConfig[] = [
     path: '/quotas/:quotaName',
     element: <QuotaDetail />,
     title: 'Quota Details'
+  },
+  // Blank page routes for other Virtualization nav items
+  {
+    path: '/core/virtualization/overview',
+    element: <div />,
+    title: 'Overview'
+  },
+  {
+    path: '/core/virtualization/catalog',
+    element: <div />,
+    title: 'Catalog'
+  },
+  {
+    path: '/core/virtualization/vms',
+    element: <div />,
+    title: 'VirtualMachines'
+  },
+  {
+    path: '/core/virtualization/templates',
+    element: <div />,
+    title: 'Templates'
+  },
+  {
+    path: '/core/virtualization/instancetypes',
+    element: <div />,
+    title: 'InstanceTypes'
+  },
+  {
+    path: '/core/virtualization/preferences',
+    element: <div />,
+    title: 'Preferences'
+  },
+  {
+    path: '/core/virtualization/bootable-volumes',
+    element: <div />,
+    title: 'Bootable volumes'
+  },
+  {
+    path: '/core/virtualization/migration-policies',
+    element: <div />,
+    title: 'MigrationPolicies'
+  },
+  {
+    path: '/core/virtualization/checkups',
+    element: <div />,
+    title: 'Checkups'
   },
 ];
 

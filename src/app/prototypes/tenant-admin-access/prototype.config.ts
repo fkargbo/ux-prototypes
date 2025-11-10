@@ -23,11 +23,11 @@ export const config: PrototypeConfig = {
   },
   
   version: '1.0.0',
-  status: 'active',
+  status: 'in-progress',
   
   persona: {
     name: 'Walter Joseph Kovacs',
-    role: 'Tenant Administrator',
+    role: 'Tenant admin',
     organization: 'Petemobile (Telco)'
   },
   

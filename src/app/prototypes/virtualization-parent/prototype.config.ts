@@ -11,32 +11,32 @@ export const config: PrototypeConfig = {
   id: 'virtualization-parent',
   
   // Display name
-  name: 'Virtualization Admin Prototypes',
+  name: 'Application aware quotas prototype',
   
   // What this prototype explores
-  description: 'A collection of virtualization administration prototypes exploring quota management, resource allocation, and admin workflows.',
+  description: 'A collection of Application Aware Quotas (AAQ) prototypes exploring quota management, resource allocation, and admin workflows.',
   
   // This is a parent/container
   isParent: true,
   
   // Owner information
   owner: {
-    name: 'Stefan Kukla',
-    slack: '@stefan',
-    email: 'skukla@redhat.com'
+    name: 'Anna Walker',
+    slack: '@Anna Walker',
+    email: 'awalker@redhat.com'
   },
   
   // Version
   version: '1.0.0',
   
   // Status
-  status: 'active',
+  status: 'in-progress',
   
   // User persona (representative)
   persona: {
-    name: 'Various',
-    role: 'Virtualization Administrators',
-    organization: 'Platform Team'
+    name: 'Dan Dreiberg',
+    role: 'Virtualization Administrator',
+    organization: 'Petemobile (Telco)'
   },
   
   // Perspectives

@@ -144,3 +144,71 @@ const ApplicationPage: React.FC = () => {
 
 **Key Takeaway:** When you need custom padding (like 24px on all sides), use plain `<div>` elements. PatternFly's `Page` component is great for standard app layouts but won't respect custom padding applied via inline styles.
 
+---
+
+# Prototype Isolation Rule
+
+## CRITICAL: Changes Must Be Isolated to Single Prototype
+
+### The Rule
+**When working on a prototype, ALL changes must be isolated to ONLY that specific prototype. Changes must NEVER affect other prototypes.**
+
+### What This Means
+
+#### ✅ CORRECT - Isolated Changes:
+- Modify files **only** within the specific prototype's directory (e.g., `src/app/prototypes/aaq-empty-states/`)
+- Add prototype-specific components, pages, routes, or configs
+- Update only the prototype's own `prototype.config.ts`, `routes.tsx`, and component files
+- Create prototype-specific navigation or layout files within the prototype directory
+
+#### ❌ WRONG - Shared Component Changes:
+- **DO NOT** modify shared components (e.g., `AppLayout`, `PrototypeLayout`, `PrototypeRegistry`)
+- **DO NOT** add conditional logic to shared components based on prototype IDs
+- **DO NOT** modify global CSS, shared utilities, or core infrastructure
+- **DO NOT** change behavior that affects all prototypes
+
+### Examples
+
+❌ **DON'T do this:**
+```typescript
+// In AppLayout.tsx (shared component)
+if (currentPrototypeId === 'aaq-empty-states') {
+  // Add Quotas to navigation
+}
+```
+
+✅ **DO this instead:**
+```typescript
+// In src/app/prototypes/aaq-empty-states/routes.tsx (prototype-specific)
+export const routes: RouteConfig[] = [
+  {
+    path: '/quotas',
+    element: <QuotasPageEmpty />,
+    // ... prototype-specific route
+  }
+];
+```
+
+### When You Need Shared Functionality
+
+If a change is needed across multiple prototypes:
+1. **First**: Implement it in the specific prototype you're working on
+2. **Then**: If other prototypes need it, they can copy/adapt the solution
+3. **Never**: Modify shared components to add prototype-specific behavior
+
+### Checklist
+
+Before making any change, ask:
+- [ ] Is this change only in the prototype's own directory?
+- [ ] Will this change affect other prototypes?
+- [ ] Am I modifying a shared component?
+- [ ] Can I solve this within the prototype's own files?
+
+If you answered "yes" to affecting other prototypes or modifying shared components, **STOP** and find a prototype-isolated solution.
+
+---
+
+## Summary
+
+**Key Takeaway:** Every prototype is an isolated environment. All changes must be contained within that prototype's directory. Never modify shared components to add prototype-specific behavior.
+

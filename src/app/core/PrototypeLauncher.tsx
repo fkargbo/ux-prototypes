@@ -44,18 +44,24 @@ import {
   DropdownList,
   DropdownItem,
   CardFooter,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@patternfly/react-core';
-import { CubesIcon, UserIcon, TagIcon, SearchIcon } from '@patternfly/react-icons';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { CubesIcon, UserIcon, TagIcon, SearchIcon, ThIcon, ListIcon } from '@patternfly/react-icons';
 import { usePrototype } from './PrototypeContext';
 import { PrototypeModule, PrototypeStatus } from './types';
 
+type ViewMode = 'card' | 'table';
+
 const PrototypeLauncher: React.FC = () => {
   const { availablePrototypes, loadPrototype } = usePrototype();
-  const [activeTab, setActiveTab] = useState<string>('active');
+  const [activeTab, setActiveTab] = useState<string>('in-progress');
   const [searchValue, setSearchValue] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string>('');
   const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<ViewMode>('card');
   
   // Track selected version for each version group card
   const [selectedVersions, setSelectedVersions] = useState<Map<string, string>>(new Map());
@@ -226,13 +232,16 @@ const PrototypeLauncher: React.FC = () => {
       return false;
     }
 
-    // Filter by search
+    // Filter by search (name, owner, persona)
     if (searchValue) {
       const search = searchValue.toLowerCase();
       const matchesName = prototype.config.name.toLowerCase().includes(search);
       const matchesDescription = prototype.config.description.toLowerCase().includes(search);
+      const matchesOwner = prototype.config.owner.name.toLowerCase().includes(search);
+      const matchesPersonaName = prototype.config.persona.name.toLowerCase().includes(search);
+      const matchesPersonaRole = prototype.config.persona.role.toLowerCase().includes(search);
       const matchesTags = prototype.config.tags.some(tag => tag.toLowerCase().includes(search));
-      if (!matchesName && !matchesDescription && !matchesTags) {
+      if (!matchesName && !matchesDescription && !matchesOwner && !matchesPersonaName && !matchesPersonaRole && !matchesTags) {
         return false;
       }
     }
@@ -281,8 +290,9 @@ const PrototypeLauncher: React.FC = () => {
   
   const counts = {
     all: cardsToDisplay.length,
-    active: countCardsByStatus('active'),
+    'in-progress': countCardsByStatus('in-progress'),
     draft: countCardsByStatus('draft'),
+    done: countCardsByStatus('done'),
     archived: countCardsByStatus('archived'),
   };
 
@@ -293,10 +303,12 @@ const PrototypeLauncher: React.FC = () => {
 
   const getStatusColor = (status: PrototypeStatus): 'blue' | 'green' | 'grey' | 'orange' => {
     switch (status) {
-      case 'active':
+      case 'in-progress':
         return 'green';
       case 'draft':
         return 'blue';
+      case 'done':
+        return 'green';
       case 'archived':
         return 'grey';
       case 'paused':
@@ -309,68 +321,91 @@ const PrototypeLauncher: React.FC = () => {
   return (
     <div style={{ 
       height: '100vh', 
-      padding: '24px', 
       boxSizing: 'border-box',
-      backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)',
+      backgroundColor: '#f5f5f5',
       overflow: 'auto'
     }}>
-      {/* Header */}
-      <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-        <Title headingLevel="h1" size="2xl">
-          Prototype Launcher
-        </Title>
-        <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-          Select a prototype to start testing. Each prototype is an isolated environment for exploring specific user experiences.
-        </Content>
-      </div>
+      {/* Header, Filters, and Tabs - All White Background */}
+      <div style={{ 
+        padding: '24px',
+        paddingBottom: '0',
+        backgroundColor: '#ffffff'
+      }}>
+        {/* Header */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+          <Title headingLevel="h1" size="2xl">
+            Prototype Launcher
+          </Title>
+          <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+            Select a prototype to start testing. Each prototype is an isolated environment for exploring specific user experiences.
+          </Content>
+        </div>
 
-      {/* Content */}
-      <div>
-          {/* Filters */}
-          <Card>
-          <CardBody>
-            <Toolbar>
-              <ToolbarContent>
-                <ToolbarItem style={{ flexGrow: 1, maxWidth: '400px' }}>
-                  <SearchInput
-                    placeholder="Search prototypes..."
-                    value={searchValue}
-                    onChange={(_event, value) => setSearchValue(value)}
-                    onClear={() => setSearchValue('')}
+        {/* Filters */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          <Toolbar>
+            <ToolbarContent>
+              <ToolbarItem style={{ flexGrow: 1, maxWidth: '400px' }}>
+                <SearchInput
+                  placeholder="Search by name, owner, or persona..."
+                  value={searchValue}
+                  onChange={(_event, value) => setSearchValue(value)}
+                  onClear={() => setSearchValue('')}
+                />
+              </ToolbarItem>
+              <ToolbarItem>
+                <ToggleGroup aria-label="View mode">
+                  <ToggleGroupItem
+                    icon={<ThIcon />}
+                    aria-label="Card view"
+                    buttonId="card-view"
+                    isSelected={viewMode === 'card'}
+                    onChange={() => setViewMode('card')}
                   />
-                </ToolbarItem>
-                <ToolbarItem>
-                  <LabelGroup categoryName="Tags">
-                    {selectedTags.map(tag => (
-                      <Label
-                        key={tag}
-                        color="blue"
-                        isCompact
-                        onClose={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
-                      >
-                        {tag}
-                      </Label>
-                    ))}
-                  </LabelGroup>
-                  </ToolbarItem>
-                </ToolbarContent>
-              </Toolbar>
-            </CardBody>
-          </Card>
+                  <ToggleGroupItem
+                    icon={<ListIcon />}
+                    aria-label="Table view"
+                    buttonId="table-view"
+                    isSelected={viewMode === 'table'}
+                    onChange={() => setViewMode('table')}
+                  />
+                </ToggleGroup>
+              </ToolbarItem>
+              <ToolbarItem>
+                <LabelGroup categoryName="Tags">
+                  {selectedTags.map(tag => (
+                    <Label
+                      key={tag}
+                      color="blue"
+                      isCompact
+                      onClose={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
+                    >
+                      {tag}
+                    </Label>
+                  ))}
+                </LabelGroup>
+              </ToolbarItem>
+            </ToolbarContent>
+          </Toolbar>
+        </div>
 
         {/* Status Tabs */}
-        <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+        <div>
           <Tabs
             activeKey={activeTab}
             onSelect={(_event, tabKey) => setActiveTab(tabKey as string)}
           >
             <Tab
-              eventKey="active"
-              title={<TabTitleText>Active ({counts.active})</TabTitleText>}
+              eventKey="in-progress"
+              title={<TabTitleText>In-progress ({counts['in-progress']})</TabTitleText>}
             />
             <Tab
               eventKey="draft"
               title={<TabTitleText>Draft ({counts.draft})</TabTitleText>}
+            />
+            <Tab
+              eventKey="done"
+              title={<TabTitleText>Done ({counts.done})</TabTitleText>}
             />
             <Tab
               eventKey="archived"
@@ -382,9 +417,15 @@ const PrototypeLauncher: React.FC = () => {
             />
           </Tabs>
         </div>
+      </div>
 
-        {/* Prototype Grid */}
-        <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+              {/* Prototype Grid/Table */}
+              <div style={{ 
+                padding: '24px'
+              }}>
+                <div style={{ 
+                  minHeight: '400px'
+                }}>
           {filteredCards.length === 0 ? (
             <EmptyState>
               <Title headingLevel="h2" size="lg">
@@ -394,6 +435,216 @@ const PrototypeLauncher: React.FC = () => {
                 No prototypes match your current filters. Try adjusting your search or filters.
               </EmptyStateBody>
             </EmptyState>
+          ) : viewMode === 'table' ? (
+            <Card className="prototype-launcher-card">
+              <Table aria-label="Prototypes table" variant="compact">
+                <Thead>
+                  <Tr>
+                    <Th>Title</Th>
+                    <Th>Description</Th>
+                    <Th>Owner</Th>
+                    <Th>Status</Th>
+                    <Th>Persona</Th>
+                    <Th>Version</Th>
+                    <Th>Actions</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {filteredCards.map(card => {
+                    const prototype = card.representative;
+                    const cardId = card.type === 'versionGroup' ? card.versions![0].config.versionGroup! : prototype.config.id;
+                    
+                    // Get children/versions based on card type
+                    let children: PrototypeModule[] = [];
+                    if (card.type === 'parent') {
+                      children = getChildren(prototype.config.id);
+                    } else if (card.type === 'versionGroup') {
+                      children = card.versions || [];
+                    }
+                    
+                    const selectedVersion = card.type === 'versionGroup' && children.length > 0
+                      ? getSelectedVersion(cardId, children)
+                      : null;
+                    
+                    const displayPrototype = selectedVersion || prototype;
+                    const defaultChild = children.length > 0 ? getLastUsedChild(cardId, children) : children[0];
+                    const hasChildren = children.length > 0;
+                    
+                    return (
+                      <Tr key={cardId}>
+                        <Td dataLabel="Title">{prototype.config.name}</Td>
+                        <Td dataLabel="Description">{displayPrototype.config.description}</Td>
+                        <Td dataLabel="Owner">{displayPrototype.config.owner.name}</Td>
+                        <Td dataLabel="Status">
+                          <Label color={getStatusColor(displayPrototype.config.status)} isCompact>
+                            {displayPrototype.config.status}
+                          </Label>
+                        </Td>
+                        <Td dataLabel="Persona">
+                          {prototype.config.id === 'acm-rbac-parent' ? (
+                            // For ACM RBAC parent, show both personas
+                            (() => {
+                              const fleetAdmin = childPrototypes.find(p => p.config.id === 'fleet-admin-rbac');
+                              const tenantAdmin = childPrototypes.find(p => p.config.id === 'tenant-admin-access');
+                              const personas = [];
+                              if (tenantAdmin) {
+                                personas.push(`${tenantAdmin.config.persona.name} (${tenantAdmin.config.persona.role})`);
+                              }
+                              if (fleetAdmin) {
+                                personas.push(`${fleetAdmin.config.persona.name} (${fleetAdmin.config.persona.role})`);
+                              }
+                              return personas.join(', ');
+                            })()
+                          ) : (
+                            // For other prototypes, show single persona
+                            `${displayPrototype.config.persona.name} (${displayPrototype.config.persona.role})`
+                          )}
+                        </Td>
+                        <Td dataLabel="Version">{displayPrototype.config.version}</Td>
+                        <Td dataLabel="Actions">
+                          {card.type === 'parent' && hasChildren ? (
+                            <div style={{ display: 'flex', gap: 0 }}>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => {
+                                  if (defaultChild) {
+                                    handlePrototypeSelectWithMemory(defaultChild.config.id, cardId);
+                                  }
+                                }}
+                                style={{
+                                  borderTopRightRadius: 0,
+                                  borderBottomRightRadius: 0,
+                                  borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+                                }}
+                              >
+                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
+                              </Button>
+                              <Dropdown
+                                isOpen={openDropdowns.has(cardId)}
+                                onSelect={() => toggleDropdown(cardId)}
+                                onOpenChange={(isOpen) => {
+                                  if (!isOpen) toggleDropdown(cardId);
+                                }}
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    variant="primary"
+                                    isExpanded={openDropdowns.has(cardId)}
+                                    onClick={() => toggleDropdown(cardId)}
+                                    style={{
+                                      borderTopLeftRadius: 0,
+                                      borderBottomLeftRadius: 0,
+                                      minWidth: '32px',
+                                      height: '28px',
+                                    }}
+                                  />
+                                )}
+                              >
+                                <DropdownList>
+                                  {(() => {
+                                    // Special handling for AAQ parent
+                                    if (prototype.config.id === 'virtualization-parent') {
+                                      return children.map(child => {
+                                        if (child.config.id === 'virtualization-quotas') {
+                                          return (
+                                            <DropdownItem
+                                              key={child.config.id}
+                                              onClick={() => handlePrototypeSelectWithMemory(child.config.id, cardId)}
+                                              description="Explore quota management and resource allocation workflows"
+                                            >
+                                              Explore quotas
+                                            </DropdownItem>
+                                          );
+                                        } else if (child.config.id === 'aaq-empty-states') {
+                                          return (
+                                            <DropdownItem
+                                              key={child.config.id}
+                                              onClick={() => handlePrototypeSelectWithMemory(child.config.id, cardId)}
+                                              description="Review and evaluate empty state designs for quota management"
+                                            >
+                                              Empty state
+                                            </DropdownItem>
+                                          );
+                                        }
+                                        return null;
+                                      });
+                                    }
+                                    
+                                    // Special handling for ACM RBAC parent
+                                    if (prototype.config.id === 'acm-rbac-parent') {
+                                      return children.map(child => {
+                                        if (child.config.id === 'fleet-admin-rbac') {
+                                          return (
+                                            <DropdownItem
+                                              key={child.config.id}
+                                              onClick={() => handlePrototypeSelectWithMemory(child.config.id, cardId)}
+                                              description="Explore how fleet administrators delegate cluster set access to tenant admins"
+                                            >
+                                              Fleet admin → Tenant admin rbac delegation
+                                            </DropdownItem>
+                                          );
+                                        } else if (child.config.id === 'tenant-admin-access') {
+                                          return (
+                                            <DropdownItem
+                                              key={child.config.id}
+                                              onClick={() => handlePrototypeSelectWithMemory(child.config.id, cardId)}
+                                              description="Explore how tenant administrators grant team access to projects spanning multiple clusters"
+                                            >
+                                              Tenant admin → project access
+                                            </DropdownItem>
+                                          );
+                                        } else if (child.config.id === 'acm-empty-states') {
+                                          return (
+                                            <DropdownItem
+                                              key={child.config.id}
+                                              onClick={() => handlePrototypeSelectWithMemory(child.config.id, cardId)}
+                                              description="Review and evaluate empty state designs for RBAC workflows"
+                                            >
+                                              Empty states
+                                            </DropdownItem>
+                                          );
+                                        }
+                                        return null;
+                                      });
+                                    }
+                                    
+                                    // Default handling for other parents
+                                    return children.map(child => (
+                                      <DropdownItem
+                                        key={child.config.id}
+                                        onClick={() => handlePrototypeSelectWithMemory(child.config.id, cardId)}
+                                        description={child.config.persona.role}
+                                      >
+                                        {child.config.name}
+                                      </DropdownItem>
+                                    ));
+                                  })()}
+                                </DropdownList>
+                              </Dropdown>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => {
+                                if (card.type === 'versionGroup' && selectedVersion) {
+                                  handlePrototypeSelectWithMemory(selectedVersion.config.id, cardId);
+                                } else {
+                                  handlePrototypeSelect(prototype.config.id);
+                                }
+                              }}
+                            >
+                              Explore
+                            </Button>
+                          )}
+                        </Td>
+                      </Tr>
+                    );
+                  })}
+                </Tbody>
+              </Table>
+            </Card>
           ) : (
             <Grid hasGutter>
               {filteredCards.map(card => {
@@ -416,12 +667,11 @@ const PrototypeLauncher: React.FC = () => {
                 // Use selected version's config for display (if version group), otherwise use representative
                 const displayPrototype = selectedVersion || prototype;
                 
-                const defaultChild = children.length > 0 ? getLastUsedChild(cardId, children) : children[0];
-                const isDropdownOpen = openDropdowns.has(cardId);
-                const isVersionSelectorOpen = openDropdowns.has(`${cardId}-version`);
-                
-                const hasChildren = children.length > 0;
-                const isClickableCard = card.type === 'standalone' && !hasChildren;
+                        const defaultChild = children.length > 0 ? getLastUsedChild(cardId, children) : children[0];
+                        const isDropdownOpen = openDropdowns.has(cardId);
+                        const isVersionSelectorOpen = openDropdowns.has(`${cardId}-version`);
+                        
+                        const hasChildren = children.length > 0;
                 
                 return (
                   <GridItem
@@ -430,13 +680,9 @@ const PrototypeLauncher: React.FC = () => {
                     lg={4}
                   >
                     <Card
-                      isClickable={isClickableCard}
-                      isSelectable={isClickableCard}
-                      onClick={isClickableCard ? () => handlePrototypeSelect(prototype.config.id) : undefined}
+                      className="prototype-launcher-card"
                       style={{ 
-                        height: '100%', 
-                        cursor: isClickableCard ? 'pointer' : 'default',
-                        borderLeft: hasChildren ? '4px solid var(--pf-v5-global--primary-color--100)' : undefined
+                        cursor: 'default',
                       }}
                     >
                     <CardTitle>
@@ -472,7 +718,24 @@ const PrototypeLauncher: React.FC = () => {
                         <DescriptionListGroup>
                           <DescriptionListTerm>Persona</DescriptionListTerm>
                           <DescriptionListDescription>
-                            {displayPrototype.config.persona.name} - {displayPrototype.config.persona.role}
+                            {prototype.config.id === 'acm-rbac-parent' ? (
+                              // For ACM RBAC parent, show both personas
+                              (() => {
+                                const fleetAdmin = childPrototypes.find(p => p.config.id === 'fleet-admin-rbac');
+                                const tenantAdmin = childPrototypes.find(p => p.config.id === 'tenant-admin-access');
+                                const personas = [];
+                                if (tenantAdmin) {
+                                  personas.push(`${tenantAdmin.config.persona.name} (${tenantAdmin.config.persona.role})`);
+                                }
+                                if (fleetAdmin) {
+                                  personas.push(`${fleetAdmin.config.persona.name} (${fleetAdmin.config.persona.role})`);
+                                }
+                                return personas.join(', ');
+                              })()
+                            ) : (
+                              // For other prototypes, show single persona
+                              `${displayPrototype.config.persona.name} (${displayPrototype.config.persona.role})`
+                            )}
                           </DescriptionListDescription>
                         </DescriptionListGroup>
 
@@ -549,7 +812,7 @@ const PrototypeLauncher: React.FC = () => {
                                 borderRight: '1px solid rgba(255, 255, 255, 0.3)',
                               }}
                             >
-                              Explore
+                              {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
                             </Button>
                           </FlexItem>
                           <FlexItem>
@@ -580,7 +843,88 @@ const PrototypeLauncher: React.FC = () => {
                                 {(() => {
                                   const items: React.ReactNode[] = [];
                                   
-                                  // For parents, show grouped children
+                                  // Special handling for AAQ parent
+                                  if (prototype.config.id === 'virtualization-parent') {
+                                    children.forEach(child => {
+                                      if (child.config.id === 'virtualization-quotas') {
+                                        items.push(
+                                          <DropdownItem
+                                            key={child.config.id}
+                                            onClick={(e) => {
+                                              e?.stopPropagation();
+                                              handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
+                                            }}
+                                            description="Explore quota management and resource allocation workflows"
+                                          >
+                                            Explore quotas
+                                          </DropdownItem>
+                                        );
+                                      } else if (child.config.id === 'aaq-empty-states') {
+                                        items.push(
+                                          <DropdownItem
+                                            key={child.config.id}
+                                            onClick={(e) => {
+                                              e?.stopPropagation();
+                                              handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
+                                            }}
+                                            description="Review and evaluate empty state designs for quota management"
+                                          >
+                                            Empty state
+                                          </DropdownItem>
+                                        );
+                                      }
+                                    });
+                                    return items;
+                                  }
+                                  
+                                  // Special handling for ACM RBAC parent
+                                  if (prototype.config.id === 'acm-rbac-parent') {
+                                    children.forEach(child => {
+                                      if (child.config.id === 'fleet-admin-rbac') {
+                                        items.push(
+                                          <DropdownItem
+                                            key={child.config.id}
+                                            onClick={(e) => {
+                                              e?.stopPropagation();
+                                              handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
+                                            }}
+                                            description="Explore how fleet administrators delegate cluster set access to tenant admins"
+                                          >
+                                            Fleet admin → Tenant admin rbac delegation
+                                          </DropdownItem>
+                                        );
+                                      } else if (child.config.id === 'tenant-admin-access') {
+                                        items.push(
+                                          <DropdownItem
+                                            key={child.config.id}
+                                            onClick={(e) => {
+                                              e?.stopPropagation();
+                                              handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
+                                            }}
+                                            description="Explore how tenant administrators grant team access to projects spanning multiple clusters"
+                                          >
+                                            Tenant admin → project access
+                                          </DropdownItem>
+                                        );
+                                      } else if (child.config.id === 'acm-empty-states') {
+                                        items.push(
+                                          <DropdownItem
+                                            key={child.config.id}
+                                            onClick={(e) => {
+                                              e?.stopPropagation();
+                                              handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
+                                            }}
+                                            description="Review and evaluate empty state designs for RBAC workflows"
+                                          >
+                                            Empty states
+                                          </DropdownItem>
+                                        );
+                                      }
+                                    });
+                                    return items;
+                                  }
+                                  
+                                  // For other parents, show grouped children
                                   const { grouped, standalone } = groupChildrenByVersion(children);
                                   
                                   // Render grouped versions
@@ -598,10 +942,8 @@ const PrototypeLauncher: React.FC = () => {
                                             handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
                                           }}
                                           description={`${child.config.versionLabel || child.config.version} • ${child.config.persona.role}`}
-                                          isDisabled={child.config.id === defaultChild.config.id}
                                         >
                                           {displayName}
-                                          {child.config.id === defaultChild.config.id && ' (current)'}
                                         </DropdownItem>
                                       );
                                     } else {
@@ -626,11 +968,9 @@ const PrototypeLauncher: React.FC = () => {
                                               handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
                                             }}
                                             description={child.config.persona.role}
-                                            isDisabled={child.config.id === defaultChild.config.id}
                                             style={{ paddingLeft: '32px' }}
                                           >
                                             {versionDisplay}
-                                            {child.config.id === defaultChild.config.id && ' (current)'}
                                           </DropdownItem>
                                         );
                                       });
@@ -651,10 +991,8 @@ const PrototypeLauncher: React.FC = () => {
                                           handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
                                         }}
                                         description={child.config.persona.role}
-                                        isDisabled={child.config.id === defaultChild.config.id}
                                       >
                                         {child.config.name}
-                                        {child.config.id === defaultChild.config.id && ' (current)'}
                                       </DropdownItem>
                                     );
                                   });
@@ -680,7 +1018,7 @@ const PrototypeLauncher: React.FC = () => {
                             }
                           }}
                         >
-                          Explore
+                          {prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
                         </Button>
                       )}
                     </CardFooter>

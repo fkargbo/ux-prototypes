@@ -1,121 +1,98 @@
-# [Prototype Name]
+# Prototype Template
 
-> **Owner:** [Your Name] (@yourslack)  
-> **Status:** Draft  
-> **Version:** 0.1.0  
-> **Created:** YYYY-MM-DD
+This template provides a starting point for creating new prototypes for user research and testing.
 
-## Overview
+## Quick Start
 
-Brief description of what this prototype explores and why.
+### 1. Copy this directory
 
-## Research Goals
+```bash
+cp -r src/app/prototypes/_template src/app/prototypes/your-prototype-name
+```
 
-What are you trying to learn or validate with this prototype?
+### 2. Update the configuration
 
-- Goal 1
-- Goal 2
-- Goal 3
+Edit `prototype.config.ts` and update:
 
-## User Persona
+- **id**: Unique identifier (kebab-case, e.g., `my-awesome-feature`)
+- **name**: Display name shown in the launcher
+- **description**: Brief description (2-3 sentences)
+- **owner**: Your name, Slack handle, and email
+- **persona**: User persona details
+- **perspectives**: Array of enabled perspectives (only these will be enabled in the UI)
+  - Options: `'core-platforms'`, `'fleet-management'`, `'fleet-virtualization'`
+- **tags**: Keywords for filtering
 
-- **Name:** [Persona Name]
-- **Role:** [Their role]
-- **Organization:** [Type of org]
-- **Experience Level:** [Novice / Intermediate / Expert]
+### 3. Build your pages
 
-## User Tasks
+Add your prototype pages in the `pages/` directory. The default `HomePage.tsx` is already set up.
 
-What should test participants try to accomplish?
+### 4. Define your routes
 
-### Task 1: [Task Name]
+Edit `routes.tsx` to add navigation routes for your prototype.
 
-Description of the task and expected outcome.
+### 5. Test your prototype
 
-### Task 2: [Task Name]
+1. Save your changes
+2. The prototype will automatically be discovered by webpack
+3. Refresh your browser
+4. You'll see your new prototype in the launcher under the "Draft" tab
 
-Description of the task and expected outcome.
+## Template Features
 
-## Research Questions
+### What's included
 
-What questions do you want to answer?
+- ✅ **Empty landing page** - No placeholder content, ready for your design
+- ✅ **Masthead** - Shows "Your Name Here" and "Your Persona Name Here" by default
+- ✅ **Perspective selector** - Core platforms enabled, others disabled
+- ✅ **Navigation** - Empty navigation structure ready for your links
+- ✅ **Version 1.0.0** - Standard starting version
+- ✅ **Draft status** - Visible only in Draft tab until you mark it active
 
-1. Question 1?
-2. Question 2?
-3. Question 3?
+### Customizing perspectives
 
-## Key Features
+The `perspectives` array in your config controls which perspectives are enabled:
 
-What's implemented in this prototype?
+```typescript
+// Only Core platforms enabled
+perspectives: ['core-platforms']
 
-- ✅ Feature 1
-- ✅ Feature 2
-- ⏸️ Feature 3 (partially implemented)
-- ❌ Feature 4 (not implemented)
+// Multiple perspectives enabled
+perspectives: ['core-platforms', 'fleet-management']
 
-## Mock Data
+// All perspectives enabled
+perspectives: ['core-platforms', 'fleet-management', 'fleet-virtualization']
+```
 
-Describe the mock data scenario used in this prototype.
+Perspectives not in this list will show as "(Disabled)" in the dropdown.
 
-- Number of clusters: X
-- Types of resources: Y
-- Scenario: Z
+## Directory Structure
 
-## Known Limitations
+```
+your-prototype-name/
+├── prototype.config.ts   # Configuration and metadata
+├── routes.tsx           # Route definitions
+├── pages/              # Your prototype pages
+│   └── HomePage.tsx    # Default landing page
+└── README.md          # This file
+```
 
-What doesn't work or is intentionally simplified?
+## Tips
 
-- Limitation 1
-- Limitation 2
+1. **Start simple** - Begin with a single page and expand as needed
+2. **Use shared components** - Import from `@app/shared` when possible
+3. **Follow PatternFly guidelines** - Use PatternFly components for consistency
+4. **Test frequently** - The hot reload will show your changes immediately
+5. **Keep it focused** - Each prototype should test a specific feature or workflow
 
-## Dependencies
+## Need Help?
 
-Shared components used in this prototype:
+Refer to the documentation in `/ai-documentation/` for:
+- PatternFly component usage
+- Styling standards
+- Component architecture patterns
+- Common issues and troubleshooting
 
-- `@app/shared/components/layouts/DetailPageLayout`
-- `@app/shared/components/layouts/TableLayout`
-- `@app/shared/components/wizards/BaseWizard`
+---
 
-## Setup Instructions
-
-How to run this prototype:
-
-1. Install dependencies: `npm install`
-2. Start dev server: `npm run start:dev`
-3. Select this prototype from the launcher
-4. Navigate to [starting URL]
-
-## Research Findings
-
-### Study Date: [Date]
-
-Participants: [Number]
-
-**Key Insights:**
-- Insight 1
-- Insight 2
-- Insight 3
-
-**Issues Found:**
-- Issue 1
-- Issue 2
-
-**Recommendations:**
-- Recommendation 1
-- Recommendation 2
-
-## Version History
-
-### v0.1.0 - YYYY-MM-DD
-- Initial prototype
-- Implemented core features
-
-## Related Work
-
-Links to:
-- Related prototypes
-- Design files (Figma, etc.)
-- Research documentation
-- Jira tickets
-- Other resources
-
+**Ready to build?** Copy this template, update the config, and start creating!

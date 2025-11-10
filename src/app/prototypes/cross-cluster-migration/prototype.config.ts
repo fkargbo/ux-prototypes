@@ -5,19 +5,16 @@ export const config: PrototypeConfig = {
   name: 'Cross Cluster Live Migration',
   description: 'Move 80 running VMs from core-billing project in us-east-prod-02 cluster to us-west-prod-01 cluster before decommissioning.',
   
-  // Versioning
-  versionGroup: 'cross-cluster-migration',
-  version: 'v1.0',
-  versionLabel: 'Initial Design',
+  version: '1.0.0',
   
   owner: {
-    name: 'Platform Team',
-    slack: '@platform',
+    name: 'Stefan Kukla',
+    slack: '@stefan',
   },
-  status: 'active',
+  status: 'in-progress',
   persona: {
-    name: 'Nelson Gardner',
-    role: 'Platform Administrator',
+    name: 'Dan Dreiberg',
+    role: 'Virtualization Administrator',
     organization: 'Petemobile (Telco)'
   },
   task: {
