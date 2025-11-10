@@ -291,7 +291,6 @@ const PrototypeLauncher: React.FC = () => {
   const counts = {
     all: cardsToDisplay.length,
     'in-progress': countCardsByStatus('in-progress'),
-    draft: countCardsByStatus('draft'),
     done: countCardsByStatus('done'),
     archived: countCardsByStatus('archived'),
   };
@@ -398,10 +397,6 @@ const PrototypeLauncher: React.FC = () => {
             <Tab
               eventKey="in-progress"
               title={<TabTitleText>In-progress ({counts['in-progress']})</TabTitleText>}
-            />
-            <Tab
-              eventKey="draft"
-              title={<TabTitleText>Draft ({counts.draft})</TabTitleText>}
             />
             <Tab
               eventKey="done"
