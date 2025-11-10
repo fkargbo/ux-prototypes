@@ -19,7 +19,7 @@ export const config: PrototypeConfig = {
   name: 'Fleet Admin - Tenant Delegation v1.1',
   
   // What this prototype explores
-  description: 'Explore how fleet administrators delegate cluster set access to tenant admins in a multi-tenant ACM environment. Testing role assignment workflows and permission models.',
+  description: 'Enhanced version: Explore how fleet administrators delegate cluster set access to tenant admins with improved workflows and better UX.',
   
   // Owner information
   owner: {
