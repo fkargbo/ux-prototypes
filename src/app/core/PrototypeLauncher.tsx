@@ -659,6 +659,43 @@ const PrototypeLauncher: React.FC = () => {
                   children = card.versions || [];
                 }
                 
+                // For parent cards, check if children have versions
+                let parentVersions: PrototypeModule[] = [];
+                let selectedParentVersion: PrototypeModule | null = null;
+                let filteredChildren: PrototypeModule[] = children;
+                
+                if (card.type === 'parent' && children.length > 0) {
+                  // Group children by versionGroup to find versions
+                  const { grouped } = groupChildrenByVersion(children);
+                  
+                  // Collect all versions from children
+                  grouped.forEach((versions) => {
+                    parentVersions.push(...versions);
+                  });
+                  
+                  // If we have versions, get selected version and filter children
+                  if (parentVersions.length > 0) {
+                    // Get unique version groups
+                    const versionGroups = Array.from(new Set(parentVersions.map(v => v.config.versionGroup!)));
+                    
+                    // For now, use the first version group's versions
+                    // In the future, we could support multiple version groups
+                    const firstVersionGroup = versionGroups[0];
+                    const versionsForGroup = parentVersions.filter(v => v.config.versionGroup === firstVersionGroup);
+                    
+                    if (versionsForGroup.length > 1) {
+                      // We have multiple versions - show dropdown
+                      selectedParentVersion = getSelectedVersion(`${cardId}-parent-version`, versionsForGroup);
+                      
+                      // Filter children: show only children matching selected version OR children without versionGroup
+                      const selectedVersionGroup = selectedParentVersion.config.versionGroup;
+                      filteredChildren = children.filter(child => 
+                        !child.config.versionGroup || child.config.versionGroup === selectedVersionGroup
+                      );
+                    }
+                  }
+                }
+                
                 // For version groups, get the currently selected version
                 const selectedVersion = card.type === 'versionGroup' && children.length > 0
                   ? getSelectedVersion(cardId, children)
@@ -667,11 +704,15 @@ const PrototypeLauncher: React.FC = () => {
                 // Use selected version's config for display (if version group), otherwise use representative
                 const displayPrototype = selectedVersion || prototype;
                 
-                        const defaultChild = children.length > 0 ? getLastUsedChild(cardId, children) : children[0];
-                        const isDropdownOpen = openDropdowns.has(cardId);
-                        const isVersionSelectorOpen = openDropdowns.has(`${cardId}-version`);
+                // Use filtered children for parent cards with versions, otherwise use all children
+                const displayChildren = (card.type === 'parent' && selectedParentVersion) ? filteredChildren : children;
+                const defaultChild = displayChildren.length > 0 ? getLastUsedChild(cardId, displayChildren) : displayChildren[0];
+                const isDropdownOpen = openDropdowns.has(cardId);
+                const isVersionSelectorOpen = openDropdowns.has(`${cardId}-version`);
+                const isParentVersionSelectorOpen = openDropdowns.has(`${cardId}-parent-version`);
                         
-                        const hasChildren = children.length > 0;
+                const hasChildren = displayChildren.length > 0;
+                const hasMultipleChildren = displayChildren.length > 1;
                 
                 return (
                   <GridItem
@@ -784,6 +825,57 @@ const PrototypeLauncher: React.FC = () => {
                                   ))}
                                 </SelectList>
                               </Select>
+                            ) : card.type === 'parent' && parentVersions.length > 1 ? (
+                              // Parent card with versions - show version dropdown
+                              (() => {
+                                const versionGroups = Array.from(new Set(parentVersions.map(v => v.config.versionGroup!)));
+                                const firstVersionGroup = versionGroups[0];
+                                const versionsForGroup = parentVersions.filter(v => v.config.versionGroup === firstVersionGroup);
+                                
+                                return (
+                                  <Select
+                                    isOpen={isParentVersionSelectorOpen}
+                                    onSelect={(_, value) => {
+                                      handleVersionSelect(`${cardId}-parent-version`, value as string);
+                                      toggleDropdown(`${cardId}-parent-version`);
+                                    }}
+                                    onOpenChange={(isOpen) => {
+                                      if (isOpen) {
+                                        setOpenDropdowns(prev => new Set(prev).add(`${cardId}-parent-version`));
+                                      } else {
+                                        setOpenDropdowns(prev => {
+                                          const next = new Set(prev);
+                                          next.delete(`${cardId}-parent-version`);
+                                          return next;
+                                        });
+                                      }
+                                    }}
+                                    toggle={(toggleRef) => (
+                                      <MenuToggle
+                                        ref={toggleRef}
+                                        onClick={() => toggleDropdown(`${cardId}-parent-version`)}
+                                        isExpanded={isParentVersionSelectorOpen}
+                                        variant="secondary"
+                                        style={{ minWidth: '120px', fontSize: '14px' }}
+                                      >
+                                        {selectedParentVersion?.config.version || versionsForGroup[0]?.config.version || 'Select'}
+                                      </MenuToggle>
+                                    )}
+                                  >
+                                    <SelectList>
+                                      {versionsForGroup.map(version => (
+                                        <SelectOption
+                                          key={version.config.id}
+                                          value={version.config.id}
+                                          isSelected={version.config.id === selectedParentVersion?.config.id}
+                                        >
+                                          {version.config.version}
+                                        </SelectOption>
+                                      ))}
+                                    </SelectList>
+                                  </Select>
+                                );
+                              })()
                             ) : (
                               displayPrototype.config.version
                             )}
@@ -795,58 +887,61 @@ const PrototypeLauncher: React.FC = () => {
                     {/* Footer with launch button - all cards get one */}
                     <CardFooter>
                       {card.type === 'parent' && hasChildren ? (
-                        // Split button ONLY for parent prototypes
-                        <Flex spaceItems={{ default: 'spaceItemsNone' }} justifyContent={{ default: 'justifyContentFlexStart' }}>
-                          <FlexItem>
-                            <Button
-                              variant="primary"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (defaultChild) {
-                                  handlePrototypeSelectWithMemory(defaultChild.config.id, cardId);
-                                }
-                              }}
-                              style={{
-                                borderTopRightRadius: 0,
-                                borderBottomRightRadius: 0,
-                                borderRight: '1px solid rgba(255, 255, 255, 0.3)',
-                              }}
-                            >
-                              {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
-                            </Button>
-                          </FlexItem>
-                          <FlexItem>
-                            <Dropdown
-                              isOpen={isDropdownOpen}
-                              onSelect={() => toggleDropdown(cardId)}
-                              onOpenChange={(isOpen) => {
-                                if (!isOpen) toggleDropdown(cardId);
-                              }}
-                              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                <MenuToggle
-                                  ref={toggleRef}
-                                  variant="primary"
-                                  isExpanded={isDropdownOpen}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleDropdown(cardId);
-                                  }}
-                                  style={{
-                                    borderTopLeftRadius: 0,
-                                    borderBottomLeftRadius: 0,
-                                    minWidth: '44px',
-                                  }}
-                                />
-                              )}
-                            >
-                              <DropdownList>
-                                {(() => {
-                                  const items: React.ReactNode[] = [];
-                                  
-                                  // Special handling for AAQ parent
-                                  if (prototype.config.id === 'virtualization-parent') {
-                                    children.forEach(child => {
-                                      if (child.config.id === 'virtualization-quotas') {
+                        // Show split button if multiple children, simple button if one child
+                        hasMultipleChildren ? (
+                          // Split button for multiple children
+                          <Flex spaceItems={{ default: 'spaceItemsNone' }} justifyContent={{ default: 'justifyContentFlexStart' }}>
+                            <FlexItem>
+                              <Button
+                                variant="primary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (defaultChild) {
+                                    handlePrototypeSelectWithMemory(defaultChild.config.id, cardId);
+                                  }
+                                }}
+                                style={{
+                                  borderTopRightRadius: 0,
+                                  borderBottomRightRadius: 0,
+                                  borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+                                }}
+                              >
+                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
+                              </Button>
+                            </FlexItem>
+                            <FlexItem>
+                              <Dropdown
+                                isOpen={isDropdownOpen}
+                                onSelect={() => toggleDropdown(cardId)}
+                                onOpenChange={(isOpen) => {
+                                  if (!isOpen) toggleDropdown(cardId);
+                                }}
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    variant="primary"
+                                    isExpanded={isDropdownOpen}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleDropdown(cardId);
+                                    }}
+                                    style={{
+                                      borderTopLeftRadius: 0,
+                                      borderBottomLeftRadius: 0,
+                                      minWidth: '44px',
+                                    }}
+                                  />
+                                )}
+                              >
+                                <DropdownList>
+                                  {(() => {
+                                    const items: React.ReactNode[] = [];
+                                    
+                                    // Use filtered children (based on selected version)
+                                    displayChildren.forEach(child => {
+                                      // Special handling for AAQ parent
+                                      if (prototype.config.id === 'virtualization-parent') {
+                                        if (child.config.id === 'virtualization-quotas') {
                                         items.push(
                                           <DropdownItem
                                             key={child.config.id}
@@ -873,14 +968,50 @@ const PrototypeLauncher: React.FC = () => {
                                           </DropdownItem>
                                         );
                                       }
-                                    });
-                                    return items;
-                                  }
-                                  
-                                  // Special handling for ACM RBAC parent
-                                  if (prototype.config.id === 'acm-rbac-parent') {
-                                    children.forEach(child => {
-                                      if (child.config.id === 'fleet-admin-rbac') {
+                                      // Special handling for ACM RBAC parent
+                                    } else if (prototype.config.id === 'acm-rbac-parent') {
+                                        if (child.config.id === 'fleet-admin-rbac' || child.config.id === 'fleet-admin-rbac-v1.1') {
+                                          items.push(
+                                            <DropdownItem
+                                              key={child.config.id}
+                                              onClick={(e) => {
+                                                e?.stopPropagation();
+                                                handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
+                                              }}
+                                              description="Explore how fleet administrators delegate cluster set access to tenant admins"
+                                            >
+                                              Fleet admin → Tenant admin rbac delegation
+                                            </DropdownItem>
+                                          );
+                                        } else if (child.config.id === 'tenant-admin-access') {
+                                          items.push(
+                                            <DropdownItem
+                                              key={child.config.id}
+                                              onClick={(e) => {
+                                                e?.stopPropagation();
+                                                handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
+                                              }}
+                                              description="Explore how tenant administrators grant team access to projects spanning multiple clusters"
+                                            >
+                                              Tenant admin → project access
+                                            </DropdownItem>
+                                          );
+                                        } else if (child.config.id === 'acm-empty-states') {
+                                          items.push(
+                                            <DropdownItem
+                                              key={child.config.id}
+                                              onClick={(e) => {
+                                                e?.stopPropagation();
+                                                handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
+                                              }}
+                                              description="Review and evaluate empty state designs for RBAC workflows"
+                                            >
+                                              Empty states
+                                            </DropdownItem>
+                                          );
+                                        }
+                                      } else {
+                                        // Generic handling for other parents
                                         items.push(
                                           <DropdownItem
                                             key={child.config.id}
@@ -888,121 +1019,33 @@ const PrototypeLauncher: React.FC = () => {
                                               e?.stopPropagation();
                                               handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
                                             }}
-                                            description="Explore how fleet administrators delegate cluster set access to tenant admins"
                                           >
-                                            Fleet admin → Tenant admin rbac delegation
-                                          </DropdownItem>
-                                        );
-                                      } else if (child.config.id === 'tenant-admin-access') {
-                                        items.push(
-                                          <DropdownItem
-                                            key={child.config.id}
-                                            onClick={(e) => {
-                                              e?.stopPropagation();
-                                              handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
-                                            }}
-                                            description="Explore how tenant administrators grant team access to projects spanning multiple clusters"
-                                          >
-                                            Tenant admin → project access
-                                          </DropdownItem>
-                                        );
-                                      } else if (child.config.id === 'acm-empty-states') {
-                                        items.push(
-                                          <DropdownItem
-                                            key={child.config.id}
-                                            onClick={(e) => {
-                                              e?.stopPropagation();
-                                              handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
-                                            }}
-                                            description="Review and evaluate empty state designs for RBAC workflows"
-                                          >
-                                            Empty states
+                                            {child.config.name}
                                           </DropdownItem>
                                         );
                                       }
                                     });
-                                    return items;
-                                  }
-                                  
-                                  // For other parents, show grouped children
-                                  const { grouped, standalone } = groupChildrenByVersion(children);
-                                  
-                                  // Render grouped versions
-                                  grouped.forEach((versions, groupName) => {
-                                    const displayName = versions[0].config.name;
                                     
-                                    if (versions.length === 1) {
-                                      // Single version - show directly
-                                      const child = versions[0];
-                                      items.push(
-                                        <DropdownItem
-                                          key={child.config.id}
-                                          onClick={(e) => {
-                                            e?.stopPropagation();
-                                            handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
-                                          }}
-                                          description={`${child.config.versionLabel || child.config.version} • ${child.config.persona.role}`}
-                                        >
-                                          {displayName}
-                                        </DropdownItem>
-                                      );
-                                    } else {
-                                      // Multiple versions - show with version selector
-                                      items.push(
-                                        <DropdownItem
-                                          key={`header-${groupName}`}
-                                          isDisabled
-                                          style={{ fontWeight: 'bold', paddingTop: '12px' }}
-                                        >
-                                          {displayName}
-                                        </DropdownItem>
-                                      );
-                                      
-                                      versions.forEach(child => {
-                                        const versionDisplay = child.config.versionLabel || child.config.version;
-                                        items.push(
-                                          <DropdownItem
-                                            key={child.config.id}
-                                            onClick={(e) => {
-                                              e?.stopPropagation();
-                                              handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
-                                            }}
-                                            description={child.config.persona.role}
-                                            style={{ paddingLeft: '32px' }}
-                                          >
-                                            {versionDisplay}
-                                          </DropdownItem>
-                                        );
-                                      });
-                                    }
-                                  });
-                                  
-                                  // Render standalone children (no version group)
-                                  if (standalone.length > 0 && grouped.size > 0) {
-                                    items.push(<Divider key="divider-standalone" />);
-                                  }
-                                  
-                                  standalone.forEach(child => {
-                                    items.push(
-                                      <DropdownItem
-                                        key={child.config.id}
-                                        onClick={(e) => {
-                                          e?.stopPropagation();
-                                          handlePrototypeSelectWithMemory(child.config.id, prototype.config.id);
-                                        }}
-                                        description={child.config.persona.role}
-                                      >
-                                        {child.config.name}
-                                      </DropdownItem>
-                                    );
-                                  });
-                                  
-                                  return items;
-                                })()}
-                              </DropdownList>
-                            </Dropdown>
-                          </FlexItem>
-                        </Flex>
+                                    return items;
+                                  })()}
+                                </DropdownList>
+                              </Dropdown>
+                            </FlexItem>
+                          </Flex>
+                        ) : (
+                          // Simple button for single child
+                          <Button
+                            variant="primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (defaultChild) {
+                                handlePrototypeSelectWithMemory(defaultChild.config.id, cardId);
+                              }
+                            }}
+                          >
+                            {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
+                          </Button>
+                        )
                       ) : (
                         // Single button for version groups and standalone cards
                         <Button
