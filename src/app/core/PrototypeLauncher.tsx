@@ -702,6 +702,19 @@ const PrototypeLauncher: React.FC = () => {
                         // (v1.1 should only show the versioned child)
                         return selectedVersionValue === 'v1.0';
                       });
+                    } else if (versionsForGroup.length === 1) {
+                      // Only one version exists - still need to filter children to match that version
+                      selectedParentVersion = versionsForGroup[0];
+                      const selectedVersionGroup = selectedParentVersion.config.versionGroup;
+                      const selectedVersionValue = selectedParentVersion.config.version;
+                      
+                      filteredChildren = children.filter(child => {
+                        if (child.config.versionGroup) {
+                          return child.config.versionGroup === selectedVersionGroup && 
+                                 child.config.version === selectedVersionValue;
+                        }
+                        return selectedVersionValue === 'v1.0';
+                      });
                     }
                   }
                 }
@@ -921,20 +934,29 @@ const PrototypeLauncher: React.FC = () => {
                             </FlexItem>
                             <FlexItem>
                               <Dropdown
-                                isOpen={isDropdownOpen}
-                                onSelect={() => toggleDropdown(cardId)}
+                                isOpen={isDropdownOpen && hasMultipleChildren}
+                                onSelect={() => {
+                                  if (hasMultipleChildren) {
+                                    toggleDropdown(cardId);
+                                  }
+                                }}
                                 onOpenChange={(isOpen) => {
-                                  if (!isOpen) toggleDropdown(cardId);
+                                  if (!isOpen && hasMultipleChildren) {
+                                    toggleDropdown(cardId);
+                                  }
                                 }}
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle
                                     ref={toggleRef}
                                     variant="primary"
-                                    isExpanded={isDropdownOpen}
+                                    isExpanded={isDropdownOpen && hasMultipleChildren}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      toggleDropdown(cardId);
+                                      if (hasMultipleChildren) {
+                                        toggleDropdown(cardId);
+                                      }
                                     }}
+                                    isDisabled={!hasMultipleChildren}
                                     style={{
                                       borderTopLeftRadius: 0,
                                       borderBottomLeftRadius: 0,
