@@ -18,7 +18,7 @@ import {
   MenuToggle,
   MenuToggleAction,
 } from '@patternfly/react-core';
-import { useUseCaseContext } from '@app/contexts/UseCaseContext';
+import { useUseCaseContext } from '@app/shared/contexts/UseCaseContext';
 
 export const UseCaseSelector: React.FC = () => {
   const navigate = useNavigate();

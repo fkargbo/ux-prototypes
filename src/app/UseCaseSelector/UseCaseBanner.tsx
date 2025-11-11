@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import { ArrowLeftIcon, InfoCircleIcon } from '@patternfly/react-icons';
-import { useUseCaseContext } from '@app/contexts/UseCaseContext';
+import { useUseCaseContext } from '@app/shared/contexts/UseCaseContext';
 
 export const UseCaseBanner: React.FC = () => {
   const navigate = useNavigate();

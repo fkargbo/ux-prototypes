@@ -4,8 +4,8 @@
  * Wraps each prototype with AppLayout and adds navigation banner
  */
 
-import React, { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { 
   Banner, 
   Flex, 
@@ -21,7 +21,7 @@ import {
 import { ArrowLeftIcon } from '@patternfly/react-icons';
 import { AppLayout } from '@app/AppLayout/AppLayout';
 import { PrototypeModule } from './types';
-import { QuotasProvider } from '@app/contexts/QuotasContext';
+import { QuotasProvider } from '@app/shared/contexts/QuotasContext';
 import { usePrototype } from './PrototypeContext';
 import { prototypeRegistry } from './PrototypeRegistry';
 
@@ -31,6 +31,8 @@ interface PrototypeLayoutProps {
 
 export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) => {
   const { unloadPrototype, loadPrototype } = usePrototype();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isVersionOpen, setIsVersionOpen] = useState(false);
   const [isUseCaseOpen, setIsUseCaseOpen] = useState(false);
   
@@ -182,6 +184,48 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   const ownerDisplayName = prototype.config.owner.slack
     ? `${prototype.config.owner.name} (slack ${prototype.config.owner.slack})`
     : prototype.config.owner.name;
+
+  // Handle root route redirect for specific prototypes
+  useEffect(() => {
+    // For virtualization-quotas prototype, always navigate to Quotas page on load
+    if (prototype.config.id === 'virtualization-quotas') {
+      // Check if we're on root or not on the Quotas page
+      if (location.pathname === '/' || location.pathname === '' || !location.pathname.includes('/core/virtualization/quotas')) {
+        navigate('/core/virtualization/quotas', { replace: true });
+      }
+    } else if (prototype.config.id === 'operator-lifecycle') {
+      // For operator-lifecycle prototype, always navigate to OperatorHub page on load
+      if (location.pathname === '/' || location.pathname === '' || !location.pathname.includes('/core/operators/hub')) {
+        navigate('/core/operators/hub', { replace: true });
+      }
+    } else if (prototype.config.id === 'cross-cluster-migration') {
+      // For cross-cluster-migration prototype, always navigate to Virtual machines page in Fleet Virtualization
+      if (location.pathname === '/' || location.pathname === '' || !location.pathname.includes('/virtualization/virtual-machines')) {
+        navigate('/virtualization/virtual-machines', { replace: true });
+      }
+    } else if (prototype.config.id === 'fleet-admin-rbac' || prototype.config.id === 'fleet-admin-rbac-v1.1') {
+      // For RBAC prototypes, always navigate to Clusters page in Fleet management
+      if (location.pathname === '/' || location.pathname === '' || !location.pathname.includes('/infrastructure/clusters')) {
+        navigate('/infrastructure/clusters', { replace: true });
+      }
+    } else {
+      // For other prototypes, check if we're on the root path and prototype has a redirect route
+      if (location.pathname === '/' || location.pathname === '') {
+        const rootRoute = prototype.routes.find(route => route.path === '/');
+        if (rootRoute && rootRoute.element && React.isValidElement(rootRoute.element)) {
+          // If root route is a Navigate component, extract the 'to' prop
+          const navigateElement = rootRoute.element as React.ReactElement<{ to: string; replace?: boolean }>;
+          if (navigateElement.type === Navigate || (navigateElement.props && navigateElement.props.to)) {
+            const targetPath = navigateElement.props.to;
+            if (targetPath) {
+              // Navigate immediately to the target path
+              navigate(targetPath, { replace: true });
+            }
+          }
+        }
+      }
+    }
+  }, [location.pathname, prototype.routes, prototype.config.id, navigate]);
 
   return (
     <QuotasProvider>

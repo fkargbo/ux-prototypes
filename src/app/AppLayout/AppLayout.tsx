@@ -71,8 +71,8 @@ import {
   InfoCircleIcon,
 } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { useImpersonation } from '@app/contexts/ImpersonationContext';
-import { useUseCaseContext } from '@app/contexts/UseCaseContext';
+import { useImpersonation } from '@app/shared/contexts/ImpersonationContext';
+import { useUseCaseContext } from '@app/shared/contexts/UseCaseContext';
 import { UseCaseBanner } from '@app/UseCaseSelector/UseCaseBanner';
 import virtIcon from '@app/bgimages/virt-icon.png';
 import multiclusterIcon from '@app/bgimages/pficon-multicluster.svg';
@@ -144,7 +144,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
       setActivePerspective('Core platforms');
     } else if (useCase === 'use-case-cclm' || currentPrototypeId === 'cross-cluster-migration') {
       setActivePerspective('Fleet virtualization');
-    } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states') {
+    } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states' || currentPrototypeId === 'fleet-admin-rbac' || currentPrototypeId === 'fleet-admin-rbac-v1.1' || currentPrototypeId === 'tenant-admin-access') {
       setActivePerspective('Fleet management');
     } else if (enabledPerspectives && enabledPerspectives.length > 0) {
       // Set to first enabled perspective for prototypes
