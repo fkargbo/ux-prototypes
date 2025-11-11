@@ -434,6 +434,49 @@ It's okay to duplicate code across prototypes during exploration. Share when sta
 
 ---
 
+### Feedback Components
+
+#### StandardModal
+
+A standardized modal component with consistent layout matching the floating button modal style.
+
+**Location:** `components/feedback/StandardModal.tsx`
+
+**Usage:**
+```typescript
+import { StandardModal } from '@app/shared/components/feedback';
+
+const [isOpen, setIsOpen] = useState(false);
+
+<StandardModal
+  isOpen={isOpen}
+  onClose={() => setIsOpen(false)}
+  title="Example modal title"
+  content="This is the modal content text."
+  actionButtonLabel="Close"
+  buttonPosition="left"
+/>
+```
+
+**Props:**
+- `isOpen`: Whether the modal is open (boolean)
+- `onClose`: Callback when modal should close
+- `title`: Modal title (string)
+- `content`: Modal content (string or ReactNode)
+- `actionButtonLabel`: Button label (default: "Close")
+- `onAction`: Action button callback (default: calls onClose)
+- `actionButtonVariant`: Button variant (default: "primary")
+- `buttonPosition`: Button position - "left" or "right" (default: "left")
+- `ariaLabel`: ARIA label for accessibility
+
+**Layout:**
+- Padding: 24px
+- Title: 2xl size with proper spacing
+- Content: 16px font, 1.6 line height
+- Button: Left-aligned by default
+
+---
+
 ## Questions?
 
 If you're not sure whether to share a component or how to use a shared component, ask in:
@@ -454,6 +497,7 @@ Quick reference of all shared components:
 | BaseWizard | Wizard | ✅ Stable | fleet-admin-rbac, virtualization-quotas |
 | DataTable | Table | 🚧 Beta | fleet-admin-rbac |
 | FormField | Form | ✅ Stable | All |
+| StandardModal | Feedback | ✅ Stable | Template (example) |
 | useFilter | Hook | ✅ Stable | fleet-admin-rbac, tenant-admin-access |
 | useSort | Hook | ✅ Stable | All table pages |
 | usePagination | Hook | ✅ Stable | All table pages |

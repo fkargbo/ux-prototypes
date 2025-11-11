@@ -2,84 +2,77 @@
  * Routes for [Prototype Name]
  * 
  * Define all routes for your prototype here.
+ * 
+ * ⚠️ IMPORTANT: Navigation Merging Behavior
+ * 
+ * Your prototype routes are MERGED with the default navigation, not replacing it.
+ * This means:
+ * 
+ * 1. **Default Navigation is Always Present:**
+ *    - Core platforms: Home, Virtualization, Operators, Workloads, etc.
+ *    - Fleet virtualization: Overview, Catalog, Virtual machines, etc.
+ *    - Fleet management: Infrastructure, Applications, Credentials, etc.
+ * 
+ * 2. **Your Routes Are Added On Top:**
+ *    - Routes with `navigation` metadata will appear in the sidebar
+ *    - Routes are filtered by perspective based on path:
+ *      * Fleet management: paths NOT starting with `/core` or `/virtualization`
+ *      * Fleet virtualization: paths starting with `/virtualization` or `/user-management`
+ *      * Core platforms: paths starting with `/core`
+ * 
+ * 3. **Group Merging:**
+ *    - If your route has `navigation.group: 'User management'` and a default group
+ *      with the same label exists, your routes REPLACE that default group
+ *    - If your route has a new group name, it's ADDED to the navigation
+ * 
+ * 4. **Routes Without Navigation Metadata:**
+ *    - Routes without `navigation` metadata are still accessible via URL
+ *    - They just won't appear in the sidebar navigation
+ *    - Use this for detail pages, wizards, modals, etc.
+ * 
+ * Example:
+ * ```typescript
+ * {
+ *   path: '/my-page',
+ *   element: <MyPage />,
+ *   label: 'My Page',           // Required for navigation
+ *   title: 'My Page',           // Browser tab title
+ *   navigation: {               // Required for navigation
+ *     group: 'Main',            // Group name (empty string = top-level)
+ *     order: 1,                 // Sort order within group
+ *   }
+ * }
+ * ```
  */
 
 import React from 'react';
-import { PageSection } from '@patternfly/react-core';
 import { RouteConfig } from '@app/core/types';
 
-// Import your page components
-import { HomePage } from './pages/HomePage';
-// import { OtherPage } from './pages/OtherPage';
+// Import your page components here when you add routes
+import { OverviewPage } from './pages/OverviewPage';
 
+/**
+ * IMPORTANT: Template Isolation
+ * 
+ * This template has navigation routes ONLY for demonstration purposes.
+ * These routes REPLACE the default "Overview" in Core platforms > Home group.
+ * They only affect the template prototype when it's active.
+ * 
+ * When you copy this template to create your own prototype, you can add
+ * navigation routes here. They will only affect YOUR prototype, not others.
+ */
 export const routes: RouteConfig[] = [
+  // Core Platforms - Home - Overview (replaces default Overview)
   {
-    // Route path (relative to root)
-    path: '/',
-    
-    // React component to render
-    element: <HomePage />,
-    
-    // Label (if provided, shows in navigation)
-    label: 'Home',
-    
-    // Page title (shown in browser tab)
-    title: 'Home',
-    
-    // Optional: Navigation grouping
+    path: '/core/home/overview',
+    element: <OverviewPage />,
+    label: 'Overview',
+    title: 'Overview',
     navigation: {
-      group: 'Main',
-      order: 1,
-      // icon: HomeIcon // Optional icon component
-    }
-  },
-  
-  // User Management - Identities (Fleet management perspective)
-  {
-    path: '/user-management/identities',
-    element: <PageSection />,
-    label: 'Identities',
-    title: 'ACM | Identities',
-    navigation: {
-      group: 'User management',
+      group: 'Home',
       order: 1
     }
   },
   
-  // User Management - Roles (Fleet management perspective)
-  {
-    path: '/user-management/roles',
-    element: <PageSection />,
-    label: 'Roles',
-    title: 'ACM | Roles',
-    navigation: {
-      group: 'User management',
-      order: 2
-    }
-  },
-  
-  // User Management - Identity Providers (Fleet management perspective)
-  {
-    path: '/user-management/identity-providers',
-    element: <PageSection />,
-    label: 'Identity providers',
-    title: 'ACM | Identity Providers',
-    navigation: {
-      group: 'User management',
-      order: 3
-    }
-  },
-  
-  // Add more routes here...
-  // {
-  //   path: '/other',
-  //   element: <OtherPage />,
-  //   label: 'Other Page',
-  //   title: 'Other Page',
-  //   navigation: {
-  //     group: 'Main',
-  //     order: 2
-  //   }
-  // }
+  // Add your routes here when you copy this template...
 ];
-

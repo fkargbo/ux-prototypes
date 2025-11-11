@@ -12,10 +12,10 @@ export const config: PrototypeConfig = {
   id: 'example-draft-prototype',
   
   // Display name (shown in prototype launcher)
-  name: 'Example Draft Prototype',
+  name: '📋 Prototype Template',
   
   // Brief description (2-3 sentences max)
-  description: 'This is an example draft prototype that demonstrates the template structure. Copy this directory to create your own prototype.',
+  description: 'This is the template prototype. Explore it to see the structure and examples. Copy the _template directory to create your own prototype.',
   
   // Owner information
   owner: {
@@ -28,7 +28,7 @@ export const config: PrototypeConfig = {
   version: '1.0.0',
   
   // Status: 'draft' | 'in-progress' | 'done' | 'paused' | 'archived'
-  status: 'draft',
+  status: 'in-progress',
   
   // User persona for this prototype
   persona: {

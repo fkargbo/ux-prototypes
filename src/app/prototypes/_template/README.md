@@ -1,98 +1,261 @@
 # Prototype Template
 
-This template provides a starting point for creating new prototypes for user research and testing.
+This is the template prototype for creating new prototypes. Copy this directory to create your own prototype.
 
 ## Quick Start
 
-### 1. Copy this directory
+1. **Copy the template:**
+   ```bash
+   cp -r _template my-new-prototype
+   ```
 
-```bash
-cp -r src/app/prototypes/_template src/app/prototypes/your-prototype-name
+2. **Update `prototype.config.ts`:**
+   - Change `id`, `name`, `description`
+   - Set `owner`, `persona`, `status`
+   - Configure `perspectives` and `tags`
+
+3. **Customize your prototype:**
+   - Edit `pages/HomePage.tsx` for your landing page
+   - Add routes in `routes.tsx`
+   - Create your components in `components/`
+
+4. **Test your prototype:**
+   - Run `npm start`
+   - Navigate to the prototype launcher
+   - Click on your prototype card
+
+## Structure
+
+```
+_template/
+├── README.md                          # This file
+├── WIZARD_PATTERN.md                  # Wizard pattern guidelines
+├── PAGE_TEMPLATE.md                   # Standard page layout pattern (MANDATORY)
+├── PAGE_TEMPLATE_BOILERPLATE.tsx      # Copy-paste template for new pages
+├── prototype.config.ts                 # Prototype configuration
+├── routes.tsx                         # Route definitions
+├── pages/
+│   ├── HomePage.tsx                   # Landing page
+│   ├── NewPage.tsx                    # Example page with standard layout
+│   └── OverviewPage.tsx               # Example page with buttons (uses template)
+└── components/
+    └── ExampleWizard.tsx               # Example wizard component
 ```
 
-### 2. Update the configuration
+## Components
 
-Edit `prototype.config.ts` and update:
+### ExampleWizard
 
-- **id**: Unique identifier (kebab-case, e.g., `my-awesome-feature`)
-- **name**: Display name shown in the launcher
-- **description**: Brief description (2-3 sentences)
-- **owner**: Your name, Slack handle, and email
-- **persona**: User persona details
-- **perspectives**: Array of enabled perspectives (only these will be enabled in the UI)
-  - Options: `'core-platforms'`, `'fleet-management'`, `'fleet-virtualization'`
-- **tags**: Keywords for filtering
+A complete example of the CCLM-style wizard pattern. See `WIZARD_PATTERN.md` for details.
 
-### 3. Build your pages
+**Usage:**
+```typescript
+import { ExampleWizard } from '../components/ExampleWizard';
 
-Add your prototype pages in the `pages/` directory. The default `HomePage.tsx` is already set up.
+const [isWizardOpen, setIsWizardOpen] = useState(false);
 
-### 4. Define your routes
+<Button onClick={() => setIsWizardOpen(true)}>Open Wizard</Button>
+<ExampleWizard
+  isOpen={isWizardOpen}
+  onClose={() => setIsWizardOpen(false)}
+  onFinish={(data) => {
+    console.log('Wizard completed:', data);
+  }}
+/>
+```
 
-Edit `routes.tsx` to add navigation routes for your prototype.
+## Patterns
 
-### 5. Test your prototype
+### Standard Page Layout Pattern
 
-1. Save your changes
-2. The prototype will automatically be discovered by webpack
-3. Refresh your browser
-4. You'll see your new prototype in the launcher under the "Draft" tab
+**🚨 MANDATORY RULE FOR AI ASSISTANTS:** When creating ANY new page or navigation item, you MUST automatically use the standard page layout. Do NOT ask the user - just apply it automatically.
 
-## Template Features
+**This rule applies to:**
+- All new pages
+- All navigation items
+- All subnav items
+- Any page layout request
 
-### What's included
+**There are NO exceptions. Every page MUST follow this pattern.**
 
-- ✅ **Empty landing page** - No placeholder content, ready for your design
-- ✅ **Masthead** - Shows "Your Name Here" and "Your Persona Name Here" by default
-- ✅ **Perspective selector** - Core platforms enabled, others disabled
-- ✅ **Navigation** - Empty navigation structure ready for your links
-- ✅ **Version 1.0.0** - Standard starting version
-- ✅ **Draft status** - Visible only in Draft tab until you mark it active
+**Required Structure:**
+1. **Breadcrumbs Section** - 16px padding (`template-page-breadcrumb`)
+2. **Heading Section** - 24px padding (`template-page-heading`)
+   - Title (h1, 2xl)
+   - Description
+3. **Content Area** - 24px padding (`template-page-content`)
+   - Card wrapper (`table-content-card`)
+   - Toolbar (bulk selector, filter, search, primary button, pagination)
+   - Table (with selection checkboxes)
+   - Pagination (bottom)
 
-### Customizing perspectives
+**See `PAGE_TEMPLATE.md` for:**
+- Complete structure requirements
+- CSS classes and padding values
+- Complete code example
+- Quick reference guide
+- Rules and best practices
 
-The `perspectives` array in your config controls which perspectives are enabled:
+**Key Rules:**
+- ✅ **ALWAYS** use the exact CSS classes - they have `!important` flags
+- ✅ **ALWAYS** include all three sections (breadcrumbs, heading, content)
+- ✅ **ALWAYS** wrap table in `table-content-card` div
+- ✅ **ALWAYS** include pagination at top and bottom
+- ✅ **NEVER** use inline padding - use CSS classes
+- ✅ **NEVER** skip any section
+
+**Quick Start:**
+1. **Copy the boilerplate:** Use `PAGE_TEMPLATE_BOILERPLATE.tsx` as your starting point
+2. **Rename the component:** Change `YourNewPage` to your page name
+3. **Customize the content:** Update title, description, table data, etc.
+4. **Keep the structure:** DO NOT modify the layout structure or CSS classes
+
+**Examples:**
+- `pages/NewPage.tsx` - Complete working example with table
+- `pages/OverviewPage.tsx` - Example with buttons (uses template structure)
+
+### Modal and Wizard Patterns
+
+**IMPORTANT:** When creating modals or wizards, ALWAYS use the provided standard components.
+
+**Three Pattern Types:**
+
+1. **Standard Modal** - Use `StandardModal` component (simple dialogs with text/buttons)
+   - Location: `@app/shared/components/feedback/StandardModal`
+   - Use for: Information dialogs, confirmations, simple forms
+
+2. **Wizard in Modal** - Use `WizardTemplate` component (multi-step workflows in modal)
+   - Location: `components/WizardTemplate`
+   - Use for: Multi-step forms, configuration wizards, setup workflows
+
+3. **Full-Page Wizard** - Use `FullPageWizard` component (full-page workflows with breadcrumbs)
+   - Location: `components/FullPageWizard`
+   - Use for: Complex workflows, creation flows, wizards needing more space
+
+See `WIZARD_PATTERN.md` for:
+- Complete structure requirements
+- Color palette
+- Step-by-step implementation guide
+- Code examples for all three patterns
+- Decision tree for choosing the right component
+
+**Key Rules:**
+- ✅ **ALWAYS** use the provided components - they handle padding, spacing, and layout correctly
+- ✅ **NEVER** create custom modal or wizard layouts - you'll waste time troubleshooting padding issues
+- ✅ **NEVER** add padding to step components in full-page wizards - only breadcrumbs and header have padding
+- ✅ The components use CSS classes with `!important` flags to ensure padding works correctly
+
+## Navigation System
+
+### How Navigation Works
+
+**CRITICAL:** Your prototype routes are **MERGED** with default navigation, not replacing it.
+
+#### Default Navigation (Always Present)
+
+The system provides default navigation for all three perspectives:
+
+- **Core platforms:** Home, Virtualization, Operators, Workloads, Networking, Storage, etc.
+- **Fleet virtualization:** Overview, Catalog, Virtual machines, Templates, InstanceTypes, etc.
+- **Fleet management:** Infrastructure, Applications, Credentials, Observe, Edge management, etc.
+
+#### Your Prototype Routes
+
+When you define routes in `routes.tsx`:
+
+1. **Routes with `navigation` metadata** appear in the sidebar
+2. **Routes are filtered by perspective** based on path:
+   - **Fleet management:** Routes NOT starting with `/core` or `/virtualization`
+   - **Fleet virtualization:** Routes starting with `/virtualization` or `/user-management`
+   - **Core platforms:** Routes starting with `/core`
+
+3. **Group Merging:**
+   - If your route has `navigation.group: 'User management'` and a default group with the same label exists, **your routes REPLACE that default group**
+   - If your route has a new group name (e.g., `'Main'`), it's **ADDED to the navigation**
+
+4. **Routes without `navigation` metadata:**
+   - Still accessible via URL
+   - Won't appear in sidebar navigation
+   - Use for detail pages, wizards, modals, etc.
+
+#### Example Route Configuration
 
 ```typescript
-// Only Core platforms enabled
-perspectives: ['core-platforms']
-
-// Multiple perspectives enabled
-perspectives: ['core-platforms', 'fleet-management']
-
-// All perspectives enabled
-perspectives: ['core-platforms', 'fleet-management', 'fleet-virtualization']
+{
+  path: '/my-page',
+  element: <MyPage />,
+  label: 'My Page',           // Required: Navigation label
+  title: 'My Page',           // Required: Browser tab title
+  navigation: {               // Required: Navigation metadata
+    group: 'Main',            // Group name (empty string = top-level item)
+    order: 1,                 // Sort order within group (lower = first)
+  }
+}
 ```
 
-Perspectives not in this list will show as "(Disabled)" in the dropdown.
+#### Common Mistakes to Avoid
 
-## Directory Structure
-
+❌ **Don't:** Define routes without `navigation` metadata and expect them in navigation
+```typescript
+// This route won't appear in navigation
+{
+  path: '/my-page',
+  element: <MyPage />,
+  // Missing navigation metadata!
+}
 ```
-your-prototype-name/
-├── prototype.config.ts   # Configuration and metadata
-├── routes.tsx           # Route definitions
-├── pages/              # Your prototype pages
-│   └── HomePage.tsx    # Default landing page
-└── README.md          # This file
+
+❌ **Don't:** Use wrong path prefixes for the perspective
+```typescript
+// This won't show in Fleet management (starts with /core)
+{
+  path: '/core/my-page',  // Wrong! Use '/' or '/my-page' for Fleet management
+  navigation: { group: 'Main' }
+}
 ```
 
-## Tips
+✅ **Do:** Always include `navigation` metadata for routes that should appear in sidebar
+```typescript
+{
+  path: '/my-page',
+  element: <MyPage />,
+  label: 'My Page',
+  title: 'My Page',
+  navigation: {
+    group: 'Main',
+    order: 1,
+  }
+}
+```
 
-1. **Start simple** - Begin with a single page and expand as needed
-2. **Use shared components** - Import from `@app/shared` when possible
-3. **Follow PatternFly guidelines** - Use PatternFly components for consistency
-4. **Test frequently** - The hot reload will show your changes immediately
-5. **Keep it focused** - Each prototype should test a specific feature or workflow
+✅ **Do:** Use correct path prefixes for your target perspective
+```typescript
+// For Fleet management
+{ path: '/my-page', navigation: { group: 'Main' } }
 
-## Need Help?
+// For Core platforms
+{ path: '/core/my-page', navigation: { group: 'My Group' } }
 
-Refer to the documentation in `/ai-documentation/` for:
-- PatternFly component usage
-- Styling standards
-- Component architecture patterns
-- Common issues and troubleshooting
+// For Fleet virtualization
+{ path: '/virtualization/my-page', navigation: { group: 'My Group' } }
+```
 
----
+## Best Practices
 
-**Ready to build?** Copy this template, update the config, and start creating!
+1. **Isolation:** Keep all prototype-specific code within your prototype directory
+2. **Consistency:** Use established patterns (wizards, modals, layouts)
+3. **Navigation:** Always include `navigation` metadata for routes that should appear in sidebar
+4. **Documentation:** Document any custom patterns or components
+5. **Testing:** Test your prototype thoroughly before sharing
+
+## Resources
+
+- PatternFly Documentation: https://www.patternfly.org/
+- Shared Components: `src/app/shared/`
+- Example Wizard: `components/ExampleWizard.tsx`
+- Wizard Pattern Guide: `WIZARD_PATTERN.md`
+- **Page Template Guide: `PAGE_TEMPLATE.md` (MANDATORY - READ THIS FIRST)**
+- **Page Template Boilerplate: `PAGE_TEMPLATE_BOILERPLATE.tsx` (COPY THIS FOR NEW PAGES)**
+- Example Pages:
+  - `pages/NewPage.tsx` - Complete example with table
+  - `pages/OverviewPage.tsx` - Example with buttons

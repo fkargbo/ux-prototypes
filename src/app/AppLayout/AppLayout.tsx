@@ -50,6 +50,8 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { IAppRoute, IAppRouteGroup, routes } from '@app/routes';
+import { prototypeRegistry } from '@app/core/PrototypeRegistry';
+import { RouteConfig } from '@app/core/types';
 // DEPRECATED: These components have been moved to prototypes. Each prototype uses its own local copy.
 // import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
 // import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
@@ -670,6 +672,87 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
     title,
   });
 
+  // Helper function to convert prototype routes to navigation groups
+  const convertPrototypeRoutesToNavigation = (prototypeRoutes: RouteConfig[]): IAppRouteGroup[] => {
+    // Group routes by navigation.group (empty string is valid for top-level items)
+    const groupsMap = new Map<string, RouteConfig[]>();
+    const ungroupedRoutes: RouteConfig[] = [];
+    
+    prototypeRoutes.forEach(route => {
+      if (route.label && route.navigation !== undefined) {
+        const groupName = route.navigation.group || '';
+        // Handle routes with empty group (top-level items)
+        if (groupName === '') {
+          ungroupedRoutes.push(route);
+        } else {
+          if (!groupsMap.has(groupName)) {
+            groupsMap.set(groupName, []);
+          }
+          groupsMap.get(groupName)!.push(route);
+        }
+      }
+    });
+    
+    // Convert to IAppRouteGroup[] format, sorted by order
+    const groups: Array<{ group: IAppRouteGroup; firstOrder: number }> = [];
+    
+    // Add ungrouped routes (empty group) as individual groups
+    ungroupedRoutes.sort((a, b) => {
+      const orderA = a.navigation?.order || 999;
+      const orderB = b.navigation?.order || 999;
+      return orderA - orderB;
+    });
+    
+    ungroupedRoutes.forEach(route => {
+      const order = route.navigation?.order || 999;
+      groups.push({
+        group: {
+          label: '',
+          routes: [{
+            element: route.element,
+            label: route.label || '',
+            path: route.path,
+            title: route.title || '',
+          }],
+        },
+        firstOrder: order,
+      });
+    });
+    
+    // Add grouped routes
+    groupsMap.forEach((routes, groupName) => {
+      // Sort routes by order
+      routes.sort((a, b) => {
+        const orderA = a.navigation?.order || 999;
+        const orderB = b.navigation?.order || 999;
+        return orderA - orderB;
+      });
+      
+      const firstOrder = routes[0]?.navigation?.order || 999;
+      
+      groups.push({
+        group: {
+          label: groupName,
+          routes: routes.map(route => ({
+            element: route.element,
+            label: route.label || '',
+            path: route.path,
+            title: route.title || '',
+          })),
+        },
+        firstOrder,
+      });
+    });
+    
+    // Sort groups by first route's order (or alphabetically)
+    groups.sort((a, b) => {
+      if (a.firstOrder !== b.firstOrder) return a.firstOrder - b.firstOrder;
+      return a.group.label.localeCompare(b.group.label);
+    });
+    
+    return groups.map(g => g.group);
+  };
+
   // Select routes based on active perspective
   let activeRoutes: IAppRouteGroup[] = [];
   
@@ -788,10 +871,59 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
     }
   } else {
     // Normal routing for non-RBAC prototypes
+    // Start with default routes for the perspective
     activeRoutes = 
       activePerspective === 'Core platforms' ? corePlatformsRoutes :
       activePerspective === 'Fleet virtualization' ? fleetVirtualizationRoutes : 
       routes.filter(route => route.label !== 'Core Platforms') as IAppRouteGroup[];
+    
+    // If prototype has custom routes, merge them with default routes
+    if (currentPrototypeId) {
+      const prototype = prototypeRegistry.get(currentPrototypeId);
+      if (prototype && prototype.routes && prototype.routes.length > 0) {
+        // Filter prototype routes by perspective
+        let filteredRoutes = prototype.routes;
+        
+        if (activePerspective === 'Fleet management') {
+          // Fleet management: routes that don't start with /core or /virtualization
+          filteredRoutes = prototype.routes.filter(route => 
+            !route.path.startsWith('/core') && 
+            !route.path.startsWith('/virtualization') &&
+            route.navigation !== undefined
+          );
+        } else if (activePerspective === 'Fleet virtualization') {
+          // Fleet virtualization: routes that start with /virtualization or /user-management
+          filteredRoutes = prototype.routes.filter(route => 
+            (route.path.startsWith('/virtualization') || route.path.startsWith('/user-management')) &&
+            route.navigation !== undefined
+          );
+        } else if (activePerspective === 'Core platforms') {
+          // Core platforms: routes that start with /core
+          filteredRoutes = prototype.routes.filter(route => 
+            route.path.startsWith('/core') &&
+            route.navigation !== undefined
+          );
+        }
+        
+        // If prototype has routes for this perspective, merge them with default routes
+        if (filteredRoutes.length > 0) {
+          const prototypeNavGroups = convertPrototypeRoutesToNavigation(filteredRoutes);
+          
+          // Merge prototype navigation groups with default routes
+          // For each prototype group, check if a group with the same label exists in default routes
+          prototypeNavGroups.forEach(protoGroup => {
+            const existingGroupIndex = activeRoutes.findIndex(r => r.label === protoGroup.label);
+            if (existingGroupIndex >= 0) {
+              // Replace existing group with prototype group (prototype routes take precedence)
+              activeRoutes[existingGroupIndex] = protoGroup;
+            } else {
+              // Add new group at the end
+              activeRoutes.push(protoGroup);
+            }
+          });
+        }
+      }
+    }
   }
 
   // Filter out "User management" from Fleet virtualization when impersonating

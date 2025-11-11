@@ -240,11 +240,8 @@ export async function discoverPrototypes(): Promise<void> {
     // Load each prototype
     for (const key of prototypeConfigs.keys()) {
       try {
-        // Skip the _template directory - it's a template, not a prototype
-        if (key.includes('/_template/') || key.includes('\\_template\\')) {
-          console.log(`⏭️  Skipping template directory: ${key}`);
-          continue;
-        }
+        // Note: _template is now included so users can explore it in the launcher
+        // It will appear as "📋 Prototype Template" when status is 'in-progress'
 
         const configModule = prototypeConfigs(key);
         const config = configModule.config || configModule.default;
