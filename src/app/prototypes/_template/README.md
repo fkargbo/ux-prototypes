@@ -4,25 +4,44 @@ This is the template prototype for creating new prototypes. Copy this directory 
 
 ## Quick Start
 
-1. **Copy the template:**
+**⚠️ IMPORTANT:** Follow the optimal workflow in `guides/getting-started/COLLABORATOR_WORKFLOW.md`
+
+### Recommended Workflow
+
+1. **Clone the repository:**
    ```bash
-   cp -r _template my-new-prototype
+   git clone https://github.com/kuklas/HPUX-Prototypes.git
+   cd HPUX-Prototypes
    ```
 
-2. **Update `prototype.config.ts`:**
+2. **Create your feature branch FIRST:**
+   ```bash
+   git checkout ux-prototypes
+   git pull origin ux-prototypes
+   git checkout -b your-name-prototype-name
+   ```
+
+3. **Copy the template:**
+   ```bash
+   cp -r src/app/prototypes/_template src/app/prototypes/your-prototype-name
+   ```
+
+4. **Update `prototype.config.ts`:**
    - Change `id`, `name`, `description`
    - Set `owner`, `persona`, `status`
    - Configure `perspectives` and `tags`
 
-3. **Customize your prototype:**
+5. **Customize your prototype:**
    - Edit `pages/HomePage.tsx` for your landing page
    - Add routes in `routes.tsx`
    - Create your components in `components/`
 
-4. **Test your prototype:**
+6. **Test your prototype:**
    - Run `npm start`
    - Navigate to the prototype launcher
    - Click on your prototype card
+
+**See `guides/getting-started/COLLABORATOR_WORKFLOW.md` for complete workflow details.**
 
 ## Structure
 
