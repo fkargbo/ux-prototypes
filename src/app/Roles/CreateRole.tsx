@@ -42,6 +42,9 @@ import {
   DropdownItem,
   MenuToggle,
   MenuToggleElement,
+  Tabs,
+  Tab,
+  TabTitleText,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { PlusCircleIcon, MinusCircleIcon, DownloadIcon } from '@patternfly/react-icons';
@@ -76,6 +79,7 @@ const CreateRole: React.FunctionComponent = () => {
     { id: 1, apiGroups: '', resources: '', verbs: ['get'] },
   ]);
   const [expandedRules, setExpandedRules] = React.useState<Record<number, boolean>>({ 1: true });
+  const [activeVerbTabs, setActiveVerbTabs] = React.useState<Record<number, number>>({ 1: 0 });
   const [yamlCode, setYamlCode] = React.useState('');
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [drawerType, setDrawerType] = React.useState<'apiGroups' | 'resources'>('resources');
@@ -321,6 +325,7 @@ const CreateRole: React.FunctionComponent = () => {
     };
     setPermissionRules([...permissionRules, newRule]);
     setExpandedRules({ ...expandedRules, [newRule.id]: true });
+    setActiveVerbTabs({ ...activeVerbTabs, [newRule.id]: 0 });
   };
 
   const handleRemoveRule = (ruleId: number) => {
@@ -328,6 +333,9 @@ const CreateRole: React.FunctionComponent = () => {
     const newExpandedRules = { ...expandedRules };
     delete newExpandedRules[ruleId];
     setExpandedRules(newExpandedRules);
+    const newActiveVerbTabs = { ...activeVerbTabs };
+    delete newActiveVerbTabs[ruleId];
+    setActiveVerbTabs(newActiveVerbTabs);
   };
 
   const toggleRuleExpansion = (ruleId: number) => {
@@ -1134,7 +1142,7 @@ ${rule.verbs.map(v => `  - "${v}"`).join('\n')}`).join('\n')}`;
                             <Divider style={{ margin: 'var(--pf-t--global--spacer--lg) 0' }} />
 
                             <FormGroup label="Verbs (Permissions)" fieldId={`verbs-${rule.id}`}>
-                              <Split hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                              <Split hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                                 <SplitItem isFilled>
                                   <Content component="p" className="pf-v6-u-color-200 pf-v6-u-font-size-sm">
                                     Select the actions this rule allows on the chosen resources.
@@ -1170,66 +1178,68 @@ ${rule.verbs.map(v => `  - "${v}"`).join('\n')}`).join('\n')}`;
                                 </SplitItem>
                               </Split>
                               
-                              {verbGroups.map((group, groupIndex) => {
-                                const groupVerbNames = group.verbs.map(v => v.name);
-                                const allGroupSelected = groupVerbNames.every(v => rule.verbs.includes(v));
-                                const someGroupSelected = groupVerbNames.some(v => rule.verbs.includes(v)) && !allGroupSelected;
-                                
-                                return (
-                                  <div 
-                                    key={group.category} 
-                                    style={{ 
-                                      marginBottom: groupIndex < verbGroups.length - 1 ? 'var(--pf-t--global--spacer--md)' : 0,
-                                      padding: 'var(--pf-t--global--spacer--md)',
-                                      border: '1px solid var(--pf-t--global--border--color--default)',
-                                      borderRadius: 'var(--pf-t--global--border--radius--default)',
-                                      backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-                                    }}
-                                  >
-                                    <Split hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                                      <SplitItem isFilled>
-                                        <Content component="p" style={{ fontWeight: 600, margin: 0 }}>
-                                          {group.category}
-                                        </Content>
-                                        <Content component="small" className="pf-v6-u-color-200" style={{ fontSize: 'var(--pf-t--global--font--size--sm)' }}>
-                                          {group.description}
-                                        </Content>
-                                      </SplitItem>
-                                      <SplitItem>
-                                        <Button
-                                          variant="link"
-                                          isInline
-                                          onClick={() => handleVerbGroupToggle(rule.id, groupVerbNames, !allGroupSelected)}
-                                          style={{ fontSize: 'var(--pf-t--global--font--size--sm)' }}
-                                        >
-                                          {allGroupSelected ? 'Deselect all' : 'Select all'}
-                                        </Button>
-                                      </SplitItem>
-                                    </Split>
-                                    
-                                    <Grid hasGutter span={3}>
-                                      {group.verbs.map(verb => (
-                                        <GridItem span={3} key={verb.name}>
-                                          <Checkbox
-                                            id={`verb-${rule.id}-${verb.name}`}
-                                            label={
-                                              <span title={verb.description}>
-                                                <strong>{verb.label}</strong>
-                                                <br />
-                                                <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', color: 'var(--pf-t--global--color--200)' }}>
-                                                  {verb.description}
+                              <Tabs 
+                                activeKey={activeVerbTabs[rule.id] || 0} 
+                                onSelect={(_event, tabIndex) => {
+                                  setActiveVerbTabs({
+                                    ...activeVerbTabs,
+                                    [rule.id]: tabIndex as number
+                                  });
+                                }}
+                              >
+                                {verbGroups.map((group, groupIndex) => {
+                                  const groupVerbNames = group.verbs.map(v => v.name);
+                                  const allGroupSelected = groupVerbNames.every(v => rule.verbs.includes(v));
+                                  
+                                  return (
+                                    <Tab
+                                      key={group.category}
+                                      eventKey={groupIndex}
+                                      title={<TabTitleText>{group.category}</TabTitleText>}
+                                    >
+                                      <div style={{ padding: 'var(--pf-t--global--spacer--md) 0' }}>
+                                        <Split hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                                          <SplitItem isFilled>
+                                            <Content component="p" className="pf-v6-u-color-200" style={{ fontSize: 'var(--pf-t--global--font--size--sm)', margin: 0 }}>
+                                              {group.description}
+                                            </Content>
+                                          </SplitItem>
+                                          <SplitItem>
+                                            <Button
+                                              variant="link"
+                                              isInline
+                                              onClick={() => handleVerbGroupToggle(rule.id, groupVerbNames, !allGroupSelected)}
+                                              style={{ fontSize: 'var(--pf-t--global--font--size--sm)' }}
+                                            >
+                                              {allGroupSelected ? 'Deselect all' : 'Select all'}
+                                            </Button>
+                                          </SplitItem>
+                                        </Split>
+                                        
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                                          {group.verbs.map(verb => (
+                                            <Checkbox
+                                              key={verb.name}
+                                              id={`verb-${rule.id}-${verb.name}`}
+                                              label={
+                                                <span title={verb.description}>
+                                                  <strong>{verb.label}</strong>
+                                                  <br />
+                                                  <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', color: 'var(--pf-t--global--color--200)' }}>
+                                                    {verb.description}
+                                                  </span>
                                                 </span>
-                                              </span>
-                                            }
-                                            isChecked={rule.verbs.includes(verb.name)}
-                                            onChange={(_event, checked) => handleVerbToggle(rule.id, verb.name, checked)}
-                                          />
-                                        </GridItem>
-                                      ))}
-                                    </Grid>
-                                  </div>
-                                );
-                              })}
+                                              }
+                                              isChecked={rule.verbs.includes(verb.name)}
+                                              onChange={(_event, checked) => handleVerbToggle(rule.id, verb.name, checked)}
+                                            />
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </Tab>
+                                  );
+                                })}
+                              </Tabs>
                             </FormGroup>
                           </ExpandableSection>
                         </div>
