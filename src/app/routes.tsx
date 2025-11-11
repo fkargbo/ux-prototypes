@@ -8,11 +8,12 @@ import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
 // import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 import { NotFound } from '@app/NotFound/NotFound';
 import { Search } from '@app/Search/Search';
-// Shared Fleet Virtualization components
-import Virtualization from '@app/shared-fleet-virtualization/Virtualization';
-import { Catalog } from '@app/shared-fleet-virtualization/Catalog';
-import { Templates } from '@app/shared-fleet-virtualization/Templates';
-import { InstanceTypes } from '@app/shared-fleet-virtualization/InstanceTypes';
+// DEPRECATED: Shared Fleet Virtualization components moved to prototypes
+// Each prototype now has its own local copies
+// import Virtualization from '@app/shared-fleet-virtualization/Virtualization';
+// import { Catalog } from '@app/shared-fleet-virtualization/Catalog';
+// import { Templates } from '@app/shared-fleet-virtualization/Templates';
+// import { InstanceTypes } from '@app/shared-fleet-virtualization/InstanceTypes';
 
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout

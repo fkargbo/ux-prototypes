@@ -54,10 +54,12 @@ import { IAppRoute, IAppRouteGroup, routes } from '@app/routes';
 // import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
 // import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 // import { IdentityProvider } from '@app/IdentityProvider/IdentityProvider';
-import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
-import { Catalog } from '@app/FleetVirtualization/Catalog';
-import { Templates } from '@app/FleetVirtualization/Templates';
-import { InstanceTypes } from '@app/FleetVirtualization/InstanceTypes';
+// DEPRECATED: FleetVirtualization components moved to prototypes
+// Each prototype now has its own local copies
+// import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
+// import { Catalog } from '@app/FleetVirtualization/Catalog';
+// import { Templates } from '@app/FleetVirtualization/Templates';
+// import { InstanceTypes } from '@app/FleetVirtualization/InstanceTypes';
 // import { MigrationPlans } from '@app/use-case-cclm/Migration/MigrationPlans'; // DEPRECATED - migrated to prototypes
 import {
   BarsIcon,
@@ -347,13 +349,13 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
       label: '',
       routes: [
         {
-          element: <OverviewPage />,
+          element: <></>,
           label: 'Overview',
           path: '/virtualization/overview',
           title: 'Overview',
         },
         {
-          element: <Catalog />,
+          element: <></>,
           label: 'Catalog',
           path: '/virtualization/catalog',
           title: 'Catalog',
@@ -381,13 +383,13 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
       label: '',
       routes: [
         {
-          element: <InstanceTypes />,
+          element: <></>,
           label: 'InstanceTypes',
           path: '/virtualization/instance-types',
           title: 'InstanceTypes',
         },
         {
-          element: <Templates />,
+          element: <></>,
           label: 'Templates',
           path: '/virtualization/templates',
           title: 'Templates',
