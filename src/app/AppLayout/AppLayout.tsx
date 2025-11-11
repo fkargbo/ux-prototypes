@@ -163,17 +163,26 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
   }, [useCase, enabledPerspectives, currentPrototypeId]);
 
 
-  // All perspectives are always enabled
+  // All perspectives - mark as disabled if not in enabledPerspectives
   const allPerspectives = [
     { name: 'Core platforms', key: 'core-platforms', disabled: false },
     { name: 'Fleet management', key: 'fleet-management', disabled: false },
     { name: 'Fleet virtualization', key: 'fleet-virtualization', disabled: false },
   ];
 
+  // Mark perspectives as disabled if they're not in enabledPerspectives
+  const perspectivesWithDisabled = allPerspectives.map(p => {
+    if (enabledPerspectives && enabledPerspectives.length > 0) {
+      const isEnabled = enabledPerspectives.includes(p.key);
+      return { ...p, disabled: !isEnabled };
+    }
+    return p;
+  });
+
   // Filter perspectives: only show Fleet virtualization when impersonating
   const perspectives = impersonatingUser
-    ? allPerspectives.filter((p) => p.name === 'Fleet virtualization')
-    : allPerspectives;
+    ? perspectivesWithDisabled.filter((p) => p.name === 'Fleet virtualization')
+    : perspectivesWithDisabled;
 
   // Core platforms navigation routes
   const corePlatformsRoutes: IAppRouteGroup[] = [
@@ -649,7 +658,24 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
               ) : (
                 <CorePlatformsIcon size="16px" />
               )}
-              <span>{perspective.name}</span>
+              <span style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                width: '100%',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                <span>{perspective.name}</span>
+                {perspective.disabled && (
+                  <span style={{ 
+                    marginLeft: 'var(--pf-t--global--spacer--xs)',
+                    fontSize: 'var(--pf-t--global--font--size--body--default)',
+                    color: 'var(--pf-t--global--text--color--disabled)'
+                  }}>(disabled)</span>
+                )}
+              </span>
               </div>
           ))}
           </div>
@@ -929,6 +955,49 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
   // Filter out "User management" from Fleet virtualization when impersonating
   if (impersonatingUser && activePerspective === 'Fleet virtualization') {
     activeRoutes = activeRoutes.filter((route) => route.label !== 'User management');
+  }
+
+  // For stefan-newfeature prototype: only show Home (non-expandable) and hide all other navigation
+  if (currentPrototypeId === 'stefan-newfeature' && activePerspective === 'Core platforms') {
+    // Find Home route - check prototype routes first, then default routes
+    let homeRoute: IAppRoute | undefined;
+    
+    // Check if prototype has a Home route
+    const prototype = prototypeRegistry.get('stefan-newfeature');
+    if (prototype && prototype.routes) {
+      const protoHomeRoute = prototype.routes.find(r => 
+        r.label === 'Home' && r.path.startsWith('/core')
+      );
+      if (protoHomeRoute) {
+        homeRoute = {
+          label: protoHomeRoute.label || 'Home',
+          path: protoHomeRoute.path,
+          title: protoHomeRoute.title || protoHomeRoute.label || 'Home',
+          element: protoHomeRoute.element || <></>
+        };
+      }
+    }
+    
+    // If not found in prototype routes, check default Home group
+    if (!homeRoute) {
+      const homeGroup = activeRoutes.find(route => route.label === 'Home');
+      if (homeGroup && homeGroup.routes && homeGroup.routes.length > 0) {
+        homeRoute = homeGroup.routes[0];
+      }
+    }
+    
+    // Replace all navigation with just Home (as a single non-expandable item)
+    if (homeRoute) {
+      activeRoutes = [{
+        label: homeRoute.label || 'Home',
+        path: homeRoute.path,
+        title: homeRoute.title || homeRoute.label || 'Home',
+        element: homeRoute.element || <></>
+      } as unknown as IAppRouteGroup]; // Cast to IAppRouteGroup for type compatibility
+    } else {
+      // If no Home route found, show empty navigation
+      activeRoutes = [];
+    }
   }
 
   const Navigation = (
