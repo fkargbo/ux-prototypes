@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Title, Tabs, Tab, TabTitleText } from '@patternfly/react-core';
-import { UsersTable } from '@app/Identities/UsersTable';
-import { GroupsTable } from '@app/Identities/GroupsTable';
-import { ServiceAccountsTable } from '@app/Identities/ServiceAccountsTable';
+import { UsersTable } from '../../Identities/UsersTable';
+import { GroupsTable } from '../../Identities/GroupsTable';
+import { ServiceAccountsTable } from '../../Identities/ServiceAccountsTable';
 
 export const IdentitiesPage: React.FunctionComponent = () => {
   const [activeTabKey, setActiveTabKey] = useState<string | number>(0);

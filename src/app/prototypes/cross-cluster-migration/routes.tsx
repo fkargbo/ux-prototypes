@@ -5,8 +5,8 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
-import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
-import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
+import { VirtualMachines } from './VirtualMachines/VirtualMachines';
+import { HubVirtualMachines } from './CorePlatforms/HubVirtualMachines';
 import { PageSection } from '@patternfly/react-core';
 import { MigrationPlans } from './Migration/MigrationPlans';
 import { MigrationPlanDetail } from './Migration/MigrationPlanDetail';

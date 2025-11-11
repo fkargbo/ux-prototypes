@@ -26,7 +26,6 @@
   flex: 1;
   overflow: hidden;
   position: relative;
-  isolation: isolate;
 }
 
 body.resizing-sidebar {
@@ -45,7 +44,7 @@ body.resizing-sidebar * {
 .sidebar-toggle {
   position: absolute;
   top: 80px;
-  z-index: 1000;
+  z-index: 100;
   background-color: var(--pf-t--global--background--color--primary--default);
   border: 1px solid var(--pf-t--global--border--color--default);
   border-radius: 50%;
@@ -72,7 +71,7 @@ body.resizing-sidebar * {
 }
 
 .vm-content-wrapper.sidebar-collapsed .sidebar-toggle {
-  left: 0px;
+  left: -14px;
 }
 
 .vm-sidebar {
@@ -108,9 +107,6 @@ body.resizing-sidebar * {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
-  background-color: var(--pf-t--global--background--color--primary--default);
-  position: relative;
-  z-index: 1;
 }
 
 .vm-sidebar .pf-v6-c-tree-view {
@@ -213,60 +209,5 @@ body.resizing-sidebar * {
   box-shadow: var(--pf-t--global--box-shadow--lg);
   border-radius: 4px;
   background-color: var(--pf-t--global--background--color--primary--default);
-}
-
-/* Custom context menu */
-.custom-context-menu {
-  background-color: var(--pf-t--global--background--color--primary--default);
-  border: 1px solid var(--pf-t--global--border--color--default);
-  border-radius: 4px;
-  box-shadow: var(--pf-t--global--box-shadow--lg);
-  padding: 8px 0;
-  min-width: 200px;
-  width: max-content;
-  max-width: 250px;
-}
-
-.context-menu-item {
-  padding: 8px 16px;
-  cursor: pointer;
-  white-space: nowrap;
-  font-size: 14px;
-  color: var(--pf-t--global--text--color--regular);
-}
-
-.context-menu-item:hover {
-  background-color: var(--pf-t--global--background--color--action--hover--default);
-}
-
-.context-menu-divider {
-  height: 1px;
-  background-color: var(--pf-t--global--border--color--default);
-  margin: 4px 0;
-}
-
-/* Multi-selected tree nodes styling */
-.custom-tree-node.multi-selected {
-  background-color: #E7F1FA !important;
-  border: 2px solid #0066CC !important;
-}
-
-/* Override PatternFly TreeView selection styles for multi-selected items */
-.vm-sidebar .pf-v6-c-tree-view__node:has(.multi-selected) {
-  background-color: transparent !important;
-}
-
-.vm-sidebar .pf-v6-c-tree-view__node .custom-tree-node.multi-selected {
-  background-color: #E7F1FA !important;
-}
-
-/* Spinning animation for migrating status icon */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 

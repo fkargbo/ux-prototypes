@@ -4,7 +4,8 @@ import { Dashboard } from '@app/Dashboard/Dashboard';
 import { Support } from '@app/Support/Support';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
-import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
+// DEPRECATED: HubVirtualMachines moved to prototypes
+// import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 import { NotFound } from '@app/NotFound/NotFound';
 import { Search } from '@app/Search/Search';
 // Shared Fleet Virtualization components

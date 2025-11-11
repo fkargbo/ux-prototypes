@@ -1,6 +1,6 @@
 import React from 'react';
 import { Title, Content } from '@patternfly/react-core';
-import { Projects } from '@app/Projects/Projects';
+import { Projects } from '../../Projects/Projects';
 
 export const ProjectsPage: React.FunctionComponent = () => {
   return (

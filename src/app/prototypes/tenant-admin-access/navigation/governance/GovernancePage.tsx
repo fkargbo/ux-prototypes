@@ -1,7 +1,7 @@
 import React from 'react';
 import { Title, Tabs, Tab, TabTitleText, Flex, FlexItem, Tooltip } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
-import { Policies } from '@app/Governance/Policies';
+import { Policies } from '../../Governance/Policies';
 
 export const GovernancePage: React.FunctionComponent = () => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(2); // Policies tab
