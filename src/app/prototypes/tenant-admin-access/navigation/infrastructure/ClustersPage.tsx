@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clusters } from '@app/Clusters/Clusters';
+import { Clusters } from '../../Clusters/Clusters';
 
 export const ClustersPage: React.FunctionComponent = () => {
   return (

@@ -31,7 +31,7 @@ import { EllipsisVIcon, FilterIcon, CaretDownIcon } from '@patternfly/react-icon
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { useNavigate } from 'react-router-dom';
 import { getAllRoles } from '@app/data';
-import { RoleDetailRoleAssignmentWizard } from '@app/RoleAssignment/RoleDetailRoleAssignmentWizard';
+import { RoleDetailRoleAssignmentWizard } from '../RoleAssignment/RoleDetailRoleAssignmentWizard';
 
 // Get roles from centralized database
 const dbRoles = getAllRoles();

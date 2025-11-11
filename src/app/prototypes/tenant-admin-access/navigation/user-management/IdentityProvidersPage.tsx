@@ -1,6 +1,6 @@
 import React from 'react';
 import { Title } from '@patternfly/react-core';
-import { IdentityProvider } from '@app/IdentityProvider/IdentityProvider';
+import { IdentityProvider } from '../../IdentityProvider/IdentityProvider';
 
 interface IdentityProvidersPageProps {
   showClustersColumn?: boolean;

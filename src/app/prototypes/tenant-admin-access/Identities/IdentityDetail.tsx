@@ -40,7 +40,7 @@ import {
 import { CubesIcon, FilterIcon, CheckIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td, ActionsColumn } from '@patternfly/react-table';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-import { GroupRoleAssignmentWizard } from '@app/RoleAssignment/GroupRoleAssignmentWizard';
+import { GroupRoleAssignmentWizard } from '../RoleAssignment/GroupRoleAssignmentWizard';
 import { getAllUsers, getGroupsForUser, getAllClusters, getAllClusterSets, getAllNamespaces } from '@app/data';
 
 const IdentityDetail: React.FunctionComponent = () => {

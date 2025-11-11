@@ -5,8 +5,8 @@
 import React from 'react';
 import { PageSection } from '@patternfly/react-core';
 import { RouteConfig } from '@app/core/types';
-import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
-import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
+import { VirtualMachines } from './VirtualMachines/VirtualMachines';
+import { HubVirtualMachines } from './CorePlatforms/HubVirtualMachines';
 
 // Import pages from navigation wrappers
 import {

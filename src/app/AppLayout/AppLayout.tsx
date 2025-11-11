@@ -50,9 +50,10 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { IAppRoute, IAppRouteGroup, routes } from '@app/routes';
-import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
-import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
-import { IdentityProvider } from '@app/IdentityProvider/IdentityProvider';
+// DEPRECATED: These components have been moved to prototypes. Each prototype uses its own local copy.
+// import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
+// import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
+// import { IdentityProvider } from '@app/IdentityProvider/IdentityProvider';
 import { OverviewPage } from '@app/FleetVirtualization/EmptyPages';
 import { Catalog } from '@app/FleetVirtualization/Catalog';
 import { Templates } from '@app/FleetVirtualization/Templates';
@@ -227,7 +228,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
       routes: [
         { element: <></>, label: 'Overview', path: '/core/virtualization/overview', title: 'Overview' },
         { element: <></>, label: 'Catalog', path: '/core/virtualization/catalog', title: 'Catalog' },
-        { element: <HubVirtualMachines />, label: 'VirtualMachines', path: '/core/virtualization/vms', title: 'VirtualMachines' },
+        { element: <></>, label: 'VirtualMachines', path: '/core/virtualization/vms', title: 'VirtualMachines' },
         { element: <></>, label: 'Templates', path: '/core/virtualization/templates', title: 'Templates' },
         { element: <></>, label: 'InstanceTypes', path: '/core/virtualization/instancetypes', title: 'InstanceTypes' },
         { element: <></>, label: 'Preferences', path: '/core/virtualization/preferences', title: 'Preferences' },
@@ -322,7 +323,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
       label: 'User Management',
       routes: [
         { element: <></>, label: 'Identities', path: '/user-management/identities', title: 'Identities' },
-        { element: <IdentityProvider showClustersColumn={false} />, label: 'Identity providers', path: '/core/user-management/identity-providers', title: 'Identity providers' },
+        { element: <></>, label: 'Identity providers', path: '/core/user-management/identity-providers', title: 'Identity providers' },
         { element: <></>, label: 'Roles', path: '/user-management/roles', title: 'Roles' },
       ],
     },
@@ -358,7 +359,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
           title: 'Catalog',
         },
         {
-          element: <VirtualMachines />,
+          element: <></>,
           label: 'Virtual machines',
           path: '/virtualization/virtual-machines',
           title: 'Virtual machines',
@@ -413,7 +414,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
           title: 'Roles',
         },
         {
-          element: <IdentityProvider showClustersColumn={true} />,
+          element: <></>,
           label: 'Identity providers',
           path: '/user-management/identity-providers',
           title: 'Identity providers',
@@ -716,7 +717,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
           routes: [
             { element: <div />, label: 'Identities', path: '/user-management/identities', title: 'ACM | Identities' },
             { element: <div />, label: 'Roles', path: '/user-management/roles', title: 'ACM | Roles' },
-            { element: <IdentityProvider showClustersColumn={true} />, label: 'Identity providers', path: '/user-management/identity-providers', title: 'ACM | Identity Providers' },
+            { element: <></>, label: 'Identity providers', path: '/user-management/identity-providers', title: 'ACM | Identity Providers' },
           ],
         });
       }

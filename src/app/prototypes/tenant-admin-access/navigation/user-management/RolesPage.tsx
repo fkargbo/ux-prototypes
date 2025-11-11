@@ -1,6 +1,6 @@
 import React from 'react';
 import { Title } from '@patternfly/react-core';
-import { Roles } from '@app/Roles/Roles';
+import { Roles } from '../../Roles/Roles';
 
 export const RolesPage: React.FunctionComponent = () => {
   return (
