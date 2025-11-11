@@ -9,26 +9,26 @@ import { QuotaDetail } from './Quotas/QuotaDetail';
 export const routes: RouteConfig[] = [
   {
     path: '/',
-    element: <Navigate to="/quotas" replace />,
+    element: <Navigate to="/core/virtualization/quotas" replace />,
     title: 'Quotas'
   },
   {
-    path: '/quotas',
+    path: '/core/virtualization/quotas',
     element: <QuotasPage />,
     label: 'Quotas',
     title: 'Quotas',
     navigation: {
       group: 'Virtualization',
-      order: 1
+      order: 10
     }
   },
   {
-    path: '/quotas/create',
+    path: '/core/virtualization/quotas/create',
     element: <CreateQuota />,
     title: 'Create Quota'
   },
   {
-    path: '/quotas/:quotaName',
+    path: '/core/virtualization/quotas/:quotaName',
     element: <QuotaDetail />,
     title: 'Quota Details'
   },
