@@ -137,7 +137,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
 
   // Set the active perspective based on the use case or prototype
   React.useEffect(() => {
-    if (useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' || useCase === 'use-case-operator-lifecycle' || currentPrototypeId === 'operator-lifecycle') {
+    if (useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' || useCase === 'use-case-operator-lifecycle' || currentPrototypeId === 'operator-lifecycle' || currentPrototypeId === 'virtualization-quotas') {
       setActivePerspective('Core platforms');
     } else if (useCase === 'use-case-cclm' || currentPrototypeId === 'cross-cluster-migration') {
       setActivePerspective('Fleet virtualization');
@@ -155,7 +155,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
         setActivePerspective(perspectiveMap[firstEnabled as keyof typeof perspectiveMap]);
       }
     }
-  }, [useCase, enabledPerspectives]);
+  }, [useCase, enabledPerspectives, currentPrototypeId]);
 
 
   // All perspectives are always enabled
@@ -234,7 +234,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
         { element: <></>, label: 'Bootable volumes', path: '/core/virtualization/bootable-volumes', title: 'Bootable volumes' },
         { element: <></>, label: 'MigrationPolicies', path: '/core/virtualization/migration-policies', title: 'MigrationPolicies' },
         { element: <></>, label: 'Checkups', path: '/core/virtualization/checkups', title: 'Checkups' },
-        ...(useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' || currentPrototypeId === 'aaq-empty-states' || currentPrototypeId === 'virtualization-quotas' ? [{ element: <></>, label: 'Quotas', path: '/quotas', title: 'Quotas' }] : []),
+        ...(useCase === 'use-case-aaq' || useCase === 'use-case-aaq-empty-states' || currentPrototypeId === 'aaq-empty-states' || currentPrototypeId === 'virtualization-quotas' ? [{ element: <></>, label: 'Quotas', path: '/core/virtualization/quotas', title: 'Quotas' }] : []),
       ],
     },
     {
