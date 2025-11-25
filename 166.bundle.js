@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkacm_user_interface=self.webpackChunkacm_user_interface||[]).push([[166],{29166:(e,a,t)=>{t.r(a),t.d(a,{operatorLifecycleRoutes:()=>r});var r=[{label:"Software",routes:[{label:"Catalog",path:"/ecosystem/softwarecatalog",title:"Software Catalog"}]}]}}]);
+//# sourceMappingURL=166.bundle.js.map
