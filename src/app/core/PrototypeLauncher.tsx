@@ -511,7 +511,7 @@ const PrototypeLauncher: React.FC = () => {
                                   borderRight: '1px solid rgba(255, 255, 255, 0.3)',
                                 }}
                               >
-                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
+                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : prototype.config.id === 'stefans-acmintegration' ? 'Explore ACM Ansible' : 'Explore'}
                               </Button>
                               <Dropdown
                                 isOpen={openDropdowns.has(cardId)}
@@ -613,6 +613,73 @@ const PrototypeLauncher: React.FC = () => {
                                       </DropdownItem>
                                     ));
                                   })()}
+                                </DropdownList>
+                              </Dropdown>
+                            </div>
+                          ) : prototype.config.id === 'stefan-costmanagement' ? (
+                            // Split button for Cost Management in table view
+                            <div style={{ display: 'flex', gap: 0 }}>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => {
+                                  // Option A: Launch dedicated pages (current implementation)
+                                  sessionStorage.setItem('costManagementOption', 'dedicated');
+                                  handlePrototypeSelect(prototype.config.id);
+                                }}
+                                style={{
+                                  borderTopRightRadius: 0,
+                                  borderBottomRightRadius: 0,
+                                  borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+                                }}
+                              >
+                                Explore option A
+                              </Button>
+                              <Dropdown
+                                isOpen={openDropdowns.has(`${cardId}-option`)}
+                                onSelect={() => toggleDropdown(`${cardId}-option`)}
+                                onOpenChange={(isOpen) => {
+                                  if (!isOpen) toggleDropdown(`${cardId}-option`);
+                                }}
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    variant="primary"
+                                    isExpanded={openDropdowns.has(`${cardId}-option`)}
+                                    onClick={() => toggleDropdown(`${cardId}-option`)}
+                                    style={{
+                                      borderTopLeftRadius: 0,
+                                      borderBottomLeftRadius: 0,
+                                      minWidth: '32px',
+                                      height: '28px',
+                                    }}
+                                  />
+                                )}
+                              >
+                                <DropdownList>
+                                  <DropdownItem
+                                    onClick={() => {
+                                      // Option A: Dedicated pages (current implementation)
+                                      sessionStorage.setItem('costManagementOption', 'dedicated');
+                                      handlePrototypeSelect(prototype.config.id);
+                                      toggleDropdown(`${cardId}-option`);
+                                    }}
+                                    description="Dedicated pages for cost management"
+                                  >
+                                    Option A
+                                  </DropdownItem>
+                                  <DropdownItem
+                                    onClick={() => {
+                                      // Option B: Launch integrated within ACM pages
+                                      // Store option selection in sessionStorage
+                                      sessionStorage.setItem('costManagementOption', 'integrated');
+                                      handlePrototypeSelect(prototype.config.id);
+                                      toggleDropdown(`${cardId}-option`);
+                                    }}
+                                    description="Integrated within ACM pages"
+                                  >
+                                    Option B
+                                  </DropdownItem>
                                 </DropdownList>
                               </Dropdown>
                             </div>
@@ -922,7 +989,7 @@ const PrototypeLauncher: React.FC = () => {
                                   borderRight: '1px solid rgba(255, 255, 255, 0.3)',
                                 }}
                               >
-                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
+                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : prototype.config.id === 'stefans-acmintegration' ? 'Explore ACM Ansible' : 'Explore'}
                               </Button>
                             </FlexItem>
                             <FlexItem>
@@ -1068,11 +1135,86 @@ const PrototypeLauncher: React.FC = () => {
                               }
                             }}
                           >
-                            {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
+                            {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : prototype.config.id === 'stefans-acmintegration' ? 'Explore ACM Ansible' : 'Explore'}
                           </Button>
                         )
+                      ) : prototype.config.id === 'stefan-costmanagement' ? (
+                        // Split button for Cost Management with Option A and Option B
+                        <Flex spaceItems={{ default: 'spaceItemsNone' }} justifyContent={{ default: 'justifyContentFlexStart' }}>
+                          <FlexItem>
+                            <Button
+                              variant="primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Option A: Launch dedicated pages (current implementation)
+                                sessionStorage.setItem('costManagementOption', 'dedicated');
+                                handlePrototypeSelect(prototype.config.id);
+                              }}
+                              style={{
+                                borderTopRightRadius: 0,
+                                borderBottomRightRadius: 0,
+                                borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+                              }}
+                            >
+                              Explore option A
+                            </Button>
+                          </FlexItem>
+                          <FlexItem>
+                            <Dropdown
+                              isOpen={openDropdowns.has(`${cardId}-option`)}
+                              onSelect={() => toggleDropdown(`${cardId}-option`)}
+                              onOpenChange={(isOpen) => {
+                                if (!isOpen) toggleDropdown(`${cardId}-option`);
+                              }}
+                              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                <MenuToggle
+                                  ref={toggleRef}
+                                  variant="primary"
+                                  isExpanded={openDropdowns.has(`${cardId}-option`)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleDropdown(`${cardId}-option`);
+                                  }}
+                                  style={{
+                                    borderTopLeftRadius: 0,
+                                    borderBottomLeftRadius: 0,
+                                    minWidth: '44px',
+                                  }}
+                                />
+                              )}
+                            >
+                              <DropdownList>
+                                  <DropdownItem
+                                    onClick={(e) => {
+                                      e?.stopPropagation();
+                                      // Option A: Dedicated pages (current implementation)
+                                      sessionStorage.setItem('costManagementOption', 'dedicated');
+                                      handlePrototypeSelect(prototype.config.id);
+                                      toggleDropdown(`${cardId}-option`);
+                                    }}
+                                    description="Dedicated pages for cost management"
+                                  >
+                                    Option A
+                                  </DropdownItem>
+                                <DropdownItem
+                                  onClick={(e) => {
+                                    e?.stopPropagation();
+                                    // Option B: Launch integrated within ACM pages
+                                    // Store option selection in sessionStorage
+                                    sessionStorage.setItem('costManagementOption', 'integrated');
+                                    handlePrototypeSelect(prototype.config.id);
+                                    toggleDropdown(`${cardId}-option`);
+                                  }}
+                                  description="Integrated within ACM pages"
+                                >
+                                  Option B
+                                </DropdownItem>
+                              </DropdownList>
+                            </Dropdown>
+                          </FlexItem>
+                        </Flex>
                       ) : (
-                        // Single button for version groups and standalone cards
+                        // Single button for version groups and other standalone cards
                         <Button
                           variant="primary"
                           onClick={(e) => {
@@ -1086,7 +1228,7 @@ const PrototypeLauncher: React.FC = () => {
                             }
                           }}
                         >
-                          {prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
+                          {prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : prototype.config.id === 'stefans-acmintegration' ? 'Explore ACM Ansible' : 'Explore'}
                         </Button>
                       )}
                     </CardFooter>

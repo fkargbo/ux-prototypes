@@ -146,7 +146,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
       setActivePerspective('Core platforms');
     } else if (useCase === 'use-case-cclm' || currentPrototypeId === 'cross-cluster-migration') {
       setActivePerspective('Fleet virtualization');
-    } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states' || currentPrototypeId === 'fleet-admin-rbac' || currentPrototypeId === 'fleet-admin-rbac-v1.1' || currentPrototypeId === 'tenant-admin-access') {
+    } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states' || currentPrototypeId === 'fleet-admin-rbac' || currentPrototypeId === 'fleet-admin-rbac-v1.1' || currentPrototypeId === 'tenant-admin-access' || currentPrototypeId === 'stefans-acmintegration') {
       setActivePerspective('Fleet management');
     } else if (enabledPerspectives && enabledPerspectives.length > 0) {
       // Set to first enabled perspective for prototypes
@@ -917,6 +917,23 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
             !route.path.startsWith('/virtualization') &&
             route.navigation !== undefined
           );
+          
+          // For Cost Management prototype, filter by selected option (A or B)
+          if (currentPrototypeId === 'stefan-costmanagement') {
+            const selectedOption = sessionStorage.getItem('costManagementOption');
+            if (selectedOption === 'integrated') {
+              // Option B selected: Hide Option A routes (only show integrated routes if they have navigation)
+              filteredRoutes = filteredRoutes.filter(route => 
+                route.path.startsWith('/cost-management-integrated')
+              );
+            } else {
+              // Option A selected (or default): Only show Option A routes
+              filteredRoutes = filteredRoutes.filter(route => 
+                route.path.startsWith('/cost-management') && 
+                !route.path.startsWith('/cost-management-integrated')
+              );
+            }
+          }
         } else if (activePerspective === 'Fleet virtualization') {
           // Fleet virtualization: routes that start with /virtualization or /user-management
           filteredRoutes = prototype.routes.filter(route => 

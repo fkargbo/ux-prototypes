@@ -199,14 +199,32 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
         navigate('/core/operators/hub', { replace: true });
       }
     } else if (prototype.config.id === 'cross-cluster-migration') {
-      // For cross-cluster-migration prototype, always navigate to Virtual machines page in Fleet Virtualization
-      if (location.pathname === '/' || location.pathname === '' || !location.pathname.includes('/virtualization/virtual-machines')) {
+      // For cross-cluster-migration prototype, only redirect on root path (initial load)
+      if (location.pathname === '/' || location.pathname === '') {
         navigate('/virtualization/virtual-machines', { replace: true });
       }
     } else if (prototype.config.id === 'fleet-admin-rbac' || prototype.config.id === 'fleet-admin-rbac-v1.1') {
       // For RBAC prototypes, always navigate to Clusters page in Fleet management
       if (location.pathname === '/' || location.pathname === '' || !location.pathname.includes('/infrastructure/clusters')) {
         navigate('/infrastructure/clusters', { replace: true });
+      }
+    } else if (prototype.config.id === 'stefans-acmintegration') {
+      // For ACM Ansible integration prototype, navigate to Decision Environments page (first in workflow)
+      // Only redirect on root path, not on valid automation routes
+      if (location.pathname === '/' || location.pathname === '') {
+        navigate('/automation/decision-environments', { replace: true });
+      }
+    } else if (prototype.config.id === 'stefan-costmanagement') {
+      // For Cost Management prototype, redirect based on selected option
+      // Only redirect on root path
+      if (location.pathname === '/' || location.pathname === '') {
+        const option = sessionStorage.getItem('costManagementOption');
+        if (option === 'integrated') {
+          navigate('/cost-management-integrated/overview', { replace: true });
+        } else {
+          // Default to Option A (dedicated pages)
+          navigate('/cost-management/overview', { replace: true });
+        }
       }
     } else {
       // For other prototypes, check if we're on the root path and prototype has a redirect route
