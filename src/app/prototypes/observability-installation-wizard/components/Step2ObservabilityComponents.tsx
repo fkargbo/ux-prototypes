@@ -139,10 +139,18 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   );
 
   // Auto-select capabilities based on persona
+  // Note: We intentionally read selectedCapabilities here without including it in dependencies
+  // because we only want this effect to run when persona changes, not when capabilities change.
+  // We read the current value to preserve manually-selected capabilities when switching personas.
   useEffect(() => {
     if (selectedPersona) {
+      // Define persona-specific capabilities (these will be replaced when persona changes)
+      const personaSpecificCapabilities = ['thanos', 'loki', 'tempo', 'korrel8r'];
+      
+      // Start with required capabilities
       let autoCapabilities: string[] = ['metrics-alerting']; // Always required
       
+      // Add persona-specific capabilities
       if (selectedPersona === 'administrator') {
         autoCapabilities.push('thanos', 'loki');
       } else if (selectedPersona === 'sre') {
@@ -151,8 +159,20 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         autoCapabilities.push('loki', 'tempo');
       }
       
-      setSelectedCapabilities(autoCapabilities);
-      onDataChange({ selectedCapabilities: autoCapabilities });
+      // Preserve manually-selected capabilities that are NOT persona-specific
+      // (e.g., network-traffic which can be manually selected)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const manuallySelected = selectedCapabilities.filter(
+        cap => !personaSpecificCapabilities.includes(cap) && cap !== 'metrics-alerting'
+      );
+      
+      // Merge persona auto-capabilities with manually-selected ones
+      const mergedCapabilities = [...autoCapabilities, ...manuallySelected];
+      // Remove duplicates
+      const uniqueCapabilities = Array.from(new Set(mergedCapabilities));
+      
+      setSelectedCapabilities(uniqueCapabilities);
+      onDataChange({ selectedCapabilities: uniqueCapabilities });
     }
   }, [selectedPersona, onDataChange]);
 
@@ -162,6 +182,12 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   };
 
   const handleCapabilityChange = (capabilityId: string, checked: boolean) => {
+    // Prevent unchecking required capabilities
+    const capability = capabilities.find(c => c.id === capabilityId);
+    if (!checked && capability?.required) {
+      return; // Don't allow unchecking required capabilities
+    }
+    
     let newCapabilities: string[];
     
     if (checked) {
@@ -297,7 +323,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 id={`capability-${capability.id}`}
                                 label={capability.name}
                                 isChecked={isChecked}
-                                isDisabled={!canEnable && !isChecked}
+                                isDisabled={(!canEnable && !isChecked) || (isRequired && isChecked)}
                                 onChange={(_, checked) => handleCapabilityChange(capability.id, checked)}
                               />
                               {isRequired && (
