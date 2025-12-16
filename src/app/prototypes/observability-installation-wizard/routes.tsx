@@ -58,11 +58,15 @@ import { InstallationWizard } from './pages/InstallationWizard';
  * with persona-based configuration and unified observability component installation.
  */
 export const routes: RouteConfig[] = [
-  // Installation Wizard (no navigation - accessed via HomePage button)
+  // Installation Wizard - appears in Operators sub-menu
   {
     path: '/core/operators/operatorhub/install-observability',
     element: <InstallationWizard />,
     label: 'Install Cluster Observability Operator',
     title: 'Install Cluster Observability Operator',
+    navigation: {
+      group: 'Operators',
+      order: 3
+    }
   },
 ];

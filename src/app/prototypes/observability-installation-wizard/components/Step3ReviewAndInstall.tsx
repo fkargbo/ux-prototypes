@@ -14,7 +14,6 @@ import {
   Divider,
   Switch,
   Checkbox,
-  Button,
 } from '@patternfly/react-core';
 import {
   CpuIcon,
@@ -231,21 +230,12 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                   <CardTitle>CONSOLE EXPERIENCE (UI PLUGINS)</CardTitle>
                 </FlexItem>
                 <FlexItem>
-                  <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>
-                      <Switch
-                        id="advanced-mode"
-                        label="Advanced Mode"
-                        isChecked={advancedMode}
-                        onChange={(_, checked) => handleAdvancedModeChange(checked)}
-                      />
-                    </FlexItem>
-                    <FlexItem>
-                      <Button variant="secondary" size="sm">
-                        Auto
-                      </Button>
-                    </FlexItem>
-                  </Flex>
+                  <Switch
+                    id="advanced-mode"
+                    label="Advanced Mode"
+                    isChecked={advancedMode}
+                    onChange={(_, checked) => handleAdvancedModeChange(checked)}
+                  />
                 </FlexItem>
               </Flex>
 
