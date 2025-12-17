@@ -3825,72 +3825,90 @@ spec:
                             </ToggleGroup>
                           </FlexItem>
 
-                          {/* Group By - only for treemap */}
-                          {viewMode === 'treemap' && (
-                            <>
-                              <FlexItem>
-                                <Select
-                                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                    <MenuToggle ref={toggleRef} onClick={() => setIsGroupByOpen(!isGroupByOpen)} isExpanded={isGroupByOpen} style={{ width: '150px' }}>
-                                      Group: {groupBy === 'none' ? 'None' : groupBy === 'cloudProvider' ? 'Provider' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
-                                    </MenuToggle>
-                                  )}
-                                  onSelect={(_, value) => { setGroupBy(value as GroupByOption); setIsGroupByOpen(false); }}
-                                  isOpen={isGroupByOpen}
-                                  onOpenChange={setIsGroupByOpen}
-                                  selected={groupBy}
-                                >
-                                  <SelectList>
-                                    <SelectOption value="none">None</SelectOption>
-                                    <SelectOption value="region">Region</SelectOption>
-                                    <SelectOption value="cloudProvider">Cloud Provider</SelectOption>
-                                    <SelectOption value="team">Team</SelectOption>
-                                    <SelectOption value="severity">Severity</SelectOption>
-                                  </SelectList>
-                                </Select>
-                              </FlexItem>
+                          {/* Group By - shown for both views, disabled for Table */}
+                          <FlexItem>
+                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined }}>Group by</Content>
+                              <Select
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle 
+                                    ref={toggleRef} 
+                                    onClick={() => viewMode !== 'summary' && setIsGroupByOpen(!isGroupByOpen)} 
+                                    isExpanded={isGroupByOpen} 
+                                    isDisabled={viewMode === 'summary'}
+                                    style={{ width: '140px' }}
+                                  >
+                                    {groupBy === 'none' ? 'None' : groupBy === 'cloudProvider' ? 'Provider' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                                  </MenuToggle>
+                                )}
+                                onSelect={(_, value) => { setGroupBy(value as GroupByOption); setIsGroupByOpen(false); }}
+                                isOpen={isGroupByOpen}
+                                onOpenChange={setIsGroupByOpen}
+                                selected={groupBy}
+                              >
+                                <SelectList>
+                                  <SelectOption value="none">None</SelectOption>
+                                  <SelectOption value="region">Region</SelectOption>
+                                  <SelectOption value="cloudProvider">Cloud Provider</SelectOption>
+                                  <SelectOption value="team">Team</SelectOption>
+                                  <SelectOption value="severity">Severity</SelectOption>
+                                </SelectList>
+                              </Select>
+                            </Flex>
+                          </FlexItem>
 
-                              <FlexItem>
-                                <Select
-                                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                    <MenuToggle ref={toggleRef} onClick={() => setIsSizeByOpen(!isSizeByOpen)} isExpanded={isSizeByOpen} style={{ width: '180px' }}>
-                                      Size: {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Nodes'}
-                                    </MenuToggle>
-                                  )}
-                                  onSelect={(_, value) => { setImportanceSizing(value as ImportanceSizing); setIsSizeByOpen(false); }}
-                                  isOpen={isSizeByOpen}
-                                  onOpenChange={setIsSizeByOpen}
-                                  selected={importanceSizing}
-                                >
-                                  <SelectList>
-                                    {sizeByOptions.map(opt => (
-                                      <SelectOption key={opt.value} value={opt.value}>{opt.label}</SelectOption>
-                                    ))}
-                                  </SelectList>
-                                </Select>
-                              </FlexItem>
-                            </>
-                          )}
+                          {/* Size By - shown for both views, disabled for Table */}
+                          <FlexItem>
+                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined }}>Size by</Content>
+                              <Select
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle 
+                                    ref={toggleRef} 
+                                    onClick={() => viewMode !== 'summary' && setIsSizeByOpen(!isSizeByOpen)} 
+                                    isExpanded={isSizeByOpen} 
+                                    isDisabled={viewMode === 'summary'}
+                                    style={{ width: '140px' }}
+                                  >
+                                    {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Nodes'}
+                                  </MenuToggle>
+                                )}
+                                onSelect={(_, value) => { setImportanceSizing(value as ImportanceSizing); setIsSizeByOpen(false); }}
+                                isOpen={isSizeByOpen}
+                                onOpenChange={setIsSizeByOpen}
+                                selected={importanceSizing}
+                              >
+                                <SelectList>
+                                  {sizeByOptions.map(opt => (
+                                    <SelectOption key={opt.value} value={opt.value}>{opt.label}</SelectOption>
+                                  ))}
+                                </SelectList>
+                              </Select>
+                            </Flex>
+                          </FlexItem>
 
                           {/* Sort By - for both views */}
                           <FlexItem>
-                            <Select
-                              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                <MenuToggle ref={toggleRef} onClick={() => setIsSortByOpen(!isSortByOpen)} isExpanded={isSortByOpen} style={{ width: '150px' }}>
-                                  Sort: {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert Count' : 'Name'}
-                                </MenuToggle>
-                              )}
-                              onSelect={(_, value) => { setSortBy(value as SortByOption); setIsSortByOpen(false); }}
-                              isOpen={isSortByOpen}
-                              onOpenChange={setIsSortByOpen}
-                              selected={sortBy}
-                            >
-                              <SelectList>
-                                <SelectOption value="severity">Severity</SelectOption>
-                                <SelectOption value="alertCount">Alert Count</SelectOption>
-                                <SelectOption value="clusterName">Cluster Name</SelectOption>
-                              </SelectList>
-                            </Select>
+                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <Content component="small">Sort by</Content>
+                              <Select
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle ref={toggleRef} onClick={() => setIsSortByOpen(!isSortByOpen)} isExpanded={isSortByOpen} style={{ width: '140px' }}>
+                                    {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert Count' : 'Name'}
+                                  </MenuToggle>
+                                )}
+                                onSelect={(_, value) => { setSortBy(value as SortByOption); setIsSortByOpen(false); }}
+                                isOpen={isSortByOpen}
+                                onOpenChange={setIsSortByOpen}
+                                selected={sortBy}
+                              >
+                                <SelectList>
+                                  <SelectOption value="severity">Severity</SelectOption>
+                                  <SelectOption value="alertCount">Alert Count</SelectOption>
+                                  <SelectOption value="clusterName">Cluster Name</SelectOption>
+                                </SelectList>
+                              </Select>
+                            </Flex>
                           </FlexItem>
                         </Flex>
                       </FlexItem>
@@ -3898,42 +3916,13 @@ spec:
                   </CardHeader>
                   <CardBody>
                     {viewMode === 'treemap' ? (
-                      <>
-                        <TreemapHeatmap
-                          clusters={sortedClusters}
-                          groupBy={groupBy}
-                          importanceSizing={importanceSizing}
-                          severityFilter={severityFilter}
-                          onDrillDown={handleDrillDown}
-                        />
-                        {/* Legend */}
-                        <Flex gap={{ default: 'gapMd' }} justifyContent={{ default: 'justifyContentCenter' }} style={{ marginTop: '16px' }}>
-                          <FlexItem>
-                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <div style={{ width: '16px', height: '16px', backgroundColor: '#c9190b', borderRadius: '2px' }} />
-                              <Content component="small">Critical</Content>
-                            </Flex>
-                          </FlexItem>
-                          <FlexItem>
-                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <div style={{ width: '16px', height: '16px', backgroundColor: '#f0ab00', borderRadius: '2px' }} />
-                              <Content component="small">Warning</Content>
-                            </Flex>
-                          </FlexItem>
-                          <FlexItem>
-                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <div style={{ width: '16px', height: '16px', backgroundColor: '#6753ac', borderRadius: '2px' }} />
-                              <Content component="small">Info</Content>
-                            </Flex>
-                          </FlexItem>
-                          <FlexItem>
-                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <div style={{ width: '16px', height: '16px', backgroundColor: '#3e8635', borderRadius: '2px' }} />
-                              <Content component="small">Healthy</Content>
-                            </Flex>
-                          </FlexItem>
-                        </Flex>
-                      </>
+                      <TreemapHeatmap
+                        clusters={sortedClusters}
+                        groupBy={groupBy}
+                        importanceSizing={importanceSizing}
+                        severityFilter={severityFilter}
+                        onDrillDown={handleDrillDown}
+                      />
                     ) : (
                       /* Table View */
                       <Table aria-label="Clusters table">
