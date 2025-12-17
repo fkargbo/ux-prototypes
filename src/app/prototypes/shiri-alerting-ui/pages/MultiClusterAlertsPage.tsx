@@ -2368,28 +2368,27 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           ))}
         </PfAlertGroup>
 
-        {/* Breadcrumbs */}
-        <PageSection hasBodyWrapper={false} style={{ paddingBottom: 0 }}>
-          <Breadcrumb>
-            <BreadcrumbItem to="/">Home</BreadcrumbItem>
-            <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-            <BreadcrumbItem to="/observe/alerting" onClick={(e) => { e.preventDefault(); handleBackToList(); }}>Alerting</BreadcrumbItem>
-            <BreadcrumbItem isActive>Cluster alerts for {selectedCluster.name}</BreadcrumbItem>
-          </Breadcrumb>
-        </PageSection>
-
-        {/* Header */}
-        <PageSection hasBodyWrapper={false}>
+        {/* Breadcrumbs + Header - Combined to reduce spacing */}
+        <PageSection hasBodyWrapper={false} style={{ paddingBottom: '16px' }}>
           <Stack hasGutter>
+            {/* Breadcrumbs */}
             <StackItem>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                <FlexItem>
-                  <Button variant="link" icon={<ArrowLeftIcon />} onClick={handleBackToList}>
-                    Back to Multi-cluster alerting
-                  </Button>
-                </FlexItem>
-              </Flex>
+              <Breadcrumb>
+                <BreadcrumbItem to="/">Home</BreadcrumbItem>
+                <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
+                <BreadcrumbItem to="/observe/alerting" onClick={(e) => { e.preventDefault(); handleBackToList(); }}>Alerting</BreadcrumbItem>
+                <BreadcrumbItem isActive>Cluster alerts for {selectedCluster.name}</BreadcrumbItem>
+              </Breadcrumb>
             </StackItem>
+
+            {/* Back Button */}
+            <StackItem>
+              <Button variant="link" icon={<ArrowLeftIcon />} onClick={handleBackToList} style={{ paddingLeft: 0 }}>
+                Back to Multi-cluster alerting
+              </Button>
+            </StackItem>
+
+            {/* Title */}
             <StackItem>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
                 <FlexItem>
@@ -2402,6 +2401,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
                 </FlexItem>
               </Flex>
             </StackItem>
+
+            {/* Status Labels */}
             <StackItem>
               <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
                 <FlexItem>
@@ -3504,52 +3505,55 @@ spec:
   // ========================================
   return (
     <>
-      {/* Breadcrumbs */}
-      <PageSection hasBodyWrapper={false} style={{ paddingBottom: 0 }}>
-        <Breadcrumb>
-          <BreadcrumbItem to="/">Home</BreadcrumbItem>
-          <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-          <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
-        </Breadcrumb>
-      </PageSection>
+      {/* Breadcrumbs + Header + Toolbar - Combined to reduce spacing */}
+      <PageSection hasBodyWrapper={false} style={{ paddingBottom: '16px' }}>
+        <Stack hasGutter>
+          {/* Breadcrumbs */}
+          <StackItem>
+            <Breadcrumb>
+              <BreadcrumbItem to="/">Home</BreadcrumbItem>
+              <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
+              <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
+            </Breadcrumb>
+          </StackItem>
 
-      {/* Header with Toolbar */}
-      <PageSection hasBodyWrapper={false}>
-        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          {/* Header */}
+          <StackItem>
+            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem>
-                <Icon size="lg" status="danger">
-                  <OutlinedBellIcon />
-                </Icon>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                  <FlexItem>
+                    <Icon size="lg" status="danger">
+                      <OutlinedBellIcon />
+                    </Icon>
+                  </FlexItem>
+                  <FlexItem>
+                    <Title headingLevel="h1" size="2xl">Multi-cluster alerting</Title>
+                    <Content component="small" className="pf-v6-u-color-200">
+                      Multi-cluster alerting and monitoring dashboard
+                    </Content>
+                  </FlexItem>
+                </Flex>
               </FlexItem>
               <FlexItem>
-                <Title headingLevel="h1" size="2xl">Multi-cluster alerting</Title>
-                <Content component="small" className="pf-v6-u-color-200">
-                  Multi-cluster alerting and monitoring dashboard
-                </Content>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                  <FlexItem>
+                    <Content component="small" className="pf-v6-u-color-200">
+                      <ClockIcon /> Last updated: {lastRefresh.toLocaleTimeString()}
+                    </Content>
+                  </FlexItem>
+                  <FlexItem>
+                    <Button variant="secondary" icon={<SyncIcon />} onClick={handleRefresh}>
+                      Refresh
+                    </Button>
+                  </FlexItem>
+                </Flex>
               </FlexItem>
             </Flex>
-          </FlexItem>
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-              <FlexItem>
-                <Content component="small" className="pf-v6-u-color-200">
-                  <ClockIcon /> Last updated: {lastRefresh.toLocaleTimeString()}
-                </Content>
-              </FlexItem>
-              <FlexItem>
-                <Button variant="secondary" icon={<SyncIcon />} onClick={handleRefresh}>
-                  Refresh
-                </Button>
-              </FlexItem>
-            </Flex>
-          </FlexItem>
-        </Flex>
-      </PageSection>
+          </StackItem>
 
-      {/* Static Toolbar - Order: Saved filters, Filters, Search */}
-      <PageSection hasBodyWrapper={false} style={{ paddingTop: 0, paddingBottom: '8px' }}>
+          {/* Static Toolbar - Order: Saved filters, Filters, Search */}
+          <StackItem>
         <Toolbar>
           <ToolbarContent>
             {/* Saved Filters Dropdown - First */}
@@ -3691,6 +3695,8 @@ spec:
             </FlexItem>
           </Flex>
         )}
+          </StackItem>
+        </Stack>
       </PageSection>
 
       {/* Main Content - Filter panel pushes entire page */}
