@@ -4,16 +4,8 @@ import { Dashboard } from '@app/Dashboard/Dashboard';
 import { Support } from '@app/Support/Support';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
-// DEPRECATED: HubVirtualMachines moved to prototypes
-// import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
 import { NotFound } from '@app/NotFound/NotFound';
-import { Search } from '@app/Search/Search';
-// DEPRECATED: Shared Fleet Virtualization components moved to prototypes
-// Each prototype now has its own local copies
-// import Virtualization from '@app/shared-fleet-virtualization/Virtualization';
-// import { Catalog } from '@app/shared-fleet-virtualization/Catalog';
-// import { Templates } from '@app/shared-fleet-virtualization/Templates';
-// import { InstanceTypes } from '@app/shared-fleet-virtualization/InstanceTypes';
+import { MultiClusterAlertingDashboard } from '@app/MultiClusterAlerts/MultiClusterAlertsPage';
 
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
@@ -22,121 +14,134 @@ export interface IAppRoute {
   path: string;
   title: string;
   routes?: undefined;
-  disabled?: boolean;
 }
 
 export interface IAppRouteGroup {
   label: string;
   routes: IAppRoute[];
-  disabled?: boolean;
 }
 
 export type AppRouteConfig = IAppRoute | IAppRouteGroup;
 
-// DEPRECATED: These routes are from the old use-case system
-// All prototypes now live in src/app/prototypes/ and are loaded via PrototypeLauncher
-// This file is kept only for any shared/common routes that aren't prototype-specific
 const routes: AppRouteConfig[] = [
   {
-    label: 'Home',
-    routes: [
-      {
-        element: <Dashboard />,
-        label: 'Overview',
-        path: '/',
-        title: 'ACM | Home',
-      },
-    ],
-  },
-  {
-    element: <Search />,
-    label: 'Search',
-    path: '/search',
-    title: 'ACM | Search',
+    element: <Dashboard />,
+    exact: true,
+    label: 'Overview',
+    path: '/',
+    title: 'OpenShift Advanced Cluster Manager | Overview',
   },
   {
     label: 'Infrastructure',
     routes: [
       {
         element: <Dashboard />,
+        exact: true,
         label: 'Clusters',
         path: '/infrastructure/clusters',
-        title: 'ACM | Clusters',
+        title: 'OpenShift Advanced Cluster Manager | Clusters',
       },
+    ],
+  },
+  {
+    label: 'Virtualization',
+    routes: [
       {
         element: <Dashboard />,
-        label: 'Automation',
-        path: '/infrastructure/automation',
-        title: 'ACM | Automation',
-      },
-      {
-        element: <Dashboard />,
-        label: 'Host inventory',
-        path: '/infrastructure/host-inventory',
-        title: 'ACM | Host Inventory',
+        exact: true,
+        label: 'Virtual Machines',
+        path: '/virtualization/vms',
+        title: 'OpenShift Advanced Cluster Manager | Virtual Machines',
       },
     ],
   },
   {
     label: 'Applications',
-    disabled: true,
     routes: [
       {
         element: <Dashboard />,
-        label: 'Overview',
-        path: '/applications/overview',
-        title: 'ACM | Applications',
+        exact: true,
+        label: 'Deployments',
+        path: '/applications/deployments',
+        title: 'OpenShift Advanced Cluster Manager | Deployments',
+      },
+    ],
+  },
+  {
+    label: 'Governance',
+    routes: [
+      {
+        element: <Dashboard />,
+        exact: true,
+        label: 'Policies',
+        path: '/governance/policies',
+        title: 'OpenShift Advanced Cluster Manager | Policies',
       },
     ],
   },
   {
     label: 'Credentials',
-    disabled: true,
     routes: [
       {
         element: <Dashboard />,
-        label: 'Overview',
-        path: '/credentials/overview',
-        title: 'ACM | Credentials',
+        exact: true,
+        label: 'Secrets',
+        path: '/credentials/secrets',
+        title: 'OpenShift Advanced Cluster Manager | Secrets',
       },
     ],
   },
   {
     label: 'Observe',
-    disabled: true,
     routes: [
       {
+        element: <MultiClusterAlertingDashboard />,
+        exact: true,
+        label: 'Alerting',
+        path: '/observe/alerting',
+        title: 'OpenShift Advanced Cluster Manager | Alerting',
+      },
+      {
         element: <Dashboard />,
-        label: 'Overview',
-        path: '/observe/overview',
-        title: 'ACM | Observe',
+        exact: true,
+        label: 'Dashboards',
+        path: '/observe/dashboards',
+        title: 'OpenShift Advanced Cluster Manager | Dashboards',
       },
     ],
   },
   {
-    label: 'Edge management',
-    disabled: true,
+    element: <Support />,
+    exact: true,
+    label: 'Support',
+    path: '/support',
+    title: 'OpenShift Advanced Cluster Manager | Support Page',
+  },
+  {
+    label: 'Settings',
     routes: [
       {
-        element: <Dashboard />,
-        label: 'Overview',
-        path: '/edge-management/overview',
-        title: 'ACM | Edge Management',
+        element: <GeneralSettings />,
+        exact: true,
+        label: 'General',
+        path: '/settings/general',
+        title: 'OpenShift Advanced Cluster Manager | General Settings',
+      },
+      {
+        element: <ProfileSettings />,
+        exact: true,
+        label: 'Profile',
+        path: '/settings/profile',
+        title: 'OpenShift Advanced Cluster Manager | Profile Settings',
       },
     ],
   },
 ];
 
-// Additional routes without navigation labels (won't appear in sidebar)
-const hiddenRoutes: IAppRoute[] = [];
-
-const flattenedRoutes: IAppRoute[] = [
-  ...routes.reduce(
-    (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
-    [] as IAppRoute[],
-  ),
-  ...hiddenRoutes,
-];
+const flattenedRoutes: IAppRoute[] = routes.reduce(
+  (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
+  [] as IAppRoute[],
+);
 
 const AppRoutes = (): React.ReactElement => (
   <Routes>
