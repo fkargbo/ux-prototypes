@@ -2353,7 +2353,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // ========================================
   if (isDrillDownView && selectedCluster) {
     return (
-      <>
+      <div style={{ padding: '24px' }}>
         {/* Toast Notifications */}
         <PfAlertGroup isToast isLiveRegion>
           {toasts.map(toast => (
@@ -2368,8 +2368,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           ))}
         </PfAlertGroup>
 
-        {/* Breadcrumbs + Header - Combined to reduce spacing */}
-        <PageSection hasBodyWrapper={false} style={{ paddingTop: '16px', paddingBottom: '16px' }}>
+        {/* Breadcrumbs + Header */}
+        <div style={{ marginBottom: '16px' }}>
           <Stack hasGutter>
             {/* Breadcrumbs */}
             <StackItem>
@@ -2422,10 +2422,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
               </Flex>
             </StackItem>
           </Stack>
-        </PageSection>
+        </div>
 
         {/* Main Content */}
-        <PageSection hasBodyWrapper={false} isFilled>
           <Drawer isExpanded={isDrawerExpanded} position="end">
             <DrawerContent
               panelContent={
@@ -3217,7 +3216,6 @@ spec:
               </DrawerContentBody>
             </DrawerContent>
           </Drawer>
-        </PageSection>
 
         {/* Column Management Modal */}
         <Modal
@@ -3496,7 +3494,7 @@ spec:
             <Button variant="primary" onClick={() => setIsDrillDownManageSavedFiltersModalOpen(false)}>Done</Button>
           </ModalFooter>
         </Modal>
-      </>
+      </div>
     );
   }
 
@@ -3504,9 +3502,9 @@ spec:
   // MAIN VIEW (Multi-cluster Alerting Page)
   // ========================================
   return (
-    <>
-      {/* Breadcrumbs + Header + Toolbar - Combined to reduce spacing */}
-      <PageSection hasBodyWrapper={false} style={{ paddingTop: '16px', paddingBottom: '16px' }}>
+    <div style={{ padding: '24px' }}>
+      {/* Breadcrumbs + Header + Toolbar */}
+      <div style={{ marginBottom: '16px' }}>
         <Stack hasGutter>
           {/* Breadcrumbs */}
           <StackItem>
@@ -3697,11 +3695,10 @@ spec:
         )}
           </StackItem>
         </Stack>
-      </PageSection>
+      </div>
 
       {/* Main Content with Side Panel Filter */}
-      <PageSection hasBodyWrapper={false} isFilled style={{ paddingTop: 0 }}>
-        <Split hasGutter>
+      <Split hasGutter>
           {/* Filter Side Panel */}
           {isFilterPanelOpen && (
             <SplitItem style={{ width: '280px', minWidth: '280px' }}>
@@ -4024,7 +4021,6 @@ spec:
             </Stack>
           </SplitItem>
         </Split>
-      </PageSection>
 
       {/* Save Filter Modal */}
       <Modal
@@ -4277,7 +4273,7 @@ spec:
           </Button>
         </ModalFooter>
       </Modal>
-    </>
+    </div>
   );
 };
 
