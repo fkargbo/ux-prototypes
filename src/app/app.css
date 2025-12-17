@@ -997,3 +997,18 @@ input[type="checkbox"] {
   height: 100% !important;
   cursor: default !important;
 }
+
+/* Multi-cluster Alerting Page - Standard page padding */
+.alerting-page-container {
+  padding: 24px !important;
+  background-color: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
+  min-height: 100%;
+}
+
+.alerting-page-container .alerting-page-header {
+  margin-bottom: 16px;
+}
+
+.alerting-page-container .alerting-main-content {
+  /* Ensure proper layout for Split component */
+}

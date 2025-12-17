@@ -2353,7 +2353,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // ========================================
   if (isDrillDownView && selectedCluster) {
     return (
-      <div style={{ padding: '24px' }}>
+      <div className="alerting-page-container">
         {/* Toast Notifications */}
         <PfAlertGroup isToast isLiveRegion>
           {toasts.map(toast => (
@@ -2369,7 +2369,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         </PfAlertGroup>
 
         {/* Breadcrumbs + Header */}
-        <div style={{ marginBottom: '16px' }}>
+        <div className="alerting-page-header">
           <Stack hasGutter>
             {/* Breadcrumbs */}
             <StackItem>
@@ -3502,9 +3502,9 @@ spec:
   // MAIN VIEW (Multi-cluster Alerting Page)
   // ========================================
   return (
-    <div style={{ padding: '24px' }}>
+    <div className="alerting-page-container">
       {/* Breadcrumbs + Header + Toolbar */}
-      <div style={{ marginBottom: '16px' }}>
+      <div className="alerting-page-header">
         <Stack hasGutter>
           {/* Breadcrumbs */}
           <StackItem>
