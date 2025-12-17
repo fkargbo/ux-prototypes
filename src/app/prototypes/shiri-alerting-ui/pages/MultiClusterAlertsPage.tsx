@@ -2369,7 +2369,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         </PfAlertGroup>
 
         {/* Breadcrumbs + Header - Combined to reduce spacing */}
-        <PageSection hasBodyWrapper={false} style={{ paddingBottom: '16px' }}>
+        <PageSection hasBodyWrapper={false} style={{ paddingTop: '16px', paddingBottom: '16px' }}>
           <Stack hasGutter>
             {/* Breadcrumbs */}
             <StackItem>
@@ -3506,7 +3506,7 @@ spec:
   return (
     <>
       {/* Breadcrumbs + Header + Toolbar - Combined to reduce spacing */}
-      <PageSection hasBodyWrapper={false} style={{ paddingBottom: '16px' }}>
+      <PageSection hasBodyWrapper={false} style={{ paddingTop: '16px', paddingBottom: '16px' }}>
         <Stack hasGutter>
           {/* Breadcrumbs */}
           <StackItem>
@@ -3699,12 +3699,12 @@ spec:
         </Stack>
       </PageSection>
 
-      {/* Main Content - Filter panel pushes entire page */}
-      <PageSection hasBodyWrapper={false} isFilled>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-          {/* Filter Panel */}
+      {/* Main Content with Side Panel Filter */}
+      <PageSection hasBodyWrapper={false} isFilled style={{ paddingTop: 0 }}>
+        <Split hasGutter>
+          {/* Filter Side Panel */}
           {isFilterPanelOpen && (
-            <div style={{ width: '280px', minWidth: '280px', flexShrink: 0 }}>
+            <SplitItem style={{ width: '280px', minWidth: '280px' }}>
               <FilterPanel
                 regionFilter={regionFilter}
                 setRegionFilter={setRegionFilter}
@@ -3738,11 +3738,11 @@ spec:
                 }}
                 onDeleteSavedFilter={(id) => setSavedFilters(savedFilters.filter(f => f.id !== id))}
               />
-            </div>
+            </SplitItem>
           )}
 
           {/* Main Content Area */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <SplitItem isFilled>
             <Stack hasGutter>
               {/* Stats Cards */}
               <StackItem>
@@ -4022,8 +4022,8 @@ spec:
                 <AlertsTimelineCard trendData={mockTrendData} />
               </StackItem>
             </Stack>
-          </div>
-        </div>
+          </SplitItem>
+        </Split>
       </PageSection>
 
       {/* Save Filter Modal */}
