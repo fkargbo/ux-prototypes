@@ -50,6 +50,7 @@ import { RouteConfig } from '@app/core/types';
 
 // Import your page components here when you add routes
 import { InstallationWizard } from './pages/InstallationWizard';
+import { InstalledOperatorsPage } from './pages/InstalledOperatorsPage';
 
 /**
  * Routes for Observability Installation Wizard
@@ -58,15 +59,26 @@ import { InstallationWizard } from './pages/InstallationWizard';
  * with persona-based configuration and unified observability component installation.
  */
 export const routes: RouteConfig[] = [
-  // Installation Wizard - appears in Operators sub-menu
+  // OperatorHub - appears in Operators sub-menu
   {
     path: '/core/operators/operatorhub/install-observability',
     element: <InstallationWizard />,
-    label: 'Install Cluster Observability Operator',
+    label: 'OperatorHub',
     title: 'Install Cluster Observability Operator',
     navigation: {
       group: 'Operators',
       order: 3
+    }
+  },
+  // Installed Operators - appears in Operators sub-menu
+  {
+    path: '/core/operators/installed',
+    element: <InstalledOperatorsPage />,
+    label: 'Installed Operators',
+    title: 'Installed Operators',
+    navigation: {
+      group: 'Operators',
+      order: 4
     }
   },
 ];
