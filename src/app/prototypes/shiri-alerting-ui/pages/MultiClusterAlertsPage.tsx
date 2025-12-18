@@ -3896,7 +3896,7 @@ spec:
                           {/* Group By - shown for both views, disabled for Table */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined }}>Group by</Content>
+                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined, display: 'flex', alignItems: 'center' }}>Group by</Content>
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle 
@@ -3928,7 +3928,7 @@ spec:
                           {/* Size By - shown for both views, disabled for Table */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined }}>Size by</Content>
+                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined, display: 'flex', alignItems: 'center' }}>Size by</Content>
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle 
@@ -3958,7 +3958,7 @@ spec:
                           {/* Sort By - for both views */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="small">Sort by</Content>
+                              <Content component="small" style={{ display: 'flex', alignItems: 'center' }}>Sort by</Content>
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle ref={toggleRef} onClick={() => setIsSortByOpen(!isSortByOpen)} isExpanded={isSortByOpen} style={{ width: '140px' }}>
