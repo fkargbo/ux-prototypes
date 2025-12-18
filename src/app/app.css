@@ -1037,3 +1037,26 @@ input[type="checkbox"] {
   width: 100% !important;
   max-width: 100% !important;
 }
+
+/* Fix toolbar vertical alignment */
+.alerting-page-container .pf-v6-c-toolbar {
+  --pf-v6-c-toolbar--AlignItems: center;
+}
+
+.alerting-page-container .pf-v6-c-toolbar__content {
+  align-items: center !important;
+}
+
+.alerting-page-container .pf-v6-c-toolbar__item {
+  align-items: center !important;
+  display: flex !important;
+}
+
+.alerting-page-container .pf-v6-c-toolbar__group {
+  align-items: center !important;
+}
+
+/* Ensure Flex items in toolbar are centered */
+.alerting-page-container .pf-v6-l-flex.pf-m-align-items-center {
+  align-items: center !important;
+}

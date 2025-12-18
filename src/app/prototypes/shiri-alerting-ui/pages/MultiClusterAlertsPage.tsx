@@ -3032,7 +3032,7 @@ spec:
                                               <FlexItem>{filter.name}</FlexItem>
                                               {selectedDrillDownSavedFilter?.id === filter.id && (
                                                 <FlexItem>
-                                                  <Label isCompact color="blue">Selected</Label>
+                                                  <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
                                                 </FlexItem>
                                               )}
                                             </Flex>
@@ -3641,16 +3641,13 @@ spec:
         </Stack>
       </div>
 
-      {/* Add padding below tabs */}
-      <div style={{ marginTop: '16px' }} />
-
       {/* Tab Content */}
       {mainPageTab === 'alerts' && !isDrillDownView && (
         <>
           {/* Static Toolbar - Order: Saved filters, Filters, Search */}
-          <div style={{ padding: '0 24px' }}>
-            <Toolbar>
-              <ToolbarContent>
+          <div style={{ padding: '16px 24px 0 24px' }}>
+            <Toolbar style={{ alignItems: 'center' }}>
+              <ToolbarContent style={{ alignItems: 'center' }}>
                 {/* Saved Filters Dropdown - First */}
             <ToolbarItem>
               <Dropdown
@@ -3686,7 +3683,7 @@ spec:
                           <FlexItem>{filter.name}</FlexItem>
                           {selectedSavedFilter?.id === filter.id && (
                             <FlexItem>
-                              <Label isCompact color="blue">Selected</Label>
+                              <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
                             </FlexItem>
                           )}
                         </Flex>
