@@ -2523,11 +2523,11 @@ spec:
                 )
               }
             >
-              <DrawerContentBody>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+              <DrawerContentBody style={{ overflow: 'hidden' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', width: '100%', overflow: 'hidden' }}>
                   {/* Filter Sidebar */}
                   {drillDownFilterOpen && (
-                    <div style={{ width: '280px', minWidth: '280px', flexShrink: 0 }}>
+                    <div style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0 }}>
                       <Card>
                         <CardHeader>
                           <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -2787,7 +2787,7 @@ spec:
                   )}
 
                   {/* Main Content */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <Stack hasGutter>
                       {/* Alerts Summary - Compact */}
                       <StackItem>
@@ -3695,10 +3695,10 @@ spec:
       </div>
 
       {/* Main Content with Side Panel Filter */}
-      <Split hasGutter>
+      <Split hasGutter style={{ width: '100%', overflow: 'hidden' }}>
           {/* Filter Side Panel */}
           {isFilterPanelOpen && (
-            <SplitItem style={{ width: '280px', minWidth: '280px' }}>
+            <SplitItem style={{ width: '280px', minWidth: '280px', flexShrink: 0 }}>
               <FilterPanel
                 regionFilter={regionFilter}
                 setRegionFilter={setRegionFilter}
@@ -3736,7 +3736,7 @@ spec:
           )}
 
           {/* Main Content Area */}
-          <SplitItem isFilled>
+          <SplitItem isFilled style={{ minWidth: 0, overflow: 'hidden' }}>
             <Stack hasGutter>
               {/* Stats Cards */}
               <StackItem>

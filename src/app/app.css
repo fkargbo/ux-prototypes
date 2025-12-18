@@ -1003,12 +1003,37 @@ input[type="checkbox"] {
   padding: 24px !important;
   background-color: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .alerting-page-container .alerting-page-header {
   margin-bottom: 16px;
 }
 
-.alerting-page-container .alerting-main-content {
-  /* Ensure proper layout for Split component */
+/* Ensure Split component respects container bounds */
+.alerting-page-container .pf-v6-c-split {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure the filled SplitItem doesn't overflow */
+.alerting-page-container .pf-v6-c-split__item.pf-m-fill {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Ensure cards within the alerting page don't overflow */
+.alerting-page-container .pf-v6-c-card {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure the treemap chart container is responsive */
+.alerting-page-container .echarts-for-react {
+  width: 100% !important;
+  max-width: 100% !important;
 }
