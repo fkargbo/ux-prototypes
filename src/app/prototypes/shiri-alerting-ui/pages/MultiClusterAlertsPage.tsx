@@ -719,6 +719,8 @@ interface FilterPanelProps {
   setClusterFilter: (v: string[]) => void;
   namespaceFilter: string[];
   setNamespaceFilter: (v: string[]) => void;
+  labelFilter: string[];
+  setLabelFilter: (v: string[]) => void;
   severityFilter: AlertSeverity[];
   setSeverityFilter: (v: AlertSeverity[]) => void;
   groupFilter: AlertGroup[];
@@ -728,6 +730,7 @@ interface FilterPanelProps {
   regions: string[];
   clusterNames: string[];
   namespaces: string[];
+  availableLabels: string[];
   onClose: () => void;
   savedFilters: SavedFilter[];
   onApplySavedFilter: (filter: SavedFilter) => void;
@@ -739,10 +742,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   regionFilter, setRegionFilter,
   clusterFilter, setClusterFilter,
   namespaceFilter, setNamespaceFilter,
+  labelFilter, setLabelFilter,
   severityFilter, setSeverityFilter,
   groupFilter, setGroupFilter,
   componentFilter, setComponentFilter,
-  regions, clusterNames, namespaces,
+  regions, clusterNames, namespaces, availableLabels,
   onClose,
   savedFilters, onApplySavedFilter, onSaveFilter, onDeleteSavedFilter,
 }) => {
@@ -756,21 +760,24 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const [isRegionOpen, setIsRegionOpen] = React.useState(false);
   const [isClusterOpen, setIsClusterOpen] = React.useState(false);
   const [isNamespaceOpen, setIsNamespaceOpen] = React.useState(false);
+  const [isLabelOpen, setIsLabelOpen] = React.useState(false);
   const [isComponentOpen, setIsComponentOpen] = React.useState(false);
 
   // Search values for dropdowns
   const [regionSearchValue, setRegionSearchValue] = React.useState('');
   const [clusterSearchValue, setClusterSearchValue] = React.useState('');
   const [namespaceSearchValue, setNamespaceSearchValue] = React.useState('');
+  const [labelSearchValue, setLabelSearchValue] = React.useState('');
   const [componentSearchValue, setComponentSearchValue] = React.useState('');
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
-    severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0;
+    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0;
 
   const clearAllFilters = () => {
     setRegionFilter([]);
     setClusterFilter([]);
     setNamespaceFilter([]);
+    setLabelFilter([]);
     setSeverityFilter([]);
     setGroupFilter([]);
     setComponentFilter([]);
@@ -795,6 +802,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const filteredRegions = regions.filter(r => r.toLowerCase().includes(regionSearchValue.toLowerCase()));
   const filteredClusters = clusterNames.filter(c => c.toLowerCase().includes(clusterSearchValue.toLowerCase()));
   const filteredNamespaces = namespaces.filter(n => n.toLowerCase().includes(namespaceSearchValue.toLowerCase()));
+  const filteredLabels = availableLabels.filter(l => l.toLowerCase().includes(labelSearchValue.toLowerCase()));
   const filteredComponents = availableComponents.filter(c => c.toLowerCase().includes(componentSearchValue.toLowerCase()));
 
   return (
@@ -983,6 +991,66 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 {namespaceFilter.map(n => (
                   <Label key={n} color="blue" onClose={() => setNamespaceFilter(namespaceFilter.filter(x => x !== n))} icon={<CubesIcon />}>
                     {n}
+                  </Label>
+                ))}
+              </LabelGroup>
+            )}
+          </StackItem>
+
+          <Divider />
+
+          {/* Labels Dropdown */}
+          <StackItem>
+            <Content component="small" className="pf-v6-u-mb-sm"><strong>Labels</strong></Content>
+            <Select
+              role="menu"
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsLabelOpen(!isLabelOpen)}
+                  isExpanded={isLabelOpen}
+                  style={{ width: '100%' }}
+                  icon={<FilterIcon />}
+                >
+                  {labelFilter.length > 0 ? `${labelFilter.length} selected` : 'Select labels'}
+                </MenuToggle>
+              )}
+              isOpen={isLabelOpen}
+              onOpenChange={setIsLabelOpen}
+              onSelect={(_, value) => {
+                const val = value as string;
+                if (labelFilter.includes(val)) {
+                  setLabelFilter(labelFilter.filter(l => l !== val));
+                } else {
+                  setLabelFilter([...labelFilter, val]);
+                }
+              }}
+            >
+              <div style={{ padding: '8px' }}>
+                <SearchInput
+                  placeholder="Search labels..."
+                  value={labelSearchValue}
+                  onChange={(_, value) => setLabelSearchValue(value)}
+                  onClear={() => setLabelSearchValue('')}
+                />
+              </div>
+              <Divider />
+              <SelectList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {filteredLabels.map(label => (
+                  <SelectOption key={label} value={label} hasCheckbox isSelected={labelFilter.includes(label)}>
+                    {label}
+                  </SelectOption>
+                ))}
+                {filteredLabels.length === 0 && (
+                  <SelectOption isDisabled>No labels found</SelectOption>
+                )}
+              </SelectList>
+            </Select>
+            {labelFilter.length > 0 && (
+              <LabelGroup style={{ marginTop: '8px' }}>
+                {labelFilter.map(l => (
+                  <Label key={l} color="yellow" onClose={() => setLabelFilter(labelFilter.filter(x => x !== l))} icon={<FilterIcon />}>
+                    {l}
                   </Label>
                 ))}
               </LabelGroup>
@@ -2052,6 +2120,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [regionFilter, setRegionFilter] = React.useState<string[]>([]);
   const [clusterFilter, setClusterFilter] = React.useState<string[]>([]);
   const [namespaceFilter, setNamespaceFilter] = React.useState<string[]>([]);
+  const [labelFilter, setLabelFilter] = React.useState<string[]>([]);
   const [severityFilter, setSeverityFilter] = React.useState<AlertSeverity[]>([]);
   const [groupFilter, setGroupFilter] = React.useState<AlertGroup[]>([]);
   const [componentFilter, setComponentFilter] = React.useState<AlertComponent[]>([]);
@@ -2153,6 +2222,24 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const clusterNames = getUniqueValues(mockClusters, 'name');
   const namespaces = getAllNamespaces(mockClusters);
   const allAlerts = getAllAlerts(mockClusters);
+  
+  // Get unique labels from all clusters and alerts
+  const availableLabels = React.useMemo(() => {
+    const labelsSet = new Set<string>();
+    mockClusters.forEach(cluster => {
+      // Add cluster labels
+      Object.entries(cluster.labels).forEach(([key, value]) => {
+        labelsSet.add(`${key}=${value}`);
+      });
+      // Add alert labels
+      cluster.alerts.forEach(alert => {
+        Object.entries(alert.labels).forEach(([key, value]) => {
+          labelsSet.add(`${key}=${value}`);
+        });
+      });
+    });
+    return Array.from(labelsSet).sort();
+  }, []);
 
   // Filter clusters
   const filteredClusters = React.useMemo(() => {
@@ -2277,6 +2364,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setRegionFilter([]);
     setClusterFilter([]);
     setNamespaceFilter([]);
+    setLabelFilter([]);
     setSeverityFilter([]);
     setGroupFilter([]);
     setComponentFilter([]);
@@ -2325,7 +2413,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   };
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
-    severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0 || searchValue.length > 0;
+    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0 || searchValue.length > 0;
 
   const hasDrillDownActiveFilters = drillDownSeverityFilter.length > 0 || drillDownGroupFilter.length > 0 || 
     drillDownComponentFilter.length > 0 || drillDownSourceFilter.length > 0 || drillDownStateFilter.length > 0 ||
@@ -3640,7 +3728,7 @@ spec:
 
         {/* Active Filter Chips with Action Buttons */}
         {hasActiveFilters && (
-          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginTop: '8px' }}>
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginTop: '8px', marginBottom: '16px' }}>
             <FlexItem>
               <LabelGroup categoryName="Active filters" numLabels={10}>
                 {severityFilter.map(s => (
@@ -3660,6 +3748,9 @@ spec:
                 ))}
                 {namespaceFilter.map(n => (
                   <Label key={n} color="blue" onClose={() => setNamespaceFilter(namespaceFilter.filter(x => x !== n))} icon={<CubesIcon />}>{n}</Label>
+                ))}
+                {labelFilter.map(l => (
+                  <Label key={l} color="yellow" onClose={() => setLabelFilter(labelFilter.filter(x => x !== l))} icon={<FilterIcon />}>{l}</Label>
                 ))}
               </LabelGroup>
             </FlexItem>
@@ -3706,6 +3797,8 @@ spec:
                 setClusterFilter={setClusterFilter}
                 namespaceFilter={namespaceFilter}
                 setNamespaceFilter={setNamespaceFilter}
+                labelFilter={labelFilter}
+                setLabelFilter={setLabelFilter}
                 severityFilter={severityFilter}
                 setSeverityFilter={setSeverityFilter}
                 groupFilter={groupFilter}
@@ -3715,6 +3808,7 @@ spec:
                 regions={regions}
                 clusterNames={clusterNames}
                 namespaces={namespaces}
+                availableLabels={availableLabels}
                 onClose={() => setIsFilterPanelOpen(false)}
                 savedFilters={savedFilters}
                 onApplySavedFilter={(filter) => {
