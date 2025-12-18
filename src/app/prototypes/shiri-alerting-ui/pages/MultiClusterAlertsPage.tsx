@@ -3944,26 +3944,6 @@ spec:
                       </FlexItem>
                       <FlexItem>
                         <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          {/* View Toggle */}
-                          <FlexItem>
-                            <ToggleGroup>
-                              <ToggleGroupItem
-                                icon={<ThLargeIcon />}
-                                text="Treemap"
-                                aria-label="Treemap view"
-                                isSelected={viewMode === 'treemap'}
-                                onChange={() => setViewMode('treemap')}
-                              />
-                              <ToggleGroupItem
-                                icon={<ListIcon />}
-                                text="Table"
-                                aria-label="Table view"
-                                isSelected={viewMode === 'summary'}
-                                onChange={() => setViewMode('summary')}
-                              />
-                            </ToggleGroup>
-                          </FlexItem>
-
                           {/* Group By - shown for both views, disabled for Table */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -4049,6 +4029,26 @@ spec:
                               </Select>
                             </Flex>
                           </FlexItem>
+
+                          {/* View Toggle - moved to the end */}
+                          <FlexItem>
+                            <ToggleGroup>
+                              <ToggleGroupItem
+                                icon={<ThLargeIcon />}
+                                text="Treemap"
+                                aria-label="Treemap view"
+                                isSelected={viewMode === 'treemap'}
+                                onChange={() => setViewMode('treemap')}
+                              />
+                              <ToggleGroupItem
+                                icon={<ListIcon />}
+                                text="Table"
+                                aria-label="Table view"
+                                isSelected={viewMode === 'summary'}
+                                onChange={() => setViewMode('summary')}
+                              />
+                            </ToggleGroup>
+                          </FlexItem>
                         </Flex>
                       </FlexItem>
                     </Flex>
@@ -4067,35 +4067,68 @@ spec:
                       <Table aria-label="Clusters table">
                         <Thead>
                           <Tr>
-                            <Th>Status</Th>
-                            <Th>Cluster Name</Th>
+                            <Th>Cluster</Th>
                             <Th>Region</Th>
-                            <Th>Provider</Th>
-                            <Th>Nodes</Th>
-                            <Th>Alerts</Th>
+                            <Th>Group</Th>
+                            <Th>Component</Th>
+                            <Th>Total Alerts</Th>
+                            <Th>Severity Breakdown</Th>
                           </Tr>
                         </Thead>
                         <Tbody>
-                          {sortedClusters.slice((page - 1) * perPage, page * perPage).map(cluster => (
-                            <Tr key={cluster.id} isClickable onRowClick={() => handleDrillDown(cluster)}>
-                              <Td>
-                                <Icon status={getClusterStatus(cluster) === 'healthy' ? 'success' : getClusterStatus(cluster) === 'critical' ? 'danger' : getClusterStatus(cluster) === 'warning' ? 'warning' : 'info'}>
-                                  {getClusterStatus(cluster) === 'healthy' ? <CheckCircleIcon /> : getClusterStatus(cluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterStatus(cluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                                </Icon>
-                              </Td>
-                              <Td><strong>{cluster.name}</strong></Td>
-                              <Td>{cluster.region}</Td>
-                              <Td>{cluster.cloudProvider}</Td>
-                              <Td>{cluster.nodeCount}</Td>
-                              <Td>
-                                <Flex gap={{ default: 'gapSm' }}>
-                                  <FlexItem><Label color="red" isCompact>{cluster.alerts.filter(a => a.severity === 'Critical' && a.status === 'firing').length}</Label></FlexItem>
-                                  <FlexItem><Label color="orange" isCompact>{cluster.alerts.filter(a => a.severity === 'Warning' && a.status === 'firing').length}</Label></FlexItem>
-                                  <FlexItem><Label color="purple" isCompact>{cluster.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length}</Label></FlexItem>
-                                </Flex>
-                              </Td>
-                            </Tr>
-                          ))}
+                          {sortedClusters.slice((page - 1) * perPage, page * perPage).map(cluster => {
+                            const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
+                            const criticalCount = firingAlerts.filter(a => a.severity === 'Critical').length;
+                            const warningCount = firingAlerts.filter(a => a.severity === 'Warning').length;
+                            const infoCount = firingAlerts.filter(a => a.severity === 'Info').length;
+                            // Get unique groups and components
+                            const groups = Array.from(new Set(firingAlerts.map(a => a.group)));
+                            const components = Array.from(new Set(firingAlerts.map(a => a.component)));
+                            
+                            return (
+                              <Tr key={cluster.id} isClickable onRowClick={() => handleDrillDown(cluster)}>
+                                <Td>
+                                  <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                    <FlexItem>
+                                      <Icon status={getClusterStatus(cluster) === 'healthy' ? 'success' : getClusterStatus(cluster) === 'critical' ? 'danger' : getClusterStatus(cluster) === 'warning' ? 'warning' : 'info'}>
+                                        {getClusterStatus(cluster) === 'healthy' ? <CheckCircleIcon /> : getClusterStatus(cluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterStatus(cluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                                      </Icon>
+                                    </FlexItem>
+                                    <FlexItem><strong>{cluster.name}</strong></FlexItem>
+                                  </Flex>
+                                </Td>
+                                <Td>{cluster.region}</Td>
+                                <Td>
+                                  <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+                                    {groups.map(g => (
+                                      <FlexItem key={g}><Label isCompact color="blue">{g}</Label></FlexItem>
+                                    ))}
+                                  </Flex>
+                                </Td>
+                                <Td>
+                                  <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+                                    {components.slice(0, 3).map(c => (
+                                      <FlexItem key={c}><Label isCompact variant="outline">{c}</Label></FlexItem>
+                                    ))}
+                                    {components.length > 3 && (
+                                      <FlexItem><Label isCompact variant="outline">+{components.length - 3}</Label></FlexItem>
+                                    )}
+                                  </Flex>
+                                </Td>
+                                <Td>
+                                  <Badge>{firingAlerts.length}</Badge>
+                                </Td>
+                                <Td>
+                                  <Flex gap={{ default: 'gapSm' }}>
+                                    {criticalCount > 0 && <FlexItem><Label color="red" isCompact icon={<ExclamationCircleIcon />}>{criticalCount}</Label></FlexItem>}
+                                    {warningCount > 0 && <FlexItem><Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>{warningCount}</Label></FlexItem>}
+                                    {infoCount > 0 && <FlexItem><Label color="purple" isCompact icon={<InfoCircleIcon />}>{infoCount}</Label></FlexItem>}
+                                    {firingAlerts.length === 0 && <FlexItem><Label color="green" isCompact icon={<CheckCircleIcon />}>Healthy</Label></FlexItem>}
+                                  </Flex>
+                                </Td>
+                              </Tr>
+                            );
+                          })}
                         </Tbody>
                       </Table>
                     )}
