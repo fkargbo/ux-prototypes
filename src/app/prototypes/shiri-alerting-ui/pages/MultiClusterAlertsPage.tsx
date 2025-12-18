@@ -154,6 +154,9 @@ import {
   ClusterIcon,
   CubeIcon,
   CloudIcon,
+  BellSlashIcon,
+  ChartLineIcon,
+  WrenchIcon,
 } from '@patternfly/react-icons';
 
 // ========================================
@@ -1413,6 +1416,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const [perPage, setPerPage] = React.useState(10);
   const [expandedAlerts, setExpandedAlerts] = React.useState<string[]>([]);
   const [isAggregated, setIsAggregated] = React.useState(true);
+  const [openActionMenuId, setOpenActionMenuId] = React.useState<string | null>(null);
 
   // Get all alerts with cluster info
   const allAlerts = React.useMemo(() => {
@@ -1592,8 +1596,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 <Thead>
                   <Tr>
                     <Th screenReaderText="Expand" />
-                    <Th>Severity</Th>
                     <Th>Alert Name</Th>
+                    <Th>Severity</Th>
                     <Th>Clusters</Th>
                     <Th>Total Instances</Th>
                     <Th>Group</Th>
@@ -1614,12 +1618,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           }}
                         />
                         <Td>
+                          <strong>{agg.alertName}</strong>
+                        </Td>
+                        <Td>
                           <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>
                             {agg.severity}
                           </Label>
-                        </Td>
-                        <Td>
-                          <strong>{agg.alertName}</strong>
                         </Td>
                         <Td>
                           <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>
@@ -1643,8 +1647,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                 <Table aria-label="Clusters with alert" variant="compact">
                                   <Thead>
                                     <Tr>
-                                      <Th>Cluster</Th>
-                                      <Th>Instances</Th>
+                                      <Th>Cluster Name</Th>
                                       <Th>Last Fired</Th>
                                       <Th>Actions</Th>
                                     </Tr>
@@ -1653,20 +1656,65 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                     {agg.clusters.map(clusterInfo => (
                                       <Tr key={clusterInfo.name}>
                                         <Td>
-                                          <Button variant="link" isInline onClick={() => onClusterClick(clusterInfo.cluster)}>
-                                            <ClusterIcon /> {clusterInfo.name}
-                                          </Button>
+                                          <ClusterIcon /> {clusterInfo.name}
                                         </Td>
-                                        <Td><Badge isRead>{clusterInfo.count}</Badge></Td>
                                         <Td>{clusterInfo.lastFired}</Td>
                                         <Td>
-                                          <Button 
-                                            variant="link" 
-                                            isInline 
-                                            onClick={() => onClusterClick(clusterInfo.cluster)}
-                                          >
-                                            View cluster alerts
-                                          </Button>
+                                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <FlexItem>
+                                              <Button 
+                                                variant="link" 
+                                                isInline 
+                                                onClick={() => onClusterClick(clusterInfo.cluster)}
+                                              >
+                                                View cluster alerts
+                                              </Button>
+                                            </FlexItem>
+                                            <FlexItem>
+                                              <Dropdown
+                                                isOpen={openActionMenuId === `${agg.alertName}-${clusterInfo.name}`}
+                                                onOpenChange={(isOpen) => setOpenActionMenuId(isOpen ? `${agg.alertName}-${clusterInfo.name}` : null)}
+                                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                                  <MenuToggle 
+                                                    ref={toggleRef} 
+                                                    variant="plain" 
+                                                    aria-label="Alert actions"
+                                                    onClick={() => setOpenActionMenuId(
+                                                      openActionMenuId === `${agg.alertName}-${clusterInfo.name}` 
+                                                        ? null 
+                                                        : `${agg.alertName}-${clusterInfo.name}`
+                                                    )}
+                                                    isExpanded={openActionMenuId === `${agg.alertName}-${clusterInfo.name}`}
+                                                  >
+                                                    <EllipsisVIcon />
+                                                  </MenuToggle>
+                                                )}
+                                                popperProps={{ position: 'right' }}
+                                              >
+                                                <DropdownList>
+                                                  <DropdownItem key="silence" icon={<BellSlashIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                    Silence
+                                                  </DropdownItem>
+                                                  <DropdownItem key="logs" icon={<ListIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                    View logs
+                                                  </DropdownItem>
+                                                  <DropdownItem key="rule" icon={<OutlinedBellIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                    View alert rule
+                                                  </DropdownItem>
+                                                  <DropdownItem key="metrics" icon={<ChartLineIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                    View metrics
+                                                  </DropdownItem>
+                                                  <Divider component="li" />
+                                                  <DropdownItem key="incident" icon={<ExclamationTriangleIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                    See related incident
+                                                  </DropdownItem>
+                                                  <DropdownItem key="troubleshoot" icon={<WrenchIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                    Troubleshoot
+                                                  </DropdownItem>
+                                                </DropdownList>
+                                              </Dropdown>
+                                            </FlexItem>
+                                          </Flex>
                                         </Td>
                                       </Tr>
                                     ))}
@@ -1686,8 +1734,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
               <Table aria-label="All alerts table" variant="compact">
                 <Thead>
                   <Tr>
-                    <Th>Severity</Th>
                     <Th>Alert Name</Th>
+                    <Th>Severity</Th>
                     <Th>Cluster</Th>
                     <Th>Group</Th>
                     <Th>Component</Th>
@@ -1699,14 +1747,14 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                   {paginatedAlerts.map((alert, idx) => (
                     <Tr key={`${alert.id}-${idx}`}>
                       <Td>
-                        <Label color={getSeverityLabelColor(alert.severity)} icon={getSeverityIcon(alert.severity)} isCompact>
-                          {alert.severity}
-                        </Label>
-                      </Td>
-                      <Td>
                         <Button variant="link" isInline onClick={() => onAlertClick(alert)}>
                           {alert.alertName}
                         </Button>
+                      </Td>
+                      <Td>
+                        <Label color={getSeverityLabelColor(alert.severity)} icon={getSeverityIcon(alert.severity)} isCompact>
+                          {alert.severity}
+                        </Label>
                       </Td>
                       <Td>
                         <Button variant="link" isInline onClick={() => onClusterClick((alert as any).cluster)}>

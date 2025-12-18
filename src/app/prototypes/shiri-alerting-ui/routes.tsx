@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
 
 // Import page components
@@ -19,6 +20,12 @@ import { MultiClusterAlertingDashboard } from './pages/MultiClusterAlertsPage';
  * These routes are added to the Fleet Management perspective under "Observe" group.
  */
 export const routes: RouteConfig[] = [
+  // Default route - redirect to Alerting page
+  {
+    path: '/',
+    element: <Navigate to="/observe/alerting" replace />,
+  },
+  
   // Multi-cluster Alerting - Main page
   {
     path: '/observe/alerting',
