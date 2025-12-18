@@ -3032,7 +3032,7 @@ spec:
                                               <FlexItem>{filter.name}</FlexItem>
                                               {selectedDrillDownSavedFilter?.id === filter.id && (
                                                 <FlexItem>
-                                                  <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+                                                  <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
                                                 </FlexItem>
                                               )}
                                             </Flex>
@@ -3645,9 +3645,9 @@ spec:
       {mainPageTab === 'alerts' && !isDrillDownView && (
         <>
           {/* Static Toolbar - Order: Saved filters, Filters, Search */}
-          <div style={{ padding: '16px 24px 0 24px' }}>
-            <Toolbar style={{ alignItems: 'center' }}>
-              <ToolbarContent style={{ alignItems: 'center' }}>
+          <div style={{ padding: '24px 24px 0 24px' }}>
+            <Toolbar className="pf-m-align-items-center">
+              <ToolbarContent className="pf-m-align-items-center">
                 {/* Saved Filters Dropdown - First */}
             <ToolbarItem>
               <Dropdown
@@ -3683,7 +3683,7 @@ spec:
                           <FlexItem>{filter.name}</FlexItem>
                           {selectedSavedFilter?.id === filter.id && (
                             <FlexItem>
-                              <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+                              <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
                             </FlexItem>
                           )}
                         </Flex>
@@ -4162,141 +4162,7 @@ spec:
             </StackItem>
           </Stack>
 
-          {/* Summary by impact group and severity */}
-          <Card style={{ marginBottom: '16px' }}>
-            <CardHeader>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem>
-                  <CardTitle>
-                    <Button 
-                      variant="plain" 
-                      onClick={() => setIsSummaryAccordionExpanded(!isSummaryAccordionExpanded)}
-                      style={{ padding: 0 }}
-                    >
-                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                        <FlexItem>
-                          {isSummaryAccordionExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
-                        </FlexItem>
-                        <FlexItem>
-                          <strong>Summary by impact group and severity</strong>
-                        </FlexItem>
-                        <FlexItem>
-                          <Badge isRead>{selectedCluster.alerts.filter(a => a.status === 'firing').length} firing alerts</Badge>
-                        </FlexItem>
-                      </Flex>
-                    </Button>
-                  </CardTitle>
-                </FlexItem>
-              </Flex>
-            </CardHeader>
-            {isSummaryAccordionExpanded && (
-              <CardBody>
-                <Grid hasGutter>
-                  {/* Cluster Group */}
-                  <GridItem md={6}>
-                    <Card isPlain isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', border: '1px solid var(--pf-t--global--border--color--default)' }}>
-                      <CardHeader>
-                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <FlexItem><Icon size="md"><CubeIcon /></Icon></FlexItem>
-                          <FlexItem><strong>Cluster</strong></FlexItem>
-                          <FlexItem><Badge isRead>{selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.status === 'firing').length}</Badge></FlexItem>
-                        </Flex>
-                      </CardHeader>
-                      <CardBody>
-                        <Flex gap={{ default: 'gapLg' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <FlexItem>
-                            <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Cluster']); setDrillDownSeverityFilter(['Critical']); }}>
-                              <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <FlexItem><Icon status="danger"><ExclamationCircleIcon /></Icon></FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--color--status--danger--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                  {selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.severity === 'Critical' && a.status === 'firing').length}
-                                </FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Critical</FlexItem>
-                              </Flex>
-                            </Button>
-                          </FlexItem>
-                          <FlexItem>
-                            <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Cluster']); setDrillDownSeverityFilter(['Warning']); }}>
-                              <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <FlexItem><Icon status="warning"><ExclamationTriangleIcon /></Icon></FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                  {selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.severity === 'Warning' && a.status === 'firing').length}
-                                </FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Warning</FlexItem>
-                              </Flex>
-                            </Button>
-                          </FlexItem>
-                          <FlexItem>
-                            <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Cluster']); setDrillDownSeverityFilter(['Info']); }}>
-                              <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <FlexItem><Icon status="info"><InfoCircleIcon /></Icon></FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--color--status--info--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                  {selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.severity === 'Info' && a.status === 'firing').length}
-                                </FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Info</FlexItem>
-                              </Flex>
-                            </Button>
-                          </FlexItem>
-                        </Flex>
-                      </CardBody>
-                    </Card>
-                  </GridItem>
-
-                  {/* Namespace Group */}
-                  <GridItem md={6}>
-                    <Card isPlain isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', border: '1px solid var(--pf-t--global--border--color--default)' }}>
-                      <CardHeader>
-                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <FlexItem><Icon size="md"><CubesIcon /></Icon></FlexItem>
-                          <FlexItem><strong>Namespace</strong></FlexItem>
-                          <FlexItem><Badge isRead>{selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.status === 'firing').length}</Badge></FlexItem>
-                        </Flex>
-                      </CardHeader>
-                      <CardBody>
-                        <Flex gap={{ default: 'gapLg' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <FlexItem>
-                            <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Namespace']); setDrillDownSeverityFilter(['Critical']); }}>
-                              <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <FlexItem><Icon status="danger"><ExclamationCircleIcon /></Icon></FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--color--status--danger--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                  {selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.severity === 'Critical' && a.status === 'firing').length}
-                                </FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Critical</FlexItem>
-                              </Flex>
-                            </Button>
-                          </FlexItem>
-                          <FlexItem>
-                            <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Namespace']); setDrillDownSeverityFilter(['Warning']); }}>
-                              <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <FlexItem><Icon status="warning"><ExclamationTriangleIcon /></Icon></FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                  {selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.severity === 'Warning' && a.status === 'firing').length}
-                                </FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Warning</FlexItem>
-                              </Flex>
-                            </Button>
-                          </FlexItem>
-                          <FlexItem>
-                            <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Namespace']); setDrillDownSeverityFilter(['Info']); }}>
-                              <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <FlexItem><Icon status="info"><InfoCircleIcon /></Icon></FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--color--status--info--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                  {selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.severity === 'Info' && a.status === 'firing').length}
-                                </FlexItem>
-                                <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Info</FlexItem>
-                              </Flex>
-                            </Button>
-                          </FlexItem>
-                        </Flex>
-                      </CardBody>
-                    </Card>
-                  </GridItem>
-                </Grid>
-              </CardBody>
-            )}
-          </Card>
-
-          {/* Render the full drill-down content (drawer, table, modals) */}
+          {/* Render the full drill-down content (drawer, table, modals) - includes Summary section */}
           {renderDrillDownContent()}
         </div>
       )}

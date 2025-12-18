@@ -1045,6 +1045,12 @@ input[type="checkbox"] {
 
 .alerting-page-container .pf-v6-c-toolbar__content {
   align-items: center !important;
+  display: flex !important;
+}
+
+.alerting-page-container .pf-v6-c-toolbar__content-section {
+  align-items: center !important;
+  display: flex !important;
 }
 
 .alerting-page-container .pf-v6-c-toolbar__item {
@@ -1054,9 +1060,22 @@ input[type="checkbox"] {
 
 .alerting-page-container .pf-v6-c-toolbar__group {
   align-items: center !important;
+  display: flex !important;
 }
 
 /* Ensure Flex items in toolbar are centered */
 .alerting-page-container .pf-v6-l-flex.pf-m-align-items-center {
   align-items: center !important;
+}
+
+/* Fix switch toggle alignment in toolbar */
+.alerting-page-container .pf-v6-c-switch {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.alerting-page-container .pf-v6-c-switch__input,
+.alerting-page-container .pf-v6-c-switch__toggle,
+.alerting-page-container .pf-v6-c-switch__label {
+  vertical-align: middle !important;
 }
