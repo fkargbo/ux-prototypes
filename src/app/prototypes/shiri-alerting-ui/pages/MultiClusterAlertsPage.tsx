@@ -2953,23 +2953,13 @@ spec:
                                               setIsDrillDownSavedFiltersDropdownOpen(false);
                                             }}
                                           >
-                                            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
                                               <FlexItem>{filter.name}</FlexItem>
-                                              <FlexItem>
-                                                <Button 
-                                                  variant="plain" 
-                                                  size="sm"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setDrillDownSavedFilters(drillDownSavedFilters.filter(f => f.id !== filter.id));
-                                                    if (selectedDrillDownSavedFilter?.id === filter.id) {
-                                                      setSelectedDrillDownSavedFilter(null);
-                                                    }
-                                                  }}
-                                                >
-                                                  <TimesIcon />
-                                                </Button>
-                                              </FlexItem>
+                                              {selectedDrillDownSavedFilter?.id === filter.id && (
+                                                <FlexItem>
+                                                  <Label isCompact color="blue">Selected</Label>
+                                                </FlexItem>
+                                              )}
                                             </Flex>
                                           </DropdownItem>
                                         ))
@@ -3361,45 +3351,18 @@ spec:
                 ) : (
                   <DataList aria-label="Saved filters list" isCompact>
                     {drillDownSavedFilters.map((filter, index) => (
-                      <DataListItem key={filter.id} aria-labelledby={`filter-${filter.id}`}>
+                      <DataListItem key={filter.id} aria-labelledby={`drilldown-filter-${filter.id}`}>
                         <DataListItemRow>
                           <DataListControl>
-                            <Flex direction={{ default: 'column' }} gap={{ default: 'gapNone' }}>
-                              <FlexItem>
-                                <Button 
-                                  variant="plain" 
-                                  size="sm"
-                                  isDisabled={index === 0}
-                                  onClick={() => {
-                                    const newFilters = [...drillDownSavedFilters];
-                                    [newFilters[index - 1], newFilters[index]] = [newFilters[index], newFilters[index - 1]];
-                                    setDrillDownSavedFilters(newFilters);
-                                  }}
-                                  aria-label="Move up"
-                                >
-                                  <ArrowUpIcon />
-                                </Button>
-                              </FlexItem>
-                              <FlexItem>
-                                <Button 
-                                  variant="plain" 
-                                  size="sm"
-                                  isDisabled={index === drillDownSavedFilters.length - 1}
-                                  onClick={() => {
-                                    const newFilters = [...drillDownSavedFilters];
-                                    [newFilters[index], newFilters[index + 1]] = [newFilters[index + 1], newFilters[index]];
-                                    setDrillDownSavedFilters(newFilters);
-                                  }}
-                                  aria-label="Move down"
-                                >
-                                  <ArrowDownIcon />
-                                </Button>
-                              </FlexItem>
-                            </Flex>
+                            <Tooltip content="Drag to reorder">
+                              <span style={{ cursor: 'grab', display: 'flex', alignItems: 'center', padding: '8px' }}>
+                                <GripVerticalIcon />
+                              </span>
+                            </Tooltip>
                           </DataListControl>
                           <DataListItemCells
                             dataListCells={[
-                              <DataListCell key="name" id={`filter-${filter.id}`}>
+                              <DataListCell key="name" id={`drilldown-filter-${filter.id}`} width={3}>
                                 {drillDownEditingFilterId === filter.id ? (
                                   <TextInputGroup>
                                     <TextInputGroupMain
@@ -3431,12 +3394,67 @@ spec:
                                       >
                                         <CheckIcon />
                                       </Button>
+                                      <Button
+                                        variant="plain"
+                                        size="sm"
+                                        onClick={() => {
+                                          setDrillDownEditingFilterId(null);
+                                          setDrillDownEditingFilterName('');
+                                        }}
+                                      >
+                                        <TimesIcon />
+                                      </Button>
                                     </TextInputGroupUtilities>
                                   </TextInputGroup>
                                 ) : (
-                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <FlexItem>{filter.name}</FlexItem>
+                                  <span>
+                                    <BookmarkIcon /> {filter.name}
+                                  </span>
+                                )}
+                              </DataListCell>,
+                              <DataListCell key="filters" width={2}>
+                                <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+                                  {filter.filters.severity.length > 0 && (
                                     <FlexItem>
+                                      <Tooltip content={`Severity: ${filter.filters.severity.join(', ')}`}>
+                                        <Label isCompact color="grey">{filter.filters.severity.length} severity</Label>
+                                      </Tooltip>
+                                    </FlexItem>
+                                  )}
+                                  {filter.filters.group.length > 0 && (
+                                    <FlexItem>
+                                      <Tooltip content={`Group: ${filter.filters.group.join(', ')}`}>
+                                        <Label isCompact color="grey">{filter.filters.group.length} group</Label>
+                                      </Tooltip>
+                                    </FlexItem>
+                                  )}
+                                  {filter.filters.component.length > 0 && (
+                                    <FlexItem>
+                                      <Tooltip content={`Component: ${filter.filters.component.join(', ')}`}>
+                                        <Label isCompact color="grey">{filter.filters.component.length} component</Label>
+                                      </Tooltip>
+                                    </FlexItem>
+                                  )}
+                                  {filter.filters.source && filter.filters.source.length > 0 && (
+                                    <FlexItem>
+                                      <Tooltip content={`Source: ${filter.filters.source.join(', ')}`}>
+                                        <Label isCompact color="grey">{filter.filters.source.length} source</Label>
+                                      </Tooltip>
+                                    </FlexItem>
+                                  )}
+                                  {filter.filters.searchValue && (
+                                    <FlexItem>
+                                      <Tooltip content={`Search: "${filter.filters.searchValue}"`}>
+                                        <Label isCompact color="grey">search</Label>
+                                      </Tooltip>
+                                    </FlexItem>
+                                  )}
+                                </Flex>
+                              </DataListCell>,
+                              <DataListCell key="actions" width={1} alignRight>
+                                <Flex gap={{ default: 'gapSm' }}>
+                                  <FlexItem>
+                                    <Tooltip content="Edit filter name">
                                       <Button 
                                         variant="plain" 
                                         size="sm"
@@ -3448,37 +3466,26 @@ spec:
                                       >
                                         <EditIcon />
                                       </Button>
-                                    </FlexItem>
-                                  </Flex>
-                                )}
-                              </DataListCell>,
-                              <DataListCell key="filters" alignRight>
-                                <LabelGroup>
-                                  {filter.filters.severity.map(s => (
-                                    <Label key={s} isCompact color={getSeverityLabelColor(s as AlertSeverity)}>{s}</Label>
-                                  ))}
-                                  {filter.filters.group.map(g => (
-                                    <Label key={g} isCompact color="blue">{g}</Label>
-                                  ))}
-                                  {filter.filters.source?.map(s => (
-                                    <Label key={s} isCompact color="grey">{s}</Label>
-                                  ))}
-                                </LabelGroup>
-                              </DataListCell>,
-                              <DataListCell key="actions" alignRight>
-                                <Button 
-                                  variant="plain" 
-                                  size="sm"
-                                  onClick={() => {
-                                    setDrillDownSavedFilters(drillDownSavedFilters.filter(f => f.id !== filter.id));
-                                    if (selectedDrillDownSavedFilter?.id === filter.id) {
-                                      setSelectedDrillDownSavedFilter(null);
-                                    }
-                                  }}
-                                  aria-label="Delete filter"
-                                >
-                                  <TrashIcon />
-                                </Button>
+                                    </Tooltip>
+                                  </FlexItem>
+                                  <FlexItem>
+                                    <Tooltip content="Delete filter">
+                                      <Button 
+                                        variant="plain" 
+                                        size="sm"
+                                        onClick={() => {
+                                          setDrillDownSavedFilters(drillDownSavedFilters.filter(f => f.id !== filter.id));
+                                          if (selectedDrillDownSavedFilter?.id === filter.id) {
+                                            setSelectedDrillDownSavedFilter(null);
+                                          }
+                                        }}
+                                        aria-label="Delete filter"
+                                      >
+                                        <TrashIcon />
+                                      </Button>
+                                    </Tooltip>
+                                  </FlexItem>
+                                </Flex>
                               </DataListCell>,
                             ]}
                           />
@@ -3585,23 +3592,13 @@ spec:
                           setIsSavedFiltersDropdownOpen(false);
                         }}
                       >
-                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
                           <FlexItem>{filter.name}</FlexItem>
-                          <FlexItem>
-                            <Button 
-                              variant="plain" 
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSavedFilters(savedFilters.filter(f => f.id !== filter.id));
-                                if (selectedSavedFilter?.id === filter.id) {
-                                  setSelectedSavedFilter(null);
-                                }
-                              }}
-                            >
-                              <TimesIcon />
-                            </Button>
-                          </FlexItem>
+                          {selectedSavedFilter?.id === filter.id && (
+                            <FlexItem>
+                              <Label isCompact color="blue">Selected</Label>
+                            </FlexItem>
+                          )}
                         </Flex>
                       </DropdownItem>
                     ))
@@ -4101,38 +4098,11 @@ spec:
                   <DataListItem key={filter.id} aria-labelledby={`filter-${filter.id}`}>
                     <DataListItemRow>
                       <DataListControl>
-                        <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
-                          <FlexItem>
-                            <Button
-                              variant="plain"
-                              size="sm"
-                              isDisabled={index === 0}
-                              onClick={() => {
-                                const newFilters = [...savedFilters];
-                                [newFilters[index - 1], newFilters[index]] = [newFilters[index], newFilters[index - 1]];
-                                setSavedFilters(newFilters);
-                              }}
-                              aria-label="Move up"
-                            >
-                              <ArrowUpIcon />
-                            </Button>
-                          </FlexItem>
-                          <FlexItem>
-                            <Button
-                              variant="plain"
-                              size="sm"
-                              isDisabled={index === savedFilters.length - 1}
-                              onClick={() => {
-                                const newFilters = [...savedFilters];
-                                [newFilters[index], newFilters[index + 1]] = [newFilters[index + 1], newFilters[index]];
-                                setSavedFilters(newFilters);
-                              }}
-                              aria-label="Move down"
-                            >
-                              <ArrowDownIcon />
-                            </Button>
-                          </FlexItem>
-                        </Flex>
+                        <Tooltip content="Drag to reorder">
+                          <span style={{ cursor: 'grab', display: 'flex', alignItems: 'center', padding: '8px' }}>
+                            <GripVerticalIcon />
+                          </span>
+                        </Tooltip>
                       </DataListControl>
                       <DataListItemCells
                         dataListCells={[
@@ -4194,17 +4164,37 @@ spec:
                             <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
                               {filter.filters.severity.length > 0 && (
                                 <FlexItem>
-                                  <Label isCompact color="grey">{filter.filters.severity.length} severity</Label>
+                                  <Tooltip content={`Severity: ${filter.filters.severity.join(', ')}`}>
+                                    <Label isCompact color="grey">{filter.filters.severity.length} severity</Label>
+                                  </Tooltip>
                                 </FlexItem>
                               )}
                               {filter.filters.group.length > 0 && (
                                 <FlexItem>
-                                  <Label isCompact color="grey">{filter.filters.group.length} group</Label>
+                                  <Tooltip content={`Group: ${filter.filters.group.join(', ')}`}>
+                                    <Label isCompact color="grey">{filter.filters.group.length} group</Label>
+                                  </Tooltip>
                                 </FlexItem>
                               )}
                               {filter.filters.component.length > 0 && (
                                 <FlexItem>
-                                  <Label isCompact color="grey">{filter.filters.component.length} component</Label>
+                                  <Tooltip content={`Component: ${filter.filters.component.join(', ')}`}>
+                                    <Label isCompact color="grey">{filter.filters.component.length} component</Label>
+                                  </Tooltip>
+                                </FlexItem>
+                              )}
+                              {filter.filters.source && filter.filters.source.length > 0 && (
+                                <FlexItem>
+                                  <Tooltip content={`Source: ${filter.filters.source.join(', ')}`}>
+                                    <Label isCompact color="grey">{filter.filters.source.length} source</Label>
+                                  </Tooltip>
+                                </FlexItem>
+                              )}
+                              {filter.filters.searchValue && (
+                                <FlexItem>
+                                  <Tooltip content={`Search: "${filter.filters.searchValue}"`}>
+                                    <Label isCompact color="grey">search</Label>
+                                  </Tooltip>
                                 </FlexItem>
                               )}
                             </Flex>
@@ -4212,33 +4202,37 @@ spec:
                           <DataListCell key="actions" width={1} alignRight>
                             <Flex gap={{ default: 'gapSm' }}>
                               <FlexItem>
-                                <Button
-                                  variant="plain"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingFilterId(filter.id);
-                                    setEditingFilterName(filter.name);
-                                  }}
-                                  aria-label="Edit filter name"
-                                >
-                                  <EditIcon />
-                                </Button>
+                                <Tooltip content="Edit filter name">
+                                  <Button
+                                    variant="plain"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingFilterId(filter.id);
+                                      setEditingFilterName(filter.name);
+                                    }}
+                                    aria-label="Edit filter name"
+                                  >
+                                    <EditIcon />
+                                  </Button>
+                                </Tooltip>
                               </FlexItem>
                               <FlexItem>
-                                <Button
-                                  variant="plain"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSavedFilters(savedFilters.filter(f => f.id !== filter.id));
-                                    if (selectedSavedFilter?.id === filter.id) {
-                                      setSelectedSavedFilter(null);
-                                    }
-                                    addToast('Filter deleted', 'success');
-                                  }}
-                                  aria-label="Delete filter"
-                                >
-                                  <TrashIcon />
-                                </Button>
+                                <Tooltip content="Delete filter">
+                                  <Button
+                                    variant="plain"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSavedFilters(savedFilters.filter(f => f.id !== filter.id));
+                                      if (selectedSavedFilter?.id === filter.id) {
+                                        setSelectedSavedFilter(null);
+                                      }
+                                      addToast('Filter deleted', 'success');
+                                    }}
+                                    aria-label="Delete filter"
+                                  >
+                                    <TrashIcon />
+                                  </Button>
+                                </Tooltip>
                               </FlexItem>
                             </Flex>
                           </DataListCell>,
