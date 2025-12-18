@@ -1046,6 +1046,7 @@ input[type="checkbox"] {
 .alerting-page-container .pf-v6-c-toolbar__content {
   align-items: center !important;
   display: flex !important;
+  padding-top: 24px !important;
 }
 
 .alerting-page-container .pf-v6-c-toolbar__content-section {
@@ -1066,6 +1067,20 @@ input[type="checkbox"] {
 /* Ensure Flex items in toolbar are centered */
 .alerting-page-container .pf-v6-l-flex.pf-m-align-items-center {
   align-items: center !important;
+}
+
+/* Fix Content component vertical alignment in toolbar */
+.alerting-page-container .pf-v6-c-toolbar .pf-v6-c-content {
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+}
+
+.alerting-page-container .pf-v6-c-toolbar .pf-v6-c-content--small,
+.alerting-page-container .pf-v6-c-toolbar small {
+  display: flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
 }
 
 /* Fix switch toggle alignment in toolbar */

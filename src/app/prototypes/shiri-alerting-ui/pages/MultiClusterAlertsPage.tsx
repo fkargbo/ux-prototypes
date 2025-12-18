@@ -3082,9 +3082,9 @@ spec:
                                 </ToolbarItem>
                                 <ToolbarItem variant="separator" />
                                 <ToolbarItem>
-                                  <Button variant="secondary" icon={<ColumnsIcon />} onClick={openManageColumnsModal}>
-                                    Manage columns
-                                  </Button>
+                                  <Tooltip content="Manage columns">
+                                    <Button variant="plain" icon={<ColumnsIcon />} onClick={openManageColumnsModal} aria-label="Manage columns" />
+                                  </Tooltip>
                                 </ToolbarItem>
                                 <ToolbarItem align={{ default: 'alignEnd' }}>
                                   <Pagination
