@@ -45,6 +45,7 @@ import {
   DescriptionListDescription,
   EmptyState,
   EmptyStateBody,
+  EmptyStateActions,
   Tabs,
   Tab,
   TabTitleText,
@@ -2150,6 +2151,10 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, trend, color 
 // ========================================
 
 const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
+  // Main page tabs
+  const [mainPageTab, setMainPageTab] = React.useState<string | number>('alerts');
+  const [managementSubTab, setManagementSubTab] = React.useState<string | number>('alert-rules');
+  
   // View state
   const [isDrillDownView, setIsDrillDownView] = React.useState(false);
   const [selectedCluster, setSelectedCluster] = React.useState<ClusterData | null>(null);
@@ -3660,9 +3665,6 @@ spec:
                   </FlexItem>
                   <FlexItem>
                     <Title headingLevel="h1" size="2xl">Multi-cluster alerting</Title>
-                    <Content component="small" className="pf-v6-u-color-200">
-                      Multi-cluster alerting and monitoring dashboard
-                    </Content>
                   </FlexItem>
                 </Flex>
               </FlexItem>
@@ -3683,11 +3685,26 @@ spec:
             </Flex>
           </StackItem>
 
-          {/* Static Toolbar - Order: Saved filters, Filters, Search */}
+          {/* Main Page Tabs */}
           <StackItem>
-        <Toolbar>
-          <ToolbarContent>
-            {/* Saved Filters Dropdown - First */}
+            <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
+              <Tab eventKey="alerts" title={<span><BellIcon /> Alerts</span>} />
+              <Tab eventKey="incidents" title={<span><ExclamationTriangleIcon /> Incidents</span>} />
+              <Tab eventKey="management" title={<span><CogIcon /> Management</span>} />
+            </Tabs>
+          </StackItem>
+
+        </Stack>
+      </div>
+
+      {/* Tab Content */}
+      {mainPageTab === 'alerts' && (
+        <>
+          {/* Static Toolbar - Order: Saved filters, Filters, Search */}
+          <div style={{ padding: '0 24px' }}>
+            <Toolbar>
+              <ToolbarContent>
+                {/* Saved Filters Dropdown - First */}
             <ToolbarItem>
               <Dropdown
                 isOpen={isSavedFiltersDropdownOpen}
@@ -3819,9 +3836,7 @@ spec:
             </FlexItem>
           </Flex>
         )}
-          </StackItem>
-        </Stack>
-      </div>
+          </div>
 
       {/* Main Content with Side Panel Filter */}
       <Split hasGutter style={{ width: '100%', overflow: 'hidden' }}>
@@ -4159,6 +4174,211 @@ spec:
             </Stack>
           </SplitItem>
         </Split>
+        </>
+      )}
+
+      {/* Incidents Tab Content */}
+      {mainPageTab === 'incidents' && (
+        <div style={{ padding: '24px' }}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Incidents</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <EmptyState titleText="Incidents Management" headingLevel="h4" icon={ExclamationTriangleIcon}>
+                <EmptyStateBody>
+                  Incident management functionality allows you to track and manage incidents across your fleet.
+                  This feature is coming soon.
+                </EmptyStateBody>
+                <EmptyStateActions>
+                  <Button variant="primary">Create Incident</Button>
+                </EmptyStateActions>
+              </EmptyState>
+            </CardBody>
+          </Card>
+        </div>
+      )}
+
+      {/* Management Tab Content */}
+      {mainPageTab === 'management' && (
+        <div style={{ padding: '24px' }}>
+          <Stack hasGutter>
+            <StackItem>
+              <Tabs activeKey={managementSubTab} onSelect={(_, key) => setManagementSubTab(key)} aria-label="Management sub-tabs">
+                <Tab eventKey="alert-rules" title="Alert Rules" />
+                <Tab eventKey="silence-rules" title="Silence Rules" />
+              </Tabs>
+            </StackItem>
+            <StackItem>
+              {managementSubTab === 'alert-rules' && (
+                <Card>
+                  <CardHeader>
+                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem>
+                        <CardTitle>Alert Rules</CardTitle>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button variant="primary" icon={<PlusIcon />}>Create Alert Rule</Button>
+                      </FlexItem>
+                    </Flex>
+                  </CardHeader>
+                  <CardBody>
+                    <Table aria-label="Alert rules table" variant="compact">
+                      <Thead>
+                        <Tr>
+                          <Th>Rule Name</Th>
+                          <Th>Severity</Th>
+                          <Th>Clusters</Th>
+                          <Th>Status</Th>
+                          <Th>Last Triggered</Th>
+                          <Th>Actions</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        <Tr>
+                          <Td><strong>HighCPUUsage</strong></Td>
+                          <Td><Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>Warning</Label></Td>
+                          <Td><Badge isRead>45 clusters</Badge></Td>
+                          <Td><Label color="green" isCompact>Active</Label></Td>
+                          <Td>2 hours ago</Td>
+                          <Td>
+                            <Button variant="link" isInline>Edit</Button>
+                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Disable</Button>
+                          </Td>
+                        </Tr>
+                        <Tr>
+                          <Td><strong>NodeNotReady</strong></Td>
+                          <Td><Label color="red" isCompact icon={<ExclamationCircleIcon />}>Critical</Label></Td>
+                          <Td><Badge isRead>45 clusters</Badge></Td>
+                          <Td><Label color="green" isCompact>Active</Label></Td>
+                          <Td>15 min ago</Td>
+                          <Td>
+                            <Button variant="link" isInline>Edit</Button>
+                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Disable</Button>
+                          </Td>
+                        </Tr>
+                        <Tr>
+                          <Td><strong>PodCrashLooping</strong></Td>
+                          <Td><Label color="red" isCompact icon={<ExclamationCircleIcon />}>Critical</Label></Td>
+                          <Td><Badge isRead>38 clusters</Badge></Td>
+                          <Td><Label color="green" isCompact>Active</Label></Td>
+                          <Td>5 min ago</Td>
+                          <Td>
+                            <Button variant="link" isInline>Edit</Button>
+                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Disable</Button>
+                          </Td>
+                        </Tr>
+                        <Tr>
+                          <Td><strong>EtcdHighLatency</strong></Td>
+                          <Td><Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>Warning</Label></Td>
+                          <Td><Badge isRead>45 clusters</Badge></Td>
+                          <Td><Label color="grey" isCompact>Disabled</Label></Td>
+                          <Td>-</Td>
+                          <Td>
+                            <Button variant="link" isInline>Edit</Button>
+                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Enable</Button>
+                          </Td>
+                        </Tr>
+                        <Tr>
+                          <Td><strong>ClusterVersionDegraded</strong></Td>
+                          <Td><Label color="purple" isCompact icon={<InfoCircleIcon />}>Info</Label></Td>
+                          <Td><Badge isRead>45 clusters</Badge></Td>
+                          <Td><Label color="green" isCompact>Active</Label></Td>
+                          <Td>1 day ago</Td>
+                          <Td>
+                            <Button variant="link" isInline>Edit</Button>
+                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Disable</Button>
+                          </Td>
+                        </Tr>
+                      </Tbody>
+                    </Table>
+                  </CardBody>
+                </Card>
+              )}
+              {managementSubTab === 'silence-rules' && (
+                <Card>
+                  <CardHeader>
+                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem>
+                        <CardTitle>Silence Rules</CardTitle>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button variant="primary" icon={<PlusIcon />}>Create Silence</Button>
+                      </FlexItem>
+                    </Flex>
+                  </CardHeader>
+                  <CardBody>
+                    <Table aria-label="Silence rules table" variant="compact">
+                      <Thead>
+                        <Tr>
+                          <Th>Silence Name</Th>
+                          <Th>Matchers</Th>
+                          <Th>Status</Th>
+                          <Th>Starts</Th>
+                          <Th>Ends</Th>
+                          <Th>Created By</Th>
+                          <Th>Actions</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        <Tr>
+                          <Td><strong>Maintenance Window</strong></Td>
+                          <Td>
+                            <Flex gap={{ default: 'gapXs' }}>
+                              <Label isCompact variant="outline">cluster=prod-east-1</Label>
+                            </Flex>
+                          </Td>
+                          <Td><Label color="green" isCompact>Active</Label></Td>
+                          <Td>Dec 18, 2025 00:00</Td>
+                          <Td>Dec 18, 2025 04:00</Td>
+                          <Td>admin@redhat.com</Td>
+                          <Td>
+                            <Button variant="link" isInline>Edit</Button>
+                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Expire</Button>
+                          </Td>
+                        </Tr>
+                        <Tr>
+                          <Td><strong>Known Issue - etcd</strong></Td>
+                          <Td>
+                            <Flex gap={{ default: 'gapXs' }}>
+                              <Label isCompact variant="outline">alertname=EtcdHighLatency</Label>
+                            </Flex>
+                          </Td>
+                          <Td><Label color="green" isCompact>Active</Label></Td>
+                          <Td>Dec 15, 2025 12:00</Td>
+                          <Td>Dec 22, 2025 12:00</Td>
+                          <Td>sre@redhat.com</Td>
+                          <Td>
+                            <Button variant="link" isInline>Edit</Button>
+                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Expire</Button>
+                          </Td>
+                        </Tr>
+                        <Tr>
+                          <Td><strong>Upgrade Silence</strong></Td>
+                          <Td>
+                            <Flex gap={{ default: 'gapXs' }}>
+                              <Label isCompact variant="outline">severity=warning</Label>
+                              <Label isCompact variant="outline">region=EU West</Label>
+                            </Flex>
+                          </Td>
+                          <Td><Label color="grey" isCompact>Expired</Label></Td>
+                          <Td>Dec 10, 2025 08:00</Td>
+                          <Td>Dec 10, 2025 16:00</Td>
+                          <Td>ops@redhat.com</Td>
+                          <Td>
+                            <Button variant="link" isInline>Recreate</Button>
+                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Delete</Button>
+                          </Td>
+                        </Tr>
+                      </Tbody>
+                    </Table>
+                  </CardBody>
+                </Card>
+              )}
+            </StackItem>
+          </Stack>
+        </div>
+      )}
 
       {/* Save Filter Modal */}
       <Modal
