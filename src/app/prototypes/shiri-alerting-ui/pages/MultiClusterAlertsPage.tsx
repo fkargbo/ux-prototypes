@@ -112,6 +112,10 @@ import {
   ChartAxis,
   ChartBar,
   ChartStack,
+  ChartLine,
+  ChartScatter,
+  ChartLegend,
+  Chart,
 } from '@patternfly/react-charts/victory';
 import {
   BellIcon,
@@ -158,6 +162,11 @@ import {
   BellSlashIcon,
   ChartLineIcon,
   WrenchIcon,
+  PortIcon,
+  ExternalLinkAltIcon,
+  SearchPlusIcon,
+  SearchMinusIcon,
+  UndoIcon,
 } from '@patternfly/react-icons';
 
 // ========================================
@@ -613,14 +622,14 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       },
       upperLabel: {
         show: groupBy !== 'none',
-        height: 24,
+        height: 28,
         color: '#151515',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 600,
         fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
-        backgroundColor: '#f5f5f5',
-        borderRadius: 0,
-        padding: [4, 8],
+        backgroundColor: 'rgba(245, 245, 245, 0.95)',
+        borderRadius: [6, 6, 0, 0],
+        padding: [6, 12],
         formatter: (params: any) => {
           const childCount = params.data?.children?.length || 0;
           return childCount > 0 ? `${params.name} (${childCount})` : params.name;
@@ -628,34 +637,42 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       },
       itemStyle: { 
         borderColor: '#ffffff', 
-        borderWidth: 2, 
-        gapWidth: 2,
+        borderWidth: 3, 
+        gapWidth: 3,
+        borderRadius: 6,
       },
       emphasis: { 
         itemStyle: { 
           borderColor: '#0066cc', 
-          borderWidth: 2,
+          borderWidth: 3,
+          borderRadius: 6,
+          shadowBlur: 8,
+          shadowColor: 'rgba(0, 102, 204, 0.3)',
         },
       },
       levels: [
         { 
           itemStyle: { 
             borderColor: '#ffffff', 
-            borderWidth: 3, 
-            gapWidth: 3,
+            borderWidth: 4, 
+            gapWidth: 4,
+            borderRadius: 8,
           },
           upperLabel: {
             show: groupBy !== 'none',
-            height: 26,
+            height: 28,
             fontSize: 13,
             fontWeight: 600,
+            backgroundColor: '#f5f5f5',
+            borderRadius: [6, 6, 0, 0],
           },
         },
         { 
           itemStyle: { 
             borderColor: '#ffffff', 
-            borderWidth: 2, 
-            gapWidth: 2,
+            borderWidth: 3, 
+            gapWidth: 3,
+            borderRadius: 6,
           },
         },
       ],
@@ -682,30 +699,64 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           opts={{ renderer: 'svg' }}
         />
       </div>
-      {/* Legend */}
+      {/* Legend - PatternFly aligned */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'center', 
-        gap: '24px', 
-        padding: '12px 16px',
-        borderTop: '1px solid #d2d2d2',
-        marginTop: '8px',
+        gap: '16px', 
+        padding: '16px',
+        borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        marginTop: '12px',
+        backgroundColor: 'var(--pf-t--global--background--color--secondary--default, #f5f5f5)',
+        borderRadius: '0 0 var(--pf-t--global--border--radius--small, 3px) var(--pf-t--global--border--radius--small, 3px)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.critical }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Critical</span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          padding: '4px 12px',
+          backgroundColor: '#ffffff',
+          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
+          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        }}>
+          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.critical }}></span>
+          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Critical</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.warning }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Warning</span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          padding: '4px 12px',
+          backgroundColor: '#ffffff',
+          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
+          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        }}>
+          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.warning }}></span>
+          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Warning</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.info }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Info</span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          padding: '4px 12px',
+          backgroundColor: '#ffffff',
+          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
+          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        }}>
+          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.info }}></span>
+          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Info</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.healthy }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Healthy</span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          padding: '4px 12px',
+          backgroundColor: '#ffffff',
+          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
+          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        }}>
+          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.healthy }}></span>
+          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Healthy</span>
         </div>
       </div>
     </div>
@@ -2506,38 +2557,30 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
                         <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>}>
                           <Stack hasGutter style={{ padding: '16px 0' }}>
                             <StackItem>
-                              <DescriptionList isHorizontal>
+                              <DescriptionList isHorizontal isCompact>
                                 <DescriptionListGroup>
-                                  <DescriptionListTerm>Severity</DescriptionListTerm>
-                                  <DescriptionListDescription>
-                                    <Label color={getSeverityLabelColor(selectedAlertDetail.severity)}>{selectedAlertDetail.severity}</Label>
-                                  </DescriptionListDescription>
+                                  <DescriptionListTerm>Name</DescriptionListTerm>
+                                  <DescriptionListDescription><strong>{selectedAlertDetail.alertName}</strong></DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
-                                  <DescriptionListTerm>State</DescriptionListTerm>
-                                  <DescriptionListDescription>
-                                    <Label color={getStatusLabelColor(selectedAlertDetail.status)} variant="outline">{selectedAlertDetail.status}</Label>
-                                  </DescriptionListDescription>
-                                </DescriptionListGroup>
-                                <DescriptionListGroup>
-                                  <DescriptionListTerm>Summary</DescriptionListTerm>
-                                  <DescriptionListDescription>{selectedAlertDetail.summary}</DescriptionListDescription>
-                                </DescriptionListGroup>
-                                <DescriptionListGroup>
-                                  <DescriptionListTerm>Details</DescriptionListTerm>
-                                  <DescriptionListDescription>{selectedAlertDetail.details}</DescriptionListDescription>
-                                </DescriptionListGroup>
-                                <DescriptionListGroup>
-                                  <DescriptionListTerm>Namespace</DescriptionListTerm>
-                                  <DescriptionListDescription>{selectedAlertDetail.namespace}</DescriptionListDescription>
+                                  <DescriptionListTerm>Description</DescriptionListTerm>
+                                  <DescriptionListDescription>{selectedAlertDetail.description || selectedAlertDetail.summary}</DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
                                   <DescriptionListTerm>Source</DescriptionListTerm>
                                   <DescriptionListDescription>{selectedAlertDetail.source}</DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
-                                  <DescriptionListTerm>Last Fired</DescriptionListTerm>
-                                  <DescriptionListDescription>{selectedAlertDetail.lastFired}</DescriptionListDescription>
+                                  <DescriptionListTerm>Group</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Label isCompact color="blue">{selectedAlertDetail.group}</Label>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Component</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Label isCompact variant="outline">{selectedAlertDetail.component}</Label>
+                                  </DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
                                   <DescriptionListTerm>Labels</DescriptionListTerm>
@@ -2549,18 +2592,195 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
                                     </LabelGroup>
                                   </DescriptionListDescription>
                                 </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Severity</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Label color={getSeverityLabelColor(selectedAlertDetail.severity)} icon={getSeverityIcon(selectedAlertDetail.severity)}>{selectedAlertDetail.severity}</Label>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>State</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                      <FlexItem>
+                                        <Label color={getStatusLabelColor(selectedAlertDetail.status)} variant="outline">{selectedAlertDetail.status}</Label>
+                                      </FlexItem>
+                                      {selectedAlertDetail.status === 'firing' && (
+                                        <FlexItem>
+                                          <Content component="small" className="pf-v6-u-color-200">
+                                            Firing since {selectedAlertDetail.lastFired}
+                                          </Content>
+                                        </FlexItem>
+                                      )}
+                                    </Flex>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Namespace</DescriptionListTerm>
+                                  <DescriptionListDescription>{selectedAlertDetail.namespace}</DescriptionListDescription>
+                                </DescriptionListGroup>
+                                {selectedAlertDetail.resource && (
+                                  <DescriptionListGroup>
+                                    <DescriptionListTerm>Resource</DescriptionListTerm>
+                                    <DescriptionListDescription>
+                                      <Button variant="link" isInline icon={<ExternalLinkAltIcon />} iconPosition="end">
+                                        {selectedAlertDetail.resource}
+                                      </Button>
+                                    </DescriptionListDescription>
+                                  </DescriptionListGroup>
+                                )}
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Alert Rule</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Button variant="link" isInline icon={<ExternalLinkAltIcon />} iconPosition="end">
+                                      View alert rule
+                                    </Button>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Runbook URL</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Button variant="link" isInline icon={<ExternalLinkAltIcon />} iconPosition="end">
+                                      View runbook
+                                    </Button>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
                               </DescriptionList>
                             </StackItem>
+                            <Divider />
                             <StackItem>
-                              <Flex gap={{ default: 'gapSm' }}>
-                                <FlexItem><Button variant="secondary" onClick={() => addToast('Alert acknowledged', 'success')}>Acknowledge</Button></FlexItem>
-                                <FlexItem><Button variant="secondary" onClick={() => addToast('Alert silenced', 'success')}>Silence</Button></FlexItem>
-                                <FlexItem><Button variant="link">View alerting rule</Button></FlexItem>
+                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Actions</strong></Content>
+                              <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                                <FlexItem>
+                                  <Button variant="secondary" icon={<ListIcon />} onClick={() => addToast('Opening logs...', 'info')}>
+                                    View logs
+                                  </Button>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="secondary" icon={<WrenchIcon />} onClick={() => addToast('Opening troubleshoot...', 'info')}>
+                                    Troubleshoot
+                                  </Button>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="secondary" icon={<ChartLineIcon />} onClick={() => addToast('Opening metrics...', 'info')}>
+                                    See metrics
+                                  </Button>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="secondary" icon={<PortIcon />} onClick={() => addToast('Opening related incidents...', 'info')}>
+                                    See related incidents
+                                  </Button>
+                                </FlexItem>
                               </Flex>
                             </StackItem>
                           </Stack>
                         </Tab>
-                        <Tab eventKey={1} title={<TabTitleText>YAML</TabTitleText>}>
+                        <Tab eventKey={1} title={<TabTitleText>Alert Timeline</TabTitleText>}>
+                          <Stack hasGutter style={{ padding: '16px 0' }}>
+                            <StackItem>
+                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <FlexItem>
+                                  <ToggleGroup>
+                                    <ToggleGroupItem text="30s" aria-label="30 seconds" />
+                                    <ToggleGroupItem text="60s" aria-label="60 seconds" isSelected />
+                                    <ToggleGroupItem text="90s" aria-label="90 seconds" />
+                                    <ToggleGroupItem text="Day" aria-label="Day" />
+                                    <ToggleGroupItem text="Week" aria-label="Week" />
+                                  </ToggleGroup>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Flex gap={{ default: 'gapSm' }}>
+                                    <FlexItem>
+                                      <Tooltip content="Zoom in">
+                                        <Button variant="plain" icon={<SearchPlusIcon />} aria-label="Zoom in" />
+                                      </Tooltip>
+                                    </FlexItem>
+                                    <FlexItem>
+                                      <Tooltip content="Zoom out">
+                                        <Button variant="plain" icon={<SearchMinusIcon />} aria-label="Zoom out" />
+                                      </Tooltip>
+                                    </FlexItem>
+                                    <FlexItem>
+                                      <Tooltip content="Reset zoom">
+                                        <Button variant="plain" icon={<UndoIcon />} aria-label="Reset zoom" />
+                                      </Tooltip>
+                                    </FlexItem>
+                                  </Flex>
+                                </FlexItem>
+                              </Flex>
+                            </StackItem>
+                            <StackItem>
+                              <div style={{ height: '250px', width: '100%' }}>
+                                <Chart
+                                  ariaDesc="Alert timeline showing firing periods"
+                                  ariaTitle="Alert Timeline"
+                                  height={250}
+                                  padding={{ bottom: 50, left: 50, right: 20, top: 20 }}
+                                  containerComponent={
+                                    <ChartVoronoiContainer
+                                      labels={({ datum }) => `${datum.name}: ${datum.y}`}
+                                      constrainToVisibleArea
+                                    />
+                                  }
+                                >
+                                  <ChartAxis 
+                                    tickValues={[0, 10, 20, 30, 40, 50, 60]}
+                                    tickFormat={(t) => `${t}s ago`}
+                                  />
+                                  <ChartAxis 
+                                    dependentAxis 
+                                    tickFormat={(t) => t === 1 ? 'Firing' : t === 0 ? 'Resolved' : ''}
+                                    tickValues={[0, 1]}
+                                  />
+                                  <ChartGroup>
+                                    <ChartArea
+                                      data={[
+                                        { x: 0, y: 1, name: 'Status' },
+                                        { x: 5, y: 1, name: 'Status' },
+                                        { x: 10, y: 1, name: 'Status' },
+                                        { x: 15, y: 0, name: 'Status' },
+                                        { x: 20, y: 0, name: 'Status' },
+                                        { x: 25, y: 1, name: 'Status' },
+                                        { x: 30, y: 1, name: 'Status' },
+                                        { x: 35, y: 1, name: 'Status' },
+                                        { x: 40, y: 1, name: 'Status' },
+                                        { x: 45, y: 1, name: 'Status' },
+                                        { x: 50, y: 1, name: 'Status' },
+                                        { x: 55, y: 1, name: 'Status' },
+                                        { x: 60, y: 1, name: 'Status' },
+                                      ]}
+                                      interpolation="stepAfter"
+                                      style={{
+                                        data: { 
+                                          fill: 'var(--pf-t--chart--color--red--100)',
+                                          fillOpacity: 0.3,
+                                          stroke: 'var(--pf-t--chart--color--red--100)',
+                                          strokeWidth: 2,
+                                        }
+                                      }}
+                                    />
+                                    <ChartScatter
+                                      data={[
+                                        { x: 0, y: 1, name: 'Alert fired' },
+                                        { x: 15, y: 0, name: 'Alert resolved' },
+                                        { x: 25, y: 1, name: 'Alert fired' },
+                                      ]}
+                                      style={{
+                                        data: { fill: 'var(--pf-t--chart--color--red--100)' }
+                                      }}
+                                    />
+                                  </ChartGroup>
+                                </Chart>
+                              </div>
+                            </StackItem>
+                            <StackItem>
+                              <Content component="small" className="pf-v6-u-color-200">
+                                Timeline shows alert firing and resolution events. Use the time range selector to adjust the view window.
+                              </Content>
+                            </StackItem>
+                          </Stack>
+                        </Tab>
+                        <Tab eventKey={2} title={<TabTitleText>YAML</TabTitleText>}>
                           <CodeBlock style={{ marginTop: '16px' }}>
                             <CodeBlockCode>
 {`apiVersion: monitoring.coreos.com/v1
@@ -2896,41 +3116,38 @@ spec:
                                       </Flex>
                                     </CardHeader>
                                     <CardBody>
-                                      <Flex gap={{ default: 'gapLg' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                        <FlexItem>
+                                      <Stack hasGutter>
+                                        <StackItem>
                                           <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Cluster']); setDrillDownSeverityFilter(['Critical']); }}>
-                                            <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                               <FlexItem><Icon status="danger"><ExclamationCircleIcon /></Icon></FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--color--status--danger--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                                {selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.severity === 'Critical' && a.status === 'firing').length}
+                                              <FlexItem style={{ fontFamily: 'var(--pf-t--global--font--family--body)', fontSize: '14px', fontWeight: 400, lineHeight: '21px', color: 'var(--pf-t--global--text--color--link--default)' }}>
+                                                <strong>{selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.severity === 'Critical' && a.status === 'firing').length}</strong> Critical
                                               </FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Critical</FlexItem>
                                             </Flex>
                                           </Button>
-                                        </FlexItem>
-                                        <FlexItem>
+                                        </StackItem>
+                                        <StackItem>
                                           <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Cluster']); setDrillDownSeverityFilter(['Warning']); }}>
-                                            <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                               <FlexItem><Icon status="warning"><ExclamationTriangleIcon /></Icon></FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                                {selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.severity === 'Warning' && a.status === 'firing').length}
+                                              <FlexItem style={{ fontFamily: 'var(--pf-t--global--font--family--body)', fontSize: '14px', fontWeight: 400, lineHeight: '21px', color: 'var(--pf-t--global--text--color--link--default)' }}>
+                                                <strong>{selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.severity === 'Warning' && a.status === 'firing').length}</strong> Warning
                                               </FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Warning</FlexItem>
                                             </Flex>
                                           </Button>
-                                        </FlexItem>
-                                        <FlexItem>
+                                        </StackItem>
+                                        <StackItem>
                                           <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Cluster']); setDrillDownSeverityFilter(['Info']); }}>
-                                            <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                               <FlexItem><Icon status="info"><InfoCircleIcon /></Icon></FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--color--status--info--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                                {selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.severity === 'Info' && a.status === 'firing').length}
+                                              <FlexItem style={{ fontFamily: 'var(--pf-t--global--font--family--body)', fontSize: '14px', fontWeight: 400, lineHeight: '21px', color: 'var(--pf-t--global--text--color--link--default)' }}>
+                                                <strong>{selectedCluster.alerts.filter(a => a.group === 'Cluster' && a.severity === 'Info' && a.status === 'firing').length}</strong> Info
                                               </FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Info</FlexItem>
                                             </Flex>
                                           </Button>
-                                        </FlexItem>
-                                      </Flex>
+                                        </StackItem>
+                                      </Stack>
                                     </CardBody>
                                   </Card>
                                 </GridItem>
@@ -2946,41 +3163,38 @@ spec:
                                       </Flex>
                                     </CardHeader>
                                     <CardBody>
-                                      <Flex gap={{ default: 'gapLg' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                        <FlexItem>
+                                      <Stack hasGutter>
+                                        <StackItem>
                                           <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Namespace']); setDrillDownSeverityFilter(['Critical']); }}>
-                                            <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                               <FlexItem><Icon status="danger"><ExclamationCircleIcon /></Icon></FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--color--status--danger--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                                {selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.severity === 'Critical' && a.status === 'firing').length}
+                                              <FlexItem style={{ fontFamily: 'var(--pf-t--global--font--family--body)', fontSize: '14px', fontWeight: 400, lineHeight: '21px', color: 'var(--pf-t--global--text--color--link--default)' }}>
+                                                <strong>{selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.severity === 'Critical' && a.status === 'firing').length}</strong> Critical
                                               </FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Critical</FlexItem>
                                             </Flex>
                                           </Button>
-                                        </FlexItem>
-                                        <FlexItem>
+                                        </StackItem>
+                                        <StackItem>
                                           <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Namespace']); setDrillDownSeverityFilter(['Warning']); }}>
-                                            <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                               <FlexItem><Icon status="warning"><ExclamationTriangleIcon /></Icon></FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                                {selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.severity === 'Warning' && a.status === 'firing').length}
+                                              <FlexItem style={{ fontFamily: 'var(--pf-t--global--font--family--body)', fontSize: '14px', fontWeight: 400, lineHeight: '21px', color: 'var(--pf-t--global--text--color--link--default)' }}>
+                                                <strong>{selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.severity === 'Warning' && a.status === 'firing').length}</strong> Warning
                                               </FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Warning</FlexItem>
                                             </Flex>
                                           </Button>
-                                        </FlexItem>
-                                        <FlexItem>
+                                        </StackItem>
+                                        <StackItem>
                                           <Button variant="link" isInline onClick={() => { setDrillDownGroupFilter(['Namespace']); setDrillDownSeverityFilter(['Info']); }}>
-                                            <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                               <FlexItem><Icon status="info"><InfoCircleIcon /></Icon></FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--color--status--info--default)', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                                {selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.severity === 'Info' && a.status === 'firing').length}
+                                              <FlexItem style={{ fontFamily: 'var(--pf-t--global--font--family--body)', fontSize: '14px', fontWeight: 400, lineHeight: '21px', color: 'var(--pf-t--global--text--color--link--default)' }}>
+                                                <strong>{selectedCluster.alerts.filter(a => a.group === 'Namespace' && a.severity === 'Info' && a.status === 'firing').length}</strong> Info
                                               </FlexItem>
-                                              <FlexItem style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Info</FlexItem>
                                             </Flex>
                                           </Button>
-                                        </FlexItem>
-                                      </Flex>
+                                        </StackItem>
+                                      </Stack>
                                     </CardBody>
                                   </Card>
                                 </GridItem>
@@ -2993,9 +3207,9 @@ spec:
                       {/* Alerts Table */}
                       <StackItem>
                         <Card>
-                          <CardHeader>
-                            <Toolbar>
-                              <ToolbarContent style={{ padding: 'var(--pf-v6-global--spacer--md, 16px)', alignItems: 'center' }}>
+                          <CardHeader style={{ padding: '24px 24px 0 24px' }}>
+                            <Toolbar style={{ padding: 0, margin: 0, paddingBottom: '24px', minHeight: 'auto' }}>
+                              <ToolbarContent style={{ padding: 0, alignItems: 'center' }}>
                                 {/* Saved Filters Dropdown */}
                                 <ToolbarItem>
                                   <Dropdown
@@ -3081,27 +3295,17 @@ spec:
                                   />
                                 </ToolbarItem>
                                 <ToolbarItem variant="separator" />
-                                <ToolbarItem>
+                                <ToolbarItem align={{ default: 'alignEnd' }}>
                                   <Tooltip content="Manage columns">
                                     <Button variant="plain" icon={<ColumnsIcon />} onClick={openManageColumnsModal} aria-label="Manage columns" />
                                   </Tooltip>
-                                </ToolbarItem>
-                                <ToolbarItem align={{ default: 'alignEnd' }}>
-                                  <Pagination
-                                    itemCount={isAggregated ? aggregatedAlerts.length : drillDownFilteredAlerts.length}
-                                    perPage={drillDownPerPage}
-                                    page={drillDownPage}
-                                    onSetPage={(_, p) => setDrillDownPage(p)}
-                                    onPerPageSelect={(_, pp) => setDrillDownPerPage(pp)}
-                                    isCompact
-                                  />
                                 </ToolbarItem>
                               </ToolbarContent>
                             </Toolbar>
 
                             {/* Active filter chips */}
                             {hasDrillDownActiveFilters && (
-                              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ padding: '0 16px 16px' }}>
+                              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ padding: '12px 0 0' }}>
                                 <FlexItem>
                                   <LabelGroup categoryName="Active filters">
                                     {drillDownSeverityFilter.map(s => (
@@ -3149,13 +3353,14 @@ spec:
                               </Flex>
                             )}
                           </CardHeader>
-                          <CardBody>
+                          <CardBody style={{ overflow: 'auto', padding: '0 24px 16px 24px' }}>
                             {drillDownFilteredAlerts.length === 0 ? (
                               <EmptyState titleText="No alerts found" icon={CheckCircleIcon}>
                                 <EmptyStateBody>No alerts match the current filters.</EmptyStateBody>
                               </EmptyState>
                             ) : (
-                              <Table aria-label="Alerts table" isExpandable={isAggregated}>
+                              <div style={{ overflowX: 'auto', width: '100%' }}>
+                              <Table aria-label="Alerts table" isExpandable={isAggregated} style={{ minWidth: '800px' }}>
                                 <Thead>
                                   <Tr>
                                     {isAggregated && <Th screenReaderText="Expand" />}
@@ -3271,8 +3476,19 @@ spec:
                                   </Tbody>
                                 )}
                               </Table>
+                              </div>
                             )}
                           </CardBody>
+                          <CardFooter style={{ padding: '16px 24px 24px 24px' }}>
+                            <Pagination
+                              itemCount={isAggregated ? aggregatedAlerts.length : drillDownFilteredAlerts.length}
+                              perPage={drillDownPerPage}
+                              page={drillDownPage}
+                              onSetPage={(_, p) => setDrillDownPage(p)}
+                              onPerPageSelect={(_, pp) => setDrillDownPerPage(pp)}
+                              isCompact
+                            />
+                          </CardFooter>
                         </Card>
                       </StackItem>
                     </Stack>
@@ -3593,7 +3809,14 @@ spec:
             <Breadcrumb>
               <BreadcrumbItem to="/">Home</BreadcrumbItem>
               <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-              <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
+              {isDrillDownView && selectedCluster && (
+                <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); handleBackToList(); }}>Alerting</BreadcrumbItem>
+              )}
+              {isDrillDownView && selectedCluster ? (
+                <BreadcrumbItem isActive>Cluster alerts: {selectedCluster.name}</BreadcrumbItem>
+              ) : (
+                <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
+              )}
             </Breadcrumb>
           </StackItem>
 
@@ -3630,10 +3853,10 @@ spec:
           </StackItem>
 
           {/* Main Page Tabs */}
-          <StackItem>
+          <StackItem style={{ marginBottom: '24px' }}>
             <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
               <Tab eventKey="alerts" title={<span><BellIcon /> Alerts</span>} />
-              <Tab eventKey="incidents" title={<span><ExclamationTriangleIcon /> Incidents</span>} />
+              <Tab eventKey="incidents" title={<span><PortIcon /> Incidents</span>} />
               <Tab eventKey="management" title={<span><CogIcon /> Management</span>} />
             </Tabs>
           </StackItem>
@@ -3896,7 +4119,13 @@ spec:
                           {/* Group By - shown for both views, disabled for Table */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined, display: 'flex', alignItems: 'center' }}>Group by</Content>
+                              <label style={{ 
+                                color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--regular)', 
+                                fontSize: 'var(--pf-t--global--font--size--sm)', 
+                                fontWeight: 'var(--pf-t--global--font--weight--body--default)',
+                                lineHeight: '36px',
+                                textAlign: 'center'
+                              }}>Group by</label>
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle 
@@ -3928,7 +4157,13 @@ spec:
                           {/* Size By - shown for both views, disabled for Table */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined, display: 'flex', alignItems: 'center' }}>Size by</Content>
+                              <label style={{ 
+                                color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--regular)', 
+                                fontSize: 'var(--pf-t--global--font--size--sm)', 
+                                fontWeight: 'var(--pf-t--global--font--weight--body--default)',
+                                lineHeight: '36px',
+                                textAlign: 'center'
+                              }}>Size by</label>
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle 
@@ -3958,7 +4193,13 @@ spec:
                           {/* Sort By - for both views */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="small" style={{ display: 'flex', alignItems: 'center' }}>Sort by</Content>
+                              <label style={{ 
+                                color: 'var(--pf-t--global--text--color--regular)', 
+                                fontSize: 'var(--pf-t--global--font--size--sm)', 
+                                fontWeight: 'var(--pf-t--global--font--weight--body--default)',
+                                lineHeight: '36px',
+                                textAlign: 'center'
+                              }}>Sort by</label>
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle ref={toggleRef} onClick={() => setIsSortByOpen(!isSortByOpen)} isExpanded={isSortByOpen} style={{ width: '140px' }}>
@@ -4016,6 +4257,7 @@ spec:
                       <Table aria-label="Clusters table">
                         <Thead>
                           <Tr>
+                            <Th>Status</Th>
                             <Th>Cluster</Th>
                             <Th>Region</Th>
                             <Th>Group</Th>
@@ -4033,18 +4275,21 @@ spec:
                             // Get unique groups and components
                             const groups = Array.from(new Set(firingAlerts.map(a => a.group)));
                             const components = Array.from(new Set(firingAlerts.map(a => a.component)));
+                            const clusterStatus = getClusterStatus(cluster);
                             
                             return (
                               <Tr key={cluster.id} isClickable onRowClick={() => handleDrillDown(cluster)}>
                                 <Td>
-                                  <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                    <FlexItem>
-                                      <Icon status={getClusterStatus(cluster) === 'healthy' ? 'success' : getClusterStatus(cluster) === 'critical' ? 'danger' : getClusterStatus(cluster) === 'warning' ? 'warning' : 'info'}>
-                                        {getClusterStatus(cluster) === 'healthy' ? <CheckCircleIcon /> : getClusterStatus(cluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterStatus(cluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                                      </Icon>
-                                    </FlexItem>
-                                    <FlexItem><strong>{cluster.name}</strong></FlexItem>
-                                  </Flex>
+                                  <Label 
+                                    color={clusterStatus === 'healthy' ? 'green' : clusterStatus === 'critical' ? 'red' : clusterStatus === 'warning' ? 'orange' : 'purple'}
+                                    icon={clusterStatus === 'healthy' ? <CheckCircleIcon /> : clusterStatus === 'critical' ? <ExclamationCircleIcon /> : clusterStatus === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                                    isCompact
+                                  >
+                                    {clusterStatus.charAt(0).toUpperCase() + clusterStatus.slice(1)}
+                                  </Label>
+                                </Td>
+                                <Td>
+                                  <strong>{cluster.name}</strong>
                                 </Td>
                                 <Td>{cluster.region}</Td>
                                 <Td>
@@ -4124,43 +4369,30 @@ spec:
       {/* Alerts Tab - Drill-down View (Cluster Alerts) */}
       {mainPageTab === 'alerts' && isDrillDownView && selectedCluster && (
         <div style={{ padding: '0 24px' }}>
-          {/* Back Button */}
-          <div style={{ marginBottom: '16px' }}>
-            <Button variant="link" icon={<ArrowLeftIcon />} onClick={handleBackToList} style={{ paddingLeft: 0 }}>
-              Back to Multi-cluster alerting
-            </Button>
+          {/* Cluster Sub-Header (merged with page header) */}
+          <div style={{ marginBottom: '24px' }}>
+            <Content component="p" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', margin: '0 0 4px 0' }}>
+              Cluster alerts
+            </Content>
+            <Title headingLevel="h2" size="xl" style={{ margin: '0 0 12px 0' }}>{selectedCluster.name}</Title>
+            {/* Status Labels - Below the sub-header */}
+            <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem>
+                <Label 
+                  color={getClusterStatus(selectedCluster) === 'healthy' ? 'green' : getClusterStatus(selectedCluster) === 'critical' ? 'red' : getClusterStatus(selectedCluster) === 'warning' ? 'orange' : 'purple'}
+                  icon={getClusterStatus(selectedCluster) === 'healthy' ? <CheckCircleIcon /> : getClusterStatus(selectedCluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterStatus(selectedCluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                >
+                  {getClusterStatus(selectedCluster).charAt(0).toUpperCase() + getClusterStatus(selectedCluster).slice(1)}
+                </Label>
+              </FlexItem>
+              <FlexItem>
+                <Label color="blue" icon={<CubesIcon />}>{selectedCluster.nodeCount} Nodes</Label>
+              </FlexItem>
+              <FlexItem>
+                <Label variant="outline">{selectedCluster.region} • {selectedCluster.cloudProvider}</Label>
+              </FlexItem>
+            </Flex>
           </div>
-
-          {/* Cluster Header */}
-          <Stack hasGutter>
-            <StackItem>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                <FlexItem>
-                  <Title headingLevel="h2" size="xl">Cluster alerts: {selectedCluster.name}</Title>
-                </FlexItem>
-              </Flex>
-            </StackItem>
-
-            {/* Status Labels */}
-            <StackItem style={{ marginBottom: '16px' }}>
-              <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem>
-                  <Label 
-                    color={getClusterStatus(selectedCluster) === 'healthy' ? 'green' : getClusterStatus(selectedCluster) === 'critical' ? 'red' : getClusterStatus(selectedCluster) === 'warning' ? 'orange' : 'purple'}
-                    icon={getClusterStatus(selectedCluster) === 'healthy' ? <CheckCircleIcon /> : getClusterStatus(selectedCluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterStatus(selectedCluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                  >
-                    {getClusterStatus(selectedCluster).charAt(0).toUpperCase() + getClusterStatus(selectedCluster).slice(1)}
-                  </Label>
-                </FlexItem>
-                <FlexItem>
-                  <Label color="blue" icon={<CubesIcon />}>{selectedCluster.nodeCount} Nodes</Label>
-                </FlexItem>
-                <FlexItem>
-                  <Label variant="outline">{selectedCluster.region} • {selectedCluster.cloudProvider}</Label>
-                </FlexItem>
-              </Flex>
-            </StackItem>
-          </Stack>
 
           {/* Render the full drill-down content (drawer, table, modals) - includes Summary section */}
           {renderDrillDownContent()}
@@ -4171,17 +4403,20 @@ spec:
       {mainPageTab === 'incidents' && (
         <div style={{ padding: '24px' }}>
           <Card>
-            <CardHeader>
-              <CardTitle>Incidents</CardTitle>
-            </CardHeader>
             <CardBody>
-              <EmptyState titleText="Incidents Management" headingLevel="h4" icon={ExclamationTriangleIcon}>
+              <EmptyState 
+                titleText="Automated Incident Detection" 
+                headingLevel="h4" 
+                icon={PortIcon}
+                variant="lg"
+              >
                 <EmptyStateBody>
-                  Incident management functionality allows you to track and manage incidents across your fleet.
-                  This feature is coming soon.
+                  Gain better visibility into your cluster health with automated incident detection. 
+                  By installing the Red Hat OpenShift incident detection operator, you can use analytics 
+                  to quickly identify and troubleshoot potential problems before they affect your users.
                 </EmptyStateBody>
                 <EmptyStateActions>
-                  <Button variant="primary">Create Incident</Button>
+                  <Button variant="primary" icon={<PlusIcon />}>Install operator</Button>
                 </EmptyStateActions>
               </EmptyState>
             </CardBody>

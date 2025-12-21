@@ -1045,8 +1045,6 @@ input[type="checkbox"] {
 
 .alerting-page-container .pf-v6-c-toolbar__content {
   align-items: center !important;
-  display: flex !important;
-  padding-top: 24px !important;
 }
 
 .alerting-page-container .pf-v6-c-toolbar__content-section {
