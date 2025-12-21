@@ -613,14 +613,14 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       },
       upperLabel: {
         show: groupBy !== 'none',
-        height: 24,
+        height: 28,
         color: '#151515',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 600,
         fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
-        backgroundColor: '#f5f5f5',
-        borderRadius: 0,
-        padding: [4, 8],
+        backgroundColor: 'rgba(245, 245, 245, 0.95)',
+        borderRadius: [6, 6, 0, 0],
+        padding: [6, 12],
         formatter: (params: any) => {
           const childCount = params.data?.children?.length || 0;
           return childCount > 0 ? `${params.name} (${childCount})` : params.name;
@@ -628,34 +628,42 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       },
       itemStyle: { 
         borderColor: '#ffffff', 
-        borderWidth: 2, 
-        gapWidth: 2,
+        borderWidth: 3, 
+        gapWidth: 3,
+        borderRadius: 6,
       },
       emphasis: { 
         itemStyle: { 
           borderColor: '#0066cc', 
-          borderWidth: 2,
+          borderWidth: 3,
+          borderRadius: 6,
+          shadowBlur: 8,
+          shadowColor: 'rgba(0, 102, 204, 0.3)',
         },
       },
       levels: [
         { 
           itemStyle: { 
             borderColor: '#ffffff', 
-            borderWidth: 3, 
-            gapWidth: 3,
+            borderWidth: 4, 
+            gapWidth: 4,
+            borderRadius: 8,
           },
           upperLabel: {
             show: groupBy !== 'none',
-            height: 26,
+            height: 28,
             fontSize: 13,
             fontWeight: 600,
+            backgroundColor: '#f5f5f5',
+            borderRadius: [6, 6, 0, 0],
           },
         },
         { 
           itemStyle: { 
             borderColor: '#ffffff', 
-            borderWidth: 2, 
-            gapWidth: 2,
+            borderWidth: 3, 
+            gapWidth: 3,
+            borderRadius: 6,
           },
         },
       ],
@@ -682,30 +690,64 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           opts={{ renderer: 'svg' }}
         />
       </div>
-      {/* Legend */}
+      {/* Legend - PatternFly aligned */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'center', 
-        gap: '24px', 
-        padding: '12px 16px',
-        borderTop: '1px solid #d2d2d2',
-        marginTop: '8px',
+        gap: '16px', 
+        padding: '16px',
+        borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        marginTop: '12px',
+        backgroundColor: 'var(--pf-t--global--background--color--secondary--default, #f5f5f5)',
+        borderRadius: '0 0 var(--pf-t--global--border--radius--small, 3px) var(--pf-t--global--border--radius--small, 3px)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.critical }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Critical</span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          padding: '4px 12px',
+          backgroundColor: '#ffffff',
+          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
+          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        }}>
+          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.critical }}></span>
+          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Critical</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.warning }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Warning</span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          padding: '4px 12px',
+          backgroundColor: '#ffffff',
+          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
+          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        }}>
+          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.warning }}></span>
+          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Warning</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.info }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Info</span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          padding: '4px 12px',
+          backgroundColor: '#ffffff',
+          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
+          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        }}>
+          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.info }}></span>
+          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Info</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.healthy }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Healthy</span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          padding: '4px 12px',
+          backgroundColor: '#ffffff',
+          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
+          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        }}>
+          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.healthy }}></span>
+          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Healthy</span>
         </div>
       </div>
     </div>
@@ -4016,6 +4058,7 @@ spec:
                       <Table aria-label="Clusters table">
                         <Thead>
                           <Tr>
+                            <Th>Status</Th>
                             <Th>Cluster</Th>
                             <Th>Region</Th>
                             <Th>Group</Th>
@@ -4033,18 +4076,21 @@ spec:
                             // Get unique groups and components
                             const groups = Array.from(new Set(firingAlerts.map(a => a.group)));
                             const components = Array.from(new Set(firingAlerts.map(a => a.component)));
+                            const clusterStatus = getClusterStatus(cluster);
                             
                             return (
                               <Tr key={cluster.id} isClickable onRowClick={() => handleDrillDown(cluster)}>
                                 <Td>
-                                  <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                    <FlexItem>
-                                      <Icon status={getClusterStatus(cluster) === 'healthy' ? 'success' : getClusterStatus(cluster) === 'critical' ? 'danger' : getClusterStatus(cluster) === 'warning' ? 'warning' : 'info'}>
-                                        {getClusterStatus(cluster) === 'healthy' ? <CheckCircleIcon /> : getClusterStatus(cluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterStatus(cluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                                      </Icon>
-                                    </FlexItem>
-                                    <FlexItem><strong>{cluster.name}</strong></FlexItem>
-                                  </Flex>
+                                  <Label 
+                                    color={clusterStatus === 'healthy' ? 'green' : clusterStatus === 'critical' ? 'red' : clusterStatus === 'warning' ? 'orange' : 'purple'}
+                                    icon={clusterStatus === 'healthy' ? <CheckCircleIcon /> : clusterStatus === 'critical' ? <ExclamationCircleIcon /> : clusterStatus === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                                    isCompact
+                                  >
+                                    {clusterStatus.charAt(0).toUpperCase() + clusterStatus.slice(1)}
+                                  </Label>
+                                </Td>
+                                <Td>
+                                  <strong>{cluster.name}</strong>
                                 </Td>
                                 <Td>{cluster.region}</Td>
                                 <Td>
