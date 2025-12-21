@@ -112,6 +112,10 @@ import {
   ChartAxis,
   ChartBar,
   ChartStack,
+  ChartLine,
+  ChartScatter,
+  ChartLegend,
+  Chart,
 } from '@patternfly/react-charts/victory';
 import {
   BellIcon,
@@ -158,6 +162,11 @@ import {
   BellSlashIcon,
   ChartLineIcon,
   WrenchIcon,
+  PortIcon,
+  ExternalLinkAltIcon,
+  SearchPlusIcon,
+  SearchMinusIcon,
+  UndoIcon,
 } from '@patternfly/react-icons';
 
 // ========================================
@@ -2548,38 +2557,30 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
                         <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>}>
                           <Stack hasGutter style={{ padding: '16px 0' }}>
                             <StackItem>
-                              <DescriptionList isHorizontal>
+                              <DescriptionList isHorizontal isCompact>
                                 <DescriptionListGroup>
-                                  <DescriptionListTerm>Severity</DescriptionListTerm>
-                                  <DescriptionListDescription>
-                                    <Label color={getSeverityLabelColor(selectedAlertDetail.severity)}>{selectedAlertDetail.severity}</Label>
-                                  </DescriptionListDescription>
+                                  <DescriptionListTerm>Name</DescriptionListTerm>
+                                  <DescriptionListDescription><strong>{selectedAlertDetail.alertName}</strong></DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
-                                  <DescriptionListTerm>State</DescriptionListTerm>
-                                  <DescriptionListDescription>
-                                    <Label color={getStatusLabelColor(selectedAlertDetail.status)} variant="outline">{selectedAlertDetail.status}</Label>
-                                  </DescriptionListDescription>
-                                </DescriptionListGroup>
-                                <DescriptionListGroup>
-                                  <DescriptionListTerm>Summary</DescriptionListTerm>
-                                  <DescriptionListDescription>{selectedAlertDetail.summary}</DescriptionListDescription>
-                                </DescriptionListGroup>
-                                <DescriptionListGroup>
-                                  <DescriptionListTerm>Details</DescriptionListTerm>
-                                  <DescriptionListDescription>{selectedAlertDetail.details}</DescriptionListDescription>
-                                </DescriptionListGroup>
-                                <DescriptionListGroup>
-                                  <DescriptionListTerm>Namespace</DescriptionListTerm>
-                                  <DescriptionListDescription>{selectedAlertDetail.namespace}</DescriptionListDescription>
+                                  <DescriptionListTerm>Description</DescriptionListTerm>
+                                  <DescriptionListDescription>{selectedAlertDetail.description || selectedAlertDetail.summary}</DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
                                   <DescriptionListTerm>Source</DescriptionListTerm>
                                   <DescriptionListDescription>{selectedAlertDetail.source}</DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
-                                  <DescriptionListTerm>Last Fired</DescriptionListTerm>
-                                  <DescriptionListDescription>{selectedAlertDetail.lastFired}</DescriptionListDescription>
+                                  <DescriptionListTerm>Group</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Label isCompact color="blue">{selectedAlertDetail.group}</Label>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Component</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Label isCompact variant="outline">{selectedAlertDetail.component}</Label>
+                                  </DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
                                   <DescriptionListTerm>Labels</DescriptionListTerm>
@@ -2591,18 +2592,195 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
                                     </LabelGroup>
                                   </DescriptionListDescription>
                                 </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Severity</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Label color={getSeverityLabelColor(selectedAlertDetail.severity)} icon={getSeverityIcon(selectedAlertDetail.severity)}>{selectedAlertDetail.severity}</Label>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>State</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                      <FlexItem>
+                                        <Label color={getStatusLabelColor(selectedAlertDetail.status)} variant="outline">{selectedAlertDetail.status}</Label>
+                                      </FlexItem>
+                                      {selectedAlertDetail.status === 'firing' && (
+                                        <FlexItem>
+                                          <Content component="small" className="pf-v6-u-color-200">
+                                            Firing since {selectedAlertDetail.lastFired}
+                                          </Content>
+                                        </FlexItem>
+                                      )}
+                                    </Flex>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Namespace</DescriptionListTerm>
+                                  <DescriptionListDescription>{selectedAlertDetail.namespace}</DescriptionListDescription>
+                                </DescriptionListGroup>
+                                {selectedAlertDetail.resource && (
+                                  <DescriptionListGroup>
+                                    <DescriptionListTerm>Resource</DescriptionListTerm>
+                                    <DescriptionListDescription>
+                                      <Button variant="link" isInline icon={<ExternalLinkAltIcon />} iconPosition="end">
+                                        {selectedAlertDetail.resource}
+                                      </Button>
+                                    </DescriptionListDescription>
+                                  </DescriptionListGroup>
+                                )}
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Alert Rule</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Button variant="link" isInline icon={<ExternalLinkAltIcon />} iconPosition="end">
+                                      View alert rule
+                                    </Button>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Runbook URL</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Button variant="link" isInline icon={<ExternalLinkAltIcon />} iconPosition="end">
+                                      View runbook
+                                    </Button>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
                               </DescriptionList>
                             </StackItem>
+                            <Divider />
                             <StackItem>
-                              <Flex gap={{ default: 'gapSm' }}>
-                                <FlexItem><Button variant="secondary" onClick={() => addToast('Alert acknowledged', 'success')}>Acknowledge</Button></FlexItem>
-                                <FlexItem><Button variant="secondary" onClick={() => addToast('Alert silenced', 'success')}>Silence</Button></FlexItem>
-                                <FlexItem><Button variant="link">View alerting rule</Button></FlexItem>
+                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Actions</strong></Content>
+                              <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                                <FlexItem>
+                                  <Button variant="secondary" icon={<ListIcon />} onClick={() => addToast('Opening logs...', 'info')}>
+                                    View logs
+                                  </Button>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="secondary" icon={<WrenchIcon />} onClick={() => addToast('Opening troubleshoot...', 'info')}>
+                                    Troubleshoot
+                                  </Button>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="secondary" icon={<ChartLineIcon />} onClick={() => addToast('Opening metrics...', 'info')}>
+                                    See metrics
+                                  </Button>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="secondary" icon={<PortIcon />} onClick={() => addToast('Opening related incidents...', 'info')}>
+                                    See related incidents
+                                  </Button>
+                                </FlexItem>
                               </Flex>
                             </StackItem>
                           </Stack>
                         </Tab>
-                        <Tab eventKey={1} title={<TabTitleText>YAML</TabTitleText>}>
+                        <Tab eventKey={1} title={<TabTitleText>Alert Timeline</TabTitleText>}>
+                          <Stack hasGutter style={{ padding: '16px 0' }}>
+                            <StackItem>
+                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <FlexItem>
+                                  <ToggleGroup>
+                                    <ToggleGroupItem text="30s" aria-label="30 seconds" />
+                                    <ToggleGroupItem text="60s" aria-label="60 seconds" isSelected />
+                                    <ToggleGroupItem text="90s" aria-label="90 seconds" />
+                                    <ToggleGroupItem text="Day" aria-label="Day" />
+                                    <ToggleGroupItem text="Week" aria-label="Week" />
+                                  </ToggleGroup>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Flex gap={{ default: 'gapSm' }}>
+                                    <FlexItem>
+                                      <Tooltip content="Zoom in">
+                                        <Button variant="plain" icon={<SearchPlusIcon />} aria-label="Zoom in" />
+                                      </Tooltip>
+                                    </FlexItem>
+                                    <FlexItem>
+                                      <Tooltip content="Zoom out">
+                                        <Button variant="plain" icon={<SearchMinusIcon />} aria-label="Zoom out" />
+                                      </Tooltip>
+                                    </FlexItem>
+                                    <FlexItem>
+                                      <Tooltip content="Reset zoom">
+                                        <Button variant="plain" icon={<UndoIcon />} aria-label="Reset zoom" />
+                                      </Tooltip>
+                                    </FlexItem>
+                                  </Flex>
+                                </FlexItem>
+                              </Flex>
+                            </StackItem>
+                            <StackItem>
+                              <div style={{ height: '250px', width: '100%' }}>
+                                <Chart
+                                  ariaDesc="Alert timeline showing firing periods"
+                                  ariaTitle="Alert Timeline"
+                                  height={250}
+                                  padding={{ bottom: 50, left: 50, right: 20, top: 20 }}
+                                  containerComponent={
+                                    <ChartVoronoiContainer
+                                      labels={({ datum }) => `${datum.name}: ${datum.y}`}
+                                      constrainToVisibleArea
+                                    />
+                                  }
+                                >
+                                  <ChartAxis 
+                                    tickValues={[0, 10, 20, 30, 40, 50, 60]}
+                                    tickFormat={(t) => `${t}s ago`}
+                                  />
+                                  <ChartAxis 
+                                    dependentAxis 
+                                    tickFormat={(t) => t === 1 ? 'Firing' : t === 0 ? 'Resolved' : ''}
+                                    tickValues={[0, 1]}
+                                  />
+                                  <ChartGroup>
+                                    <ChartArea
+                                      data={[
+                                        { x: 0, y: 1, name: 'Status' },
+                                        { x: 5, y: 1, name: 'Status' },
+                                        { x: 10, y: 1, name: 'Status' },
+                                        { x: 15, y: 0, name: 'Status' },
+                                        { x: 20, y: 0, name: 'Status' },
+                                        { x: 25, y: 1, name: 'Status' },
+                                        { x: 30, y: 1, name: 'Status' },
+                                        { x: 35, y: 1, name: 'Status' },
+                                        { x: 40, y: 1, name: 'Status' },
+                                        { x: 45, y: 1, name: 'Status' },
+                                        { x: 50, y: 1, name: 'Status' },
+                                        { x: 55, y: 1, name: 'Status' },
+                                        { x: 60, y: 1, name: 'Status' },
+                                      ]}
+                                      interpolation="stepAfter"
+                                      style={{
+                                        data: { 
+                                          fill: 'var(--pf-t--chart--color--red--100)',
+                                          fillOpacity: 0.3,
+                                          stroke: 'var(--pf-t--chart--color--red--100)',
+                                          strokeWidth: 2,
+                                        }
+                                      }}
+                                    />
+                                    <ChartScatter
+                                      data={[
+                                        { x: 0, y: 1, name: 'Alert fired' },
+                                        { x: 15, y: 0, name: 'Alert resolved' },
+                                        { x: 25, y: 1, name: 'Alert fired' },
+                                      ]}
+                                      style={{
+                                        data: { fill: 'var(--pf-t--chart--color--red--100)' }
+                                      }}
+                                    />
+                                  </ChartGroup>
+                                </Chart>
+                              </div>
+                            </StackItem>
+                            <StackItem>
+                              <Content component="small" className="pf-v6-u-color-200">
+                                Timeline shows alert firing and resolution events. Use the time range selector to adjust the view window.
+                              </Content>
+                            </StackItem>
+                          </Stack>
+                        </Tab>
+                        <Tab eventKey={2} title={<TabTitleText>YAML</TabTitleText>}>
                           <CodeBlock style={{ marginTop: '16px' }}>
                             <CodeBlockCode>
 {`apiVersion: monitoring.coreos.com/v1
@@ -3678,7 +3856,7 @@ spec:
           <StackItem style={{ marginBottom: '24px' }}>
             <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
               <Tab eventKey="alerts" title={<span><BellIcon /> Alerts</span>} />
-              <Tab eventKey="incidents" title={<span><ExclamationTriangleIcon /> Incidents</span>} />
+              <Tab eventKey="incidents" title={<span><PortIcon /> Incidents</span>} />
               <Tab eventKey="management" title={<span><CogIcon /> Management</span>} />
             </Tabs>
           </StackItem>
@@ -4225,17 +4403,20 @@ spec:
       {mainPageTab === 'incidents' && (
         <div style={{ padding: '24px' }}>
           <Card>
-            <CardHeader>
-              <CardTitle>Incidents</CardTitle>
-            </CardHeader>
             <CardBody>
-              <EmptyState titleText="Incidents Management" headingLevel="h4" icon={ExclamationTriangleIcon}>
+              <EmptyState 
+                titleText="Automated Incident Detection" 
+                headingLevel="h4" 
+                icon={PortIcon}
+                variant="lg"
+              >
                 <EmptyStateBody>
-                  Incident management functionality allows you to track and manage incidents across your fleet.
-                  This feature is coming soon.
+                  Gain better visibility into your cluster health with automated incident detection. 
+                  By installing the Red Hat OpenShift incident detection operator, you can use analytics 
+                  to quickly identify and troubleshoot potential problems before they affect your users.
                 </EmptyStateBody>
                 <EmptyStateActions>
-                  <Button variant="primary">Create Incident</Button>
+                  <Button variant="primary" icon={<PlusIcon />}>Install operator</Button>
                 </EmptyStateActions>
               </EmptyState>
             </CardBody>
