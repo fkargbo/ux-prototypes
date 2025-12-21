@@ -3029,9 +3029,9 @@ spec:
                       {/* Alerts Table */}
                       <StackItem>
                         <Card>
-                          <CardHeader style={{ paddingBottom: 0 }}>
-                            <Toolbar style={{ paddingBottom: 0, marginBottom: 0 }}>
-                              <ToolbarContent style={{ padding: '0 16px', alignItems: 'center', paddingBottom: 0 }}>
+                          <CardHeader style={{ padding: '16px 16px 0 16px' }}>
+                            <Toolbar style={{ padding: 0, margin: 0, minHeight: 'auto' }}>
+                              <ToolbarContent style={{ padding: 0, alignItems: 'center' }}>
                                 {/* Saved Filters Dropdown */}
                                 <ToolbarItem>
                                   <Dropdown
@@ -3127,7 +3127,7 @@ spec:
 
                             {/* Active filter chips */}
                             {hasDrillDownActiveFilters && (
-                              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ padding: '8px 16px 0' }}>
+                              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ padding: '12px 0 0' }}>
                                 <FlexItem>
                                   <LabelGroup categoryName="Active filters">
                                     {drillDownSeverityFilter.map(s => (
@@ -3675,7 +3675,7 @@ spec:
           </StackItem>
 
           {/* Main Page Tabs */}
-          <StackItem style={{ marginBottom: '16px' }}>
+          <StackItem style={{ marginBottom: '24px' }}>
             <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
               <Tab eventKey="alerts" title={<span><BellIcon /> Alerts</span>} />
               <Tab eventKey="incidents" title={<span><ExclamationTriangleIcon /> Incidents</span>} />
@@ -4173,35 +4173,30 @@ spec:
       {/* Alerts Tab - Drill-down View (Cluster Alerts) */}
       {mainPageTab === 'alerts' && isDrillDownView && selectedCluster && (
         <div style={{ padding: '0 24px' }}>
-          {/* Cluster Sub-Header (merged with page header style) */}
-          <Stack hasGutter style={{ marginBottom: '16px' }}>
-            <StackItem>
-              <Content component="p" style={{ fontSize: '16px', color: 'var(--pf-t--global--text--color--subtle)', margin: 0 }}>
-                Cluster alerts
-              </Content>
-              <Title headingLevel="h2" size="xl" style={{ marginTop: '4px' }}>{selectedCluster.name}</Title>
-            </StackItem>
-
+          {/* Cluster Sub-Header (merged with page header) */}
+          <div style={{ marginBottom: '24px' }}>
+            <Content component="p" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', margin: '0 0 4px 0' }}>
+              Cluster alerts
+            </Content>
+            <Title headingLevel="h2" size="xl" style={{ margin: '0 0 12px 0' }}>{selectedCluster.name}</Title>
             {/* Status Labels - Below the sub-header */}
-            <StackItem>
-              <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem>
-                  <Label 
-                    color={getClusterStatus(selectedCluster) === 'healthy' ? 'green' : getClusterStatus(selectedCluster) === 'critical' ? 'red' : getClusterStatus(selectedCluster) === 'warning' ? 'orange' : 'purple'}
-                    icon={getClusterStatus(selectedCluster) === 'healthy' ? <CheckCircleIcon /> : getClusterStatus(selectedCluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterStatus(selectedCluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                  >
-                    {getClusterStatus(selectedCluster).charAt(0).toUpperCase() + getClusterStatus(selectedCluster).slice(1)}
-                  </Label>
-                </FlexItem>
-                <FlexItem>
-                  <Label color="blue" icon={<CubesIcon />}>{selectedCluster.nodeCount} Nodes</Label>
-                </FlexItem>
-                <FlexItem>
-                  <Label variant="outline">{selectedCluster.region} • {selectedCluster.cloudProvider}</Label>
-                </FlexItem>
-              </Flex>
-            </StackItem>
-          </Stack>
+            <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem>
+                <Label 
+                  color={getClusterStatus(selectedCluster) === 'healthy' ? 'green' : getClusterStatus(selectedCluster) === 'critical' ? 'red' : getClusterStatus(selectedCluster) === 'warning' ? 'orange' : 'purple'}
+                  icon={getClusterStatus(selectedCluster) === 'healthy' ? <CheckCircleIcon /> : getClusterStatus(selectedCluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterStatus(selectedCluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                >
+                  {getClusterStatus(selectedCluster).charAt(0).toUpperCase() + getClusterStatus(selectedCluster).slice(1)}
+                </Label>
+              </FlexItem>
+              <FlexItem>
+                <Label color="blue" icon={<CubesIcon />}>{selectedCluster.nodeCount} Nodes</Label>
+              </FlexItem>
+              <FlexItem>
+                <Label variant="outline">{selectedCluster.region} • {selectedCluster.cloudProvider}</Label>
+              </FlexItem>
+            </Flex>
+          </div>
 
           {/* Render the full drill-down content (drawer, table, modals) - includes Summary section */}
           {renderDrillDownContent()}
