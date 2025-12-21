@@ -3631,11 +3631,11 @@ spec:
             <Breadcrumb>
               <BreadcrumbItem to="/">Home</BreadcrumbItem>
               <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
+              {isDrillDownView && selectedCluster && (
+                <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); handleBackToList(); }}>Alerting</BreadcrumbItem>
+              )}
               {isDrillDownView && selectedCluster ? (
-                <>
-                  <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); handleBackToList(); }}>Alerting</BreadcrumbItem>
-                  <BreadcrumbItem isActive>Cluster alerts: {selectedCluster.name}</BreadcrumbItem>
-                </>
+                <BreadcrumbItem isActive>Cluster alerts: {selectedCluster.name}</BreadcrumbItem>
               ) : (
                 <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
               )}
@@ -3941,7 +3941,13 @@ spec:
                           {/* Group By - shown for both views, disabled for Table */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined, display: 'flex', alignItems: 'center' }}>Group by</Content>
+                              <label style={{ 
+                                color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--regular)', 
+                                fontSize: 'var(--pf-t--global--font--size--sm)', 
+                                fontWeight: 'var(--pf-t--global--font--weight--body--default)',
+                                lineHeight: '36px',
+                                textAlign: 'center'
+                              }}>Group by</label>
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle 
@@ -3973,7 +3979,13 @@ spec:
                           {/* Size By - shown for both views, disabled for Table */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="small" style={{ color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : undefined, display: 'flex', alignItems: 'center' }}>Size by</Content>
+                              <label style={{ 
+                                color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--regular)', 
+                                fontSize: 'var(--pf-t--global--font--size--sm)', 
+                                fontWeight: 'var(--pf-t--global--font--weight--body--default)',
+                                lineHeight: '36px',
+                                textAlign: 'center'
+                              }}>Size by</label>
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle 
@@ -4003,7 +4015,13 @@ spec:
                           {/* Sort By - for both views */}
                           <FlexItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="small" style={{ display: 'flex', alignItems: 'center' }}>Sort by</Content>
+                              <label style={{ 
+                                color: 'var(--pf-t--global--text--color--regular)', 
+                                fontSize: 'var(--pf-t--global--font--size--sm)', 
+                                fontWeight: 'var(--pf-t--global--font--weight--body--default)',
+                                lineHeight: '36px',
+                                textAlign: 'center'
+                              }}>Sort by</label>
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle ref={toggleRef} onClick={() => setIsSortByOpen(!isSortByOpen)} isExpanded={isSortByOpen} style={{ width: '140px' }}>
