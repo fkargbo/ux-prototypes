@@ -3029,8 +3029,8 @@ spec:
                       {/* Alerts Table */}
                       <StackItem>
                         <Card>
-                          <CardHeader style={{ padding: '16px 16px 0 16px' }}>
-                            <Toolbar style={{ padding: 0, margin: 0, minHeight: 'auto' }}>
+                          <CardHeader style={{ padding: '24px 24px 0 24px' }}>
+                            <Toolbar style={{ padding: 0, margin: 0, paddingBottom: '24px', minHeight: 'auto' }}>
                               <ToolbarContent style={{ padding: 0, alignItems: 'center' }}>
                                 {/* Saved Filters Dropdown */}
                                 <ToolbarItem>
@@ -3175,7 +3175,7 @@ spec:
                               </Flex>
                             )}
                           </CardHeader>
-                          <CardBody style={{ overflow: 'auto' }}>
+                          <CardBody style={{ overflow: 'auto', padding: '0 24px 16px 24px' }}>
                             {drillDownFilteredAlerts.length === 0 ? (
                               <EmptyState titleText="No alerts found" icon={CheckCircleIcon}>
                                 <EmptyStateBody>No alerts match the current filters.</EmptyStateBody>
@@ -3301,7 +3301,7 @@ spec:
                               </div>
                             )}
                           </CardBody>
-                          <CardFooter>
+                          <CardFooter style={{ padding: '16px 24px 24px 24px' }}>
                             <Pagination
                               itemCount={isAggregated ? aggregatedAlerts.length : drillDownFilteredAlerts.length}
                               perPage={drillDownPerPage}
