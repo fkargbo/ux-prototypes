@@ -1273,19 +1273,25 @@ interface AggregatedAlert {
 interface AllAlertsCardProps {
   clusters: ClusterData[];
   alertNameFilter: string | null;
+  componentFilter: string | null;
   onClearAlertNameFilter: () => void;
+  onClearComponentFilter: () => void;
   onClusterClick: (cluster: ClusterData) => void;
   onAlertClick: (alert: AlertData) => void;
   onAlertRuleClick: (alertName: string) => void;
+  onComponentClick: (componentName: string) => void;
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   clusters,
   alertNameFilter,
+  componentFilter,
   onClearAlertNameFilter,
+  onClearComponentFilter,
   onClusterClick,
   onAlertClick,
   onAlertRuleClick,
+  onComponentClick,
 }) => {
   const [searchValue, setSearchValue] = React.useState('');
   const [severityFilter, setSeverityFilter] = React.useState<AlertSeverity[]>([]);
@@ -1352,22 +1358,24 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const filteredAggregatedAlerts = React.useMemo(() => {
     return aggregatedAlerts.filter(alert => {
       if (alertNameFilter && alert.alertName !== alertNameFilter) return false;
+      if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
       if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase())) return false;
       return true;
     });
-  }, [aggregatedAlerts, alertNameFilter, severityFilter, searchValue]);
+  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue]);
 
   // Filter individual alerts (for non-aggregated view)
   const filteredAlerts = React.useMemo(() => {
     return allAlerts.filter(alert => {
       if (alertNameFilter && alert.alertName !== alertNameFilter) return false;
+      if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
       if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase()) && 
           !alert.clusterName.toLowerCase().includes(searchValue.toLowerCase())) return false;
       return true;
     }).sort((a, b) => b.lastFiredTimestamp.getTime() - a.lastFiredTimestamp.getTime());
-  }, [allAlerts, alertNameFilter, severityFilter, searchValue]);
+  }, [allAlerts, alertNameFilter, componentFilter, severityFilter, searchValue]);
 
   const paginatedAggregatedAlerts = filteredAggregatedAlerts.slice((page - 1) * perPage, page * perPage);
   const paginatedAlerts = filteredAlerts.slice((page - 1) * perPage, page * perPage);
@@ -1404,16 +1412,19 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
   // Calculate most impacted components (for Insights tab)
   const componentCounts = React.useMemo(() => {
-    const counts: Record<string, { count: number; critical: number; warning: number; info: number }> = {};
+    const counts: Record<string, { count: number; critical: number; warning: number; info: number; clusters: string[] }> = {};
     clusters.forEach(cluster => {
       cluster.alerts.filter(a => a.status === 'firing').forEach(alert => {
         if (!counts[alert.component]) {
-          counts[alert.component] = { count: 0, critical: 0, warning: 0, info: 0 };
+          counts[alert.component] = { count: 0, critical: 0, warning: 0, info: 0, clusters: [] };
         }
         counts[alert.component].count++;
         if (alert.severity === 'Critical') counts[alert.component].critical++;
         else if (alert.severity === 'Warning') counts[alert.component].warning++;
         else counts[alert.component].info++;
+        if (!counts[alert.component].clusters.includes(cluster.name)) {
+          counts[alert.component].clusters.push(cluster.name);
+        }
       });
     });
     return Object.entries(counts)
@@ -1492,6 +1503,13 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         <ToolbarItem>
                           <Label color="blue" onClose={onClearAlertNameFilter}>
                             Alert: {alertNameFilter}
+                          </Label>
+                        </ToolbarItem>
+                      )}
+                      {componentFilter && (
+                        <ToolbarItem>
+                          <Label color="green" onClose={onClearComponentFilter}>
+                            Component: {componentFilter}
                           </Label>
                         </ToolbarItem>
                       )}
@@ -1780,6 +1798,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         <Thead>
                           <Tr>
                             <Th>Component</Th>
+                            <Th>Clusters</Th>
                             <Th>Total</Th>
                             <Th>Breakdown</Th>
                           </Tr>
@@ -1787,7 +1806,25 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         <Tbody>
                           {componentCounts.map(comp => (
                             <Tr key={comp.name}>
-                              <Td><Label isCompact variant="outline">{comp.name}</Label></Td>
+                              <Td>
+                                <Button variant="link" isInline onClick={() => { onComponentClick(comp.name); setActiveTabKey('alerts'); }}>
+                                  {comp.name}
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Popover
+                                  headerContent="Clusters with this component impacted"
+                                  bodyContent={
+                                    <Stack hasGutter>
+                                      {comp.clusters.map(c => (
+                                        <StackItem key={c}>{c}</StackItem>
+                                      ))}
+                                    </Stack>
+                                  }
+                                >
+                                  <Badge isRead style={{ cursor: 'pointer' }}>{comp.clusters.length} clusters</Badge>
+                                </Popover>
+                              </Td>
                               <Td><Badge>{comp.count}</Badge></Td>
                               <Td>
                                 <Flex gap={{ default: 'gapSm' }}>
@@ -1800,7 +1837,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           ))}
                           {componentCounts.length === 0 && (
                             <Tr>
-                              <Td colSpan={3}>
+                              <Td colSpan={4}>
                                 <Content component="small" className="pf-v6-u-color-200">No impacted components</Content>
                               </Td>
                             </Tr>
@@ -2307,6 +2344,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
 
   // All alerts card state
   const [mainAlertNameFilter, setMainAlertNameFilter] = React.useState<string | null>(null);
+  const [mainComponentFilter, setMainComponentFilter] = React.useState<string | null>(null);
 
   // Last refresh
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
@@ -4344,7 +4382,9 @@ spec:
                 <AllAlertsCard
                   clusters={filteredClusters}
                   alertNameFilter={mainAlertNameFilter}
+                  componentFilter={mainComponentFilter}
                   onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
+                  onClearComponentFilter={() => setMainComponentFilter(null)}
                   onClusterClick={handleDrillDown}
                   onAlertClick={(alert) => {
                     setSelectedAlertDetail(alert);
@@ -4352,6 +4392,9 @@ spec:
                   }}
                   onAlertRuleClick={(alertName) => {
                     setMainAlertNameFilter(alertName);
+                  }}
+                  onComponentClick={(componentName) => {
+                    setMainComponentFilter(componentName);
                   }}
                 />
               </StackItem>
