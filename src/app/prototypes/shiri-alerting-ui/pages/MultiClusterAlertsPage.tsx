@@ -3381,30 +3381,57 @@ spec:
                                         Edit filters
                                       </Button>
                                     </FlexItem>
-                                    {selectedDrillDownSavedFilter && (
-                                      <FlexItem>
-                                        <Button variant="link" onClick={() => {
-                                          // Update the existing saved filter with current filter values
-                                          setDrillDownSavedFilters(drillDownSavedFilters.map(f => 
-                                            f.id === selectedDrillDownSavedFilter.id 
-                                              ? { 
-                                                  ...f, 
-                                                  filters: { 
-                                                    severity: drillDownSeverityFilter, 
-                                                    group: drillDownGroupFilter, 
-                                                    component: drillDownComponentFilter, 
-                                                    source: drillDownSourceFilter, 
-                                                    searchValue: drillDownSearchValue 
+                                    {selectedDrillDownSavedFilter && (() => {
+                                      // Check if current filters differ from saved filter
+                                      const savedSeverity = selectedDrillDownSavedFilter.filters.severity || [];
+                                      const savedGroup = selectedDrillDownSavedFilter.filters.group || [];
+                                      const savedComponent = selectedDrillDownSavedFilter.filters.component || [];
+                                      const savedSource = selectedDrillDownSavedFilter.filters.source || [];
+                                      const savedSearchValue = selectedDrillDownSavedFilter.filters.searchValue || '';
+                                      
+                                      const hasChanges = 
+                                        JSON.stringify([...drillDownSeverityFilter].sort()) !== JSON.stringify([...savedSeverity].sort()) ||
+                                        JSON.stringify([...drillDownGroupFilter].sort()) !== JSON.stringify([...savedGroup].sort()) ||
+                                        JSON.stringify([...drillDownComponentFilter].sort()) !== JSON.stringify([...savedComponent].sort()) ||
+                                        JSON.stringify([...drillDownSourceFilter].sort()) !== JSON.stringify([...savedSource].sort()) ||
+                                        drillDownSearchValue !== savedSearchValue;
+                                      
+                                      return hasChanges ? (
+                                        <FlexItem>
+                                          <Button variant="link" onClick={() => {
+                                            // Update the existing saved filter with current filter values
+                                            setDrillDownSavedFilters(drillDownSavedFilters.map(f => 
+                                              f.id === selectedDrillDownSavedFilter.id 
+                                                ? { 
+                                                    ...f, 
+                                                    filters: { 
+                                                      severity: drillDownSeverityFilter, 
+                                                      group: drillDownGroupFilter, 
+                                                      component: drillDownComponentFilter, 
+                                                      source: drillDownSourceFilter, 
+                                                      searchValue: drillDownSearchValue 
+                                                    } 
                                                   } 
-                                                } 
-                                              : f
-                                          ));
-                                          addToast(`Filter "${selectedDrillDownSavedFilter.name}" updated`, 'success');
-                                        }}>
-                                          Update saved filter
-                                        </Button>
-                                      </FlexItem>
-                                    )}
+                                                : f
+                                            ));
+                                            // Update the selected filter reference
+                                            setSelectedDrillDownSavedFilter({
+                                              ...selectedDrillDownSavedFilter,
+                                              filters: { 
+                                                severity: drillDownSeverityFilter, 
+                                                group: drillDownGroupFilter, 
+                                                component: drillDownComponentFilter, 
+                                                source: drillDownSourceFilter, 
+                                                searchValue: drillDownSearchValue 
+                                              }
+                                            });
+                                            addToast(`Filter "${selectedDrillDownSavedFilter.name}" updated`, 'success');
+                                          }}>
+                                            Update saved filter
+                                          </Button>
+                                        </FlexItem>
+                                      ) : null;
+                                    })()}
                                     <FlexItem>
                                       <Button variant="link" onClick={() => { setDrillDownNewFilterName(''); setIsDrillDownSaveFilterModalOpen(true); }}>
                                         Add to saved filters
@@ -4053,30 +4080,55 @@ spec:
                     Edit filters
                   </Button>
                 </FlexItem>
-                {selectedSavedFilter && (
-                  <FlexItem>
-                    <Button variant="link" onClick={() => {
-                      // Update the existing saved filter with current filter values
-                      setSavedFilters(savedFilters.map(f => 
-                        f.id === selectedSavedFilter.id 
-                          ? { 
-                              ...f, 
-                              filters: { 
-                                severity: severityFilter, 
-                                group: groupFilter, 
-                                component: componentFilter, 
-                                source: [], 
-                                searchValue 
+                {selectedSavedFilter && (() => {
+                  // Check if current filters differ from saved filter
+                  const savedSeverity = selectedSavedFilter.filters.severity || [];
+                  const savedGroup = selectedSavedFilter.filters.group || [];
+                  const savedComponent = selectedSavedFilter.filters.component || [];
+                  const savedSearchValue = selectedSavedFilter.filters.searchValue || '';
+                  
+                  const hasChanges = 
+                    JSON.stringify([...severityFilter].sort()) !== JSON.stringify([...savedSeverity].sort()) ||
+                    JSON.stringify([...groupFilter].sort()) !== JSON.stringify([...savedGroup].sort()) ||
+                    JSON.stringify([...componentFilter].sort()) !== JSON.stringify([...savedComponent].sort()) ||
+                    searchValue !== savedSearchValue;
+                  
+                  return hasChanges ? (
+                    <FlexItem>
+                      <Button variant="link" onClick={() => {
+                        // Update the existing saved filter with current filter values
+                        setSavedFilters(savedFilters.map(f => 
+                          f.id === selectedSavedFilter.id 
+                            ? { 
+                                ...f, 
+                                filters: { 
+                                  severity: severityFilter, 
+                                  group: groupFilter, 
+                                  component: componentFilter, 
+                                  source: [], 
+                                  searchValue 
+                                } 
                               } 
-                            } 
-                          : f
-                      ));
-                      addToast(`Filter "${selectedSavedFilter.name}" updated`, 'success');
-                    }}>
-                      Update saved filter
-                    </Button>
-                  </FlexItem>
-                )}
+                            : f
+                        ));
+                        // Update the selected filter reference
+                        setSelectedSavedFilter({
+                          ...selectedSavedFilter,
+                          filters: { 
+                            severity: severityFilter, 
+                            group: groupFilter, 
+                            component: componentFilter, 
+                            source: [], 
+                            searchValue 
+                          }
+                        });
+                        addToast(`Filter "${selectedSavedFilter.name}" updated`, 'success');
+                      }}>
+                        Update saved filter
+                      </Button>
+                    </FlexItem>
+                  ) : null;
+                })()}
                 <FlexItem>
                   <Button variant="link" onClick={() => {
                     setNewFilterName('');
