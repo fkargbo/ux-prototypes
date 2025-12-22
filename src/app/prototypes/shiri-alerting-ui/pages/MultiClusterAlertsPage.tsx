@@ -248,6 +248,10 @@ interface SavedFilter {
     component: AlertComponent[];
     source: string[];
     searchValue: string;
+    region?: string[];
+    cluster?: string[];
+    namespace?: string[];
+    label?: string[];
   };
   hidden?: boolean;
 }
@@ -3988,6 +3992,11 @@ spec:
                           setSeverityFilter(filter.filters.severity as AlertSeverity[]);
                           setGroupFilter(filter.filters.group as AlertGroup[]);
                           setComponentFilter(filter.filters.component as AlertComponent[]);
+                          setRegionFilter(filter.filters.region || []);
+                          setClusterFilter(filter.filters.cluster || []);
+                          setNamespaceFilter(filter.filters.namespace || []);
+                          setLabelFilter(filter.filters.label || []);
+                          setSearchValue(filter.filters.searchValue || '');
                           setIsSavedFiltersDropdownOpen(false);
                         }}
                       >
@@ -4086,41 +4095,45 @@ spec:
                   const savedGroup = selectedSavedFilter.filters.group || [];
                   const savedComponent = selectedSavedFilter.filters.component || [];
                   const savedSearchValue = selectedSavedFilter.filters.searchValue || '';
+                  const savedRegion = selectedSavedFilter.filters.region || [];
+                  const savedCluster = selectedSavedFilter.filters.cluster || [];
+                  const savedNamespace = selectedSavedFilter.filters.namespace || [];
+                  const savedLabel = selectedSavedFilter.filters.label || [];
                   
                   const hasChanges = 
                     JSON.stringify([...severityFilter].sort()) !== JSON.stringify([...savedSeverity].sort()) ||
                     JSON.stringify([...groupFilter].sort()) !== JSON.stringify([...savedGroup].sort()) ||
                     JSON.stringify([...componentFilter].sort()) !== JSON.stringify([...savedComponent].sort()) ||
+                    JSON.stringify([...regionFilter].sort()) !== JSON.stringify([...savedRegion].sort()) ||
+                    JSON.stringify([...clusterFilter].sort()) !== JSON.stringify([...savedCluster].sort()) ||
+                    JSON.stringify([...namespaceFilter].sort()) !== JSON.stringify([...savedNamespace].sort()) ||
+                    JSON.stringify([...labelFilter].sort()) !== JSON.stringify([...savedLabel].sort()) ||
                     searchValue !== savedSearchValue;
                   
                   return hasChanges ? (
                     <FlexItem>
                       <Button variant="link" onClick={() => {
                         // Update the existing saved filter with current filter values
+                        const updatedFilters = { 
+                          severity: severityFilter, 
+                          group: groupFilter, 
+                          component: componentFilter, 
+                          source: [] as string[], 
+                          searchValue,
+                          region: regionFilter,
+                          cluster: clusterFilter,
+                          namespace: namespaceFilter,
+                          label: labelFilter,
+                        };
                         setSavedFilters(savedFilters.map(f => 
                           f.id === selectedSavedFilter.id 
-                            ? { 
-                                ...f, 
-                                filters: { 
-                                  severity: severityFilter, 
-                                  group: groupFilter, 
-                                  component: componentFilter, 
-                                  source: [], 
-                                  searchValue 
-                                } 
-                              } 
+                            ? { ...f, filters: updatedFilters } 
                             : f
                         ));
                         // Update the selected filter reference
                         setSelectedSavedFilter({
                           ...selectedSavedFilter,
-                          filters: { 
-                            severity: severityFilter, 
-                            group: groupFilter, 
-                            component: componentFilter, 
-                            source: [], 
-                            searchValue 
-                          }
+                          filters: updatedFilters
                         });
                         addToast(`Filter "${selectedSavedFilter.name}" updated`, 'success');
                       }}>
@@ -4789,7 +4802,11 @@ spec:
                     group: groupFilter, 
                     component: componentFilter, 
                     source: [], 
-                    searchValue 
+                    searchValue,
+                    region: regionFilter,
+                    cluster: clusterFilter,
+                    namespace: namespaceFilter,
+                    label: labelFilter,
                   },
                 };
                 setSavedFilters([...savedFilters, newFilter]);
