@@ -3381,6 +3381,30 @@ spec:
                                         Edit filters
                                       </Button>
                                     </FlexItem>
+                                    {selectedDrillDownSavedFilter && (
+                                      <FlexItem>
+                                        <Button variant="link" onClick={() => {
+                                          // Update the existing saved filter with current filter values
+                                          setDrillDownSavedFilters(drillDownSavedFilters.map(f => 
+                                            f.id === selectedDrillDownSavedFilter.id 
+                                              ? { 
+                                                  ...f, 
+                                                  filters: { 
+                                                    severity: drillDownSeverityFilter, 
+                                                    group: drillDownGroupFilter, 
+                                                    component: drillDownComponentFilter, 
+                                                    source: drillDownSourceFilter, 
+                                                    searchValue: drillDownSearchValue 
+                                                  } 
+                                                } 
+                                              : f
+                                          ));
+                                          addToast(`Filter "${selectedDrillDownSavedFilter.name}" updated`, 'success');
+                                        }}>
+                                          Update saved filter
+                                        </Button>
+                                      </FlexItem>
+                                    )}
                                     <FlexItem>
                                       <Button variant="link" onClick={() => { setDrillDownNewFilterName(''); setIsDrillDownSaveFilterModalOpen(true); }}>
                                         Add to saved filters
@@ -4029,6 +4053,30 @@ spec:
                     Edit filters
                   </Button>
                 </FlexItem>
+                {selectedSavedFilter && (
+                  <FlexItem>
+                    <Button variant="link" onClick={() => {
+                      // Update the existing saved filter with current filter values
+                      setSavedFilters(savedFilters.map(f => 
+                        f.id === selectedSavedFilter.id 
+                          ? { 
+                              ...f, 
+                              filters: { 
+                                severity: severityFilter, 
+                                group: groupFilter, 
+                                component: componentFilter, 
+                                source: [], 
+                                searchValue 
+                              } 
+                            } 
+                          : f
+                      ));
+                      addToast(`Filter "${selectedSavedFilter.name}" updated`, 'success');
+                    }}>
+                      Update saved filter
+                    </Button>
+                  </FlexItem>
+                )}
                 <FlexItem>
                   <Button variant="link" onClick={() => {
                     setNewFilterName('');
