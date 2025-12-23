@@ -457,6 +457,8 @@ interface TreemapHeatmapProps {
   importanceSizing: ImportanceSizing;
   severityFilter: AlertSeverity[];
   onDrillDown: (cluster: ClusterData) => void;
+  onLegendClick?: (severity: 'Critical' | 'Warning' | 'Info' | 'Healthy') => void;
+  activeLegendFilters?: ('Critical' | 'Warning' | 'Info' | 'Healthy')[];
 }
 
 const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
@@ -465,6 +467,8 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
   importanceSizing,
   severityFilter,
   onDrillDown,
+  onLegendClick,
+  activeLegendFilters = [],
 }) => {
   // PatternFly 6 color palette
   // Critical: Red, Warning: Orange, Info: Purple, Healthy: Green
@@ -492,8 +496,32 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
   };
 
   const buildTreemapData = () => {
+    // Filter clusters based on severity filter - hide healthy clusters when filtering
+    let filteredClusters = clusters;
+    if (severityFilter.length > 0 || activeLegendFilters.length > 0) {
+      filteredClusters = clusters.filter(cluster => {
+        const clusterStatus = getClusterStatus(cluster);
+        const statusCapitalized = clusterStatus.charAt(0).toUpperCase() + clusterStatus.slice(1);
+        
+        // If legend filters are active, use them
+        if (activeLegendFilters.length > 0) {
+          return activeLegendFilters.includes(statusCapitalized as 'Critical' | 'Warning' | 'Info' | 'Healthy');
+        }
+        
+        // If severity filter is active, filter out healthy clusters
+        if (severityFilter.length > 0) {
+          // Hide healthy clusters when severity filter is set
+          if (clusterStatus === 'healthy') return false;
+          // Only show clusters with matching severity
+          const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
+          return firingAlerts.some(a => severityFilter.includes(a.severity));
+        }
+        return true;
+      });
+    }
+
     if (groupBy === 'none') {
-      return clusters.map(cluster => ({
+      return filteredClusters.map(cluster => ({
         name: cluster.name,
         value: getTileValue(cluster, importanceSizing, severityFilter),
         itemStyle: { color: getClusterColor(cluster) },
@@ -502,7 +530,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
     }
 
     const groups: Record<string, ClusterData[]> = {};
-    clusters.forEach(cluster => {
+    filteredClusters.forEach(cluster => {
       let key: string;
       if (groupBy === 'severity') {
         key = getClusterStatus(cluster).charAt(0).toUpperCase() + getClusterStatus(cluster).slice(1);
@@ -513,15 +541,17 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       groups[key].push(cluster);
     });
 
-    return Object.entries(groups).map(([groupName, groupClusters]) => ({
-      name: groupName,
-      children: groupClusters.map(cluster => ({
-        name: cluster.name,
-        value: getTileValue(cluster, importanceSizing, severityFilter),
-        itemStyle: { color: getClusterColor(cluster) },
-        cluster,
-      })),
-    }));
+    return Object.entries(groups)
+      .filter(([_, groupClusters]) => groupClusters.length > 0)
+      .map(([groupName, groupClusters]) => ({
+        name: groupName,
+        children: groupClusters.map(cluster => ({
+          name: cluster.name,
+          value: getTileValue(cluster, importanceSizing, severityFilter),
+          itemStyle: { color: getClusterColor(cluster) },
+          cluster,
+        })),
+      }));
   };
 
   const option = {
@@ -703,7 +733,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           opts={{ renderer: 'svg' }}
         />
       </div>
-      {/* Legend - PatternFly aligned */}
+      {/* Legend - PatternFly aligned, clickable */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'center', 
@@ -714,54 +744,44 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         backgroundColor: 'var(--pf-t--global--background--color--secondary--default, #f5f5f5)',
         borderRadius: '0 0 var(--pf-t--global--border--radius--small, 3px) var(--pf-t--global--border--radius--small, 3px)',
       }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px',
-          padding: '4px 12px',
-          backgroundColor: '#ffffff',
-          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
-          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
-        }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.critical }}></span>
-          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Critical</span>
-        </div>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px',
-          padding: '4px 12px',
-          backgroundColor: '#ffffff',
-          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
-          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
-        }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.warning }}></span>
-          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Warning</span>
-        </div>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px',
-          padding: '4px 12px',
-          backgroundColor: '#ffffff',
-          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
-          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
-        }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.info }}></span>
-          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Info</span>
-        </div>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px',
-          padding: '4px 12px',
-          backgroundColor: '#ffffff',
-          borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
-          border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
-        }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: pfColors.healthy }}></span>
-          <span style={{ fontSize: '13px', color: '#151515', fontFamily: "'RedHatText', sans-serif", fontWeight: 500 }}>Healthy</span>
-        </div>
+        {(['Critical', 'Warning', 'Info', 'Healthy'] as const).map(status => {
+          const colorMap = { Critical: pfColors.critical, Warning: pfColors.warning, Info: pfColors.info, Healthy: pfColors.healthy };
+          const isActive = activeLegendFilters.length === 0 || activeLegendFilters.includes(status);
+          return (
+            <div 
+              key={status}
+              onClick={() => onLegendClick?.(status)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                padding: '4px 12px',
+                backgroundColor: isActive ? '#ffffff' : '#f0f0f0',
+                borderRadius: 'var(--pf-t--global--border--radius--small, 3px)',
+                border: isActive 
+                  ? `2px solid ${colorMap[status]}` 
+                  : '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+                cursor: 'pointer',
+                opacity: isActive ? 1 : 0.5,
+                transition: 'all 0.15s ease-in-out',
+              }}
+            >
+              <span style={{ 
+                width: '12px', 
+                height: '12px', 
+                borderRadius: '3px', 
+                background: colorMap[status],
+                opacity: isActive ? 1 : 0.4,
+              }}></span>
+              <span style={{ 
+                fontSize: '13px', 
+                color: isActive ? '#151515' : '#6a6e73', 
+                fontFamily: "'RedHatText', sans-serif", 
+                fontWeight: 500 
+              }}>{status}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -795,6 +815,10 @@ interface FilterPanelProps {
   onApplySavedFilter: (filter: SavedFilter) => void;
   onSaveFilter: (name: string) => void;
   onDeleteSavedFilter: (id: string) => void;
+  // Counts for filter options
+  regionCounts?: Record<string, number>;
+  clusterCounts?: Record<string, number>;
+  namespaceCounts?: Record<string, number>;
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
@@ -808,6 +832,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   regions, clusterNames, namespaces, availableLabels,
   onClose,
   savedFilters, onApplySavedFilter, onSaveFilter, onDeleteSavedFilter,
+  regionCounts = {}, clusterCounts = {}, namespaceCounts = {},
 }) => {
   const allSeverities: AlertSeverity[] = ['Critical', 'Warning', 'Info'];
   const allGroups: AlertGroup[] = ['Cluster', 'Namespace'];
@@ -917,7 +942,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               <SelectList>
                 {filteredRegions.map(region => (
                   <SelectOption key={region} value={region} hasCheckbox isSelected={regionFilter.includes(region)}>
-                    {region}
+                    {region} {regionCounts[region] !== undefined && `(${regionCounts[region]})`}
                   </SelectOption>
                 ))}
                 {filteredRegions.length === 0 && (
@@ -977,7 +1002,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               <SelectList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                 {filteredClusters.map(cluster => (
                   <SelectOption key={cluster} value={cluster} hasCheckbox isSelected={clusterFilter.includes(cluster)}>
-                    {cluster}
+                    {cluster} {clusterCounts[cluster] !== undefined && `(${clusterCounts[cluster]})`}
                   </SelectOption>
                 ))}
                 {filteredClusters.length === 0 && (
@@ -1037,7 +1062,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               <SelectList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                 {filteredNamespaces.map(ns => (
                   <SelectOption key={ns} value={ns} hasCheckbox isSelected={namespaceFilter.includes(ns)}>
-                    {ns}
+                    {ns} {namespaceCounts[ns] !== undefined && `(${namespaceCounts[ns]})`}
                   </SelectOption>
                 ))}
                 {filteredNamespaces.length === 0 && (
@@ -2268,6 +2293,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [importanceSizing, setImportanceSizing] = React.useState<ImportanceSizing>('nodeCount');
   const [userRole] = React.useState<UserRole>('admin');
   const [isGroupByOpen, setIsGroupByOpen] = React.useState(false);
+  // Treemap legend filters
+  const [treemapLegendFilters, setTreemapLegendFilters] = React.useState<('Critical' | 'Warning' | 'Info' | 'Healthy')[]>([]);
   const [isSortByOpen, setIsSortByOpen] = React.useState(false);
   const [isSizeByOpen, setIsSizeByOpen] = React.useState(false);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = React.useState(false);
@@ -2375,6 +2402,34 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       });
     });
     return Array.from(labelsSet).sort();
+  }, []);
+
+  // Calculate counts for filter options (shows number of clusters per option)
+  const regionCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    mockClusters.forEach(cluster => {
+      counts[cluster.region] = (counts[cluster.region] || 0) + 1;
+    });
+    return counts;
+  }, []);
+
+  const clusterCounts = React.useMemo(() => {
+    // For clusters, show the number of firing alerts
+    const counts: Record<string, number> = {};
+    mockClusters.forEach(cluster => {
+      counts[cluster.name] = cluster.alerts.filter(a => a.status === 'firing').length;
+    });
+    return counts;
+  }, []);
+
+  const namespaceCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    mockClusters.forEach(cluster => {
+      cluster.namespaces.forEach(ns => {
+        counts[ns] = (counts[ns] || 0) + 1;
+      });
+    });
+    return counts;
   }, []);
 
   // Filter clusters
@@ -3960,6 +4015,15 @@ spec:
       {/* Tab Content */}
       {mainPageTab === 'alerts' && !isDrillDownView && (
         <>
+          {/* Sticky Toolbar Container */}
+          <div style={{ 
+            position: 'sticky', 
+            top: 0, 
+            zIndex: 100, 
+            backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
+            borderBottom: hasActiveFilters ? '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' : 'none',
+            paddingBottom: hasActiveFilters ? '8px' : '0'
+          }}>
           {/* Static Toolbar - Order: Saved filters, Filters, Search */}
           <div style={{ padding: '24px 24px 0 24px' }}>
             <Toolbar className="pf-m-align-items-center">
@@ -4155,6 +4219,8 @@ spec:
           </Flex>
         )}
           </div>
+          </div>
+          {/* End Sticky Toolbar Container */}
 
       {/* Main Content with Side Panel Filter */}
       <Split hasGutter style={{ width: '100%', overflow: 'hidden' }}>
@@ -4180,6 +4246,9 @@ spec:
                 clusterNames={clusterNames}
                 namespaces={namespaces}
                 availableLabels={availableLabels}
+                regionCounts={regionCounts}
+                clusterCounts={clusterCounts}
+                namespaceCounts={namespaceCounts}
                 onClose={() => setIsFilterPanelOpen(false)}
                 savedFilters={savedFilters}
                 onApplySavedFilter={(filter) => {
@@ -4402,13 +4471,26 @@ spec:
                         importanceSizing={importanceSizing}
                         severityFilter={severityFilter}
                         onDrillDown={handleDrillDown}
+                        activeLegendFilters={treemapLegendFilters}
+                        onLegendClick={(status) => {
+                          setTreemapLegendFilters(prev => {
+                            if (prev.includes(status)) {
+                              // Remove from filter
+                              const newFilters = prev.filter(s => s !== status);
+                              return newFilters;
+                            } else {
+                              // Add to filter (or start fresh if empty)
+                              return [...prev, status];
+                            }
+                          });
+                        }}
                       />
                     ) : (
                       /* Table View */
                       <Table aria-label="Clusters table">
                         <Thead>
                           <Tr>
-                            <Th>Status</Th>
+                            <Th>Cluster Status</Th>
                             <Th>Cluster</Th>
                             <Th>Region</Th>
                             <Th>Group</Th>
@@ -4428,16 +4510,36 @@ spec:
                             const components = Array.from(new Set(firingAlerts.map(a => a.component)));
                             const clusterStatus = getClusterStatus(cluster);
                             
+                            // Cluster status descriptions
+                            const statusDescriptions: Record<string, { label: string; description: string }> = {
+                              ready: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub.' },
+                              offline: { label: 'Offline', description: 'The Hub cannot reach the managed cluster (often due to network issues or the cluster being powered down).' },
+                              pending: { label: 'Pending Import', description: 'The cluster has been defined in ACM, but the import command has not yet been applied to the managed cluster.' },
+                              failed: { label: 'Failed', description: 'An error occurred during the creation, destruction, or import process.' },
+                              unknown: { label: 'Unknown', description: 'The status cannot be determined, usually during a transition or if a specific agent component is failing.' },
+                              hibernating: { label: 'Hibernating', description: '(For supported cloud providers) The cluster has been stopped to save costs but remains under ACM management.' },
+                              detaching: { label: 'Detaching', description: 'The cluster is in the process of being removed from ACM management.' },
+                              // Map our current statuses
+                              healthy: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub.' },
+                              critical: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub. Has critical alerts firing.' },
+                              warning: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub. Has warning alerts firing.' },
+                              info: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub. Has info alerts firing.' },
+                            };
+                            
+                            const statusInfo = statusDescriptions[clusterStatus] || statusDescriptions.unknown;
+                            
                             return (
                               <Tr key={cluster.id} isClickable onRowClick={() => handleDrillDown(cluster)}>
                                 <Td>
-                                  <Label 
-                                    color={clusterStatus === 'healthy' ? 'green' : clusterStatus === 'critical' ? 'red' : clusterStatus === 'warning' ? 'orange' : 'purple'}
-                                    icon={clusterStatus === 'healthy' ? <CheckCircleIcon /> : clusterStatus === 'critical' ? <ExclamationCircleIcon /> : clusterStatus === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                                    isCompact
-                                  >
-                                    {clusterStatus.charAt(0).toUpperCase() + clusterStatus.slice(1)}
-                                  </Label>
+                                  <Tooltip content={statusInfo.description}>
+                                    <Label 
+                                      color={clusterStatus === 'healthy' ? 'green' : clusterStatus === 'critical' ? 'red' : clusterStatus === 'warning' ? 'orange' : 'purple'}
+                                      icon={clusterStatus === 'healthy' ? <CheckCircleIcon /> : clusterStatus === 'critical' ? <ExclamationCircleIcon /> : clusterStatus === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                                      isCompact
+                                    >
+                                      {statusInfo.label}
+                                    </Label>
+                                  </Tooltip>
                                 </Td>
                                 <Td>
                                   <strong>{cluster.name}</strong>
