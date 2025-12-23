@@ -3948,84 +3948,79 @@ spec:
   // MAIN VIEW (Multi-cluster Alerting Page)
   // ========================================
   return (
-    <div className="alerting-page-container">
-      {/* Breadcrumbs + Header + Toolbar */}
-      <div className="alerting-page-header">
-        <Stack hasGutter>
-          {/* Breadcrumbs */}
-          <StackItem>
-            <Breadcrumb>
-              <BreadcrumbItem to="/">Home</BreadcrumbItem>
-              <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-              {isDrillDownView && selectedCluster && (
-                <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); handleBackToList(); }}>Alerting</BreadcrumbItem>
-              )}
-              {isDrillDownView && selectedCluster ? (
-                <BreadcrumbItem isActive>Cluster alerts: {selectedCluster.name}</BreadcrumbItem>
-              ) : (
-                <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
-              )}
-            </Breadcrumb>
-          </StackItem>
+    <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* Sticky Header Section - Breadcrumbs + Header + Tabs + Toolbar */}
+      <div style={{ 
+        flexShrink: 0,
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
+        borderBottom: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+        zIndex: 100,
+      }}>
+        <div className="alerting-page-header">
+          <Stack hasGutter>
+            {/* Breadcrumbs */}
+            <StackItem>
+              <Breadcrumb>
+                <BreadcrumbItem to="/">Home</BreadcrumbItem>
+                <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
+                {isDrillDownView && selectedCluster && (
+                  <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); handleBackToList(); }}>Alerting</BreadcrumbItem>
+                )}
+                {isDrillDownView && selectedCluster ? (
+                  <BreadcrumbItem isActive>Cluster alerts: {selectedCluster.name}</BreadcrumbItem>
+                ) : (
+                  <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
+                )}
+              </Breadcrumb>
+            </StackItem>
 
-          {/* Header */}
-          <StackItem>
-            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-              <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                  <FlexItem>
-                    <Icon size="lg" status="danger">
-                      <OutlinedBellIcon />
-                    </Icon>
-                  </FlexItem>
-                  <FlexItem>
-                    <Title headingLevel="h1" size="2xl">Multi-cluster alerting</Title>
-                  </FlexItem>
-                </Flex>
-              </FlexItem>
-              <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                  <FlexItem>
-                    <Content component="small" className="pf-v6-u-color-200">
-                      <ClockIcon /> Last updated: {lastRefresh.toLocaleTimeString()}
-                    </Content>
-                  </FlexItem>
-                  <FlexItem>
-                    <Button variant="secondary" icon={<SyncIcon />} onClick={handleRefresh}>
-                      Refresh
-                    </Button>
-                  </FlexItem>
-                </Flex>
-              </FlexItem>
-            </Flex>
-          </StackItem>
+            {/* Header */}
+            <StackItem>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                    <FlexItem>
+                      <Icon size="lg" status="danger">
+                        <OutlinedBellIcon />
+                      </Icon>
+                    </FlexItem>
+                    <FlexItem>
+                      <Title headingLevel="h1" size="2xl">Multi-cluster alerting</Title>
+                    </FlexItem>
+                  </Flex>
+                </FlexItem>
+                <FlexItem>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                    <FlexItem>
+                      <Content component="small" className="pf-v6-u-color-200">
+                        <ClockIcon /> Last updated: {lastRefresh.toLocaleTimeString()}
+                      </Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Button variant="secondary" icon={<SyncIcon />} onClick={handleRefresh}>
+                        Refresh
+                      </Button>
+                    </FlexItem>
+                  </Flex>
+                </FlexItem>
+              </Flex>
+            </StackItem>
 
-          {/* Main Page Tabs */}
-          <StackItem style={{ marginBottom: '24px' }}>
-            <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
-              <Tab eventKey="alerts" title={<span><BellIcon /> Alerts</span>} />
-              <Tab eventKey="incidents" title={<span><PortIcon /> Incidents</span>} />
-              <Tab eventKey="management" title={<span><CogIcon /> Management</span>} />
-            </Tabs>
-          </StackItem>
+            {/* Main Page Tabs */}
+            <StackItem>
+              <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
+                <Tab eventKey="alerts" title={<span><BellIcon /> Alerts</span>} />
+                <Tab eventKey="incidents" title={<span><PortIcon /> Incidents</span>} />
+                <Tab eventKey="management" title={<span><CogIcon /> Management</span>} />
+              </Tabs>
+            </StackItem>
 
-        </Stack>
-      </div>
+          </Stack>
+        </div>
 
-      {/* Tab Content */}
-      {mainPageTab === 'alerts' && !isDrillDownView && (
-        <>
-          {/* Sticky Toolbar Container */}
-          <div style={{ 
-            position: 'sticky', 
-            top: 0, 
-            zIndex: 100, 
-            backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
-            borderBottom: hasActiveFilters ? '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' : 'none',
-            paddingBottom: hasActiveFilters ? '8px' : '0'
-          }}>
-          {/* Static Toolbar - Order: Saved filters, Filters, Search */}
-          <div style={{ padding: '24px 24px 0 24px' }}>
+        {/* Toolbar section - inside sticky header */}
+        {mainPageTab === 'alerts' && !isDrillDownView && (
+          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
             <Toolbar className="pf-m-align-items-center">
               <ToolbarContent className="pf-m-align-items-center">
                 {/* Saved Filters Dropdown - First */}
@@ -4219,58 +4214,68 @@ spec:
           </Flex>
         )}
           </div>
+        )}
+      </div>
+      {/* End Sticky Header Section */}
+
+      {/* Scrollable Content Area */}
+      {mainPageTab === 'alerts' && !isDrillDownView && (
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
+        {/* Filter Side Panel - Sticky */}
+        {isFilterPanelOpen && (
+          <div style={{ 
+            width: '280px', 
+            minWidth: '280px', 
+            flexShrink: 0, 
+            height: '100%',
+            overflowY: 'auto',
+            borderRight: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+            backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
+          }}>
+            <FilterPanel
+              regionFilter={regionFilter}
+              setRegionFilter={setRegionFilter}
+              clusterFilter={clusterFilter}
+              setClusterFilter={setClusterFilter}
+              namespaceFilter={namespaceFilter}
+              setNamespaceFilter={setNamespaceFilter}
+              labelFilter={labelFilter}
+              setLabelFilter={setLabelFilter}
+              severityFilter={severityFilter}
+              setSeverityFilter={setSeverityFilter}
+              groupFilter={groupFilter}
+              setGroupFilter={setGroupFilter}
+              componentFilter={componentFilter}
+              setComponentFilter={setComponentFilter}
+              regions={regions}
+              clusterNames={clusterNames}
+              namespaces={namespaces}
+              availableLabels={availableLabels}
+              regionCounts={regionCounts}
+              clusterCounts={clusterCounts}
+              namespaceCounts={namespaceCounts}
+              onClose={() => setIsFilterPanelOpen(false)}
+              savedFilters={savedFilters}
+              onApplySavedFilter={(filter) => {
+                setSeverityFilter(filter.filters.severity);
+                setGroupFilter(filter.filters.group);
+                setComponentFilter(filter.filters.component);
+              }}
+              onSaveFilter={(name) => {
+                const newFilter: SavedFilter = {
+                  id: `sf-${Date.now()}`,
+                  name,
+                  filters: { severity: severityFilter, group: groupFilter, component: componentFilter, source: [], searchValue },
+                };
+                setSavedFilters([...savedFilters, newFilter]);
+              }}
+              onDeleteSavedFilter={(id) => setSavedFilters(savedFilters.filter(f => f.id !== id))}
+            />
           </div>
-          {/* End Sticky Toolbar Container */}
+        )}
 
-      {/* Main Content with Side Panel Filter */}
-      <Split hasGutter style={{ width: '100%', overflow: 'hidden' }}>
-          {/* Filter Side Panel */}
-          {isFilterPanelOpen && (
-            <SplitItem style={{ width: '280px', minWidth: '280px', flexShrink: 0 }}>
-              <FilterPanel
-                regionFilter={regionFilter}
-                setRegionFilter={setRegionFilter}
-                clusterFilter={clusterFilter}
-                setClusterFilter={setClusterFilter}
-                namespaceFilter={namespaceFilter}
-                setNamespaceFilter={setNamespaceFilter}
-                labelFilter={labelFilter}
-                setLabelFilter={setLabelFilter}
-                severityFilter={severityFilter}
-                setSeverityFilter={setSeverityFilter}
-                groupFilter={groupFilter}
-                setGroupFilter={setGroupFilter}
-                componentFilter={componentFilter}
-                setComponentFilter={setComponentFilter}
-                regions={regions}
-                clusterNames={clusterNames}
-                namespaces={namespaces}
-                availableLabels={availableLabels}
-                regionCounts={regionCounts}
-                clusterCounts={clusterCounts}
-                namespaceCounts={namespaceCounts}
-                onClose={() => setIsFilterPanelOpen(false)}
-                savedFilters={savedFilters}
-                onApplySavedFilter={(filter) => {
-                  setSeverityFilter(filter.filters.severity);
-                  setGroupFilter(filter.filters.group);
-                  setComponentFilter(filter.filters.component);
-                }}
-                onSaveFilter={(name) => {
-                  const newFilter: SavedFilter = {
-                    id: `sf-${Date.now()}`,
-                    name,
-                    filters: { severity: severityFilter, group: groupFilter, component: componentFilter, source: [], searchValue },
-                  };
-                  setSavedFilters([...savedFilters, newFilter]);
-                }}
-                onDeleteSavedFilter={(id) => setSavedFilters(savedFilters.filter(f => f.id !== id))}
-              />
-            </SplitItem>
-          )}
-
-          {/* Main Content Area */}
-          <SplitItem isFilled style={{ minWidth: 0, overflow: 'hidden' }}>
+        {/* Main Content Area - Scrollable */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
             <Stack hasGutter>
               {/* Stats Cards */}
               <StackItem>
@@ -4619,14 +4624,13 @@ spec:
                 <AlertsTimelineCard trendData={mockTrendData} />
               </StackItem>
             </Stack>
-          </SplitItem>
-        </Split>
-        </>
+          </div>
+        </div>
       )}
 
       {/* Alerts Tab - Drill-down View (Cluster Alerts) */}
       {mainPageTab === 'alerts' && isDrillDownView && selectedCluster && (
-        <div style={{ padding: '0 24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           {/* Cluster Sub-Header (merged with page header) */}
           <div style={{ marginBottom: '24px' }}>
             <Content component="p" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', margin: '0 0 4px 0' }}>
@@ -4659,7 +4663,7 @@ spec:
 
       {/* Incidents Tab Content */}
       {mainPageTab === 'incidents' && (
-        <div style={{ padding: '24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           <Card>
             <CardBody>
               <EmptyState 
@@ -4684,7 +4688,7 @@ spec:
 
       {/* Management Tab Content */}
       {mainPageTab === 'management' && (
-        <div style={{ padding: '24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           <Stack hasGutter>
             <StackItem>
               <Tabs activeKey={managementSubTab} onSelect={(_, key) => setManagementSubTab(key)} aria-label="Management sub-tabs">
