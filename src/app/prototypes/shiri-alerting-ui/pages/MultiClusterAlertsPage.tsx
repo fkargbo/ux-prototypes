@@ -3956,7 +3956,7 @@ spec:
         borderBottom: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
         zIndex: 100,
       }}>
-        <div className="alerting-page-header">
+        <div className="alerting-page-header" style={{ padding: '24px 24px 0 24px' }}>
           <Stack hasGutter>
             {/* Breadcrumbs */}
             <StackItem>
