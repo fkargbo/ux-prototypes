@@ -569,25 +569,65 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         }
         const cluster = info.data.cluster as ClusterData;
         const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
-        const critical = firingAlerts.filter(a => a.severity === 'Critical').length;
-        const warning = firingAlerts.filter(a => a.severity === 'Warning').length;
-        const infoCount = firingAlerts.filter(a => a.severity === 'Info').length;
-        const totalAlerts = firingAlerts.length;
         const status = getStatusText(cluster);
         const statusColor = getClusterColor(cluster);
         
+        // Calculate component health - get worst severity per component
+        const componentHealth: Record<string, { severity: string; color: string }> = {};
+        firingAlerts.forEach(alert => {
+          const comp = alert.component;
+          const currentSeverity = componentHealth[comp]?.severity;
+          // Determine priority: Critical > Warning > Info
+          if (!currentSeverity || 
+              (alert.severity === 'Critical') ||
+              (alert.severity === 'Warning' && currentSeverity !== 'Critical') ||
+              (alert.severity === 'Info' && currentSeverity !== 'Critical' && currentSeverity !== 'Warning')) {
+            componentHealth[comp] = {
+              severity: alert.severity,
+              color: alert.severity === 'Critical' ? pfColors.critical : 
+                     alert.severity === 'Warning' ? pfColors.warning : pfColors.info
+            };
+          }
+        });
+        
+        // Build component health HTML
+        const componentHealthHtml = Object.entries(componentHealth)
+          .sort((a, b) => {
+            const order = { Critical: 0, Warning: 1, Info: 2 };
+            return (order[a[1].severity as keyof typeof order] || 3) - (order[b[1].severity as keyof typeof order] || 3);
+          })
+          .slice(0, 5) // Limit to 5 components
+          .map(([comp, health]) => `
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+              <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: ${health.color};"></span>
+              <span style="font-size: 12px; color: #151515;">${comp}</span>
+              <span style="font-size: 11px; color: ${health.color}; font-weight: 500;">${health.severity.toLowerCase()}</span>
+            </div>
+          `).join('');
+        
+        const moreComponents = Object.keys(componentHealth).length > 5 
+          ? `<div style="font-size: 11px; color: #6a6e73; margin-top: 4px;">+${Object.keys(componentHealth).length - 5} more components</div>` 
+          : '';
+        
         return `
-          <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif; min-width: 200px;">
+          <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif; min-width: 220px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};"></span>
               <span style="font-size: 14px; font-weight: 600; color: #151515;">${cluster.name}</span>
             </div>
-            <div style="font-size: 12px; color: #6a6e73; margin-bottom: 8px;">${cluster.region} · ${cluster.cloudProvider}</div>
-            <div style="display: flex; gap: 12px; margin-bottom: 8px;">
-              <span style="font-size: 12px;"><span style="color: ${pfColors.critical}; font-weight: 600;">${critical}</span> Critical</span>
-              <span style="font-size: 12px;"><span style="color: ${pfColors.warning}; font-weight: 600;">${warning}</span> Warning</span>
-              <span style="font-size: 12px;"><span style="color: ${pfColors.info}; font-weight: 600;">${infoCount}</span> Info</span>
-            </div>
+            <div style="font-size: 12px; color: #6a6e73; margin-bottom: 12px;">${cluster.region} · ${cluster.cloudProvider}</div>
+            ${Object.keys(componentHealth).length > 0 ? `
+              <div style="margin-bottom: 8px;">
+                <div style="font-size: 11px; font-weight: 600; color: #6a6e73; text-transform: uppercase; margin-bottom: 6px;">Component Health</div>
+                ${componentHealthHtml}
+                ${moreComponents}
+              </div>
+            ` : `
+              <div style="font-size: 12px; color: ${pfColors.healthy}; margin-bottom: 8px;">
+                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: ${pfColors.healthy}; margin-right: 6px;"></span>
+                All components healthy
+              </div>
+            `}
             <div style="font-size: 12px; color: #6a6e73; padding-top: 8px; border-top: 1px solid #d2d2d2;">
               <span>Nodes: <strong style="color: #151515;">${cluster.nodeCount}</strong></span>
               <span style="margin-left: 12px;">Pods: <strong style="color: #151515;">${cluster.podCount}</strong></span>
