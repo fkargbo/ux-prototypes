@@ -167,6 +167,8 @@ import {
   SearchPlusIcon,
   SearchMinusIcon,
   UndoIcon,
+  QuestionCircleIcon,
+  PauseCircleIcon,
 } from '@patternfly/react-icons';
 
 // ========================================
@@ -175,7 +177,8 @@ import {
 
 type AlertSeverity = 'Critical' | 'Warning' | 'Info';
 type AlertStatus = 'firing' | 'acknowledged' | 'resolved' | 'pending';
-type ClusterStatus = 'critical' | 'warning' | 'info' | 'healthy';
+type ClusterAlertStatus = 'critical' | 'warning' | 'info' | 'healthy'; // Based on firing alerts
+type ACMClusterStatus = 'Ready' | 'Offline' | 'Failed' | 'Pending Import' | 'Installing' | 'Degraded' | 'Hibernating' | 'Unknown' | 'Detaching';
 type AlertGroup = 'Cluster' | 'Namespace';
 type AlertComponent = 'kube-apiserver' | 'Storage' | 'Network' | 'etcd' | 'Scheduler' | 'Controller' | 'Workload' | 'Pod' | 'Quota';
 type GroupByOption = 'none' | 'region' | 'cloudProvider' | 'team' | 'severity';
@@ -222,6 +225,7 @@ interface ClusterData {
   vmCount: number;
   cpuRequests: number;
   memoryRequests: number;
+  acmStatus: ACMClusterStatus; // ACM lifecycle status
 }
 
 interface TrendData {
@@ -330,6 +334,11 @@ const generateMockClusters = (): ClusterData[] => {
       });
     }
 
+    // Assign ACM status - most clusters are Ready, some have other statuses
+    const acmStatuses: ACMClusterStatus[] = ['Ready', 'Ready', 'Ready', 'Ready', 'Ready', 'Ready', 'Ready', 'Ready', 
+      'Degraded', 'Degraded', 'Offline', 'Unknown', 'Hibernating', 'Pending Import', 'Installing'];
+    const acmStatus = acmStatuses[Math.floor(Math.random() * acmStatuses.length)];
+
     clusters.push({
       id: `cluster-${i}`,
       name: `${env}-${provider.toLowerCase()}-${region.toLowerCase().replace(' ', '-')}-${i}`,
@@ -348,6 +357,7 @@ const generateMockClusters = (): ClusterData[] => {
       vmCount: Math.floor(Math.random() * 10),
       cpuRequests: Math.floor(Math.random() * 50) + 10,
       memoryRequests: Math.floor(Math.random() * 40) + 15,
+      acmStatus,
     });
   }
 
@@ -360,7 +370,7 @@ const mockClusters: ClusterData[] = generateMockClusters();
 // HELPER FUNCTIONS
 // ========================================
 
-const getClusterStatus = (cluster: ClusterData): ClusterStatus => {
+const getClusterAlertStatus = (cluster: ClusterData): ClusterAlertStatus => {
   const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
   if (firingAlerts.some(a => a.severity === 'Critical')) return 'critical';
   if (firingAlerts.some(a => a.severity === 'Warning')) return 'warning';
@@ -368,12 +378,13 @@ const getClusterStatus = (cluster: ClusterData): ClusterStatus => {
   return 'healthy';
 };
 
-const getStatusBackgroundColor = (status: ClusterStatus): string => {
+const getStatusBackgroundColor = (status: ClusterAlertStatus): string => {
   switch (status) {
     case 'critical': return '#c9190b';
     case 'warning': return '#f0ab00';
     case 'info': return '#6753ac';
     case 'healthy': return '#3e8635';
+    default: return '#3e8635';
   }
 };
 
@@ -500,7 +511,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
     let filteredClusters = clusters;
     if (severityFilter.length > 0 || activeLegendFilters.length > 0) {
       filteredClusters = clusters.filter(cluster => {
-        const clusterStatus = getClusterStatus(cluster);
+        const clusterStatus = getClusterAlertStatus(cluster);
         const statusCapitalized = clusterStatus.charAt(0).toUpperCase() + clusterStatus.slice(1);
         
         // If legend filters are active, use them
@@ -533,7 +544,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
     filteredClusters.forEach(cluster => {
       let key: string;
       if (groupBy === 'severity') {
-        key = getClusterStatus(cluster).charAt(0).toUpperCase() + getClusterStatus(cluster).slice(1);
+        key = getClusterAlertStatus(cluster).charAt(0).toUpperCase() + getClusterAlertStatus(cluster).slice(1);
       } else {
         key = String(cluster[groupBy as keyof ClusterData]);
       }
@@ -2022,7 +2033,7 @@ interface ClusterTileProps {
 }
 
 const ClusterTile: React.FC<ClusterTileProps> = ({ cluster, onDrillDown }) => {
-  const status = getClusterStatus(cluster);
+  const status = getClusterAlertStatus(cluster);
   const bgColor = getStatusBackgroundColor(status);
   const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
   const criticalCount = firingAlerts.filter(a => a.severity === 'Critical').length;
@@ -2494,7 +2505,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       case 'severity':
         sorted.sort((a, b) => {
           const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
-          const statusDiff = statusOrder[getClusterStatus(a)] - statusOrder[getClusterStatus(b)];
+          const statusDiff = statusOrder[getClusterAlertStatus(a)] - statusOrder[getClusterAlertStatus(b)];
           if (statusDiff !== 0) return statusDiff;
           const aFiring = a.alerts.filter(al => al.status === 'firing').length;
           const bFiring = b.alerts.filter(al => al.status === 'firing').length;
@@ -4553,36 +4564,71 @@ spec:
                             // Get unique groups and components
                             const groups = Array.from(new Set(firingAlerts.map(a => a.group)));
                             const components = Array.from(new Set(firingAlerts.map(a => a.component)));
-                            const clusterStatus = getClusterStatus(cluster);
-                            
-                            // Cluster status descriptions
-                            const statusDescriptions: Record<string, { label: string; description: string }> = {
-                              ready: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub.' },
-                              offline: { label: 'Offline', description: 'The Hub cannot reach the managed cluster (often due to network issues or the cluster being powered down).' },
-                              pending: { label: 'Pending Import', description: 'The cluster has been defined in ACM, but the import command has not yet been applied to the managed cluster.' },
-                              failed: { label: 'Failed', description: 'An error occurred during the creation, destruction, or import process.' },
-                              unknown: { label: 'Unknown', description: 'The status cannot be determined, usually during a transition or if a specific agent component is failing.' },
-                              hibernating: { label: 'Hibernating', description: '(For supported cloud providers) The cluster has been stopped to save costs but remains under ACM management.' },
-                              detaching: { label: 'Detaching', description: 'The cluster is in the process of being removed from ACM management.' },
-                              // Map our current statuses
-                              healthy: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub.' },
-                              critical: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub. Has critical alerts firing.' },
-                              warning: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub. Has warning alerts firing.' },
-                              info: { label: 'Ready', description: 'The cluster is successfully imported/created and is communicating normally with the Hub. Has info alerts firing.' },
+                            // ACM Cluster Status configuration with colors and icons
+                            const acmStatusConfig: Record<ACMClusterStatus, { 
+                              color: 'green' | 'red' | 'orange' | 'blue' | 'grey'; 
+                              icon: React.ReactNode; 
+                              description: string 
+                            }> = {
+                              'Ready': { 
+                                color: 'green', 
+                                icon: <CheckCircleIcon />, 
+                                description: 'The cluster is online, agents are reporting, and the hub can manage it.' 
+                              },
+                              'Offline': { 
+                                color: 'red', 
+                                icon: <ExclamationCircleIcon />, 
+                                description: 'The hub cannot reach the managed cluster. This is critical for connectivity.' 
+                              },
+                              'Failed': { 
+                                color: 'red', 
+                                icon: <ExclamationCircleIcon />, 
+                                description: 'An operation (creation, import, or destroy) failed to complete.' 
+                              },
+                              'Pending Import': { 
+                                color: 'blue', 
+                                icon: <ClockIcon />, 
+                                description: 'The cluster definition exists, but the import command hasn\'t been applied yet.' 
+                              },
+                              'Installing': { 
+                                color: 'blue', 
+                                icon: <SyncIcon />, 
+                                description: 'The cluster is currently being provisioned by the Hive operator.' 
+                              },
+                              'Degraded': { 
+                                color: 'orange', 
+                                icon: <ExclamationTriangleIcon />, 
+                                description: 'The cluster is reachable, but some core operators or services are failing.' 
+                              },
+                              'Hibernating': { 
+                                color: 'grey', 
+                                icon: <PauseCircleIcon />, 
+                                description: 'The cluster is powered off (stopped) to save costs on cloud providers.' 
+                              },
+                              'Unknown': { 
+                                color: 'grey', 
+                                icon: <QuestionCircleIcon />, 
+                                description: 'The status cannot be determined, often during an agent update or hub restart.' 
+                              },
+                              'Detaching': { 
+                                color: 'orange', 
+                                icon: <SyncIcon />, 
+                                description: 'The cluster is in the process of being removed from ACM management.' 
+                              },
                             };
                             
-                            const statusInfo = statusDescriptions[clusterStatus] || statusDescriptions.unknown;
+                            const statusConfig = acmStatusConfig[cluster.acmStatus] || acmStatusConfig['Unknown'];
                             
                             return (
                               <Tr key={cluster.id} isClickable onRowClick={() => handleDrillDown(cluster)}>
                                 <Td>
-                                  <Tooltip content={statusInfo.description}>
+                                  <Tooltip content={statusConfig.description}>
                                     <Label 
-                                      color={clusterStatus === 'healthy' ? 'green' : clusterStatus === 'critical' ? 'red' : clusterStatus === 'warning' ? 'orange' : 'purple'}
-                                      icon={clusterStatus === 'healthy' ? <CheckCircleIcon /> : clusterStatus === 'critical' ? <ExclamationCircleIcon /> : clusterStatus === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                                      color={statusConfig.color}
+                                      icon={statusConfig.icon}
                                       isCompact
                                     >
-                                      {statusInfo.label}
+                                      {cluster.acmStatus}
                                     </Label>
                                   </Tooltip>
                                 </Td>
@@ -4681,10 +4727,10 @@ spec:
             <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem>
                 <Label 
-                  color={getClusterStatus(selectedCluster) === 'healthy' ? 'green' : getClusterStatus(selectedCluster) === 'critical' ? 'red' : getClusterStatus(selectedCluster) === 'warning' ? 'orange' : 'purple'}
-                  icon={getClusterStatus(selectedCluster) === 'healthy' ? <CheckCircleIcon /> : getClusterStatus(selectedCluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterStatus(selectedCluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                  color={getClusterAlertStatus(selectedCluster) === 'healthy' ? 'green' : getClusterAlertStatus(selectedCluster) === 'critical' ? 'red' : getClusterAlertStatus(selectedCluster) === 'warning' ? 'orange' : 'purple'}
+                  icon={getClusterAlertStatus(selectedCluster) === 'healthy' ? <CheckCircleIcon /> : getClusterAlertStatus(selectedCluster) === 'critical' ? <ExclamationCircleIcon /> : getClusterAlertStatus(selectedCluster) === 'warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
                 >
-                  {getClusterStatus(selectedCluster).charAt(0).toUpperCase() + getClusterStatus(selectedCluster).slice(1)}
+                  {getClusterAlertStatus(selectedCluster).charAt(0).toUpperCase() + getClusterAlertStatus(selectedCluster).slice(1)}
                 </Label>
               </FlexItem>
               <FlexItem>
