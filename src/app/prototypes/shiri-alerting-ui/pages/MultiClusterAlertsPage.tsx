@@ -4716,7 +4716,14 @@ spec:
 
       {/* Alerts Tab - Drill-down View (Cluster Alerts) */}
       {mainPageTab === 'alerts' && isDrillDownView && selectedCluster && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        <div style={{ 
+          flex: 1, 
+          overflow: 'auto', 
+          display: 'flex', 
+          flexDirection: 'column',
+          minHeight: 0, // Important for flex children to allow scrolling
+        }}>
+          <div style={{ padding: '24px', flex: 1, overflow: 'auto' }}>
           {/* Cluster Sub-Header (merged with page header) */}
           <div style={{ marginBottom: '24px' }}>
             <Content component="p" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', margin: '0 0 4px 0' }}>
@@ -4744,6 +4751,7 @@ spec:
 
           {/* Render the full drill-down content (drawer, table, modals) - includes Summary section */}
           {renderDrillDownContent()}
+          </div>
         </div>
       )}
 
