@@ -1,18 +1,18 @@
 /**
- * Prototype Configuration for Multi-cluster Alerting UI - Version 1.0
+ * Prototype Configuration for Multi-cluster Alerting UI - Version 2.0
  */
 
 import { PrototypeConfig } from '@app/core/types';
 
 export const config: PrototypeConfig = {
   // Unique identifier (use kebab-case, no spaces)
-  id: 'shiri-alerting-ui',
+  id: 'shiri-alerting-ui-v2',
   
   // Display name (shown in prototype launcher)
-  name: '🔔 Multi-cluster Alerting',
+  name: '🔔 Multi-cluster Alerting v2',
   
   // Brief description (2-3 sentences max)
-  description: 'Comprehensive Multi-cluster Alerting UI for OpenShift Advanced Cluster Manager. Features fleet overview with treemap visualization, cluster drill-down, comprehensive filtering, and alert management.',
+  description: 'Version 2 of the Multi-cluster Alerting UI with enhanced features and improved user experience.',
   
   // Owner information
   owner: {
@@ -23,8 +23,8 @@ export const config: PrototypeConfig = {
   
   // Version group - links related versions together in the dropdown
   versionGroup: 'multi-cluster-alerting',
-  version: 'v1.0',
-  versionLabel: 'Initial Design',
+  version: 'v2.0',
+  versionLabel: 'Enhanced Design',
   
   // Status: 'draft' | 'in-progress' | 'done' | 'paused' | 'archived'
   status: 'in-progress',
@@ -40,9 +40,9 @@ export const config: PrototypeConfig = {
   perspectives: ['fleet-management'],
   
   // Tags for filtering and discovery
-  tags: ['Alerting', 'Multi-cluster', 'Observability', 'ACM', 'Fleet Management'],
+  tags: ['Alerting', 'Multi-cluster', 'Observability', 'ACM', 'Fleet Management', 'v2'],
   
   // Metadata
-  createdAt: '2025-12-17',
+  createdAt: '2025-12-24',
   updatedAt: '2025-12-24',
 };
