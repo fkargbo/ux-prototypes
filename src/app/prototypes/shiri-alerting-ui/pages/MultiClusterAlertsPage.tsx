@@ -2689,7 +2689,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     return (
       <>
         {/* Main Content */}
-          <Drawer isExpanded={isDrawerExpanded} position="end">
+          <Drawer isExpanded={isDrawerExpanded} position="end" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <DrawerContent
               panelContent={
                 selectedAlertDetail && (
@@ -2956,8 +2956,8 @@ spec:
                 )
               }
             >
-              <DrawerContentBody style={{ overflow: 'hidden' }}>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', width: '100%', overflow: 'hidden' }}>
+              <DrawerContentBody style={{ overflow: 'auto', height: '100%' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', width: '100%', minHeight: 0 }}>
                   {/* Filter Sidebar */}
                   {drillDownFilterOpen && (
                     <div style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0 }}>
@@ -4718,14 +4718,13 @@ spec:
       {mainPageTab === 'alerts' && isDrillDownView && selectedCluster && (
         <div style={{ 
           flex: 1, 
-          overflow: 'auto', 
           display: 'flex', 
           flexDirection: 'column',
           minHeight: 0, // Important for flex children to allow scrolling
+          overflow: 'hidden',
         }}>
-          <div style={{ padding: '24px', flex: 1, overflow: 'auto' }}>
-          {/* Cluster Sub-Header (merged with page header) */}
-          <div style={{ marginBottom: '24px' }}>
+          {/* Cluster Sub-Header - Fixed at top */}
+          <div style={{ padding: '24px 24px 16px 24px', flexShrink: 0 }}>
             <Content component="p" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', margin: '0 0 4px 0' }}>
               Cluster alerts
             </Content>
@@ -4749,8 +4748,10 @@ spec:
             </Flex>
           </div>
 
-          {/* Render the full drill-down content (drawer, table, modals) - includes Summary section */}
-          {renderDrillDownContent()}
+          {/* Scrollable content area */}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '0 24px 24px 24px' }}>
+            {/* Render the full drill-down content (drawer, table, modals) - includes Summary section */}
+            {renderDrillDownContent()}
           </div>
         </div>
       )}
