@@ -3220,7 +3220,7 @@ spec:
                   )}
 
                   {/* Main Content */}
-                  <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <Stack hasGutter>
                       {/* Summary by impact group and severity - Improved Design */}
                       <StackItem>
