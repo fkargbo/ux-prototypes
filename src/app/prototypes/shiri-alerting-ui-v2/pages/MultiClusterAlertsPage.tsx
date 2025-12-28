@@ -5226,28 +5226,6 @@ spec:
                 </Card>
               </StackItem>
 
-              {/* All Alerts Card (combined with Cross-Cluster Insights) */}
-              <StackItem>
-                <AllAlertsCard
-                  clusters={filteredClusters}
-                  alertNameFilter={mainAlertNameFilter}
-                  componentFilter={mainComponentFilter}
-                  onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
-                  onClearComponentFilter={() => setMainComponentFilter(null)}
-                  onClusterClick={handleDrillDown}
-                  onAlertClick={(alert) => {
-                    setSelectedAlertDetail(alert);
-                    setIsDrawerExpanded(true);
-                  }}
-                  onAlertRuleClick={(alertName) => {
-                    setMainAlertNameFilter(alertName);
-                  }}
-                  onComponentClick={(componentName) => {
-                    setMainComponentFilter(componentName);
-                  }}
-                />
-              </StackItem>
-
               {/* Alerts Timeline Card - Last */}
               <StackItem>
                 <AlertsTimelineCard trendData={mockTrendData} />
