@@ -2769,6 +2769,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [mainPageTab, setMainPageTab] = React.useState<string | number>('alerts');
   const [managementSubTab, setManagementSubTab] = React.useState<string | number>('alert-rules');
   
+  // V2: Alerts sub-tabs (Clusters health vs Firing alerts)
+  const [alertsSubTab, setAlertsSubTab] = React.useState<'clusters-health' | 'firing-alerts'>('clusters-health');
+  
   // V2: Three-tier navigation state
   const [navigationView, setNavigationView] = React.useState<NavigationView>('fleet-overview');
   const [selectedCluster, setSelectedCluster] = React.useState<ClusterData | null>(null);
@@ -4554,11 +4557,26 @@ spec:
               </Tabs>
             </StackItem>
 
+            {/* V2: Alerts Sub-tabs - Only show when alerts tab is active */}
+            {mainPageTab === 'alerts' && (
+              <StackItem>
+                <Tabs 
+                  activeKey={alertsSubTab} 
+                  onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
+                  aria-label="Alerts sub-tabs" 
+                  isSecondary
+                >
+                  <Tab eventKey="clusters-health" title={<TabTitleText><ThLargeIcon /> Clusters health</TabTitleText>} />
+                  <Tab eventKey="firing-alerts" title={<TabTitleText><ListIcon /> Firing alerts</TabTitleText>} />
+                </Tabs>
+              </StackItem>
+            )}
+
           </Stack>
         </div>
 
-        {/* Toolbar section - inside sticky header */}
-        {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && (
+        {/* Toolbar section - inside sticky header - only show for Clusters health sub-tab */}
+        {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'clusters-health' && (
           <div style={{ padding: '16px 24px', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
             <Toolbar className="pf-m-align-items-center">
               <ToolbarContent className="pf-m-align-items-center">
@@ -4754,12 +4772,48 @@ spec:
         )}
           </div>
         )}
+
+        {/* Toolbar section for Firing Alerts sub-tab */}
+        {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'firing-alerts' && (
+          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
+            <Toolbar className="pf-m-align-items-center">
+              <ToolbarContent className="pf-m-align-items-center">
+                {/* Filters Button */}
+                <ToolbarItem>
+                  <Button 
+                    variant={isFilterPanelOpen ? 'secondary' : 'control'} 
+                    icon={<FilterIcon />}
+                    onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                  >
+                    Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{regionFilter.length + clusterFilter.length + severityFilter.length + groupFilter.length + componentFilter.length}</Badge>}
+                  </Button>
+                </ToolbarItem>
+                {/* Search Input */}
+                <ToolbarItem>
+                  <SearchInput
+                    placeholder="Search alerts..."
+                    value={searchValue}
+                    onChange={(_, value) => setSearchValue(value)}
+                    onClear={() => setSearchValue('')}
+                    style={{ width: '300px' }}
+                  />
+                </ToolbarItem>
+                {/* Refresh */}
+                <ToolbarItem align={{ default: 'alignEnd' }}>
+                  <Button variant="secondary" icon={<SyncIcon />} onClick={handleRefresh}>
+                    Refresh
+                  </Button>
+                </ToolbarItem>
+              </ToolbarContent>
+            </Toolbar>
+          </div>
+        )}
       </div>
       )}
       {/* End Sticky Header Section */}
 
-      {/* Scrollable Content Area - Fleet Overview */}
-      {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && (
+      {/* Scrollable Content Area - Fleet Overview - Clusters Health Sub-tab */}
+      {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'clusters-health' && (
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
         {/* Filter Side Panel - Sticky */}
         {isFilterPanelOpen && (
@@ -5197,6 +5251,125 @@ spec:
               {/* Alerts Timeline Card - Last */}
               <StackItem>
                 <AlertsTimelineCard trendData={mockTrendData} />
+              </StackItem>
+            </Stack>
+          </div>
+        </div>
+      )}
+
+      {/* V2: Scrollable Content Area - Fleet Overview - Firing Alerts Sub-tab */}
+      {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'firing-alerts' && (
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
+          {/* Filter Side Panel - Sticky */}
+          {isFilterPanelOpen && (
+            <div style={{ 
+              width: '280px', 
+              minWidth: '280px', 
+              flexShrink: 0, 
+              height: '100%',
+              overflowY: 'auto',
+              borderRight: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+              backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
+            }}>
+              <FilterPanel
+                regionFilter={regionFilter}
+                setRegionFilter={setRegionFilter}
+                clusterFilter={clusterFilter}
+                setClusterFilter={setClusterFilter}
+                namespaceFilter={namespaceFilter}
+                setNamespaceFilter={setNamespaceFilter}
+                labelFilter={labelFilter}
+                setLabelFilter={setLabelFilter}
+                severityFilter={severityFilter}
+                setSeverityFilter={setSeverityFilter}
+                groupFilter={groupFilter}
+                setGroupFilter={setGroupFilter}
+                componentFilter={componentFilter}
+                setComponentFilter={setComponentFilter}
+                regions={regions}
+                clusterNames={clusterNames}
+                namespaces={namespaces}
+                availableLabels={availableLabels}
+                regionCounts={regionCounts}
+                clusterCounts={clusterCounts}
+                namespaceCounts={namespaceCounts}
+                onClose={() => setIsFilterPanelOpen(false)}
+                savedFilters={savedFilters}
+                onApplySavedFilter={(filter) => {
+                  setSeverityFilter(filter.filters.severity);
+                  setGroupFilter(filter.filters.group);
+                  setComponentFilter(filter.filters.component);
+                }}
+                onSaveFilter={(name) => {
+                  const newFilter: SavedFilter = {
+                    id: `sf-${Date.now()}`,
+                    name,
+                    filters: { severity: severityFilter, group: groupFilter, component: componentFilter, source: [], searchValue },
+                  };
+                  setSavedFilters([...savedFilters, newFilter]);
+                }}
+                onDeleteSavedFilter={(id) => setSavedFilters(savedFilters.filter(f => f.id !== id))}
+              />
+            </div>
+          )}
+
+          {/* Main Content Area - Firing Alerts */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            <Stack hasGutter>
+              {/* Stats Summary Row */}
+              <StackItem>
+                <Grid hasGutter>
+                  <GridItem md={3}>
+                    <StatsCard
+                      title="Total Firing Alerts"
+                      value={totalAlerts}
+                      icon={<Icon><BellIcon /></Icon>}
+                    />
+                  </GridItem>
+                  <GridItem md={3}>
+                    <StatsCard
+                      title="Critical"
+                      value={criticalAlerts}
+                      icon={<Icon status="danger"><ExclamationCircleIcon /></Icon>}
+                      color="danger"
+                    />
+                  </GridItem>
+                  <GridItem md={3}>
+                    <StatsCard
+                      title="Warning"
+                      value={warningAlerts}
+                      icon={<Icon status="warning"><ExclamationTriangleIcon /></Icon>}
+                      color="warning"
+                    />
+                  </GridItem>
+                  <GridItem md={3}>
+                    <StatsCard
+                      title="Affected Clusters"
+                      value={filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length}
+                      icon={<Icon><ClusterIcon /></Icon>}
+                    />
+                  </GridItem>
+                </Grid>
+              </StackItem>
+
+              {/* Alerts & Insights Card */}
+              <StackItem>
+                <AllAlertsCard
+                  clusters={filteredClusters}
+                  alertNameFilter={mainAlertNameFilter}
+                  componentFilter={mainComponentFilter}
+                  onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
+                  onClearComponentFilter={() => setMainComponentFilter(null)}
+                  onClusterClick={handleDrillDown}
+                  onAlertClick={(alert) => {
+                    setSelectedAlertDetail(alert);
+                    setIsDrawerExpanded(true);
+                  }}
+                  onAlertRuleClick={(alertName) => {
+                    setMainPageTab('management');
+                    setManagementSubTab('alert-rules');
+                  }}
+                />
               </StackItem>
             </Stack>
           </div>
