@@ -187,6 +187,22 @@ type ViewMode = 'treemap' | 'summary';
 type ImportanceSizing = 'nodeCount' | 'cpuCores' | 'totalMemory' | 'podCount' | 'vmCount' | 'totalAlerts' | 'cpuRequests' | 'memoryRequests';
 type UserRole = 'admin' | 'namespaceOwner';
 
+// V2: Three-tier navigation view states
+type NavigationView = 'fleet-overview' | 'cluster-components' | 'component-alerts';
+
+// V2: Component health data structure
+interface ComponentHealthData {
+  component: AlertComponent;
+  displayName: string;
+  icon: React.ReactNode;
+  alertCount: number;
+  criticalCount: number;
+  warningCount: number;
+  infoCount: number;
+  healthStatus: 'critical' | 'warning' | 'info' | 'healthy';
+  lastAlert?: string;
+}
+
 interface AlertData {
   id: string;
   severity: AlertSeverity;
@@ -833,6 +849,358 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+// ========================================
+// V2: CLUSTER COMPONENTS HEALTH (VIEW B - PIVOT POINT)
+// ========================================
+
+interface ClusterComponentsHealthProps {
+  cluster: ClusterData;
+  onComponentClick: (component: AlertComponent) => void;
+  onBackToFleet: () => void;
+}
+
+const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
+  cluster,
+  onComponentClick,
+  onBackToFleet,
+}) => {
+  // Define component metadata with icons
+  const componentMeta: Record<AlertComponent, { displayName: string; icon: React.ReactNode; category: 'control-plane' | 'infrastructure' | 'workloads' }> = {
+    'kube-apiserver': { displayName: 'API Server', icon: <ServerIcon />, category: 'control-plane' },
+    'etcd': { displayName: 'etcd', icon: <CubesIcon />, category: 'control-plane' },
+    'Scheduler': { displayName: 'Scheduler', icon: <ClockIcon />, category: 'control-plane' },
+    'Controller': { displayName: 'Controller Manager', icon: <CogIcon />, category: 'control-plane' },
+    'Storage': { displayName: 'Storage', icon: <CubeIcon />, category: 'infrastructure' },
+    'Network': { displayName: 'Network', icon: <PortIcon />, category: 'infrastructure' },
+    'Workload': { displayName: 'Workloads', icon: <CubesIcon />, category: 'workloads' },
+    'Pod': { displayName: 'Pods', icon: <CubeIcon />, category: 'workloads' },
+    'Quota': { displayName: 'Quotas', icon: <TachometerAltIcon />, category: 'workloads' },
+  };
+
+  // Calculate component health data from cluster alerts
+  const componentHealthData: ComponentHealthData[] = React.useMemo(() => {
+    const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
+    const components: AlertComponent[] = ['kube-apiserver', 'etcd', 'Scheduler', 'Controller', 'Storage', 'Network', 'Workload', 'Pod', 'Quota'];
+    
+    return components.map(component => {
+      const componentAlerts = firingAlerts.filter(a => a.component === component);
+      const criticalCount = componentAlerts.filter(a => a.severity === 'Critical').length;
+      const warningCount = componentAlerts.filter(a => a.severity === 'Warning').length;
+      const infoCount = componentAlerts.filter(a => a.severity === 'Info').length;
+      
+      let healthStatus: 'critical' | 'warning' | 'info' | 'healthy' = 'healthy';
+      if (criticalCount > 0) healthStatus = 'critical';
+      else if (warningCount > 0) healthStatus = 'warning';
+      else if (infoCount > 0) healthStatus = 'info';
+      
+      const lastAlert = componentAlerts.length > 0 
+        ? componentAlerts.sort((a, b) => b.lastFiredTimestamp.getTime() - a.lastFiredTimestamp.getTime())[0]?.lastFired
+        : undefined;
+      
+      return {
+        component,
+        displayName: componentMeta[component].displayName,
+        icon: componentMeta[component].icon,
+        alertCount: componentAlerts.length,
+        criticalCount,
+        warningCount,
+        infoCount,
+        healthStatus,
+        lastAlert,
+      };
+    }).sort((a, b) => {
+      // Sort by health status (critical first, then warning, info, healthy)
+      const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
+      return statusOrder[a.healthStatus] - statusOrder[b.healthStatus];
+    });
+  }, [cluster.alerts]);
+
+  // Calculate cluster health score
+  const clusterHealthScore = React.useMemo(() => {
+    const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
+    const criticalCount = firingAlerts.filter(a => a.severity === 'Critical').length;
+    const warningCount = firingAlerts.filter(a => a.severity === 'Warning').length;
+    const infoCount = firingAlerts.filter(a => a.severity === 'Info').length;
+    
+    // Score calculation: 100 - (critical*20 + warning*5 + info*1), min 0
+    const score = Math.max(0, 100 - (criticalCount * 20 + warningCount * 5 + infoCount * 1));
+    return score;
+  }, [cluster.alerts]);
+
+  const getHealthScoreColor = (score: number) => {
+    if (score >= 90) return 'var(--pf-t--global--color--status--success--default)';
+    if (score >= 70) return 'var(--pf-t--global--color--status--warning--default)';
+    return 'var(--pf-t--global--color--status--danger--default)';
+  };
+
+  const getHealthStatusIcon = (status: 'critical' | 'warning' | 'info' | 'healthy') => {
+    switch (status) {
+      case 'critical': return <Icon status="danger"><ExclamationCircleIcon /></Icon>;
+      case 'warning': return <Icon status="warning"><ExclamationTriangleIcon /></Icon>;
+      case 'info': return <Icon status="info"><InfoCircleIcon /></Icon>;
+      case 'healthy': return <Icon status="success"><CheckCircleIcon /></Icon>;
+    }
+  };
+
+  const getHealthStatusLabel = (data: ComponentHealthData) => {
+    if (data.criticalCount > 0) return { text: `${data.criticalCount} Critical`, color: 'red' as const };
+    if (data.warningCount > 0) return { text: `${data.warningCount} Warning`, color: 'gold' as const };
+    if (data.infoCount > 0) return { text: `${data.infoCount} Info`, color: 'blue' as const };
+    return { text: 'Healthy', color: 'green' as const };
+  };
+
+  // Group components by category
+  const controlPlaneComponents = componentHealthData.filter(c => componentMeta[c.component].category === 'control-plane');
+  const infrastructureComponents = componentHealthData.filter(c => componentMeta[c.component].category === 'infrastructure');
+  const workloadComponents = componentHealthData.filter(c => componentMeta[c.component].category === 'workloads');
+
+  const renderComponentCard = (data: ComponentHealthData) => {
+    const statusLabel = getHealthStatusLabel(data);
+    return (
+      <Card 
+        key={data.component} 
+        isClickable 
+        isSelectable
+        onClick={() => onComponentClick(data.component)}
+        style={{ 
+          cursor: 'pointer',
+          borderLeft: `4px solid ${
+            data.healthStatus === 'critical' ? 'var(--pf-t--global--color--status--danger--default)' :
+            data.healthStatus === 'warning' ? 'var(--pf-t--global--color--status--warning--default)' :
+            data.healthStatus === 'info' ? 'var(--pf-t--global--color--status--info--default)' :
+            'var(--pf-t--global--color--status--success--default)'
+          }`,
+        }}
+      >
+        <CardBody>
+          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <Icon size="lg">{data.icon}</Icon>
+                </FlexItem>
+                <FlexItem>
+                  <Stack>
+                    <StackItem>
+                      <Title headingLevel="h4" size="md">{data.displayName}</Title>
+                    </StackItem>
+                    {data.lastAlert && (
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                          Last alert: {data.lastAlert}
+                        </Content>
+                      </StackItem>
+                    )}
+                  </Stack>
+                </FlexItem>
+              </Flex>
+            </FlexItem>
+            <FlexItem>
+              <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  {data.alertCount > 0 ? (
+                    <LabelGroup>
+                      {data.criticalCount > 0 && <Label color="red" icon={<ExclamationCircleIcon />}>{data.criticalCount}</Label>}
+                      {data.warningCount > 0 && <Label color="gold" icon={<ExclamationTriangleIcon />}>{data.warningCount}</Label>}
+                      {data.infoCount > 0 && <Label color="blue" icon={<InfoCircleIcon />}>{data.infoCount}</Label>}
+                    </LabelGroup>
+                  ) : (
+                    <Label color="green" icon={<CheckCircleIcon />}>Healthy</Label>
+                  )}
+                </FlexItem>
+                <FlexItem>
+                  <AngleRightIcon />
+                </FlexItem>
+              </Flex>
+            </FlexItem>
+          </Flex>
+        </CardBody>
+      </Card>
+    );
+  };
+
+  return (
+    <div style={{ 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+    }}>
+      {/* Breadcrumb Navigation */}
+      <div style={{ 
+        padding: '16px 24px', 
+        borderBottom: '1px solid var(--pf-t--global--border--color--default)',
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+      }}>
+        <Breadcrumb>
+          <BreadcrumbItem>
+            <Button variant="link" isInline onClick={onBackToFleet}>
+              All Clusters (Treemap)
+            </Button>
+          </BreadcrumbItem>
+          <BreadcrumbItem isActive>{cluster.name}</BreadcrumbItem>
+        </Breadcrumb>
+      </div>
+
+      {/* Main Content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        <Stack hasGutter>
+          {/* Cluster Health Impact Card */}
+          <StackItem>
+            <Card>
+              <CardBody>
+                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                  <FlexItem>
+                    <Flex gap={{ default: 'gapLg' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem>
+                        <div style={{ 
+                          width: '80px', 
+                          height: '80px', 
+                          borderRadius: '50%', 
+                          border: `4px solid ${getHealthScoreColor(clusterHealthScore)}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                        }}>
+                          <Title headingLevel="h2" size="2xl" style={{ color: getHealthScoreColor(clusterHealthScore) }}>
+                            {clusterHealthScore}
+                          </Title>
+                        </div>
+                      </FlexItem>
+                      <FlexItem>
+                        <Stack>
+                          <StackItem>
+                            <Title headingLevel="h2" size="xl">{cluster.name}</Title>
+                          </StackItem>
+                          <StackItem>
+                            <Flex gap={{ default: 'gapMd' }}>
+                              <FlexItem>
+                                <Label color="grey" icon={<MapMarkerAltIcon />}>{cluster.region}</Label>
+                              </FlexItem>
+                              <FlexItem>
+                                <Label color="grey" icon={<CloudIcon />}>{cluster.cloudProvider}</Label>
+                              </FlexItem>
+                            </Flex>
+                          </StackItem>
+                          <StackItem>
+                            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                              {cluster.nodeCount} nodes • {cluster.podCount} pods
+                            </Content>
+                          </StackItem>
+                        </Stack>
+                      </FlexItem>
+                    </Flex>
+                  </FlexItem>
+                  <FlexItem>
+                    <Flex gap={{ default: 'gapLg' }}>
+                      <FlexItem>
+                        <Stack>
+                          <StackItem>
+                            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total Alerts</Content>
+                          </StackItem>
+                          <StackItem>
+                            <Title headingLevel="h3" size="lg">
+                              {cluster.alerts.filter(a => a.status === 'firing').length}
+                            </Title>
+                          </StackItem>
+                        </Stack>
+                      </FlexItem>
+                      <Divider orientation={{ default: 'vertical' }} />
+                      <FlexItem>
+                        <Stack>
+                          <StackItem>
+                            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Critical</Content>
+                          </StackItem>
+                          <StackItem>
+                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                              <Title headingLevel="h3" size="lg" style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>
+                                {cluster.alerts.filter(a => a.status === 'firing' && a.severity === 'Critical').length}
+                              </Title>
+                            </Flex>
+                          </StackItem>
+                        </Stack>
+                      </FlexItem>
+                      <FlexItem>
+                        <Stack>
+                          <StackItem>
+                            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Warning</Content>
+                          </StackItem>
+                          <StackItem>
+                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                              <Title headingLevel="h3" size="lg" style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>
+                                {cluster.alerts.filter(a => a.status === 'firing' && a.severity === 'Warning').length}
+                              </Title>
+                            </Flex>
+                          </StackItem>
+                        </Stack>
+                      </FlexItem>
+                      <FlexItem>
+                        <Stack>
+                          <StackItem>
+                            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Info</Content>
+                          </StackItem>
+                          <StackItem>
+                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <Icon status="info"><InfoCircleIcon /></Icon>
+                              <Title headingLevel="h3" size="lg" style={{ color: 'var(--pf-t--global--color--status--info--default)' }}>
+                                {cluster.alerts.filter(a => a.status === 'firing' && a.severity === 'Info').length}
+                              </Title>
+                            </Flex>
+                          </StackItem>
+                        </Stack>
+                      </FlexItem>
+                    </Flex>
+                  </FlexItem>
+                </Flex>
+              </CardBody>
+            </Card>
+          </StackItem>
+
+          {/* Component Health Sections */}
+          <StackItem>
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
+              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem><ServerIcon /></FlexItem>
+                <FlexItem>Control Plane</FlexItem>
+              </Flex>
+            </Title>
+            <Grid hasGutter md={6} lg={3}>
+              {controlPlaneComponents.map(renderComponentCard)}
+            </Grid>
+          </StackItem>
+
+          <StackItem>
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
+              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem><CubesIcon /></FlexItem>
+                <FlexItem>Infrastructure</FlexItem>
+              </Flex>
+            </Title>
+            <Grid hasGutter md={6}>
+              {infrastructureComponents.map(renderComponentCard)}
+            </Grid>
+          </StackItem>
+
+          <StackItem>
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
+              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem><CubeIcon /></FlexItem>
+                <FlexItem>Workloads</FlexItem>
+              </Flex>
+            </Title>
+            <Grid hasGutter md={6} lg={4}>
+              {workloadComponents.map(renderComponentCard)}
+            </Grid>
+          </StackItem>
+        </Stack>
       </div>
     </div>
   );
@@ -2323,9 +2691,20 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [mainPageTab, setMainPageTab] = React.useState<string | number>('alerts');
   const [managementSubTab, setManagementSubTab] = React.useState<string | number>('alert-rules');
   
-  // View state
-  const [isDrillDownView, setIsDrillDownView] = React.useState(false);
+  // V2: Three-tier navigation state
+  const [navigationView, setNavigationView] = React.useState<NavigationView>('fleet-overview');
   const [selectedCluster, setSelectedCluster] = React.useState<ClusterData | null>(null);
+  const [selectedComponent, setSelectedComponent] = React.useState<AlertComponent | null>(null);
+  
+  // Legacy view state (for backward compatibility with existing code)
+  const isDrillDownView = navigationView === 'component-alerts';
+  const setIsDrillDownView = (value: boolean) => {
+    if (value) {
+      setNavigationView('component-alerts');
+    } else {
+      setNavigationView('fleet-overview');
+    }
+  };
 
   // Filter states
   const [regionFilter, setRegionFilter] = React.useState<string[]>([]);
@@ -2576,16 +2955,53 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   }, [drillDownFilteredAlerts]);
 
   // Handlers
+  // V2: Navigate from Treemap to Cluster Components Health view
   const handleDrillDown = (cluster: ClusterData) => {
     setSelectedCluster(cluster);
-    setIsDrillDownView(true);
+    setSelectedComponent(null);
+    setNavigationView('cluster-components');
     setExpandedAlertRows([]);
     setSelectedAlerts([]);
     clearDrillDownFilters();
   };
 
+  // V2: Navigate from Components view to filtered Alerts view
+  const handleComponentClick = (component: AlertComponent) => {
+    setSelectedComponent(component);
+    setDrillDownComponentFilter([component]);
+    setNavigationView('component-alerts');
+    setExpandedAlertRows([]);
+    setSelectedAlerts([]);
+  };
+
+  // V2: Navigate back to Cluster Components view
+  const handleBackToClusterComponents = () => {
+    setNavigationView('cluster-components');
+    setSelectedComponent(null);
+    setDrillDownComponentFilter([]);
+    setIsDrawerExpanded(false);
+    setSelectedAlertDetail(null);
+  };
+
+  // V2: Navigate back to Fleet Overview (Treemap)
+  const handleBackToFleet = () => {
+    setNavigationView('fleet-overview');
+    setSelectedCluster(null);
+    setSelectedComponent(null);
+    setIsDrawerExpanded(false);
+    setSelectedAlertDetail(null);
+    clearDrillDownFilters();
+  };
+
+  // Legacy: Back to list (for backward compatibility)
   const handleBackToList = () => {
-    setIsDrillDownView(false);
+    // If we have a selected cluster, go back to components view
+    // Otherwise go back to fleet overview
+    if (selectedCluster && navigationView === 'component-alerts') {
+      handleBackToClusterComponents();
+    } else {
+      handleBackToFleet();
+    }
     setSelectedCluster(null);
     setIsDrawerExpanded(false);
     setSelectedAlertDetail(null);
@@ -4714,8 +5130,17 @@ spec:
         </div>
       )}
 
-      {/* Alerts Tab - Drill-down View (Cluster Alerts) */}
-      {mainPageTab === 'alerts' && isDrillDownView && selectedCluster && (
+      {/* V2: Alerts Tab - Cluster Components Health View (View B - Pivot Point) */}
+      {mainPageTab === 'alerts' && navigationView === 'cluster-components' && selectedCluster && (
+        <ClusterComponentsHealth
+          cluster={selectedCluster}
+          onComponentClick={handleComponentClick}
+          onBackToFleet={handleBackToFleet}
+        />
+      )}
+
+      {/* V2: Alerts Tab - Component Alerts View (View C - Destination) */}
+      {mainPageTab === 'alerts' && navigationView === 'component-alerts' && selectedCluster && (
         <div style={{ 
           flex: 1, 
           display: 'flex', 
@@ -4723,10 +5148,34 @@ spec:
           minHeight: 0, // Important for flex children to allow scrolling
           overflow: 'hidden',
         }}>
+          {/* V2: Breadcrumb Navigation */}
+          <div style={{ 
+            padding: '16px 24px', 
+            borderBottom: '1px solid var(--pf-t--global--border--color--default)',
+            backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+            flexShrink: 0,
+          }}>
+            <Breadcrumb>
+              <BreadcrumbItem>
+                <Button variant="link" isInline onClick={handleBackToFleet}>
+                  All Clusters (Treemap)
+                </Button>
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <Button variant="link" isInline onClick={handleBackToClusterComponents}>
+                  {selectedCluster.name}
+                </Button>
+              </BreadcrumbItem>
+              <BreadcrumbItem isActive>
+                {selectedComponent || 'All Components'}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          </div>
+
           {/* Cluster Sub-Header - Fixed at top */}
           <div style={{ padding: '24px 24px 16px 24px', flexShrink: 0 }}>
             <Content component="p" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', margin: '0 0 4px 0' }}>
-              Cluster alerts
+              {selectedComponent ? `${selectedComponent} alerts` : 'Cluster alerts'}
             </Content>
             <Title headingLevel="h2" size="xl" style={{ margin: '0 0 12px 0' }}>{selectedCluster.name}</Title>
             {/* Status Labels - Below the sub-header */}
@@ -4745,6 +5194,13 @@ spec:
               <FlexItem>
                 <Label variant="outline">{selectedCluster.region} • {selectedCluster.cloudProvider}</Label>
               </FlexItem>
+              {selectedComponent && (
+                <FlexItem>
+                  <Label color="purple" icon={<CubeIcon />}>
+                    Filtered: {selectedComponent}
+                  </Label>
+                </FlexItem>
+              )}
             </Flex>
           </div>
 

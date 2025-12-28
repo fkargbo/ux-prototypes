@@ -1,8 +1,12 @@
 /**
- * Routes for Multi-cluster Alerting UI
+ * Routes for Multi-cluster Alerting UI V2
  * 
  * This prototype provides comprehensive multi-cluster alerting capabilities
- * for OpenShift Advanced Cluster Manager.
+ * for OpenShift Advanced Cluster Manager with a three-tier navigation flow:
+ * 
+ * 1. Fleet Overview (Treemap) - /observe/alerting
+ * 2. Cluster Components Health - /observe/alerting/:clusterId/components
+ * 3. Component Alerts - /observe/alerting/:clusterId/:componentId
  * 
  * Navigation is configured for the Fleet Management perspective.
  */
@@ -15,7 +19,7 @@ import { RouteConfig } from '@app/core/types';
 import { MultiClusterAlertingDashboard } from './pages/MultiClusterAlertsPage';
 
 /**
- * Routes for Multi-cluster Alerting UI
+ * Routes for Multi-cluster Alerting UI V2
  * 
  * These routes are added to the Fleet Management perspective under "Observe" group.
  */
@@ -26,7 +30,7 @@ export const routes: RouteConfig[] = [
     element: <Navigate to="/observe/alerting" replace />,
   },
   
-  // Multi-cluster Alerting - Main page
+  // Multi-cluster Alerting - Main page (Fleet Overview with Treemap)
   {
     path: '/observe/alerting',
     element: <MultiClusterAlertingDashboard />,
@@ -36,6 +40,22 @@ export const routes: RouteConfig[] = [
       group: 'Observe',
       order: 1
     }
+  },
+  
+  // V2: Cluster Components Health view
+  // Note: The actual navigation is handled via state management in the component
+  // These routes are here for deep-linking support
+  {
+    path: '/observe/alerting/:clusterId/components',
+    element: <MultiClusterAlertingDashboard />,
+    title: 'Cluster Components | OpenShift ACM',
+  },
+  
+  // V2: Component Alerts view
+  {
+    path: '/observe/alerting/:clusterId/:componentId',
+    element: <MultiClusterAlertingDashboard />,
+    title: 'Component Alerts | OpenShift ACM',
   },
   
   // Dashboards placeholder (for navigation structure)
@@ -60,4 +80,3 @@ function DashboardsPlaceholder() {
     </div>
   );
 }
-
