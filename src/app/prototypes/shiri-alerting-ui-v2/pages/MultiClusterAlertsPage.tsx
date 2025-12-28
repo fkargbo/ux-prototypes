@@ -4700,6 +4700,7 @@ spec:
           </div>
         )}
       </div>
+      )}
       {/* End Sticky Header Section */}
 
       {/* Scrollable Content Area - Fleet Overview */}
