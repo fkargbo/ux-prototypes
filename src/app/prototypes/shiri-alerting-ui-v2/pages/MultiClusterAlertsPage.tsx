@@ -1030,16 +1030,19 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
 
   return (
     <div style={{ 
-      height: '100%', 
+      flex: 1,
+      minHeight: 0,
       display: 'flex', 
       flexDirection: 'column',
       backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+      overflow: 'hidden',
     }}>
       {/* Breadcrumb Navigation */}
       <div style={{ 
         padding: '16px 24px', 
         borderBottom: '1px solid var(--pf-t--global--border--color--default)',
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        flexShrink: 0,
       }}>
         <Breadcrumb>
           <BreadcrumbItem>
@@ -1051,8 +1054,8 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
         </Breadcrumb>
       </div>
 
-      {/* Main Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+      {/* Main Content - Scrollable */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px' }}>
         <Stack hasGutter>
           {/* Cluster Health Status Card */}
           <StackItem>
