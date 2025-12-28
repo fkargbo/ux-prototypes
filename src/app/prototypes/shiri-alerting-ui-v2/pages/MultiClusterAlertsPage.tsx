@@ -920,22 +920,26 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
     });
   }, [cluster.alerts]);
 
-  // Calculate cluster health score
-  const clusterHealthScore = React.useMemo(() => {
+  // Calculate cluster health status based on highest severity alert
+  const clusterHealthStatus = React.useMemo((): 'critical' | 'warning' | 'info' | 'healthy' => {
     const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
-    const criticalCount = firingAlerts.filter(a => a.severity === 'Critical').length;
-    const warningCount = firingAlerts.filter(a => a.severity === 'Warning').length;
-    const infoCount = firingAlerts.filter(a => a.severity === 'Info').length;
+    const hasCritical = firingAlerts.some(a => a.severity === 'Critical');
+    const hasWarning = firingAlerts.some(a => a.severity === 'Warning');
+    const hasInfo = firingAlerts.some(a => a.severity === 'Info');
     
-    // Score calculation: 100 - (critical*20 + warning*5 + info*1), min 0
-    const score = Math.max(0, 100 - (criticalCount * 20 + warningCount * 5 + infoCount * 1));
-    return score;
+    if (hasCritical) return 'critical';
+    if (hasWarning) return 'warning';
+    if (hasInfo) return 'info';
+    return 'healthy';
   }, [cluster.alerts]);
 
-  const getHealthScoreColor = (score: number) => {
-    if (score >= 90) return 'var(--pf-t--global--color--status--success--default)';
-    if (score >= 70) return 'var(--pf-t--global--color--status--warning--default)';
-    return 'var(--pf-t--global--color--status--danger--default)';
+  const getHealthStatusColor = (status: 'critical' | 'warning' | 'info' | 'healthy') => {
+    switch (status) {
+      case 'critical': return 'var(--pf-t--global--color--status--danger--default)';
+      case 'warning': return 'var(--pf-t--global--color--status--warning--default)';
+      case 'info': return 'var(--pf-t--global--color--status--info--default)';
+      case 'healthy': return 'var(--pf-t--global--color--status--success--default)';
+    }
   };
 
   const getHealthStatusIcon = (status: 'critical' | 'warning' | 'info' | 'healthy') => {
@@ -1050,7 +1054,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
       {/* Main Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
         <Stack hasGutter>
-          {/* Cluster Health Impact Card */}
+          {/* Cluster Health Status Card */}
           <StackItem>
             <Card>
               <CardBody>
@@ -1058,25 +1062,41 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
                   <FlexItem>
                     <Flex gap={{ default: 'gapLg' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem>
+                        {/* Cluster Health Status Indicator */}
                         <div style={{ 
-                          width: '80px', 
-                          height: '80px', 
+                          width: '64px', 
+                          height: '64px', 
                           borderRadius: '50%', 
-                          border: `4px solid ${getHealthScoreColor(clusterHealthScore)}`,
+                          backgroundColor: getHealthStatusColor(clusterHealthStatus),
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
                         }}>
-                          <Title headingLevel="h2" size="2xl" style={{ color: getHealthScoreColor(clusterHealthScore) }}>
-                            {clusterHealthScore}
-                          </Title>
+                          <Icon size="xl" style={{ color: 'white' }}>
+                            {clusterHealthStatus === 'critical' ? <ExclamationCircleIcon /> :
+                             clusterHealthStatus === 'warning' ? <ExclamationTriangleIcon /> :
+                             clusterHealthStatus === 'info' ? <InfoCircleIcon /> :
+                             <CheckCircleIcon />}
+                          </Icon>
                         </div>
                       </FlexItem>
                       <FlexItem>
                         <Stack>
                           <StackItem>
-                            <Title headingLevel="h2" size="xl">{cluster.name}</Title>
+                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <FlexItem>
+                                <Title headingLevel="h2" size="xl">{cluster.name}</Title>
+                              </FlexItem>
+                              <FlexItem>
+                                <Label 
+                                  color={clusterHealthStatus === 'critical' ? 'red' : 
+                                         clusterHealthStatus === 'warning' ? 'gold' : 
+                                         clusterHealthStatus === 'info' ? 'blue' : 'green'}
+                                >
+                                  {clusterHealthStatus.charAt(0).toUpperCase() + clusterHealthStatus.slice(1)}
+                                </Label>
+                              </FlexItem>
+                            </Flex>
                           </StackItem>
                           <StackItem>
                             <Flex gap={{ default: 'gapMd' }}>
