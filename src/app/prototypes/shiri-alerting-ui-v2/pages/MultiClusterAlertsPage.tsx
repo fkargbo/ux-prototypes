@@ -1010,7 +1010,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
                   {data.alertCount > 0 ? (
                     <LabelGroup>
                       {data.criticalCount > 0 && <Label color="red" icon={<ExclamationCircleIcon />}>{data.criticalCount}</Label>}
-                      {data.warningCount > 0 && <Label color="gold" icon={<ExclamationTriangleIcon />}>{data.warningCount}</Label>}
+                      {data.warningCount > 0 && <Label color="orange" icon={<ExclamationTriangleIcon />}>{data.warningCount}</Label>}
                       {data.infoCount > 0 && <Label color="blue" icon={<InfoCircleIcon />}>{data.infoCount}</Label>}
                     </LabelGroup>
                   ) : (
@@ -1090,7 +1090,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
                               <FlexItem>
                                 <Label 
                                   color={clusterHealthStatus === 'critical' ? 'red' : 
-                                         clusterHealthStatus === 'warning' ? 'gold' : 
+                                         clusterHealthStatus === 'warning' ? 'orange' : 
                                          clusterHealthStatus === 'info' ? 'blue' : 'green'}
                                 >
                                   {clusterHealthStatus.charAt(0).toUpperCase() + clusterHealthStatus.slice(1)}
