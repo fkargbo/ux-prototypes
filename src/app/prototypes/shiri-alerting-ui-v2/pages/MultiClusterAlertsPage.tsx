@@ -870,16 +870,19 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
   onBackToFleet,
 }) => {
   // Define component metadata with icons
-  const componentMeta: Record<AlertComponent, { displayName: string; icon: React.ReactNode; category: 'control-plane' | 'infrastructure' | 'workloads' }> = {
-    'kube-apiserver': { displayName: 'API Server', icon: <ServerIcon />, category: 'control-plane' },
-    'etcd': { displayName: 'etcd', icon: <CubesIcon />, category: 'control-plane' },
-    'Scheduler': { displayName: 'Scheduler', icon: <ClockIcon />, category: 'control-plane' },
-    'Controller': { displayName: 'Controller Manager', icon: <CogIcon />, category: 'control-plane' },
-    'Storage': { displayName: 'Storage', icon: <CubeIcon />, category: 'infrastructure' },
-    'Network': { displayName: 'Network', icon: <PortIcon />, category: 'infrastructure' },
-    'Workload': { displayName: 'Workloads', icon: <CubesIcon />, category: 'workloads' },
-    'Pod': { displayName: 'Pods', icon: <CubeIcon />, category: 'workloads' },
-    'Quota': { displayName: 'Quotas', icon: <TachometerAltIcon />, category: 'workloads' },
+  // Components are organized by Impact Group:
+  // - Cluster: Components related to cluster control plane health (API server, etcd, scheduler, controller, network)
+  // - Namespace: Components related to user applications and services (workloads, pods, storage, quotas)
+  const componentMeta: Record<AlertComponent, { displayName: string; icon: React.ReactNode; impactGroup: 'Cluster' | 'Namespace' }> = {
+    'kube-apiserver': { displayName: 'API Server', icon: <ServerIcon />, impactGroup: 'Cluster' },
+    'etcd': { displayName: 'etcd', icon: <CubesIcon />, impactGroup: 'Cluster' },
+    'Scheduler': { displayName: 'Scheduler', icon: <ClockIcon />, impactGroup: 'Cluster' },
+    'Controller': { displayName: 'Controller Manager', icon: <CogIcon />, impactGroup: 'Cluster' },
+    'Network': { displayName: 'Network', icon: <PortIcon />, impactGroup: 'Cluster' },
+    'Storage': { displayName: 'Storage', icon: <CubeIcon />, impactGroup: 'Namespace' },
+    'Workload': { displayName: 'Workloads', icon: <CubesIcon />, impactGroup: 'Namespace' },
+    'Pod': { displayName: 'Pods', icon: <CubeIcon />, impactGroup: 'Namespace' },
+    'Quota': { displayName: 'Resource Quotas', icon: <TachometerAltIcon />, impactGroup: 'Namespace' },
   };
 
   // Calculate component health data from cluster alerts
@@ -958,10 +961,13 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
     return { text: 'Healthy', color: 'green' as const };
   };
 
-  // Group components by category
-  const controlPlaneComponents = componentHealthData.filter(c => componentMeta[c.component].category === 'control-plane');
-  const infrastructureComponents = componentHealthData.filter(c => componentMeta[c.component].category === 'infrastructure');
-  const workloadComponents = componentHealthData.filter(c => componentMeta[c.component].category === 'workloads');
+  // Group components by Impact Group
+  const clusterComponents = componentHealthData.filter(c => componentMeta[c.component].impactGroup === 'Cluster');
+  const namespaceComponents = componentHealthData.filter(c => componentMeta[c.component].impactGroup === 'Namespace');
+  
+  // Calculate totals for each impact group
+  const clusterGroupAlerts = cluster.alerts.filter(a => a.status === 'firing' && a.group === 'Cluster');
+  const namespaceGroupAlerts = cluster.alerts.filter(a => a.status === 'firing' && a.group === 'Namespace');
 
   const renderComponentCard = (data: ComponentHealthData) => {
     const statusLabel = getHealthStatusLabel(data);
@@ -1187,41 +1193,90 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
             </Card>
           </StackItem>
 
-          {/* Component Health Sections */}
+          {/* Impact Group: Cluster */}
           <StackItem>
-            <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
-              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem><ServerIcon /></FlexItem>
-                <FlexItem>Control Plane</FlexItem>
-              </Flex>
-            </Title>
-            <Grid hasGutter md={6} lg={3}>
-              {controlPlaneComponents.map(renderComponentCard)}
-            </Grid>
+            <Card isPlain>
+              <CardHeader>
+                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                  <FlexItem>
+                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem><Icon size="lg"><ClusterIcon /></Icon></FlexItem>
+                      <FlexItem>
+                        <Title headingLevel="h3" size="lg">Cluster</Title>
+                      </FlexItem>
+                      <FlexItem>
+                        <Badge isRead>{clusterGroupAlerts.length} alerts</Badge>
+                      </FlexItem>
+                    </Flex>
+                  </FlexItem>
+                  <FlexItem>
+                    <Flex gap={{ default: 'gapSm' }}>
+                      {clusterGroupAlerts.filter(a => a.severity === 'Critical').length > 0 && (
+                        <Label color="red" icon={<ExclamationCircleIcon />}>
+                          {clusterGroupAlerts.filter(a => a.severity === 'Critical').length} Critical
+                        </Label>
+                      )}
+                      {clusterGroupAlerts.filter(a => a.severity === 'Warning').length > 0 && (
+                        <Label color="orange" icon={<ExclamationTriangleIcon />}>
+                          {clusterGroupAlerts.filter(a => a.severity === 'Warning').length} Warning
+                        </Label>
+                      )}
+                    </Flex>
+                  </FlexItem>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <Content component="p" style={{ marginBottom: '16px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  Alerts related to the health and stability of the cluster's control plane. Covers foundational components like the Kubernetes API server, etcd database, scheduler, and network.
+                </Content>
+                <Grid hasGutter md={6} lg={4}>
+                  {clusterComponents.map(renderComponentCard)}
+                </Grid>
+              </CardBody>
+            </Card>
           </StackItem>
 
+          {/* Impact Group: Namespace */}
           <StackItem>
-            <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
-              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem><CubesIcon /></FlexItem>
-                <FlexItem>Infrastructure</FlexItem>
-              </Flex>
-            </Title>
-            <Grid hasGutter md={6}>
-              {infrastructureComponents.map(renderComponentCard)}
-            </Grid>
-          </StackItem>
-
-          <StackItem>
-            <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
-              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem><CubeIcon /></FlexItem>
-                <FlexItem>Workloads</FlexItem>
-              </Flex>
-            </Title>
-            <Grid hasGutter md={6} lg={4}>
-              {workloadComponents.map(renderComponentCard)}
-            </Grid>
+            <Card isPlain>
+              <CardHeader>
+                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                  <FlexItem>
+                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem><Icon size="lg"><CubesIcon /></Icon></FlexItem>
+                      <FlexItem>
+                        <Title headingLevel="h3" size="lg">Namespace</Title>
+                      </FlexItem>
+                      <FlexItem>
+                        <Badge isRead>{namespaceGroupAlerts.length} alerts</Badge>
+                      </FlexItem>
+                    </Flex>
+                  </FlexItem>
+                  <FlexItem>
+                    <Flex gap={{ default: 'gapSm' }}>
+                      {namespaceGroupAlerts.filter(a => a.severity === 'Critical').length > 0 && (
+                        <Label color="red" icon={<ExclamationCircleIcon />}>
+                          {namespaceGroupAlerts.filter(a => a.severity === 'Critical').length} Critical
+                        </Label>
+                      )}
+                      {namespaceGroupAlerts.filter(a => a.severity === 'Warning').length > 0 && (
+                        <Label color="orange" icon={<ExclamationTriangleIcon />}>
+                          {namespaceGroupAlerts.filter(a => a.severity === 'Warning').length} Warning
+                        </Label>
+                      )}
+                    </Flex>
+                  </FlexItem>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <Content component="p" style={{ marginBottom: '16px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  Alerts focused on user applications and services. Reports on the health and behavior of workloads, including pod crashes, replica mismatches, storage issues, and resource quota violations within a namespace.
+                </Content>
+                <Grid hasGutter md={6} lg={4}>
+                  {namespaceComponents.map(renderComponentCard)}
+                </Grid>
+              </CardBody>
+            </Card>
           </StackItem>
         </Stack>
       </div>
