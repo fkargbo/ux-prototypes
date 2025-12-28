@@ -4439,7 +4439,8 @@ spec:
   // ========================================
   return (
     <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      {/* Sticky Header Section - Breadcrumbs + Header + Tabs + Toolbar */}
+      {/* Sticky Header Section - Only show in fleet-overview mode */}
+      {navigationView === 'fleet-overview' && (
       <div style={{ 
         flexShrink: 0,
         backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
@@ -4453,14 +4454,7 @@ spec:
               <Breadcrumb>
                 <BreadcrumbItem to="/">Home</BreadcrumbItem>
                 <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-                {isDrillDownView && selectedCluster && (
-                  <BreadcrumbItem to="#" onClick={(e) => { e.preventDefault(); handleBackToList(); }}>Alerting</BreadcrumbItem>
-                )}
-                {isDrillDownView && selectedCluster ? (
-                  <BreadcrumbItem isActive>Cluster alerts: {selectedCluster.name}</BreadcrumbItem>
-                ) : (
-                  <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
-                )}
+                <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
               </Breadcrumb>
             </StackItem>
 
@@ -4509,7 +4503,7 @@ spec:
         </div>
 
         {/* Toolbar section - inside sticky header */}
-        {mainPageTab === 'alerts' && !isDrillDownView && (
+        {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && (
           <div style={{ padding: '16px 24px', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
             <Toolbar className="pf-m-align-items-center">
               <ToolbarContent className="pf-m-align-items-center">
@@ -4708,8 +4702,8 @@ spec:
       </div>
       {/* End Sticky Header Section */}
 
-      {/* Scrollable Content Area */}
-      {mainPageTab === 'alerts' && !isDrillDownView && (
+      {/* Scrollable Content Area - Fleet Overview */}
+      {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && (
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
         {/* Filter Side Panel - Sticky */}
         {isFilterPanelOpen && (
