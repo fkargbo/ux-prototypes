@@ -3125,7 +3125,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     return (
       <>
         {/* Main Content */}
-          <Drawer isExpanded={isDrawerExpanded} position="end" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Drawer isExpanded={isDrawerExpanded} position="end" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <DrawerContent
               panelContent={
                 selectedAlertDetail && (
@@ -3392,8 +3392,8 @@ spec:
                 )
               }
             >
-              <DrawerContentBody style={{ overflow: 'auto', height: '100%' }}>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', width: '100%', minHeight: 0 }}>
+              <DrawerContentBody style={{ overflow: 'auto', flex: 1, padding: '0 24px 24px 24px' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', width: '100%' }}>
                   {/* Filter Sidebar */}
                   {drillDownFilterOpen && (
                     <div style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0 }}>
@@ -5224,8 +5224,8 @@ spec:
             </Flex>
           </div>
 
-          {/* Scrollable content area */}
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '0 24px 24px 24px' }}>
+          {/* Scrollable content area - flex container for drawer */}
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             {/* Render the full drill-down content (drawer, table, modals) - includes Summary section */}
             {renderDrillDownContent()}
           </div>
