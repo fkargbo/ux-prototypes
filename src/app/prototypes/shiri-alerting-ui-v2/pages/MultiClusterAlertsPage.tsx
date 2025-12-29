@@ -4505,74 +4505,67 @@ spec:
         borderBottom: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
         zIndex: 100,
       }}>
-        <div className="alerting-page-header" style={{ padding: '24px 24px 0 24px' }}>
-          <Stack hasGutter>
-            {/* Breadcrumbs */}
-            <StackItem>
-              <Breadcrumb>
-                <BreadcrumbItem to="/">Home</BreadcrumbItem>
-                <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-                <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
-              </Breadcrumb>
-            </StackItem>
-
-            {/* Header */}
-            <StackItem>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <div className="alerting-page-header" style={{ padding: '12px 24px 0 24px' }}>
+          {/* Compact Header Row - Breadcrumbs + Title + Actions */}
+          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
+            <FlexItem>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
                 <FlexItem>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                    <FlexItem>
-                      <Icon size="lg" status="danger">
-                        <OutlinedBellIcon />
-                      </Icon>
-                    </FlexItem>
-                    <FlexItem>
-                      <Title headingLevel="h1" size="2xl">Multi-cluster alerting</Title>
-                    </FlexItem>
-                  </Flex>
-                </FlexItem>
-                <FlexItem>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                    <FlexItem>
-                      <Content component="small" className="pf-v6-u-color-200">
-                        <ClockIcon /> Last updated: {lastRefresh.toLocaleTimeString()}
-                      </Content>
-                    </FlexItem>
-                    <FlexItem>
-                      <Button variant="secondary" icon={<SyncIcon />} onClick={handleRefresh}>
-                        Refresh
-                      </Button>
-                    </FlexItem>
-                  </Flex>
+                  <Breadcrumb>
+                    <BreadcrumbItem to="/">Home</BreadcrumbItem>
+                    <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
+                    <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
+                  </Breadcrumb>
                 </FlexItem>
               </Flex>
-            </StackItem>
+            </FlexItem>
+            <FlexItem>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <FlexItem>
+                  <Content component="small" className="pf-v6-u-color-200">
+                    <ClockIcon /> {lastRefresh.toLocaleTimeString()}
+                  </Content>
+                </FlexItem>
+                <FlexItem>
+                  <Button variant="plain" icon={<SyncIcon />} onClick={handleRefresh} aria-label="Refresh" />
+                </FlexItem>
+              </Flex>
+            </FlexItem>
+          </Flex>
 
-            {/* Main Page Tabs */}
-            <StackItem>
-              <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
-                <Tab eventKey="alerts" title={<span><BellIcon /> Alerts</span>} />
-                <Tab eventKey="incidents" title={<span><PortIcon /> Incidents</span>} />
-                <Tab eventKey="management" title={<span><CogIcon /> Management</span>} />
+          {/* Title Row */}
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: '8px' }}>
+            <FlexItem>
+              <Icon size="md" status="danger">
+                <OutlinedBellIcon />
+              </Icon>
+            </FlexItem>
+            <FlexItem>
+              <Title headingLevel="h1" size="xl">Multi-cluster alerting</Title>
+            </FlexItem>
+          </Flex>
+
+          {/* Main Page Tabs - Compact */}
+          <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
+            <Tab eventKey="alerts" title={<TabTitleText><BellIcon /> Alerts</TabTitleText>} />
+            <Tab eventKey="incidents" title={<TabTitleText><PortIcon /> Incidents</TabTitleText>} />
+            <Tab eventKey="management" title={<TabTitleText><CogIcon /> Management</TabTitleText>} />
+          </Tabs>
+
+          {/* V2: Alerts Sub-tabs - Only show when alerts tab is active */}
+          {mainPageTab === 'alerts' && (
+            <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+              <Tabs 
+                activeKey={alertsSubTab} 
+                onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
+                aria-label="Alerts sub-tabs" 
+                isSecondary
+              >
+                <Tab eventKey="clusters-health" title={<TabTitleText><ThLargeIcon /> Clusters health</TabTitleText>} />
+                <Tab eventKey="firing-alerts" title={<TabTitleText><ListIcon /> Firing alerts</TabTitleText>} />
               </Tabs>
-            </StackItem>
-
-            {/* V2: Alerts Sub-tabs - Only show when alerts tab is active */}
-            {mainPageTab === 'alerts' && (
-              <StackItem>
-                <Tabs 
-                  activeKey={alertsSubTab} 
-                  onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
-                  aria-label="Alerts sub-tabs" 
-                  isSecondary
-                >
-                  <Tab eventKey="clusters-health" title={<TabTitleText><ThLargeIcon /> Clusters health</TabTitleText>} />
-                  <Tab eventKey="firing-alerts" title={<TabTitleText><ListIcon /> Firing alerts</TabTitleText>} />
-                </Tabs>
-              </StackItem>
-            )}
-
-          </Stack>
+            </div>
+          )}
         </div>
 
         {/* Toolbar section - inside sticky header - only show for Clusters health sub-tab */}
