@@ -4429,7 +4429,7 @@ spec:
                 activeKey={alertsSubTab} 
                 onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
                 aria-label="Alerts sub-tabs" 
-                isSecondary
+                variant="secondary"
               >
                 <Tab eventKey="clusters-health" title={<TabTitleText><ThLargeIcon /> Clusters health</TabTitleText>} />
                 <Tab eventKey="firing-alerts" title={<TabTitleText><ListIcon /> Firing alerts</TabTitleText>} />
@@ -5209,6 +5209,9 @@ spec:
                   onAlertRuleClick={(alertName) => {
                     setMainPageTab('management');
                     setManagementSubTab('alert-rules');
+                  }}
+                  onComponentClick={(componentName) => {
+                    setMainComponentFilter(componentName);
                   }}
                 />
               </StackItem>
