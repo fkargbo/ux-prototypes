@@ -4569,22 +4569,30 @@ spec:
 
   // Scroll-to-hide header state
   const [isHeaderVisible, setIsHeaderVisible] = React.useState(true);
-  const [lastScrollTop, setLastScrollTop] = React.useState(0);
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = React.useState(0);
+  const lastScrollTopRef = React.useRef(0);
+  const headerRef = React.useRef<HTMLDivElement>(null);
+
+  // Measure header height on mount and when content changes
+  React.useEffect(() => {
+    if (headerRef.current) {
+      setHeaderHeight(headerRef.current.scrollHeight);
+    }
+  }, [mainPageTab, alertsSubTab]);
 
   const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
     const scrollThreshold = 50; // Minimum scroll before hiding header
     
-    if (scrollTop > lastScrollTop && scrollTop > scrollThreshold) {
+    if (scrollTop > lastScrollTopRef.current && scrollTop > scrollThreshold) {
       // Scrolling down - hide header
       setIsHeaderVisible(false);
-    } else if (scrollTop < lastScrollTop) {
+    } else if (scrollTop < lastScrollTopRef.current) {
       // Scrolling up - show header
       setIsHeaderVisible(true);
     }
-    setLastScrollTop(scrollTop);
-  }, [lastScrollTop]);
+    lastScrollTopRef.current = scrollTop;
+  }, []);
 
   // ========================================
   // MAIN VIEW (Multi-cluster Alerting Page)
@@ -4598,13 +4606,16 @@ spec:
         backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
         borderBottom: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
         zIndex: 100,
+        overflow: 'hidden',
       }}>
-        {/* Page Header - Collapsible on scroll */}
-        <div style={{ 
-          maxHeight: isHeaderVisible ? '200px' : '0px',
-          overflow: 'hidden',
-          transition: 'max-height 0.3s ease-in-out',
-        }}>
+        {/* Page Header - Collapsible on scroll using margin transition */}
+        <div 
+          ref={headerRef}
+          style={{ 
+            marginTop: isHeaderVisible ? '0px' : `-${headerHeight}px`,
+            transition: 'margin-top 0.2s ease-out',
+          }}
+        >
           <div className="alerting-page-header" style={{ padding: '12px 24px 0 24px' }}>
             {/* Compact Header Row - Breadcrumbs + Title + Actions */}
             <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
