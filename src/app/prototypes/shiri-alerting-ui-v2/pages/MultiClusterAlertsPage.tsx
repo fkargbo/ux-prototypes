@@ -4555,6 +4555,7 @@ spec:
       }, refreshInterval * 1000);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [refreshInterval]);
 
   const refreshIntervalOptions = [
