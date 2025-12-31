@@ -2470,6 +2470,187 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
 };
 
 // ========================================
+// CROSS-CLUSTER INSIGHTS CARDS
+// ========================================
+
+interface CrossClusterInsightsCardsProps {
+  clusters: ClusterData[];
+  onAlertRuleClick: (alertName: string) => void;
+  onComponentClick: (componentName: string) => void;
+}
+
+const CrossClusterInsightsCards: React.FC<CrossClusterInsightsCardsProps> = ({
+  clusters,
+  onAlertRuleClick,
+  onComponentClick,
+}) => {
+  // Calculate alert rule counts across all clusters
+  const alertRuleCounts = React.useMemo(() => {
+    const counts: Record<string, { count: number; severity: AlertSeverity; clusters: string[] }> = {};
+    clusters.forEach(cluster => {
+      cluster.alerts.filter(a => a.status === 'firing').forEach(alert => {
+        if (!counts[alert.alertName]) {
+          counts[alert.alertName] = { count: 0, severity: alert.severity, clusters: [] };
+        }
+        counts[alert.alertName].count++;
+        if (!counts[alert.alertName].clusters.includes(cluster.name)) {
+          counts[alert.alertName].clusters.push(cluster.name);
+        }
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5)
+      .map(([name, data]) => ({ name, ...data }));
+  }, [clusters]);
+
+  // Calculate component counts across all clusters
+  const componentCounts = React.useMemo(() => {
+    const counts: Record<string, { count: number; critical: number; warning: number; info: number; clusters: string[] }> = {};
+    clusters.forEach(cluster => {
+      cluster.alerts.filter(a => a.status === 'firing').forEach(alert => {
+        if (!counts[alert.component]) {
+          counts[alert.component] = { count: 0, critical: 0, warning: 0, info: 0, clusters: [] };
+        }
+        counts[alert.component].count++;
+        if (alert.severity === 'Critical') counts[alert.component].critical++;
+        if (alert.severity === 'Warning') counts[alert.component].warning++;
+        if (alert.severity === 'Info') counts[alert.component].info++;
+        if (!counts[alert.component].clusters.includes(cluster.name)) {
+          counts[alert.component].clusters.push(cluster.name);
+        }
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5)
+      .map(([name, data]) => ({ name, ...data }));
+  }, [clusters]);
+
+  return (
+    <>
+      {/* Top Firing Alert Rules Card */}
+      <StackItem>
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Firing Alert Rules</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <Table aria-label="Top firing alert rules" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Alert Rule</Th>
+                  <Th>Severity</Th>
+                  <Th>Count</Th>
+                  <Th>Clusters</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {alertRuleCounts.map(rule => (
+                  <Tr key={rule.name} isClickable onRowClick={() => onAlertRuleClick(rule.name)}>
+                    <Td>
+                      <Button variant="link" isInline onClick={(e) => { e.stopPropagation(); onAlertRuleClick(rule.name); }}>
+                        {rule.name}
+                      </Button>
+                    </Td>
+                    <Td>
+                      <Label color={getSeverityLabelColor(rule.severity)} isCompact>{rule.severity}</Label>
+                    </Td>
+                    <Td><Badge>{rule.count}</Badge></Td>
+                    <Td>
+                      <Popover
+                        headerContent="Clusters firing this alert"
+                        bodyContent={
+                          <Stack hasGutter>
+                            {rule.clusters.map(c => (
+                              <StackItem key={c}>{c}</StackItem>
+                            ))}
+                          </Stack>
+                        }
+                      >
+                        <Badge isRead style={{ cursor: 'pointer' }}>{rule.clusters.length} clusters</Badge>
+                      </Popover>
+                    </Td>
+                  </Tr>
+                ))}
+                {alertRuleCounts.length === 0 && (
+                  <Tr>
+                    <Td colSpan={4}>
+                      <Content component="small" className="pf-v6-u-color-200">No firing alerts</Content>
+                    </Td>
+                  </Tr>
+                )}
+              </Tbody>
+            </Table>
+          </CardBody>
+        </Card>
+      </StackItem>
+
+      {/* Most Impacted Components Card */}
+      <StackItem>
+        <Card>
+          <CardHeader>
+            <CardTitle>Most Impacted Components</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <Table aria-label="Most impacted components" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Component</Th>
+                  <Th>Clusters</Th>
+                  <Th>Total</Th>
+                  <Th>Breakdown</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {componentCounts.map(comp => (
+                  <Tr key={comp.name} isClickable onRowClick={() => onComponentClick(comp.name)}>
+                    <Td>
+                      <Button variant="link" isInline onClick={(e) => { e.stopPropagation(); onComponentClick(comp.name); }}>
+                        {comp.name}
+                      </Button>
+                    </Td>
+                    <Td>
+                      <Popover
+                        headerContent="Clusters with this component impacted"
+                        bodyContent={
+                          <Stack hasGutter>
+                            {comp.clusters.map(c => (
+                              <StackItem key={c}>{c}</StackItem>
+                            ))}
+                          </Stack>
+                        }
+                      >
+                        <Badge isRead style={{ cursor: 'pointer' }}>{comp.clusters.length} clusters</Badge>
+                      </Popover>
+                    </Td>
+                    <Td><Badge>{comp.count}</Badge></Td>
+                    <Td>
+                      <Flex gap={{ default: 'gapSm' }}>
+                        {comp.critical > 0 && <FlexItem><Label color="red" isCompact>{comp.critical}</Label></FlexItem>}
+                        {comp.warning > 0 && <FlexItem><Label color="orange" isCompact>{comp.warning}</Label></FlexItem>}
+                        {comp.info > 0 && <FlexItem><Label color="purple" isCompact>{comp.info}</Label></FlexItem>}
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ))}
+                {componentCounts.length === 0 && (
+                  <Tr>
+                    <Td colSpan={4}>
+                      <Content component="small" className="pf-v6-u-color-200">No impacted components</Content>
+                    </Td>
+                  </Tr>
+                )}
+              </Tbody>
+            </Table>
+          </CardBody>
+        </Card>
+      </StackItem>
+    </>
+  );
+};
+
+// ========================================
 // CLUSTER TILE COMPONENT
 // ========================================
 
@@ -4362,12 +4543,35 @@ spec:
     );
   };
 
+  // Refresh interval state
+  const [refreshInterval, setRefreshInterval] = React.useState<number | null>(null);
+  const [isRefreshIntervalOpen, setIsRefreshIntervalOpen] = React.useState(false);
+  
+  // Auto-refresh effect
+  React.useEffect(() => {
+    if (refreshInterval && refreshInterval > 0) {
+      const interval = setInterval(() => {
+        setLastRefresh(new Date());
+      }, refreshInterval * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [refreshInterval]);
+
+  const refreshIntervalOptions = [
+    { value: null, label: 'Off' },
+    { value: 2, label: '2 seconds' },
+    { value: 10, label: '10 seconds' },
+    { value: 30, label: '30 seconds' },
+    { value: 60, label: '1 minute' },
+    { value: 300, label: '5 minutes' },
+  ];
+
   // ========================================
   // MAIN VIEW (Multi-cluster Alerting Page)
   // ========================================
   return (
     <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      {/* Sticky Header Section - Only show in fleet-overview mode */}
+      {/* Sticky Toolbar Section - Only show in fleet-overview mode */}
       {navigationView === 'fleet-overview' && (
       <div style={{ 
         flexShrink: 0,
@@ -4375,71 +4579,8 @@ spec:
         borderBottom: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
         zIndex: 100,
       }}>
-        <div className="alerting-page-header" style={{ padding: '12px 24px 0 24px' }}>
-          {/* Compact Header Row - Breadcrumbs + Title + Actions */}
-          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
-            <FlexItem>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                <FlexItem>
-                  <Breadcrumb>
-                    <BreadcrumbItem to="/">Home</BreadcrumbItem>
-                    <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-                    <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
-                  </Breadcrumb>
-                </FlexItem>
-              </Flex>
-            </FlexItem>
-            <FlexItem>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  <Content component="small" className="pf-v6-u-color-200">
-                    <ClockIcon /> {lastRefresh.toLocaleTimeString()}
-                  </Content>
-                </FlexItem>
-                <FlexItem>
-                  <Button variant="plain" icon={<SyncIcon />} onClick={handleRefresh} aria-label="Refresh" />
-                </FlexItem>
-              </Flex>
-            </FlexItem>
-          </Flex>
-
-          {/* Title Row */}
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: '8px' }}>
-            <FlexItem>
-              <Icon size="md" status="danger">
-                <OutlinedBellIcon />
-              </Icon>
-            </FlexItem>
-            <FlexItem>
-              <Title headingLevel="h1" size="xl">Multi-cluster alerting</Title>
-            </FlexItem>
-          </Flex>
-
-          {/* Main Page Tabs - Compact */}
-          <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
-            <Tab eventKey="alerts" title={<TabTitleText><BellIcon /> Alerts</TabTitleText>} />
-            <Tab eventKey="incidents" title={<TabTitleText><PortIcon /> Incidents</TabTitleText>} />
-            <Tab eventKey="management" title={<TabTitleText><CogIcon /> Management</TabTitleText>} />
-          </Tabs>
-
-          {/* V2: Alerts Sub-tabs - Only show when alerts tab is active */}
-          {mainPageTab === 'alerts' && (
-            <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
-              <Tabs 
-                activeKey={alertsSubTab} 
-                onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
-                aria-label="Alerts sub-tabs" 
-                variant="secondary"
-              >
-                <Tab eventKey="clusters-health" title={<TabTitleText><ThLargeIcon /> Clusters health</TabTitleText>} />
-                <Tab eventKey="firing-alerts" title={<TabTitleText><ListIcon /> Firing alerts</TabTitleText>} />
-              </Tabs>
-            </div>
-          )}
-        </div>
-
-        {/* Toolbar section - inside sticky header - only show for Clusters health sub-tab */}
-        {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'clusters-health' && (
+        {/* Toolbar section - Unified for both sub-tabs */}
+        {mainPageTab === 'alerts' && (
           <div style={{ padding: '16px 24px', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
             <Toolbar className="pf-m-align-items-center">
               <ToolbarContent className="pf-m-align-items-center">
@@ -4515,12 +4656,73 @@ spec:
             {/* Search Input - Third */}
             <ToolbarItem>
               <SearchInput
-                placeholder="Search clusters..."
+                placeholder={alertsSubTab === 'firing-alerts' ? "Search alerts..." : "Search clusters..."}
                 value={searchValue}
                 onChange={(_, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
                 style={{ width: '300px' }}
               />
+            </ToolbarItem>
+            {/* Refresh with interval dropdown */}
+            <ToolbarItem align={{ default: 'alignEnd' }}>
+              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <Content component="small" className="pf-v6-u-color-200">
+                    <ClockIcon /> {lastRefresh.toLocaleTimeString()}
+                  </Content>
+                </FlexItem>
+                <FlexItem>
+                  <Dropdown
+                    isOpen={isRefreshIntervalOpen}
+                    onOpenChange={setIsRefreshIntervalOpen}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle 
+                        ref={toggleRef} 
+                        variant="secondary"
+                        onClick={() => setIsRefreshIntervalOpen(!isRefreshIntervalOpen)}
+                        isExpanded={isRefreshIntervalOpen}
+                        icon={<SyncIcon />}
+                        style={{ minWidth: '140px' }}
+                      >
+                        {refreshInterval ? `Every ${refreshIntervalOptions.find(o => o.value === refreshInterval)?.label}` : 'Refresh'}
+                      </MenuToggle>
+                    )}
+                  >
+                    <DropdownList>
+                      {refreshIntervalOptions.map(opt => (
+                        <DropdownItem 
+                          key={String(opt.value)}
+                          onClick={() => {
+                            setRefreshInterval(opt.value);
+                            setIsRefreshIntervalOpen(false);
+                            if (opt.value !== null) {
+                              setLastRefresh(new Date());
+                            }
+                          }}
+                        >
+                          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                            <FlexItem>{opt.label}</FlexItem>
+                            {refreshInterval === opt.value && (
+                              <FlexItem>
+                                <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                              </FlexItem>
+                            )}
+                          </Flex>
+                        </DropdownItem>
+                      ))}
+                      <Divider />
+                      <DropdownItem 
+                        onClick={() => {
+                          setLastRefresh(new Date());
+                          setIsRefreshIntervalOpen(false);
+                        }}
+                      >
+                        <SyncIcon /> Refresh now
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </FlexItem>
+              </Flex>
             </ToolbarItem>
           </ToolbarContent>
         </Toolbar>
@@ -4636,41 +4838,6 @@ spec:
           </div>
         )}
 
-        {/* Toolbar section for Firing Alerts sub-tab */}
-        {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'firing-alerts' && (
-          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
-            <Toolbar className="pf-m-align-items-center">
-              <ToolbarContent className="pf-m-align-items-center">
-                {/* Filters Button */}
-                <ToolbarItem>
-                  <Button 
-                    variant={isFilterPanelOpen ? 'secondary' : 'control'} 
-                    icon={<FilterIcon />}
-                    onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                  >
-                    Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{regionFilter.length + clusterFilter.length + severityFilter.length + groupFilter.length + componentFilter.length}</Badge>}
-                  </Button>
-                </ToolbarItem>
-                {/* Search Input */}
-                <ToolbarItem>
-                  <SearchInput
-                    placeholder="Search alerts..."
-                    value={searchValue}
-                    onChange={(_, value) => setSearchValue(value)}
-                    onClear={() => setSearchValue('')}
-                    style={{ width: '300px' }}
-                  />
-                </ToolbarItem>
-                {/* Refresh */}
-                <ToolbarItem align={{ default: 'alignEnd' }}>
-                  <Button variant="secondary" icon={<SyncIcon />} onClick={handleRefresh}>
-                    Refresh
-                  </Button>
-                </ToolbarItem>
-              </ToolbarContent>
-            </Toolbar>
-          </div>
-        )}
       </div>
       )}
       {/* End Sticky Header Section */}
@@ -4734,6 +4901,49 @@ spec:
         {/* Main Content Area - Scrollable */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
             <Stack hasGutter>
+              {/* Page Header - Scrolls with content */}
+              <StackItem>
+                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
+                  <FlexItem>
+                    <Breadcrumb>
+                      <BreadcrumbItem to="/">Home</BreadcrumbItem>
+                      <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
+                      <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
+                    </Breadcrumb>
+                  </FlexItem>
+                </Flex>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: '16px' }}>
+                  <FlexItem>
+                    <Icon size="md" status="danger">
+                      <OutlinedBellIcon />
+                    </Icon>
+                  </FlexItem>
+                  <FlexItem>
+                    <Title headingLevel="h1" size="xl">Multi-cluster alerting</Title>
+                  </FlexItem>
+                </Flex>
+                {/* Main Page Tabs */}
+                <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
+                  <Tab eventKey="alerts" title={<TabTitleText><BellIcon /> Alerts</TabTitleText>} />
+                  <Tab eventKey="incidents" title={<TabTitleText><PortIcon /> Incidents</TabTitleText>} />
+                  <Tab eventKey="management" title={<TabTitleText><CogIcon /> Management</TabTitleText>} />
+                </Tabs>
+                {/* V2: Alerts Sub-tabs */}
+                {mainPageTab === 'alerts' && (
+                  <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+                    <Tabs 
+                      activeKey={alertsSubTab} 
+                      onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
+                      aria-label="Alerts sub-tabs" 
+                      variant="secondary"
+                    >
+                      <Tab eventKey="clusters-health" title={<TabTitleText><ThLargeIcon /> Clusters health</TabTitleText>} />
+                      <Tab eventKey="firing-alerts" title={<TabTitleText><ListIcon /> Firing alerts</TabTitleText>} />
+                    </Tabs>
+                  </div>
+                )}
+              </StackItem>
+              
               {/* Stats Cards */}
               <StackItem>
                 <Grid hasGutter>
@@ -4928,6 +5138,7 @@ spec:
                   <CardBody>
                     {viewMode === 'treemap' ? (
                       <TreemapHeatmap
+                        key={`treemap-${importanceSizing}-${groupBy}-${sortBy}`}
                         clusters={sortedClusters}
                         groupBy={groupBy}
                         importanceSizing={importanceSizing}
@@ -4955,8 +5166,6 @@ spec:
                             <Th>Cluster Status</Th>
                             <Th>Cluster</Th>
                             <Th>Region</Th>
-                            <Th>Group</Th>
-                            <Th>Component</Th>
                             <Th>Total Alerts</Th>
                             <Th>Severity Breakdown</Th>
                           </Tr>
@@ -4967,9 +5176,6 @@ spec:
                             const criticalCount = firingAlerts.filter(a => a.severity === 'Critical').length;
                             const warningCount = firingAlerts.filter(a => a.severity === 'Warning').length;
                             const infoCount = firingAlerts.filter(a => a.severity === 'Info').length;
-                            // Get unique groups and components
-                            const groups = Array.from(new Set(firingAlerts.map(a => a.group)));
-                            const components = Array.from(new Set(firingAlerts.map(a => a.component)));
                             // ACM Cluster Status configuration with colors and icons
                             const acmStatusConfig: Record<ACMClusterStatus, { 
                               color: 'green' | 'red' | 'orange' | 'blue' | 'grey'; 
@@ -5043,20 +5249,6 @@ spec:
                                 </Td>
                                 <Td>{cluster.region}</Td>
                                 <Td>
-                                  {groups.length > 0 ? (
-                                    <Label isCompact color="blue">{groups[0]}</Label>
-                                  ) : (
-                                    <span>-</span>
-                                  )}
-                                </Td>
-                                <Td>
-                                  {components.length > 0 ? (
-                                    <Label isCompact variant="outline">{components[0]}</Label>
-                                  ) : (
-                                    <span>-</span>
-                                  )}
-                                </Td>
-                                <Td>
                                   <Badge>{firingAlerts.length}</Badge>
                                 </Td>
                                 <Td>
@@ -5088,6 +5280,19 @@ spec:
                   )}
                 </Card>
               </StackItem>
+
+              {/* Cross-Cluster Insights Cards */}
+              <CrossClusterInsightsCards
+                clusters={filteredClusters}
+                onAlertRuleClick={(alertName) => {
+                  setMainAlertNameFilter(alertName);
+                  setAlertsSubTab('firing-alerts');
+                }}
+                onComponentClick={(componentName) => {
+                  setMainComponentFilter(componentName);
+                  setAlertsSubTab('firing-alerts');
+                }}
+              />
 
               {/* Alerts Timeline Card - Last */}
               <StackItem>
@@ -5157,6 +5362,49 @@ spec:
           {/* Main Content Area - Firing Alerts */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
             <Stack hasGutter>
+              {/* Page Header - Scrolls with content */}
+              <StackItem>
+                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
+                  <FlexItem>
+                    <Breadcrumb>
+                      <BreadcrumbItem to="/">Home</BreadcrumbItem>
+                      <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
+                      <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
+                    </Breadcrumb>
+                  </FlexItem>
+                </Flex>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: '16px' }}>
+                  <FlexItem>
+                    <Icon size="md" status="danger">
+                      <OutlinedBellIcon />
+                    </Icon>
+                  </FlexItem>
+                  <FlexItem>
+                    <Title headingLevel="h1" size="xl">Multi-cluster alerting</Title>
+                  </FlexItem>
+                </Flex>
+                {/* Main Page Tabs */}
+                <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
+                  <Tab eventKey="alerts" title={<TabTitleText><BellIcon /> Alerts</TabTitleText>} />
+                  <Tab eventKey="incidents" title={<TabTitleText><PortIcon /> Incidents</TabTitleText>} />
+                  <Tab eventKey="management" title={<TabTitleText><CogIcon /> Management</TabTitleText>} />
+                </Tabs>
+                {/* V2: Alerts Sub-tabs */}
+                {mainPageTab === 'alerts' && (
+                  <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+                    <Tabs 
+                      activeKey={alertsSubTab} 
+                      onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
+                      aria-label="Alerts sub-tabs" 
+                      variant="secondary"
+                    >
+                      <Tab eventKey="clusters-health" title={<TabTitleText><ThLargeIcon /> Clusters health</TabTitleText>} />
+                      <Tab eventKey="firing-alerts" title={<TabTitleText><ListIcon /> Firing alerts</TabTitleText>} />
+                    </Tabs>
+                  </div>
+                )}
+              </StackItem>
+
               {/* Stats Summary Row */}
               <StackItem>
                 <Grid hasGutter>
