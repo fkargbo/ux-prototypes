@@ -2241,141 +2241,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
               </Stack>
             </div>
           </Tab>
-          <Tab eventKey="insights" title={<span><TachometerAltIcon /> Cross-Cluster Insights</span>}>
-            <div style={{ paddingTop: '16px' }}>
-              <Stack hasGutter>
-                <StackItem>
-                  <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>
-                      <Select
-                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                          <MenuToggle ref={toggleRef} onClick={() => setIsInsightsCountOpen(!isInsightsCountOpen)} isExpanded={isInsightsCountOpen} style={{ width: '100px' }}>
-                            Show {insightsItemCount}
-                          </MenuToggle>
-                        )}
-                        onSelect={(_, value) => { setInsightsItemCount(Number(value)); setIsInsightsCountOpen(false); }}
-                        isOpen={isInsightsCountOpen}
-                        onOpenChange={setIsInsightsCountOpen}
-                        selected={insightsItemCount}
-                      >
-                        <SelectList>
-                          <SelectOption value={5}>5</SelectOption>
-                          <SelectOption value={10}>10</SelectOption>
-                          <SelectOption value={20}>20</SelectOption>
-                        </SelectList>
-                      </Select>
-                    </FlexItem>
-                  </Flex>
-                </StackItem>
-                <StackItem>
-                  <Grid hasGutter>
-                    <GridItem md={6}>
-                      <Title headingLevel="h4" size="md" style={{ marginBottom: '16px' }}>Top Firing Alert Rules</Title>
-                      <Table aria-label="Top firing alert rules" variant="compact">
-                        <Thead>
-                          <Tr>
-                            <Th>Alert Rule</Th>
-                            <Th>Severity</Th>
-                            <Th>Count</Th>
-                            <Th>Clusters</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {alertRuleCounts.map(rule => (
-                            <Tr key={rule.name}>
-                              <Td>
-                                <Button variant="link" isInline onClick={() => { onAlertRuleClick(rule.name); setActiveTabKey('alerts'); }}>
-                                  {rule.name}
-                                </Button>
-                              </Td>
-                              <Td>
-                                <Label color={getSeverityLabelColor(rule.severity)} isCompact>{rule.severity}</Label>
-                              </Td>
-                              <Td><Badge>{rule.count}</Badge></Td>
-                              <Td>
-                                <Popover
-                                  headerContent="Clusters firing this alert"
-                                  bodyContent={
-                                    <Stack hasGutter>
-                                      {rule.clusters.map(c => (
-                                        <StackItem key={c}>{c}</StackItem>
-                                      ))}
-                                    </Stack>
-                                  }
-                                >
-                                  <Badge isRead style={{ cursor: 'pointer' }}>{rule.clusters.length} clusters</Badge>
-                                </Popover>
-                              </Td>
-                            </Tr>
-                          ))}
-                          {alertRuleCounts.length === 0 && (
-                            <Tr>
-                              <Td colSpan={4}>
-                                <Content component="small" className="pf-v6-u-color-200">No firing alerts</Content>
-                              </Td>
-                            </Tr>
-                          )}
-                        </Tbody>
-                      </Table>
-                    </GridItem>
-                    <GridItem md={6}>
-                      <Title headingLevel="h4" size="md" style={{ marginBottom: '16px' }}>Most Impacted Components</Title>
-                      <Table aria-label="Most impacted components" variant="compact">
-                        <Thead>
-                          <Tr>
-                            <Th>Component</Th>
-                            <Th>Clusters</Th>
-                            <Th>Total</Th>
-                            <Th>Breakdown</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {componentCounts.map(comp => (
-                            <Tr key={comp.name}>
-                              <Td>
-                                <Button variant="link" isInline onClick={() => { onComponentClick(comp.name); setActiveTabKey('alerts'); }}>
-                                  {comp.name}
-                                </Button>
-                              </Td>
-                              <Td>
-                                <Popover
-                                  headerContent="Clusters with this component impacted"
-                                  bodyContent={
-                                    <Stack hasGutter>
-                                      {comp.clusters.map(c => (
-                                        <StackItem key={c}>{c}</StackItem>
-                                      ))}
-                                    </Stack>
-                                  }
-                                >
-                                  <Badge isRead style={{ cursor: 'pointer' }}>{comp.clusters.length} clusters</Badge>
-                                </Popover>
-                              </Td>
-                              <Td><Badge>{comp.count}</Badge></Td>
-                              <Td>
-                                <Flex gap={{ default: 'gapSm' }}>
-                                  {comp.critical > 0 && <FlexItem><Label color="red" isCompact>{comp.critical}</Label></FlexItem>}
-                                  {comp.warning > 0 && <FlexItem><Label color="orange" isCompact>{comp.warning}</Label></FlexItem>}
-                                  {comp.info > 0 && <FlexItem><Label color="purple" isCompact>{comp.info}</Label></FlexItem>}
-                                </Flex>
-                              </Td>
-                            </Tr>
-                          ))}
-                          {componentCounts.length === 0 && (
-                            <Tr>
-                              <Td colSpan={4}>
-                                <Content component="small" className="pf-v6-u-color-200">No impacted components</Content>
-                              </Td>
-                            </Tr>
-                          )}
-                        </Tbody>
-                      </Table>
-                    </GridItem>
-                  </Grid>
-                </StackItem>
-              </Stack>
-            </div>
-          </Tab>
         </Tabs>
       </CardBody>
     </Card>
@@ -5109,17 +4974,22 @@ spec:
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle 
                                     ref={toggleRef} 
-                                    onClick={() => viewMode !== 'summary' && setIsSizeByOpen(!isSizeByOpen)} 
+                                    onClick={() => { if (viewMode !== 'summary') { setIsSizeByOpen(!isSizeByOpen); } }} 
                                     isExpanded={isSizeByOpen} 
                                     isDisabled={viewMode === 'summary'}
-                                    style={{ width: '140px' }}
+                                    style={{ width: '160px' }}
                                   >
-                                    {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Nodes'}
+                                    {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Number of Nodes'}
                                   </MenuToggle>
                                 )}
-                                onSelect={(_, value) => { setImportanceSizing(value as ImportanceSizing); setIsSizeByOpen(false); }}
+                                onSelect={(_, value) => { 
+                                  if (value) {
+                                    setImportanceSizing(value as ImportanceSizing); 
+                                  }
+                                  setIsSizeByOpen(false); 
+                                }}
                                 isOpen={isSizeByOpen}
-                                onOpenChange={setIsSizeByOpen}
+                                onOpenChange={(isOpen) => setIsSizeByOpen(isOpen)}
                                 selected={importanceSizing}
                               >
                                 <SelectList>
@@ -5144,12 +5014,17 @@ spec:
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle ref={toggleRef} onClick={() => setIsSortByOpen(!isSortByOpen)} isExpanded={isSortByOpen} style={{ width: '140px' }}>
-                                    {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert Count' : 'Name'}
+                                    {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert Count' : 'Cluster Name'}
                                   </MenuToggle>
                                 )}
-                                onSelect={(_, value) => { setSortBy(value as SortByOption); setIsSortByOpen(false); }}
+                                onSelect={(_, value) => { 
+                                  if (value) {
+                                    setSortBy(value as SortByOption); 
+                                  }
+                                  setIsSortByOpen(false); 
+                                }}
                                 isOpen={isSortByOpen}
-                                onOpenChange={setIsSortByOpen}
+                                onOpenChange={(isOpen) => setIsSortByOpen(isOpen)}
                                 selected={sortBy}
                               >
                                 <SelectList>
