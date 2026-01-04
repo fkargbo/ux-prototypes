@@ -4989,7 +4989,6 @@ spec:
 
         {/* Main Content Area - Scrollable */}
         <div 
-          ref={scrollContainerRef}
           onScroll={handleScroll}
           style={{ flex: 1, overflowY: 'auto', padding: '24px' }}
         >
