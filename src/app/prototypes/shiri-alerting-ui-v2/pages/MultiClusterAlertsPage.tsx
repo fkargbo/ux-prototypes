@@ -152,6 +152,7 @@ import {
   EyeSlashIcon,
   SearchIcon,
   PlusIcon,
+  MinusIcon,
   AngleRightIcon,
   AngleDownIcon,
   BookmarkIcon,
@@ -547,10 +548,38 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       });
     }
 
+    // Severity order for sorting: Critical first, then Warning, Info, Healthy
+    const severityOrder: Record<string, number> = { Critical: 0, Warning: 1, Info: 2, Healthy: 3 };
+    const getClusterSeverityOrder = (cluster: ClusterData): number => {
+      const status = getClusterAlertStatus(cluster);
+      const statusCapitalized = status.charAt(0).toUpperCase() + status.slice(1);
+      return severityOrder[statusCapitalized] ?? 4;
+    };
+
+    // Calculate adjusted value for sorting: Critical items get highest priority (largest value multiplier)
+    // This ensures treemap displays Critical first (left), then Warning, Info, Healthy (right)
+    const getAdjustedValue = (cluster: ClusterData): number => {
+      const baseValue = getTileValue(cluster, importanceSizing, severityFilter);
+      const severityPriority = getClusterSeverityOrder(cluster);
+      // Invert priority so Critical (0) gets highest multiplier, Healthy (3) gets lowest
+      // Use a multiplier based on severity: Critical=1000, Warning=100, Info=10, Healthy=1
+      const multiplier = Math.pow(10, 3 - severityPriority);
+      return baseValue * multiplier;
+    };
+
     if (groupBy === 'none') {
-      return filteredClusters.map(cluster => ({
+      // Sort clusters by severity (Critical first)
+      const sortedClusters = [...filteredClusters].sort((a, b) => {
+        const severityDiff = getClusterSeverityOrder(a) - getClusterSeverityOrder(b);
+        if (severityDiff !== 0) return severityDiff;
+        const aCount = a.alerts.filter(al => al.status === 'firing').length;
+        const bCount = b.alerts.filter(al => al.status === 'firing').length;
+        if (aCount !== bCount) return bCount - aCount;
+        return a.name.localeCompare(b.name);
+      });
+      return sortedClusters.map(cluster => ({
         name: cluster.name,
-        value: getTileValue(cluster, importanceSizing, severityFilter),
+        value: getAdjustedValue(cluster),
         itemStyle: { color: getClusterColor(cluster) },
         cluster,
       }));
@@ -568,17 +597,49 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       groups[key].push(cluster);
     });
 
-    return Object.entries(groups)
+    // Sort groups by severity order (Critical first), then sort clusters within each group
+    const sortedGroupEntries = Object.entries(groups)
       .filter(([_, groupClusters]) => groupClusters.length > 0)
-      .map(([groupName, groupClusters]) => ({
-        name: groupName,
-        children: groupClusters.map(cluster => ({
+      .sort((a, b) => {
+        // Sort groups by severity order if grouped by severity
+        if (groupBy === 'severity') {
+          return (severityOrder[a[0]] ?? 4) - (severityOrder[b[0]] ?? 4);
+        }
+        // Otherwise alphabetical
+        return a[0].localeCompare(b[0]);
+      });
+
+    // Calculate group value sum for proper group ordering
+    return sortedGroupEntries.map(([groupName, groupClusters], groupIndex) => {
+      // Sort clusters within group
+      const sortedChildren = groupClusters
+        .sort((a, b) => {
+          // Sort by severity (Critical first), then by alert count, then by name
+          const severityDiff = getClusterSeverityOrder(a) - getClusterSeverityOrder(b);
+          if (severityDiff !== 0) return severityDiff;
+          const aCount = a.alerts.filter(al => al.status === 'firing').length;
+          const bCount = b.alerts.filter(al => al.status === 'firing').length;
+          if (aCount !== bCount) return bCount - aCount;
+          return a.name.localeCompare(b.name);
+        })
+        .map(cluster => ({
           name: cluster.name,
-          value: getTileValue(cluster, importanceSizing, severityFilter),
+          value: getAdjustedValue(cluster),
           itemStyle: { color: getClusterColor(cluster) },
           cluster,
-        })),
-      }));
+        }));
+      
+      // For groups, give priority to earlier groups (Critical comes first)
+      // Use a very large multiplier to ensure group ordering
+      const groupMultiplier = Math.pow(10, 6 - groupIndex);
+      const childrenSum = sortedChildren.reduce((sum, c) => sum + c.value, 0);
+      
+      return {
+        name: groupName,
+        value: childrenSum * groupMultiplier,
+        children: sortedChildren,
+      };
+    });
   };
 
   const option = {
@@ -1316,6 +1377,12 @@ interface FilterPanelProps {
   regionCounts?: Record<string, number>;
   clusterCounts?: Record<string, number>;
   namespaceCounts?: Record<string, number>;
+  // Scope-based filters (show additional alert-specific filters)
+  showAlertFilters?: boolean;
+  stateFilter?: string[];
+  setStateFilter?: (v: string[]) => void;
+  sourceFilter?: string[];
+  setSourceFilter?: (v: string[]) => void;
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
@@ -1330,12 +1397,19 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   onClose,
   savedFilters, onApplySavedFilter, onSaveFilter, onDeleteSavedFilter,
   regionCounts = {}, clusterCounts = {}, namespaceCounts = {},
+  showAlertFilters = false,
+  stateFilter = [],
+  setStateFilter,
+  sourceFilter = [],
+  setSourceFilter,
 }) => {
   const allSeverities: AlertSeverity[] = ['Critical', 'Warning', 'Info'];
   const allGroups: AlertGroup[] = ['Cluster', 'Namespace'];
   const clusterComponents: AlertComponent[] = ['kube-apiserver', 'etcd', 'Scheduler', 'Controller', 'Network'];
   const namespaceComponents: AlertComponent[] = ['Workload', 'Pod', 'Storage', 'Quota', 'Network'];
   const allComponents: AlertComponent[] = ['kube-apiserver', 'Storage', 'Network', 'etcd', 'Scheduler', 'Controller', 'Workload', 'Pod', 'Quota'];
+  const allStates = ['firing', 'pending', 'acknowledged'];
+  const allSources = ['Platform', 'User-defined'];
 
   // Dropdown open states
   const [isRegionOpen, setIsRegionOpen] = React.useState(false);
@@ -1343,6 +1417,8 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const [isNamespaceOpen, setIsNamespaceOpen] = React.useState(false);
   const [isLabelOpen, setIsLabelOpen] = React.useState(false);
   const [isComponentOpen, setIsComponentOpen] = React.useState(false);
+  const [isStateOpen, setIsStateOpen] = React.useState(false);
+  const [isSourceOpen, setIsSourceOpen] = React.useState(false);
 
   // Search values for dropdowns
   const [regionSearchValue, setRegionSearchValue] = React.useState('');
@@ -1767,6 +1843,128 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
             )}
           </StackItem>
 
+          {/* Alert-specific filters (shown when in firing alerts scope) */}
+          {showAlertFilters && (
+            <>
+              <Divider />
+              <StackItem>
+                <Content component="small" style={{ fontWeight: 'bold', color: 'var(--pf-t--global--text--color--regular)' }}>
+                  Alert Filters
+                </Content>
+              </StackItem>
+
+              {/* State Filter */}
+              <StackItem>
+                <Select
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle 
+                      ref={toggleRef} 
+                      onClick={() => setIsStateOpen(!isStateOpen)} 
+                      isExpanded={isStateOpen}
+                      isFullWidth
+                    >
+                      {stateFilter.length === 0 ? 'State' : `${stateFilter.length} selected`}
+                    </MenuToggle>
+                  )}
+                  onSelect={(_, value) => {
+                    const val = value as string;
+                    if (setStateFilter) {
+                      if (stateFilter.includes(val)) {
+                        setStateFilter(stateFilter.filter(s => s !== val));
+                      } else {
+                        setStateFilter([...stateFilter, val]);
+                      }
+                    }
+                  }}
+                  isOpen={isStateOpen}
+                  onOpenChange={setIsStateOpen}
+                  selected={stateFilter}
+                >
+                  <SelectList>
+                    {allStates.map(state => (
+                      <SelectOption 
+                        key={state} 
+                        value={state} 
+                        hasCheckbox 
+                        isSelected={stateFilter.includes(state)}
+                      >
+                        {state.charAt(0).toUpperCase() + state.slice(1)}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
+                {stateFilter.length > 0 && (
+                  <LabelGroup style={{ marginTop: '8px' }}>
+                    {stateFilter.map(s => (
+                      <Label 
+                        key={s} 
+                        color="blue" 
+                        onClose={() => setStateFilter && setStateFilter(stateFilter.filter(x => x !== s))}
+                      >
+                        {s.charAt(0).toUpperCase() + s.slice(1)}
+                      </Label>
+                    ))}
+                  </LabelGroup>
+                )}
+              </StackItem>
+
+              {/* Source Filter */}
+              <StackItem>
+                <Select
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle 
+                      ref={toggleRef} 
+                      onClick={() => setIsSourceOpen(!isSourceOpen)} 
+                      isExpanded={isSourceOpen}
+                      isFullWidth
+                    >
+                      {sourceFilter.length === 0 ? 'Source' : `${sourceFilter.length} selected`}
+                    </MenuToggle>
+                  )}
+                  onSelect={(_, value) => {
+                    const val = value as string;
+                    if (setSourceFilter) {
+                      if (sourceFilter.includes(val)) {
+                        setSourceFilter(sourceFilter.filter(s => s !== val));
+                      } else {
+                        setSourceFilter([...sourceFilter, val]);
+                      }
+                    }
+                  }}
+                  isOpen={isSourceOpen}
+                  onOpenChange={setIsSourceOpen}
+                  selected={sourceFilter}
+                >
+                  <SelectList>
+                    {allSources.map(source => (
+                      <SelectOption 
+                        key={source} 
+                        value={source} 
+                        hasCheckbox 
+                        isSelected={sourceFilter.includes(source)}
+                      >
+                        {source}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
+                {sourceFilter.length > 0 && (
+                  <LabelGroup style={{ marginTop: '8px' }}>
+                    {sourceFilter.map(s => (
+                      <Label 
+                        key={s} 
+                        color="purple" 
+                        onClose={() => setSourceFilter && setSourceFilter(sourceFilter.filter(x => x !== s))}
+                      >
+                        {s}
+                      </Label>
+                    ))}
+                  </LabelGroup>
+                )}
+              </StackItem>
+            </>
+          )}
+
           {hasActiveFilters && (
             <>
               <Divider />
@@ -1806,6 +2004,7 @@ interface AllAlertsCardProps {
   onAlertClick: (alert: AlertData) => void;
   onAlertRuleClick: (alertName: string) => void;
   onComponentClick: (componentName: string) => void;
+  singleClusterView?: boolean;
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
@@ -1818,6 +2017,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   onAlertClick,
   onAlertRuleClick,
   onComponentClick,
+  singleClusterView = false,
 }) => {
   const [searchValue, setSearchValue] = React.useState('');
   const [severityFilter, setSeverityFilter] = React.useState<AlertSeverity[]>([]);
@@ -1828,6 +2028,47 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const [openActionMenuId, setOpenActionMenuId] = React.useState<string | null>(null);
   const [insightsItemCount, setInsightsItemCount] = React.useState<number>(5);
   const [isInsightsCountOpen, setIsInsightsCountOpen] = React.useState(false);
+  
+  // Bulk selection state
+  const [selectedAlertKeys, setSelectedAlertKeys] = React.useState<Set<string>>(new Set());
+  const [isSilenceModalOpen, setIsSilenceModalOpen] = React.useState(false);
+  const [silenceDuration, setSilenceDuration] = React.useState<number>(2);
+  const [silenceDurationUnit, setSilenceDurationUnit] = React.useState<'Hours' | 'Days' | 'Weeks'>('Hours');
+  const [silenceComment, setSilenceComment] = React.useState<string>('');
+  const [isDurationUnitOpen, setIsDurationUnitOpen] = React.useState(false);
+  
+  // Toggle selection for a single alert
+  const toggleAlertSelection = (alertKey: string) => {
+    setSelectedAlertKeys(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(alertKey)) {
+        newSet.delete(alertKey);
+      } else {
+        newSet.add(alertKey);
+      }
+      return newSet;
+    });
+  };
+  
+  // Select/deselect all visible alerts
+  const toggleSelectAll = () => {
+    const visibleKeys = paginatedAggregatedAlerts.map(agg => `${agg.alertName}-${agg.severity}`);
+    const allSelected = visibleKeys.every(key => selectedAlertKeys.has(key));
+    
+    if (allSelected) {
+      setSelectedAlertKeys(prev => {
+        const newSet = new Set(prev);
+        visibleKeys.forEach(key => newSet.delete(key));
+        return newSet;
+      });
+    } else {
+      setSelectedAlertKeys(prev => {
+        const newSet = new Set(prev);
+        visibleKeys.forEach(key => newSet.add(key));
+        return newSet;
+      });
+    }
+  };
 
   // Get all alerts with cluster info
   const allAlerts = React.useMemo(() => {
@@ -1889,6 +2130,13 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       return true;
     });
   }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue]);
+
+  // Get selected alerts data for silence modal
+  const selectedAlertsData = React.useMemo(() => {
+    return filteredAggregatedAlerts.filter(agg => 
+      selectedAlertKeys.has(`${agg.alertName}-${agg.severity}`)
+    );
+  }, [filteredAggregatedAlerts, selectedAlertKeys]);
 
   // Filter individual alerts (for non-aggregated view)
   const filteredAlerts = React.useMemo(() => {
@@ -1964,7 +2212,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>
             <CardTitle>
-              Alerts & Insights
+              Alerts
             </CardTitle>
           </FlexItem>
         </Flex>
@@ -2012,7 +2260,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                       <ToolbarItem>
                         <Switch
                           id="aggregate-all-alerts-switch"
-                          label="Aggregate by rule"
+                          label="Aggregate by name and severity"
                           isChecked={isAggregated}
                           onChange={(_, checked) => {
                             setIsAggregated(checked);
@@ -2021,20 +2269,19 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           }}
                         />
                       </ToolbarItem>
-                      {alertNameFilter && (
+                      {/* Bulk action button - shown when alerts are selected */}
+                      {selectedAlertKeys.size > 0 && (
                         <ToolbarItem>
-                          <Label color="blue" onClose={onClearAlertNameFilter}>
-                            Alert: {alertNameFilter}
-                          </Label>
+                          <Button 
+                            variant="secondary" 
+                            icon={<BellSlashIcon />}
+                            onClick={() => setIsSilenceModalOpen(true)}
+                          >
+                            Silence alerts ({selectedAlertKeys.size} selected)
+                          </Button>
                         </ToolbarItem>
                       )}
-                      {componentFilter && (
-                        <ToolbarItem>
-                          <Label color="green" onClose={onClearComponentFilter}>
-                            Component: {componentFilter}
-                          </Label>
-                        </ToolbarItem>
-                      )}
+                      {/* Filter chips moved to main toolbar */}
                       <ToolbarItem align={{ default: 'alignEnd' }}>
                         <Pagination
                           itemCount={totalItems}
@@ -2059,17 +2306,39 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 <Thead>
                   <Tr>
                     <Th screenReaderText="Expand" />
-                    <Th>Alert Name</Th>
-                    <Th>Severity</Th>
-                    <Th>Clusters</Th>
-                    <Th>Total Instances</Th>
-                    <Th>Group</Th>
-                    <Th>Component</Th>
+                    <Th>
+                      <Checkbox 
+                        id="select-all-alerts"
+                        aria-label="Select all alerts"
+                        isChecked={paginatedAggregatedAlerts.length > 0 && paginatedAggregatedAlerts.every(agg => selectedAlertKeys.has(`${agg.alertName}-${agg.severity}`))}
+                        onChange={toggleSelectAll}
+                      />
+                    </Th>
+                    <Th sort={{ sortBy: { index: 0, direction: 'asc' }, columnIndex: 0 }}>Alert name</Th>
+                    <Th sort={{ sortBy: { index: 1, direction: 'asc' }, columnIndex: 1 }}>Severity</Th>
+                    {singleClusterView ? (
+                      <>
+                        <Th>Total</Th>
+                        <Th sort={{ sortBy: { index: 2, direction: 'asc' }, columnIndex: 2 }}>State</Th>
+                        <Th>Namespace</Th>
+                        <Th>Resource</Th>
+                      </>
+                    ) : (
+                      <>
+                        <Th>Clusters</Th>
+                        <Th>Total Instances</Th>
+                        <Th>Group</Th>
+                        <Th>Component</Th>
+                      </>
+                    )}
                   </Tr>
                 </Thead>
                 {paginatedAggregatedAlerts.map((agg, idx) => {
                   const alertKey = `${agg.alertName}-${agg.severity}`;
                   const isExpanded = expandedAlerts.includes(alertKey);
+                  // Get first alert for state and source info
+                  const firstAlertInfo = agg.clusters[0];
+                  const firstAlert = firstAlertInfo?.cluster?.alerts?.find(a => a.alertName === agg.alertName && a.severity === agg.severity);
                   return (
                     <Tbody key={alertKey} isExpanded={isExpanded}>
                       <Tr>
@@ -2081,106 +2350,218 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           }}
                         />
                         <Td>
-                          <strong>{agg.alertName}</strong>
+                          <Checkbox 
+                            id={`checkbox-${alertKey}`} 
+                            aria-label={`Select ${agg.alertName}`}
+                            isChecked={selectedAlertKeys.has(alertKey)}
+                            onChange={() => toggleAlertSelection(alertKey)}
+                          />
+                        </Td>
+                        <Td>
+                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                            <FlexItem>
+                              <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
+                            </FlexItem>
+                            <FlexItem>
+                              <Button 
+                                variant="link" 
+                                isInline 
+                                onClick={() => {
+                                  if (firstAlert) {
+                                    onAlertClick(firstAlert);
+                                  }
+                                }}
+                              >
+                                {agg.alertName}
+                              </Button>
+                            </FlexItem>
+                          </Flex>
                         </Td>
                         <Td>
                           <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>
                             {agg.severity}
                           </Label>
                         </Td>
-                        <Td>
-                          <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>
-                        </Td>
-                        <Td>
-                          <Badge>{agg.totalCount}</Badge>
-                        </Td>
-                        <Td><Label isCompact>{agg.group}</Label></Td>
-                        <Td><Label isCompact variant="outline">{agg.component}</Label></Td>
+                        {singleClusterView ? (
+                          <>
+                            <Td>{agg.totalCount}</Td>
+                            <Td>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                <FlexItem>
+                                  <Icon status={firstAlert?.status === 'firing' ? 'warning' : 'info'}>
+                                    <BellIcon />
+                                  </Icon>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Stack>
+                                    <StackItem>Firing Since</StackItem>
+                                    <StackItem>
+                                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                        {firstAlert?.lastFired || 'Unknown'}
+                                      </Content>
+                                    </StackItem>
+                                  </Stack>
+                                </FlexItem>
+                              </Flex>
+                            </Td>
+                            <Td>
+                              <Label color="blue" isCompact>NS</Label>{' '}
+                              {firstAlert?.namespace || 'default'}
+                            </Td>
+                            <Td>
+                              {firstAlert?.resource ? (
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <FlexItem>
+                                    <Label color="grey" isCompact>N</Label>
+                                  </FlexItem>
+                                  <FlexItem>{firstAlert.resource}</FlexItem>
+                                </Flex>
+                              ) : '-'}
+                            </Td>
+                          </>
+                        ) : (
+                          <>
+                            <Td>
+                              <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>
+                            </Td>
+                            <Td>
+                              <Badge>{agg.totalCount}</Badge>
+                            </Td>
+                            <Td><Label isCompact>{agg.group}</Label></Td>
+                            <Td><Label isCompact variant="outline">{agg.component}</Label></Td>
+                          </>
+                        )}
                       </Tr>
                       <Tr isExpanded={isExpanded}>
-                        <Td colSpan={7}>
+                        <Td colSpan={singleClusterView ? 8 : 8}>
                           <ExpandableRowContent>
                             <Stack hasGutter>
                               <StackItem>
                                 <Content component="small" className="pf-v6-u-mb-sm">
-                                  <strong>Clusters firing this alert:</strong>
                                 </Content>
                               </StackItem>
                               <StackItem>
-                                <Table aria-label="Clusters with alert" variant="compact">
+                                <Table aria-label={singleClusterView ? "Alert instances" : "Clusters with alert"} variant="compact">
                                   <Thead>
                                     <Tr>
-                                      <Th>Cluster Name</Th>
-                                      <Th>Last Fired</Th>
-                                      <Th>Actions</Th>
+                                      <Th screenReaderText="Select" />
+                                      <Th sort={{ sortBy: { index: 0, direction: 'asc' }, columnIndex: 0 }}>Alert Name</Th>
+                                      <Th sort={{ sortBy: { index: 1, direction: 'asc' }, columnIndex: 1 }}>Severity</Th>
+                                      <Th sort={{ sortBy: { index: 2, direction: 'asc' }, columnIndex: 2 }}>State</Th>
+                                      <Th>Namespace</Th>
+                                      <Th>Resource</Th>
                                     </Tr>
                                   </Thead>
                                   <Tbody>
-                                    {agg.clusters.map(clusterInfo => (
-                                      <Tr key={clusterInfo.name}>
+                                    {agg.clusters.map((clusterInfo, instanceIdx) => {
+                                      const alertInstance = clusterInfo.cluster?.alerts?.find(
+                                        a => a.alertName === agg.alertName && a.severity === agg.severity
+                                      );
+                                      return (
+                                      <Tr key={singleClusterView ? `${clusterInfo.name}-${instanceIdx}` : clusterInfo.name}>
                                         <Td>
-                                          <ClusterIcon /> {clusterInfo.name}
+                                          <Checkbox id={`checkbox-${alertKey}-${instanceIdx}`} aria-label={`Select ${agg.alertName} instance`} />
                                         </Td>
-                                        <Td>{clusterInfo.lastFired}</Td>
                                         <Td>
-                                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                            <FlexItem>
+                                              <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
+                                            </FlexItem>
                                             <FlexItem>
                                               <Button 
                                                 variant="link" 
                                                 isInline 
-                                                onClick={() => onClusterClick(clusterInfo.cluster)}
+                                                onClick={() => {
+                                                  if (alertInstance) {
+                                                    onAlertClick(alertInstance);
+                                                  }
+                                                }}
                                               >
-                                                View cluster alerts
+                                                {agg.alertName}
                                               </Button>
-                                            </FlexItem>
-                                            <FlexItem>
-                                              <Dropdown
-                                                isOpen={openActionMenuId === `${agg.alertName}-${clusterInfo.name}`}
-                                                onOpenChange={(isOpen) => setOpenActionMenuId(isOpen ? `${agg.alertName}-${clusterInfo.name}` : null)}
-                                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                                  <MenuToggle 
-                                                    ref={toggleRef} 
-                                                    variant="plain" 
-                                                    aria-label="Alert actions"
-                                                    onClick={() => setOpenActionMenuId(
-                                                      openActionMenuId === `${agg.alertName}-${clusterInfo.name}` 
-                                                        ? null 
-                                                        : `${agg.alertName}-${clusterInfo.name}`
-                                                    )}
-                                                    isExpanded={openActionMenuId === `${agg.alertName}-${clusterInfo.name}`}
-                                                  >
-                                                    <EllipsisVIcon />
-                                                  </MenuToggle>
-                                                )}
-                                                popperProps={{ position: 'right' }}
-                                              >
-                                                <DropdownList>
-                                                  <DropdownItem key="silence" icon={<BellSlashIcon />} onClick={() => setOpenActionMenuId(null)}>
-                                                    Silence
-                                                  </DropdownItem>
-                                                  <DropdownItem key="logs" icon={<ListIcon />} onClick={() => setOpenActionMenuId(null)}>
-                                                    View logs
-                                                  </DropdownItem>
-                                                  <DropdownItem key="rule" icon={<OutlinedBellIcon />} onClick={() => setOpenActionMenuId(null)}>
-                                                    View alert rule
-                                                  </DropdownItem>
-                                                  <DropdownItem key="metrics" icon={<ChartLineIcon />} onClick={() => setOpenActionMenuId(null)}>
-                                                    View metrics
-                                                  </DropdownItem>
-                                                  <Divider component="li" />
-                                                  <DropdownItem key="incident" icon={<ExclamationTriangleIcon />} onClick={() => setOpenActionMenuId(null)}>
-                                                    See related incident
-                                                  </DropdownItem>
-                                                  <DropdownItem key="troubleshoot" icon={<WrenchIcon />} onClick={() => setOpenActionMenuId(null)}>
-                                                    Troubleshoot
-                                                  </DropdownItem>
-                                                </DropdownList>
-                                              </Dropdown>
                                             </FlexItem>
                                           </Flex>
                                         </Td>
+                                        <Td>
+                                          <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>
+                                            {agg.severity}
+                                          </Label>
+                                        </Td>
+                                        <Td>
+                                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                            <FlexItem>
+                                              <Icon status="warning"><BellIcon /></Icon>
+                                            </FlexItem>
+                                            <FlexItem>
+                                              <Stack>
+                                                <StackItem>Firing Since</StackItem>
+                                                <StackItem>
+                                                  <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                                    {clusterInfo.lastFired}
+                                                  </Content>
+                                                </StackItem>
+                                              </Stack>
+                                            </FlexItem>
+                                          </Flex>
+                                        </Td>
+                                        <Td>
+                                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                            <FlexItem><Label color="blue" isCompact>NS</Label></FlexItem>
+                                            <FlexItem>{alertInstance?.namespace || 'default'}</FlexItem>
+                                          </Flex>
+                                        </Td>
+                                        <Td>
+                                          {alertInstance?.resource ? (
+                                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                              <FlexItem><Label color="grey" isCompact>N</Label></FlexItem>
+                                              <FlexItem>{alertInstance.resource}</FlexItem>
+                                            </Flex>
+                                          ) : '-'}
+                                        </Td>
+                                        <Td>
+                                          <Dropdown
+                                            isOpen={openActionMenuId === `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`}
+                                            onOpenChange={(isOpen) => setOpenActionMenuId(isOpen ? `${agg.alertName}-${clusterInfo.name}-${instanceIdx}` : null)}
+                                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                              <MenuToggle 
+                                                ref={toggleRef} 
+                                                variant="plain" 
+                                                aria-label="Alert actions"
+                                                onClick={() => setOpenActionMenuId(
+                                                  openActionMenuId === `${agg.alertName}-${clusterInfo.name}-${instanceIdx}` 
+                                                    ? null 
+                                                    : `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`
+                                                )}
+                                                isExpanded={openActionMenuId === `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`}
+                                              >
+                                                <EllipsisVIcon />
+                                              </MenuToggle>
+                                            )}
+                                            popperProps={{ position: 'right' }}
+                                          >
+                                            <DropdownList>
+                                              <DropdownItem key="silence" icon={<BellSlashIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                Silence
+                                              </DropdownItem>
+                                              <DropdownItem key="logs" icon={<ListIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                View logs
+                                              </DropdownItem>
+                                              <DropdownItem key="rule" icon={<OutlinedBellIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                View alert rule
+                                              </DropdownItem>
+                                              <DropdownItem key="metrics" icon={<ChartLineIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                View metrics
+                                              </DropdownItem>
+                                              <Divider component="li" />
+                                              <DropdownItem key="troubleshoot" icon={<WrenchIcon />} onClick={() => setOpenActionMenuId(null)}>
+                                                Troubleshoot
+                                              </DropdownItem>
+                                            </DropdownList>
+                                          </Dropdown>
+                                        </Td>
                                       </Tr>
-                                    ))}
+                                    );
+                                    })}
                                   </Tbody>
                                 </Table>
                               </StackItem>
@@ -2236,6 +2617,177 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 </StackItem>
               </Stack>
       </CardBody>
+      
+      {/* Silence Alerts Modal */}
+      <Modal
+        isOpen={isSilenceModalOpen}
+        onClose={() => setIsSilenceModalOpen(false)}
+        variant="medium"
+        aria-labelledby="silence-modal-title"
+        aria-describedby="silence-modal-body"
+      >
+        <ModalHeader title="Silence selected alerts" labelId="silence-modal-title" />
+        <ModalBody id="silence-modal-body">
+          <Stack hasGutter>
+            <StackItem>
+              <Content component="p">
+                Temporarily stop notifications for <strong>{selectedAlertKeys.size} selected</strong> alerts. 
+                When the alert state is set to 'Silenced', all alert notifications will be muted until the 
+                specified time. The creator of this silence is <strong>admin@example.com</strong>.
+              </Content>
+            </StackItem>
+            
+            <StackItem>
+              <Accordion>
+                <AccordionItem>
+                  <AccordionToggle
+                    id="silence-params-toggle"
+                    onClick={() => {}}
+                  >
+                    Alerts silence parameters
+                  </AccordionToggle>
+                  <AccordionContent>
+                    <div style={{ 
+                      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', 
+                      padding: '12px', 
+                      borderRadius: '4px',
+                      maxHeight: '150px',
+                      overflowY: 'auto'
+                    }}>
+                      {selectedAlertsData.map(agg => (
+                        <div key={`${agg.alertName}-${agg.severity}`} style={{ marginBottom: '4px' }}>
+                          <Content component="small">alertname={agg.alertName}</Content>
+                        </div>
+                      ))}
+                      {selectedAlertsData.length > 0 && (
+                        <>
+                          <Content component="small">severity={selectedAlertsData.map(a => a.severity.toLowerCase()).join(',')}</Content>
+                          <br />
+                          <Content component="small">namespace: default</Content>
+                          <br />
+                          <Content component="small">prometheus=openshift-monitoring/k8s</Content>
+                        </>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </StackItem>
+            
+            <StackItem>
+              <PfAlert variant="info" isInline title="This action will silence all alerts that match the selected parameters.">
+                To silence alerts with a different set of parameters, please <Button variant="link" isInline>create a new silence rule</Button>.
+              </PfAlert>
+            </StackItem>
+            
+            <StackItem>
+              <Stack hasGutter>
+                <StackItem>
+                  <Content component="p"><strong>Silence notifications for selected alerts</strong> <Tooltip content="Duration for which alerts will be silenced"><QuestionCircleIcon /></Tooltip></Content>
+                </StackItem>
+                <StackItem>
+                  <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content component="small">From</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <DatePicker aria-label="Start date" />
+                    </FlexItem>
+                    <FlexItem>
+                      <TimePicker aria-label="Start time" />
+                    </FlexItem>
+                  </Flex>
+                </StackItem>
+                <StackItem>
+                  <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <input type="radio" id="silence-for" name="silence-duration-type" defaultChecked />
+                      <label htmlFor="silence-for" style={{ marginLeft: '8px' }}>For</label>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <Button variant="control" icon={<MinusIcon />} onClick={() => setSilenceDuration(Math.max(1, silenceDuration - 1))} />
+                        <TextInputGroup style={{ width: '60px' }}>
+                          <TextInputGroupMain 
+                            type="number" 
+                            value={silenceDuration} 
+                            onChange={(_, val) => setSilenceDuration(parseInt(val) || 1)}
+                          />
+                        </TextInputGroup>
+                        <Button variant="control" icon={<PlusIcon />} onClick={() => setSilenceDuration(silenceDuration + 1)} />
+                        <Dropdown
+                          isOpen={isDurationUnitOpen}
+                          onOpenChange={setIsDurationUnitOpen}
+                          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                            <MenuToggle ref={toggleRef} onClick={() => setIsDurationUnitOpen(!isDurationUnitOpen)} isExpanded={isDurationUnitOpen}>
+                              {silenceDurationUnit}
+                            </MenuToggle>
+                          )}
+                        >
+                          <DropdownList>
+                            <DropdownItem onClick={() => { setSilenceDurationUnit('Hours'); setIsDurationUnitOpen(false); }}>Hours</DropdownItem>
+                            <DropdownItem onClick={() => { setSilenceDurationUnit('Days'); setIsDurationUnitOpen(false); }}>Days</DropdownItem>
+                            <DropdownItem onClick={() => { setSilenceDurationUnit('Weeks'); setIsDurationUnitOpen(false); }}>Weeks</DropdownItem>
+                          </DropdownList>
+                        </Dropdown>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </StackItem>
+                <StackItem>
+                  <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <input type="radio" id="silence-until" name="silence-duration-type" />
+                      <label htmlFor="silence-until" style={{ marginLeft: '8px' }}>Until</label>
+                    </FlexItem>
+                    <FlexItem>
+                      <DatePicker aria-label="End date" isDisabled />
+                    </FlexItem>
+                    <FlexItem>
+                      <TimePicker aria-label="End time" isDisabled />
+                    </FlexItem>
+                  </Flex>
+                </StackItem>
+              </Stack>
+            </StackItem>
+            
+            <StackItem>
+              <Stack hasGutter>
+                <StackItem>
+                  <Content component="p"><strong>Comment (optional)</strong> <Tooltip content="Add a comment to help identify this silence"><QuestionCircleIcon /></Tooltip></Content>
+                </StackItem>
+                <StackItem>
+                  <TextInputGroup>
+                    <TextInputGroupMain 
+                      placeholder="I'm on it!"
+                      value={silenceComment}
+                      onChange={(_, val) => setSilenceComment(val)}
+                    />
+                  </TextInputGroup>
+                  <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginTop: '4px' }}>
+                    Add a short comment to provide more details.
+                  </Content>
+                </StackItem>
+              </Stack>
+            </StackItem>
+          </Stack>
+        </ModalBody>
+        <ModalFooter>
+          <Button 
+            variant="primary" 
+            onClick={() => {
+              setIsSilenceModalOpen(false);
+              setSelectedAlertKeys(new Set());
+              // Would trigger actual silence API call here
+            }}
+          >
+            Silence alert
+          </Button>
+          <Button variant="link" onClick={() => setIsSilenceModalOpen(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </Card>
   );
 };
@@ -2417,7 +2969,7 @@ const CrossClusterInsightsCards: React.FC<CrossClusterInsightsCardsProps> = ({
                     <Td><Badge>{rule.count}</Badge></Td>
                     <Td>
                       <Popover
-                        headerContent="Clusters firing this alert"
+                        headerContent="Clusters"
                         bodyContent={
                           <Stack hasGutter>
                             {rule.clusters.map(c => (
@@ -2811,7 +3363,16 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // V2: Alerts sub-tabs (Clusters health vs Firing alerts)
   const [alertsSubTab, setAlertsSubTab] = React.useState<'clusters-health' | 'firing-alerts'>('clusters-health');
   
-  // V2: Three-tier navigation state
+  // V2: In-card view states (no drill-down, stay in same page)
+  // Cluster Overview Card: show all clusters or single cluster components
+  const [clusterCardView, setClusterCardView] = React.useState<'all-clusters' | 'single-cluster-components'>('all-clusters');
+  const [selectedClusterInCard, setSelectedClusterInCard] = React.useState<ClusterData | null>(null);
+  
+  // Firing Alerts Card: show all clusters alerts or single cluster alerts
+  const [firingAlertsCardView, setFiringAlertsCardView] = React.useState<'all-clusters' | 'single-cluster'>('all-clusters');
+  const [selectedClusterForAlerts, setSelectedClusterForAlerts] = React.useState<ClusterData | null>(null);
+  
+  // V2: Three-tier navigation state (keeping for backward compat, but not used in new flow)
   const [navigationView, setNavigationView] = React.useState<NavigationView>('fleet-overview');
   const [selectedCluster, setSelectedCluster] = React.useState<ClusterData | null>(null);
   const [selectedComponent, setSelectedComponent] = React.useState<AlertComponent | null>(null);
@@ -2926,9 +3487,32 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // All alerts card state
   const [mainAlertNameFilter, setMainAlertNameFilter] = React.useState<string | null>(null);
   const [mainComponentFilter, setMainComponentFilter] = React.useState<string | null>(null);
+  
+  // Alert-specific filters for firing alerts view
+  const [alertStateFilter, setAlertStateFilter] = React.useState<string[]>([]);
+  const [alertSourceFilter, setAlertSourceFilter] = React.useState<string[]>([]);
 
   // Last refresh
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
+
+  // Sync clusterFilter clearing with in-card view states
+  // Only reset views when clusterFilter is completely cleared
+  React.useEffect(() => {
+    if (clusterFilter.length === 0) {
+      // If cluster filter is cleared, reset card views to all-clusters
+      if (selectedClusterInCard) {
+        setSelectedClusterInCard(null);
+        setClusterCardView('all-clusters');
+      }
+      if (selectedClusterForAlerts) {
+        setSelectedClusterForAlerts(null);
+        setFiringAlertsCardView('all-clusters');
+      }
+    }
+    // Note: When user selects clusters from filter panel dropdown, 
+    // we don't automatically switch to single-cluster view - 
+    // that only happens when clicking directly on treemap/table
+  }, [clusterFilter]);
 
   // Get unique filter options
   const regions = getUniqueValues(mockClusters, 'region');
@@ -3075,23 +3659,65 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   }, [drillDownFilteredAlerts]);
 
   // Handlers
-  // V2: Navigate from Treemap to Cluster Components Health view
+  // V2: Click on cluster in treemap/table - show components in-card (no drill-down)
+  const handleClusterClick = (cluster: ClusterData) => {
+    setSelectedClusterInCard(cluster);
+    setClusterCardView('single-cluster-components');
+    // Sync with filter panel - replace cluster filter with this cluster only
+    // This ensures no duplicates
+    setClusterFilter([cluster.name]);
+  };
+
+  // V2: Click on component - filter firing alerts by cluster + component
+  const handleComponentClickInCard = (cluster: ClusterData, component: AlertComponent) => {
+    setSelectedClusterForAlerts(cluster);
+    setFiringAlertsCardView('single-cluster');
+    setMainComponentFilter(component);
+    setAlertsSubTab('firing-alerts');
+    // Sync with filter panel - replace cluster filter
+    setClusterFilter([cluster.name]);
+  };
+
+  // V2: Back to all clusters view in card
+  const handleBackToAllClusters = () => {
+    setSelectedClusterInCard(null);
+    setClusterCardView('all-clusters');
+    // Clear cluster filter when going back to all clusters
+    setClusterFilter([]);
+    // Also clear component filter
+    setMainComponentFilter(null);
+  };
+
+  // V2: Click on cluster in firing alerts - show single cluster alerts in-card
+  const handleClusterClickInAlerts = (cluster: ClusterData) => {
+    setSelectedClusterForAlerts(cluster);
+    setFiringAlertsCardView('single-cluster');
+    // Sync with filter panel - replace cluster filter
+    setClusterFilter([cluster.name]);
+  };
+
+  // V2: Back to all clusters alerts view
+  const handleBackToAllClustersAlerts = () => {
+    setSelectedClusterForAlerts(null);
+    setFiringAlertsCardView('all-clusters');
+    // Clear cluster filter when going back to all clusters
+    setClusterFilter([]);
+    // Also clear component filter
+    setMainComponentFilter(null);
+    setMainComponentFilter(null);
+  };
+
+  // Legacy handlers (keeping for backward compat)
   const handleDrillDown = (cluster: ClusterData) => {
-    setSelectedCluster(cluster);
-    setSelectedComponent(null);
-    setNavigationView('cluster-components');
-    setExpandedAlertRows([]);
-    setSelectedAlerts([]);
-    clearDrillDownFilters();
+    // Now use in-card view instead of drill-down
+    handleClusterClick(cluster);
   };
 
   // V2: Navigate from Components view to filtered Alerts view
   const handleComponentClick = (component: AlertComponent) => {
-    setSelectedComponent(component);
-    setDrillDownComponentFilter([component]);
-    setNavigationView('component-alerts');
-    setExpandedAlertRows([]);
-    setSelectedAlerts([]);
+    if (selectedClusterInCard) {
+      handleComponentClickInCard(selectedClusterInCard, component);
+    }
   };
 
   // V2: Navigate back to Cluster Components view
@@ -3147,6 +3773,15 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setGroupFilter([]);
     setComponentFilter([]);
     setSearchValue('');
+    // Also clear in-card view states
+    setSelectedClusterInCard(null);
+    setClusterCardView('all-clusters');
+    setSelectedClusterForAlerts(null);
+    setFiringAlertsCardView('all-clusters');
+    setMainComponentFilter(null);
+    setMainAlertNameFilter(null);
+    // Clear treemap legend filters
+    setTreemapLegendFilters([]);
   };
 
   const handleRefresh = () => {
@@ -3191,7 +3826,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   };
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
-    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0 || searchValue.length > 0;
+    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0 || searchValue.length > 0 ||
+    selectedClusterInCard !== null || selectedClusterForAlerts !== null || mainComponentFilter !== null || mainAlertNameFilter !== null;
 
   const hasDrillDownActiveFilters = drillDownSeverityFilter.length > 0 || drillDownGroupFilter.length > 0 || 
     drillDownComponentFilter.length > 0 || drillDownSourceFilter.length > 0 || drillDownStateFilter.length > 0 ||
@@ -3621,7 +4257,7 @@ spec:
                             <StackItem>
                               <Content component="small" className="pf-v6-u-mb-sm"><strong>State</strong></Content>
                               <Stack hasGutter>
-                                {['firing', 'pending', 'resolved'].map(state => (
+                                {['firing', 'pending', 'acknowledged'].map(state => (
                                   <StackItem key={state}>
                                     <Checkbox
                                       id={`dd-state-${state}`}
@@ -4645,29 +5281,79 @@ spec:
         {hasActiveFilters && (
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginTop: '8px', marginBottom: '16px' }}>
             <FlexItem>
-              <LabelGroup categoryName="Active filters" numLabels={10}>
-                {severityFilter.map(s => (
-                  <Label key={s} color={getSeverityLabelColor(s)} onClose={() => setSeverityFilter(severityFilter.filter(x => x !== s))} icon={getSeverityIcon(s)}>{s}</Label>
-                ))}
-                {groupFilter.map(g => (
-                  <Label key={g} color="blue" onClose={() => setGroupFilter(groupFilter.filter(x => x !== g))} icon={<CubeIcon />}>{g}</Label>
-                ))}
-                {componentFilter.map(c => (
-                  <Label key={c} color="green" onClose={() => setComponentFilter(componentFilter.filter(x => x !== c))} icon={<CogIcon />}>{c}</Label>
-                ))}
-                {regionFilter.map(r => (
-                  <Label key={r} color="teal" onClose={() => setRegionFilter(regionFilter.filter(x => x !== r))} icon={<MapMarkerAltIcon />}>{r}</Label>
-                ))}
-                {clusterFilter.map(c => (
-                  <Label key={c} color="purple" onClose={() => setClusterFilter(clusterFilter.filter(x => x !== c))} icon={<ClusterIcon />}>{c}</Label>
-                ))}
-                {namespaceFilter.map(n => (
-                  <Label key={n} color="blue" onClose={() => setNamespaceFilter(namespaceFilter.filter(x => x !== n))} icon={<CubesIcon />}>{n}</Label>
-                ))}
-                {labelFilter.map(l => (
-                  <Label key={l} color="yellow" onClose={() => setLabelFilter(labelFilter.filter(x => x !== l))} icon={<FilterIcon />}>{l}</Label>
-                ))}
-              </LabelGroup>
+              <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                {/* Group filters by category with neutral styling */}
+                {groupFilter.length > 0 && (
+                  <LabelGroup categoryName="Group">
+                    {groupFilter.map(g => (
+                      <Label key={g} variant="outline" onClose={() => setGroupFilter(groupFilter.filter(x => x !== g))}>{g}</Label>
+                    ))}
+                  </LabelGroup>
+                )}
+                {/* Severity filters keep their colors */}
+                {severityFilter.length > 0 && (
+                  <LabelGroup categoryName="Severity">
+                    {severityFilter.map(s => (
+                      <Label key={s} color={getSeverityLabelColor(s)} onClose={() => setSeverityFilter(severityFilter.filter(x => x !== s))}>{s}</Label>
+                    ))}
+                  </LabelGroup>
+                )}
+                {componentFilter.length > 0 && (
+                  <LabelGroup categoryName="Component">
+                    {componentFilter.map(c => (
+                      <Label key={c} variant="outline" onClose={() => setComponentFilter(componentFilter.filter(x => x !== c))}>{c}</Label>
+                    ))}
+                  </LabelGroup>
+                )}
+                {regionFilter.length > 0 && (
+                  <LabelGroup categoryName="Region">
+                    {regionFilter.map(r => (
+                      <Label key={r} variant="outline" onClose={() => setRegionFilter(regionFilter.filter(x => x !== r))}>{r}</Label>
+                    ))}
+                  </LabelGroup>
+                )}
+                {clusterFilter.length > 0 && (
+                  <LabelGroup categoryName="Cluster">
+                    {clusterFilter.map(c => (
+                      <Label key={c} variant="outline" onClose={() => {
+                        const newFilter = clusterFilter.filter(x => x !== c);
+                        setClusterFilter(newFilter);
+                        // Also clear the in-card view states if this was the selected cluster
+                        if (newFilter.length === 0) {
+                          setSelectedClusterInCard(null);
+                          setClusterCardView('all-clusters');
+                          setSelectedClusterForAlerts(null);
+                          setFiringAlertsCardView('all-clusters');
+                        }
+                      }}>{c}</Label>
+                    ))}
+                  </LabelGroup>
+                )}
+                {namespaceFilter.length > 0 && (
+                  <LabelGroup categoryName="Namespace">
+                    {namespaceFilter.map(n => (
+                      <Label key={n} variant="outline" onClose={() => setNamespaceFilter(namespaceFilter.filter(x => x !== n))}>{n}</Label>
+                    ))}
+                  </LabelGroup>
+                )}
+                {labelFilter.length > 0 && (
+                  <LabelGroup categoryName="Label">
+                    {labelFilter.map(l => (
+                      <Label key={l} variant="outline" onClose={() => setLabelFilter(labelFilter.filter(x => x !== l))}>{l}</Label>
+                    ))}
+                  </LabelGroup>
+                )}
+                {mainComponentFilter && (
+                  <LabelGroup categoryName="Component">
+                    <Label variant="outline" onClose={() => setMainComponentFilter(null)}>{mainComponentFilter}</Label>
+                  </LabelGroup>
+                )}
+                {mainAlertNameFilter && (
+                  <LabelGroup categoryName="Alert">
+                    <Label variant="outline" onClose={() => setMainAlertNameFilter(null)}>{mainAlertNameFilter}</Label>
+                  </LabelGroup>
+                )}
+              </Flex>
             </FlexItem>
             <FlexItem>
               <Flex gap={{ default: 'gapSm' }}>
@@ -4682,6 +5368,11 @@ spec:
                 <FlexItem>
                   <Button variant="link" onClick={() => setIsFilterPanelOpen(true)}>
                     Edit filters
+                  </Button>
+                </FlexItem>
+                <FlexItem>
+                  <Button variant="link" onClick={() => setIsSaveFilterModalOpen(true)}>
+                    Add to saved filters
                   </Button>
                 </FlexItem>
                 {selectedSavedFilter && (() => {
@@ -4875,8 +5566,27 @@ spec:
                   <CardHeader>
                     <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem>
-                        <CardTitle>Clusters Fleet alerts overview</CardTitle>
+                        {clusterCardView === 'all-clusters' ? (
+                          <CardTitle>Clusters Fleet alerts overview</CardTitle>
+                        ) : (
+                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                            <FlexItem>
+                              <Button 
+                                variant="link" 
+                                isInline 
+                                onClick={handleBackToAllClusters}
+                                icon={<ArrowLeftIcon />}
+                              >
+                                All clusters
+                              </Button>
+                            </FlexItem>
+                            <FlexItem>
+                              <CardTitle>{selectedClusterInCard?.name} - Components Health</CardTitle>
+                            </FlexItem>
+                          </Flex>
+                        )}
                       </FlexItem>
+                      {clusterCardView === 'all-clusters' && (
                       <FlexItem>
                         <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
                           {/* Group By - shown for both views, disabled for Table */}
@@ -5014,10 +5724,258 @@ spec:
                           </FlexItem>
                         </Flex>
                       </FlexItem>
+                      )}
                     </Flex>
                   </CardHeader>
                   <CardBody>
-                    {viewMode === 'treemap' ? (
+                    {clusterCardView === 'single-cluster-components' && selectedClusterInCard ? (
+                      /* Single Cluster Components View */
+                      <div>
+                        {/* Cluster Details Summary */}
+                        {(() => {
+                          const firingAlerts = selectedClusterInCard.alerts.filter(a => a.status === 'firing');
+                          const criticalCount = firingAlerts.filter(a => a.severity === 'Critical').length;
+                          const warningCount = firingAlerts.filter(a => a.severity === 'Warning').length;
+                          const infoCount = firingAlerts.filter(a => a.severity === 'Info').length;
+                          const healthStatus = criticalCount > 0 ? 'Critical' : warningCount > 0 ? 'Warning' : 'Healthy';
+                          const healthColor = criticalCount > 0 ? 'red' : warningCount > 0 ? 'orange' : 'green';
+                          const healthIcon = criticalCount > 0 ? <ExclamationCircleIcon /> : warningCount > 0 ? <ExclamationTriangleIcon /> : <CheckCircleIcon />;
+                          
+                          // ACM Status config
+                          const acmStatusConfig: Record<ACMClusterStatus, { color: 'green' | 'red' | 'orange' | 'blue' | 'grey'; icon: React.ReactNode; }> = {
+                            'Ready': { color: 'green', icon: <CheckCircleIcon /> },
+                            'Offline': { color: 'red', icon: <ExclamationCircleIcon /> },
+                            'Failed': { color: 'red', icon: <ExclamationCircleIcon /> },
+                            'Pending Import': { color: 'blue', icon: <ClockIcon /> },
+                            'Installing': { color: 'blue', icon: <SyncIcon /> },
+                            'Degraded': { color: 'orange', icon: <ExclamationTriangleIcon /> },
+                            'Hibernating': { color: 'grey', icon: <PauseCircleIcon /> },
+                            'Unknown': { color: 'grey', icon: <QuestionCircleIcon /> },
+                            'Detaching': { color: 'orange', icon: <SyncIcon /> },
+                          };
+                          const statusConfig = acmStatusConfig[selectedClusterInCard.acmStatus] || acmStatusConfig['Unknown'];
+                          
+                          return (
+                            <div style={{ 
+                              backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', 
+                              padding: '16px', 
+                              borderRadius: '8px', 
+                              marginBottom: '16px' 
+                            }}>
+                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
+                                <FlexItem>
+                                  <Stack hasGutter>
+                                    <StackItem>
+                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                                        <FlexItem>
+                                          <Title headingLevel="h3">{selectedClusterInCard.name}</Title>
+                                        </FlexItem>
+                                        <FlexItem>
+                                          <Label color={statusConfig.color} icon={statusConfig.icon} isCompact>
+                                            {selectedClusterInCard.acmStatus}
+                                          </Label>
+                                        </FlexItem>
+                                      </Flex>
+                                    </StackItem>
+                                    <StackItem>
+                                      <Flex gap={{ default: 'gapLg' }}>
+                                        <FlexItem>
+                                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                            Region: <strong>{selectedClusterInCard.region}</strong>
+                                          </Content>
+                                        </FlexItem>
+                                        <FlexItem>
+                                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                            Nodes: <strong>{selectedClusterInCard.nodeCount}</strong>
+                                          </Content>
+                                        </FlexItem>
+                                        <FlexItem>
+                                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                            Pods: <strong>{selectedClusterInCard.podCount || Math.floor(Math.random() * 500) + 100}</strong>
+                                          </Content>
+                                        </FlexItem>
+                                      </Flex>
+                                    </StackItem>
+                                  </Stack>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsFlexEnd' }} gap={{ default: 'gapSm' }}>
+                                    <FlexItem>
+                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Health:</Content>
+                                        <Label color={healthColor} icon={healthIcon}>{healthStatus}</Label>
+                                      </Flex>
+                                    </FlexItem>
+                                    <FlexItem>
+                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                        <Badge>{firingAlerts.length} alerts</Badge>
+                                        {criticalCount > 0 && <Label color="red" isCompact icon={<ExclamationCircleIcon />}>{criticalCount}</Label>}
+                                        {warningCount > 0 && <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>{warningCount}</Label>}
+                                        {infoCount > 0 && <Label color="blue" isCompact icon={<InfoCircleIcon />}>{infoCount}</Label>}
+                                        {firingAlerts.length === 0 && <Label color="green" isCompact icon={<CheckCircleIcon />}>Healthy</Label>}
+                                      </Flex>
+                                    </FlexItem>
+                                  </Flex>
+                                </FlexItem>
+                              </Flex>
+                            </div>
+                          );
+                        })()}
+                        
+                        {/* Impact Groups - Cluster and Namespace */}
+                        <Grid hasGutter>
+                          {/* Cluster Components */}
+                          <GridItem span={6}>
+                            <Card isCompact>
+                              <CardHeader>
+                                <CardTitle>
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                    <FlexItem><Icon status="info"><CubesIcon /></Icon></FlexItem>
+                                    <FlexItem>
+                                      <span>Impact: Cluster</span>
+                                    </FlexItem>
+                                  </Flex>
+                                </CardTitle>
+                              </CardHeader>
+                              <CardBody>
+                                <Content component="small" style={{ marginBottom: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                  Alerts related to the health and stability of the cluster's control plane, including API server, etcd, and scheduler.
+                                </Content>
+                                <Stack hasGutter>
+                                  {(() => {
+                                    const clusterAlerts = selectedClusterInCard.alerts.filter(
+                                      a => a.status === 'firing' && a.group === 'Cluster'
+                                    );
+                                    const componentCounts = clusterAlerts.reduce((acc, alert) => {
+                                      acc[alert.component] = (acc[alert.component] || 0) + 1;
+                                      return acc;
+                                    }, {} as Record<string, number>);
+                                    const components = Object.entries(componentCounts).sort((a, b) => b[1] - a[1]);
+                                    
+                                    if (components.length === 0) {
+                                      return (
+                                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                          <Icon status="success"><CheckCircleIcon /></Icon>
+                                          <span>No cluster component alerts</span>
+                                        </Flex>
+                                      );
+                                    }
+                                    
+                                    return components.map(([component, count]) => {
+                                      const compAlerts = clusterAlerts.filter(a => a.component === component);
+                                      const criticalCount = compAlerts.filter(a => a.severity === 'Critical').length;
+                                      const warningCount = compAlerts.filter(a => a.severity === 'Warning').length;
+                                      const healthColor = criticalCount > 0 ? 'red' : warningCount > 0 ? 'orange' : 'blue';
+                                      const healthIcon = criticalCount > 0 ? <ExclamationCircleIcon /> : warningCount > 0 ? <ExclamationTriangleIcon /> : <InfoCircleIcon />;
+                                      
+                                      return (
+                                        <Button
+                                          key={component}
+                                          variant="link"
+                                          isBlock
+                                          style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid var(--pf-t--global--border--color--default)', borderRadius: '4px' }}
+                                          onClick={() => handleComponentClickInCard(selectedClusterInCard, component as AlertComponent)}
+                                        >
+                                          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <FlexItem>
+                                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                                <Icon status={criticalCount > 0 ? 'danger' : warningCount > 0 ? 'warning' : 'info'}>{healthIcon}</Icon>
+                                                <span>{component}</span>
+                                              </Flex>
+                                            </FlexItem>
+                                            <FlexItem>
+                                              <Flex gap={{ default: 'gapSm' }}>
+                                                {criticalCount > 0 && <Label color="red" isCompact>{criticalCount} Critical</Label>}
+                                                {warningCount > 0 && <Label color="orange" isCompact>{warningCount} Warning</Label>}
+                                              </Flex>
+                                            </FlexItem>
+                                          </Flex>
+                                        </Button>
+                                      );
+                                    });
+                                  })()}
+                                </Stack>
+                              </CardBody>
+                            </Card>
+                          </GridItem>
+                          
+                          {/* Namespace Components */}
+                          <GridItem span={6}>
+                            <Card isCompact>
+                              <CardHeader>
+                                <CardTitle>
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                    <FlexItem><Icon status="info"><CubeIcon /></Icon></FlexItem>
+                                    <FlexItem>
+                                      <span>Impact: Namespace</span>
+                                    </FlexItem>
+                                  </Flex>
+                                </CardTitle>
+                              </CardHeader>
+                              <CardBody>
+                                <Content component="small" style={{ marginBottom: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                  Alerts focused on user applications and services, reporting on pod crashes, replica mismatches, and resource quota violations.
+                                </Content>
+                                <Stack hasGutter>
+                                  {(() => {
+                                    const namespaceAlerts = selectedClusterInCard.alerts.filter(
+                                      a => a.status === 'firing' && a.group === 'Namespace'
+                                    );
+                                    const componentCounts = namespaceAlerts.reduce((acc, alert) => {
+                                      acc[alert.component] = (acc[alert.component] || 0) + 1;
+                                      return acc;
+                                    }, {} as Record<string, number>);
+                                    const components = Object.entries(componentCounts).sort((a, b) => b[1] - a[1]);
+                                    
+                                    if (components.length === 0) {
+                                      return (
+                                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                          <Icon status="success"><CheckCircleIcon /></Icon>
+                                          <span>No namespace component alerts</span>
+                                        </Flex>
+                                      );
+                                    }
+                                    
+                                    return components.map(([component, count]) => {
+                                      const compAlerts = namespaceAlerts.filter(a => a.component === component);
+                                      const criticalCount = compAlerts.filter(a => a.severity === 'Critical').length;
+                                      const warningCount = compAlerts.filter(a => a.severity === 'Warning').length;
+                                      const healthColor = criticalCount > 0 ? 'red' : warningCount > 0 ? 'orange' : 'blue';
+                                      const healthIcon = criticalCount > 0 ? <ExclamationCircleIcon /> : warningCount > 0 ? <ExclamationTriangleIcon /> : <InfoCircleIcon />;
+                                      
+                                      return (
+                                        <Button
+                                          key={component}
+                                          variant="link"
+                                          isBlock
+                                          style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid var(--pf-t--global--border--color--default)', borderRadius: '4px' }}
+                                          onClick={() => handleComponentClickInCard(selectedClusterInCard, component as AlertComponent)}
+                                        >
+                                          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                            <FlexItem>
+                                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                                <Icon status={criticalCount > 0 ? 'danger' : warningCount > 0 ? 'warning' : 'info'}>{healthIcon}</Icon>
+                                                <span>{component}</span>
+                                              </Flex>
+                                            </FlexItem>
+                                            <FlexItem>
+                                              <Flex gap={{ default: 'gapSm' }}>
+                                                {criticalCount > 0 && <Label color="red" isCompact>{criticalCount} Critical</Label>}
+                                                {warningCount > 0 && <Label color="orange" isCompact>{warningCount} Warning</Label>}
+                                              </Flex>
+                                            </FlexItem>
+                                          </Flex>
+                                        </Button>
+                                      );
+                                    });
+                                  })()}
+                                </Stack>
+                              </CardBody>
+                            </Card>
+                          </GridItem>
+                        </Grid>
+                      </div>
+                    ) : viewMode === 'treemap' ? (
                       <TreemapHeatmap
                         key={`treemap-${importanceSizing}-${groupBy}-${sortBy}`}
                         clusters={sortedClusters}
@@ -5186,6 +6144,122 @@ spec:
 
       {/* V2: Scrollable Content Area - Fleet Overview - Firing Alerts Sub-tab */}
       {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'firing-alerts' && (
+        <Drawer isExpanded={isDrawerExpanded} position="end" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <DrawerContent
+            panelContent={
+              selectedAlertDetail && (
+                <DrawerPanelContent widths={{ default: 'width_50' }} style={{ minWidth: '400px' }}>
+                  <DrawerHead>
+                    <Title headingLevel="h2" size="lg">{selectedAlertDetail.alertName}</Title>
+                    <DrawerActions>
+                      <DrawerCloseButton onClick={() => { setIsDrawerExpanded(false); setSelectedAlertDetail(null); }} />
+                    </DrawerActions>
+                  </DrawerHead>
+                  <DrawerPanelBody>
+                    <Tabs defaultActiveKey={0}>
+                      <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>}>
+                        <Stack hasGutter style={{ padding: '16px 0' }}>
+                          <StackItem>
+                            <DescriptionList isHorizontal isCompact>
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Name</DescriptionListTerm>
+                                <DescriptionListDescription><strong>{selectedAlertDetail.alertName}</strong></DescriptionListDescription>
+                              </DescriptionListGroup>
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Description</DescriptionListTerm>
+                                <DescriptionListDescription>{selectedAlertDetail.description || selectedAlertDetail.summary}</DescriptionListDescription>
+                              </DescriptionListGroup>
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Source</DescriptionListTerm>
+                                <DescriptionListDescription>{selectedAlertDetail.source}</DescriptionListDescription>
+                              </DescriptionListGroup>
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Group</DescriptionListTerm>
+                                <DescriptionListDescription>
+                                  <Label color="blue">{selectedAlertDetail.group}</Label>
+                                </DescriptionListDescription>
+                              </DescriptionListGroup>
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Component</DescriptionListTerm>
+                                <DescriptionListDescription>
+                                  <Label variant="outline">{selectedAlertDetail.component}</Label>
+                                </DescriptionListDescription>
+                              </DescriptionListGroup>
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Labels</DescriptionListTerm>
+                                <DescriptionListDescription>
+                                  <LabelGroup>
+                                    {Object.entries(selectedAlertDetail.labels).slice(0, 5).map(([k, v]) => (
+                                      <Label key={k} isCompact>{k}={v}</Label>
+                                    ))}
+                                  </LabelGroup>
+                                </DescriptionListDescription>
+                              </DescriptionListGroup>
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Severity</DescriptionListTerm>
+                                <DescriptionListDescription>
+                                  <Label 
+                                    color={getSeverityLabelColor(selectedAlertDetail.severity)} 
+                                    icon={getSeverityIcon(selectedAlertDetail.severity)}
+                                  >
+                                    {selectedAlertDetail.severity}
+                                  </Label>
+                                </DescriptionListDescription>
+                              </DescriptionListGroup>
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>State</DescriptionListTerm>
+                                <DescriptionListDescription>
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                    <FlexItem>
+                                      <Label color={selectedAlertDetail.status === 'firing' ? 'red' : 'blue'}>
+                                        {selectedAlertDetail.status}
+                                      </Label>
+                                    </FlexItem>
+                                    {selectedAlertDetail.status === 'firing' && (
+                                      <FlexItem>
+                                        <Content component="small">Firing since {selectedAlertDetail.lastFired}</Content>
+                                      </FlexItem>
+                                    )}
+                                  </Flex>
+                                </DescriptionListDescription>
+                              </DescriptionListGroup>
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Namespace</DescriptionListTerm>
+                                <DescriptionListDescription>{selectedAlertDetail.namespace}</DescriptionListDescription>
+                              </DescriptionListGroup>
+                              {selectedAlertDetail.resource && (
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Resource</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    <Button variant="link" isInline>{selectedAlertDetail.resource}</Button>
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                              )}
+                            </DescriptionList>
+                          </StackItem>
+                          <Divider />
+                          <StackItem>
+                            <Title headingLevel="h4" size="md">Actions</Title>
+                            <Flex gap={{ default: 'gapMd' }} style={{ marginTop: '12px' }}>
+                              <FlexItem><Button variant="secondary" icon={<ListIcon />}>View logs</Button></FlexItem>
+                              <FlexItem><Button variant="secondary" icon={<WrenchIcon />}>Troubleshoot</Button></FlexItem>
+                              <FlexItem><Button variant="secondary" icon={<ChartLineIcon />}>See metrics</Button></FlexItem>
+                            </Flex>
+                          </StackItem>
+                        </Stack>
+                      </Tab>
+                      <Tab eventKey={1} title={<TabTitleText>Alert Timeline</TabTitleText>}>
+                        <div style={{ padding: '16px 0' }}>
+                          <Content component="p">Alert timeline visualization coming soon.</Content>
+                        </div>
+                      </Tab>
+                    </Tabs>
+                  </DrawerPanelBody>
+                </DrawerPanelContent>
+              )
+            }
+          >
+            <DrawerContentBody>
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
           {/* Filter Side Panel - Sticky */}
           {isFilterPanelOpen && (
@@ -5236,6 +6310,11 @@ spec:
                   setSavedFilters([...savedFilters, newFilter]);
                 }}
                 onDeleteSavedFilter={(id) => setSavedFilters(savedFilters.filter(f => f.id !== id))}
+                showAlertFilters={true}
+                stateFilter={alertStateFilter}
+                setStateFilter={setAlertStateFilter}
+                sourceFilter={alertSourceFilter}
+                setSourceFilter={setAlertSourceFilter}
               />
             </div>
           )}
@@ -5243,51 +6322,75 @@ spec:
           {/* Main Content Area - Firing Alerts */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
             <Stack hasGutter>
-              {/* Stats Summary Row */}
-              <StackItem>
-                <Grid hasGutter>
-                  <GridItem md={3}>
-                    <StatsCard
-                      title="Total Firing Alerts"
-                      value={totalAlerts}
-                      icon={<Icon><BellIcon /></Icon>}
-                    />
-                  </GridItem>
-                  <GridItem md={3}>
-                    <StatsCard
-                      title="Critical"
-                      value={criticalAlerts}
-                      icon={<Icon status="danger"><ExclamationCircleIcon /></Icon>}
-                      color="danger"
-                    />
-                  </GridItem>
-                  <GridItem md={3}>
-                    <StatsCard
-                      title="Warning"
-                      value={warningAlerts}
-                      icon={<Icon status="warning"><ExclamationTriangleIcon /></Icon>}
-                      color="warning"
-                    />
-                  </GridItem>
-                  <GridItem md={3}>
-                    <StatsCard
-                      title="Affected Clusters"
-                      value={filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length}
-                      icon={<Icon><ClusterIcon /></Icon>}
-                    />
-                  </GridItem>
-                </Grid>
-              </StackItem>
+              {/* Stats Summary Row - Hidden when viewing single cluster */}
+              {firingAlertsCardView === 'all-clusters' && (
+                <StackItem>
+                  <Grid hasGutter>
+                    <GridItem md={3}>
+                      <StatsCard
+                        title="Total Firing Alerts"
+                        value={totalAlerts}
+                        icon={<Icon><BellIcon /></Icon>}
+                      />
+                    </GridItem>
+                    <GridItem md={3}>
+                      <StatsCard
+                        title="Critical"
+                        value={criticalAlerts}
+                        icon={<Icon status="danger"><ExclamationCircleIcon /></Icon>}
+                        color="danger"
+                      />
+                    </GridItem>
+                    <GridItem md={3}>
+                      <StatsCard
+                        title="Warning"
+                        value={warningAlerts}
+                        icon={<Icon status="warning"><ExclamationTriangleIcon /></Icon>}
+                        color="warning"
+                      />
+                    </GridItem>
+                    <GridItem md={3}>
+                      <StatsCard
+                        title="Affected Clusters"
+                        value={filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length}
+                        icon={<Icon><ClusterIcon /></Icon>}
+                      />
+                    </GridItem>
+                  </Grid>
+                </StackItem>
+              )}
 
-              {/* Alerts & Insights Card */}
+              {/* Alerts Card */}
               <StackItem>
+                {/* Header with back button when viewing single cluster */}
+                {firingAlertsCardView === 'single-cluster' && selectedClusterForAlerts && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                      <FlexItem>
+                        <Button 
+                          variant="link" 
+                          isInline 
+                          onClick={handleBackToAllClustersAlerts}
+                          icon={<ArrowLeftIcon />}
+                        >
+                          All clusters alerts
+                        </Button>
+                      </FlexItem>
+                      <FlexItem>
+                        <Title headingLevel="h3">{selectedClusterForAlerts.name} - Firing Alerts</Title>
+                      </FlexItem>
+                    </Flex>
+                  </div>
+                )}
                 <AllAlertsCard
-                  clusters={filteredClusters}
+                  clusters={firingAlertsCardView === 'single-cluster' && selectedClusterForAlerts 
+                    ? [selectedClusterForAlerts] 
+                    : filteredClusters}
                   alertNameFilter={mainAlertNameFilter}
                   componentFilter={mainComponentFilter}
                   onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
                   onClearComponentFilter={() => setMainComponentFilter(null)}
-                  onClusterClick={handleDrillDown}
+                  onClusterClick={handleClusterClickInAlerts}
                   onAlertClick={(alert) => {
                     setSelectedAlertDetail(alert);
                     setIsDrawerExpanded(true);
@@ -5299,11 +6402,15 @@ spec:
                   onComponentClick={(componentName) => {
                     setMainComponentFilter(componentName);
                   }}
+                  singleClusterView={firingAlertsCardView === 'single-cluster'}
                 />
               </StackItem>
             </Stack>
           </div>
         </div>
+            </DrawerContentBody>
+          </DrawerContent>
+        </Drawer>
       )}
 
       {/* V2: Alerts Tab - Cluster Components Health View (View B - Pivot Point) */}
