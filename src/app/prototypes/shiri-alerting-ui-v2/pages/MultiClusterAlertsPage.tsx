@@ -1826,7 +1826,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const [expandedAlerts, setExpandedAlerts] = React.useState<string[]>([]);
   const [isAggregated, setIsAggregated] = React.useState(true);
   const [openActionMenuId, setOpenActionMenuId] = React.useState<string | null>(null);
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>('alerts');
   const [insightsItemCount, setInsightsItemCount] = React.useState<number>(5);
   const [isInsightsCountOpen, setIsInsightsCountOpen] = React.useState(false);
 
@@ -1971,9 +1970,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
         </Flex>
       </CardHeader>
       <CardBody>
-        <Tabs activeKey={activeTabKey} onSelect={(_, key) => setActiveTabKey(key)} aria-label="Alerts and Insights tabs">
-          <Tab eventKey="alerts" title={<span><BellIcon /> All Alerts</span>}>
-            <div style={{ paddingTop: '16px' }}>
               <Stack hasGutter>
                 <StackItem>
                   <Toolbar>
@@ -2239,9 +2235,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
             )}
                 </StackItem>
               </Stack>
-            </div>
-          </Tab>
-        </Tabs>
       </CardBody>
     </Card>
   );
@@ -4434,28 +4427,46 @@ spec:
 
   // Scroll-to-hide header state
   const [isHeaderVisible, setIsHeaderVisible] = React.useState(true);
-  const [headerHeight, setHeaderHeight] = React.useState(0);
+  const [headerHeight, setHeaderHeight] = React.useState(140); // Default height to prevent initial jump
   const lastScrollTopRef = React.useRef(0);
   const headerRef = React.useRef<HTMLDivElement>(null);
+  const isHeaderVisibleRef = React.useRef(true); // Use ref to avoid rapid state updates
 
   // Measure header height on mount and when content changes
   React.useEffect(() => {
-    if (headerRef.current) {
-      setHeaderHeight(headerRef.current.scrollHeight);
-    }
+    const measureHeight = () => {
+      if (headerRef.current) {
+        const height = headerRef.current.scrollHeight;
+        if (height > 0) {
+          setHeaderHeight(height);
+        }
+      }
+    };
+    // Measure immediately and after a small delay for fonts/layout
+    measureHeight();
+    const timer = setTimeout(measureHeight, 100);
+    return () => clearTimeout(timer);
   }, [mainPageTab, alertsSubTab]);
 
   const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
     const scrollThreshold = 50; // Minimum scroll before hiding header
+    const scrollDelta = Math.abs(scrollTop - lastScrollTopRef.current);
     
-    if (scrollTop > lastScrollTopRef.current && scrollTop > scrollThreshold) {
-      // Scrolling down - hide header
-      setIsHeaderVisible(false);
-    } else if (scrollTop < lastScrollTopRef.current) {
-      // Scrolling up - show header
-      setIsHeaderVisible(true);
+    // Only update if scroll delta is significant (prevents micro-jumps)
+    if (scrollDelta < 5) {
+      lastScrollTopRef.current = scrollTop;
+      return;
     }
+    
+    const shouldBeVisible = scrollTop <= scrollThreshold || scrollTop < lastScrollTopRef.current;
+    
+    // Only update state if visibility actually changed
+    if (shouldBeVisible !== isHeaderVisibleRef.current) {
+      isHeaderVisibleRef.current = shouldBeVisible;
+      setIsHeaderVisible(shouldBeVisible);
+    }
+    
     lastScrollTopRef.current = scrollTop;
   }, []);
 
