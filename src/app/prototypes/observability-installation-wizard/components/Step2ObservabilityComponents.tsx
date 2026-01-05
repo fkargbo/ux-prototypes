@@ -234,6 +234,13 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   return (
     <div style={{ maxWidth: '800px' }}>
       <Stack hasGutter>
+        {/* Form Title */}
+        <StackItem>
+          <Title headingLevel="h2" size="2xl" style={{ fontSize: '24px', marginBottom: '24px' }}>
+            Components and configuration
+          </Title>
+        </StackItem>
+        
         {/* Persona Selection Section */}
         <StackItem>
           <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>

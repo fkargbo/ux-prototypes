@@ -54,7 +54,7 @@ export const InstallationWizard: React.FC = () => {
           component: <Step1InstallationDetails />,
         },
         {
-          name: 'Observability components',
+          name: 'Components and configuration',
           id: 'observability-components',
           component: (
             <Step2ObservabilityComponents
