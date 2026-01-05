@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   Title,
   Content,
@@ -12,8 +12,6 @@ import {
   Flex,
   FlexItem,
   Divider,
-  Switch,
-  Checkbox,
 } from '@patternfly/react-core';
 import {
   CpuIcon,
@@ -27,54 +25,10 @@ interface Step3ReviewAndInstallProps {
   onDataChange: (data: Partial<WizardData>) => void;
 }
 
-interface UIPlugin {
-  id: string;
-  name: string;
-  description: string;
-  defaultEnabled: boolean;
-  dependencies?: string[];
-}
-
-const uiPlugins: UIPlugin[] = [
-  {
-    id: 'monitoring-ui',
-    name: 'Monitoring UI Plugin',
-    description: 'Metrics dashboards.',
-    defaultEnabled: true,
-    dependencies: ['metrics-alerting'],
-  },
-  {
-    id: 'logging-ui',
-    name: 'Logging UI Plugin',
-    description: 'Log exploration.',
-    defaultEnabled: false,
-    dependencies: ['loki'],
-  },
-  {
-    id: 'tracing-ui',
-    name: 'Tracing UI Plugin',
-    description: 'Distributed traces.',
-    defaultEnabled: false,
-    dependencies: ['tempo'],
-  },
-  {
-    id: 'troubleshooting-panel',
-    name: 'Troubleshooting Panel',
-    description: 'Signal correlation.',
-    defaultEnabled: false,
-    dependencies: ['korrel8r'],
-  },
-];
-
 export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
   data,
   onDataChange,
 }) => {
-  const [advancedMode, setAdvancedMode] = useState(data.advancedMode || false);
-  const [selectedUIPlugins, setSelectedUIPlugins] = useState<string[]>(
-    data.selectedUIPlugins || ['monitoring-ui']
-  );
-
   // Calculate resources based on selected capabilities
   const resources = useMemo(() => {
     let cpu = 2; // Base CPU
@@ -121,53 +75,11 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     return operators;
   }, [data.selectedCapabilities]);
 
-  // Auto-enable/disable UI plugins based on dependencies
-  const availablePlugins = useMemo(() => {
-    return uiPlugins.filter(plugin => {
-      if (!plugin.dependencies || plugin.dependencies.length === 0) {
-        return true;
-      }
-      return plugin.dependencies.some(dep => data.selectedCapabilities.includes(dep));
-    });
-  }, [data.selectedCapabilities]);
-
-  const handleAdvancedModeChange = (checked: boolean) => {
-    setAdvancedMode(checked);
-    onDataChange({ advancedMode: checked });
-    
-    // When advanced mode is enabled, auto-select all available plugins
-    if (checked) {
-      const autoSelected = availablePlugins.map(p => p.id);
-      setSelectedUIPlugins(autoSelected);
-      onDataChange({ selectedUIPlugins: autoSelected });
-    } else {
-      // When disabled, only keep monitoring-ui if metrics-alerting is selected
-      const defaultSelected = data.selectedCapabilities.includes('metrics-alerting')
-        ? ['monitoring-ui']
-        : [];
-      setSelectedUIPlugins(defaultSelected);
-      onDataChange({ selectedUIPlugins: defaultSelected });
-    }
-  };
-
-  const handleUIPluginChange = (pluginId: string, checked: boolean) => {
-    let newPlugins: string[];
-    
-    if (checked) {
-      newPlugins = [...selectedUIPlugins, pluginId];
-    } else {
-      newPlugins = selectedUIPlugins.filter(id => id !== pluginId);
-    }
-    
-    setSelectedUIPlugins(newPlugins);
-    onDataChange({ selectedUIPlugins: newPlugins });
-  };
-
   return (
     <div style={{ maxWidth: '800px' }}>
       <Stack hasGutter>
         <StackItem>
-          <Title headingLevel="h2" size="lg" style={{ marginBottom: '24px' }}>
+          <Title headingLevel="h2" size="2xl" style={{ fontSize: '24px', marginBottom: '24px' }}>
             Review and Install
           </Title>
         </StackItem>
@@ -221,50 +133,6 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
           </Card>
         </StackItem>
 
-        {/* Console Experience */}
-        <StackItem>
-          <Card>
-            <CardBody>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
-                <FlexItem>
-                  <CardTitle>CONSOLE EXPERIENCE (UI PLUGINS)</CardTitle>
-                </FlexItem>
-                <FlexItem>
-                  <Switch
-                    id="advanced-mode"
-                    label="Advanced Mode"
-                    isChecked={advancedMode}
-                    onChange={(_, checked) => handleAdvancedModeChange(checked)}
-                  />
-                </FlexItem>
-              </Flex>
-
-              <Divider style={{ marginBottom: '16px' }} />
-
-              <Stack hasGutter>
-                {availablePlugins.map((plugin) => {
-                  const isChecked = selectedUIPlugins.includes(plugin.id);
-                  const isEnabled = advancedMode || plugin.defaultEnabled;
-
-                  return (
-                    <StackItem key={plugin.id}>
-                      <Checkbox
-                        id={`plugin-${plugin.id}`}
-                        label={plugin.name}
-                        isChecked={isChecked}
-                        isDisabled={!advancedMode && !plugin.defaultEnabled}
-                        onChange={(_, checked) => handleUIPluginChange(plugin.id, checked)}
-                      />
-                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
-                        {plugin.description}
-                      </Content>
-                    </StackItem>
-                  );
-                })}
-              </Stack>
-            </CardBody>
-          </Card>
-        </StackItem>
       </Stack>
     </div>
   );

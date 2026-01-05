@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Title,
   Content,
@@ -16,6 +16,7 @@ import {
   AlertVariant,
   Flex,
   FlexItem,
+  Switch,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -128,6 +129,45 @@ const capabilities: Capability[] = [
   },
 ];
 
+interface UIPlugin {
+  id: string;
+  name: string;
+  description: string;
+  defaultEnabled: boolean;
+  dependencies?: string[];
+}
+
+const uiPlugins: UIPlugin[] = [
+  {
+    id: 'monitoring-ui',
+    name: 'Monitoring UI Plugin',
+    description: 'Metrics dashboards.',
+    defaultEnabled: true,
+    dependencies: ['metrics-alerting'],
+  },
+  {
+    id: 'logging-ui',
+    name: 'Logging UI Plugin',
+    description: 'Log exploration.',
+    defaultEnabled: false,
+    dependencies: ['loki'],
+  },
+  {
+    id: 'tracing-ui',
+    name: 'Tracing UI Plugin',
+    description: 'Distributed traces.',
+    defaultEnabled: false,
+    dependencies: ['tempo'],
+  },
+  {
+    id: 'troubleshooting-panel',
+    name: 'Troubleshooting Panel',
+    description: 'Signal correlation.',
+    defaultEnabled: false,
+    dependencies: ['korrel8r'],
+  },
+];
+
 export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponentsProps> = ({
   data,
   onDataChange,
@@ -136,6 +176,10 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>(data.selectedCapabilities);
   const [selectedNestedOptions, setSelectedNestedOptions] = useState<{ [key: string]: string[] }>(
     data.selectedNestedOptions || {}
+  );
+  const [advancedMode, setAdvancedMode] = useState(data.advancedMode || false);
+  const [selectedUIPlugins, setSelectedUIPlugins] = useState<string[]>(
+    data.selectedUIPlugins || ['monitoring-ui']
   );
 
   // Auto-select capabilities based on persona
@@ -229,6 +273,48 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     
     const missing = capability.dependencies.filter(dep => !selectedCapabilities.includes(dep));
     return { satisfied: missing.length === 0, missing };
+  };
+
+  // Auto-enable/disable UI plugins based on dependencies
+  const availablePlugins = useMemo(() => {
+    return uiPlugins.filter(plugin => {
+      if (!plugin.dependencies || plugin.dependencies.length === 0) {
+        return true;
+      }
+      return plugin.dependencies.some(dep => selectedCapabilities.includes(dep));
+    });
+  }, [selectedCapabilities]);
+
+  const handleAdvancedModeChange = (checked: boolean) => {
+    setAdvancedMode(checked);
+    onDataChange({ advancedMode: checked });
+    
+    // When advanced mode is enabled, auto-select all available plugins
+    if (checked) {
+      const autoSelected = availablePlugins.map(p => p.id);
+      setSelectedUIPlugins(autoSelected);
+      onDataChange({ selectedUIPlugins: autoSelected });
+    } else {
+      // When disabled, only keep monitoring-ui if metrics-alerting is selected
+      const defaultSelected = selectedCapabilities.includes('metrics-alerting')
+        ? ['monitoring-ui']
+        : [];
+      setSelectedUIPlugins(defaultSelected);
+      onDataChange({ selectedUIPlugins: defaultSelected });
+    }
+  };
+
+  const handleUIPluginChange = (pluginId: string, checked: boolean) => {
+    let newPlugins: string[];
+    
+    if (checked) {
+      newPlugins = [...selectedUIPlugins, pluginId];
+    } else {
+      newPlugins = selectedUIPlugins.filter(id => id !== pluginId);
+    }
+    
+    setSelectedUIPlugins(newPlugins);
+    onDataChange({ selectedUIPlugins: newPlugins });
   };
 
   return (
@@ -376,6 +462,62 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
               );
             })}
           </Stack>
+        </StackItem>
+
+        <Divider />
+
+        {/* Console Experience Section */}
+        <StackItem>
+          <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
+            Console experience (UI Plugins)
+          </Title>
+          <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
+            Select UI plugins to enhance your console experience.
+          </Content>
+
+          <Card>
+            <CardBody>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
+                <FlexItem>
+                  <Content style={{ fontWeight: '600', fontSize: '14px' }}>
+                    Console experience (UI Plugins)
+                  </Content>
+                </FlexItem>
+                <FlexItem>
+                  <Switch
+                    id="advanced-mode"
+                    label="Advanced Mode"
+                    isChecked={advancedMode}
+                    onChange={(_, checked) => handleAdvancedModeChange(checked)}
+                  />
+                </FlexItem>
+              </Flex>
+
+              <Divider style={{ marginBottom: '16px' }} />
+
+              <Stack hasGutter>
+                {availablePlugins.map((plugin) => {
+                  const isChecked = selectedUIPlugins.includes(plugin.id);
+                  const isEnabled = advancedMode || plugin.defaultEnabled;
+
+                  return (
+                    <StackItem key={plugin.id}>
+                      <Checkbox
+                        id={`plugin-${plugin.id}`}
+                        label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{plugin.name}</span>}
+                        isChecked={isChecked}
+                        isDisabled={!advancedMode && !plugin.defaultEnabled}
+                        onChange={(_, checked) => handleUIPluginChange(plugin.id, checked)}
+                      />
+                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                        {plugin.description}
+                      </Content>
+                    </StackItem>
+                  );
+                })}
+              </Stack>
+            </CardBody>
+          </Card>
         </StackItem>
       </Stack>
     </div>
