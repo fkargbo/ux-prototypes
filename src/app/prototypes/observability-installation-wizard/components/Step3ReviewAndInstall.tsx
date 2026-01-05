@@ -61,8 +61,6 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
   // Get operators to install based on selected capabilities from Step 2
   // Maps each selected capability to its corresponding operator
   const operatorsToInstall = useMemo(() => {
-    console.log('Step 3 - Selected capabilities:', data.selectedCapabilities);
-    
     const operators: string[] = [];
     
     // Cluster Observability Operator - always included (metrics-alerting is required)
@@ -89,7 +87,6 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
       });
     }
     
-    console.log('Step 3 - Operators to install:', operators);
     return operators;
   }, [data.selectedCapabilities]);
 

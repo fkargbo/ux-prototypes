@@ -182,6 +182,28 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     data.selectedUIPlugins || ['monitoring-ui']
   );
 
+  // Sync data prop changes to local state when props change
+  // This ensures local state stays in sync if user navigates away and back
+  useEffect(() => {
+    setSelectedPersona(data.selectedPersona);
+  }, [data.selectedPersona]);
+
+  useEffect(() => {
+    setSelectedCapabilities(data.selectedCapabilities);
+  }, [data.selectedCapabilities]);
+
+  useEffect(() => {
+    setSelectedNestedOptions(data.selectedNestedOptions || {});
+  }, [data.selectedNestedOptions]);
+
+  useEffect(() => {
+    setAdvancedMode(data.advancedMode || false);
+  }, [data.advancedMode]);
+
+  useEffect(() => {
+    setSelectedUIPlugins(data.selectedUIPlugins || ['monitoring-ui']);
+  }, [data.selectedUIPlugins]);
+
   // Auto-select capabilities based on persona
   // Note: We intentionally read selectedCapabilities here without including it in dependencies
   // because we only want this effect to run when persona changes, not when capabilities change.
