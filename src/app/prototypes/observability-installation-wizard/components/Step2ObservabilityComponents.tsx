@@ -168,7 +168,7 @@ const uiPlugins: UIPlugin[] = [
   },
   {
     id: 'perses',
-    name: 'Custom dashboards (Perses)',
+    name: 'Custom dashboards UI (Perses)',
     description: 'Build custom dashboards for SLO/SLI tracking and fleet-wide status visualization.',
     defaultEnabled: false,
     dependencies: ['metrics-alerting'],
@@ -540,7 +540,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         {/* Console Experience Section */}
         <StackItem>
           <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
-            Console experience (UI Plugins)
+            Console experience (UI Plugins and components)
           </Title>
           <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
             Select UI plugins to enhance your console experience.
@@ -551,7 +551,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
               <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
                 <FlexItem>
                   <Content style={{ fontWeight: '600', fontSize: '14px' }}>
-                    Console experience (UI Plugins)
+                    Console experience (UI Plugins and components)
                   </Content>
                 </FlexItem>
                 <FlexItem>
