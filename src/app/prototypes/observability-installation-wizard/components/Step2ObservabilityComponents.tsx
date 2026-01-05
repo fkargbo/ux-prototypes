@@ -63,21 +63,21 @@ const personas: Persona[] = [
     name: 'Platform governance & stability',
     icon: <UserIcon />,
     focus: 'Governance & Compliance',
-    description: 'Platform stability, capacity planning, audit logs, and network policy validation.',
+    description: 'Monitor infrastructure health, audit logs, enforce network policies, and manage long-term capacity planning.',
   },
   {
     id: 'sre',
     name: 'Incident response & reliability',
     icon: <ChartLineIcon />,
     focus: 'Reliability & MTTR',
-    description: 'Full-stack debugging, SLO tracking, distributed tracing, and automated root cause analysis.',
+    description: 'Maximize uptime and reduce MTTR using full-stack debugging, distributed tracing, and automated signal correlation.',
   },
   {
     id: 'developer',
     name: 'App performance & debugging',
     icon: <CodeIcon />,
     focus: 'App Debugging & Tracing',
-    description: 'Application performance, error tracking, transaction tracing, and namespace-scoped views.',
+    description: 'Isolate code errors, trace transactions across microservices, and optimize application latency within namespaces.',
   },
 ];
 
@@ -309,16 +309,18 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                             <FlexItem>
                               <Checkbox
                                 id={`capability-${capability.id}`}
-                                label={capability.name}
+                                label={
+                                  <span>
+                                    {capability.name}
+                                    {isRequired && (
+                                      <span style={{ color: '#c9190b', marginLeft: '4px' }}>*</span>
+                                    )}
+                                  </span>
+                                }
                                 isChecked={isChecked}
                                 isDisabled={(!canEnable && !isChecked) || (isRequired && isChecked)}
                                 onChange={(_, checked) => handleCapabilityChange(capability.id, checked)}
                               />
-                              {isRequired && (
-                                <Content style={{ fontSize: '12px', color: '#6a6e73', marginLeft: '24px', marginTop: '4px' }}>
-                                  (Required)
-                                </Content>
-                              )}
                             </FlexItem>
                           </Flex>
                           <Content style={{ marginLeft: '24px', marginTop: '8px', fontSize: '14px', color: '#6a6e73' }}>
