@@ -60,21 +60,21 @@ interface Step2ObservabilityComponentsProps {
 const personas: Persona[] = [
   {
     id: 'administrator',
-    name: 'Administrator',
+    name: 'Platform governance & stability',
     icon: <UserIcon />,
     focus: 'Governance & Compliance',
     description: 'Platform stability, capacity planning, audit logs, and network policy validation.',
   },
   {
     id: 'sre',
-    name: 'SRE',
+    name: 'Incident response & reliability',
     icon: <ChartLineIcon />,
     focus: 'Reliability & MTTR',
     description: 'Full-stack debugging, SLO tracking, distributed tracing, and automated root cause analysis.',
   },
   {
     id: 'developer',
-    name: 'Developer',
+    name: 'App performance & debugging',
     icon: <CodeIcon />,
     focus: 'App Debugging & Tracing',
     description: 'Application performance, error tracking, transaction tracing, and namespace-scoped views.',
@@ -259,21 +259,14 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                   <CardBody>
                     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                       <FlexItem>
-                        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <FlexItem style={{ color: '#0066cc', fontSize: '24px' }}>
-                            {persona.icon}
-                          </FlexItem>
-                          <FlexItem>
-                            <Radio
-                              id={`persona-${persona.id}`}
-                              name="persona"
-                              label={persona.name}
-                              isChecked={selectedPersona === persona.id}
-                              onChange={() => handlePersonaChange(persona.id)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </FlexItem>
-                        </Flex>
+                        <Radio
+                          id={`persona-${persona.id}`}
+                          name="persona"
+                          label={persona.name}
+                          isChecked={selectedPersona === persona.id}
+                          onChange={() => handlePersonaChange(persona.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       </FlexItem>
                       <FlexItem>
                         <Content style={{ fontWeight: '600', fontSize: '14px', color: '#151515' }}>
