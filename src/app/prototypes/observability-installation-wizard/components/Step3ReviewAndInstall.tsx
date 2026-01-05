@@ -63,10 +63,14 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
   const operatorsToInstall = useMemo(() => {
     const operators: string[] = [];
     
-    // Cluster Observability Operator - always included (metrics-alerting is required)
+    if (!data.selectedCapabilities || !Array.isArray(data.selectedCapabilities)) {
+      return operators;
+    }
+    
+    // Cluster Observability Operator - included if metrics-alerting is selected (required)
     // This operator includes: Prometheus, Alertmanager, and optionally Thanos and Korrel8r as operands
-    // Check if metrics-alerting is selected (it should always be since it's required)
-    if (data.selectedCapabilities && data.selectedCapabilities.includes('metrics-alerting')) {
+    // Note: thanos and korrel8r are operands of Cluster Observability Operator, not separate operators
+    if (data.selectedCapabilities.includes('metrics-alerting')) {
       operators.push('Cluster Observability Operator');
     }
     
@@ -78,14 +82,17 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     };
     
     // Add operators for each selected capability
-    if (data.selectedCapabilities && Array.isArray(data.selectedCapabilities)) {
-      data.selectedCapabilities.forEach(capabilityId => {
-        const operator = capabilityToOperatorMap[capabilityId];
-        if (operator && !operators.includes(operator)) {
-          operators.push(operator);
-        }
-      });
-    }
+    data.selectedCapabilities.forEach(capabilityId => {
+      // Skip thanos and korrel8r as they are operands of Cluster Observability Operator, not separate operators
+      if (capabilityId === 'thanos' || capabilityId === 'korrel8r') {
+        return;
+      }
+      
+      const operator = capabilityToOperatorMap[capabilityId];
+      if (operator && !operators.includes(operator)) {
+        operators.push(operator);
+      }
+    });
     
     return operators;
   }, [data.selectedCapabilities]);
