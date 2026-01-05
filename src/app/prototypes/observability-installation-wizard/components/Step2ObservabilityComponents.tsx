@@ -166,6 +166,13 @@ const uiPlugins: UIPlugin[] = [
     defaultEnabled: false,
     dependencies: ['korrel8r'],
   },
+  {
+    id: 'perses',
+    name: 'Perses Dashboards Operator',
+    description: 'Build custom dashboards for SLO/SLI tracking and fleet-wide status visualization.',
+    defaultEnabled: false,
+    dependencies: ['metrics-alerting'],
+  },
 ];
 
 export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponentsProps> = ({
@@ -239,6 +246,36 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       
       setSelectedCapabilities(uniqueCapabilities);
       onDataChange({ selectedCapabilities: uniqueCapabilities });
+      
+      // Auto-select UI plugins based on persona
+      // Perses is auto-selected for Administrator and SRE personas
+      // Only add plugins if their dependencies are satisfied
+      let autoUIPlugins: string[] = [];
+      
+      // monitoring-ui requires metrics-alerting
+      if (uniqueCapabilities.includes('metrics-alerting')) {
+        autoUIPlugins.push('monitoring-ui');
+      }
+      
+      // Perses requires metrics-alerting and is auto-selected for Administrator and SRE personas
+      if (uniqueCapabilities.includes('metrics-alerting') && 
+          (selectedPersona === 'administrator' || selectedPersona === 'sre')) {
+        autoUIPlugins.push('perses');
+      }
+      
+      // Preserve manually-selected UI plugins that are NOT persona-specific
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const manuallySelectedPlugins = selectedUIPlugins.filter(
+        pluginId => pluginId !== 'perses' && pluginId !== 'monitoring-ui'
+      );
+      
+      // Merge persona auto-plugins with manually-selected ones
+      const mergedPlugins = [...autoUIPlugins, ...manuallySelectedPlugins];
+      // Remove duplicates
+      const uniquePlugins = Array.from(new Set(mergedPlugins));
+      
+      setSelectedUIPlugins(uniquePlugins);
+      onDataChange({ selectedUIPlugins: uniquePlugins });
     }
   }, [selectedPersona, onDataChange]);
 
@@ -266,6 +303,14 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         delete newNestedOptions[capabilityId];
         setSelectedNestedOptions(newNestedOptions);
         onDataChange({ selectedNestedOptions: newNestedOptions });
+      }
+      
+      // If metrics-alerting is unchecked, remove UI plugins that depend on it
+      if (capabilityId === 'metrics-alerting') {
+        const pluginsToRemove = ['monitoring-ui', 'perses'];
+        const newPlugins = selectedUIPlugins.filter(pluginId => !pluginsToRemove.includes(pluginId));
+        setSelectedUIPlugins(newPlugins);
+        onDataChange({ selectedUIPlugins: newPlugins });
       }
     }
     

@@ -63,6 +63,13 @@ const uiPlugins: UIPlugin[] = [
     defaultEnabled: false,
     dependencies: ['korrel8r'],
   },
+  {
+    id: 'perses',
+    name: 'Perses Dashboards Operator',
+    description: 'Build custom dashboards for SLO/SLI tracking and fleet-wide status visualization.',
+    defaultEnabled: false,
+    dependencies: ['metrics-alerting'],
+  },
 ];
 
 export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
