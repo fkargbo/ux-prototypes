@@ -262,16 +262,11 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                         <Radio
                           id={`persona-${persona.id}`}
                           name="persona"
-                          label={persona.name}
+                          label={<span style={{ fontWeight: '600' }}>{persona.name}</span>}
                           isChecked={selectedPersona === persona.id}
                           onChange={() => handlePersonaChange(persona.id)}
                           onClick={(e) => e.stopPropagation()}
                         />
-                      </FlexItem>
-                      <FlexItem>
-                        <Content style={{ fontWeight: '600', fontSize: '14px', color: '#151515' }}>
-                          {persona.focus}
-                        </Content>
                       </FlexItem>
                       <FlexItem>
                         <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
