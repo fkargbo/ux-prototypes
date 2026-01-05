@@ -101,12 +101,12 @@ const capabilities: Capability[] = [
     nestedOptions: [
       {
         id: 'infrastructure-logs',
-        name: 'Infrastructure Logs',
+        name: 'Infrastructure logs',
         description: 'Node, API server, and control plane logs.',
       },
       {
         id: 'application-logs',
-        name: 'Application Logs',
+        name: 'Application logs',
         description: 'Container stdout/stderr from workloads.',
       },
     ],
@@ -463,7 +463,11 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 <StackItem key={option.id}>
                                   <Checkbox
                                     id={`option-${option.id}`}
-                                    label={option.name}
+                                    label={
+                                      <span style={{ fontSize: '14px' }}>
+                                        {option.name}
+                                      </span>
+                                    }
                                     isChecked={(selectedNestedOptions[capability.id] || []).includes(option.id)}
                                     onChange={(_, checked) =>
                                       handleNestedOptionChange(capability.id, option.id, checked)
