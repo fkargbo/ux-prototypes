@@ -17,6 +17,7 @@ import { RouteConfig } from '@app/core/types';
 
 // Import page components
 import { MultiClusterAlertingDashboard } from './pages/MultiClusterAlertsPage';
+import { OverviewPage } from './pages/OverviewPage';
 
 /**
  * Routes for Multi-cluster Alerting UI V2
@@ -24,10 +25,22 @@ import { MultiClusterAlertingDashboard } from './pages/MultiClusterAlertsPage';
  * These routes are added to the Fleet Management perspective under "Observe" group.
  */
 export const routes: RouteConfig[] = [
-  // Default route - redirect to Alerting page
+  // Default route - redirect to Overview page
   {
     path: '/',
-    element: <Navigate to="/observe/alerting" replace />,
+    element: <Navigate to="/home/overview" replace />,
+  },
+  
+  // Home > Overview page - high-level cluster metrics and alerts summary
+  {
+    path: '/home/overview',
+    element: <OverviewPage />,
+    label: 'Overview',
+    title: 'Fleet Overview | OpenShift ACM',
+    navigation: {
+      group: 'Home',
+      order: 1
+    }
   },
   
   // Multi-cluster Alerting - Main page (Fleet Overview with Treemap)
