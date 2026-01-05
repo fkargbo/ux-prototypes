@@ -25,6 +25,46 @@ interface Step3ReviewAndInstallProps {
   onDataChange: (data: Partial<WizardData>) => void;
 }
 
+// UI Plugin definitions (matching Step2ObservabilityComponents)
+interface UIPlugin {
+  id: string;
+  name: string;
+  description: string;
+  defaultEnabled: boolean;
+  dependencies?: string[];
+}
+
+const uiPlugins: UIPlugin[] = [
+  {
+    id: 'monitoring-ui',
+    name: 'Monitoring UI Plugin',
+    description: 'Metrics dashboards.',
+    defaultEnabled: true,
+    dependencies: ['metrics-alerting'],
+  },
+  {
+    id: 'logging-ui',
+    name: 'Logging UI Plugin',
+    description: 'Log exploration.',
+    defaultEnabled: false,
+    dependencies: ['loki'],
+  },
+  {
+    id: 'tracing-ui',
+    name: 'Tracing UI Plugin',
+    description: 'Distributed traces.',
+    defaultEnabled: false,
+    dependencies: ['tempo'],
+  },
+  {
+    id: 'troubleshooting-panel',
+    name: 'Troubleshooting Panel',
+    description: 'Signal correlation.',
+    defaultEnabled: false,
+    dependencies: ['korrel8r'],
+  },
+];
+
 export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
   data,
   onDataChange,
@@ -97,6 +137,25 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     return operators;
   }, [data.selectedCapabilities]);
 
+  // Get UI components to install based on selected UI plugins from Step 2
+  const uiComponentsToInstall = useMemo(() => {
+    const components: string[] = [];
+    
+    if (!data.selectedUIPlugins || !Array.isArray(data.selectedUIPlugins)) {
+      return components;
+    }
+    
+    // Map selected UI plugin IDs to their names
+    data.selectedUIPlugins.forEach(pluginId => {
+      const plugin = uiPlugins.find(p => p.id === pluginId);
+      if (plugin && !components.includes(plugin.name)) {
+        components.push(plugin.name);
+      }
+    });
+    
+    return components;
+  }, [data.selectedUIPlugins]);
+
   return (
     <div style={{ maxWidth: '800px' }}>
       <Stack hasGutter>
@@ -120,6 +179,26 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
               ) : (
                 <Content style={{ color: '#6a6e73' }}>
                   No operators selected. Please go back to Step 2 to select capabilities.
+                </Content>
+              )}
+            </CardBody>
+          </Card>
+        </StackItem>
+
+        {/* UI Components to Install */}
+        <StackItem>
+          <Card>
+            <CardTitle>UI components to install</CardTitle>
+            <CardBody>
+              {uiComponentsToInstall.length > 0 ? (
+                <List>
+                  {uiComponentsToInstall.map((component) => (
+                    <ListItem key={component}>{component}</ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Content style={{ color: '#6a6e73' }}>
+                  No UI components selected. Please go back to Step 2 to select UI plugins.
                 </Content>
               )}
             </CardBody>
