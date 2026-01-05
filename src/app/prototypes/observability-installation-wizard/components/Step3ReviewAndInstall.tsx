@@ -58,19 +58,29 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     return { cpu, ram };
   }, [data.selectedCapabilities]);
 
-  // Get operators to install
+  // Get operators to install based on selected capabilities from Step 2
+  // Maps each selected capability to its corresponding operator
   const operatorsToInstall = useMemo(() => {
-    const operators: string[] = ['Cluster Observability Operator'];
+    const operators: string[] = [];
     
-    if (data.selectedCapabilities.includes('loki')) {
-      operators.push('Loki Operator');
-    }
-    if (data.selectedCapabilities.includes('tempo')) {
-      operators.push('Tempo Operator');
-    }
-    if (data.selectedCapabilities.includes('network-traffic')) {
-      operators.push('Network Observability Operator');
-    }
+    // Cluster Observability Operator - always included (metrics-alerting is required)
+    // Also handles: thanos (operand), korrel8r (service) - these are operands/services, not separate operators
+    operators.push('Cluster Observability Operator');
+    
+    // Map capabilities to their corresponding operators
+    const capabilityToOperatorMap: { [key: string]: string } = {
+      'loki': 'Loki Operator',
+      'tempo': 'Tempo Operator',
+      'network-traffic': 'Network Observability Operator',
+    };
+    
+    // Add operators for each selected capability
+    data.selectedCapabilities.forEach(capabilityId => {
+      const operator = capabilityToOperatorMap[capabilityId];
+      if (operator && !operators.includes(operator)) {
+        operators.push(operator);
+      }
+    });
     
     return operators;
   }, [data.selectedCapabilities]);
@@ -87,7 +97,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
         {/* Operators to Install */}
         <StackItem>
           <Card>
-            <CardTitle>OPERATORS TO INSTALL</CardTitle>
+            <CardTitle>Operators to install</CardTitle>
             <CardBody>
               <List>
                 {operatorsToInstall.map((operator) => (
@@ -101,7 +111,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
         {/* Estimated Resources */}
         <StackItem>
           <Card>
-            <CardTitle>ESTIMATED RESOURCES</CardTitle>
+            <CardTitle>Estimated resources</CardTitle>
             <CardBody>
               <Flex spaceItems={{ default: 'spaceItemsLg' }}>
                 <FlexItem>
