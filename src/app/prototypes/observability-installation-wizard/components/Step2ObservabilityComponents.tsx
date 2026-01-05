@@ -310,7 +310,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                               <Checkbox
                                 id={`capability-${capability.id}`}
                                 label={
-                                  <span>
+                                  <span style={{ fontWeight: '600' }}>
                                     {capability.name}
                                     {isRequired && (
                                       <span style={{ color: '#c9190b', marginLeft: '4px' }}>*</span>
