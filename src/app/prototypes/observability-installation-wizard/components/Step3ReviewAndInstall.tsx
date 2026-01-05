@@ -61,11 +61,16 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
   // Get operators to install based on selected capabilities from Step 2
   // Maps each selected capability to its corresponding operator
   const operatorsToInstall = useMemo(() => {
+    console.log('Step 3 - Selected capabilities:', data.selectedCapabilities);
+    
     const operators: string[] = [];
     
     // Cluster Observability Operator - always included (metrics-alerting is required)
-    // Also handles: thanos (operand), korrel8r (service) - these are operands/services, not separate operators
-    operators.push('Cluster Observability Operator');
+    // This operator includes: Prometheus, Alertmanager, and optionally Thanos and Korrel8r as operands
+    // Check if metrics-alerting is selected (it should always be since it's required)
+    if (data.selectedCapabilities && data.selectedCapabilities.includes('metrics-alerting')) {
+      operators.push('Cluster Observability Operator');
+    }
     
     // Map capabilities to their corresponding operators
     const capabilityToOperatorMap: { [key: string]: string } = {
@@ -75,13 +80,16 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     };
     
     // Add operators for each selected capability
-    data.selectedCapabilities.forEach(capabilityId => {
-      const operator = capabilityToOperatorMap[capabilityId];
-      if (operator && !operators.includes(operator)) {
-        operators.push(operator);
-      }
-    });
+    if (data.selectedCapabilities && Array.isArray(data.selectedCapabilities)) {
+      data.selectedCapabilities.forEach(capabilityId => {
+        const operator = capabilityToOperatorMap[capabilityId];
+        if (operator && !operators.includes(operator)) {
+          operators.push(operator);
+        }
+      });
+    }
     
+    console.log('Step 3 - Operators to install:', operators);
     return operators;
   }, [data.selectedCapabilities]);
 
@@ -99,11 +107,17 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
           <Card>
             <CardTitle>Operators to install</CardTitle>
             <CardBody>
-              <List>
-                {operatorsToInstall.map((operator) => (
-                  <ListItem key={operator}>{operator}</ListItem>
-                ))}
-              </List>
+              {operatorsToInstall.length > 0 ? (
+                <List>
+                  {operatorsToInstall.map((operator) => (
+                    <ListItem key={operator}>{operator}</ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Content style={{ color: '#6a6e73' }}>
+                  No operators selected. Please go back to Step 2 to select capabilities.
+                </Content>
+              )}
             </CardBody>
           </Card>
         </StackItem>
