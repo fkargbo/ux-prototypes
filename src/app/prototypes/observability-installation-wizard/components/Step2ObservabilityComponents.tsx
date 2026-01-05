@@ -168,7 +168,7 @@ const uiPlugins: UIPlugin[] = [
   },
   {
     id: 'perses',
-    name: 'Perses Dashboards Operator',
+    name: 'Custom dashboards (Perses)',
     description: 'Build custom dashboards for SLO/SLI tracking and fleet-wide status visualization.',
     defaultEnabled: false,
     dependencies: ['metrics-alerting'],
