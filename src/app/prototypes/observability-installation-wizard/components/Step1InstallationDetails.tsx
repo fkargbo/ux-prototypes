@@ -9,7 +9,7 @@ import { Title, Content } from '@patternfly/react-core';
 export const Step1InstallationDetails: React.FC = () => {
   return (
     <div style={{ maxWidth: '600px' }}>
-      <Title headingLevel="h2" size="lg" style={{ marginBottom: '16px' }}>
+      <Title headingLevel="h2" size="2xl" style={{ fontSize: '24px', marginBottom: '16px' }}>
         Installation Details
       </Title>
       <Content>
