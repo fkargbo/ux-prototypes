@@ -237,10 +237,10 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         {/* Persona Selection Section */}
         <StackItem>
           <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
-            Choose a Starting Profile (Optional)
+            Choose your Observability strategy
           </Title>
           <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-            Select a persona to pre-configure the recommended stack. You can customize this later.
+            Select an operational focus to pre-configure the recommended stack. You can customize specific components later.
           </Content>
           
           <Grid hasGutter>
