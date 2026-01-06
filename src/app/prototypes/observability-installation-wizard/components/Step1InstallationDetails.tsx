@@ -68,6 +68,48 @@ const providedAPIs: ProvidedAPI[] = [
     abbreviation: 'AC',
     description: 'AlertmanagerConfig configures the Prometheus Alertmanager, specifying how alerts should be grouped, inhibited and notified to external systems.',
   },
+  {
+    id: 'monitoringstack',
+    name: 'MonitoringStack',
+    abbreviation: 'MS',
+    description: 'MonitoringStack is the Schema for the monitoringstacks API.',
+  },
+  {
+    id: 'observabilityinstaller',
+    name: 'Observability Installer',
+    abbreviation: 'IO',
+    description: 'Provides end-to-end observability capabilities with minimal configuration. Simplifies deployment and management of observability components such as tracing.',
+  },
+  {
+    id: 'persesdashboard',
+    name: 'PersesDashboard',
+    abbreviation: 'PD',
+    description: 'PersesDashboard defines the layout, visualization panels, and query variables for custom metrics dashboards within the OpenShift console.',
+  },
+  {
+    id: 'persesdatasource',
+    name: 'PersesDatasource',
+    abbreviation: 'PD',
+    description: 'PersesDatasource configures the connection between the Perses dashboard engine and a specific metrics backend, such as a Prometheus or Thanos instance.',
+  },
+  {
+    id: 'scrapeconfig',
+    name: 'ScrapeConfig',
+    abbreviation: 'SC',
+    description: 'ScrapeConfig defines a namespaced Prometheus scrape_config to be aggregated across multiple namespaces into the Prometheus configuration.',
+  },
+  {
+    id: 'thanosquerier',
+    name: 'ThanosQuerier',
+    abbreviation: 'TQ',
+    description: 'ThanosQuerier outlines the Thanos querier components, managed by this stack.',
+  },
+  {
+    id: 'uiplugin',
+    name: 'UIPlugin',
+    abbreviation: 'UIP',
+    description: 'UIPlugin defines a console plugin for observability.',
+  },
 ];
 
 export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> = ({
