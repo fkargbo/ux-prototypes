@@ -13,15 +13,13 @@ import {
   FlexItem,
   Divider,
   Badge,
-  Popover,
-  Icon,
-  Button,
+  Alert,
+  AlertVariant,
 } from '@patternfly/react-core';
 import {
   CpuIcon,
   MemoryIcon,
   RocketIcon,
-  InfoCircleIcon,
 } from '@patternfly/react-icons';
 import { WizardData } from './Step2ObservabilityComponents';
 
@@ -222,31 +220,23 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                       <Content style={{ fontWeight: '600', fontSize: '14px' }}>Cluster monitoring (recommended):</Content>
                     </FlexItem>
                     <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                        <FlexItem>
-                          <Content style={{ fontSize: '14px' }}>
-                            {data.enableClusterMonitoring ? 'Enabled' : 'Disabled'}
-                          </Content>
-                        </FlexItem>
-                        {!data.enableClusterMonitoring && 
-                         (data.selectedPersona === 'administrator' || data.selectedPersona === 'sre') && (
-                          <FlexItem>
-                            <Popover
-                              headerContent="Cluster monitoring disabled"
-                              bodyContent="You might miss critical alerts regarding the health of the Observability Operator itself. For high availability environments, enabling cluster monitoring is recommended."
-                              position="right"
-                            >
-                              <Button variant="plain" aria-label="More info about cluster monitoring" style={{ padding: '0 4px' }}>
-                                <Icon status="info">
-                                  <InfoCircleIcon />
-                                </Icon>
-                              </Button>
-                            </Popover>
-                          </FlexItem>
-                        )}
-                      </Flex>
+                      <Content style={{ fontSize: '14px' }}>
+                        {data.enableClusterMonitoring ? 'Enabled' : 'Disabled'}
+                      </Content>
                     </FlexItem>
                   </Flex>
+                  {!data.enableClusterMonitoring && 
+                   (data.selectedPersona === 'administrator' || data.selectedPersona === 'sre') && (
+                    <div style={{ marginTop: '8px', width: '100%' }}>
+                      <Alert
+                        variant={AlertVariant.info}
+                        isInline
+                        title="Cluster monitoring disabled"
+                      >
+                        You might miss critical alerts regarding the health of the Observability Operator itself. For high availability environments, enabling cluster monitoring is recommended.
+                      </Alert>
+                    </div>
+                  )}
                 </ListItem>
                 <ListItem>
                   <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
