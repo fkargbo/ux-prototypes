@@ -364,6 +364,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
       {/* Right Sidebar - Provided APIs */}
       <GridItem span={4}>
         <div
+          className="provided-apis-sidebar"
           style={{
             position: 'sticky',
             top: '24px',
@@ -371,6 +372,32 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
             overflowY: 'auto',
           }}
         >
+          <style>{`
+            .provided-apis-sidebar {
+              scrollbar-width: none; /* Firefox */
+              -ms-overflow-style: none; /* IE and Edge */
+            }
+            .provided-apis-sidebar::-webkit-scrollbar {
+              display: none; /* Chrome, Safari, Opera */
+            }
+            .provided-apis-sidebar:hover {
+              scrollbar-width: thin; /* Firefox */
+            }
+            .provided-apis-sidebar:hover::-webkit-scrollbar {
+              display: block; /* Chrome, Safari, Opera */
+              width: 8px;
+            }
+            .provided-apis-sidebar:hover::-webkit-scrollbar-track {
+              background: #f0f0f0;
+            }
+            .provided-apis-sidebar:hover::-webkit-scrollbar-thumb {
+              background: #888;
+              border-radius: 4px;
+            }
+            .provided-apis-sidebar:hover::-webkit-scrollbar-thumb:hover {
+              background: #555;
+            }
+          `}</style>
           <Stack hasGutter>
             {/* Operator Header */}
             <StackItem>
@@ -465,33 +492,38 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
               </Title>
             </StackItem>
 
-            {/* API Cards */}
+            {/* API Cards - Two Column Layout */}
             <StackItem>
-              <Stack hasGutter>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: 'var(--pf-t--global--spacer--md)',
+                  alignItems: 'start',
+                }}
+              >
                 {providedAPIs.map((api) => (
-                  <StackItem key={api.id}>
-                    <Card isCompact style={{ width: '300px' }}>
-                      <CardBody>
-                        <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
-                          <FlexItem>
-                            <Badge style={{ backgroundColor: '#0066cc', color: '#fff', minWidth: '32px', textAlign: 'center', padding: '4px 8px' }}>
-                              {api.abbreviation}
-                            </Badge>
-                          </FlexItem>
-                          <FlexItem style={{ flex: 1 }}>
-                            <Content style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>
-                              {api.name}
-                            </Content>
-                            <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
-                              {api.description}
-                            </Content>
-                          </FlexItem>
-                        </Flex>
-                      </CardBody>
-                    </Card>
-                  </StackItem>
+                  <Card key={api.id} isCompact style={{ width: '100%' }}>
+                    <CardBody>
+                      <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
+                        <FlexItem>
+                          <Badge style={{ backgroundColor: '#0066cc', color: '#fff', minWidth: '32px', textAlign: 'center', padding: '4px 8px' }}>
+                            {api.abbreviation}
+                          </Badge>
+                        </FlexItem>
+                        <FlexItem style={{ flex: 1 }}>
+                          <Content style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>
+                            {api.name}
+                          </Content>
+                          <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
+                            {api.description}
+                          </Content>
+                        </FlexItem>
+                      </Flex>
+                    </CardBody>
+                  </Card>
                 ))}
-              </Stack>
+              </div>
             </StackItem>
           </Stack>
         </div>
