@@ -325,7 +325,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                               Operator recommended Namespace:{' '}
                               <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ display: 'inline-flex' }}>
                                 <FlexItem>
-                                  <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '8px' }}>PR</Badge>
+                                  <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '4px' }}>PR</Badge>
                                 </FlexItem>
                                 <FlexItem>
                                   <span style={{ fontWeight: '600' }}>openshift-cluster-observability-operator</span>

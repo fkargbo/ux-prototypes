@@ -190,7 +190,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                           <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '4px' }}>PR</Badge>
                         </FlexItem>
                         <FlexItem>
-                          <Content style={{ fontSize: '14px' }}>
+                          <Content style={{ fontSize: '14px', fontWeight: '600' }}>
                             {data.installationNamespace === 'recommended'
                               ? 'openshift-cluster-observability-operator'
                               : data.selectedProject || 'Not selected'}
