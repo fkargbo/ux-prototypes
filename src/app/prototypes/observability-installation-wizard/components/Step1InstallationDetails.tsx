@@ -306,14 +306,17 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                           id="recommended-namespace"
                           name="installation-namespace"
                           label={
-                            <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <FlexItem>
-                                <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '8px' }}>PR</Badge>
-                              </FlexItem>
-                              <FlexItem>
-                                Operator recommended Namespace: <span style={{ fontWeight: '600' }}>openshift-cluster-observability-operator</span>
-                              </FlexItem>
-                            </Flex>
+                            <>
+                              Operator recommended Namespace:{' '}
+                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ display: 'inline-flex' }}>
+                                <FlexItem>
+                                  <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '8px' }}>PR</Badge>
+                                </FlexItem>
+                                <FlexItem>
+                                  <span style={{ fontWeight: '600' }}>openshift-cluster-observability-operator</span>
+                                </FlexItem>
+                              </Flex>
+                            </>
                           }
                           isChecked={installationNamespace === 'recommended'}
                           onChange={() => {
