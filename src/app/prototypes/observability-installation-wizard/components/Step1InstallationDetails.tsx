@@ -307,9 +307,11 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                           name="installation-namespace"
                           label={
                             <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <FlexItem>Operator recommended Namespace: openshift-cluster-observability-operator</FlexItem>
                               <FlexItem>
-                                <Badge>PR</Badge>
+                                <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '8px' }}>PR</Badge>
+                              </FlexItem>
+                              <FlexItem>
+                                Operator recommended Namespace: <span style={{ fontWeight: '600' }}>openshift-cluster-observability-operator</span>
                               </FlexItem>
                             </Flex>
                           }
