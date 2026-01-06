@@ -2699,7 +2699,217 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 <EmptyStateBody>No alerts match the current filters.</EmptyStateBody>
               </EmptyState>
             ) : groupBy !== 'none' && groupedAlerts ? (
-              /* Grouped View with Collapsible Sections */
+              /* Grouped View - Different layout for Component grouping vs other groupings */
+              groupBy === 'component' ? (
+                /* Component Grouped View - Accordion format with enhanced header */
+                <Accordion asDefinitionList={false} displaySize="lg">
+                  {groupedAlerts.map(group => {
+                    const isGroupExpanded = expandedGroups.has(group.groupName);
+                    
+                    // Calculate severity counts for this component
+                    const criticalCount = group.alerts.filter(a => a.severity === 'Critical').length;
+                    const warningCount = group.alerts.filter(a => a.severity === 'Warning').length;
+                    const infoCount = group.alerts.filter(a => a.severity === 'Info').length;
+                    
+                    // Determine aggregated status (highest severity)
+                    const aggregatedStatus: 'Critical' | 'Warning' | 'Info' = 
+                      criticalCount > 0 ? 'Critical' : warningCount > 0 ? 'Warning' : 'Info';
+                    
+                    // Get unique impact groups for this component
+                    const impactGroups = Array.from(new Set(group.alerts.map(a => a.group)));
+                    
+                    // Get unique clusters for this component
+                    const clustersForComponent = Array.from(new Set(group.alerts.flatMap(a => a.clusters.map(c => c.name))));
+                    
+                    return (
+                      <AccordionItem key={group.groupName} isExpanded={isGroupExpanded}>
+                        <AccordionToggle
+                          onClick={() => toggleGroupExpanded(group.groupName)}
+                          id={`group-toggle-${group.groupName}`}
+                        >
+                          <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }} style={{ fontSize: '14px', fontWeight: 400 }}>
+                            {/* Component Name */}
+                            <FlexItem>
+                              <strong>{group.groupName}</strong>
+                            </FlexItem>
+                            
+                            {/* Status (Aggregated) */}
+                            <FlexItem>
+                              <Label 
+                                color={aggregatedStatus === 'Critical' ? 'red' : aggregatedStatus === 'Warning' ? 'orange' : 'blue'}
+                                icon={aggregatedStatus === 'Critical' ? <ExclamationCircleIcon /> : aggregatedStatus === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                                isCompact
+                              >
+                                {aggregatedStatus}
+                              </Label>
+                            </FlexItem>
+                            
+                            {/* Separator */}
+                            <FlexItem>
+                              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
+                            </FlexItem>
+                            
+                            {/* Severity Breakdown - inline text with colored labels */}
+                            <FlexItem>
+                              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                {criticalCount > 0 && <Label color="red" isCompact>{criticalCount} critical</Label>}
+                                {warningCount > 0 && <Label color="orange" isCompact>{warningCount} warning</Label>}
+                                {infoCount > 0 && <Label color="blue" isCompact>{infoCount} info</Label>}
+                              </Flex>
+                            </FlexItem>
+                            
+                            {/* Separator */}
+                            <FlexItem>
+                              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
+                            </FlexItem>
+                            
+                            {/* Total alerts count */}
+                            <FlexItem>
+                              <span>{group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}</span>
+                            </FlexItem>
+                            
+                            {/* Separator */}
+                            <FlexItem>
+                              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
+                            </FlexItem>
+                            
+                            {/* Impact Group - A component can only have 1 impact group */}
+                            <FlexItem>
+                              <span>Impact: {impactGroups[0] || 'N/A'}</span>
+                            </FlexItem>
+                            
+                            {/* Cluster count (only when not in single cluster view) */}
+                            {!singleClusterView && (
+                              <>
+                                <FlexItem>
+                                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
+                                </FlexItem>
+                                <FlexItem>
+                                  <span>{clustersForComponent.length} cluster{clustersForComponent.length !== 1 ? 's' : ''}</span>
+                                </FlexItem>
+                              </>
+                            )}
+                          </Flex>
+                        </AccordionToggle>
+                        <AccordionContent id={`group-content-${group.groupName}`} hidden={!isGroupExpanded}>
+                          {/* Alerts grouped by name and severity within this component */}
+                          <Table aria-label={`Alerts in ${group.groupName} component`} variant="compact" isExpandable>
+                            <Thead>
+                              <Tr>
+                                <Th screenReaderText="Expand" />
+                                <Th>Alert name</Th>
+                                <Th>Severity</Th>
+                                <Th>Clusters</Th>
+                                <Th>Total</Th>
+                                <Th>Impact group</Th>
+                              </Tr>
+                            </Thead>
+                            {group.alerts.map((agg, aggIdx) => {
+                              const alertKey = `${group.groupName}-${agg.alertName}-${agg.severity}`;
+                              const isAlertExpanded = expandedAlerts.includes(alertKey);
+                              return (
+                                <Tbody key={alertKey} isExpanded={isAlertExpanded}>
+                                  <Tr>
+                                    <Td
+                                      expand={{
+                                        rowIndex: aggIdx,
+                                        isExpanded: isAlertExpanded,
+                                        onToggle: () => toggleExpanded(alertKey),
+                                      }}
+                                    />
+                                    <Td>
+                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                        <FlexItem>
+                                          <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
+                                        </FlexItem>
+                                        <FlexItem>{agg.alertName}</FlexItem>
+                                      </Flex>
+                                    </Td>
+                                    <Td>
+                                      <Label 
+                                        color={getSeverityLabelColor(agg.severity)} 
+                                        icon={getSeverityIcon(agg.severity)} 
+                                        isCompact
+                                      >
+                                        {agg.severity}
+                                      </Label>
+                                    </Td>
+                                    <Td>{agg.clusters.length}</Td>
+                                    <Td>{agg.totalCount}</Td>
+                                    <Td>{agg.group}</Td>
+                                  </Tr>
+                                  {isAlertExpanded && (
+                                    <Tr isExpanded>
+                                      <Td colSpan={6}>
+                                        <div style={{ padding: '16px' }}>
+                                          <Table aria-label="Alert instances" variant="compact" borders={false}>
+                                            <Thead>
+                                              <Tr>
+                                                <Th>Alert Name</Th>
+                                                <Th>Severity</Th>
+                                                <Th>Cluster</Th>
+                                                <Th>Namespace</Th>
+                                                <Th>State</Th>
+                                                <Th>Last Fired</Th>
+                                              </Tr>
+                                            </Thead>
+                                            <Tbody>
+                                              {agg.clusters.map((clusterInfo, idx) => (
+                                                <Tr key={`${alertKey}-${clusterInfo.name}-${idx}`}>
+                                                  <Td>
+                                                    <Button 
+                                                      variant="link" 
+                                                      isInline 
+                                                      onClick={() => {
+                                                        // Find the actual alert data to show in panel
+                                                        const alertData = clusterInfo.cluster.alerts.find(a => 
+                                                          a.alertName === agg.alertName && a.severity === agg.severity
+                                                        );
+                                                        if (alertData) {
+                                                          onAlertClick(alertData);
+                                                        }
+                                                      }}
+                                                    >
+                                                      {agg.alertName}
+                                                    </Button>
+                                                  </Td>
+                                                  <Td>
+                                                    <Label 
+                                                      color={getSeverityLabelColor(agg.severity)} 
+                                                      icon={getSeverityIcon(agg.severity)} 
+                                                      isCompact
+                                                    >
+                                                      {agg.severity}
+                                                    </Label>
+                                                  </Td>
+                                                  <Td>{clusterInfo.name}</Td>
+                                                  <Td>{clusterInfo.cluster.alerts.find(a => a.alertName === agg.alertName)?.namespace || 'N/A'}</Td>
+                                                  <Td>
+                                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                                      <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                                                      <span>Firing</span>
+                                                    </Flex>
+                                                  </Td>
+                                                  <Td>{clusterInfo.lastFired}</Td>
+                                                </Tr>
+                                              ))}
+                                            </Tbody>
+                                          </Table>
+                                        </div>
+                                      </Td>
+                                    </Tr>
+                                  )}
+                                </Tbody>
+                              );
+                            })}
+                          </Table>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              ) : (
+              /* Other Grouped Views with Collapsible Sections */
               <Accordion asDefinitionList={false} displaySize="lg">
                 {groupedAlerts.map(group => {
                   const isGroupExpanded = expandedGroups.has(group.groupName);
@@ -2731,9 +2941,46 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           </FlexItem>
                           <FlexItem>
                             <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                              {group.totalCount} total instance{group.totalCount !== 1 ? 's' : ''}
+                              {group.totalCount} instance{group.totalCount !== 1 ? 's' : ''}
                             </Content>
                           </FlexItem>
+                          {/* Severity breakdown - only show when not grouping by severity */}
+                          {groupBy !== 'severity' && (
+                            <FlexItem>
+                              <Flex gap={{ default: 'gapSm' }}>
+                                {(() => {
+                                  const criticalCount = group.alerts.filter(a => a.severity === 'Critical').length;
+                                  const warningCount = group.alerts.filter(a => a.severity === 'Warning').length;
+                                  const infoCount = group.alerts.filter(a => a.severity === 'Info').length;
+                                  return (
+                                    <>
+                                      {criticalCount > 0 && (
+                                        <FlexItem>
+                                          <Label color="red" icon={<ExclamationCircleIcon />} isCompact>
+                                            {criticalCount} critical
+                                          </Label>
+                                        </FlexItem>
+                                      )}
+                                      {warningCount > 0 && (
+                                        <FlexItem>
+                                          <Label color="orange" icon={<ExclamationTriangleIcon />} isCompact>
+                                            {warningCount} warning
+                                          </Label>
+                                        </FlexItem>
+                                      )}
+                                      {infoCount > 0 && (
+                                        <FlexItem>
+                                          <Label color="blue" icon={<InfoCircleIcon />} isCompact>
+                                            {infoCount} info
+                                          </Label>
+                                        </FlexItem>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </Flex>
+                            </FlexItem>
+                          )}
                         </Flex>
                       </AccordionToggle>
                       <AccordionContent id={`group-content-${group.groupName}`} hidden={!isGroupExpanded}>
@@ -2884,6 +3131,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                   );
                 })}
               </Accordion>
+              )
             ) : totalItems === 0 ? (
               <EmptyState titleText="No alerts found" icon={CheckCircleIcon}>
                 <EmptyStateBody>No alerts match the current filters.</EmptyStateBody>
@@ -4161,6 +4409,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // V2: Alerts sub-tabs (Clusters health vs Firing alerts)
   const [alertsSubTab, setAlertsSubTab] = React.useState<'clusters-health' | 'firing-alerts'>('clusters-health');
   
+  // Animation state for filtered view transition
+  const [showFilterAnimation, setShowFilterAnimation] = React.useState(false);
+  
   // V2: In-card view states (no drill-down, stay in same page)
   // Cluster Overview Card: show all clusters or single cluster components
   const [clusterCardView, setClusterCardView] = React.useState<'all-clusters' | 'single-cluster-components'>('all-clusters');
@@ -4473,8 +4724,11 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setFiringAlertsCardView('single-cluster');
     // Sync with filter panel - replace cluster filter with this cluster only
     setClusterFilter([cluster.name]);
-    // Switch to firing alerts tab
+    // Switch to firing alerts tab with animation
     setAlertsSubTab('firing-alerts');
+    // Trigger animation to highlight the filtered view
+    setShowFilterAnimation(true);
+    setTimeout(() => setShowFilterAnimation(false), 1500);
   };
 
   // V2: Click on component - filter firing alerts by cluster + component
@@ -4485,6 +4739,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setAlertsSubTab('firing-alerts');
     // Sync with filter panel - replace cluster filter
     setClusterFilter([cluster.name]);
+    // Trigger animation to highlight the filtered view
+    setShowFilterAnimation(true);
+    setTimeout(() => setShowFilterAnimation(false), 1500);
   };
 
   // V2: Back to all clusters view in card
@@ -4674,14 +4931,28 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
             <DrawerContent
               panelContent={
                 selectedAlertDetail && (
-                  <DrawerPanelContent widths={{ default: 'width_50' }} style={{ minWidth: '400px' }}>
-                    <DrawerHead>
-                      <Title headingLevel="h2" size="lg">{selectedAlertDetail.alertName}</Title>
-                      <DrawerActions>
-                        <DrawerCloseButton onClick={() => { setIsDrawerExpanded(false); setSelectedAlertDetail(null); }} />
-                      </DrawerActions>
+                  <DrawerPanelContent 
+                    widths={{ default: 'width_50' }} 
+                    style={{ 
+                      minWidth: '500px',
+                      backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+                      boxShadow: '-4px 0 16px rgba(0, 0, 0, 0.16)',
+                      height: '100%',
+                    }}
+                  >
+                    <DrawerHead style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
+                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <FlexItem>
+                          <Title headingLevel="h2" size="lg">{selectedAlertDetail.alertName}</Title>
+                        </FlexItem>
+                        <FlexItem>
+                          <DrawerActions>
+                            <DrawerCloseButton onClick={() => { setIsDrawerExpanded(false); setSelectedAlertDetail(null); }} />
+                          </DrawerActions>
+                        </FlexItem>
+                      </Flex>
                     </DrawerHead>
-                    <DrawerPanelBody>
+                    <DrawerPanelBody style={{ flex: 1, overflow: 'auto' }}>
                       <Tabs defaultActiveKey={0}>
                         <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>}>
                           <Stack hasGutter style={{ padding: '16px 0' }}>
@@ -5875,7 +6146,7 @@ spec:
   // MAIN VIEW (Multi-cluster Alerting Page)
   // ========================================
   return (
-    <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 76px)', overflow: 'hidden', position: 'relative' }}>
       {/* Header + Toolbar Section - Only show in fleet-overview mode */}
       {navigationView === 'fleet-overview' && (
       <div style={{ 
@@ -6090,7 +6361,24 @@ spec:
 
         {/* Active Filter Chips with Action Buttons */}
         {hasActiveFilters && (
-          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginTop: '8px', marginBottom: '16px' }}>
+          <Flex 
+            gap={{ default: 'gapSm' }} 
+            alignItems={{ default: 'alignItemsCenter' }} 
+            style={{ 
+              marginTop: '8px', 
+              marginBottom: '16px',
+              padding: showFilterAnimation ? '8px 12px' : undefined,
+              borderRadius: showFilterAnimation ? '6px' : undefined,
+              backgroundColor: showFilterAnimation ? 'var(--pf-t--global--color--brand--default)' : undefined,
+              animation: showFilterAnimation ? 'filterChipsHighlight 1.5s ease-out' : undefined,
+            }}
+          >
+            <style>{`
+              @keyframes filterChipsHighlight {
+                0% { background-color: rgba(0, 102, 204, 0.25); }
+                100% { background-color: transparent; }
+              }
+            `}</style>
             <FlexItem>
               <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
                 {/* Group filters by category with neutral styling */}
@@ -6980,36 +7268,85 @@ spec:
 
       {/* V2: Scrollable Content Area - Fleet Overview - Firing Alerts Sub-tab */}
       {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'firing-alerts' && (
-        <Drawer isExpanded={isDrawerExpanded} position="end" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <Drawer isExpanded={isDrawerExpanded} position="end" style={{ flex: 1, minHeight: 0 }}>
+          {/* Animation overlay for filtered view transition */}
+          {showFilterAnimation && (
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'var(--pf-t--global--color--brand--default)',
+                opacity: 0,
+                pointerEvents: 'none',
+                zIndex: 100,
+                animation: 'filterFlash 1.5s ease-out',
+              }}
+            />
+          )}
+          <style>{`
+            @keyframes filterFlash {
+              0% { opacity: 0.15; }
+              20% { opacity: 0.08; }
+              100% { opacity: 0; }
+            }
+            @keyframes pulseHighlight {
+              0% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0.4); }
+              50% { box-shadow: 0 0 0 8px rgba(0, 102, 204, 0); }
+              100% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0); }
+            }
+          `}</style>
           <DrawerContent
             panelContent={
               selectedAlertDetail && (
-                <DrawerPanelContent widths={{ default: 'width_50' }} style={{ minWidth: '400px', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
-                  <DrawerHead style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
-                    <Stack hasGutter>
-                      <StackItem>
-                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
-                          <FlexItem>
-                            <Title headingLevel="h2" size="lg">{selectedAlertDetail.alertName}</Title>
-                          </FlexItem>
-                          <FlexItem>
-                            <DrawerActions>
-                              <DrawerCloseButton onClick={() => { setIsDrawerExpanded(false); setSelectedAlertDetail(null); }} />
-                            </DrawerActions>
-                          </FlexItem>
-                        </Flex>
-                      </StackItem>
-                      <StackItem>
-                        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          {selectedAlertDetail.description || `${selectedAlertDetail.alertName} on a ${selectedAlertDetail.group} component is critically high.`}
+                <DrawerPanelContent 
+                  widths={{ default: 'width_33', lg: 'width_50' }}
+                  style={{ maxWidth: '500px' }}
+                >
+                  <DrawerHead>
+                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
+                      <FlexItem style={{ flex: 1 }}>
+                        <Title headingLevel="h2" size="lg">{selectedAlertDetail.alertName}</Title>
+                        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginTop: '8px' }}>
+                          {selectedAlertDetail.description || `This alert indicates ${selectedAlertDetail.alertName.toLowerCase()} condition.`}
                         </Content>
-                      </StackItem>
-                    </Stack>
+                        {/* Cluster and Namespace - shown immediately under header with prominent styling */}
+                        <div style={{ 
+                          marginTop: '16px', 
+                          padding: '12px 16px', 
+                          backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                          borderRadius: '6px',
+                          border: '1px solid var(--pf-t--global--border--color--default)'
+                        }}>
+                          <Flex gap={{ default: 'gapLg' }}>
+                            <FlexItem>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--blue--default)', color: 'white' }}>Cluster</Label>
+                                <strong style={{ fontSize: '14px' }}>{selectedAlertDetail.clusterName || 'N/A'}</strong>
+                              </Flex>
+                            </FlexItem>
+                            <FlexItem>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>Namespace</Label>
+                                <strong style={{ fontSize: '14px' }}>{selectedAlertDetail.namespace}</strong>
+                              </Flex>
+                            </FlexItem>
+                          </Flex>
+                        </div>
+                      </FlexItem>
+                      <FlexItem>
+                        <DrawerActions>
+                          <DrawerCloseButton onClick={() => { setIsDrawerExpanded(false); setSelectedAlertDetail(null); }} />
+                        </DrawerActions>
+                      </FlexItem>
+                    </Flex>
                   </DrawerHead>
-                  <DrawerPanelBody style={{ padding: 0 }}>
+                  <DrawerPanelBody style={{ overflow: 'auto' }}>
                     <Tabs defaultActiveKey={0}>
                       <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>}>
-                        <div style={{ padding: '16px' }}>
+                        <div style={{ padding: '16px 0' }}>
                           <Stack hasGutter>
                             {/* Name */}
                             <StackItem>
@@ -7020,7 +7357,7 @@ spec:
                             {/* Description */}
                             <StackItem>
                               <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Description</Content>
-                              <Content component="p">{selectedAlertDetail.description || `${selectedAlertDetail.alertName} on a ${selectedAlertDetail.group} component is critically high.`}</Content>
+                              <Content component="p">{selectedAlertDetail.description || `This alert indicates ${selectedAlertDetail.alertName.toLowerCase()} condition.`}</Content>
                             </StackItem>
                             
                             {/* Group */}
@@ -7041,37 +7378,27 @@ spec:
                               <Stack>
                                 <StackItem>
                                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <Icon status={selectedAlertDetail.status === 'firing' ? 'warning' : 'info'}><BellIcon /></Icon>
-                                    <span style={{ textTransform: 'capitalize' }}>{selectedAlertDetail.status}</span>
+                                    <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                                    <span>Firing</span>
                                   </Flex>
                                 </StackItem>
-                                {selectedAlertDetail.status === 'firing' && (
-                                  <StackItem>
-                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginLeft: '24px' }}>
-                                      <Icon><ClockIcon /></Icon>
-                                      <Content component="small">Since {selectedAlertDetail.lastFired}</Content>
-                                    </Flex>
-                                  </StackItem>
-                                )}
+                                <StackItem>
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                    <Icon><ClockIcon /></Icon>
+                                    <Content component="small">Since {selectedAlertDetail.lastFired}</Content>
+                                  </Flex>
+                                </StackItem>
                               </Stack>
                             </StackItem>
                             
                             {/* Labels */}
                             <StackItem>
                               <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Labels</Content>
-                              <div style={{ marginTop: '4px' }}>
-                                <LabelGroup>
-                                  {Object.entries(selectedAlertDetail.labels).map(([k, v]) => (
-                                    <Label key={k} isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>{k}={v}</Label>
-                                  ))}
-                                  {Object.keys(selectedAlertDetail.labels).length === 0 && (
-                                    <>
-                                      <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>label-label1</Label>
-                                      <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>label2</Label>
-                                    </>
-                                  )}
-                                </LabelGroup>
-                              </div>
+                              <Flex gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
+                                <Label isCompact>env=prod</Label>
+                                <Label isCompact>severity={selectedAlertDetail.severity.toLowerCase()}</Label>
+                                <Label isCompact>team=ML</Label>
+                              </Flex>
                             </StackItem>
                             
                             {/* Severity */}
@@ -7079,8 +7406,8 @@ spec:
                               <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Severity</Content>
                               <div style={{ marginTop: '4px' }}>
                                 <Label 
-                                  color={getSeverityLabelColor(selectedAlertDetail.severity)} 
-                                  icon={getSeverityIcon(selectedAlertDetail.severity)}
+                                  color={selectedAlertDetail.severity === 'Critical' ? 'red' : selectedAlertDetail.severity === 'Warning' ? 'orange' : 'blue'}
+                                  icon={selectedAlertDetail.severity === 'Critical' ? <ExclamationCircleIcon /> : selectedAlertDetail.severity === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
                                 >
                                   {selectedAlertDetail.severity}
                                 </Label>
@@ -7090,129 +7417,23 @@ spec:
                             {/* Source */}
                             <StackItem>
                               <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Source</Content>
-                              <Content component="p">{selectedAlertDetail.source || 'Platform'}</Content>
-                            </StackItem>
-                            
-                            {/* Cluster - Always show */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Cluster</Content>
-                              <div style={{ marginTop: '4px' }}>
-                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                  <Label color="blue" isCompact>C</Label>
-                                  <span>{selectedClusterForAlerts?.name || selectedClusterInCard?.name || 'Unknown cluster'}</span>
-                                </Flex>
-                              </div>
-                            </StackItem>
-                            
-                            {/* Namespace */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Namespace</Content>
-                              <div style={{ marginTop: '4px' }}>
-                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                  <Label color="blue" isCompact>NS</Label>
-                                  <span>{selectedAlertDetail.namespace}</span>
-                                </Flex>
-                              </div>
-                            </StackItem>
-                            
-                            {/* Resource */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Resource</Content>
-                              <div style={{ marginTop: '4px' }}>
-                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                  <Label color="purple" isCompact>N</Label>
-                                  <Button variant="link" isInline>{selectedAlertDetail.resource || 'node-001-nb'}</Button>
-                                </Flex>
-                              </div>
-                            </StackItem>
-                            
-                            {/* Alert rule */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Alert rule</Content>
-                              <div style={{ marginTop: '4px' }}>
-                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                  <Label color="purple" isCompact>AR</Label>
-                                  <Button variant="link" isInline>{selectedAlertDetail.alertName}</Button>
-                                </Flex>
-                              </div>
-                            </StackItem>
-                            
-                            {/* Runbook */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Runbook</Content>
-                              <Content component="p">
-                                <Button variant="link" isInline>https://mygitrunbook.com</Button>
-                              </Content>
-                            </StackItem>
-                            
-                            {/* Dashboard */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600, borderBottom: '1px dashed var(--pf-t--global--border--color--default)' }}>Dashboard</Content>
-                              <Content component="p">ocp-perses-clusterhealthdashboard</Content>
-                            </StackItem>
-                            
-                            <Divider />
-                            
-                            {/* Follow-up steps */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Follow-up steps</Content>
-                              <Stack hasGutter style={{ marginTop: '8px' }}>
-                                <StackItem>
-                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <Button variant="link" isInline>View logs</Button>
-                                    <Icon status="info"><InfoCircleIcon /></Icon>
-                                  </Flex>
-                                </StackItem>
-                                <StackItem>
-                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <Button variant="link" isInline>Troubleshoot</Button>
-                                    <Icon status="info"><InfoCircleIcon /></Icon>
-                                  </Flex>
-                                </StackItem>
-                                <StackItem>
-                                  <Button variant="link" isInline>See metrics</Button>
-                                </StackItem>
-                                <StackItem>
-                                  <Button variant="link" isInline>See related incident</Button>
-                                </StackItem>
-                              </Stack>
+                              <Content component="p">{selectedAlertDetail.source}</Content>
                             </StackItem>
                           </Stack>
                         </div>
                       </Tab>
                       <Tab eventKey={1} title={<TabTitleText>Alert timeline</TabTitleText>}>
-                        <div style={{ padding: '16px' }}>
-                          <Content component="p">Alert timeline visualization coming soon.</Content>
+                        <div style={{ padding: '16px 0' }}>
+                          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                            Alert timeline visualization would appear here.
+                          </Content>
                         </div>
                       </Tab>
                       <Tab eventKey={2} title={<TabTitleText>YAML</TabTitleText>}>
-                        <div style={{ padding: '16px' }}>
-                          <pre style={{ 
-                            backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', 
-                            padding: '12px', 
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            overflow: 'auto'
-                          }}>
-{`apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
-metadata:
-  name: ${selectedAlertDetail.alertName.toLowerCase().replace(/\s+/g, '-')}
-  namespace: ${selectedAlertDetail.namespace}
-spec:
-  groups:
-  - name: ${selectedAlertDetail.component.toLowerCase()}
-    rules:
-    - alert: ${selectedAlertDetail.alertName}
-      expr: ...
-      for: 5m
-      labels:
-        severity: ${selectedAlertDetail.severity.toLowerCase()}
-        component: ${selectedAlertDetail.component}
-      annotations:
-        summary: "${selectedAlertDetail.alertName}"
-        description: "${selectedAlertDetail.description || 'Alert description'}"`}
-                          </pre>
+                        <div style={{ padding: '16px 0' }}>
+                          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                            Alert YAML definition would appear here.
+                          </Content>
                         </div>
                       </Tab>
                     </Tabs>
@@ -7221,7 +7442,7 @@ spec:
               )
             }
           >
-            <DrawerContentBody>
+            <DrawerContentBody style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
           {/* Filter Side Panel - Sticky */}
           {isFilterPanelOpen && (
