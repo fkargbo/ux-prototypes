@@ -338,8 +338,8 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                     src="https://console-openshift-console.apps.emurasak-421.qe.devcluster.openshift.com/api/kubernetes/apis/packages.operators.coreos.com/v1/namespaces/openshift-marketplace/packagemanifests/cluster-observability-operator/icon?resourceVersion=cluster-observability-operator.stable.cluster-observability-operator.v1.3.1"
                     alt="Cluster Observability Operator"
                     style={{
-                      width: '48px',
-                      height: '48px',
+                      width: '40px',
+                      height: '40px',
                       objectFit: 'contain',
                     }}
                   />
