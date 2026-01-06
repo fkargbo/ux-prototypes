@@ -427,7 +427,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                 <StackItem>
                   <Checkbox
                     id="enable-cluster-monitoring"
-                    label="Enable Operator recommended cluster monitoring on this Namespace"
+                    label={<span style={{ fontSize: 'var(--pf-t--global--font--size--md)' }}>Enable Operator recommended cluster monitoring on this Namespace</span>}
                     isChecked={enableClusterMonitoring}
                     onChange={(_, checked) => setEnableClusterMonitoring(checked)}
                   />
