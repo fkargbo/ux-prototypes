@@ -348,22 +348,61 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                       justifyContent: 'center',
                     }}
                   >
-                    <img
-                      src="https://console-openshift-console.apps.emurasak-421.qe.devcluster.openshift.com/api/kubernetes/apis/packages.operators.coreos.com/v1/namespaces/openshift-marketplace/packagemanifests/cluster-observability-operator/icon?resourceVersion=cluster-observability-operator.stable.cluster-observability-operator.v1.3.1"
-                      alt="Cluster Observability Operator"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        display: 'block',
-                      }}
-                      onError={(e) => {
-                        // Fallback if image fails to load
-                        const target = e.target as HTMLImageElement;
-                        console.error('Failed to load operator icon. URL:', target.src);
-                        target.style.display = 'none';
-                      }}
-                    />
+                    <svg
+                      width="40"
+                      height="40"
+                      viewBox="0 0 40 40"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      style={{ display: 'block' }}
+                    >
+                      {/* Light gray rounded square frame */}
+                      <rect
+                        x="2"
+                        y="2"
+                        width="36"
+                        height="36"
+                        rx="4"
+                        fill="#f0f0f0"
+                        stroke="#000"
+                        strokeWidth="0.5"
+                      />
+                      {/* White square background */}
+                      <rect
+                        x="6"
+                        y="6"
+                        width="28"
+                        height="28"
+                        rx="2"
+                        fill="#ffffff"
+                      />
+                      {/* Eye shape - black outline */}
+                      <path
+                        d="M 12 20 Q 20 14 28 20 Q 20 26 12 20"
+                        stroke="#000"
+                        strokeWidth="2.5"
+                        fill="none"
+                        strokeLinecap="round"
+                      />
+                      {/* Power button symbol - red arc */}
+                      <path
+                        d="M 20 16 A 4 4 0 0 1 20 24"
+                        stroke="#c9190b"
+                        strokeWidth="2.5"
+                        fill="none"
+                        strokeLinecap="round"
+                      />
+                      {/* Power button symbol - black vertical line */}
+                      <line
+                        x1="20"
+                        y1="20"
+                        x2="20"
+                        y2="24"
+                        stroke="#000"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
                   </div>
                 </FlexItem>
                 <FlexItem style={{ flex: 1 }}>
