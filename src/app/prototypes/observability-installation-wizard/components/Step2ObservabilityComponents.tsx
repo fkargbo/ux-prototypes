@@ -356,18 +356,10 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     setAdvancedMode(checked);
     onDataChange({ advancedMode: checked });
     
-    // When advanced mode is enabled, auto-select all available plugins
-    if (checked) {
-      const autoSelected = availablePlugins.map(p => p.id);
-      setSelectedUIPlugins(autoSelected);
-      onDataChange({ selectedUIPlugins: autoSelected });
-    } else {
-      // When disabled, only keep monitoring-ui if metrics-alerting is selected
-      const defaultSelected = selectedCapabilities.includes('metrics-alerting')
-        ? ['monitoring-ui']
-        : [];
-      setSelectedUIPlugins(defaultSelected);
-      onDataChange({ selectedUIPlugins: defaultSelected });
+    // When advanced mode is disabled, clear all selections
+    if (!checked) {
+      setSelectedUIPlugins([]);
+      onDataChange({ selectedUIPlugins: [] });
     }
   };
 
@@ -539,21 +531,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
 
         {/* Console Experience Section */}
         <StackItem>
-          <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
-            Console experience (UI Plugins and components)
-          </Title>
-          <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-            Select UI plugins to enhance your console experience.
-          </Content>
-
           <Card>
             <CardBody>
               <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
-                <FlexItem>
-                  <Content style={{ fontWeight: '600', fontSize: '14px' }}>
-                    Console experience (UI Plugins and components)
-                  </Content>
-                </FlexItem>
                 <FlexItem>
                   <Switch
                     id="advanced-mode"
@@ -569,7 +549,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
               <Stack hasGutter>
                 {availablePlugins.map((plugin) => {
                   const isChecked = selectedUIPlugins.includes(plugin.id);
-                  const isEnabled = advancedMode || plugin.defaultEnabled;
 
                   return (
                     <StackItem key={plugin.id}>
@@ -577,7 +556,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                         id={`plugin-${plugin.id}`}
                         label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{plugin.name}</span>}
                         isChecked={isChecked}
-                        isDisabled={!advancedMode && !plugin.defaultEnabled}
+                        isDisabled={!advancedMode}
                         onChange={(_, checked) => handleUIPluginChange(plugin.id, checked)}
                       />
                       <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
