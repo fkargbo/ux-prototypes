@@ -170,6 +170,7 @@ import {
   UndoIcon,
   QuestionCircleIcon,
   PauseCircleIcon,
+  ExportIcon,
 } from '@patternfly/react-icons';
 
 // ========================================
@@ -328,7 +329,44 @@ const generateMockClusters = (): ClusterData[] => {
       const severity: AlertSeverity = Math.random() < 0.2 ? 'Critical' : Math.random() < 0.5 ? 'Warning' : 'Info';
       const status: AlertStatus = Math.random() < 0.7 ? 'firing' : Math.random() < 0.9 ? 'acknowledged' : 'resolved';
       const alertName = alertNames[Math.floor(Math.random() * alertNames.length)];
-      const minutesAgo = Math.floor(Math.random() * 120) + 1;
+      
+      // Generate varied time ranges for different time buckets
+      // Distribute alerts across: 1 Hour, 4 Hours, Today, Yesterday, Last 7 days, Last 30 days, Older
+      const timeBucket = Math.random();
+      let minutesAgo: number;
+      if (timeBucket < 0.15) {
+        // 1 Hour - within last 60 minutes
+        minutesAgo = Math.floor(Math.random() * 55) + 5;
+      } else if (timeBucket < 0.30) {
+        // 4 Hours - 1-4 hours ago
+        minutesAgo = Math.floor(Math.random() * 180) + 61;
+      } else if (timeBucket < 0.45) {
+        // Today - 4-12 hours ago (still today)
+        minutesAgo = Math.floor(Math.random() * 480) + 241;
+      } else if (timeBucket < 0.60) {
+        // Yesterday - 24-48 hours ago
+        minutesAgo = Math.floor(Math.random() * 1440) + 1440;
+      } else if (timeBucket < 0.75) {
+        // Last 7 days - 2-7 days ago
+        minutesAgo = Math.floor(Math.random() * 7200) + 2880;
+      } else if (timeBucket < 0.90) {
+        // Last 30 days - 7-30 days ago
+        minutesAgo = Math.floor(Math.random() * 33120) + 10080;
+      } else {
+        // Older - 30-90 days ago
+        minutesAgo = Math.floor(Math.random() * 86400) + 43200;
+      }
+      
+      // Format the lastFired string based on time
+      let lastFiredStr: string;
+      if (minutesAgo < 60) {
+        lastFiredStr = `${minutesAgo} min ago`;
+      } else if (minutesAgo < 1440) {
+        lastFiredStr = `${Math.floor(minutesAgo / 60)} hour${Math.floor(minutesAgo / 60) > 1 ? 's' : ''} ago`;
+      } else {
+        const daysAgo = Math.floor(minutesAgo / 1440);
+        lastFiredStr = `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`;
+      }
 
       alerts.push({
         id: `alert-${i}-${j}`,
@@ -339,7 +377,7 @@ const generateMockClusters = (): ClusterData[] => {
         namespace: Math.random() < 0.5 ? 'production' : Math.random() < 0.7 ? 'kube-system' : 'monitoring',
         labels: { env, severity: severity.toLowerCase(), team },
         summary: `${alertName} detected on cluster-${i}`,
-        lastFired: minutesAgo < 60 ? `${minutesAgo} min ago` : `${Math.floor(minutesAgo / 60)} hour ago`,
+        lastFired: lastFiredStr,
         lastFiredTimestamp: new Date(now.getTime() - minutesAgo * 60000),
         details: `Detailed information about ${alertName}. This requires attention.`,
         source: sources[Math.floor(Math.random() * sources.length)],
@@ -1752,9 +1790,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
 
           <Divider />
 
-          {/* Group Checkboxes */}
+          {/* Impact Group Checkboxes */}
           <StackItem>
-            <Content component="small" className="pf-v6-u-mb-sm"><strong>Group</strong></Content>
+            <Content component="small" className="pf-v6-u-mb-sm"><strong>Impact group</strong></Content>
             <Flex gap={{ default: 'gapMd' }}>
               {allGroups.map(grp => (
                 <FlexItem key={grp}>
@@ -1785,7 +1823,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           <StackItem>
             <Content component="small" className="pf-v6-u-mb-sm">
               <strong>
-                {groupFilter.length > 0 ? `Component (in: ${groupFilter.join(', ')})` : 'Component'}
+                {groupFilter.length > 0 ? `Component (in: ${groupFilter.map(g => `Impact: ${g}`).join(', ')})` : 'Component'}
               </strong>
             </Content>
             <Select
@@ -1989,10 +2027,12 @@ interface AggregatedAlert {
   alertName: string;
   severity: AlertSeverity;
   totalCount: number;
-  clusters: { name: string; cluster: ClusterData; count: number; lastFired: string }[];
+  clusters: { name: string; cluster: ClusterData; count: number; lastFired: string; lastFiredTimestamp: Date }[];
   component: AlertComponent;
   group: AlertGroup;
 }
+
+type AlertsGroupByOption = 'none' | 'time' | 'severity' | 'alertRule' | 'impact' | 'component';
 
 interface AllAlertsCardProps {
   clusters: ClusterData[];
@@ -2005,6 +2045,8 @@ interface AllAlertsCardProps {
   onAlertRuleClick: (alertName: string) => void;
   onComponentClick: (componentName: string) => void;
   singleClusterView?: boolean;
+  groupBy?: AlertsGroupByOption;
+  onGroupByChange?: (groupBy: AlertsGroupByOption) => void;
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
@@ -2018,6 +2060,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   onAlertRuleClick,
   onComponentClick,
   singleClusterView = false,
+  groupBy = 'none',
+  onGroupByChange,
 }) => {
   const [searchValue, setSearchValue] = React.useState('');
   const [severityFilter, setSeverityFilter] = React.useState<AlertSeverity[]>([]);
@@ -2028,6 +2072,138 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const [openActionMenuId, setOpenActionMenuId] = React.useState<string | null>(null);
   const [insightsItemCount, setInsightsItemCount] = React.useState<number>(5);
   const [isInsightsCountOpen, setIsInsightsCountOpen] = React.useState(false);
+  const [isGroupByOpen, setIsGroupByOpen] = React.useState(false);
+  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
+  
+  // Sorting state - default multi-sort: Severity (primary), Impact group (secondary), Component (tertiary)
+  type SortDirection = 'asc' | 'desc';
+  interface SortConfig {
+    column: 'alertName' | 'severity' | 'clusters' | 'total' | 'group' | 'component';
+    direction: SortDirection;
+    priority: number; // Lower number = higher priority in multi-sort
+  }
+  const [sortConfigs, setSortConfigs] = React.useState<SortConfig[]>([
+    { column: 'severity', direction: 'asc', priority: 1 },
+    { column: 'group', direction: 'asc', priority: 2 },
+    { column: 'component', direction: 'asc', priority: 3 },
+  ]);
+  
+  // Handle column sort click
+  const handleSort = (column: SortConfig['column']) => {
+    setSortConfigs(prevConfigs => {
+      const existingConfig = prevConfigs.find(c => c.column === column);
+      if (existingConfig) {
+        // Toggle direction or remove from sort
+        if (existingConfig.direction === 'asc') {
+          return prevConfigs.map(c => 
+            c.column === column ? { ...c, direction: 'desc' as SortDirection } : c
+          );
+        } else {
+          // Remove this column from sort and re-prioritize
+          const filtered = prevConfigs.filter(c => c.column !== column);
+          return filtered.map((c, idx) => ({ ...c, priority: idx + 1 }));
+        }
+      } else {
+        // Add new column with lowest priority
+        const maxPriority = prevConfigs.length > 0 ? Math.max(...prevConfigs.map(c => c.priority)) : 0;
+        return [...prevConfigs, { column, direction: 'asc' as SortDirection, priority: maxPriority + 1 }];
+      }
+    });
+    setPage(1);
+  };
+  
+  // Column management state
+  interface ColumnConfig {
+    key: string;
+    label: string;
+    isVisible: boolean;
+    isLocked: boolean; // Cannot be hidden or reordered
+    order: number;
+  }
+  const MAX_VISIBLE_COLUMNS = 10;
+  const [columns, setColumns] = React.useState<ColumnConfig[]>([
+    { key: 'alertName', label: 'Alert name', isVisible: true, isLocked: true, order: 0 },
+    { key: 'severity', label: 'Severity', isVisible: true, isLocked: true, order: 1 },
+    { key: 'total', label: 'Total', isVisible: true, isLocked: false, order: 2 },
+    { key: 'state', label: 'State', isVisible: true, isLocked: false, order: 3 },
+    { key: 'group', label: 'Impact group', isVisible: true, isLocked: false, order: 4 },
+    { key: 'component', label: 'Component', isVisible: true, isLocked: false, order: 5 },
+    { key: 'source', label: 'Source', isVisible: true, isLocked: false, order: 6 },
+    { key: 'description', label: 'Description', isVisible: false, isLocked: false, order: 7 },
+    { key: 'startTime', label: 'Start (Firing time)', isVisible: false, isLocked: false, order: 8 },
+    { key: 'endTime', label: 'End', isVisible: false, isLocked: false, order: 9 },
+  ]);
+  const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
+  const [tempColumns, setTempColumns] = React.useState<ColumnConfig[]>([]);
+  
+  const openManageColumnsModal = () => {
+    setTempColumns([...columns]);
+    setIsManageColumnsOpen(true);
+  };
+  
+  const handleColumnVisibilityChange = (key: string, isVisible: boolean) => {
+    const visibleCount = tempColumns.filter(c => c.isVisible).length;
+    // Don't allow exceeding max columns
+    if (isVisible && visibleCount >= MAX_VISIBLE_COLUMNS) return;
+    
+    setTempColumns(prev => prev.map(c => 
+      c.key === key ? { ...c, isVisible } : c
+    ));
+  };
+  
+  const saveColumnSettings = () => {
+    setColumns(tempColumns);
+    setIsManageColumnsOpen(false);
+  };
+  
+  const getVisibleColumns = () => columns.filter(c => c.isVisible).sort((a, b) => a.order - b.order);
+  
+  // Export to CSV
+  const exportToCSV = () => {
+    const visibleCols = getVisibleColumns();
+    const headers = visibleCols.map(c => c.label).join(',');
+    
+    const rows = filteredAggregatedAlerts.map(agg => {
+      return visibleCols.map(col => {
+        switch (col.key) {
+          case 'alertName': return `"${agg.alertName}"`;
+          case 'severity': return agg.severity;
+          case 'total': return agg.totalCount;
+          case 'state': return 'Firing';
+          case 'group': return agg.group || '';
+          case 'component': return agg.component || '';
+          case 'source': return agg.clusters[0]?.cluster?.alerts?.[0]?.source || '';
+          case 'description': return `"${agg.clusters[0]?.cluster?.alerts?.find(a => a.alertName === agg.alertName)?.description || ''}"`;
+          case 'startTime': return agg.clusters[0]?.lastFired || '';
+          case 'endTime': return '';
+          default: return '';
+        }
+      }).join(',');
+    });
+    
+    const csv = [headers, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `alerts-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  
+  // Get sort indicator for column
+  const getSortParams = (column: SortConfig['column']) => {
+    const config = sortConfigs.find(c => c.column === column);
+    if (!config) return undefined;
+    return {
+      sortBy: {
+        index: config.priority - 1,
+        direction: config.direction,
+      },
+      onSort: () => handleSort(column),
+      columnIndex: config.priority - 1,
+    };
+  };
   
   // Bulk selection state
   const [selectedAlertKeys, setSelectedAlertKeys] = React.useState<Set<string>>(new Set());
@@ -2101,12 +2277,18 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       const existingCluster = agg.clusters.find(c => c.name === alert.clusterName);
       if (existingCluster) {
         existingCluster.count++;
+        // Update timestamp if this alert is more recent
+        if (alert.lastFiredTimestamp > existingCluster.lastFiredTimestamp) {
+          existingCluster.lastFired = alert.lastFired;
+          existingCluster.lastFiredTimestamp = alert.lastFiredTimestamp;
+        }
       } else {
         agg.clusters.push({
           name: alert.clusterName,
           cluster: (alert as any).cluster,
           count: 1,
           lastFired: alert.lastFired,
+          lastFiredTimestamp: alert.lastFiredTimestamp,
         });
       }
     });
@@ -2122,14 +2304,56 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
   // Filter aggregated alerts
   const filteredAggregatedAlerts = React.useMemo(() => {
-    return aggregatedAlerts.filter(alert => {
+    const filtered = aggregatedAlerts.filter(alert => {
       if (alertNameFilter && alert.alertName !== alertNameFilter) return false;
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
       if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase())) return false;
       return true;
     });
-  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue]);
+    
+    // Apply multi-column sorting
+    if (sortConfigs.length === 0) return filtered;
+    
+    const severityOrder: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 };
+    const groupOrder: Record<string, number> = { Cluster: 0, Namespace: 1 };
+    
+    return [...filtered].sort((a, b) => {
+      // Sort by each column in priority order
+      const sortedConfigs = [...sortConfigs].sort((x, y) => x.priority - y.priority);
+      
+      for (const config of sortedConfigs) {
+        let comparison = 0;
+        const multiplier = config.direction === 'asc' ? 1 : -1;
+        
+        switch (config.column) {
+          case 'alertName':
+            comparison = a.alertName.localeCompare(b.alertName);
+            break;
+          case 'severity':
+            comparison = (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3);
+            break;
+          case 'clusters':
+            comparison = a.clusters.length - b.clusters.length;
+            break;
+          case 'total':
+            comparison = a.totalCount - b.totalCount;
+            break;
+          case 'group':
+            comparison = (groupOrder[a.group || ''] ?? 2) - (groupOrder[b.group || ''] ?? 2);
+            break;
+          case 'component':
+            comparison = (a.component || '').localeCompare(b.component || '');
+            break;
+        }
+        
+        if (comparison !== 0) {
+          return comparison * multiplier;
+        }
+      }
+      return 0;
+    });
+  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue, sortConfigs]);
 
   // Get selected alerts data for silence modal
   const selectedAlertsData = React.useMemo(() => {
@@ -2152,6 +2376,119 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
   const paginatedAggregatedAlerts = filteredAggregatedAlerts.slice((page - 1) * perPage, page * perPage);
   const paginatedAlerts = filteredAlerts.slice((page - 1) * perPage, page * perPage);
+
+  // Group alerts by selected groupBy option
+  const groupedAlerts = React.useMemo(() => {
+    if (groupBy === 'none') return null;
+    
+    const groups: Record<string, AggregatedAlert[]> = {};
+    
+    filteredAggregatedAlerts.forEach(agg => {
+      let groupKey: string;
+      
+      switch (groupBy) {
+        case 'severity':
+          groupKey = agg.severity;
+          break;
+        case 'alertRule':
+          groupKey = agg.alertName;
+          break;
+        case 'impact':
+          groupKey = agg.group || 'Unknown';
+          break;
+        case 'component':
+          groupKey = agg.component || 'Unknown';
+          break;
+        case 'time':
+          // Group by time buckets: 1 Hour, 4 Hours, Today, Yesterday, Last 7 days, Last 30 days, Older
+          // Find the most recent alert timestamp across all clusters for this aggregated alert
+          const mostRecentTimestamp = agg.clusters.reduce((latest, c) => {
+            if (!latest || (c.lastFiredTimestamp && c.lastFiredTimestamp > latest)) {
+              return c.lastFiredTimestamp;
+            }
+            return latest;
+          }, null as Date | null);
+          
+          if (mostRecentTimestamp) {
+            const now = new Date();
+            const diffMs = now.getTime() - mostRecentTimestamp.getTime();
+            const diffHours = diffMs / (1000 * 60 * 60);
+            const diffDays = diffMs / (1000 * 60 * 60 * 24);
+            
+            // Get today's start and yesterday's start
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+            
+            if (diffHours <= 1) {
+              groupKey = '1 Hour';
+            } else if (diffHours <= 4) {
+              groupKey = '4 Hours';
+            } else if (mostRecentTimestamp >= todayStart) {
+              groupKey = 'Today';
+            } else if (mostRecentTimestamp >= yesterdayStart) {
+              groupKey = 'Yesterday';
+            } else if (diffDays <= 7) {
+              groupKey = 'Last 7 days';
+            } else if (diffDays <= 30) {
+              groupKey = 'Last 30 days';
+            } else {
+              groupKey = 'Older';
+            }
+          } else {
+            groupKey = 'Unknown time';
+          }
+          break;
+        default:
+          groupKey = 'All';
+      }
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(agg);
+    });
+    
+    // Sort groups - for severity and time, use custom order
+    const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
+      if (groupBy === 'severity') {
+        const order: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 };
+        return (order[a] ?? 3) - (order[b] ?? 3);
+      }
+      if (groupBy === 'time') {
+        // Sort time buckets from most recent to oldest
+        const timeOrder: Record<string, number> = { 
+          '1 Hour': 0, 
+          '4 Hours': 1, 
+          'Today': 2, 
+          'Yesterday': 3, 
+          'Last 7 days': 4, 
+          'Last 30 days': 5, 
+          'Older': 6,
+          'Unknown time': 7
+        };
+        return (timeOrder[a] ?? 8) - (timeOrder[b] ?? 8);
+      }
+      return a.localeCompare(b);
+    });
+    
+    return sortedGroupKeys.map(key => ({
+      groupName: key,
+      alerts: groups[key],
+      totalCount: groups[key].reduce((sum, agg) => sum + agg.totalCount, 0),
+    }));
+  }, [filteredAggregatedAlerts, groupBy]);
+
+  const toggleGroupExpanded = (groupName: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName);
+      } else {
+        newSet.add(groupName);
+      }
+      return newSet;
+    });
+  };
 
   const toggleExpanded = (alertKey: string) => {
     if (expandedAlerts.includes(alertKey)) {
@@ -2232,31 +2569,71 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         />
                       </ToolbarItem>
                       <ToolbarItem>
-                        <Flex gap={{ default: 'gapSm' }}>
-                          {(['Critical', 'Warning', 'Info'] as AlertSeverity[]).map(sev => (
-                            <FlexItem key={sev}>
-                              <Label
-                                color={getSeverityLabelColor(sev)}
-                                icon={getSeverityIcon(sev)}
+                        <Dropdown
+                          isOpen={isGroupByOpen}
+                          onOpenChange={setIsGroupByOpen}
+                          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                            <MenuToggle 
+                              ref={toggleRef} 
+                              onClick={() => setIsGroupByOpen(!isGroupByOpen)}
+                              isExpanded={isGroupByOpen}
+                            >
+                              Group by: {groupBy === 'none' ? 'None' : groupBy === 'alertRule' ? 'Alert rule' : groupBy === 'impact' ? 'Impact group' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                            </MenuToggle>
+                          )}
+                        >
+                          <DropdownList>
+                            {(['none', 'time', 'severity', 'alertRule', 'impact', 'component'] as AlertsGroupByOption[]).map(option => (
+                              <DropdownItem 
+                                key={option}
                                 onClick={() => {
-                                  if (severityFilter.includes(sev)) {
-                                    setSeverityFilter(severityFilter.filter(s => s !== sev));
-                                  } else {
-                                    setSeverityFilter([...severityFilter, sev]);
-                                  }
-                                }}
-                                style={{ 
-                                  cursor: 'pointer',
-                                  opacity: severityFilter.length === 0 || severityFilter.includes(sev) ? 1 : 0.5,
-                                  border: severityFilter.includes(sev) ? '2px solid var(--pf-t--global--border--color--default)' : '2px solid transparent'
+                                  if (onGroupByChange) onGroupByChange(option);
+                                  setIsGroupByOpen(false);
+                                  setExpandedGroups(new Set());
+                                  setPage(1);
                                 }}
                               >
-                                {sev}
-                              </Label>
-                            </FlexItem>
-                          ))}
-                        </Flex>
+                                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                  <FlexItem>{option === 'none' ? 'None' : option === 'alertRule' ? 'Alert rule' : option === 'impact' ? 'Impact group' : option.charAt(0).toUpperCase() + option.slice(1)}</FlexItem>
+                                  {groupBy === option && (
+                                    <FlexItem>
+                                      <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                                    </FlexItem>
+                                  )}
+                                </Flex>
+                              </DropdownItem>
+                            ))}
+                          </DropdownList>
+                        </Dropdown>
                       </ToolbarItem>
+                      {/* Expand/Collapse all buttons - shown when grouping is active */}
+                      {groupBy !== 'none' && groupedAlerts && groupedAlerts.length > 0 && (
+                        <ToolbarItem>
+                          <Flex gap={{ default: 'gapSm' }}>
+                            <FlexItem>
+                              <Button 
+                                variant="link" 
+                                isInline
+                                onClick={() => {
+                                  const allGroupNames = groupedAlerts.map(g => g.groupName);
+                                  setExpandedGroups(new Set(allGroupNames));
+                                }}
+                              >
+                                Expand all
+                              </Button>
+                            </FlexItem>
+                            <FlexItem>
+                              <Button 
+                                variant="link" 
+                                isInline
+                                onClick={() => setExpandedGroups(new Set())}
+                              >
+                                Collapse all
+                              </Button>
+                            </FlexItem>
+                          </Flex>
+                        </ToolbarItem>
+                      )}
                       <ToolbarItem>
                         <Switch
                           id="aggregate-all-alerts-switch"
@@ -2281,6 +2658,27 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           </Button>
                         </ToolbarItem>
                       )}
+                      {/* Manage columns and Export buttons */}
+                      <ToolbarItem>
+                        <Tooltip content="Manage columns">
+                          <Button 
+                            variant="plain" 
+                            icon={<ColumnsIcon />} 
+                            onClick={openManageColumnsModal} 
+                            aria-label="Manage columns" 
+                          />
+                        </Tooltip>
+                      </ToolbarItem>
+                      <ToolbarItem>
+                        <Tooltip content="Export to CSV">
+                          <Button 
+                            variant="plain" 
+                            icon={<ExportIcon />} 
+                            onClick={exportToCSV} 
+                            aria-label="Export to CSV" 
+                          />
+                        </Tooltip>
+                      </ToolbarItem>
                       {/* Filter chips moved to main toolbar */}
                       <ToolbarItem align={{ default: 'alignEnd' }}>
                         <Pagination
@@ -2300,6 +2698,196 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
               <EmptyState titleText="No alerts found" icon={CheckCircleIcon}>
                 <EmptyStateBody>No alerts match the current filters.</EmptyStateBody>
               </EmptyState>
+            ) : groupBy !== 'none' && groupedAlerts ? (
+              /* Grouped View with Collapsible Sections */
+              <Accordion asDefinitionList={false} displaySize="lg">
+                {groupedAlerts.map(group => {
+                  const isGroupExpanded = expandedGroups.has(group.groupName);
+                  const groupSeverityColor = groupBy === 'severity' 
+                    ? (group.groupName === 'Critical' ? 'red' : group.groupName === 'Warning' ? 'orange' : 'blue')
+                    : 'grey';
+                  
+                  return (
+                    <AccordionItem key={group.groupName} isExpanded={isGroupExpanded}>
+                      <AccordionToggle
+                        onClick={() => toggleGroupExpanded(group.groupName)}
+                        id={`group-toggle-${group.groupName}`}
+                      >
+                        <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <FlexItem>
+                            {groupBy === 'severity' ? (
+                              <Label 
+                                color={groupSeverityColor as 'red' | 'orange' | 'blue'} 
+                                icon={group.groupName === 'Critical' ? <ExclamationCircleIcon /> : group.groupName === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                              >
+                                {group.groupName}
+                              </Label>
+                            ) : (
+                              <strong>{group.groupName}</strong>
+                            )}
+                          </FlexItem>
+                          <FlexItem>
+                            <Badge>{group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}</Badge>
+                          </FlexItem>
+                          <FlexItem>
+                            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                              {group.totalCount} total instance{group.totalCount !== 1 ? 's' : ''}
+                            </Content>
+                          </FlexItem>
+                        </Flex>
+                      </AccordionToggle>
+                      <AccordionContent id={`group-content-${group.groupName}`} hidden={!isGroupExpanded}>
+                        <Table aria-label={`Alerts in ${group.groupName} group`} variant="compact" isExpandable>
+                          <Thead>
+                            <Tr>
+                              <Th screenReaderText="Expand" />
+                              <Th>Alert name</Th>
+                              <Th>Severity</Th>
+                              <Th>Clusters</Th>
+                              <Th>Total</Th>
+                              <Th>Impact group</Th>
+                              <Th>Component</Th>
+                            </Tr>
+                          </Thead>
+                          {group.alerts.map((agg, aggIdx) => {
+                            const alertKey = `${group.groupName}-${agg.alertName}-${agg.severity}`;
+                            const isAlertExpanded = expandedAlerts.includes(alertKey);
+                            return (
+                              <Tbody key={alertKey} isExpanded={isAlertExpanded}>
+                                <Tr>
+                                  <Td
+                                    expand={{
+                                      rowIndex: aggIdx,
+                                      isExpanded: isAlertExpanded,
+                                      onToggle: () => toggleExpanded(alertKey),
+                                    }}
+                                  />
+                                  <Td>
+                                    {/* Alert name is plain text when aggregated, only clickable in expanded rows */}
+                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                      <FlexItem>
+                                        <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
+                                      </FlexItem>
+                                      <FlexItem>{agg.alertName}</FlexItem>
+                                    </Flex>
+                                  </Td>
+                                  <Td>
+                                    <Label 
+                                      color={getSeverityLabelColor(agg.severity)} 
+                                      icon={getSeverityIcon(agg.severity)} 
+                                      isCompact
+                                    >
+                                      {agg.severity}
+                                    </Label>
+                                  </Td>
+                                  <Td>
+                                    <Badge isRead>{agg.clusters.length}</Badge>
+                                  </Td>
+                                  <Td>{agg.totalCount}</Td>
+                                  <Td>
+                                    <Label variant="outline" isCompact>{agg.group}</Label>
+                                  </Td>
+                                  <Td>
+                                    <Label variant="outline" isCompact>{agg.component}</Label>
+                                  </Td>
+                                </Tr>
+                                {/* Expanded row with cluster details */}
+                                <Tr isExpanded={isAlertExpanded}>
+                                  <Td colSpan={7}>
+                                    <ExpandableRowContent>
+                                      <Table aria-label={`Instances of ${agg.alertName}`} variant="compact">
+                                        <Thead>
+                                          <Tr>
+                                            <Th>Alert name</Th>
+                                            <Th>Severity</Th>
+                                            <Th>State</Th>
+                                            <Th>Cluster</Th>
+                                            <Th>Namespace</Th>
+                                            <Th>Resource</Th>
+                                          </Tr>
+                                        </Thead>
+                                        <Tbody>
+                                          {agg.clusters.map((clusterInfo, instanceIdx) => {
+                                            const alertInstance = clusterInfo.cluster?.alerts?.find(
+                                              a => a.alertName === agg.alertName && a.severity === agg.severity
+                                            );
+                                            return (
+                                              <Tr key={`${clusterInfo.name}-${instanceIdx}`}>
+                                                <Td>
+                                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                                    <FlexItem>
+                                                      <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
+                                                    </FlexItem>
+                                                    <FlexItem>
+                                                      <Button 
+                                                        variant="link" 
+                                                        isInline 
+                                                        onClick={() => {
+                                                          if (alertInstance) onAlertClick(alertInstance);
+                                                        }}
+                                                      >
+                                                        {agg.alertName}
+                                                      </Button>
+                                                    </FlexItem>
+                                                  </Flex>
+                                                </Td>
+                                                <Td>
+                                                  <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>
+                                                    {agg.severity}
+                                                  </Label>
+                                                </Td>
+                                                <Td>
+                                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                                    <FlexItem>
+                                                      <Icon status="warning"><BellIcon /></Icon>
+                                                    </FlexItem>
+                                                    <FlexItem>
+                                                      <Stack>
+                                                        <StackItem>Firing Since</StackItem>
+                                                        <StackItem>
+                                                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                                            {clusterInfo.lastFired}
+                                                          </Content>
+                                                        </StackItem>
+                                                      </Stack>
+                                                    </FlexItem>
+                                                  </Flex>
+                                                </Td>
+                                                <Td>{clusterInfo.name}</Td>
+                                                <Td>
+                                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                                    <FlexItem><Label color="blue" isCompact>NS</Label></FlexItem>
+                                                    <FlexItem>{alertInstance?.namespace || 'default'}</FlexItem>
+                                                  </Flex>
+                                                </Td>
+                                                <Td>
+                                                  {alertInstance?.resource ? (
+                                                    <Button variant="link" isInline>{alertInstance.resource}</Button>
+                                                  ) : (
+                                                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>-</Content>
+                                                  )}
+                                                </Td>
+                                              </Tr>
+                                            );
+                                          })}
+                                        </Tbody>
+                                      </Table>
+                                    </ExpandableRowContent>
+                                  </Td>
+                                </Tr>
+                              </Tbody>
+                            );
+                          })}
+                        </Table>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            ) : totalItems === 0 ? (
+              <EmptyState titleText="No alerts found" icon={CheckCircleIcon}>
+                <EmptyStateBody>No alerts match the current filters.</EmptyStateBody>
+              </EmptyState>
             ) : isAggregated ? (
               /* Aggregated View */
               <Table aria-label="Aggregated alerts table" variant="compact" isExpandable>
@@ -2314,21 +2902,99 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         onChange={toggleSelectAll}
                       />
                     </Th>
-                    <Th sort={{ sortBy: { index: 0, direction: 'asc' }, columnIndex: 0 }}>Alert name</Th>
-                    <Th sort={{ sortBy: { index: 1, direction: 'asc' }, columnIndex: 1 }}>Severity</Th>
+                    <Th 
+                      sort={getSortParams('alertName') ? {
+                        sortBy: getSortParams('alertName')!.sortBy,
+                        onSort: () => handleSort('alertName'),
+                        columnIndex: 0
+                      } : undefined}
+                      info={sortConfigs.find(c => c.column === 'alertName') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'alertName')?.priority}` } : undefined}
+                    >
+                      Alert name
+                    </Th>
+                    <Th 
+                      sort={{
+                        sortBy: {
+                          index: sortConfigs.findIndex(c => c.column === 'severity'),
+                          direction: sortConfigs.find(c => c.column === 'severity')?.direction || 'asc'
+                        },
+                        onSort: () => handleSort('severity'),
+                        columnIndex: 1
+                      }}
+                      info={sortConfigs.find(c => c.column === 'severity') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'severity')?.priority}` } : undefined}
+                    >
+                      Severity
+                    </Th>
                     {singleClusterView ? (
                       <>
-                        <Th>Total</Th>
-                        <Th sort={{ sortBy: { index: 2, direction: 'asc' }, columnIndex: 2 }}>State</Th>
+                        <Th 
+                          sort={{
+                            sortBy: {
+                              index: sortConfigs.findIndex(c => c.column === 'total'),
+                              direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
+                            },
+                            onSort: () => handleSort('total'),
+                            columnIndex: 2
+                          }}
+                        >
+                          Total
+                        </Th>
+                        <Th>State</Th>
                         <Th>Namespace</Th>
                         <Th>Resource</Th>
                       </>
                     ) : (
                       <>
-                        <Th>Clusters</Th>
-                        <Th>Total Instances</Th>
-                        <Th>Group</Th>
-                        <Th>Component</Th>
+                        <Th 
+                          sort={{
+                            sortBy: {
+                              index: sortConfigs.findIndex(c => c.column === 'clusters'),
+                              direction: sortConfigs.find(c => c.column === 'clusters')?.direction || 'asc'
+                            },
+                            onSort: () => handleSort('clusters'),
+                            columnIndex: 2
+                          }}
+                        >
+                          Clusters
+                        </Th>
+                        <Th 
+                          sort={{
+                            sortBy: {
+                              index: sortConfigs.findIndex(c => c.column === 'total'),
+                              direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
+                            },
+                            onSort: () => handleSort('total'),
+                            columnIndex: 3
+                          }}
+                        >
+                          Total Instances
+                        </Th>
+                        <Th 
+                          sort={{
+                            sortBy: {
+                              index: sortConfigs.findIndex(c => c.column === 'group'),
+                              direction: sortConfigs.find(c => c.column === 'group')?.direction || 'asc'
+                            },
+                            onSort: () => handleSort('group'),
+                            columnIndex: 4
+                          }}
+                          info={sortConfigs.find(c => c.column === 'group') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'group')?.priority}` } : undefined}
+                        >
+                          Impact group
+                        </Th>
+                        <Th 
+                          sort={{
+                            sortBy: {
+                              index: sortConfigs.findIndex(c => c.column === 'component'),
+                              direction: sortConfigs.find(c => c.column === 'component')?.direction || 'asc'
+                            },
+                            onSort: () => handleSort('component'),
+                            columnIndex: 5
+                          }}
+                          info={sortConfigs.find(c => c.column === 'component') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'component')?.priority}` } : undefined}
+                        >
+                          Component
+                        </Th>
                       </>
                     )}
                   </Tr>
@@ -2358,23 +3024,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           />
                         </Td>
                         <Td>
+                          {/* Alert name is plain text when aggregated - clickable only in expanded rows */}
                           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                             <FlexItem>
                               <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
                             </FlexItem>
-                            <FlexItem>
-                              <Button 
-                                variant="link" 
-                                isInline 
-                                onClick={() => {
-                                  if (firstAlert) {
-                                    onAlertClick(firstAlert);
-                                  }
-                                }}
-                              >
-                                {agg.alertName}
-                              </Button>
-                            </FlexItem>
+                            <FlexItem>{agg.alertName}</FlexItem>
                           </Flex>
                         </Td>
                         <Td>
@@ -2585,7 +3240,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     <Th>Alert Name</Th>
                     <Th>Severity</Th>
                     <Th>Cluster</Th>
-                    <Th>Group</Th>
+                    <Th>Impact group</Th>
                     <Th>Component</Th>
                     <Th>State</Th>
                     <Th>Last Fired</Th>
@@ -2788,6 +3443,145 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
             Silence alert
           </Button>
           <Button variant="link" onClick={() => setIsSilenceModalOpen(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+      
+      {/* Manage Columns Modal */}
+      <Modal
+        isOpen={isManageColumnsOpen}
+        onClose={() => setIsManageColumnsOpen(false)}
+        variant="small"
+        aria-labelledby="manage-columns-modal-title"
+      >
+        <ModalHeader title="Manage columns" labelId="manage-columns-modal-title" />
+        <ModalBody>
+          <Stack hasGutter>
+            <StackItem>
+              <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                Selected categories will be deployed in the table.
+              </Content>
+            </StackItem>
+            <StackItem>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                padding: '8px',
+                border: '1px solid var(--pf-t--global--border--color--default)',
+                borderRadius: '3px',
+                marginBottom: '8px'
+              }}>
+                <Checkbox 
+                  id="select-all-columns-toggle" 
+                  label=""
+                  isChecked={tempColumns.filter(c => !c.isLocked).every(c => c.isVisible)}
+                  onChange={(_, checked) => {
+                    const visibleLockedCount = tempColumns.filter(c => c.isLocked).length;
+                    const availableSlots = MAX_VISIBLE_COLUMNS - visibleLockedCount;
+                    
+                    setTempColumns(prev => {
+                      let slotsUsed = 0;
+                      return prev.map(c => {
+                        if (c.isLocked) return c;
+                        if (checked && slotsUsed < availableSlots) {
+                          slotsUsed++;
+                          return { ...c, isVisible: true };
+                        }
+                        return { ...c, isVisible: checked ? slotsUsed < availableSlots : false };
+                      });
+                    });
+                  }}
+                />
+                <AngleDownIcon style={{ marginLeft: '4px' }} />
+              </div>
+            </StackItem>
+            <StackItem>
+              <div style={{ 
+                border: '1px solid var(--pf-t--global--border--color--default)',
+                borderRadius: '3px',
+                maxHeight: '400px',
+                overflowY: 'auto'
+              }}>
+                {tempColumns.map((col, index) => (
+                  <div 
+                    key={col.key}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      padding: '12px 16px',
+                      borderBottom: index < tempColumns.length - 1 ? '1px solid var(--pf-t--global--border--color--default)' : 'none',
+                      backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
+                    }}
+                    draggable={!col.isLocked}
+                    onDragStart={(e) => {
+                      if (col.isLocked) {
+                        e.preventDefault();
+                        return;
+                      }
+                      e.dataTransfer.setData('text/plain', col.key);
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const draggedKey = e.dataTransfer.getData('text/plain');
+                      if (draggedKey === col.key) return;
+                      
+                      const draggedCol = tempColumns.find(c => c.key === draggedKey);
+                      if (!draggedCol || draggedCol.isLocked || col.isLocked) return;
+                      
+                      const newColumns = [...tempColumns];
+                      const draggedIndex = newColumns.findIndex(c => c.key === draggedKey);
+                      const dropIndex = newColumns.findIndex(c => c.key === col.key);
+                      
+                      // Remove dragged item
+                      newColumns.splice(draggedIndex, 1);
+                      // Insert at new position
+                      newColumns.splice(dropIndex, 0, draggedCol);
+                      
+                      // Update order
+                      setTempColumns(newColumns.map((c, i) => ({ ...c, order: i })));
+                    }}
+                  >
+                    <GripVerticalIcon 
+                      style={{ 
+                        marginRight: '12px',
+                        color: col.isLocked ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--subtle)',
+                        cursor: col.isLocked ? 'not-allowed' : 'grab'
+                      }} 
+                    />
+                    <Checkbox 
+                      id={`col-checkbox-${col.key}`}
+                      isChecked={col.isVisible}
+                      isDisabled={col.isLocked}
+                      onChange={(_, checked) => {
+                        setTempColumns(prev => prev.map(c => 
+                          c.key === col.key ? { ...c, isVisible: checked } : c
+                        ));
+                      }}
+                      label={col.label}
+                      style={{ 
+                        color: col.isLocked ? 'var(--pf-t--global--text--color--subtle)' : undefined 
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </StackItem>
+            <StackItem>
+              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                Maximum {MAX_VISIBLE_COLUMNS} columns can be displayed. Currently showing {tempColumns.filter(c => c.isVisible).length} columns.
+              </Content>
+            </StackItem>
+          </Stack>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="primary" onClick={saveColumnSettings}>
+            Save
+          </Button>
+          <Button variant="link" onClick={() => setIsManageColumnsOpen(false)}>
             Cancel
           </Button>
         </ModalFooter>
@@ -3379,6 +4173,12 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [firingAlertsCardView, setFiringAlertsCardView] = React.useState<'all-clusters' | 'single-cluster'>('all-clusters');
   const [selectedClusterForAlerts, setSelectedClusterForAlerts] = React.useState<ClusterData | null>(null);
   
+  // Firing Alerts grouping
+  type AlertsGroupByOption = 'none' | 'time' | 'severity' | 'alertRule' | 'impact' | 'component';
+  const [alertsGroupBy, setAlertsGroupBy] = React.useState<AlertsGroupByOption>('none');
+  const [isAlertsGroupByOpen, setIsAlertsGroupByOpen] = React.useState(false);
+  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
+  
   // V2: Three-tier navigation state (keeping for backward compat, but not used in new flow)
   const [navigationView, setNavigationView] = React.useState<NavigationView>('fleet-overview');
   const [selectedCluster, setSelectedCluster] = React.useState<ClusterData | null>(null);
@@ -3666,23 +4466,15 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   }, [drillDownFilteredAlerts]);
 
   // Handlers
-  // V2: Click on cluster in treemap/table - show components in-card (no drill-down)
+  // V2: Click on cluster in treemap/table - navigate directly to firing alerts filtered by cluster
   const handleClusterClick = (cluster: ClusterData) => {
-    setSelectedClusterInCard(cluster);
-    setClusterCardView('single-cluster-components');
+    // Set the cluster for alerts view
+    setSelectedClusterForAlerts(cluster);
+    setFiringAlertsCardView('single-cluster');
     // Sync with filter panel - replace cluster filter with this cluster only
-    // This ensures no duplicates
     setClusterFilter([cluster.name]);
-    
-    // Scroll to the cluster card after a short delay to allow state update
-    setTimeout(() => {
-      if (clusterCardRef.current) {
-        clusterCardRef.current.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start'
-        });
-      }
-    }, 100);
+    // Switch to firing alerts tab
+    setAlertsSubTab('firing-alerts');
   };
 
   // V2: Click on component - filter firing alerts by cluster + component
@@ -4214,7 +5006,7 @@ spec:
                             {/* Component - Dropdown based on selected group */}
                             <StackItem>
                               <Content component="small" className="pf-v6-u-mb-sm">
-                                <strong>{drillDownGroupFilter.length > 0 ? `Component (in: ${drillDownGroupFilter.join(', ')})` : 'Component'}</strong>
+                                <strong>{drillDownGroupFilter.length > 0 ? `Component (in: ${drillDownGroupFilter.map(g => `Impact: ${g}`).join(', ')})` : 'Component'}</strong>
                               </Content>
                               <Select
                                 role="menu"
@@ -4626,7 +5418,7 @@ spec:
                                     <Th>Alert Name</Th>
                                     {isAggregated && columns.find(c => c.key === 'total')?.isVisible && <Th>Total</Th>}
                                     {columns.find(c => c.key === 'state')?.isVisible && <Th>State</Th>}
-                                    {columns.find(c => c.key === 'group')?.isVisible && <Th>Group</Th>}
+                                    {columns.find(c => c.key === 'group')?.isVisible && <Th>Impact group</Th>}
                                     {columns.find(c => c.key === 'component')?.isVisible && <Th>Component</Th>}
                                     {columns.find(c => c.key === 'source')?.isVisible && <Th>Source</Th>}
                                     <Th screenReaderText="Actions" />
@@ -5199,8 +5991,8 @@ spec:
                   aria-label="Alerts sub-tabs" 
                   variant="secondary"
                 >
-                  <Tab eventKey="clusters-health" title={<TabTitleText><ThLargeIcon /> Clusters health</TabTitleText>} />
-                  <Tab eventKey="firing-alerts" title={<TabTitleText><ListIcon /> Firing alerts</TabTitleText>} />
+                  <Tab eventKey="clusters-health" title={<TabTitleText>Clusters health</TabTitleText>} />
+                  <Tab eventKey="firing-alerts" title={<TabTitleText>Firing alerts</TabTitleText>} />
                 </Tabs>
               </div>
             )}
@@ -5281,16 +6073,18 @@ spec:
                 Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{regionFilter.length + clusterFilter.length + severityFilter.length + groupFilter.length + componentFilter.length}</Badge>}
               </Button>
             </ToolbarItem>
-            {/* Search Input - Third */}
-            <ToolbarItem>
-              <SearchInput
-                placeholder={alertsSubTab === 'firing-alerts' ? "Search alerts..." : "Search clusters..."}
-                value={searchValue}
-                onChange={(_, value) => setSearchValue(value)}
-                onClear={() => setSearchValue('')}
-                style={{ width: '300px' }}
-              />
-            </ToolbarItem>
+            {/* Search Input - Third - Hidden on Firing Alerts tab as it's in the card */}
+            {alertsSubTab !== 'firing-alerts' && (
+              <ToolbarItem>
+                <SearchInput
+                  placeholder="Search clusters..."
+                  value={searchValue}
+                  onChange={(_, value) => setSearchValue(value)}
+                  onClear={() => setSearchValue('')}
+                  style={{ width: '300px' }}
+                />
+              </ToolbarItem>
+            )}
           </ToolbarContent>
         </Toolbar>
 
@@ -6531,25 +7325,6 @@ spec:
               {/* Alerts Card */}
               <StackItem>
                 {/* Header with back button when viewing single cluster */}
-                {firingAlertsCardView === 'single-cluster' && selectedClusterForAlerts && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                      <FlexItem>
-                        <Button 
-                          variant="link" 
-                          isInline 
-                          onClick={handleBackToAllClustersAlerts}
-                          icon={<ArrowLeftIcon />}
-                        >
-                          All clusters alerts
-                        </Button>
-                      </FlexItem>
-                      <FlexItem>
-                        <Title headingLevel="h3">{selectedClusterForAlerts.name} - Firing Alerts</Title>
-                      </FlexItem>
-                    </Flex>
-                  </div>
-                )}
                 <AllAlertsCard
                   clusters={firingAlertsCardView === 'single-cluster' && selectedClusterForAlerts 
                     ? [selectedClusterForAlerts] 
@@ -6571,6 +7346,8 @@ spec:
                     setMainComponentFilter(componentName);
                   }}
                   singleClusterView={firingAlertsCardView === 'single-cluster'}
+                  groupBy={alertsGroupBy}
+                  onGroupByChange={setAlertsGroupBy}
                 />
               </StackItem>
             </Stack>
