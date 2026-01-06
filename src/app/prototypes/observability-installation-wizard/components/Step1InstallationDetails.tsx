@@ -340,7 +340,16 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                     style={{
                       width: '40px',
                       height: '40px',
+                      minWidth: '40px',
+                      minHeight: '40px',
+                      maxWidth: '40px',
+                      maxHeight: '40px',
                       objectFit: 'contain',
+                      display: 'block',
+                    }}
+                    onError={(e) => {
+                      // Fallback if image fails to load
+                      console.error('Failed to load operator icon:', e);
                     }}
                   />
                 </FlexItem>
