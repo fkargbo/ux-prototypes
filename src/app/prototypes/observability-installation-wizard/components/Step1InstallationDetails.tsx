@@ -334,9 +334,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
             <StackItem>
               <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                 <FlexItem>
-                  <img
-                    src="https://console-openshift-console.apps.emurasak-421.qe.devcluster.openshift.com/api/kubernetes/apis/packages.operators.coreos.com/v1/namespaces/openshift-marketplace/packagemanifests/cluster-observability-operator/icon?resourceVersion=cluster-observability-operator.stable.cluster-observability-operator.v1.3.1"
-                    alt="Cluster Observability Operator"
+                  <div
                     style={{
                       width: '40px',
                       height: '40px',
@@ -344,14 +342,29 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                       minHeight: '40px',
                       maxWidth: '40px',
                       maxHeight: '40px',
-                      objectFit: 'contain',
-                      display: 'block',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
-                    onError={(e) => {
-                      // Fallback if image fails to load
-                      console.error('Failed to load operator icon:', e);
-                    }}
-                  />
+                  >
+                    <img
+                      src="https://console-openshift-console.apps.emurasak-421.qe.devcluster.openshift.com/api/kubernetes/apis/packages.operators.coreos.com/v1/namespaces/openshift-marketplace/packagemanifests/cluster-observability-operator/icon?resourceVersion=cluster-observability-operator.stable.cluster-observability-operator.v1.3.1"
+                      alt="Cluster Observability Operator"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        display: 'block',
+                      }}
+                      onError={(e) => {
+                        // Fallback if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        console.error('Failed to load operator icon. URL:', target.src);
+                        target.style.display = 'none';
+                      }}
+                    />
+                  </div>
                 </FlexItem>
                 <FlexItem style={{ flex: 1 }}>
                   <Title headingLevel="h3" size="lg" style={{ marginBottom: '4px' }}>
