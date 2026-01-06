@@ -2917,18 +2917,22 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     ? (group.groupName === 'Critical' ? 'red' : group.groupName === 'Warning' ? 'orange' : 'blue')
                     : 'grey';
                   
+                  // Get unique clusters for this group
+                  const clustersInGroup = Array.from(new Set(group.alerts.flatMap(a => a.clusters.map(c => c.name))));
+                  
                   return (
                     <AccordionItem key={group.groupName} isExpanded={isGroupExpanded}>
                       <AccordionToggle
                         onClick={() => toggleGroupExpanded(group.groupName)}
                         id={`group-toggle-${group.groupName}`}
                       >
-                        <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }} style={{ fontSize: '14px', fontWeight: 400 }}>
                           <FlexItem>
                             {groupBy === 'severity' ? (
                               <Label 
                                 color={groupSeverityColor as 'red' | 'orange' | 'blue'} 
                                 icon={group.groupName === 'Critical' ? <ExclamationCircleIcon /> : group.groupName === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                                isCompact
                               >
                                 {group.groupName}
                               </Label>
@@ -2936,50 +2940,62 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               <strong>{group.groupName}</strong>
                             )}
                           </FlexItem>
+                          
+                          {/* Separator */}
                           <FlexItem>
-                            <Badge>{group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}</Badge>
+                            <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
                           </FlexItem>
-                          <FlexItem>
-                            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                              {group.totalCount} instance{group.totalCount !== 1 ? 's' : ''}
-                            </Content>
-                          </FlexItem>
+                          
                           {/* Severity breakdown - only show when not grouping by severity */}
                           {groupBy !== 'severity' && (
-                            <FlexItem>
-                              <Flex gap={{ default: 'gapSm' }}>
-                                {(() => {
-                                  const criticalCount = group.alerts.filter(a => a.severity === 'Critical').length;
-                                  const warningCount = group.alerts.filter(a => a.severity === 'Warning').length;
-                                  const infoCount = group.alerts.filter(a => a.severity === 'Info').length;
-                                  return (
-                                    <>
-                                      {criticalCount > 0 && (
-                                        <FlexItem>
-                                          <Label color="red" icon={<ExclamationCircleIcon />} isCompact>
-                                            {criticalCount} critical
-                                          </Label>
-                                        </FlexItem>
-                                      )}
-                                      {warningCount > 0 && (
-                                        <FlexItem>
-                                          <Label color="orange" icon={<ExclamationTriangleIcon />} isCompact>
-                                            {warningCount} warning
-                                          </Label>
-                                        </FlexItem>
-                                      )}
-                                      {infoCount > 0 && (
-                                        <FlexItem>
-                                          <Label color="blue" icon={<InfoCircleIcon />} isCompact>
-                                            {infoCount} info
-                                          </Label>
-                                        </FlexItem>
-                                      )}
-                                    </>
-                                  );
-                                })()}
-                              </Flex>
-                            </FlexItem>
+                            <>
+                              <FlexItem>
+                                <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                  {(() => {
+                                    const criticalCount = group.alerts.filter(a => a.severity === 'Critical').length;
+                                    const warningCount = group.alerts.filter(a => a.severity === 'Warning').length;
+                                    const infoCount = group.alerts.filter(a => a.severity === 'Info').length;
+                                    return (
+                                      <>
+                                        {criticalCount > 0 && <Label color="red" isCompact>{criticalCount} critical</Label>}
+                                        {warningCount > 0 && <Label color="orange" isCompact>{warningCount} warning</Label>}
+                                        {infoCount > 0 && <Label color="blue" isCompact>{infoCount} info</Label>}
+                                      </>
+                                    );
+                                  })()}
+                                </Flex>
+                              </FlexItem>
+                              
+                              {/* Separator */}
+                              <FlexItem>
+                                <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
+                              </FlexItem>
+                            </>
+                          )}
+                          
+                          <FlexItem>
+                            <span>{group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}</span>
+                          </FlexItem>
+                          
+                          {/* Separator */}
+                          <FlexItem>
+                            <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
+                          </FlexItem>
+                          
+                          <FlexItem>
+                            <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>{group.totalCount} instance{group.totalCount !== 1 ? 's' : ''}</span>
+                          </FlexItem>
+                          
+                          {/* Cluster count (only when not in single cluster view) */}
+                          {!singleClusterView && (
+                            <>
+                              <FlexItem>
+                                <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
+                              </FlexItem>
+                              <FlexItem>
+                                <span>{clustersInGroup.length} cluster{clustersInGroup.length !== 1 ? 's' : ''}</span>
+                              </FlexItem>
+                            </>
                           )}
                         </Flex>
                       </AccordionToggle>
@@ -7357,7 +7373,7 @@ spec:
                             {/* Description */}
                             <StackItem>
                               <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Description</Content>
-                              <Content component="p">{selectedAlertDetail.description || `This alert indicates ${selectedAlertDetail.alertName.toLowerCase()} condition.`}</Content>
+                              <Content component="p">{selectedAlertDetail.description || `${selectedAlertDetail.component} usage on a ${selectedAlertDetail.group} component is critically high.`}</Content>
                             </StackItem>
                             
                             {/* Group */}
@@ -7378,14 +7394,14 @@ spec:
                               <Stack>
                                 <StackItem>
                                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                                    <Icon status="warning"><BellIcon /></Icon>
                                     <span>Firing</span>
                                   </Flex>
                                 </StackItem>
-                                <StackItem>
+                                <StackItem style={{ marginLeft: '24px' }}>
                                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                                     <Icon><ClockIcon /></Icon>
-                                    <Content component="small">Since {selectedAlertDetail.lastFired}</Content>
+                                    <Content component="small">Since  {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString()}</Content>
                                   </Flex>
                                 </StackItem>
                               </Stack>
@@ -7395,9 +7411,8 @@ spec:
                             <StackItem>
                               <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Labels</Content>
                               <Flex gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
-                                <Label isCompact>env=prod</Label>
-                                <Label isCompact>severity={selectedAlertDetail.severity.toLowerCase()}</Label>
-                                <Label isCompact>team=ML</Label>
+                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>label-label1</Label>
+                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>label2</Label>
                               </Flex>
                             </StackItem>
                             
@@ -7417,7 +7432,100 @@ spec:
                             {/* Source */}
                             <StackItem>
                               <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Source</Content>
-                              <Content component="p">{selectedAlertDetail.source}</Content>
+                              <Content component="p">Platform</Content>
+                            </StackItem>
+                            
+                            {/* Namespace */}
+                            <StackItem>
+                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Namespace</Content>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
+                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--green--default)', color: 'white' }}>NS</Label>
+                                <span>{selectedAlertDetail.namespace}</span>
+                              </Flex>
+                            </StackItem>
+                            
+                            {/* Resource */}
+                            <StackItem>
+                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Resource</Content>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
+                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--orange--default)', color: 'white' }}>N</Label>
+                                <Button variant="link" isInline>node-001-nb</Button>
+                              </Flex>
+                            </StackItem>
+                            
+                            {/* Alert rule */}
+                            <StackItem>
+                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Alert rule</Content>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
+                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>AR</Label>
+                                <Button variant="link" isInline>{selectedAlertDetail.alertName}</Button>
+                              </Flex>
+                            </StackItem>
+                            
+                            {/* Runbook */}
+                            <StackItem>
+                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Runbook</Content>
+                              <Content component="p">
+                                <Button variant="link" isInline>https://mygitrunbook.com</Button>
+                              </Content>
+                            </StackItem>
+                            
+                            {/* Dashboard */}
+                            <StackItem>
+                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600, borderBottom: '1px dashed var(--pf-t--global--border--color--default)', display: 'inline-block' }}>Dashboard</Content>
+                              <Content component="p">ocp-perses-clusterhealthdashboard</Content>
+                            </StackItem>
+                            
+                            {/* Follow-up steps */}
+                            <StackItem>
+                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Follow-up steps</Content>
+                              <Stack hasGutter style={{ marginTop: '8px' }}>
+                                <StackItem>
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                    <Button variant="link" isInline>View logs</Button>
+                                    <Popover
+                                      headerIcon={<BellIcon />}
+                                      headerContent="Install logging operator to view logs"
+                                      bodyContent="You can deploy logging by installing the Red Hat OpenShift Logging Operator. The Red Hat OpenShift Logging Operator creates and manages the components of the logging stack."
+                                      footerContent={
+                                        <Flex gap={{ default: 'gapMd' }}>
+                                          <Button variant="secondary">Go to operator page</Button>
+                                          <Button variant="link">Cancel</Button>
+                                        </Flex>
+                                      }
+                                    >
+                                      <Button variant="plain" aria-label="More info about View logs" style={{ padding: '0 4px' }}>
+                                        <Icon status="info"><InfoCircleIcon /></Icon>
+                                      </Button>
+                                    </Popover>
+                                  </Flex>
+                                </StackItem>
+                                <StackItem>
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                    <Button variant="link" isInline>Troubleshoot</Button>
+                                    <Popover
+                                      headerContent="Install Korrel8r operator to correlate observability signals"
+                                      bodyContent="Korrel8r helps navigate from problem symptoms to related resources and signal data that can reveal the cause. It can follow relationships between disjointed observability 'silos' (logs, metrics, alerts and more) to bring together all the data available to solve a problem."
+                                      footerContent={
+                                        <Flex gap={{ default: 'gapMd' }}>
+                                          <Button variant="secondary">Go to operator page</Button>
+                                          <Button variant="link">Cancel</Button>
+                                        </Flex>
+                                      }
+                                    >
+                                      <Button variant="plain" aria-label="More info about Troubleshoot" style={{ padding: '0 4px' }}>
+                                        <Icon status="info"><InfoCircleIcon /></Icon>
+                                      </Button>
+                                    </Popover>
+                                  </Flex>
+                                </StackItem>
+                                <StackItem>
+                                  <Button variant="link" isInline>See metrics</Button>
+                                </StackItem>
+                                <StackItem>
+                                  <Button variant="link" isInline>See related incident</Button>
+                                </StackItem>
+                              </Stack>
                             </StackItem>
                           </Stack>
                         </div>
