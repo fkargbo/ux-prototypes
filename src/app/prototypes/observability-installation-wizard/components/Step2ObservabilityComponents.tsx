@@ -433,8 +433,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
           </Grid>
         </StackItem>
 
-        <Divider />
-
         {/* Capabilities Section */}
         <StackItem>
           <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
@@ -526,8 +524,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
             })}
           </Stack>
         </StackItem>
-
-        <Divider />
 
         {/* Console Experience Section */}
         <StackItem>
