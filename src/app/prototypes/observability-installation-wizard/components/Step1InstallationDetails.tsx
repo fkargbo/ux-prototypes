@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Title,
   Content,
@@ -119,21 +119,36 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
   onDataChange,
 }) => {
   // Installation source and version
-  const [updateChannel, setUpdateChannel] = useState<string>('stable');
+  const [updateChannel, setUpdateChannel] = useState<string>(data?.updateChannel || 'stable');
   const [updateChannelOpen, setUpdateChannelOpen] = useState(false);
-  const [version, setVersion] = useState<string>('1.3.1');
+  const [version, setVersion] = useState<string>(data?.version || '1.3.1');
   const [versionOpen, setVersionOpen] = useState(false);
 
   // Operator scope and placement
-  const [installationMode, setInstallationMode] = useState<string>('all-namespaces');
-  const [installationNamespace, setInstallationNamespace] = useState<string>('recommended');
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [installationMode, setInstallationMode] = useState<string>(data?.installationMode || 'all-namespaces');
+  const [installationNamespace, setInstallationNamespace] = useState<string>(data?.installationNamespace || 'recommended');
+  const [selectedProject, setSelectedProject] = useState<string>(data?.selectedProject || '');
   const [projectSelectOpen, setProjectSelectOpen] = useState<boolean>(false);
   const [projectSearchValue, setProjectSearchValue] = useState<string>('');
-  const [enableClusterMonitoring, setEnableClusterMonitoring] = useState<boolean>(false);
+  const [enableClusterMonitoring, setEnableClusterMonitoring] = useState<boolean>(data?.enableClusterMonitoring || false);
 
   // Operator updates
-  const [updateApproval, setUpdateApproval] = useState<string>('automatic');
+  const [updateApproval, setUpdateApproval] = useState<string>(data?.updateApproval || 'automatic');
+
+  // Sync state changes to parent
+  useEffect(() => {
+    if (onDataChange) {
+      onDataChange({
+        updateChannel,
+        version,
+        installationMode,
+        installationNamespace,
+        selectedProject,
+        enableClusterMonitoring,
+        updateApproval,
+      });
+    }
+  }, [updateChannel, version, installationMode, installationNamespace, selectedProject, enableClusterMonitoring, updateApproval, onDataChange]);
 
   const updateChannelOptions = [
     { value: 'stable', label: 'stable' },

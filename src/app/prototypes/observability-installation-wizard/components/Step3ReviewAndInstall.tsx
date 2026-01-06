@@ -12,6 +12,7 @@ import {
   Flex,
   FlexItem,
   Divider,
+  Badge,
 } from '@patternfly/react-core';
 import {
   CpuIcon,
@@ -170,6 +171,72 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
           <Title headingLevel="h2" size="2xl" style={{ fontSize: '24px', marginBottom: '24px' }}>
             Review and Install
           </Title>
+        </StackItem>
+
+        {/* Installation Details */}
+        <StackItem>
+          <Card>
+            <CardTitle>Installation details</CardTitle>
+            <CardBody>
+              <List>
+                <ListItem>
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>Namespace:</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ display: 'inline-flex' }}>
+                        <FlexItem>
+                          <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '8px' }}>PR</Badge>
+                        </FlexItem>
+                        <FlexItem>
+                          <Content style={{ fontSize: '14px' }}>
+                            {data.installationNamespace === 'recommended'
+                              ? 'openshift-cluster-observability-operator'
+                              : data.selectedProject || 'Not selected'}
+                          </Content>
+                        </FlexItem>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </ListItem>
+                <ListItem>
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>Scope:</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        {data.installationMode === 'all-namespaces' ? 'All namespaces' : 'A specific namespace'}
+                      </Content>
+                    </FlexItem>
+                  </Flex>
+                </ListItem>
+                <ListItem>
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>Update Channel:</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Content style={{ fontSize: '14px' }}>{data.updateChannel || 'stable'}</Content>
+                    </FlexItem>
+                  </Flex>
+                </ListItem>
+                <ListItem>
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>Update approval:</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        {data.updateApproval === 'automatic' ? 'Automatic' : 'Manual'}
+                      </Content>
+                    </FlexItem>
+                  </Flex>
+                </ListItem>
+              </List>
+            </CardBody>
+          </Card>
         </StackItem>
 
         {/* Operators to Install */}

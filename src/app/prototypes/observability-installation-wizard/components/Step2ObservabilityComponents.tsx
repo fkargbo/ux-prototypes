@@ -46,6 +46,15 @@ export interface Capability {
 }
 
 export interface WizardData {
+  // Step 1 data
+  installationNamespace?: string;
+  selectedProject?: string;
+  installationMode?: string;
+  updateChannel?: string;
+  version?: string;
+  updateApproval?: string;
+  enableClusterMonitoring?: boolean;
+  // Step 2 data
   selectedPersona: string | null;
   selectedCapabilities: string[];
   selectedNestedOptions: { [capabilityId: string]: string[] };
