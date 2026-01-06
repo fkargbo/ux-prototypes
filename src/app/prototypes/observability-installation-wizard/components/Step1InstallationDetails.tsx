@@ -428,7 +428,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
               <Stack hasGutter>
                 {providedAPIs.map((api) => (
                   <StackItem key={api.id}>
-                    <Card isCompact>
+                    <Card isCompact style={{ width: '300px' }}>
                       <CardBody>
                         <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                           <FlexItem>
