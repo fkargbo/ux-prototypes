@@ -24,7 +24,6 @@ import {
   FlexItem,
   Badge,
 } from '@patternfly/react-core';
-import { StarIcon } from '@patternfly/react-icons';
 
 interface Step1InstallationDetailsProps {
   data?: any;
@@ -41,31 +40,31 @@ interface ProvidedAPI {
 const providedAPIs: ProvidedAPI[] = [
   {
     id: 'podmonitor',
-    name: 'PM PodMonitor',
+    name: 'PodMonitor',
     abbreviation: 'PM',
     description: 'PodMonitor defines monitoring for a set of pods.',
   },
   {
     id: 'probe',
-    name: 'P Probe',
+    name: 'Probe',
     abbreviation: 'P',
     description: 'Probe defines monitoring for a set of static targets or ingresses.',
   },
   {
     id: 'prometheusrule',
-    name: 'PR PrometheusRule',
+    name: 'PrometheusRule',
     abbreviation: 'PR',
     description: 'PrometheusRule defines recording and alerting rules for a Prometheus instance.',
   },
   {
     id: 'servicemonitor',
-    name: 'SM ServiceMonitor',
+    name: 'ServiceMonitor',
     abbreviation: 'SM',
     description: 'ServiceMonitor defines monitoring for a set of services.',
   },
   {
     id: 'alertmanagerconfig',
-    name: 'AC AlertmanagerConfig',
+    name: 'AlertmanagerConfig',
     abbreviation: 'AC',
     description: 'AlertmanagerConfig configures the Prometheus Alertmanager, specifying how alerts should be grouped, inhibited and notified to external systems.',
   },
@@ -330,36 +329,49 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
             overflowY: 'auto',
           }}
         >
-          <Card>
-            <CardBody>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
+          <Stack hasGutter>
+            {/* Operator Header */}
+            <StackItem>
+              <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                 <FlexItem>
-                  <CardTitle>Provided APIs</CardTitle>
+                  <img
+                    src="https://console-openshift-console.apps.emurasak-421.qe.devcluster.openshift.com/api/kubernetes/apis/packages.operators.coreos.com/v1/namespaces/openshift-marketplace/packagemanifests/cluster-observability-operator/icon?resourceVersion=cluster-observability-operator.stable.cluster-observability-operator.v1.3.1"
+                    alt="Cluster Observability Operator"
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      objectFit: 'contain',
+                    }}
+                  />
                 </FlexItem>
-                <FlexItem>
-                  <StarIcon style={{ cursor: 'pointer', color: '#6a6e73' }} />
+                <FlexItem style={{ flex: 1 }}>
+                  <Title headingLevel="h3" size="lg" style={{ marginBottom: '4px' }}>
+                    Cluster Observability Operator
+                  </Title>
+                  <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
+                    provided by Red Hat
+                  </Content>
                 </FlexItem>
               </Flex>
-              
-              <Content style={{ marginBottom: '16px' }}>
-                <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  <FlexItem>
-                    <strong>Cluster Observability Operator</strong>
-                  </FlexItem>
-                </Flex>
-                <Content style={{ fontSize: '14px', color: '#6a6e73', marginTop: '4px' }}>
-                  provided by Red Hat
-                </Content>
-              </Content>
+            </StackItem>
 
+            {/* Provided APIs Section Title */}
+            <StackItem>
+              <Title headingLevel="h3" size="lg">
+                Provided APIs
+              </Title>
+            </StackItem>
+
+            {/* API Cards */}
+            <StackItem>
               <Stack hasGutter>
                 {providedAPIs.map((api) => (
                   <StackItem key={api.id}>
                     <Card isCompact>
                       <CardBody>
-                        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsFlexStart' }}>
+                        <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                           <FlexItem>
-                            <Badge style={{ backgroundColor: '#0066cc', color: '#fff', minWidth: '32px', textAlign: 'center' }}>
+                            <Badge style={{ backgroundColor: '#0066cc', color: '#fff', minWidth: '32px', textAlign: 'center', padding: '4px 8px' }}>
                               {api.abbreviation}
                             </Badge>
                           </FlexItem>
@@ -377,8 +389,8 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                   </StackItem>
                 ))}
               </Stack>
-            </CardBody>
-          </Card>
+            </StackItem>
+          </Stack>
         </div>
       </GridItem>
     </Grid>
