@@ -531,6 +531,13 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
 
         {/* Console Experience Section */}
         <StackItem>
+          <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
+            Console experience (UI Plugins and components)
+          </Title>
+          <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
+            Select UI plugins to enhance your console experience.
+          </Content>
+
           <Card>
             <CardBody>
               <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
