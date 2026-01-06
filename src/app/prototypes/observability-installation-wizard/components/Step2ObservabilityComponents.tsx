@@ -435,8 +435,8 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
 
         {/* Capabilities Section */}
         <StackItem>
-          <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
-            Customize Capabilities
+          <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
+            Customize capabilities
           </Title>
           <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
             Fine-tune which observability features to install based on your needs.
@@ -527,7 +527,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
 
         {/* Console Experience Section */}
         <StackItem>
-          <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
+          <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
             Console experience (UI Plugins and components)
           </Title>
           <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
