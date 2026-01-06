@@ -361,6 +361,10 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                                   {selectedProject || 'Select Project'}
                                 </MenuToggle>
                               )}
+                              popperProps={{
+                                placement: 'bottom-start',
+                                enableFlip: false,
+                              }}
                             >
                               <SelectList>
                                 <div 
