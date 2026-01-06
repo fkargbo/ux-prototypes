@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Title,
   Content,
@@ -23,6 +23,8 @@ import {
   Flex,
   FlexItem,
   Badge,
+  TextInput,
+  SearchInput,
 } from '@patternfly/react-core';
 
 interface Step1InstallationDetailsProps {
@@ -125,6 +127,9 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
   // Operator scope and placement
   const [installationMode, setInstallationMode] = useState<string>('all-namespaces');
   const [installationNamespace, setInstallationNamespace] = useState<string>('recommended');
+  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [projectSelectOpen, setProjectSelectOpen] = useState<boolean>(false);
+  const [projectSearchValue, setProjectSearchValue] = useState<string>('');
   const [enableClusterMonitoring, setEnableClusterMonitoring] = useState<boolean>(false);
 
   // Operator updates
@@ -137,6 +142,23 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
   const versionOptions = [
     { value: '1.3.1', label: '1.3.1' },
   ];
+
+  const availableProjects = [
+    { value: 'default', label: 'default' },
+    { value: 'kube-node-lease', label: 'kube-node-lease' },
+    { value: 'kube-public', label: 'kube-public' },
+    { value: 'kube-system', label: 'kube-system' },
+    { value: 'openshift', label: 'openshift' },
+  ];
+
+  const filteredProjects = useMemo(() => {
+    if (!projectSearchValue) {
+      return availableProjects;
+    }
+    return availableProjects.filter((project) =>
+      project.label.toLowerCase().includes(projectSearchValue.toLowerCase())
+    );
+  }, [projectSearchValue]);
 
   return (
     <Grid hasGutter style={{ maxWidth: '100%', padding: '0 24px' }}>
@@ -274,7 +296,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
 
                 <StackItem>
                   <FormGroup
-                    label="Installation Namespace"
+                    label="Installed Namespace *"
                     isRequired
                     fieldId="installation-namespace"
                   >
@@ -292,7 +314,12 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                             </Flex>
                           }
                           isChecked={installationNamespace === 'recommended'}
-                          onChange={() => setInstallationNamespace('recommended')}
+                          onChange={() => {
+                            setInstallationNamespace('recommended');
+                            setProjectSelectOpen(false);
+                            setSelectedProject('');
+                            setProjectSearchValue('');
+                          }}
                         />
                         <Alert
                           variant={AlertVariant.info}
@@ -309,6 +336,84 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                           isChecked={installationNamespace === 'select'}
                           onChange={() => setInstallationNamespace('select')}
                         />
+                        {installationNamespace === 'select' && (
+                          <div style={{ marginLeft: '24px', marginTop: '8px' }}>
+                            <Select
+                              isOpen={projectSelectOpen}
+                              onSelect={(_, value) => {
+                                setSelectedProject(value as string);
+                                setProjectSelectOpen(false);
+                                setProjectSearchValue('');
+                              }}
+                              onOpenChange={(isOpen) => setProjectSelectOpen(isOpen)}
+                              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                <MenuToggle
+                                  ref={toggleRef}
+                                  onClick={() => setProjectSelectOpen(!projectSelectOpen)}
+                                  isExpanded={projectSelectOpen}
+                                  style={{ width: '100%' }}
+                                >
+                                  {selectedProject || 'Select Project'}
+                                </MenuToggle>
+                              )}
+                            >
+                              <SelectList>
+                                <div 
+                                  style={{ padding: '8px' }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <SearchInput
+                                    placeholder="Select Project"
+                                    value={projectSearchValue}
+                                    onChange={(_, value) => setProjectSearchValue(value)}
+                                    onClear={() => setProjectSearchValue('')}
+                                  />
+                                </div>
+                                <div 
+                                  style={{ padding: '8px 8px 4px 8px', fontSize: '14px', fontWeight: '600' }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Create Project
+                                </div>
+                                <div
+                                  style={{
+                                    maxHeight: '200px',
+                                    overflowY: 'auto',
+                                    borderTop: '1px solid #d2d2d2',
+                                  }}
+                                >
+                                  {filteredProjects.length > 0 ? (
+                                    filteredProjects.map((project) => (
+                                      <SelectOption
+                                        key={project.value}
+                                        value={project.value}
+                                      >
+                                        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                          <FlexItem>
+                                            <Badge style={{ backgroundColor: '#3e8635', color: '#fff', minWidth: '32px', textAlign: 'center', padding: '2px 6px', fontSize: '12px' }}>
+                                              PR
+                                            </Badge>
+                                          </FlexItem>
+                                          <FlexItem>{project.label}</FlexItem>
+                                        </Flex>
+                                      </SelectOption>
+                                    ))
+                                  ) : (
+                                    <div style={{ padding: '8px', fontSize: '14px', color: '#6a6e73' }}>
+                                      No projects found
+                                    </div>
+                                  )}
+                                </div>
+                              </SelectList>
+                            </Select>
+                            <Alert
+                              variant={AlertVariant.warning}
+                              isInline
+                              title="Not installing the Operator into the recommended namespace can cause unexpected behavior."
+                              style={{ marginTop: '8px' }}
+                            />
+                          </div>
+                        )}
                       </StackItem>
                     </Stack>
                   </FormGroup>
