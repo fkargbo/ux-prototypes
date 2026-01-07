@@ -89,32 +89,38 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
   onDataChange,
 }) => {
   // Calculate resources based on selected capabilities
-  const resources = useMemo(() => {
-    let cpu = 2; // Base CPU
-    let ram = 4; // Base RAM in GB
+  const estimatedResources = useMemo(() => {
+    // Base values
+    let cpu = 12; // Base CPU cores
+    let memory = 28; // Base memory in GB
+    let localCache = 100; // Base local cache in GB
+    let objectStorage = 1.2; // Base object storage in TB/month (only used if Thanos is ON)
+    const hasThanos = data.selectedCapabilities.includes('thanos');
+    const hasLoki = data.selectedCapabilities.includes('loki');
+    const hasNetObserve = data.selectedCapabilities.includes('network-traffic');
 
-    if (data.selectedCapabilities.includes('thanos')) {
-      cpu += 1;
-      ram += 2;
-    }
-    if (data.selectedCapabilities.includes('loki')) {
-      cpu += 1;
-      ram += 2;
-    }
-    if (data.selectedCapabilities.includes('tempo')) {
-      cpu += 1;
-      ram += 1;
-    }
-    if (data.selectedCapabilities.includes('network-traffic')) {
-      cpu += 0.5;
-      ram += 1;
-    }
-    if (data.selectedCapabilities.includes('korrel8r')) {
-      cpu += 0.5;
-      ram += 1;
+    // If NetObserve is ON: Increase CPU estimates due to high-volume flow processing
+    if (hasNetObserve) {
+      cpu += 3; // Additional CPU for flow processing
     }
 
-    return { cpu, ram };
+    // If Logging (Loki) is ON: Increase Local Cache by ~40%
+    if (hasLoki) {
+      localCache = Math.round(localCache * 1.4); // 100 * 1.4 = 140 GB
+    }
+
+    // If Logging (Loki) is ON and Thanos is ON: Increase Object Storage by ~40%
+    if (hasLoki && hasThanos) {
+      objectStorage = Math.round(objectStorage * 1.4 * 10) / 10; // 1.2 * 1.4 = 1.68 TB, rounded to 1 decimal
+    }
+
+    return {
+      cpu,
+      memory,
+      localCache,
+      objectStorage,
+      hasThanos,
+    };
   }, [data.selectedCapabilities]);
 
   // Get operators to install based on selected capabilities from Step 2
@@ -324,12 +330,12 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                   <List>
                     <ListItem>
                       <Content style={{ fontSize: '14px' }}>
-                        CPU: ~12 Cores (Burstable)
+                        CPU: ~{estimatedResources.cpu} Cores (Burstable)
                       </Content>
                     </ListItem>
                     <ListItem>
                       <Content style={{ fontSize: '14px' }}>
-                        Memory: ~28 GB (Total RSS)
+                        Memory: ~{estimatedResources.memory} GB (Total RSS)
                       </Content>
                     </ListItem>
                   </List>
@@ -343,19 +349,23 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                   <List>
                     <ListItem>
                       <Content style={{ fontSize: '14px' }}>
-                        Local Cache (PV): 100 GB (Standard-SSD)
+                        Local Cache (PV): {estimatedResources.localCache} GB (Standard-SSD)
                       </Content>
                     </ListItem>
-                    <ListItem>
-                      <Content style={{ fontSize: '14px' }}>
-                        Long-term Storage: Connected to 'obs-bucket-s3'
-                      </Content>
-                    </ListItem>
-                    <ListItem>
-                      <Content style={{ fontSize: '14px' }}>
-                        Retention Estimate: ~1.2 TB / Month (Object Storage)
-                      </Content>
-                    </ListItem>
+                    {estimatedResources.hasThanos && (
+                      <>
+                        <ListItem>
+                          <Content style={{ fontSize: '14px' }}>
+                            Long-term Storage: Connected to 'obs-bucket-s3'
+                          </Content>
+                        </ListItem>
+                        <ListItem>
+                          <Content style={{ fontSize: '14px' }}>
+                            Retention Estimate: ~{estimatedResources.objectStorage} TB / Month (Object Storage)
+                          </Content>
+                        </ListItem>
+                      </>
+                    )}
                   </List>
                 </StackItem>
               </Stack>
