@@ -136,7 +136,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     // This operator includes: Prometheus, Alertmanager, and optionally Thanos and Korrel8r as operands
     // Note: thanos and korrel8r are operands of Cluster Observability Operator, not separate operators
     if (data.selectedCapabilities.includes('metrics-alerting')) {
-      operators.push('Cluster Observability Operator');
+      operators.push('Cluster Observability Operator (Prometheus)');
     }
     
     // Map capabilities to their corresponding operators
