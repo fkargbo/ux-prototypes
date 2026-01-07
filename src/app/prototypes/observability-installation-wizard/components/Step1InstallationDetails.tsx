@@ -638,26 +638,30 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
               <style>{`
                 .provided-apis-grid {
                   display: grid;
-                  grid-template-columns: repeat(2, 300px);
+                  grid-template-columns: repeat(auto-fit, minmax(280px, 300px));
                   gap: var(--pf-t--global--spacer--md);
                   align-items: start;
+                  justify-content: start;
                 }
-                /* PatternFly breakpoints: md = 768px, lg = 992px */
-                /* Break to single column when viewport is too narrow for 2 columns */
-                /* Two 300px cards + gap (16px) = ~616px minimum, so break at 768px (md breakpoint) */
-                @media (max-width: 767px) {
+                /* On narrower viewports, force single column */
+                @media (max-width: 991px) {
                   .provided-apis-grid {
                     grid-template-columns: 1fr;
                   }
+                }
+                .provided-apis-grid .pf-v6-c-card {
+                  width: 100%;
+                  max-width: 300px;
+                }
+                @media (max-width: 991px) {
                   .provided-apis-grid .pf-v6-c-card {
-                    width: 100% !important;
                     max-width: 100%;
                   }
                 }
               `}</style>
               <div className="provided-apis-grid">
                 {providedAPIs.map((api) => (
-                  <Card key={api.id} isCompact style={{ width: '300px', maxWidth: '100%' }}>
+                  <Card key={api.id} isCompact>
                     <CardBody>
                       <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                         <FlexItem>
