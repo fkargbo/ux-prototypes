@@ -121,6 +121,11 @@ const capabilities: Capability[] = [
     ],
   },
   {
+    id: 'incident-detection',
+    name: 'Incident Detection (Native)',
+    description: 'Automatically groups related alerts into incidents to reduce alert fatigue and highlight root causes.',
+  },
+  {
     id: 'tempo',
     name: 'Distributed Tracing (Tempo)',
     description: 'Track requests across microservices for latency analysis.',
@@ -194,6 +199,13 @@ const uiPlugins: UIPlugin[] = [
     defaultEnabled: false,
     dependencies: ['metrics-alerting'],
   },
+  {
+    id: 'incident-detection-ui',
+    name: 'Incident Detection UI Plugin',
+    description: 'Incident detection and alerting.',
+    defaultEnabled: false,
+    dependencies: ['loki'],
+  },
 ];
 
 export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponentsProps> = ({
@@ -239,7 +251,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   useEffect(() => {
     if (selectedPersona) {
       // Define persona-specific capabilities (these will be replaced when persona changes)
-      const personaSpecificCapabilities = ['thanos', 'loki', 'tempo', 'korrel8r'];
+      const personaSpecificCapabilities = ['thanos', 'loki', 'tempo', 'korrel8r', 'incident-detection'];
       
       // Start with required capabilities
       let autoCapabilities: string[] = ['metrics-alerting']; // Always required
@@ -248,7 +260,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       if (selectedPersona === 'administrator') {
         autoCapabilities.push('thanos', 'loki');
       } else if (selectedPersona === 'sre') {
-        autoCapabilities.push('thanos', 'loki', 'tempo', 'korrel8r');
+        autoCapabilities.push('thanos', 'loki', 'tempo', 'korrel8r', 'incident-detection');
       } else if (selectedPersona === 'developer') {
         autoCapabilities.push('loki', 'tempo');
       }
@@ -284,10 +296,15 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         autoUIPlugins.push('perses');
       }
       
+      // Incident Detection UI Plugin requires loki and is auto-selected for SRE persona
+      if (uniqueCapabilities.includes('loki') && selectedPersona === 'sre') {
+        autoUIPlugins.push('incident-detection-ui');
+      }
+      
       // Preserve manually-selected UI plugins that are NOT persona-specific
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const manuallySelectedPlugins = selectedUIPlugins.filter(
-        pluginId => pluginId !== 'perses' && pluginId !== 'monitoring-ui'
+        pluginId => pluginId !== 'perses' && pluginId !== 'monitoring-ui' && pluginId !== 'incident-detection-ui'
       );
       
       // Merge persona auto-plugins with manually-selected ones
@@ -506,6 +523,15 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 const depCap = capabilities.find(c => c.id === dep);
                                 return depCap?.name || dep;
                               }).join(' or ')} to be enabled`}
+                              style={{ marginTop: '12px', marginLeft: '24px' }}
+                            />
+                          )}
+                          
+                          {isChecked && capability.id === 'incident-detection' && (
+                            <Alert
+                              variant={AlertVariant.warning}
+                              isInline
+                              title="Requires 'Enable Operator recommended cluster monitoring' to process alert data."
                               style={{ marginTop: '12px', marginLeft: '24px' }}
                             />
                           )}

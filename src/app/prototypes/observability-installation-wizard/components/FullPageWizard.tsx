@@ -151,6 +151,7 @@ export const FullPageWizard: React.FunctionComponent<FullPageWizardProps> = ({
           padding-right: 0 !important;
           padding-bottom: 0 !important;
           padding-left: 0 !important;
+          margin-bottom: 24px !important;
         }
       `}</style>
       {/* Breadcrumb section - uses CSS class like CCLM to ensure padding isn't overridden */}
