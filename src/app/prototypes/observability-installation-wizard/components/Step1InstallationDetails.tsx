@@ -112,6 +112,24 @@ const providedAPIs: ProvidedAPI[] = [
     abbreviation: 'UIP',
     description: 'UIPlugin defines a console plugin for observability.',
   },
+  {
+    id: 'incidentdetection',
+    name: 'Incident Detection (Native)',
+    abbreviation: 'ID',
+    description: 'Automatically groups correlated alerts into high-level incidents using a native analysis engine built into the Cluster Observability Operator. It provides a visual, color-coded timeline to help you identify the probable root cause and reduce alert fatigue during \'storm\' events.',
+  },
+  {
+    id: 'telemetrypipeline',
+    name: 'Telemetry Pipeline (OpenTelemetry)',
+    abbreviation: 'OP',
+    description: 'Deploys a standardized, vendor-neutral pipeline for receiving, processing, and exporting telemetry data across your cluster. It enables zero-code auto-instrumentation for applications and acts as the central gateway to forward data to Loki, Tempo, or external third-party backends.',
+  },
+  {
+    id: 'networktraffic',
+    name: 'Network Traffic Analysis (NetObserve)',
+    abbreviation: 'NO',
+    description: 'Utilizes Extended Berkeley Packet Filter (eBPF) technology to provide comprehensive visibility into network flows, performance bottlenecks, and traffic topology. It allows you to monitor cluster-wide traffic patterns and troubleshoot connectivity issues directly within the OpenShift console.',
+  },
 ];
 
 export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> = ({
@@ -625,15 +643,20 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                   align-items: start;
                 }
                 /* PatternFly breakpoints: md = 768px, lg = 992px */
+                /* Break to single column on narrower viewports */
                 @media (max-width: 991px) {
                   .provided-apis-grid {
-                    grid-template-columns: 300px;
+                    grid-template-columns: 1fr;
+                  }
+                  .provided-apis-grid .pf-v6-c-card {
+                    width: 100% !important;
+                    max-width: 100%;
                   }
                 }
               `}</style>
               <div className="provided-apis-grid">
                 {providedAPIs.map((api) => (
-                  <Card key={api.id} isCompact style={{ width: '300px' }}>
+                  <Card key={api.id} isCompact style={{ width: '300px', maxWidth: '100%' }}>
                     <CardBody>
                       <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                         <FlexItem>
