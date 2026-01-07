@@ -643,8 +643,9 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                   align-items: start;
                 }
                 /* PatternFly breakpoints: md = 768px, lg = 992px */
-                /* Break to single column on narrower viewports */
-                @media (max-width: 991px) {
+                /* Break to single column when viewport is too narrow for 2 columns */
+                /* Two 300px cards + gap (16px) = ~616px minimum, so break at 768px (md breakpoint) */
+                @media (max-width: 767px) {
                   .provided-apis-grid {
                     grid-template-columns: 1fr;
                   }
