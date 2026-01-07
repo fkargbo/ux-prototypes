@@ -182,18 +182,14 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                       <Content style={{ fontWeight: '600', fontSize: '14px' }}>Namespace:</Content>
                     </FlexItem>
                     <FlexItem>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ display: 'inline-flex' }}>
-                        <FlexItem>
-                          <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '4px' }}>PR</Badge>
-                        </FlexItem>
-                        <FlexItem>
-                          <Content style={{ fontSize: '14px', fontWeight: '600' }}>
-                            {data.installationNamespace === 'recommended'
-                              ? 'openshift-cluster-observability-operator'
-                              : data.selectedProject || 'Not selected'}
-                          </Content>
-                        </FlexItem>
-                      </Flex>
+                      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '4px' }}>PR</Badge>
+                        <Content style={{ fontSize: '14px', fontWeight: '600' }}>
+                          {data.installationNamespace === 'recommended'
+                            ? 'openshift-cluster-observability-operator'
+                            : data.selectedProject || 'Not selected'}
+                        </Content>
+                      </span>
                     </FlexItem>
                   </Flex>
                 </ListItem>
