@@ -617,16 +617,22 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
 
             {/* API Cards - Two Column Layout */}
             <StackItem>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: 'var(--pf-t--global--spacer--md)',
-                  alignItems: 'start',
-                }}
-              >
+              <style>{`
+                .provided-apis-grid {
+                  display: grid;
+                  grid-template-columns: repeat(2, 300px);
+                  gap: var(--pf-t--global--spacer--md);
+                  align-items: start;
+                }
+                @media (max-width: 768px) {
+                  .provided-apis-grid {
+                    grid-template-columns: 300px;
+                  }
+                }
+              `}</style>
+              <div className="provided-apis-grid">
                 {providedAPIs.map((api) => (
-                  <Card key={api.id} isCompact style={{ width: '100%' }}>
+                  <Card key={api.id} isCompact style={{ width: '300px' }}>
                     <CardBody>
                       <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                         <FlexItem>
