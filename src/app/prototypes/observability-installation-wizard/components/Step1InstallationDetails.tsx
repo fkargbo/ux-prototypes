@@ -323,7 +323,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                           label={
                             <>
                               Operator recommended Namespace:{' '}
-                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ display: 'inline-flex' }}>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ display: 'inline-flex' }}>
                                 <FlexItem>
                                   <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '4px' }}>PR</Badge>
                                 </FlexItem>
@@ -412,9 +412,9 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                                         key={project.value}
                                         value={project.value}
                                       >
-                                        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                        <Flex alignItems={{ default: 'alignItemsCenter' }}>
                                           <FlexItem>
-                                            <Badge style={{ backgroundColor: '#3e8635', color: '#fff', minWidth: '32px', textAlign: 'center', padding: '2px 6px', fontSize: '12px' }}>
+                                            <Badge style={{ backgroundColor: '#3e8635', color: '#fff', minWidth: '32px', textAlign: 'center', padding: '2px 6px', fontSize: '12px', marginRight: '4px' }}>
                                               PR
                                             </Badge>
                                           </FlexItem>

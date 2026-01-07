@@ -182,7 +182,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                       <Content style={{ fontWeight: '600', fontSize: '14px' }}>Namespace:</Content>
                     </FlexItem>
                     <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ display: 'inline-flex' }}>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ display: 'inline-flex' }}>
                         <FlexItem>
                           <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '4px' }}>PR</Badge>
                         </FlexItem>
