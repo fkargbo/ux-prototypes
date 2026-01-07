@@ -94,8 +94,8 @@ const personas: Persona[] = [
 const capabilities: Capability[] = [
   {
     id: 'metrics-alerting',
-    name: 'Metrics & Alerting (Core Stack)',
-    description: 'Prometheus, Alertmanager, Monitoring UI.',
+    name: 'Core Observability (Prometheus)',
+    description: 'The engine for metrics collection, alerting rules, and base dashboards.',
     required: true,
   },
   {
