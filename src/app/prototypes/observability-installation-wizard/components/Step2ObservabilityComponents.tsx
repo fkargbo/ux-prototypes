@@ -327,21 +327,23 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         autoUIPlugins.push('network-ui');
       }
       
-      // Preserve manually-selected UI plugins that are NOT auto-selected
+      // When persona changes, only keep plugins that should be auto-selected for this persona
+      // Don't preserve manually-selected plugins unless Advanced Mode is enabled
+      // This ensures persona-specific plugin selections are accurate
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      const manuallySelectedPlugins = selectedUIPlugins.filter(
-        pluginId => !autoUIPlugins.includes(pluginId)
-      );
+      const finalPlugins = advancedMode 
+        ? // In Advanced Mode, preserve manually-selected plugins that aren't auto-selected
+          [...autoUIPlugins, ...selectedUIPlugins.filter(pluginId => !autoUIPlugins.includes(pluginId))]
+        : // In normal mode, only use auto-selected plugins for this persona
+          autoUIPlugins;
       
-      // Merge persona auto-plugins with manually-selected ones
-      const mergedPlugins = [...autoUIPlugins, ...manuallySelectedPlugins];
       // Remove duplicates
-      const uniquePlugins = Array.from(new Set(mergedPlugins));
+      const uniquePlugins = Array.from(new Set(finalPlugins));
       
       setSelectedUIPlugins(uniquePlugins);
       onDataChange({ selectedUIPlugins: uniquePlugins });
     }
-  }, [selectedPersona, onDataChange]);
+  }, [selectedPersona, advancedMode, onDataChange]);
 
   const handlePersonaChange = (personaId: string) => {
     setSelectedPersona(personaId);
