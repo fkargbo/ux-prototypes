@@ -142,6 +142,11 @@ export const FullPageWizard: React.FunctionComponent<FullPageWizardProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
+      <style>{`
+        .pf-v6-c-wizard__main-body {
+          padding: 0 !important;
+        }
+      `}</style>
       {/* Breadcrumb section - uses CSS class like CCLM to ensure padding isn't overridden */}
       {breadcrumbs.length > 0 && (
         <div className="create-policy-breadcrumb">
