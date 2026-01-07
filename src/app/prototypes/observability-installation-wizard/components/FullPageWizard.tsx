@@ -141,10 +141,16 @@ export const FullPageWizard: React.FunctionComponent<FullPageWizardProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
+    <div className="observability-wizard-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f5f5f5' }}>
       <style>{`
-        .pf-v6-c-wizard__main-body {
+        .observability-wizard-container .pf-v6-c-wizard__main-body,
+        .observability-wizard-container div.pf-v6-c-wizard__main div.pf-v6-c-wizard__main-body,
+        .observability-wizard-container .pf-v6-c-wizard__main .pf-v6-c-wizard__main-body {
           padding: 0 !important;
+          padding-top: 0 !important;
+          padding-right: 0 !important;
+          padding-bottom: 0 !important;
+          padding-left: 0 !important;
         }
       `}</style>
       {/* Breadcrumb section - uses CSS class like CCLM to ensure padding isn't overridden */}
