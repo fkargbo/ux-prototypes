@@ -176,15 +176,15 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
   }, [projectSearchValue]);
 
   return (
-    <Grid hasGutter style={{ maxWidth: '100%', padding: '0 24px' }}>
+    <Grid hasGutter style={{ maxWidth: '100%', padding: '0 24px', marginTop: '24px' }}>
       {/* Main Content - Left Column */}
-      <GridItem span={8}>
+      <GridItem span={12} md={8}>
         <div style={{ maxWidth: '800px' }}>
           <Title headingLevel="h2" size="2xl" style={{ fontSize: '24px', marginBottom: '16px' }}>
             Installation Details
           </Title>
           <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-            Install your Operator by subscribing to one of the update channels to keep the Operator up to date. The strategy determines either manual or automatic updates.
+            Set the operator version and update channel, define its scope and namespace placement in the cluster, and choose your update approval strategy.
           </Content>
 
           <Form>
@@ -485,7 +485,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
       </GridItem>
 
       {/* Right Sidebar - Provided APIs */}
-      <GridItem span={4}>
+      <GridItem span={12} md={4}>
         <div
           className="provided-apis-sidebar"
           style={{
@@ -624,7 +624,8 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                   gap: var(--pf-t--global--spacer--md);
                   align-items: start;
                 }
-                @media (max-width: 768px) {
+                /* PatternFly breakpoints: md = 768px, lg = 992px */
+                @media (max-width: 991px) {
                   .provided-apis-grid {
                     grid-template-columns: 300px;
                   }

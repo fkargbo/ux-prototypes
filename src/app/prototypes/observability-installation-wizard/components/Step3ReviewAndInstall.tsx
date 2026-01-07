@@ -162,7 +162,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
   }, [data.selectedUIPlugins]);
 
   return (
-    <div style={{ maxWidth: '800px' }}>
+    <div style={{ maxWidth: '800px', marginTop: '24px', marginLeft: '24px' }}>
       <Stack hasGutter>
         <StackItem>
           <Title headingLevel="h2" size="2xl" style={{ fontSize: '24px', marginBottom: '24px' }}>

@@ -126,8 +126,20 @@ const capabilities: Capability[] = [
     description: 'Track requests across microservices for latency analysis.',
   },
   {
+    id: 'opentelemetry',
+    name: 'Telemetry Pipeline (OpenTelemetry)',
+    description: 'Handles telemetry collection and auto-instrumentation.',
+    nestedOptions: [
+      {
+        id: 'auto-instrumentation',
+        name: 'Enable Auto-Instrumentation',
+        description: '',
+      },
+    ],
+  },
+  {
     id: 'network-traffic',
-    name: 'Network Traffic Analysis',
+    name: 'Network Traffic Analysis (NetObserve)',
     description: 'Visualize pod-to-pod traffic and debug connection issues.',
     dependencies: ['loki', 'metrics-alerting'],
   },
@@ -386,7 +398,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   };
 
   return (
-    <div style={{ maxWidth: '800px' }}>
+    <div style={{ maxWidth: '800px', marginTop: '24px', marginLeft: '24px' }}>
       <Stack hasGutter>
         {/* Form Title */}
         <StackItem>
