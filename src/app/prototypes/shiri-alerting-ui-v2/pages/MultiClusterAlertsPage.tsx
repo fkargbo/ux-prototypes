@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import {
   PageSection,
@@ -2799,8 +2800,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                 <Th screenReaderText="Expand" />
                                 <Th>Alert name</Th>
                                 <Th>Severity</Th>
-                                <Th>Clusters</Th>
                                 <Th>Total</Th>
+                                <Th>Clusters</Th>
                                 <Th>Impact group</Th>
                               </Tr>
                             </Thead>
@@ -2834,8 +2835,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                         {agg.severity}
                                       </Label>
                                     </Td>
-                                    <Td>{agg.clusters.length}</Td>
                                     <Td>{agg.totalCount}</Td>
+                                    <Td>{agg.clusters.length}</Td>
                                     <Td>{agg.group}</Td>
                                   </Tr>
                                   {isAlertExpanded && (
@@ -3006,8 +3007,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               <Th screenReaderText="Expand" />
                               <Th>Alert name</Th>
                               <Th>Severity</Th>
-                              <Th>Clusters</Th>
                               <Th>Total</Th>
+                              <Th>Clusters</Th>
                               <Th>Impact group</Th>
                               <Th>Component</Th>
                             </Tr>
@@ -3044,11 +3045,13 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                     </Label>
                                   </Td>
                                   <Td>
-                                    <Badge isRead>{agg.clusters.length}</Badge>
+                                    <Badge>{agg.totalCount}</Badge>
                                   </Td>
-                                  <Td>{agg.totalCount}</Td>
                                   <Td>
-                                    <Label variant="outline" isCompact>{agg.group}</Label>
+                                    <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>
+                                  </Td>
+                                  <Td>
+                                    <Label isCompact>{agg.group}</Label>
                                   </Td>
                                   <Td>
                                     <Label variant="outline" isCompact>{agg.component}</Label>
@@ -3189,78 +3192,56 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     >
                       Severity
                     </Th>
-                    {singleClusterView ? (
-                      <>
-                        <Th 
-                          sort={{
-                            sortBy: {
-                              index: sortConfigs.findIndex(c => c.column === 'total'),
-                              direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
-                            },
-                            onSort: () => handleSort('total'),
-                            columnIndex: 2
-                          }}
-                        >
-                          Total
-                        </Th>
-                        <Th>State</Th>
-                        <Th>Namespace</Th>
-                        <Th>Resource</Th>
-                      </>
-                    ) : (
-                      <>
-                        <Th 
-                          sort={{
-                            sortBy: {
-                              index: sortConfigs.findIndex(c => c.column === 'clusters'),
-                              direction: sortConfigs.find(c => c.column === 'clusters')?.direction || 'asc'
-                            },
-                            onSort: () => handleSort('clusters'),
-                            columnIndex: 2
-                          }}
-                        >
-                          Clusters
-                        </Th>
-                        <Th 
-                          sort={{
-                            sortBy: {
-                              index: sortConfigs.findIndex(c => c.column === 'total'),
-                              direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
-                            },
-                            onSort: () => handleSort('total'),
-                            columnIndex: 3
-                          }}
-                        >
-                          Total Instances
-                        </Th>
-                        <Th 
-                          sort={{
-                            sortBy: {
-                              index: sortConfigs.findIndex(c => c.column === 'group'),
-                              direction: sortConfigs.find(c => c.column === 'group')?.direction || 'asc'
-                            },
-                            onSort: () => handleSort('group'),
-                            columnIndex: 4
-                          }}
-                          info={sortConfigs.find(c => c.column === 'group') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'group')?.priority}` } : undefined}
-                        >
-                          Impact group
-                        </Th>
-                        <Th 
-                          sort={{
-                            sortBy: {
-                              index: sortConfigs.findIndex(c => c.column === 'component'),
-                              direction: sortConfigs.find(c => c.column === 'component')?.direction || 'asc'
-                            },
-                            onSort: () => handleSort('component'),
-                            columnIndex: 5
-                          }}
-                          info={sortConfigs.find(c => c.column === 'component') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'component')?.priority}` } : undefined}
-                        >
-                          Component
-                        </Th>
-                      </>
-                    )}
+                    <Th 
+                      sort={{
+                        sortBy: {
+                          index: sortConfigs.findIndex(c => c.column === 'total'),
+                          direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
+                        },
+                        onSort: () => handleSort('total'),
+                        columnIndex: 2
+                      }}
+                    >
+                      Total
+                    </Th>
+                    <Th 
+                      sort={{
+                        sortBy: {
+                          index: sortConfigs.findIndex(c => c.column === 'clusters'),
+                          direction: sortConfigs.find(c => c.column === 'clusters')?.direction || 'asc'
+                        },
+                        onSort: () => handleSort('clusters'),
+                        columnIndex: 3
+                      }}
+                    >
+                      Clusters
+                    </Th>
+                    <Th 
+                      sort={{
+                        sortBy: {
+                          index: sortConfigs.findIndex(c => c.column === 'group'),
+                          direction: sortConfigs.find(c => c.column === 'group')?.direction || 'asc'
+                        },
+                        onSort: () => handleSort('group'),
+                        columnIndex: 4
+                      }}
+                      info={sortConfigs.find(c => c.column === 'group') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'group')?.priority}` } : undefined}
+                    >
+                      Impact group
+                    </Th>
+                    <Th 
+                      sort={{
+                        sortBy: {
+                          index: sortConfigs.findIndex(c => c.column === 'component'),
+                          direction: sortConfigs.find(c => c.column === 'component')?.direction || 'asc'
+                        },
+                        onSort: () => handleSort('component'),
+                        columnIndex: 5
+                      }}
+                      info={sortConfigs.find(c => c.column === 'component') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'component')?.priority}` } : undefined}
+                    >
+                      Component
+                    </Th>
                   </Tr>
                 </Thead>
                 {paginatedAggregatedAlerts.map((agg, idx) => {
@@ -3301,55 +3282,14 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                             {agg.severity}
                           </Label>
                         </Td>
-                        {singleClusterView ? (
-                          <>
-                            <Td>{agg.totalCount}</Td>
-                            <Td>
-                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                <FlexItem>
-                                  <Icon status={firstAlert?.status === 'firing' ? 'warning' : 'info'}>
-                                    <BellIcon />
-                                  </Icon>
-                                </FlexItem>
-                                <FlexItem>
-                                  <Stack>
-                                    <StackItem>Firing Since</StackItem>
-                                    <StackItem>
-                                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                        {firstAlert?.lastFired || 'Unknown'}
-                                      </Content>
-                                    </StackItem>
-                                  </Stack>
-                                </FlexItem>
-                              </Flex>
-                            </Td>
-                            <Td>
-                              <Label color="blue" isCompact>NS</Label>{' '}
-                              {firstAlert?.namespace || 'default'}
-                            </Td>
-                            <Td>
-                              {firstAlert?.resource ? (
-                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                  <FlexItem>
-                                    <Label color="grey" isCompact>N</Label>
-                                  </FlexItem>
-                                  <FlexItem>{firstAlert.resource}</FlexItem>
-                                </Flex>
-                              ) : '-'}
-                            </Td>
-                          </>
-                        ) : (
-                          <>
-                            <Td>
-                              <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>
-                            </Td>
-                            <Td>
-                              <Badge>{agg.totalCount}</Badge>
-                            </Td>
-                            <Td><Label isCompact>{agg.group}</Label></Td>
-                            <Td><Label isCompact variant="outline">{agg.component}</Label></Td>
-                          </>
-                        )}
+                        <Td>
+                          <Badge>{agg.totalCount}</Badge>
+                        </Td>
+                        <Td>
+                          <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>
+                        </Td>
+                        <Td><Label isCompact>{agg.group}</Label></Td>
+                        <Td><Label isCompact variant="outline">{agg.component}</Label></Td>
                       </Tr>
                       <Tr isExpanded={isExpanded}>
                         <Td colSpan={singleClusterView ? 8 : 8}>
@@ -4001,11 +3941,11 @@ const CrossClusterInsightsCards: React.FC<CrossClusterInsightsCardsProps> = ({
 
   return (
     <>
-      {/* Top Firing Alert Rules Card */}
+      {/* Top Firing Alerts Card */}
       <StackItem>
         <Card>
           <CardHeader>
-            <CardTitle>Top Firing Alert Rules</CardTitle>
+            <CardTitle>Top Firing Alerts</CardTitle>
           </CardHeader>
           <CardBody>
             <Table aria-label="Top firing alert rules" variant="compact">
@@ -4418,12 +4358,36 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, trend, color 
 // ========================================
 
 const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
+  // Router hooks for URL-based navigation state (enables browser back button)
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   // Main page tabs
   const [mainPageTab, setMainPageTab] = React.useState<string | number>('alerts');
   const [managementSubTab, setManagementSubTab] = React.useState<string | number>('alert-rules');
   
-  // V2: Alerts sub-tabs (Clusters health vs Firing alerts)
-  const [alertsSubTab, setAlertsSubTab] = React.useState<'clusters-health' | 'firing-alerts'>('clusters-health');
+  // V2: Alerts sub-tabs - derive initial state from URL params for back button support
+  const getInitialSubTab = (): 'clusters-health' | 'firing-alerts' => {
+    const tab = searchParams.get('tab');
+    return tab === 'firing-alerts' ? 'firing-alerts' : 'clusters-health';
+  };
+  const [alertsSubTab, setAlertsSubTabState] = React.useState<'clusters-health' | 'firing-alerts'>(getInitialSubTab);
+  
+  // Wrapper to update URL when changing tabs (enables back button)
+  const setAlertsSubTab = React.useCallback((tab: 'clusters-health' | 'firing-alerts') => {
+    setAlertsSubTabState(tab);
+    const newParams = new URLSearchParams(searchParams);
+    if (tab === 'firing-alerts') {
+      newParams.set('tab', 'firing-alerts');
+    } else {
+      newParams.delete('tab');
+      // Clear cluster filter from URL when going back to clusters health
+      newParams.delete('cluster');
+      newParams.delete('component');
+    }
+    navigate(`?${newParams.toString()}`, { replace: false });
+  }, [navigate, searchParams]);
   
   // Animation state for filtered view transition
   const [showFilterAnimation, setShowFilterAnimation] = React.useState(false);
@@ -4587,6 +4551,42 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     // we don't automatically switch to single-cluster view - 
     // that only happens when clicking directly on treemap/table
   }, [clusterFilter]);
+  
+  // Sync URL params with state when user navigates with browser back/forward buttons
+  React.useEffect(() => {
+    const urlTab = searchParams.get('tab');
+    const urlCluster = searchParams.get('cluster');
+    const urlComponent = searchParams.get('component');
+    
+    // Sync tab state with URL
+    if (urlTab === 'firing-alerts' && alertsSubTab !== 'firing-alerts') {
+      setAlertsSubTabState('firing-alerts');
+    } else if (urlTab !== 'firing-alerts' && alertsSubTab === 'firing-alerts') {
+      setAlertsSubTabState('clusters-health');
+      // When going back to clusters-health, also reset the filter state
+      setClusterFilter([]);
+      setMainComponentFilter(null);
+      setSelectedClusterForAlerts(null);
+      setFiringAlertsCardView('all-clusters');
+    }
+    
+    // Sync cluster filter with URL
+    if (urlCluster && urlTab === 'firing-alerts') {
+      const cluster = mockClusters.find(c => c.name === urlCluster);
+      if (cluster && clusterFilter[0] !== urlCluster) {
+        setClusterFilter([urlCluster]);
+        setSelectedClusterForAlerts(cluster);
+        setFiringAlertsCardView('single-cluster');
+      }
+    }
+    
+    // Sync component filter with URL
+    if (urlComponent && mainComponentFilter !== urlComponent) {
+      setMainComponentFilter(urlComponent);
+    } else if (!urlComponent && mainComponentFilter) {
+      setMainComponentFilter(null);
+    }
+  }, [searchParams]);
 
   // Get unique filter options
   const regions = getUniqueValues(mockClusters, 'region');
@@ -4740,8 +4740,12 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setFiringAlertsCardView('single-cluster');
     // Sync with filter panel - replace cluster filter with this cluster only
     setClusterFilter([cluster.name]);
-    // Switch to firing alerts tab with animation
-    setAlertsSubTab('firing-alerts');
+    // Update URL with tab and cluster params (enables browser back button)
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('tab', 'firing-alerts');
+    newParams.set('cluster', cluster.name);
+    navigate(`?${newParams.toString()}`, { replace: false });
+    setAlertsSubTabState('firing-alerts');
     // Trigger animation to highlight the filtered view
     setShowFilterAnimation(true);
     setTimeout(() => setShowFilterAnimation(false), 1500);
@@ -4752,7 +4756,13 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setSelectedClusterForAlerts(cluster);
     setFiringAlertsCardView('single-cluster');
     setMainComponentFilter(component);
-    setAlertsSubTab('firing-alerts');
+    // Update URL with tab, cluster and component params (enables browser back button)
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('tab', 'firing-alerts');
+    newParams.set('cluster', cluster.name);
+    newParams.set('component', component);
+    navigate(`?${newParams.toString()}`, { replace: false });
+    setAlertsSubTabState('firing-alerts');
     // Sync with filter panel - replace cluster filter
     setClusterFilter([cluster.name]);
     // Trigger animation to highlight the filtered view
