@@ -35,28 +35,28 @@ interface UIPlugin {
 const uiPlugins: UIPlugin[] = [
   {
     id: 'monitoring-ui',
-    name: 'Monitoring UI Plugin',
-    description: 'Metrics dashboards.',
+    name: 'Monitoring UI Plugin (Metrics)',
+    description: 'Adds the Metrics, Alerting, and Incidents pages to the Observe menu.',
     defaultEnabled: true,
     dependencies: ['metrics-alerting'],
   },
   {
     id: 'logging-ui',
-    name: 'Logging UI Plugin',
+    name: 'Logging UI Plugin (Logs)',
     description: 'Log exploration.',
     defaultEnabled: false,
     dependencies: ['loki'],
   },
   {
     id: 'tracing-ui',
-    name: 'Tracing UI Plugin',
+    name: 'Tracing UI Plugin (Traces)',
     description: 'Distributed traces.',
     defaultEnabled: false,
     dependencies: ['tempo'],
   },
   {
     id: 'troubleshooting-panel',
-    name: 'Troubleshooting Panel',
+    name: 'Troubleshooting Panel UI (Signal correlation)',
     description: 'Signal correlation.',
     defaultEnabled: false,
     dependencies: ['korrel8r'],
@@ -67,6 +67,20 @@ const uiPlugins: UIPlugin[] = [
     description: 'Enables the Perses dashboard engine for creating and visualizing custom metrics and dashboards directly in the Console.',
     defaultEnabled: false,
     dependencies: ['metrics-alerting'],
+  },
+  {
+    id: 'incident-detection-ui',
+    name: 'Incident Detection UI Plugin (Alerts)',
+    description: 'Incident detection and alerting.',
+    defaultEnabled: false,
+    dependencies: ['loki'],
+  },
+  {
+    id: 'network-ui',
+    name: 'Network UI Plugin (Flows)',
+    description: 'Network traffic visualization.',
+    defaultEnabled: false,
+    dependencies: ['network-traffic'],
   },
 ];
 
@@ -307,7 +321,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                   <Content style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>
                     Compute Resources
                   </Content>
-                  <List isPlain>
+                  <List>
                     <ListItem>
                       <Content style={{ fontSize: '14px' }}>
                         CPU: ~12 Cores (Burstable)
@@ -326,7 +340,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                   <Content style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>
                     Storage Infrastructure
                   </Content>
-                  <List isPlain>
+                  <List>
                     <ListItem>
                       <Content style={{ fontSize: '14px' }}>
                         Local Cache (PV): 100 GB (Standard-SSD)

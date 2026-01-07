@@ -166,28 +166,28 @@ interface UIPlugin {
 const uiPlugins: UIPlugin[] = [
   {
     id: 'monitoring-ui',
-    name: 'Monitoring UI Plugin',
-    description: 'Metrics dashboards.',
+    name: 'Monitoring UI Plugin (Metrics)',
+    description: 'Adds the Metrics, Alerting, and Incidents pages to the Observe menu.',
     defaultEnabled: true,
     dependencies: ['metrics-alerting'],
   },
   {
     id: 'logging-ui',
-    name: 'Logging UI Plugin',
+    name: 'Logging UI Plugin (Logs)',
     description: 'Log exploration.',
     defaultEnabled: false,
     dependencies: ['loki'],
   },
   {
     id: 'tracing-ui',
-    name: 'Tracing UI Plugin',
+    name: 'Tracing UI Plugin (Traces)',
     description: 'Distributed traces.',
     defaultEnabled: false,
     dependencies: ['tempo'],
   },
   {
     id: 'troubleshooting-panel',
-    name: 'Troubleshooting Panel',
+    name: 'Troubleshooting Panel UI (Signal correlation)',
     description: 'Signal correlation.',
     defaultEnabled: false,
     dependencies: ['korrel8r'],
@@ -201,10 +201,17 @@ const uiPlugins: UIPlugin[] = [
   },
   {
     id: 'incident-detection-ui',
-    name: 'Incident Detection UI Plugin',
+    name: 'Incident Detection UI Plugin (Alerts)',
     description: 'Incident detection and alerting.',
     defaultEnabled: false,
     dependencies: ['loki'],
+  },
+  {
+    id: 'network-ui',
+    name: 'Network UI Plugin (Flows)',
+    description: 'Network traffic visualization.',
+    defaultEnabled: false,
+    dependencies: ['network-traffic'],
   },
 ];
 
@@ -280,14 +287,28 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       setSelectedCapabilities(uniqueCapabilities);
       onDataChange({ selectedCapabilities: uniqueCapabilities });
       
-      // Auto-select UI plugins based on persona
-      // Perses is auto-selected for Administrator and SRE personas
+      // Auto-select UI plugins based on persona and dependencies
       // Only add plugins if their dependencies are satisfied
       let autoUIPlugins: string[] = [];
       
-      // monitoring-ui requires metrics-alerting
+      // monitoring-ui requires metrics-alerting (always auto-selected when dependency is met)
       if (uniqueCapabilities.includes('metrics-alerting')) {
         autoUIPlugins.push('monitoring-ui');
+      }
+      
+      // logging-ui requires loki (auto-selected when dependency is met)
+      if (uniqueCapabilities.includes('loki')) {
+        autoUIPlugins.push('logging-ui');
+      }
+      
+      // tracing-ui requires tempo (auto-selected when dependency is met)
+      if (uniqueCapabilities.includes('tempo')) {
+        autoUIPlugins.push('tracing-ui');
+      }
+      
+      // troubleshooting-panel requires korrel8r (auto-selected when dependency is met)
+      if (uniqueCapabilities.includes('korrel8r')) {
+        autoUIPlugins.push('troubleshooting-panel');
       }
       
       // Perses requires metrics-alerting and is auto-selected for Administrator and SRE personas
@@ -301,10 +322,15 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         autoUIPlugins.push('incident-detection-ui');
       }
       
-      // Preserve manually-selected UI plugins that are NOT persona-specific
+      // Network UI Plugin requires network-traffic and is auto-selected when network-traffic is selected
+      if (uniqueCapabilities.includes('network-traffic')) {
+        autoUIPlugins.push('network-ui');
+      }
+      
+      // Preserve manually-selected UI plugins that are NOT auto-selected
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const manuallySelectedPlugins = selectedUIPlugins.filter(
-        pluginId => pluginId !== 'perses' && pluginId !== 'monitoring-ui' && pluginId !== 'incident-detection-ui'
+        pluginId => !autoUIPlugins.includes(pluginId)
       );
       
       // Merge persona auto-plugins with manually-selected ones
@@ -333,6 +359,28 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     
     if (checked) {
       newCapabilities = [...selectedCapabilities, capabilityId];
+      
+      // Auto-select UI plugins when their dependencies are checked
+      const pluginsToAdd: string[] = [];
+      
+      if (capabilityId === 'loki' && !selectedUIPlugins.includes('logging-ui')) {
+        pluginsToAdd.push('logging-ui');
+      }
+      if (capabilityId === 'tempo' && !selectedUIPlugins.includes('tracing-ui')) {
+        pluginsToAdd.push('tracing-ui');
+      }
+      if (capabilityId === 'korrel8r' && !selectedUIPlugins.includes('troubleshooting-panel')) {
+        pluginsToAdd.push('troubleshooting-panel');
+      }
+      if (capabilityId === 'network-traffic' && !selectedUIPlugins.includes('network-ui')) {
+        pluginsToAdd.push('network-ui');
+      }
+      
+      if (pluginsToAdd.length > 0) {
+        const newPlugins = [...selectedUIPlugins, ...pluginsToAdd];
+        setSelectedUIPlugins(newPlugins);
+        onDataChange({ selectedUIPlugins: newPlugins });
+      }
     } else {
       newCapabilities = selectedCapabilities.filter(id => id !== capabilityId);
       // Remove nested options when parent is unchecked
@@ -343,9 +391,30 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         onDataChange({ selectedNestedOptions: newNestedOptions });
       }
       
-      // If metrics-alerting is unchecked, remove UI plugins that depend on it
+      // Remove UI plugins when their dependencies are unchecked
+      const pluginsToRemove: string[] = [];
+      
       if (capabilityId === 'metrics-alerting') {
-        const pluginsToRemove = ['monitoring-ui', 'perses'];
+        pluginsToRemove.push('monitoring-ui', 'perses');
+      }
+      if (capabilityId === 'loki') {
+        pluginsToRemove.push('logging-ui');
+        // Only remove incident-detection-ui if not SRE persona (it's persona-specific)
+        if (selectedPersona !== 'sre') {
+          pluginsToRemove.push('incident-detection-ui');
+        }
+      }
+      if (capabilityId === 'tempo') {
+        pluginsToRemove.push('tracing-ui');
+      }
+      if (capabilityId === 'korrel8r') {
+        pluginsToRemove.push('troubleshooting-panel');
+      }
+      if (capabilityId === 'network-traffic') {
+        pluginsToRemove.push('network-ui');
+      }
+      
+      if (pluginsToRemove.length > 0) {
         const newPlugins = selectedUIPlugins.filter(pluginId => !pluginsToRemove.includes(pluginId));
         setSelectedUIPlugins(newPlugins);
         onDataChange({ selectedUIPlugins: newPlugins });
@@ -528,12 +597,32 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                           )}
                           
                           {isChecked && capability.id === 'incident-detection' && (
+                            data.enableClusterMonitoring ? (
+                              <Alert
+                                variant={AlertVariant.info}
+                                isInline
+                                title="Alert data processing is enabled."
+                                style={{ marginTop: '12px', marginLeft: '24px' }}
+                              />
+                            ) : (
+                              <Alert
+                                variant={AlertVariant.warning}
+                                isInline
+                                title="Requires 'Enable Operator recommended cluster monitoring' to process alert data."
+                                style={{ marginTop: '12px', marginLeft: '24px' }}
+                              />
+                            )
+                          )}
+                          
+                          {!isChecked && capability.id === 'thanos' && 
+                           (selectedPersona === 'administrator' || selectedPersona === 'sre') && (
                             <Alert
                               variant={AlertVariant.warning}
                               isInline
-                              title="Requires 'Enable Operator recommended cluster monitoring' to process alert data."
-                              style={{ marginTop: '12px', marginLeft: '24px' }}
-                            />
+                              title="Long-term storage disabled"
+                            >
+                              Without long-term storage, you will lose the ability to retain metrics for capacity planning and historical analysis. This may impact your ability to track trends and plan for future resource needs.
+                            </Alert>
                           )}
                         </StackItem>
 
