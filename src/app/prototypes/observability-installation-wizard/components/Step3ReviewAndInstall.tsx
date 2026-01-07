@@ -16,11 +16,6 @@ import {
   Alert,
   AlertVariant,
 } from '@patternfly/react-core';
-import {
-  CpuIcon,
-  MemoryIcon,
-  RocketIcon,
-} from '@patternfly/react-icons';
 import { WizardData } from './Step2ObservabilityComponents';
 
 interface Step3ReviewAndInstallProps {
@@ -310,32 +305,50 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
           <Card>
             <CardTitle>Estimated resources</CardTitle>
             <CardBody>
-              <Flex spaceItems={{ default: 'spaceItemsLg' }}>
-                <FlexItem>
-                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>
-                      <CpuIcon style={{ fontSize: '20px', color: '#6a6e73' }} />
-                    </FlexItem>
-                    <FlexItem>
-                      <Content style={{ fontSize: '16px', fontWeight: '600' }}>
-                        {resources.cpu} CPU
+              <Stack hasGutter>
+                {/* Compute Resources */}
+                <StackItem>
+                  <Content style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>
+                    Compute Resources
+                  </Content>
+                  <List isPlain>
+                    <ListItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        CPU: ~12 Cores (Burstable)
                       </Content>
-                    </FlexItem>
-                  </Flex>
-                </FlexItem>
-                <FlexItem>
-                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>
-                      <MemoryIcon style={{ fontSize: '20px', color: '#6a6e73' }} />
-                    </FlexItem>
-                    <FlexItem>
-                      <Content style={{ fontSize: '16px', fontWeight: '600' }}>
-                        {resources.ram} GB RAM
+                    </ListItem>
+                    <ListItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        Memory: ~28 GB (Total RSS)
                       </Content>
-                    </FlexItem>
-                  </Flex>
-                </FlexItem>
-              </Flex>
+                    </ListItem>
+                  </List>
+                </StackItem>
+
+                {/* Storage Infrastructure */}
+                <StackItem>
+                  <Content style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>
+                    Storage Infrastructure
+                  </Content>
+                  <List isPlain>
+                    <ListItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        Local Cache (PV): 100 GB (Standard-SSD)
+                      </Content>
+                    </ListItem>
+                    <ListItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        Long-term Storage: Connected to 'obs-bucket-s3'
+                      </Content>
+                    </ListItem>
+                    <ListItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        Retention Estimate: ~1.2 TB / Month (Object Storage)
+                      </Content>
+                    </ListItem>
+                  </List>
+                </StackItem>
+              </Stack>
             </CardBody>
           </Card>
         </StackItem>
