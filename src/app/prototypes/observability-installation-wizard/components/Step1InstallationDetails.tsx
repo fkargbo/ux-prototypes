@@ -136,6 +136,10 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
   data,
   onDataChange,
 }) => {
+  // Container width state for responsive grid
+  const [isContainerNarrow, setIsContainerNarrow] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
   // Installation source and version
   const [updateChannel, setUpdateChannel] = useState<string>(data?.updateChannel || 'stable');
   const [updateChannelOpen, setUpdateChannelOpen] = useState(false);
@@ -152,6 +156,38 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
 
   // Operator updates
   const [updateApproval, setUpdateApproval] = useState<string>(data?.updateApproval || 'automatic');
+
+  // Monitor container width for responsive grid
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateNarrowState = (width: number) => {
+      const shouldBeNarrow = width < 616;
+      setIsContainerNarrow(shouldBeNarrow);
+    };
+
+    // Use a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      if (containerRef.current) {
+        const initialWidth = containerRef.current.getBoundingClientRect().width;
+        updateNarrowState(initialWidth);
+      }
+    }, 0);
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        updateNarrowState(width);
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // Sync state changes to parent
   useEffect(() => {
@@ -638,69 +674,93 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
               <style>{`
                 .provided-apis-grid-wrapper {
                   width: 100%;
-                  overflow: visible;
-                  /* Prevent Chrome from recalculating on hover */
-                  contain: layout style;
+                  overflow-x: auto;
+                  overflow-y: visible;
+                  /* Hide scrollbar by default (Firefox) */
+                  scrollbar-width: none;
+                }
+                /* Hide scrollbar by default, show on hover (Chrome/Safari) */
+                .provided-apis-grid-wrapper::-webkit-scrollbar {
+                  width: 8px;
+                  height: 8px;
+                }
+                .provided-apis-grid-wrapper::-webkit-scrollbar-track {
+                  background: transparent;
+                }
+                .provided-apis-grid-wrapper::-webkit-scrollbar-thumb {
+                  background: transparent;
+                  border-radius: 4px;
+                }
+                .provided-apis-grid-wrapper:hover {
+                  /* Show scrollbar on hover (Firefox) */
+                  scrollbar-width: thin;
+                }
+                .provided-apis-grid-wrapper:hover::-webkit-scrollbar-thumb {
+                  background: rgba(0, 0, 0, 0.2);
+                }
+                .provided-apis-grid-wrapper:hover::-webkit-scrollbar-thumb:hover {
+                  background: rgba(0, 0, 0, 0.3);
                 }
                 .provided-apis-grid {
                   display: grid;
-                  grid-template-columns: 300px 300px;
-                  gap: var(--pf-t--global--spacer--md);
+                  grid-template-columns: repeat(2, 300px);
+                  gap: 16px;
                   align-items: start;
                   justify-content: start;
                   width: fit-content;
                   max-width: 100%;
                   min-width: 0;
-                  /* Prevent Chrome grid recalculation */
-                  will-change: auto;
                 }
-                /* On narrower viewports, force single column */
-                @media (max-width: 991px) {
-                  .provided-apis-grid {
-                    grid-template-columns: 1fr;
-                    width: 100%;
-                  }
+                /* Switch to single column when container is narrow */
+                .provided-apis-grid-wrapper.narrow .provided-apis-grid {
+                  grid-template-columns: 1fr !important;
+                  width: 100% !important;
                 }
                 .provided-apis-grid .pf-v6-c-card {
                   width: 300px;
                   max-width: 300px;
                   min-width: 300px;
+                  height: auto;
                   box-sizing: border-box;
                   overflow: visible;
-                  /* Prevent Chrome from recalculating card size on hover */
-                  will-change: auto;
                 }
-                @media (max-width: 991px) {
-                  .provided-apis-grid .pf-v6-c-card {
-                    width: 100%;
-                    max-width: 100%;
-                    min-width: 0;
-                  }
+                .provided-apis-grid-wrapper.narrow .provided-apis-grid .pf-v6-c-card {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
                 }
-                /* Prevent any hover effects that could cause layout shifts in Chrome */
+                /* Completely disable all transitions and transforms */
                 .provided-apis-grid .pf-v6-c-card,
                 .provided-apis-grid .pf-v6-c-card * {
                   transition: none !important;
+                  transform: none !important;
                 }
+                /* Lock card dimensions on hover */
                 .provided-apis-grid .pf-v6-c-card:hover {
                   transform: none !important;
                   box-shadow: var(--pf-v6-global--BoxShadow--sm) !important;
-                  width: 300px !important;
-                  max-width: 300px !important;
-                  min-width: 300px !important;
                 }
-                @media (max-width: 991px) {
-                  .provided-apis-grid .pf-v6-c-card:hover {
-                    width: 100% !important;
-                    max-width: 100% !important;
-                    min-width: 0 !important;
-                  }
+                .provided-apis-grid-wrapper.narrow .provided-apis-grid .pf-v6-c-card:hover {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
                 }
               `}</style>
-              <div className="provided-apis-grid-wrapper">
-                <div className="provided-apis-grid">
+              <div 
+                ref={containerRef}
+                className={`provided-apis-grid-wrapper ${isContainerNarrow ? 'narrow' : ''}`}
+                style={{ width: '100%' }}
+              >
+                <div 
+                  className="provided-apis-grid"
+                  style={isContainerNarrow ? { gridTemplateColumns: '1fr', width: '100%' } : { gridTemplateColumns: 'repeat(2, 300px)', gap: '16px' }}
+                >
                 {providedAPIs.map((api) => (
-                  <Card key={api.id} isCompact>
+                  <Card 
+                    key={api.id} 
+                    isCompact
+                    style={isContainerNarrow ? { width: '100%', maxWidth: '100%', minWidth: 0, height: 'auto' } : { width: '300px', maxWidth: '300px', minWidth: '300px', height: 'auto' }}
+                  >
                     <CardBody>
                       <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                         <FlexItem>
