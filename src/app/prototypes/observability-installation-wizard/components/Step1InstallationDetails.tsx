@@ -515,25 +515,22 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
         >
           <style>{`
             .provided-apis-sidebar {
-              scrollbar-width: none; /* Firefox */
+              scrollbar-width: thin; /* Firefox - always reserve space */
               -ms-overflow-style: none; /* IE and Edge */
+              scrollbar-gutter: stable; /* Reserve space for scrollbar */
             }
             .provided-apis-sidebar::-webkit-scrollbar {
-              display: none; /* Chrome, Safari, Opera */
+              width: 8px; /* Always reserve space */
             }
-            .provided-apis-sidebar:hover {
-              scrollbar-width: thin; /* Firefox */
+            .provided-apis-sidebar::-webkit-scrollbar-track {
+              background: transparent;
             }
-            .provided-apis-sidebar:hover::-webkit-scrollbar {
-              display: block; /* Chrome, Safari, Opera */
-              width: 8px;
-            }
-            .provided-apis-sidebar:hover::-webkit-scrollbar-track {
-              background: #f0f0f0;
+            .provided-apis-sidebar::-webkit-scrollbar-thumb {
+              background: transparent;
+              border-radius: 4px;
             }
             .provided-apis-sidebar:hover::-webkit-scrollbar-thumb {
               background: #888;
-              border-radius: 4px;
             }
             .provided-apis-sidebar:hover::-webkit-scrollbar-thumb:hover {
               background: #555;
@@ -637,31 +634,54 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
             <StackItem>
               <style>{`
                 .provided-apis-grid {
-                  display: grid;
-                  grid-template-columns: repeat(auto-fill, minmax(280px, 300px));
-                  gap: var(--pf-t--global--spacer--md);
-                  align-items: start;
-                  justify-content: start;
+                  display: grid !important;
+                  grid-template-columns: repeat(2, 300px) !important;
+                  gap: var(--pf-t--global--spacer--md) !important;
+                  align-items: start !important;
+                  justify-content: start !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  contain: layout !important;
                 }
                 /* On narrower viewports, force single column */
                 @media (max-width: 991px) {
                   .provided-apis-grid {
-                    grid-template-columns: 1fr;
+                    grid-template-columns: 1fr !important;
                   }
                 }
                 .provided-apis-grid .pf-v6-c-card {
-                  width: 100%;
-                  max-width: 300px;
-                  min-width: 0;
-                  box-sizing: border-box;
-                  transition: none;
+                  width: 300px !important;
+                  max-width: 300px !important;
+                  min-width: 300px !important;
+                  min-height: 0 !important;
+                  box-sizing: border-box !important;
+                  transition: none !important;
+                  transform: none !important;
+                  box-shadow: var(--pf-v6-global--BoxShadow--sm) !important;
+                  border: var(--pf-v6-global--BorderColor--100) solid 1px !important;
                 }
-                .provided-apis-grid .pf-v6-c-card:hover {
-                  transform: none;
+                .provided-apis-grid .pf-v6-c-card:hover,
+                .provided-apis-grid .pf-v6-c-card:focus,
+                .provided-apis-grid .pf-v6-c-card:active {
+                  transform: none !important;
+                  box-shadow: var(--pf-v6-global--BoxShadow--sm) !important;
+                  width: 300px !important;
+                  max-width: 300px !important;
+                  min-width: 300px !important;
                 }
                 @media (max-width: 991px) {
                   .provided-apis-grid .pf-v6-c-card {
-                    max-width: 100%;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-width: 0 !important;
+                  }
+                  .provided-apis-grid .pf-v6-c-card:hover,
+                  .provided-apis-grid .pf-v6-c-card:focus,
+                  .provided-apis-grid .pf-v6-c-card:active {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-width: 0 !important;
                   }
                 }
               `}</style>
