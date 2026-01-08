@@ -729,5 +729,3 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
     </Grid>
   );
 };
-
-};
