@@ -705,51 +705,24 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                   background: rgba(0, 0, 0, 0.3);
                 }
                 .provided-apis-grid {
-                  display: grid !important;
-                  grid-template-columns: repeat(2, 300px) !important;
-                  gap: 16px !important;
-                  align-items: start !important;
-                  justify-content: start !important;
-                  width: fit-content !important;
-                  max-width: 100% !important;
-                  min-width: 0 !important;
+                  display: grid;
+                  grid-template-columns: repeat(2, 300px);
+                  gap: 16px;
+                  align-items: start;
+                  width: fit-content;
                 }
                 /* Switch to single column when container is narrow */
                 .provided-apis-grid-wrapper.narrow .provided-apis-grid {
-                  grid-template-columns: 1fr !important;
-                  width: 100% !important;
+                  grid-template-columns: 1fr;
+                  width: 100%;
                 }
                 .provided-apis-grid .pf-v6-c-card {
-                  width: 300px !important;
-                  max-width: 300px !important;
-                  min-width: 300px !important;
-                  height: auto !important;
-                  box-sizing: border-box !important;
-                  overflow: visible !important;
+                  width: 300px;
+                  height: auto;
+                  box-sizing: border-box;
                 }
                 .provided-apis-grid-wrapper.narrow .provided-apis-grid .pf-v6-c-card {
-                  width: 100% !important;
-                  max-width: 100% !important;
-                  min-width: 0 !important;
-                }
-                /* Completely disable all transitions and transforms */
-                .provided-apis-grid .pf-v6-c-card,
-                .provided-apis-grid .pf-v6-c-card * {
-                  transition: none !important;
-                  transform: none !important;
-                }
-                /* Lock card dimensions on hover */
-                .provided-apis-grid .pf-v6-c-card:hover {
-                  transform: none !important;
-                  box-shadow: var(--pf-v6-global--BoxShadow--sm) !important;
-                  width: 300px !important;
-                  max-width: 300px !important;
-                  min-width: 300px !important;
-                }
-                .provided-apis-grid-wrapper.narrow .provided-apis-grid .pf-v6-c-card:hover {
-                  width: 100% !important;
-                  max-width: 100% !important;
-                  min-width: 0 !important;
+                  width: 100%;
                 }
               `}</style>
               <div 
@@ -757,29 +730,14 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                 className={`provided-apis-grid-wrapper ${isContainerNarrow ? 'narrow' : ''}`}
                 style={{ width: '100%' }}
               >
-                <div 
-                  className="provided-apis-grid"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: isContainerNarrow ? '1fr' : 'repeat(2, 300px)',
-                    gap: '16px',
-                    alignItems: 'start',
-                    justifyContent: 'start',
-                    width: isContainerNarrow ? '100%' : 'fit-content',
-                    maxWidth: '100%',
-                    minWidth: 0,
-                  }}
-                >
+                <div className="provided-apis-grid">
                 {providedAPIs.map((api) => (
                   <Card 
                     key={api.id} 
                     isCompact
                     style={{
                       width: isContainerNarrow ? '100%' : '300px',
-                      maxWidth: isContainerNarrow ? '100%' : '300px',
-                      minWidth: isContainerNarrow ? 0 : '300px',
                       height: 'auto',
-                      boxSizing: 'border-box',
                     }}
                   >
                     <CardBody>
