@@ -516,21 +516,24 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
           <style>{`
             .provided-apis-sidebar {
               scrollbar-width: thin; /* Firefox - always reserve space */
+              scrollbar-gutter: stable; /* Reserve space for scrollbar to prevent layout shift */
               -ms-overflow-style: none; /* IE and Edge */
-              scrollbar-gutter: stable; /* Reserve space for scrollbar */
             }
             .provided-apis-sidebar::-webkit-scrollbar {
-              width: 8px; /* Always reserve space */
+              width: 8px; /* Chrome - always reserve space */
             }
             .provided-apis-sidebar::-webkit-scrollbar-track {
-              background: transparent;
+              background: transparent; /* Hidden by default */
             }
             .provided-apis-sidebar::-webkit-scrollbar-thumb {
-              background: transparent;
+              background: transparent; /* Hidden by default */
               border-radius: 4px;
             }
+            .provided-apis-sidebar:hover::-webkit-scrollbar-track {
+              background: #f0f0f0; /* Show on hover */
+            }
             .provided-apis-sidebar:hover::-webkit-scrollbar-thumb {
-              background: #888;
+              background: #888; /* Show on hover */
             }
             .provided-apis-sidebar:hover::-webkit-scrollbar-thumb:hover {
               background: #555;
@@ -633,37 +636,53 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
             {/* API Cards - Two Column Layout */}
             <StackItem>
               <style>{`
+                .provided-apis-grid-wrapper {
+                  width: 100%;
+                  overflow: visible;
+                  /* Prevent Chrome from recalculating on hover */
+                  contain: layout style;
+                }
                 .provided-apis-grid {
-                  display: grid !important;
-                  grid-template-columns: repeat(2, 300px) !important;
-                  gap: var(--pf-t--global--spacer--md) !important;
-                  align-items: start !important;
-                  justify-content: start !important;
-                  width: 100% !important;
-                  max-width: 100% !important;
-                  min-width: 0 !important;
-                  contain: layout !important;
+                  display: grid;
+                  grid-template-columns: 300px 300px;
+                  gap: var(--pf-t--global--spacer--md);
+                  align-items: start;
+                  justify-content: start;
+                  width: fit-content;
+                  max-width: 100%;
+                  min-width: 0;
+                  /* Prevent Chrome grid recalculation */
+                  will-change: auto;
                 }
                 /* On narrower viewports, force single column */
                 @media (max-width: 991px) {
                   .provided-apis-grid {
-                    grid-template-columns: 1fr !important;
+                    grid-template-columns: 1fr;
+                    width: 100%;
                   }
                 }
                 .provided-apis-grid .pf-v6-c-card {
-                  width: 300px !important;
-                  max-width: 300px !important;
-                  min-width: 300px !important;
-                  min-height: 0 !important;
-                  box-sizing: border-box !important;
-                  transition: none !important;
-                  transform: none !important;
-                  box-shadow: var(--pf-v6-global--BoxShadow--sm) !important;
-                  border: var(--pf-v6-global--BorderColor--100) solid 1px !important;
+                  width: 300px;
+                  max-width: 300px;
+                  min-width: 300px;
+                  box-sizing: border-box;
+                  overflow: visible;
+                  /* Prevent Chrome from recalculating card size on hover */
+                  will-change: auto;
                 }
-                .provided-apis-grid .pf-v6-c-card:hover,
-                .provided-apis-grid .pf-v6-c-card:focus,
-                .provided-apis-grid .pf-v6-c-card:active {
+                @media (max-width: 991px) {
+                  .provided-apis-grid .pf-v6-c-card {
+                    width: 100%;
+                    max-width: 100%;
+                    min-width: 0;
+                  }
+                }
+                /* Prevent any hover effects that could cause layout shifts in Chrome */
+                .provided-apis-grid .pf-v6-c-card,
+                .provided-apis-grid .pf-v6-c-card * {
+                  transition: none !important;
+                }
+                .provided-apis-grid .pf-v6-c-card:hover {
                   transform: none !important;
                   box-shadow: var(--pf-v6-global--BoxShadow--sm) !important;
                   width: 300px !important;
@@ -671,21 +690,15 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                   min-width: 300px !important;
                 }
                 @media (max-width: 991px) {
-                  .provided-apis-grid .pf-v6-c-card {
-                    width: 100% !important;
-                    max-width: 100% !important;
-                    min-width: 0 !important;
-                  }
-                  .provided-apis-grid .pf-v6-c-card:hover,
-                  .provided-apis-grid .pf-v6-c-card:focus,
-                  .provided-apis-grid .pf-v6-c-card:active {
+                  .provided-apis-grid .pf-v6-c-card:hover {
                     width: 100% !important;
                     max-width: 100% !important;
                     min-width: 0 !important;
                   }
                 }
               `}</style>
-              <div className="provided-apis-grid">
+              <div className="provided-apis-grid-wrapper">
+                <div className="provided-apis-grid">
                 {providedAPIs.map((api) => (
                   <Card key={api.id} isCompact>
                     <CardBody>
@@ -707,6 +720,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                     </CardBody>
                   </Card>
                 ))}
+                </div>
               </div>
             </StackItem>
           </Stack>
@@ -714,4 +728,6 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
       </GridItem>
     </Grid>
   );
+};
+
 };
