@@ -40,17 +40,12 @@ interface ProvidedAPI {
 }
 
 const providedAPIs: ProvidedAPI[] = [
+  // Column 1 - Top to bottom
   {
     id: 'podmonitor',
     name: 'PodMonitor',
     abbreviation: 'PM',
     description: 'PodMonitor defines monitoring for a set of pods.',
-  },
-  {
-    id: 'probe',
-    name: 'Probe',
-    abbreviation: 'P',
-    description: 'Probe defines monitoring for a set of static targets or ingresses.',
   },
   {
     id: 'prometheusrule',
@@ -59,22 +54,10 @@ const providedAPIs: ProvidedAPI[] = [
     description: 'PrometheusRule defines recording and alerting rules for a Prometheus instance.',
   },
   {
-    id: 'servicemonitor',
-    name: 'ServiceMonitor',
-    abbreviation: 'SM',
-    description: 'ServiceMonitor defines monitoring for a set of services.',
-  },
-  {
     id: 'alertmanagerconfig',
     name: 'AlertmanagerConfig',
     abbreviation: 'AC',
     description: 'AlertmanagerConfig configures the Prometheus Alertmanager, specifying how alerts should be grouped, inhibited and notified to external systems.',
-  },
-  {
-    id: 'monitoringstack',
-    name: 'MonitoringStack',
-    abbreviation: 'MS',
-    description: 'MonitoringStack is the Schema for the monitoringstacks API.',
   },
   {
     id: 'observabilityinstaller',
@@ -83,16 +66,35 @@ const providedAPIs: ProvidedAPI[] = [
     description: 'Provides end-to-end observability capabilities with minimal configuration. Simplifies deployment and management of observability components such as tracing.',
   },
   {
-    id: 'persesdashboard',
-    name: 'PersesDashboard',
-    abbreviation: 'PD',
-    description: 'PersesDashboard defines the layout, visualization panels, and query variables for custom metrics dashboards within the OpenShift console.',
-  },
-  {
     id: 'persesdatasource',
     name: 'PersesDatasource',
     abbreviation: 'PD',
     description: 'PersesDatasource configures the connection between the Perses dashboard engine and a specific metrics backend, such as a Prometheus or Thanos instance.',
+  },
+  // Column 2 - Top to bottom
+  {
+    id: 'probe',
+    name: 'Probe',
+    abbreviation: 'P',
+    description: 'Probe defines monitoring for a set of static targets or ingresses.',
+  },
+  {
+    id: 'servicemonitor',
+    name: 'ServiceMonitor',
+    abbreviation: 'SM',
+    description: 'ServiceMonitor defines monitoring for a set of services.',
+  },
+  {
+    id: 'monitoringstack',
+    name: 'MonitoringStack',
+    abbreviation: 'MS',
+    description: 'MonitoringStack is the Schema for the monitoringstacks API.',
+  },
+  {
+    id: 'persesdashboard',
+    name: 'PersesDashboard',
+    abbreviation: 'PD',
+    description: 'PersesDashboard defines the layout, visualization panels, and query variables for custom metrics dashboards within the OpenShift console.',
   },
   {
     id: 'scrapeconfig',
@@ -100,6 +102,7 @@ const providedAPIs: ProvidedAPI[] = [
     abbreviation: 'SC',
     description: 'ScrapeConfig defines a namespaced Prometheus scrape_config to be aggregated across multiple namespaces into the Prometheus configuration.',
   },
+  // Additional APIs (not shown in reference image but may be needed)
   {
     id: 'thanosquerier',
     name: 'ThanosQuerier',
