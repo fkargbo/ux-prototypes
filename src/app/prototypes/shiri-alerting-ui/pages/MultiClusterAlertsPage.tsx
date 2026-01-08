@@ -1403,6 +1403,13 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const [acknowledgeSeverity, setAcknowledgeSeverity] = React.useState<string>('');
   const [acknowledgeClusterName, setAcknowledgeClusterName] = React.useState<string>('');
   const [acknowledgeComment, setAcknowledgeComment] = React.useState<string>('');
+  const [acknowledgeSilenceChecked, setAcknowledgeSilenceChecked] = React.useState(false);
+  const [acknowledgeDurationType, setAcknowledgeDurationType] = React.useState<'for' | 'until'>('for');
+  const [acknowledgeDuration, setAcknowledgeDuration] = React.useState<number>(2);
+  const [acknowledgeDurationUnit, setAcknowledgeDurationUnit] = React.useState<'Hours' | 'Days' | 'Weeks'>('Hours');
+  const [acknowledgeUntilDate, setAcknowledgeUntilDate] = React.useState<string>('');
+  const [acknowledgeUntilTime, setAcknowledgeUntilTime] = React.useState<string>('');
+  const [isAcknowledgeDurationUnitOpen, setIsAcknowledgeDurationUnitOpen] = React.useState(false);
   
   // Open silence modal with alert info
   const openSilenceModal = (alertName: string, severity: string, clusterName: string) => {
@@ -1427,6 +1434,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     setAcknowledgeSeverity(severity);
     setAcknowledgeClusterName(clusterName);
     setAcknowledgeComment('');
+    setAcknowledgeSilenceChecked(false);
+    setAcknowledgeDurationType('for');
+    setAcknowledgeDuration(2);
+    setAcknowledgeDurationUnit('Hours');
+    setAcknowledgeUntilDate('');
+    setAcknowledgeUntilTime('');
     setIsAcknowledgeModalOpen(true);
     setOpenActionMenuId(null);
   };
@@ -2070,52 +2083,17 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
         <ModalHeader
           title="Acknowledge alert"
           labelId="acknowledge-alert-modal-title"
-          description={
-            <Stack hasGutter>
-              <StackItem>
-                Mark <strong>{acknowledgeAlertName}</strong> alert as being addressed.
-              </StackItem>
-              <StackItem>
-                <Content component="small">
-                  Acknowledging an alert lets your team know that someone is working on it. The alert will remain in the 'Firing' state but will be marked as acknowledged.
-                </Content>
-              </StackItem>
-            </Stack>
-          }
+          description={`Mark ${acknowledgeAlertName} alert as acknowledged to indicate it's being addressed.`}
         />
         <ModalBody id="acknowledge-alert-modal-body">
           <Stack hasGutter>
-            {/* Alert details */}
-            <StackItem>
-              <DescriptionList isCompact isHorizontal>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Alert name</DescriptionListTerm>
-                  <DescriptionListDescription>{acknowledgeAlertName}</DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Severity</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Label color={acknowledgeSeverity === 'Critical' ? 'red' : acknowledgeSeverity === 'Warning' ? 'orange' : 'purple'} isCompact>
-                      {acknowledgeSeverity}
-                    </Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Cluster</DescriptionListTerm>
-                  <DescriptionListDescription>{acknowledgeClusterName}</DescriptionListDescription>
-                </DescriptionListGroup>
-              </DescriptionList>
-            </StackItem>
-            
-            <Divider />
-            
-            {/* Comment */}
+            {/* Comment - Required */}
             <StackItem>
               <Stack hasGutter>
                 <StackItem>
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <FlexItem>
-                      <Content component="p"><strong>Comment (optional)</strong></Content>
+                      <Content component="p"><strong>Comment</strong> <span style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>*</span></Content>
                     </FlexItem>
                     <FlexItem>
                       <Tooltip content="Add a comment to help your team understand how this alert is being addressed.">
@@ -2128,7 +2106,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                   <TextInputGroup>
                     <TextInputGroupMain 
                       type="text" 
-                      placeholder="I'm investigating this issue..."
+                      placeholder="I'm on it!"
                       value={acknowledgeComment} 
                       onChange={(_, value) => setAcknowledgeComment(value)} 
                     />
@@ -2136,15 +2114,143 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 </StackItem>
                 <StackItem>
                   <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    Add a short comment to let others in the team know how this alert is being addressed.
+                    Add a short comment to provide more details. Let others in the team know how this alert is being addressed.
                   </Content>
                 </StackItem>
               </Stack>
             </StackItem>
+            
+            {/* Silence notifications checkbox */}
+            <StackItem>
+              <Checkbox
+                id="acknowledge-silence-checkbox"
+                label="Silence notifications for this alert"
+                isChecked={acknowledgeSilenceChecked}
+                onChange={(_, checked) => setAcknowledgeSilenceChecked(checked)}
+              />
+            </StackItem>
+            
+            {/* Duration options - only shown when silence checkbox is checked */}
+            {acknowledgeSilenceChecked && (
+              <StackItem>
+                <Stack hasGutter>
+                  {/* For row */}
+                  <StackItem>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                      <FlexItem style={{ width: '60px' }}>
+                        <input 
+                          type="radio" 
+                          id="ack-duration-for" 
+                          name="ack-duration-type" 
+                          checked={acknowledgeDurationType === 'for'} 
+                          onChange={() => setAcknowledgeDurationType('for')} 
+                          style={{ marginRight: '8px' }}
+                        />
+                        <label htmlFor="ack-duration-for">For</label>
+                      </FlexItem>
+                      <FlexItem>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <Button 
+                            variant="control" 
+                            onClick={() => setAcknowledgeDuration(Math.max(1, acknowledgeDuration - 1))}
+                            isDisabled={acknowledgeDurationType !== 'for'}
+                          >
+                            -
+                          </Button>
+                          <TextInputGroup isDisabled={acknowledgeDurationType !== 'for'}>
+                            <TextInputGroupMain 
+                              type="number" 
+                              value={acknowledgeDuration} 
+                              onChange={(_, value) => setAcknowledgeDuration(Number(value) || 1)} 
+                              style={{ width: '60px', textAlign: 'center' }}
+                            />
+                          </TextInputGroup>
+                          <Button 
+                            variant="control" 
+                            onClick={() => setAcknowledgeDuration(acknowledgeDuration + 1)}
+                            isDisabled={acknowledgeDurationType !== 'for'}
+                          >
+                            +
+                          </Button>
+                          {acknowledgeDurationType === 'for' ? (
+                            <Select
+                              isOpen={isAcknowledgeDurationUnitOpen}
+                              onOpenChange={setIsAcknowledgeDurationUnitOpen}
+                              onSelect={(_, value) => { setAcknowledgeDurationUnit(value as 'Hours' | 'Days' | 'Weeks'); setIsAcknowledgeDurationUnitOpen(false); }}
+                              selected={acknowledgeDurationUnit}
+                              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                <MenuToggle 
+                                  ref={toggleRef} 
+                                  onClick={() => setIsAcknowledgeDurationUnitOpen(!isAcknowledgeDurationUnitOpen)} 
+                                  isExpanded={isAcknowledgeDurationUnitOpen}
+                                  style={{ width: '120px' }}
+                                >
+                                  {acknowledgeDurationUnit}
+                                </MenuToggle>
+                              )}
+                            >
+                              <SelectList>
+                                <SelectOption value="Hours">Hours</SelectOption>
+                                <SelectOption value="Days">Days</SelectOption>
+                                <SelectOption value="Weeks">Weeks</SelectOption>
+                              </SelectList>
+                            </Select>
+                          ) : (
+                            <MenuToggle 
+                              isDisabled
+                              style={{ width: '120px' }}
+                            >
+                              {acknowledgeDurationUnit}
+                            </MenuToggle>
+                          )}
+                        </Flex>
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                  
+                  {/* Until row */}
+                  <StackItem>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                      <FlexItem style={{ width: '60px' }}>
+                        <input 
+                          type="radio" 
+                          id="ack-duration-until" 
+                          name="ack-duration-type" 
+                          checked={acknowledgeDurationType === 'until'} 
+                          onChange={() => setAcknowledgeDurationType('until')} 
+                          style={{ marginRight: '8px' }}
+                        />
+                        <label htmlFor="ack-duration-until">Until</label>
+                      </FlexItem>
+                      <FlexItem>
+                        <DatePicker 
+                          value={acknowledgeUntilDate} 
+                          onChange={(_, value) => setAcknowledgeUntilDate(value)} 
+                          isDisabled={acknowledgeDurationType !== 'until'}
+                        />
+                      </FlexItem>
+                      <FlexItem>
+                        <TimePicker 
+                          time={acknowledgeUntilTime} 
+                          onChange={(_, time) => setAcknowledgeUntilTime(time)} 
+                          is24Hour
+                          isDisabled={acknowledgeDurationType !== 'until'}
+                        />
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                </Stack>
+              </StackItem>
+            )}
+            
+            {/* Info alert */}
+            <StackItem>
+              <PfAlert variant="info" isInline title={`Alert will be shown as "Acknowledged by admin@nyf.com"`} />
+            </StackItem>
           </Stack>
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={() => setIsAcknowledgeModalOpen(false)}>
+          <Button variant="primary" onClick={() => setIsAcknowledgeModalOpen(false)} isDisabled={!acknowledgeComment.trim()}>
             Acknowledge alert
           </Button>
           <Button variant="link" onClick={() => setIsAcknowledgeModalOpen(false)}>
