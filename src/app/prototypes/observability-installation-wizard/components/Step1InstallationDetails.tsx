@@ -638,7 +638,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
               <style>{`
                 .provided-apis-grid {
                   display: grid;
-                  grid-template-columns: repeat(auto-fit, minmax(280px, 300px));
+                  grid-template-columns: repeat(auto-fill, minmax(280px, 300px));
                   gap: var(--pf-t--global--spacer--md);
                   align-items: start;
                   justify-content: start;
@@ -652,6 +652,12 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                 .provided-apis-grid .pf-v6-c-card {
                   width: 100%;
                   max-width: 300px;
+                  min-width: 0;
+                  box-sizing: border-box;
+                  transition: none;
+                }
+                .provided-apis-grid .pf-v6-c-card:hover {
+                  transform: none;
                 }
                 @media (max-width: 991px) {
                   .provided-apis-grid .pf-v6-c-card {
