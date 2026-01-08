@@ -94,6 +94,16 @@ import {
   AccordionItem,
   AccordionToggle,
   AccordionContent,
+  Wizard,
+  WizardStep,
+  TextArea,
+  Radio,
+  FormGroup,
+  Form,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  TextInput,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -4879,9 +4889,29 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Main page tabs
-  const [mainPageTab, setMainPageTab] = React.useState<string | number>('alerts');
-  const [managementSubTab, setManagementSubTab] = React.useState<string | number>('alert-rules');
+  // Main page tabs - initialize from URL params
+  const [mainPageTab, setMainPageTab] = React.useState<string | number>(() => {
+    const tab = searchParams.get('tab');
+    return tab === 'management' ? 'management' : tab === 'incidents' ? 'incidents' : 'alerts';
+  });
+  const [managementSubTab, setManagementSubTab] = React.useState<string | number>(() => {
+    const subtab = searchParams.get('subtab');
+    return subtab === 'silence-rules' ? 'silence-rules' : 'alert-rules';
+  });
+  
+  // Handle URL parameter changes for tab navigation
+  React.useEffect(() => {
+    const tab = searchParams.get('tab');
+    const subtab = searchParams.get('subtab');
+    if (tab === 'management') {
+      setMainPageTab('management');
+      if (subtab === 'silence-rules') {
+        setManagementSubTab('silence-rules');
+      } else {
+        setManagementSubTab('alert-rules');
+      }
+    }
+  }, [searchParams]);
   
   // V2: Alerts sub-tabs - derive initial state from URL params for back button support
   const getInitialSubTab = (): 'clusters-health' | 'firing-alerts' => {
@@ -6809,6 +6839,35 @@ spec:
                 </Tabs>
               </div>
             )}
+
+            {/* Management Sub-tabs - styled like Alerts sub-tabs */}
+            {mainPageTab === 'management' && (
+              <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+                <Tabs 
+                  activeKey={managementSubTab} 
+                  onSelect={(_, key) => setManagementSubTab(key)}
+                  aria-label="Management sub-tabs" 
+                  variant="secondary"
+                >
+                  <Tab 
+                    eventKey="alert-rules" 
+                    title={
+                      <TabTitleText>
+                        Alert rules <Badge isRead style={{ marginLeft: '8px' }}>21</Badge>
+                      </TabTitleText>
+                    } 
+                  />
+                  <Tab 
+                    eventKey="silence-rules" 
+                    title={
+                      <TabTitleText>
+                        Silence rules <Badge isRead style={{ marginLeft: '8px' }}>2</Badge>
+                      </TabTitleText>
+                    } 
+                  />
+                </Tabs>
+              </div>
+            )}
           </div>
         </div>
 
@@ -8325,12 +8384,6 @@ spec:
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           <Stack hasGutter>
             <StackItem>
-              <Tabs activeKey={managementSubTab} onSelect={(_, key) => setManagementSubTab(key)} aria-label="Management sub-tabs">
-                <Tab eventKey="alert-rules" title="Alert Rules" />
-                <Tab eventKey="silence-rules" title="Silence Rules" />
-              </Tabs>
-            </StackItem>
-            <StackItem>
               {managementSubTab === 'alert-rules' && (
                 <Card>
                   <CardHeader>
@@ -8339,7 +8392,7 @@ spec:
                         <CardTitle>Alert Rules</CardTitle>
                       </FlexItem>
                       <FlexItem>
-                        <Button variant="primary" icon={<PlusIcon />}>Create Alert Rule</Button>
+                        <Button variant="primary" icon={<PlusIcon />} onClick={() => navigate('/observe/alerting/create-alert-rule')}>Create Alert Rule</Button>
                       </FlexItem>
                     </Flex>
                   </CardHeader>

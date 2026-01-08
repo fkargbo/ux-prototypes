@@ -13,6 +13,7 @@ import { RouteConfig } from '@app/core/types';
 
 // Import page components
 import { MultiClusterAlertingDashboard } from './pages/MultiClusterAlertsPage';
+import { CreateAlertRulePage } from './pages/CreateAlertRulePage';
 
 /**
  * Routes for Multi-cluster Alerting UI
@@ -36,6 +37,13 @@ export const routes: RouteConfig[] = [
       group: 'Observe',
       order: 1
     }
+  },
+  
+  // Create Alert Rule - Full page wizard
+  {
+    path: '/observe/alerting/create-alert-rule',
+    element: <CreateAlertRulePage />,
+    title: 'Create Alert Rule | OpenShift ACM',
   },
   
   // Dashboards placeholder (for navigation structure)
