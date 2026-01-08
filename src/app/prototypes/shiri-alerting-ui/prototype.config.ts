@@ -12,7 +12,7 @@ export const config: PrototypeConfig = {
   name: '🔔 Multi-cluster Alerting',
   
   // Brief description (2-3 sentences max)
-  description: 'Comprehensive Multi-cluster Alerting UI for OpenShift Advanced Cluster Manager. Features fleet overview with treemap visualization, cluster drill-down, comprehensive filtering, and alert management.',
+  description: 'Multi-cluster Alerting UI with drill-down navigation. Click on a cluster from the heatmap to navigate to a dedicated single cluster page view with detailed alerts. Features Clusters health tab with insights and Firing alerts tab with full alert table.',
   
   // Owner information
   owner: {

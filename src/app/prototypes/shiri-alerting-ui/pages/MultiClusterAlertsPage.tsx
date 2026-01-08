@@ -1380,10 +1380,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const [expandedAlerts, setExpandedAlerts] = React.useState<string[]>([]);
   const [isAggregated, setIsAggregated] = React.useState(true);
   const [openActionMenuId, setOpenActionMenuId] = React.useState<string | null>(null);
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>('alerts');
-  const [insightsItemCount, setInsightsItemCount] = React.useState<number>(5);
-  const [isInsightsCountOpen, setIsInsightsCountOpen] = React.useState(false);
-
   // Get all alerts with cluster info
   const allAlerts = React.useMemo(() => {
     return clusters.flatMap(cluster => 
@@ -1470,64 +1466,18 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
   const totalItems = isAggregated ? filteredAggregatedAlerts.length : filteredAlerts.length;
 
-  // Calculate top firing alert rules (for Insights tab)
-  const alertRuleCounts = React.useMemo(() => {
-    const counts: Record<string, { count: number; clusters: string[]; severity: AlertSeverity }> = {};
-    clusters.forEach(cluster => {
-      cluster.alerts.filter(a => a.status === 'firing').forEach(alert => {
-        if (!counts[alert.alertName]) {
-          counts[alert.alertName] = { count: 0, clusters: [], severity: alert.severity };
-        }
-        counts[alert.alertName].count++;
-        if (!counts[alert.alertName].clusters.includes(cluster.name)) {
-          counts[alert.alertName].clusters.push(cluster.name);
-        }
-      });
-    });
-    return Object.entries(counts)
-      .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, insightsItemCount);
-  }, [clusters, insightsItemCount]);
-
-  // Calculate most impacted components (for Insights tab)
-  const componentCounts = React.useMemo(() => {
-    const counts: Record<string, { count: number; critical: number; warning: number; info: number; clusters: string[] }> = {};
-    clusters.forEach(cluster => {
-      cluster.alerts.filter(a => a.status === 'firing').forEach(alert => {
-        if (!counts[alert.component]) {
-          counts[alert.component] = { count: 0, critical: 0, warning: 0, info: 0, clusters: [] };
-        }
-        counts[alert.component].count++;
-        if (alert.severity === 'Critical') counts[alert.component].critical++;
-        else if (alert.severity === 'Warning') counts[alert.component].warning++;
-        else counts[alert.component].info++;
-        if (!counts[alert.component].clusters.includes(cluster.name)) {
-          counts[alert.component].clusters.push(cluster.name);
-        }
-      });
-    });
-    return Object.entries(counts)
-      .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, insightsItemCount);
-  }, [clusters, insightsItemCount]);
-
   return (
     <Card id="all-alerts-card">
       <CardHeader>
         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>
             <CardTitle>
-              Alerts & Insights
+              Firing Alerts
             </CardTitle>
           </FlexItem>
         </Flex>
       </CardHeader>
       <CardBody>
-        <Tabs activeKey={activeTabKey} onSelect={(_, key) => setActiveTabKey(key)} aria-label="Alerts and Insights tabs">
-          <Tab eventKey="alerts" title={<span><BellIcon /> All Alerts</span>}>
-            <div style={{ paddingTop: '16px' }}>
               <Stack hasGutter>
                 <StackItem>
                   <Toolbar>
@@ -1793,146 +1743,189 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
             )}
                 </StackItem>
               </Stack>
-            </div>
-          </Tab>
-          <Tab eventKey="insights" title={<span><TachometerAltIcon /> Cross-Cluster Insights</span>}>
-            <div style={{ paddingTop: '16px' }}>
-              <Stack hasGutter>
-                <StackItem>
-                  <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>
-                      <Select
-                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                          <MenuToggle ref={toggleRef} onClick={() => setIsInsightsCountOpen(!isInsightsCountOpen)} isExpanded={isInsightsCountOpen} style={{ width: '100px' }}>
-                            Show {insightsItemCount}
-                          </MenuToggle>
-                        )}
-                        onSelect={(_, value) => { setInsightsItemCount(Number(value)); setIsInsightsCountOpen(false); }}
-                        isOpen={isInsightsCountOpen}
-                        onOpenChange={setIsInsightsCountOpen}
-                        selected={insightsItemCount}
-                      >
-                        <SelectList>
-                          <SelectOption value={5}>5</SelectOption>
-                          <SelectOption value={10}>10</SelectOption>
-                          <SelectOption value={20}>20</SelectOption>
-                        </SelectList>
-                      </Select>
-                    </FlexItem>
-                  </Flex>
-                </StackItem>
-                <StackItem>
-                  <Grid hasGutter>
-                    <GridItem md={6}>
-                      <Title headingLevel="h4" size="md" style={{ marginBottom: '16px' }}>Top Firing Alert Rules</Title>
-                      <Table aria-label="Top firing alert rules" variant="compact">
-                        <Thead>
-                          <Tr>
-                            <Th>Alert Rule</Th>
-                            <Th>Severity</Th>
-                            <Th>Count</Th>
-                            <Th>Clusters</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {alertRuleCounts.map(rule => (
-                            <Tr key={rule.name}>
-                              <Td>
-                                <Button variant="link" isInline onClick={() => { onAlertRuleClick(rule.name); setActiveTabKey('alerts'); }}>
-                                  {rule.name}
-                                </Button>
-                              </Td>
-                              <Td>
-                                <Label color={getSeverityLabelColor(rule.severity)} isCompact>{rule.severity}</Label>
-                              </Td>
-                              <Td><Badge>{rule.count}</Badge></Td>
-                              <Td>
-                                <Popover
-                                  headerContent="Clusters firing this alert"
-                                  bodyContent={
-                                    <Stack hasGutter>
-                                      {rule.clusters.map(c => (
-                                        <StackItem key={c}>{c}</StackItem>
-                                      ))}
-                                    </Stack>
-                                  }
-                                >
-                                  <Badge isRead style={{ cursor: 'pointer' }}>{rule.clusters.length} clusters</Badge>
-                                </Popover>
-                              </Td>
-                            </Tr>
-                          ))}
-                          {alertRuleCounts.length === 0 && (
-                            <Tr>
-                              <Td colSpan={4}>
-                                <Content component="small" className="pf-v6-u-color-200">No firing alerts</Content>
-                              </Td>
-                            </Tr>
-                          )}
-                        </Tbody>
-                      </Table>
-                    </GridItem>
-                    <GridItem md={6}>
-                      <Title headingLevel="h4" size="md" style={{ marginBottom: '16px' }}>Most Impacted Components</Title>
-                      <Table aria-label="Most impacted components" variant="compact">
-                        <Thead>
-                          <Tr>
-                            <Th>Component</Th>
-                            <Th>Clusters</Th>
-                            <Th>Total</Th>
-                            <Th>Breakdown</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {componentCounts.map(comp => (
-                            <Tr key={comp.name}>
-                              <Td>
-                                <Button variant="link" isInline onClick={() => { onComponentClick(comp.name); setActiveTabKey('alerts'); }}>
-                                  {comp.name}
-                                </Button>
-                              </Td>
-                              <Td>
-                                <Popover
-                                  headerContent="Clusters with this component impacted"
-                                  bodyContent={
-                                    <Stack hasGutter>
-                                      {comp.clusters.map(c => (
-                                        <StackItem key={c}>{c}</StackItem>
-                                      ))}
-                                    </Stack>
-                                  }
-                                >
-                                  <Badge isRead style={{ cursor: 'pointer' }}>{comp.clusters.length} clusters</Badge>
-                                </Popover>
-                              </Td>
-                              <Td><Badge>{comp.count}</Badge></Td>
-                              <Td>
-                                <Flex gap={{ default: 'gapSm' }}>
-                                  {comp.critical > 0 && <FlexItem><Label color="red" isCompact>{comp.critical}</Label></FlexItem>}
-                                  {comp.warning > 0 && <FlexItem><Label color="orange" isCompact>{comp.warning}</Label></FlexItem>}
-                                  {comp.info > 0 && <FlexItem><Label color="purple" isCompact>{comp.info}</Label></FlexItem>}
-                                </Flex>
-                              </Td>
-                            </Tr>
-                          ))}
-                          {componentCounts.length === 0 && (
-                            <Tr>
-                              <Td colSpan={4}>
-                                <Content component="small" className="pf-v6-u-color-200">No impacted components</Content>
-                              </Td>
-                            </Tr>
-                          )}
-                        </Tbody>
-                      </Table>
-                    </GridItem>
-                  </Grid>
-                </StackItem>
-              </Stack>
-            </div>
-          </Tab>
-        </Tabs>
       </CardBody>
     </Card>
+  );
+};
+
+// ========================================
+// CROSS-CLUSTER INSIGHTS CARDS
+// ========================================
+
+interface CrossClusterInsightsCardsProps {
+  clusters: ClusterData[];
+  onAlertRuleClick: (alertName: string) => void;
+  onComponentClick: (componentName: string) => void;
+}
+
+const CrossClusterInsightsCards: React.FC<CrossClusterInsightsCardsProps> = ({
+  clusters,
+  onAlertRuleClick,
+  onComponentClick,
+}) => {
+  // Calculate alert rule counts across all clusters
+  const alertRuleCounts = React.useMemo(() => {
+    const counts: Record<string, { count: number; severity: AlertSeverity; clusters: string[] }> = {};
+    clusters.forEach(cluster => {
+      cluster.alerts.filter(a => a.status === 'firing').forEach(alert => {
+        if (!counts[alert.alertName]) {
+          counts[alert.alertName] = { count: 0, severity: alert.severity, clusters: [] };
+        }
+        counts[alert.alertName].count++;
+        if (!counts[alert.alertName].clusters.includes(cluster.name)) {
+          counts[alert.alertName].clusters.push(cluster.name);
+        }
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5)
+      .map(([name, data]) => ({ name, ...data }));
+  }, [clusters]);
+
+  // Calculate component counts across all clusters
+  const componentCounts = React.useMemo(() => {
+    const counts: Record<string, { count: number; critical: number; warning: number; info: number; clusters: string[] }> = {};
+    clusters.forEach(cluster => {
+      cluster.alerts.filter(a => a.status === 'firing').forEach(alert => {
+        if (!counts[alert.component]) {
+          counts[alert.component] = { count: 0, critical: 0, warning: 0, info: 0, clusters: [] };
+        }
+        counts[alert.component].count++;
+        if (alert.severity === 'Critical') counts[alert.component].critical++;
+        if (alert.severity === 'Warning') counts[alert.component].warning++;
+        if (alert.severity === 'Info') counts[alert.component].info++;
+        if (!counts[alert.component].clusters.includes(cluster.name)) {
+          counts[alert.component].clusters.push(cluster.name);
+        }
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5)
+      .map(([name, data]) => ({ name, ...data }));
+  }, [clusters]);
+
+  return (
+    <>
+      {/* Top Firing Alerts Card */}
+      <StackItem>
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Firing Alerts</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <Table aria-label="Top firing alert rules" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Alert Rule</Th>
+                  <Th>Severity</Th>
+                  <Th>Count</Th>
+                  <Th>Clusters</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {alertRuleCounts.map(rule => (
+                  <Tr key={rule.name} isClickable onRowClick={() => onAlertRuleClick(rule.name)}>
+                    <Td>
+                      <Button variant="link" isInline onClick={(e) => { e.stopPropagation(); onAlertRuleClick(rule.name); }}>
+                        {rule.name}
+                      </Button>
+                    </Td>
+                    <Td>
+                      <Label color={getSeverityLabelColor(rule.severity)} isCompact>{rule.severity}</Label>
+                    </Td>
+                    <Td><Badge>{rule.count}</Badge></Td>
+                    <Td>
+                      <Popover
+                        headerContent="Clusters"
+                        bodyContent={
+                          <Stack hasGutter>
+                            {rule.clusters.map(c => (
+                              <StackItem key={c}>{c}</StackItem>
+                            ))}
+                          </Stack>
+                        }
+                      >
+                        <Badge isRead style={{ cursor: 'pointer' }}>{rule.clusters.length} clusters</Badge>
+                      </Popover>
+                    </Td>
+                  </Tr>
+                ))}
+                {alertRuleCounts.length === 0 && (
+                  <Tr>
+                    <Td colSpan={4}>
+                      <Content component="small" className="pf-v6-u-color-200">No firing alerts</Content>
+                    </Td>
+                  </Tr>
+                )}
+              </Tbody>
+            </Table>
+          </CardBody>
+        </Card>
+      </StackItem>
+
+      {/* Most Impacted Components Card */}
+      <StackItem>
+        <Card>
+          <CardHeader>
+            <CardTitle>Most Impacted Components</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <Table aria-label="Most impacted components" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Component</Th>
+                  <Th>Clusters</Th>
+                  <Th>Total</Th>
+                  <Th>Breakdown</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {componentCounts.map(comp => (
+                  <Tr key={comp.name} isClickable onRowClick={() => onComponentClick(comp.name)}>
+                    <Td>
+                      <Button variant="link" isInline onClick={(e) => { e.stopPropagation(); onComponentClick(comp.name); }}>
+                        {comp.name}
+                      </Button>
+                    </Td>
+                    <Td>
+                      <Popover
+                        headerContent="Clusters with this component impacted"
+                        bodyContent={
+                          <Stack hasGutter>
+                            {comp.clusters.map(c => (
+                              <StackItem key={c}>{c}</StackItem>
+                            ))}
+                          </Stack>
+                        }
+                      >
+                        <Badge isRead style={{ cursor: 'pointer' }}>{comp.clusters.length} clusters</Badge>
+                      </Popover>
+                    </Td>
+                    <Td><Badge>{comp.count}</Badge></Td>
+                    <Td>
+                      <Flex gap={{ default: 'gapSm' }}>
+                        {comp.critical > 0 && <FlexItem><Label color="red" isCompact>{comp.critical}</Label></FlexItem>}
+                        {comp.warning > 0 && <FlexItem><Label color="orange" isCompact>{comp.warning}</Label></FlexItem>}
+                        {comp.info > 0 && <FlexItem><Label color="purple" isCompact>{comp.info}</Label></FlexItem>}
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ))}
+                {componentCounts.length === 0 && (
+                  <Tr>
+                    <Td colSpan={4}>
+                      <Content component="small" className="pf-v6-u-color-200">No impacted components</Content>
+                    </Td>
+                  </Tr>
+                )}
+              </Tbody>
+            </Table>
+          </CardBody>
+        </Card>
+      </StackItem>
+    </>
   );
 };
 
@@ -2321,6 +2314,7 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, trend, color 
 const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Main page tabs
   const [mainPageTab, setMainPageTab] = React.useState<string | number>('alerts');
+  const [alertsSubTab, setAlertsSubTab] = React.useState<'clusters-health' | 'firing-alerts'>('clusters-health');
   const [managementSubTab, setManagementSubTab] = React.useState<string | number>('alert-rules');
   
   // View state
@@ -4066,6 +4060,21 @@ spec:
               </Tabs>
             </StackItem>
 
+            {/* Alerts Sub-tabs */}
+            {mainPageTab === 'alerts' && !isDrillDownView && (
+              <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+                <Tabs 
+                  activeKey={alertsSubTab} 
+                  onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')}
+                  aria-label="Alerts sub-tabs" 
+                  variant="secondary"
+                >
+                  <Tab eventKey="clusters-health" title={<TabTitleText>Clusters health</TabTitleText>} />
+                  <Tab eventKey="firing-alerts" title={<TabTitleText>Firing alerts</TabTitleText>} />
+                </Tabs>
+              </div>
+            )}
+
           </Stack>
         </div>
 
@@ -4328,7 +4337,8 @@ spec:
         {/* Main Content Area - Scrollable */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
             <Stack hasGutter>
-              {/* Stats Cards */}
+              {/* Stats Cards - Clusters health tab */}
+              {alertsSubTab === 'clusters-health' && (
               <StackItem>
                 <Grid hasGutter>
                   <GridItem md={2}>
@@ -4381,8 +4391,10 @@ spec:
                   </GridItem>
                 </Grid>
               </StackItem>
+              )}
 
-              {/* Cluster Overview Card */}
+              {/* Cluster Overview Card - Clusters health tab */}
+              {alertsSubTab === 'clusters-health' && (
               <StackItem>
                 <Card>
                   <CardHeader>
@@ -4682,33 +4694,53 @@ spec:
                   )}
                 </Card>
               </StackItem>
+              )}
 
-              {/* All Alerts Card (combined with Cross-Cluster Insights) */}
-              <StackItem>
-                <AllAlertsCard
+              {/* Cross-Cluster Insights Cards - on Clusters health tab */}
+              {alertsSubTab === 'clusters-health' && (
+                <CrossClusterInsightsCards
                   clusters={filteredClusters}
-                  alertNameFilter={mainAlertNameFilter}
-                  componentFilter={mainComponentFilter}
-                  onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
-                  onClearComponentFilter={() => setMainComponentFilter(null)}
-                  onClusterClick={handleDrillDown}
-                  onAlertClick={(alert) => {
-                    setSelectedAlertDetail(alert);
-                    setIsDrawerExpanded(true);
-                  }}
                   onAlertRuleClick={(alertName) => {
                     setMainAlertNameFilter(alertName);
+                    setAlertsSubTab('firing-alerts');
                   }}
                   onComponentClick={(componentName) => {
                     setMainComponentFilter(componentName);
+                    setAlertsSubTab('firing-alerts');
                   }}
                 />
-              </StackItem>
+              )}
 
-              {/* Alerts Timeline Card - Last */}
-              <StackItem>
-                <AlertsTimelineCard trendData={mockTrendData} />
-              </StackItem>
+              {/* Alerts Timeline Card - on Clusters health tab */}
+              {alertsSubTab === 'clusters-health' && (
+                <StackItem>
+                  <AlertsTimelineCard trendData={mockTrendData} />
+                </StackItem>
+              )}
+
+              {/* All Alerts Card - on Firing alerts tab */}
+              {alertsSubTab === 'firing-alerts' && (
+                <StackItem>
+                  <AllAlertsCard
+                    clusters={filteredClusters}
+                    alertNameFilter={mainAlertNameFilter}
+                    componentFilter={mainComponentFilter}
+                    onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
+                    onClearComponentFilter={() => setMainComponentFilter(null)}
+                    onClusterClick={handleDrillDown}
+                    onAlertClick={(alert) => {
+                      setSelectedAlertDetail(alert);
+                      setIsDrawerExpanded(true);
+                    }}
+                    onAlertRuleClick={(alertName) => {
+                      setMainAlertNameFilter(alertName);
+                    }}
+                    onComponentClick={(componentName) => {
+                      setMainComponentFilter(componentName);
+                    }}
+                  />
+                </StackItem>
+              )}
             </Stack>
           </div>
         </div>

@@ -12,7 +12,7 @@ export const config: PrototypeConfig = {
   name: '🔔 Multi-cluster Alerting v2',
   
   // Brief description (2-3 sentences max)
-  description: 'Version 2 of the Multi-cluster Alerting UI with enhanced features and improved user experience.',
+  description: 'Multi-cluster Alerting UI with filtering-based navigation. Click on a cluster from the heatmap to filter the Firing alerts tab - everything stays on the same page. Features Clusters health tab with insights and Firing alerts tab with full alert table.',
   
   // Owner information
   owner: {
