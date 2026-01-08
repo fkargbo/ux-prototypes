@@ -139,10 +139,6 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
   data,
   onDataChange,
 }) => {
-  // Container width state for responsive grid
-  const [isContainerNarrow, setIsContainerNarrow] = useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
   // Installation source and version
   const [updateChannel, setUpdateChannel] = useState<string>(data?.updateChannel || 'stable');
   const [updateChannelOpen, setUpdateChannelOpen] = useState(false);
@@ -159,38 +155,6 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
 
   // Operator updates
   const [updateApproval, setUpdateApproval] = useState<string>(data?.updateApproval || 'automatic');
-
-  // Monitor container width for responsive grid
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const updateNarrowState = (width: number) => {
-      const shouldBeNarrow = width < 616;
-      setIsContainerNarrow(shouldBeNarrow);
-    };
-
-    // Use a small delay to ensure DOM is ready
-    const timeoutId = setTimeout(() => {
-      if (containerRef.current) {
-        const initialWidth = containerRef.current.getBoundingClientRect().width;
-        updateNarrowState(initialWidth);
-      }
-    }, 0);
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const width = entry.contentRect.width;
-        updateNarrowState(width);
-      }
-    });
-
-    resizeObserver.observe(containerRef.current);
-
-    return () => {
-      clearTimeout(timeoutId);
-      resizeObserver.disconnect();
-    };
-  }, []);
 
   // Sync state changes to parent
   useEffect(() => {
@@ -554,25 +518,25 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
         >
           <style>{`
             .provided-apis-sidebar {
-              scrollbar-width: thin; /* Firefox - always reserve space */
-              scrollbar-gutter: stable; /* Reserve space for scrollbar to prevent layout shift */
+              scrollbar-width: none; /* Firefox */
               -ms-overflow-style: none; /* IE and Edge */
             }
             .provided-apis-sidebar::-webkit-scrollbar {
-              width: 8px; /* Chrome - always reserve space */
+              display: none; /* Chrome, Safari, Opera */
             }
-            .provided-apis-sidebar::-webkit-scrollbar-track {
-              background: transparent; /* Hidden by default */
+            .provided-apis-sidebar:hover {
+              scrollbar-width: thin; /* Firefox */
             }
-            .provided-apis-sidebar::-webkit-scrollbar-thumb {
-              background: transparent; /* Hidden by default */
-              border-radius: 4px;
+            .provided-apis-sidebar:hover::-webkit-scrollbar {
+              display: block; /* Chrome, Safari, Opera */
+              width: 8px;
             }
             .provided-apis-sidebar:hover::-webkit-scrollbar-track {
-              background: #f0f0f0; /* Show on hover */
+              background: #f0f0f0;
             }
             .provided-apis-sidebar:hover::-webkit-scrollbar-thumb {
-              background: #888; /* Show on hover */
+              background: #888;
+              border-radius: 4px;
             }
             .provided-apis-sidebar:hover::-webkit-scrollbar-thumb:hover {
               background: #555;
@@ -675,71 +639,32 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
             {/* API Cards - Two Column Layout */}
             <StackItem>
               <style>{`
-                .provided-apis-grid-wrapper {
-                  width: 100%;
-                  overflow-x: auto;
-                  overflow-y: visible;
-                  /* Hide scrollbar by default (Firefox) */
-                  scrollbar-width: none;
-                }
-                /* Hide scrollbar by default, show on hover (Chrome/Safari) */
-                .provided-apis-grid-wrapper::-webkit-scrollbar {
-                  width: 8px;
-                  height: 8px;
-                }
-                .provided-apis-grid-wrapper::-webkit-scrollbar-track {
-                  background: transparent;
-                }
-                .provided-apis-grid-wrapper::-webkit-scrollbar-thumb {
-                  background: transparent;
-                  border-radius: 4px;
-                }
-                .provided-apis-grid-wrapper:hover {
-                  /* Show scrollbar on hover (Firefox) */
-                  scrollbar-width: thin;
-                }
-                .provided-apis-grid-wrapper:hover::-webkit-scrollbar-thumb {
-                  background: rgba(0, 0, 0, 0.2);
-                }
-                .provided-apis-grid-wrapper:hover::-webkit-scrollbar-thumb:hover {
-                  background: rgba(0, 0, 0, 0.3);
-                }
                 .provided-apis-grid {
                   display: grid;
-                  grid-template-columns: repeat(2, 300px);
-                  gap: 16px;
+                  grid-template-columns: repeat(auto-fit, minmax(280px, 300px));
+                  gap: var(--pf-t--global--spacer--md);
                   align-items: start;
-                  width: fit-content;
+                  justify-content: start;
                 }
-                /* Switch to single column when container is narrow */
-                .provided-apis-grid-wrapper.narrow .provided-apis-grid {
-                  grid-template-columns: 1fr;
-                  width: 100%;
+                /* On narrower viewports, force single column */
+                @media (max-width: 991px) {
+                  .provided-apis-grid {
+                    grid-template-columns: 1fr;
+                  }
                 }
                 .provided-apis-grid .pf-v6-c-card {
-                  width: 300px;
-                  height: auto;
-                  box-sizing: border-box;
-                }
-                .provided-apis-grid-wrapper.narrow .provided-apis-grid .pf-v6-c-card {
                   width: 100%;
+                  max-width: 300px;
+                }
+                @media (max-width: 991px) {
+                  .provided-apis-grid .pf-v6-c-card {
+                    max-width: 100%;
+                  }
                 }
               `}</style>
-              <div 
-                ref={containerRef}
-                className={`provided-apis-grid-wrapper ${isContainerNarrow ? 'narrow' : ''}`}
-                style={{ width: '100%' }}
-              >
-                <div className="provided-apis-grid">
+              <div className="provided-apis-grid">
                 {providedAPIs.map((api) => (
-                  <Card 
-                    key={api.id} 
-                    isCompact
-                    style={{
-                      width: isContainerNarrow ? '100%' : '300px',
-                      height: 'auto',
-                    }}
-                  >
+                  <Card key={api.id} isCompact>
                     <CardBody>
                       <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                         <FlexItem>
@@ -759,7 +684,6 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                     </CardBody>
                   </Card>
                 ))}
-                </div>
               </div>
             </StackItem>
           </Stack>
