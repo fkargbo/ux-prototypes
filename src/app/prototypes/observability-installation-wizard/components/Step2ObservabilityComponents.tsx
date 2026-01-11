@@ -721,54 +721,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
             </CardBody>
           </Card>
         </StackItem>
-
-        {/* Console Experience Section */}
-        <StackItem>
-          <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
-            Console experience (UI Plugins and components)
-          </Title>
-          <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-            Select UI plugins to enhance your console experience.
-          </Content>
-
-          <Card>
-            <CardBody>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
-                <FlexItem>
-                  <Switch
-                    id="advanced-mode"
-                    label="Advanced Mode"
-                    isChecked={advancedMode}
-                    onChange={(_, checked) => handleAdvancedModeChange(checked)}
-                  />
-                </FlexItem>
-              </Flex>
-
-              <Divider style={{ marginBottom: '16px' }} />
-
-              <Stack hasGutter>
-                {availablePlugins.map((plugin) => {
-                  const isChecked = selectedUIPlugins.includes(plugin.id);
-
-                  return (
-                    <StackItem key={plugin.id}>
-                      <Checkbox
-                        id={`plugin-${plugin.id}`}
-                        label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{plugin.name}</span>}
-                        isChecked={isChecked}
-                        isDisabled={!advancedMode}
-                        onChange={(_, checked) => handleUIPluginChange(plugin.id, checked)}
-                      />
-                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
-                        {plugin.description}
-                      </Content>
-                    </StackItem>
-                  );
-                })}
-              </Stack>
-            </CardBody>
-          </Card>
-        </StackItem>
       </Stack>
     </div>
   );

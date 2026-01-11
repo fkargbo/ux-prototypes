@@ -54,7 +54,7 @@ export const InstallationWizard: React.FC = () => {
       ]}
       onClose={handleClose}
       onFinish={handleFinish}
-      finishButtonText="Install & Deploy"
+      finishButtonText="Install"
       finishButtonIcon={<RocketIcon />}
       steps={[
         {
