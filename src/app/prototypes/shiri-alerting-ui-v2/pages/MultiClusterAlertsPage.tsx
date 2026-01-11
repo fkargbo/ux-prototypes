@@ -2587,10 +2587,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   
   // Bulk selection state
   const [selectedAlertKeys, setSelectedAlertKeys] = React.useState<Set<string>>(new Set());
-  const [isSilenceModalOpen, setIsSilenceModalOpen] = React.useState(false);
-  const [silenceDuration, setSilenceDuration] = React.useState<number>(2);
-  const [silenceDurationUnit, setSilenceDurationUnit] = React.useState<'Hours' | 'Days' | 'Weeks'>('Hours');
-  const [silenceComment, setSilenceComment] = React.useState<string>('');
   const [isDurationUnitOpen, setIsDurationUnitOpen] = React.useState(false);
   
   // Toggle selection for a single alert

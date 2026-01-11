@@ -216,8 +216,8 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
   };
   
   // Get unique environments and regions
-  const uniqueEnvironments = React.useMemo(() => [...new Set(mockClusters.map(c => c.environment))], []);
-  const uniqueRegions = React.useMemo(() => [...new Set(mockClusters.map(c => c.region))], []);
+  const uniqueEnvironments = React.useMemo(() => Array.from(new Set(mockClusters.map(c => c.environment))), []);
+  const uniqueRegions = React.useMemo(() => Array.from(new Set(mockClusters.map(c => c.region))), []);
   
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>
