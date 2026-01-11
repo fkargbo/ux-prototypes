@@ -520,6 +520,16 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                       isChecked={updateApproval === 'automatic'}
                       onChange={() => setUpdateApproval('automatic')}
                     />
+                    {updateApproval === 'automatic' && (
+                      <Alert
+                        variant={AlertVariant.warning}
+                        isInline
+                        title="Automatic updates selected in production"
+                        style={{ marginTop: '8px', marginLeft: '24px' }}
+                      >
+                        Enabling automatic updates allows the operator to upgrade immediately when a new version is released. This may cause brief service interruptions or configuration changes during production hours.
+                      </Alert>
+                    )}
                   </StackItem>
                   <StackItem>
                     <Radio
@@ -530,18 +540,6 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                       onChange={() => setUpdateApproval('manual')}
                     />
                   </StackItem>
-                  {updateApproval === 'automatic' && (
-                    <StackItem>
-                      <Alert
-                        variant={AlertVariant.warning}
-                        isInline
-                        title="Automatic updates selected in production"
-                        style={{ marginTop: '8px' }}
-                      >
-                        Enabling automatic updates allows the operator to upgrade immediately when a new version is released. This may cause brief service interruptions or configuration changes during production hours.
-                      </Alert>
-                    </StackItem>
-                  )}
                 </Stack>
               </FormGroup>
             </FormGroup>
