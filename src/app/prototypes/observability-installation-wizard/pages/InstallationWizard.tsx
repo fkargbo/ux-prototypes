@@ -7,6 +7,15 @@ import { Step2ObservabilityComponents, WizardData } from '../components/Step2Obs
 import { Step3ReviewAndInstall } from '../components/Step3ReviewAndInstall';
 
 const initialWizardData: WizardData = {
+  // Step 1 defaults
+  installationNamespace: 'recommended',
+  selectedProject: '',
+  installationMode: 'all-namespaces',
+  updateChannel: 'stable',
+  version: '1.3.1',
+  updateApproval: 'automatic',
+  enableClusterMonitoring: false,
+  // Step 2 defaults
   selectedPersona: null,
   selectedCapabilities: ['metrics-alerting'], // Always required
   selectedNestedOptions: {},
@@ -59,7 +68,7 @@ export const InstallationWizard: React.FC = () => {
           ),
         },
         {
-          name: 'Observability components',
+          name: 'Components and configuration',
           id: 'observability-components',
           component: (
             <Step2ObservabilityComponents

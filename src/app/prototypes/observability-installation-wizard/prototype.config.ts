@@ -19,9 +19,9 @@ export const config: PrototypeConfig = {
   
   // Owner information
   owner: {
-    name: 'UXD Product Designer',
-    slack: '@uxd-designer',
-    email: 'uxd@redhat.com'
+    name: 'Foday Kargbo',
+    slack: '@Foday',
+    email: 'fkargbo@redhat.com'
   },
   
   // Version (always start at 1.0.0 for new prototypes)

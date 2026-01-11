@@ -116,6 +116,25 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
   const hasNavigatedRef = React.useRef(false);
   const hasShownModalRef = React.useRef(false);
 
+  // Responsive sidebar: automatically close on small screens (mobile)
+  React.useEffect(() => {
+    const handleResize = () => {
+      // PatternFly breakpoint: md = 768px, so we close sidebar below that
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+      }
+    };
+
+    // Set initial state based on screen size
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+
+    // Listen for resize events
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // When impersonation starts, switch to Fleet virtualization perspective and navigate to Virtual machines (only once)
   React.useEffect(() => {
     if (impersonatingUser && !hasNavigatedRef.current) {

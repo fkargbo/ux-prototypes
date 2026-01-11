@@ -997,3 +997,98 @@ input[type="checkbox"] {
   height: 100% !important;
   cursor: default !important;
 }
+
+/* Multi-cluster Alerting Page - Standard page padding */
+.alerting-page-container {
+  padding: 24px !important;
+  background-color: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
+  min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.alerting-page-container .alerting-page-header {
+  margin-bottom: 16px;
+}
+
+/* Ensure Split component respects container bounds */
+.alerting-page-container .pf-v6-c-split {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure the filled SplitItem doesn't overflow */
+.alerting-page-container .pf-v6-c-split__item.pf-m-fill {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Ensure cards within the alerting page don't overflow */
+.alerting-page-container .pf-v6-c-card {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure the treemap chart container is responsive */
+.alerting-page-container .echarts-for-react {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Fix toolbar vertical alignment */
+.alerting-page-container .pf-v6-c-toolbar {
+  --pf-v6-c-toolbar--AlignItems: center;
+}
+
+.alerting-page-container .pf-v6-c-toolbar__content {
+  align-items: center !important;
+}
+
+.alerting-page-container .pf-v6-c-toolbar__content-section {
+  align-items: center !important;
+  display: flex !important;
+}
+
+.alerting-page-container .pf-v6-c-toolbar__item {
+  align-items: center !important;
+  display: flex !important;
+}
+
+.alerting-page-container .pf-v6-c-toolbar__group {
+  align-items: center !important;
+  display: flex !important;
+}
+
+/* Ensure Flex items in toolbar are centered */
+.alerting-page-container .pf-v6-l-flex.pf-m-align-items-center {
+  align-items: center !important;
+}
+
+/* Fix Content component vertical alignment in toolbar */
+.alerting-page-container .pf-v6-c-toolbar .pf-v6-c-content {
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+}
+
+.alerting-page-container .pf-v6-c-toolbar .pf-v6-c-content--small,
+.alerting-page-container .pf-v6-c-toolbar small {
+  display: flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+}
+
+/* Fix switch toggle alignment in toolbar */
+.alerting-page-container .pf-v6-c-switch {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.alerting-page-container .pf-v6-c-switch__input,
+.alerting-page-container .pf-v6-c-switch__toggle,
+.alerting-page-container .pf-v6-c-switch__label {
+  vertical-align: middle !important;
+}
