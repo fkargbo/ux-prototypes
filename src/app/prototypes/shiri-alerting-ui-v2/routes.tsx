@@ -74,7 +74,7 @@ export const routes: RouteConfig[] = [
   
   // Create Alert Rule - Full page wizard
   {
-    path: '/observe/alerting/create-alert-rule',
+    path: '/observe/alerting-v2/create-alert-rule',
     element: <CreateAlertRulePage />,
     title: 'Create Alert Rule | OpenShift ACM',
   },
