@@ -14,6 +14,7 @@ import {
   Divider,
   Alert,
   AlertVariant,
+  AlertActionCloseButton,
   Flex,
   FlexItem,
   Switch,
@@ -228,6 +229,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   const [selectedUIPlugins, setSelectedUIPlugins] = useState<string[]>(
     data.selectedUIPlugins || ['monitoring-ui']
   );
+  const [isPreselectionAlertDismissed, setIsPreselectionAlertDismissed] = useState(false);
 
   // Sync data prop changes to local state when props change
   // This ensures local state stays in sync if user navigates away and back
@@ -542,6 +544,22 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
           </Grid>
         </StackItem>
 
+        {/* Intelligent Preselection Alert */}
+        {selectedPersona && !isPreselectionAlertDismissed && (
+          <StackItem>
+            <Alert
+              variant={AlertVariant.info}
+              isInline
+              title="Intelligent preselection"
+              actionClose={
+                <AlertActionCloseButton onClose={() => setIsPreselectionAlertDismissed(true)} />
+              }
+            >
+              Choosing a strategy helps us tailor your installation. The preselected components represent the industry-standard stack for your specific operational focus.
+            </Alert>
+          </StackItem>
+        )}
+
         {/* Capabilities Section */}
         <StackItem>
           <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
@@ -551,116 +569,109 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
             Fine-tune which observability features to install based on your needs.
           </Content>
 
-          <Stack hasGutter>
-            {capabilities.map((capability) => {
-              const isChecked = selectedCapabilities.includes(capability.id);
-              const isRequired = capability.required || false;
-              const dependencyCheck = checkDependencies(capability);
-              const canEnable = dependencyCheck.satisfied || isChecked;
+          <Card>
+            <CardBody>
+              <Stack hasGutter>
+                {capabilities.map((capability) => {
+                  const isChecked = selectedCapabilities.includes(capability.id);
+                  const isRequired = capability.required || false;
+                  const dependencyCheck = checkDependencies(capability);
+                  const canEnable = dependencyCheck.satisfied || isChecked;
 
-              return (
-                <StackItem key={capability.id}>
-                  <Card>
-                    <CardBody>
-                      <Stack hasGutter>
-                        <StackItem>
-                          <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsFlexStart' }}>
-                            <FlexItem>
-                              <Checkbox
-                                id={`capability-${capability.id}`}
-                                label={
-                                  <span style={{ fontWeight: '600', fontSize: '14px' }}>
-                                    {capability.name}
-                                    {isRequired && (
-                                      <span style={{ color: '#c9190b', marginLeft: '4px' }}>*</span>
-                                    )}
-                                  </span>
-                                }
-                                isChecked={isChecked}
-                                isDisabled={(!canEnable && !isChecked) || (isRequired && isChecked)}
-                                onChange={(_, checked) => handleCapabilityChange(capability.id, checked)}
-                              />
-                            </FlexItem>
-                          </Flex>
-                          <Content style={{ marginLeft: '24px', marginTop: '8px', fontSize: '14px', color: '#6a6e73' }}>
-                            {capability.description}
-                          </Content>
-                          
-                          {!dependencyCheck.satisfied && !isChecked && (
-                            <Alert
-                              variant={AlertVariant.warning}
-                              isInline
-                              title={`Requires ${dependencyCheck.missing.map(dep => {
-                                const depCap = capabilities.find(c => c.id === dep);
-                                return depCap?.name || dep;
-                              }).join(' or ')} to be enabled`}
-                              style={{ marginTop: '12px', marginLeft: '24px' }}
-                            />
-                          )}
-                          
-                          {isChecked && capability.id === 'incident-detection' && (
-                            data.enableClusterMonitoring ? (
-                              <Alert
-                                variant={AlertVariant.info}
-                                isInline
-                                title="Alert data processing is enabled."
-                                style={{ marginTop: '12px', marginLeft: '24px' }}
-                              />
-                            ) : (
-                              <Alert
-                                variant={AlertVariant.warning}
-                                isInline
-                                title="Requires 'Enable Operator recommended cluster monitoring' to process alert data."
-                                style={{ marginTop: '12px', marginLeft: '24px' }}
-                              />
-                            )
-                          )}
-                          
-                          {!isChecked && capability.id === 'thanos' && 
-                           (selectedPersona === 'administrator' || selectedPersona === 'sre') && (
-                            <Alert
-                              variant={AlertVariant.warning}
-                              isInline
-                              title="Long-term storage disabled"
-                            >
-                              Without long-term storage, you will lose the ability to retain metrics for capacity planning and historical analysis. This may impact your ability to track trends and plan for future resource needs.
-                            </Alert>
-                          )}
-                        </StackItem>
+                  return (
+                    <StackItem key={capability.id}>
+                      <Checkbox
+                        id={`capability-${capability.id}`}
+                        label={
+                          <span style={{ fontWeight: '600', fontSize: '14px' }}>
+                            {capability.name}
+                            {isRequired && (
+                              <span style={{ color: '#c9190b', marginLeft: '4px' }}>*</span>
+                            )}
+                          </span>
+                        }
+                        isChecked={isChecked}
+                        isDisabled={(!canEnable && !isChecked) || (isRequired && isChecked)}
+                        onChange={(_, checked) => handleCapabilityChange(capability.id, checked)}
+                      />
+                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                        {capability.description}
+                      </Content>
+                      
+                      {!dependencyCheck.satisfied && !isChecked && (
+                        <Alert
+                          variant={AlertVariant.warning}
+                          isInline
+                          title={`Requires ${dependencyCheck.missing.map(dep => {
+                            const depCap = capabilities.find(c => c.id === dep);
+                            return depCap?.name || dep;
+                          }).join(' or ')} to be enabled`}
+                          style={{ marginTop: '12px', marginLeft: '24px' }}
+                        />
+                      )}
+                      
+                      {isChecked && capability.id === 'incident-detection' && (
+                        data.enableClusterMonitoring ? (
+                          <Alert
+                            variant={AlertVariant.info}
+                            isInline
+                            title="Alert data processing is enabled."
+                            style={{ marginTop: '12px', marginLeft: '24px' }}
+                          />
+                        ) : (
+                          <Alert
+                            variant={AlertVariant.warning}
+                            isInline
+                            title="Requires 'Enable Operator recommended cluster monitoring' to process alert data."
+                            style={{ marginTop: '12px', marginLeft: '24px' }}
+                          />
+                        )
+                      )}
+                      
+                      {!isChecked && capability.id === 'thanos' && 
+                       (selectedPersona === 'administrator' || selectedPersona === 'sre') && (
+                        <Alert
+                          variant={AlertVariant.warning}
+                          isInline
+                          title="Long-term storage disabled"
+                          style={{ marginTop: '12px', marginLeft: '24px' }}
+                        >
+                          Without long-term storage, you will lose the ability to retain metrics for capacity planning and historical analysis. This may impact your ability to track trends and plan for future resource needs.
+                        </Alert>
+                      )}
 
-                        {/* Nested Options */}
-                        {isChecked && capability.nestedOptions && capability.nestedOptions.length > 0 && (
-                          <StackItem style={{ marginLeft: '24px', paddingLeft: '16px', borderLeft: '2px solid #d2d2d2' }}>
-                            <Stack hasGutter>
-                              {capability.nestedOptions.map((option) => (
-                                <StackItem key={option.id}>
-                                  <Checkbox
-                                    id={`option-${option.id}`}
-                                    label={
-                                      <span style={{ fontSize: '14px' }}>
-                                        {option.name}
-                                      </span>
-                                    }
-                                    isChecked={(selectedNestedOptions[capability.id] || []).includes(option.id)}
-                                    onChange={(_, checked) =>
-                                      handleNestedOptionChange(capability.id, option.id, checked)
-                                    }
-                                  />
-                                  <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
-                                    {option.description}
-                                  </Content>
-                                </StackItem>
-                              ))}
-                            </Stack>
-                          </StackItem>
-                        )}
-                      </Stack>
-                    </CardBody>
-                  </Card>
-                </StackItem>
-              );
-            })}
-          </Stack>
+                      {/* Nested Options */}
+                      {isChecked && capability.nestedOptions && capability.nestedOptions.length > 0 && (
+                        <div style={{ marginLeft: '24px', marginTop: '12px', paddingLeft: '16px', borderLeft: '2px solid #d2d2d2' }}>
+                          <Stack hasGutter>
+                            {capability.nestedOptions.map((option) => (
+                              <StackItem key={option.id}>
+                                <Checkbox
+                                  id={`option-${option.id}`}
+                                  label={
+                                    <span style={{ fontSize: '14px' }}>
+                                      {option.name}
+                                    </span>
+                                  }
+                                  isChecked={(selectedNestedOptions[capability.id] || []).includes(option.id)}
+                                  onChange={(_, checked) =>
+                                    handleNestedOptionChange(capability.id, option.id, checked)
+                                  }
+                                />
+                                <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                                  {option.description}
+                                </Content>
+                              </StackItem>
+                            ))}
+                          </Stack>
+                        </div>
+                      )}
+                    </StackItem>
+                  );
+                })}
+              </Stack>
+            </CardBody>
+          </Card>
         </StackItem>
 
         {/* Console Experience Section */}
