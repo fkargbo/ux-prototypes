@@ -266,10 +266,21 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                     </FlexItem>
                     <FlexItem>
                       <Content style={{ fontSize: '14px' }}>
-                        {data.updateApproval === 'automatic' ? 'Automatic' : 'Manual'}
+                        {(data.updateApproval || 'automatic') === 'automatic' ? 'Automatic' : 'Manual'}
                       </Content>
                     </FlexItem>
                   </Flex>
+                  {(data.updateApproval || 'automatic') === 'automatic' && (
+                    <div style={{ marginTop: '8px', width: '100%' }}>
+                      <Alert
+                        variant={AlertVariant.warning}
+                        isInline
+                        title="Automatic updates selected in production"
+                      >
+                        Enabling automatic updates allows the operator to upgrade immediately when a new version is released. This may cause brief service interruptions or configuration changes during production hours.
+                      </Alert>
+                    </div>
+                  )}
                 </ListItem>
               </List>
             </CardBody>
@@ -377,4 +388,3 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     </div>
   );
 };
-
