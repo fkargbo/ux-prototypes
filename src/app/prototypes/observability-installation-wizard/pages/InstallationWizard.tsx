@@ -51,7 +51,12 @@ export const InstallationWizard: React.FC = () => {
         {
           name: 'Installation details',
           id: 'installation-details',
-          component: <Step1InstallationDetails />,
+          component: (
+            <Step1InstallationDetails
+              data={wizardData}
+              onDataChange={handleDataChange}
+            />
+          ),
         },
         {
           name: 'Observability components',

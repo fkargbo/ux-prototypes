@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   Title,
   Content,
@@ -12,14 +12,10 @@ import {
   Flex,
   FlexItem,
   Divider,
-  Switch,
-  Checkbox,
+  Badge,
+  Alert,
+  AlertVariant,
 } from '@patternfly/react-core';
-import {
-  CpuIcon,
-  MemoryIcon,
-  RocketIcon,
-} from '@patternfly/react-icons';
 import { WizardData } from './Step2ObservabilityComponents';
 
 interface Step3ReviewAndInstallProps {
@@ -27,6 +23,7 @@ interface Step3ReviewAndInstallProps {
   onDataChange: (data: Partial<WizardData>) => void;
 }
 
+// UI Plugin definitions (matching Step2ObservabilityComponents)
 interface UIPlugin {
   id: string;
   name: string;
@@ -38,31 +35,52 @@ interface UIPlugin {
 const uiPlugins: UIPlugin[] = [
   {
     id: 'monitoring-ui',
-    name: 'Monitoring UI Plugin',
-    description: 'Metrics dashboards.',
+    name: 'Monitoring UI Plugin (Metrics)',
+    description: 'Adds the Metrics, Alerting, and Incidents pages to the Observe menu.',
     defaultEnabled: true,
     dependencies: ['metrics-alerting'],
   },
   {
     id: 'logging-ui',
-    name: 'Logging UI Plugin',
+    name: 'Logging UI Plugin (Logs)',
     description: 'Log exploration.',
     defaultEnabled: false,
     dependencies: ['loki'],
   },
   {
     id: 'tracing-ui',
-    name: 'Tracing UI Plugin',
+    name: 'Tracing UI Plugin (Traces)',
     description: 'Distributed traces.',
     defaultEnabled: false,
     dependencies: ['tempo'],
   },
   {
     id: 'troubleshooting-panel',
-    name: 'Troubleshooting Panel',
+    name: 'Troubleshooting Panel UI (Signal correlation)',
     description: 'Signal correlation.',
     defaultEnabled: false,
     dependencies: ['korrel8r'],
+  },
+  {
+    id: 'perses',
+    name: 'Custom dashboards UI (Perses)',
+    description: 'Enables the Perses dashboard engine for creating and visualizing custom metrics and dashboards directly in the Console.',
+    defaultEnabled: false,
+    dependencies: ['metrics-alerting'],
+  },
+  {
+    id: 'incident-detection-ui',
+    name: 'Incident Detection UI Plugin (Alerts)',
+    description: 'Incident detection and alerting.',
+    defaultEnabled: false,
+    dependencies: ['loki'],
+  },
+  {
+    id: 'network-ui',
+    name: 'Network UI Plugin (Flows)',
+    description: 'Network traffic visualization.',
+    defaultEnabled: false,
+    dependencies: ['network-traffic'],
   },
 ];
 
@@ -70,118 +88,241 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
   data,
   onDataChange,
 }) => {
-  const [advancedMode, setAdvancedMode] = useState(data.advancedMode || false);
-  const [selectedUIPlugins, setSelectedUIPlugins] = useState<string[]>(
-    data.selectedUIPlugins || ['monitoring-ui']
-  );
-
   // Calculate resources based on selected capabilities
-  const resources = useMemo(() => {
-    let cpu = 2; // Base CPU
-    let ram = 4; // Base RAM in GB
+  const estimatedResources = useMemo(() => {
+    // Base values
+    let cpu = 12; // Base CPU cores
+    let memory = 28; // Base memory in GB
+    let localCache = 100; // Base local cache in GB
+    let objectStorage = 1.2; // Base object storage in TB/month (only used if Thanos is ON)
+    const hasThanos = data.selectedCapabilities.includes('thanos');
+    const hasLoki = data.selectedCapabilities.includes('loki');
+    const hasNetObserve = data.selectedCapabilities.includes('network-traffic');
 
-    if (data.selectedCapabilities.includes('thanos')) {
-      cpu += 1;
-      ram += 2;
-    }
-    if (data.selectedCapabilities.includes('loki')) {
-      cpu += 1;
-      ram += 2;
-    }
-    if (data.selectedCapabilities.includes('tempo')) {
-      cpu += 1;
-      ram += 1;
-    }
-    if (data.selectedCapabilities.includes('network-traffic')) {
-      cpu += 0.5;
-      ram += 1;
-    }
-    if (data.selectedCapabilities.includes('korrel8r')) {
-      cpu += 0.5;
-      ram += 1;
+    // If NetObserve is ON: Increase CPU estimates due to high-volume flow processing
+    if (hasNetObserve) {
+      cpu += 3; // Additional CPU for flow processing
     }
 
-    return { cpu, ram };
+    // If Logging (Loki) is ON: Increase Local Cache by ~40%
+    if (hasLoki) {
+      localCache = Math.round(localCache * 1.4); // 100 * 1.4 = 140 GB
+    }
+
+    // If Logging (Loki) is ON and Thanos is ON: Increase Object Storage by ~40%
+    if (hasLoki && hasThanos) {
+      objectStorage = Math.round(objectStorage * 1.4 * 10) / 10; // 1.2 * 1.4 = 1.68 TB, rounded to 1 decimal
+    }
+
+    return {
+      cpu,
+      memory,
+      localCache,
+      objectStorage,
+      hasThanos,
+    };
   }, [data.selectedCapabilities]);
 
-  // Get operators to install
+  // Get operators to install based on selected capabilities from Step 2
+  // Maps each selected capability to its corresponding operator
   const operatorsToInstall = useMemo(() => {
-    const operators: string[] = ['Cluster Observability Operator'];
+    const operators: string[] = [];
     
-    if (data.selectedCapabilities.includes('loki')) {
-      operators.push('Loki Operator');
+    if (!data.selectedCapabilities || !Array.isArray(data.selectedCapabilities)) {
+      return operators;
     }
-    if (data.selectedCapabilities.includes('tempo')) {
-      operators.push('Tempo Operator');
+    
+    // Cluster Observability Operator - included if metrics-alerting is selected (required)
+    // This operator includes: Prometheus, Alertmanager, and optionally Thanos and Korrel8r as operands
+    // Note: thanos and korrel8r are operands of Cluster Observability Operator, not separate operators
+    if (data.selectedCapabilities.includes('metrics-alerting')) {
+      operators.push('Cluster Observability Operator (Prometheus)');
     }
-    if (data.selectedCapabilities.includes('network-traffic')) {
-      operators.push('Network Observability Operator');
-    }
+    
+    // Map capabilities to their corresponding operators
+    const capabilityToOperatorMap: { [key: string]: string } = {
+      'loki': 'Loki Operator',
+      'tempo': 'Tempo Operator',
+      'network-traffic': 'Network Observability Operator',
+    };
+    
+    // Add operators for each selected capability
+    data.selectedCapabilities.forEach(capabilityId => {
+      // Skip thanos and korrel8r as they are operands of Cluster Observability Operator, not separate operators
+      if (capabilityId === 'thanos' || capabilityId === 'korrel8r') {
+        return;
+      }
+      
+      const operator = capabilityToOperatorMap[capabilityId];
+      if (operator && !operators.includes(operator)) {
+        operators.push(operator);
+      }
+    });
     
     return operators;
   }, [data.selectedCapabilities]);
 
-  // Auto-enable/disable UI plugins based on dependencies
-  const availablePlugins = useMemo(() => {
-    return uiPlugins.filter(plugin => {
-      if (!plugin.dependencies || plugin.dependencies.length === 0) {
-        return true;
+  // Get UI components to install based on selected UI plugins from Step 2
+  const uiComponentsToInstall = useMemo(() => {
+    const components: string[] = [];
+    
+    if (!data.selectedUIPlugins || !Array.isArray(data.selectedUIPlugins)) {
+      return components;
+    }
+    
+    // Map selected UI plugin IDs to their names
+    data.selectedUIPlugins.forEach(pluginId => {
+      const plugin = uiPlugins.find(p => p.id === pluginId);
+      if (plugin && !components.includes(plugin.name)) {
+        components.push(plugin.name);
       }
-      return plugin.dependencies.some(dep => data.selectedCapabilities.includes(dep));
     });
-  }, [data.selectedCapabilities]);
-
-  const handleAdvancedModeChange = (checked: boolean) => {
-    setAdvancedMode(checked);
-    onDataChange({ advancedMode: checked });
     
-    // When advanced mode is enabled, auto-select all available plugins
-    if (checked) {
-      const autoSelected = availablePlugins.map(p => p.id);
-      setSelectedUIPlugins(autoSelected);
-      onDataChange({ selectedUIPlugins: autoSelected });
-    } else {
-      // When disabled, only keep monitoring-ui if metrics-alerting is selected
-      const defaultSelected = data.selectedCapabilities.includes('metrics-alerting')
-        ? ['monitoring-ui']
-        : [];
-      setSelectedUIPlugins(defaultSelected);
-      onDataChange({ selectedUIPlugins: defaultSelected });
-    }
-  };
-
-  const handleUIPluginChange = (pluginId: string, checked: boolean) => {
-    let newPlugins: string[];
-    
-    if (checked) {
-      newPlugins = [...selectedUIPlugins, pluginId];
-    } else {
-      newPlugins = selectedUIPlugins.filter(id => id !== pluginId);
-    }
-    
-    setSelectedUIPlugins(newPlugins);
-    onDataChange({ selectedUIPlugins: newPlugins });
-  };
+    return components;
+  }, [data.selectedUIPlugins]);
 
   return (
-    <div style={{ maxWidth: '800px' }}>
+    <div style={{ maxWidth: '800px', marginTop: '24px', marginLeft: '24px' }}>
       <Stack hasGutter>
         <StackItem>
-          <Title headingLevel="h2" size="lg" style={{ marginBottom: '24px' }}>
+          <Title headingLevel="h2" size="2xl" style={{ fontSize: '24px', marginBottom: '24px' }}>
             Review and Install
           </Title>
+        </StackItem>
+
+        {/* Installation Details */}
+        <StackItem>
+          <Card>
+            <CardTitle>Installation details</CardTitle>
+            <CardBody>
+              <List>
+                <ListItem>
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>Namespace:</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <Badge style={{ backgroundColor: '#1e4f18', color: '#fff', marginRight: '4px' }}>PR</Badge>
+                        <Content style={{ fontSize: '14px', fontWeight: '600' }}>
+                          {data.installationNamespace === 'recommended'
+                            ? 'openshift-cluster-observability-operator'
+                            : data.selectedProject || 'Not selected'}
+                        </Content>
+                      </span>
+                    </FlexItem>
+                  </Flex>
+                </ListItem>
+                <ListItem>
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>Scope:</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        {data.installationMode === 'all-namespaces' ? 'All namespaces' : 'A specific namespace'}
+                      </Content>
+                    </FlexItem>
+                  </Flex>
+                </ListItem>
+                <ListItem>
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>Cluster monitoring (recommended):</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        {data.enableClusterMonitoring ? 'Enabled' : 'Disabled'}
+                      </Content>
+                    </FlexItem>
+                  </Flex>
+                  {!data.enableClusterMonitoring && 
+                   (data.selectedPersona === 'administrator' || data.selectedPersona === 'sre') && (
+                    <div style={{ marginTop: '8px', width: '100%' }}>
+                      <Alert
+                        variant={AlertVariant.info}
+                        isInline
+                        title="Cluster monitoring disabled"
+                      >
+                        You might miss critical alerts regarding the health of the Observability Operator itself. For high availability environments, enabling cluster monitoring is recommended.
+                      </Alert>
+                    </div>
+                  )}
+                </ListItem>
+                <ListItem>
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>Update Channel:</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Content style={{ fontSize: '14px' }}>{data.updateChannel || 'stable'}</Content>
+                    </FlexItem>
+                  </Flex>
+                </ListItem>
+                <ListItem>
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>Update approval:</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        {(data.updateApproval || 'automatic') === 'automatic' ? 'Automatic' : 'Manual'}
+                      </Content>
+                    </FlexItem>
+                  </Flex>
+                  {(data.updateApproval || 'automatic') === 'automatic' && (
+                    <div style={{ marginTop: '8px', width: '100%' }}>
+                      <Alert
+                        variant={AlertVariant.warning}
+                        isInline
+                        title="Automatic updates selected in production"
+                      >
+                        Enabling automatic updates allows the operator to upgrade immediately when a new version is released. This may cause brief service interruptions or configuration changes during production hours.
+                      </Alert>
+                    </div>
+                  )}
+                </ListItem>
+              </List>
+            </CardBody>
+          </Card>
         </StackItem>
 
         {/* Operators to Install */}
         <StackItem>
           <Card>
-            <CardTitle>OPERATORS TO INSTALL</CardTitle>
+            <CardTitle>Operators to install</CardTitle>
             <CardBody>
-              <List>
-                {operatorsToInstall.map((operator) => (
-                  <ListItem key={operator}>{operator}</ListItem>
-                ))}
-              </List>
+              {operatorsToInstall.length > 0 ? (
+                <List>
+                  {operatorsToInstall.map((operator) => (
+                    <ListItem key={operator}>{operator}</ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Content style={{ color: '#6a6e73' }}>
+                  No operators selected. Please go back to Step 2 to select capabilities.
+                </Content>
+              )}
+            </CardBody>
+          </Card>
+        </StackItem>
+
+        {/* UI Components to Install */}
+        <StackItem>
+          <Card>
+            <CardTitle>UI components to install</CardTitle>
+            <CardBody>
+              {uiComponentsToInstall.length > 0 ? (
+                <List>
+                  {uiComponentsToInstall.map((component) => (
+                    <ListItem key={component}>{component}</ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Content style={{ color: '#6a6e73' }}>
+                  No UI components selected. Please go back to Step 2 to select UI plugins.
+                </Content>
+              )}
             </CardBody>
           </Card>
         </StackItem>
@@ -189,84 +330,61 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
         {/* Estimated Resources */}
         <StackItem>
           <Card>
-            <CardTitle>ESTIMATED RESOURCES</CardTitle>
+            <CardTitle>Estimated resources</CardTitle>
             <CardBody>
-              <Flex spaceItems={{ default: 'spaceItemsLg' }}>
-                <FlexItem>
-                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>
-                      <CpuIcon style={{ fontSize: '20px', color: '#6a6e73' }} />
-                    </FlexItem>
-                    <FlexItem>
-                      <Content style={{ fontSize: '16px', fontWeight: '600' }}>
-                        {resources.cpu} CPU
-                      </Content>
-                    </FlexItem>
-                  </Flex>
-                </FlexItem>
-                <FlexItem>
-                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>
-                      <MemoryIcon style={{ fontSize: '20px', color: '#6a6e73' }} />
-                    </FlexItem>
-                    <FlexItem>
-                      <Content style={{ fontSize: '16px', fontWeight: '600' }}>
-                        {resources.ram} GB RAM
-                      </Content>
-                    </FlexItem>
-                  </Flex>
-                </FlexItem>
-              </Flex>
-            </CardBody>
-          </Card>
-        </StackItem>
-
-        {/* Console Experience */}
-        <StackItem>
-          <Card>
-            <CardBody>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
-                <FlexItem>
-                  <CardTitle>CONSOLE EXPERIENCE (UI PLUGINS)</CardTitle>
-                </FlexItem>
-                <FlexItem>
-                  <Switch
-                    id="advanced-mode"
-                    label="Advanced Mode"
-                    isChecked={advancedMode}
-                    onChange={(_, checked) => handleAdvancedModeChange(checked)}
-                  />
-                </FlexItem>
-              </Flex>
-
-              <Divider style={{ marginBottom: '16px' }} />
-
               <Stack hasGutter>
-                {availablePlugins.map((plugin) => {
-                  const isChecked = selectedUIPlugins.includes(plugin.id);
-                  const isEnabled = advancedMode || plugin.defaultEnabled;
-
-                  return (
-                    <StackItem key={plugin.id}>
-                      <Checkbox
-                        id={`plugin-${plugin.id}`}
-                        label={plugin.name}
-                        isChecked={isChecked}
-                        isDisabled={!advancedMode && !plugin.defaultEnabled}
-                        onChange={(_, checked) => handleUIPluginChange(plugin.id, checked)}
-                      />
-                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
-                        {plugin.description}
+                {/* Compute Resources */}
+                <StackItem>
+                  <Content style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>
+                    Compute Resources
+                  </Content>
+                  <List>
+                    <ListItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        CPU: ~{estimatedResources.cpu} Cores (Burstable)
                       </Content>
-                    </StackItem>
-                  );
-                })}
+                    </ListItem>
+                    <ListItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        Memory: ~{estimatedResources.memory} GB (Total RSS)
+                      </Content>
+                    </ListItem>
+                  </List>
+                </StackItem>
+
+                {/* Storage Infrastructure */}
+                <StackItem>
+                  <Content style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>
+                    Storage Infrastructure
+                  </Content>
+                  <List>
+                    <ListItem>
+                      <Content style={{ fontSize: '14px' }}>
+                        Local Cache (PV): {estimatedResources.localCache} GB (Standard-SSD)
+                      </Content>
+                    </ListItem>
+                    {estimatedResources.hasThanos && (
+                      <>
+                        <ListItem>
+                          <Content style={{ fontSize: '14px' }}>
+                            Long-term Storage: Connected to 'obs-bucket-s3'
+                          </Content>
+                        </ListItem>
+                        <ListItem>
+                          <Content style={{ fontSize: '14px' }}>
+                            Retention Estimate: ~{estimatedResources.objectStorage} TB / Month (Object Storage)
+                          </Content>
+                        </ListItem>
+                      </>
+                    )}
+                  </List>
+                </StackItem>
               </Stack>
             </CardBody>
           </Card>
         </StackItem>
+
       </Stack>
     </div>
   );
 };
-
