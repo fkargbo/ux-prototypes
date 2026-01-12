@@ -717,15 +717,20 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                           })}
                           {/* Advanced section for Observability category */}
                           {category.id === 'observability' && (
-                            <StackItem>
+                            <StackItem style={{ marginTop: '16px' }}>
                               <ExpandableSection
-                                toggleText="Advanced"
+                                toggleText="Advanced settings"
                                 isExpanded={isAdvancedSectionExpanded}
                                 onToggle={() => setIsAdvancedSectionExpanded(!isAdvancedSectionExpanded)}
-                                style={{ marginTop: '16px' }}
                               >
                                 <Stack hasGutter style={{ marginTop: '16px', marginLeft: '16px' }}>
                                   <StackItem>
+                                    <Title headingLevel="h4" size="md" style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+                                      Console experience (UI Plugins and components)
+                                    </Title>
+                                    <Content style={{ fontSize: '14px', color: '#6a6e73', marginBottom: '16px' }}>
+                                      Select UI plugins to enhance your console experience
+                                    </Content>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                                       <Switch
                                         id="advanced-mode"
