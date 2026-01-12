@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Title,
   Content,
@@ -13,6 +13,13 @@ import {
   Button,
   Flex,
   FlexItem,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  MenuToggle,
+  MenuToggleElement,
+  Alert,
+  Switch,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, InfoCircleIcon } from '@patternfly/react-icons';
 
@@ -22,6 +29,9 @@ interface Operator {
   description: string;
   developerPreview?: boolean;
   learnMoreUrl?: string;
+  required?: boolean;
+  warning?: string;
+  recommendedForObservability?: boolean;
 }
 
 interface OperatorCategory {
@@ -35,6 +45,8 @@ interface OperatorsStepProps {
   selectedOperators: string[];
   onBundlesChange: (bundles: string[]) => void;
   onOperatorsChange: (operators: string[]) => void;
+  selectedPersonas?: string[];
+  onPersonasChange?: (personas: string[]) => void;
 }
 
 const bundles = [
@@ -63,10 +75,58 @@ const operatorCategories: OperatorCategory[] = [
     id: 'storage',
     name: 'Storage',
     operators: [
-      { id: 'local-storage', name: 'Local Storage Operator', description: 'Provides persistent storage using local volumes.' },
-      { id: 'lvm-storage', name: 'Logical Volume Manager Storage', description: 'Manages logical volumes for storage.' },
-      { id: 'odf', name: 'OpenShift Data Foundation', description: 'Provides software-defined storage for containers.' },
-      { id: 'oadp', name: 'OADP', description: 'OpenShift API for Data Protection.' },
+      { id: 'local-storage', name: 'Local Storage Operator', description: 'Allows provisioning of persistent storage by using local volumes.' },
+      { id: 'lvm-storage', name: 'Logical Volume Manager Storage', description: 'Storage virtualization that offers a more flexible approach for disk space management.' },
+      { id: 'odf', name: 'OpenShift Data Foundation', description: 'Persistent software-defined storage for hybrid applications.' },
+      { id: 'oadp', name: 'OADP', description: 'Backup and restore OpenShift cluster resources and persistent volumes.' },
+    ],
+  },
+  {
+    id: 'observability',
+    name: 'Observability',
+    operators: [
+      { 
+        id: 'core-observability', 
+        name: 'Core Observability (Prometheus)', 
+        description: 'The engine for metrics collection, alerting rules, and base dashboards.',
+        required: true
+      },
+      { 
+        id: 'thanos', 
+        name: 'Enable Long-term Storage (Thanos)', 
+        description: 'Retain metrics for capacity planning and historical analysis.'
+      },
+      { 
+        id: 'loki', 
+        name: 'Centralized Logging (Loki)', 
+        description: 'Aggregate and search logs across the cluster.'
+      },
+      { 
+        id: 'incident-detection', 
+        name: 'Incident Detection (Native)', 
+        description: 'Automatically groups related alerts into incidents to reduce alert fatigue and highlight root causes.'
+      },
+      { 
+        id: 'tempo', 
+        name: 'Distributed Tracing (Tempo)', 
+        description: 'Track requests across microservices for latency analysis.'
+      },
+      { 
+        id: 'opentelemetry', 
+        name: 'Telemetry Pipeline (OpenTelemetry)', 
+        description: 'Handles telemetry collection and auto-instrumentation.'
+      },
+      { 
+        id: 'netobserve', 
+        name: 'Network Traffic Analysis (NetObserve)', 
+        description: 'Visualize pod-to-pod traffic and debug connection issues.',
+        warning: 'Requires Centralized Logging (Loki) to be enabled'
+      },
+      { 
+        id: 'korrel8r', 
+        name: 'Signal Correlation (Korrel8r)', 
+        description: 'Automated root cause analysis linking logs, metrics, and traces.'
+      },
     ],
   },
   {
@@ -142,13 +202,60 @@ const operatorCategories: OperatorCategory[] = [
   },
 ];
 
+const personaOptions = [
+  { id: 'platform-governance', label: 'Platform governance' },
+  { id: 'incident-response', label: 'Incident response' },
+  { id: 'app-performance', label: 'App performance' },
+];
+
+const advancedUIOptions = [
+  { 
+    id: 'monitoring-ui', 
+    name: 'Monitoring UI Plugin (Metrics)', 
+    description: 'Adds the Metrics, Alerting, and Incidents pages to the Observe menu.' 
+  },
+  { 
+    id: 'logging-ui', 
+    name: 'Logging UI Plugin (Logs)', 
+    description: 'Log exploration.' 
+  },
+  { 
+    id: 'tracing-ui', 
+    name: 'Tracing UI Plugin (Traces)', 
+    description: 'Distributed traces.' 
+  },
+  { 
+    id: 'troubleshooting-panel-ui', 
+    name: 'Troubleshooting Panel UI (Signal correlation)', 
+    description: 'Signal correlation.' 
+  },
+  { 
+    id: 'custom-dashboards-ui', 
+    name: 'Custom dashboards UI (Perses)', 
+    description: 'Enables the Perses dashboard engine for creating and visualizing custom metrics and dashboards directly in the Console.' 
+  },
+  { 
+    id: 'incident-detection-ui', 
+    name: 'Incident Detection UI Plugin (Alerts)', 
+    description: 'Incident detection and alerting.' 
+  },
+];
+
 export const OperatorsStep: React.FC<OperatorsStepProps> = ({
   selectedBundles,
   selectedOperators,
   onBundlesChange,
   onOperatorsChange,
+  selectedPersonas = [],
+  onPersonasChange,
 }) => {
   const [isSingleOperatorsExpanded, setIsSingleOperatorsExpanded] = useState<boolean>(true);
+  const [isPersonaMenuOpen, setIsPersonaMenuOpen] = useState<boolean>(false);
+  const [showStorageRecommendation, setShowStorageRecommendation] = useState<boolean>(false);
+  const [recommendedStorageOperators, setRecommendedStorageOperators] = useState<string[]>([]);
+  const [isAdvancedModeEnabled, setIsAdvancedModeEnabled] = useState<boolean>(false);
+  const [isAdvancedSectionExpanded, setIsAdvancedSectionExpanded] = useState<boolean>(false);
+  const [selectedAdvancedOptions, setSelectedAdvancedOptions] = useState<string[]>([]);
 
 
   const handleBundleChange = (bundleId: string, checked: boolean) => {
@@ -167,11 +274,135 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
     }
   };
 
+  const handleOperationalNeedChange = (personaId: string | null) => {
+    // Define all observability and storage operator IDs
+    const allObservabilityOperatorIds = ['core-observability', 'loki', 'incident-detection', 'netobserve', 'tempo', 'opentelemetry', 'korrel8r', 'thanos'];
+    const allStorageOperatorIds = ['local-storage', 'lvm-storage', 'odf', 'oadp'];
+
+    if (!personaId) {
+      // Deselecting - remove persona-specific observability operators but keep core-observability
+      // Remove previously recommended storage operators
+      const currentObservabilityOps = selectedOperators.filter(id => allObservabilityOperatorIds.includes(id));
+      const currentStorageOps = selectedOperators.filter(id => allStorageOperatorIds.includes(id));
+      
+      // Keep only core-observability from observability operators
+      const updatedObservabilityOps = currentObservabilityOps.filter(id => id === 'core-observability');
+      
+      // Remove previously recommended storage operators (use state from previous selection)
+      const storageToRemove = recommendedStorageOperators.length > 0 ? recommendedStorageOperators : [];
+      const updatedStorageOps = currentStorageOps.filter(id => !storageToRemove.includes(id));
+      
+      // Keep all non-observability, non-storage operators (from other categories)
+      const otherOperators = selectedOperators.filter(id => 
+        !allObservabilityOperatorIds.includes(id) && !allStorageOperatorIds.includes(id)
+      );
+      
+      onOperatorsChange([...updatedObservabilityOps, ...updatedStorageOps, ...otherOperators]);
+      
+      // Clear recommendations
+      setShowStorageRecommendation(false);
+      setRecommendedStorageOperators([]);
+      // Clear advanced options
+      setSelectedAdvancedOptions([]);
+      setIsAdvancedModeEnabled(false);
+      return;
+    }
+
+    // Define observability and storage dependencies based on persona
+    let observabilityOperators: string[] = ['core-observability']; // Core is always required
+    let storageOperators: string[] = [];
+
+    switch (personaId) {
+      case 'platform-governance':
+        // Platform Governance: Core Observability + Loki
+        observabilityOperators = ['core-observability', 'loki'];
+        // Storage: LVM Storage
+        storageOperators = ['lvm-storage'];
+        break;
+      
+      case 'incident-response':
+        // Incident Response: Core + Incident Detection + NetObserve + Loki
+        observabilityOperators = ['core-observability', 'incident-detection', 'netobserve', 'loki'];
+        // Storage: ODF + OADP
+        storageOperators = ['odf', 'oadp'];
+        break;
+      
+      case 'app-performance':
+        // App Performance: Core + Tempo + OpenTelemetry
+        observabilityOperators = ['core-observability', 'tempo', 'opentelemetry'];
+        // Storage: Local Storage + OADP
+        storageOperators = ['local-storage', 'oadp'];
+        break;
+    }
+
+    // Get current operators from other categories (non-observability, non-storage)
+    const otherOperators = selectedOperators.filter(id => 
+      !allObservabilityOperatorIds.includes(id) && !allStorageOperatorIds.includes(id)
+    );
+
+    // Get currently selected storage operators that are NOT in the new recommendations
+    // (preserve manually selected storage that wasn't recommended)
+    const currentStorageOps = selectedOperators.filter(id => allStorageOperatorIds.includes(id));
+    const manuallySelectedStorage = currentStorageOps.filter(id => !recommendedStorageOperators.includes(id));
+
+    // Combine: new observability operators + new recommended storage + manually selected storage + other operators
+    onOperatorsChange([...observabilityOperators, ...storageOperators, ...manuallySelectedStorage, ...otherOperators]);
+
+    // Set recommendation state
+    setRecommendedStorageOperators(storageOperators);
+    setShowStorageRecommendation(true);
+
+    // Auto-select advanced UI options based on persona
+    let advancedOptionsToSelect: string[] = [];
+    switch (personaId) {
+      case 'platform-governance':
+        // Platform Governance: Monitoring UI, Logging UI, Custom dashboards
+        advancedOptionsToSelect = ['monitoring-ui', 'logging-ui', 'custom-dashboards-ui'];
+        break;
+      case 'incident-response':
+        // Incident Response: All options
+        advancedOptionsToSelect = ['monitoring-ui', 'logging-ui', 'tracing-ui', 'troubleshooting-panel-ui', 'custom-dashboards-ui', 'incident-detection-ui'];
+        break;
+      case 'app-performance':
+        // App Performance: Monitoring UI, Logging UI, Tracing UI
+        advancedOptionsToSelect = ['monitoring-ui', 'logging-ui', 'tracing-ui'];
+        break;
+    }
+    setSelectedAdvancedOptions(advancedOptionsToSelect);
+    // For Incident Response, disable advanced mode initially (all selected and disabled)
+    if (personaId === 'incident-response') {
+      setIsAdvancedModeEnabled(false);
+    }
+  };
+
+  const handlePersonaChange = (personaId: string) => {
+    if (onPersonasChange) {
+      // Single select: if already selected, deselect; otherwise, select only this one
+      if (selectedPersonas.includes(personaId)) {
+        onPersonasChange([]);
+        handleOperationalNeedChange(null);
+      } else {
+        onPersonasChange([personaId]);
+        handleOperationalNeedChange(personaId);
+      }
+    }
+  };
+
+  const getPersonaToggleText = () => {
+    if (selectedPersonas.length === 0) {
+      return 'Choose Observability strategy';
+    }
+    
+    // Single select: show the selected option
+    const selectedPersona = personaOptions.find(p => p.id === selectedPersonas[0]);
+    return selectedPersona ? selectedPersona.label : 'Choose Observability strategy';
+  };
+
   const selectedCount = selectedOperators.length;
   const totalCount = operatorCategories.reduce((sum, cat) => sum + cat.operators.length, 0);
 
   return (
-    <div style={{ maxWidth: '900px' }}>
+    <div style={{ maxWidth: '1100px' }}>
       <Stack hasGutter>
         {/* Operators Title */}
         <StackItem>
@@ -185,7 +416,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
           <Title headingLevel="h2" size="lg" style={{ marginBottom: '16px' }}>
             Bundles
           </Title>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'stretch' }}>
             {bundles.map((bundle) => {
               const isChecked = selectedBundles.includes(bundle.id);
               return (
@@ -193,7 +424,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                   key={bundle.id}
                   style={{
                     width: '356px',
-                    height: '128px',
+                    minHeight: '128px',
                     padding: '16px',
                     border: isChecked ? '2px solid #0066cc' : '1px solid #d2d2d2',
                     borderRadius: '16px',
@@ -244,6 +475,46 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                       </Button>
                     </Popover>
                   </div>
+                  {/* Multiselect dropdown for Observability bundle - aligned with title */}
+                  {bundle.id === 'observability' && (
+                    <div style={{ marginLeft: '24px', marginTop: '8px', marginBottom: '8px' }}>
+                      <Dropdown
+                        isOpen={isPersonaMenuOpen}
+                        onSelect={() => {}}
+                        onOpenChange={(isOpen) => setIsPersonaMenuOpen(isOpen)}
+                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            onClick={() => setIsPersonaMenuOpen(!isPersonaMenuOpen)}
+                            isExpanded={isPersonaMenuOpen}
+                            style={{ width: '100%', textAlign: 'left' }}
+                          >
+                            {getPersonaToggleText()}
+                          </MenuToggle>
+                        )}
+                        popperProps={{
+                          appendTo: () => document.body,
+                        }}
+                      >
+                        <DropdownList>
+                          {personaOptions.map((persona) => {
+                            const isPersonaSelected = selectedPersonas.includes(persona.id);
+                            return (
+                              <DropdownItem
+                                key={persona.id}
+                                onClick={(e) => {
+                                  e?.stopPropagation();
+                                  handlePersonaChange(persona.id);
+                                }}
+                              >
+                                {persona.label}
+                              </DropdownItem>
+                            );
+                          })}
+                        </DropdownList>
+                      </Dropdown>
+                    </div>
+                  )}
                   <Content style={{ marginLeft: '24px', marginTop: '0', color: '#6a6e73', fontSize: '14px' }}>
                     {bundle.description}
                   </Content>
@@ -263,6 +534,9 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
             >
               <Stack hasGutter style={{ marginTop: '16px' }}>
                 {operatorCategories.map((category) => {
+                  const isStorageCategory = category.id === 'storage';
+                  const isRecommended = isStorageCategory && recommendedStorageOperators.length > 0;
+                  
                   return (
                     <StackItem key={category.id}>
                       <div style={{ marginBottom: '12px' }}>
@@ -277,24 +551,54 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                         >
                           {category.name}
                         </Title>
+                        {/* Alert for storage recommendations */}
+                        {isStorageCategory && showStorageRecommendation && (
+                          <div style={{ maxWidth: '1100px', marginBottom: '16px' }}>
+                            <Alert
+                              variant="info"
+                              title="Based on your Observability needs, we've pre-selected the optimal storage configuration."
+                              style={{ boxShadow: 'none' }}
+                            />
+                          </div>
+                        )}
                         <Stack hasGutter style={{ marginLeft: '16px' }}>
                           {category.operators.map((operator) => {
                             const isChecked = selectedOperators.includes(operator.id);
+                            const isRecommended = isStorageCategory && recommendedStorageOperators.includes(operator.id);
                             return (
                               <StackItem key={operator.id}>
                                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                                   <Checkbox
                                     id={`operator-${operator.id}`}
                                     isChecked={isChecked}
-                                    onChange={(_, checked) => handleOperatorChange(operator.id, checked)}
+                                    onChange={(_, checked) => {
+                                      // Prevent unchecking required operators
+                                      if (operator.required && !checked) {
+                                        return;
+                                      }
+                                      handleOperatorChange(operator.id, checked);
+                                    }}
+                                    isDisabled={operator.required}
                                     style={{ marginTop: '2px' }}
                                   />
                                   <div style={{ flex: 1, marginLeft: '8px' }}>
                                     {/* First line: Label and info icon */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                                       <span style={{ fontSize: '14px' }}>
-                                        {operator.name}
+                                        {operator.name}{operator.required && ' *'}
                                       </span>
+                                      {isRecommended && (
+                                        <Badge
+                                          style={{
+                                            backgroundColor: '#0066cc',
+                                            color: '#fff',
+                                            fontSize: '12px',
+                                            padding: '2px 8px',
+                                          }}
+                                        >
+                                          Recommended for Observability
+                                        </Badge>
+                                      )}
                                       <Popover
                                         headerContent={operator.name}
                                         bodyContent={operator.description}
@@ -375,7 +679,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                       {operator.learnMoreUrl && (
                                         <a 
                                           href={operator.learnMoreUrl} 
-                                          target="_blank" 
+                                          target="_blank"
                                           rel="noopener noreferrer"
                                           style={{ 
                                             color: '#0066cc', 
@@ -389,11 +693,93 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                         </a>
                                       )}
                                     </div>
+                                    {/* Warning message */}
+                                    {operator.warning && (
+                                      <div style={{ 
+                                        marginTop: '8px',
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: '8px'
+                                      }}>
+                                        <InfoCircleIcon style={{ color: '#f0ab00', marginTop: '2px', flexShrink: 0 }} />
+                                        <div style={{ 
+                                          fontSize: '12px', 
+                                          color: '#6a6e73'
+                                        }}>
+                                          <strong>Warning alert:</strong> {operator.warning}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </StackItem>
                             );
                           })}
+                          {/* Advanced section for Observability category */}
+                          {category.id === 'observability' && (
+                            <StackItem>
+                              <ExpandableSection
+                                toggleText="Advanced"
+                                isExpanded={isAdvancedSectionExpanded}
+                                onToggle={() => setIsAdvancedSectionExpanded(!isAdvancedSectionExpanded)}
+                                style={{ marginTop: '16px' }}
+                              >
+                                <Stack hasGutter style={{ marginTop: '16px', marginLeft: '16px' }}>
+                                  <StackItem>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                                      <Switch
+                                        id="advanced-mode"
+                                        label="Advanced mode"
+                                        isChecked={isAdvancedModeEnabled}
+                                        onChange={(_event, checked) => setIsAdvancedModeEnabled(checked)}
+                                      />
+                                    </div>
+                                  </StackItem>
+                                  {advancedUIOptions.map((option) => {
+                                    const isChecked = selectedAdvancedOptions.includes(option.id);
+                                    const isIncidentResponse = selectedPersonas.includes('incident-response');
+                                    // For Incident Response: disable when advanced mode is off and option is auto-selected
+                                    // For other personas: always enabled
+                                    const isDisabled = isIncidentResponse && !isAdvancedModeEnabled && isChecked;
+                                    
+                                    return (
+                                      <StackItem key={option.id}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                          <Checkbox
+                                            id={`advanced-${option.id}`}
+                                            isChecked={isChecked}
+                                            isDisabled={isDisabled}
+                                            onChange={(_, checked) => {
+                                              if (checked) {
+                                                setSelectedAdvancedOptions([...selectedAdvancedOptions, option.id]);
+                                              } else {
+                                                setSelectedAdvancedOptions(selectedAdvancedOptions.filter(id => id !== option.id));
+                                              }
+                                            }}
+                                            style={{ marginTop: '2px' }}
+                                          />
+                                          <div style={{ flex: 1, marginLeft: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                                              <span style={{ fontSize: '14px' }}>
+                                                {option.name}
+                                              </span>
+                                            </div>
+                                            <div style={{ 
+                                              fontSize: '12px', 
+                                              color: 'var(--pf-t--global--text--color--regular)',
+                                              marginTop: '4px'
+                                            }}>
+                                              {option.description}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </StackItem>
+                                    );
+                                  })}
+                                </Stack>
+                              </ExpandableSection>
+                            </StackItem>
+                          )}
                         </Stack>
                       </div>
                     </StackItem>

@@ -10,6 +10,7 @@ import { OperatorsStep } from '../components/OperatorsStep';
 interface WizardData {
   selectedBundles: string[];
   selectedOperators: string[];
+  selectedPersonas: string[];
 }
 
 /**
@@ -20,8 +21,9 @@ interface WizardData {
 export const ClusterListPage: React.FC = () => {
   const navigate = useNavigate();
   const [wizardData, setWizardData] = useState<WizardData>({
-    selectedBundles: ['openshift-ai'],
-    selectedOperators: ['openshift-ai', 'nvidia-gpu', 'service-mesh', 'authorino', 'kernel-module-management', 'pipelines', 'serverless', 'node-feature-discovery'],
+    selectedBundles: [],
+    selectedOperators: ['core-observability'], // Core Observability is required and selected by default
+    selectedPersonas: [], // No persona selected by default - user must choose
   });
 
   const handleFinish = (data: any) => {
@@ -135,6 +137,8 @@ export const ClusterListPage: React.FC = () => {
               selectedOperators={wizardData.selectedOperators}
               onBundlesChange={(bundles) => setWizardData((prev) => ({ ...prev, selectedBundles: bundles }))}
               onOperatorsChange={(operators) => setWizardData((prev) => ({ ...prev, selectedOperators: operators }))}
+              selectedPersonas={wizardData.selectedPersonas}
+              onPersonasChange={(personas) => setWizardData((prev) => ({ ...prev, selectedPersonas: personas }))}
             />
           ),
         },
