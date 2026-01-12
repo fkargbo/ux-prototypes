@@ -341,12 +341,20 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
     );
 
     // Get currently selected storage operators that are NOT in the new recommendations
-    // (preserve manually selected storage that wasn't recommended)
+    // (preserve manually selected storage that wasn't recommended by the new persona)
     const currentStorageOps = selectedOperators.filter(id => allStorageOperatorIds.includes(id));
-    const manuallySelectedStorage = currentStorageOps.filter(id => !recommendedStorageOperators.includes(id));
+    // Filter out storage operators that are in the NEW recommendations to prevent duplicates
+    const manuallySelectedStorage = currentStorageOps.filter(id => !storageOperators.includes(id));
 
     // Combine: new observability operators + new recommended storage + manually selected storage + other operators
-    onOperatorsChange([...observabilityOperators, ...storageOperators, ...manuallySelectedStorage, ...otherOperators]);
+    // Use Set to ensure no duplicates (defensive programming)
+    const finalOperators = Array.from(new Set([
+      ...observabilityOperators,
+      ...storageOperators,
+      ...manuallySelectedStorage,
+      ...otherOperators
+    ]));
+    onOperatorsChange(finalOperators);
 
     // Set recommendation state
     setRecommendedStorageOperators(storageOperators);
