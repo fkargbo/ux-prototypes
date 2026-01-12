@@ -356,6 +356,8 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                             setProjectSelectOpen(false);
                             setSelectedProject('');
                             setProjectSearchValue('');
+                            // Reset cluster monitoring when switching to recommended namespace
+                            setEnableClusterMonitoring(false);
                           }}
                         />
                         <Alert
@@ -371,7 +373,11 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                           name="installation-namespace"
                           label="Select a Namespace"
                           isChecked={installationNamespace === 'select'}
-                          onChange={() => setInstallationNamespace('select')}
+                          onChange={() => {
+                            setInstallationNamespace('select');
+                            // Reset cluster monitoring when switching to select namespace
+                            setEnableClusterMonitoring(false);
+                          }}
                         />
                         {installationNamespace === 'select' && (
                           <div style={{ marginLeft: '24px', marginTop: '8px' }}>
@@ -459,12 +465,38 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                 </StackItem>
 
                 <StackItem>
-                  <Checkbox
-                    id="enable-cluster-monitoring"
-                    label={<span style={{ fontSize: 'var(--pf-t--global--font--size--md)' }}>Enable Operator recommended cluster monitoring on this Namespace</span>}
-                    isChecked={enableClusterMonitoring}
-                    onChange={(_, checked) => setEnableClusterMonitoring(checked)}
-                  />
+                  <FormGroup
+                    fieldId="enable-cluster-monitoring"
+                  >
+                    <Checkbox
+                      id="enable-cluster-monitoring"
+                      label={<span style={{ fontSize: 'var(--pf-t--global--font--size--md)' }}>Enable Operator recommended cluster monitoring on this Namespace</span>}
+                      isChecked={enableClusterMonitoring}
+                      isDisabled={installationNamespace === 'select' && !selectedProject}
+                      onChange={(_, checked) => setEnableClusterMonitoring(checked)}
+                    />
+                    <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                      Enables monitoring for the Observability Operator itself, allowing you to track its health and performance metrics.
+                    </Content>
+                    {installationNamespace === 'select' && !selectedProject && (
+                      <Alert
+                        variant={AlertVariant.info}
+                        isInline
+                        title="Select a namespace to enable cluster monitoring"
+                        style={{ marginTop: '8px', marginLeft: '24px' }}
+                      />
+                    )}
+                    {installationNamespace === 'recommended' && !enableClusterMonitoring && (
+                      <Alert
+                        variant={AlertVariant.warning}
+                        isInline
+                        title="Cluster monitoring is recommended for production environments"
+                        style={{ marginTop: '8px', marginLeft: '24px' }}
+                      >
+                        Enabling cluster monitoring helps ensure the health and reliability of the Observability Operator. It's recommended for production deployments.
+                      </Alert>
+                    )}
+                  </FormGroup>
                 </StackItem>
               </Stack>
             </FormGroup>
@@ -488,6 +520,16 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                       isChecked={updateApproval === 'automatic'}
                       onChange={() => setUpdateApproval('automatic')}
                     />
+                    {updateApproval === 'automatic' && (
+                      <Alert
+                        variant={AlertVariant.warning}
+                        isInline
+                        title="Automatic updates selected in production"
+                        style={{ marginTop: '8px', marginLeft: '24px' }}
+                      >
+                        Enabling automatic updates allows the operator to upgrade immediately when a new version is released. This may cause brief service interruptions or configuration changes during production hours.
+                      </Alert>
+                    )}
                   </StackItem>
                   <StackItem>
                     <Radio

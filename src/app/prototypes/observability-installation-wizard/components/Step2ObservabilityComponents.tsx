@@ -725,4 +725,3 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     </div>
   );
 };
-

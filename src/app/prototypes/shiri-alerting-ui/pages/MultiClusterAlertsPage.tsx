@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import {
   PageSection,
@@ -93,6 +94,18 @@ import {
   AccordionItem,
   AccordionToggle,
   AccordionContent,
+  Wizard,
+  WizardStep,
+  WizardHeader,
+  TextArea,
+  Radio,
+  FormGroup,
+  Form,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  TextInput,
+  ExpandableSection,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -266,6 +279,312 @@ interface ToastNotification {
   variant: 'success' | 'danger' | 'warning' | 'info';
   description?: string;
 }
+
+// Alert Rule Types for Management
+type AlertRuleState = 'Active' | 'Reconciling' | 'Partial success' | 'Failed' | 'Disabled';
+type AlertRuleSource = 'User' | 'Platform';
+
+interface AlertRuleActiveAlert {
+  id: string;
+  message: string;
+  cluster: string;
+  activeSince: string;
+  state: 'Firing' | 'Pending' | 'Resolved';
+  value: string;
+  resource: string;
+}
+
+interface AlertRuleModification {
+  date: string;
+  user: string;
+}
+
+interface AlertRule {
+  id: string;
+  name: string;
+  description: string;
+  severity: AlertSeverity;
+  state: AlertRuleState;
+  stateProgress?: number; // For reconciling state, 0-100
+  appliedClusters?: number; // For reconciling state
+  totalClusters?: number; // For reconciling state
+  targetClusters: string[];
+  group: AlertGroup;
+  component: AlertComponent;
+  source: AlertRuleSource;
+  expression: string;
+  forDuration: string;
+  prometheusRule: string;
+  labels: string[];
+  summary: string;
+  runbookUrl?: string;
+  dashboards?: string;
+  notificationMatchers?: string[];
+  receivedBy?: string;
+  receivers?: string[];
+  createdAt: string;
+  createdBy: string;
+  modificationHistory: AlertRuleModification[];
+  activeAlerts: AlertRuleActiveAlert[];
+  enabled: boolean;
+}
+
+// Mock Alert Rules Data
+const mockAlertRules: AlertRule[] = [
+  {
+    id: 'ar1',
+    name: 'NodeCPUHigh',
+    description: 'Node CPU utilization exceeds threshold',
+    severity: 'Critical',
+    state: 'Reconciling',
+    stateProgress: 50,
+    appliedClusters: 7,
+    totalClusters: 14,
+    targetClusters: ['OCP-Prod-East', 'OCP-Prod-West', 'OCP-Stage-AppC'],
+    group: 'Cluster',
+    component: 'kube-apiserver',
+    source: 'User',
+    expression: 'intstr.FromString("kubevirt_vmi_non_evictable * on(name, namespace) group_left() kubevirt_vmi_info{phase=\'running\'} == 1"),',
+    forDuration: '60 seconds',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['label-label1', 'label2'],
+    summary: 'EtcdLeaderElectionFailed',
+    runbookUrl: 'https://mygitrunbook.com',
+    dashboards: 'ocp-perses-clusterhealthdashboard',
+    notificationMatchers: ['env=prod', 'region=us.east'],
+    receivedBy: 'Slack',
+    receivers: ['mst-it.slack.com', 'mst-critical.slack.com'],
+    createdAt: '12 July, 2025 In OCP-Prod-West cluster',
+    createdBy: 'adiadmin@nyp.com',
+    modificationHistory: [
+      { date: '12 July, 2025 12:36:01 PM', user: 'person1@company.com' },
+      { date: '18 July, 2025 02:12:19 AM', user: 'person2@company.com' },
+    ],
+    activeAlerts: [
+      { id: 'aa1', message: 'Node k8s-node-01 CPU utilization is critically high (96.2%).', cluster: 'OCP-Prod-East', activeSince: 'Jul 15, 2025, 8:14 AM', state: 'Firing', value: '---', resource: 'k8s-node-01' },
+      { id: 'aa2', message: 'Node k8s-node-04 CPU utilization is critically high (95.8%).', cluster: 'OCP-Prod-East', activeSince: 'Jul 15, 2025, 8:20 AM', state: 'Firing', value: '---', resource: 'k8s-node-04' },
+      { id: 'aa3', message: 'Node k8s-node-02 CPU utilization is critically high (98.1%).', cluster: 'OCP-Prod-West', activeSince: 'Jul 15, 2025, 8:25 AM', state: 'Firing', value: '---', resource: 'k8s-node-02' },
+      { id: 'aa4', message: 'Node k8s-node-03 CPU utilization is critically high (97.5%).', cluster: 'OCP-Stage-AppC', activeSince: 'Jul 15, 2025, 8:14 AM', state: 'Firing', value: '---', resource: 'k8s-node-01' },
+    ],
+    enabled: true,
+  },
+  {
+    id: 'ar2',
+    name: 'API Server Request Latency High',
+    description: 'API Server request latency exceeds threshold',
+    severity: 'Warning',
+    state: 'Active',
+    targetClusters: ['OCP-Prod-East'],
+    group: 'Cluster',
+    component: 'kube-apiserver',
+    source: 'User',
+    expression: 'histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket[5m])) by (le)) > 1',
+    forDuration: '5 minutes',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['api', 'latency'],
+    summary: 'API Server latency is high',
+    createdAt: '10 July, 2025',
+    createdBy: 'admin@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+  {
+    id: 'ar3',
+    name: 'Kube-State-Metrics Down',
+    description: 'Kube-state-metrics is not running',
+    severity: 'Critical',
+    state: 'Partial success',
+    targetClusters: ['OCP-Prod-East', 'OCP-Prod-West', 'OCP-Stage-AppC', 'OCP-Dev-1', 'OCP-Dev-2'],
+    group: 'Cluster',
+    component: 'kube-apiserver',
+    source: 'User',
+    expression: 'absent(up{job="kube-state-metrics"} == 1)',
+    forDuration: '2 minutes',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['monitoring'],
+    summary: 'Kube-state-metrics is down',
+    createdAt: '5 July, 2025',
+    createdBy: 'admin@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+  {
+    id: 'ar4',
+    name: 'Cluster Storage Disk Usage Critical',
+    description: 'Cluster storage disk usage exceeds 90%',
+    severity: 'Critical',
+    state: 'Failed',
+    targetClusters: ['OCP-Prod-East', 'OCP-Prod-West', 'OCP-Stage-AppC', 'OCP-Dev-1'],
+    group: 'Cluster',
+    component: 'kube-apiserver',
+    source: 'User',
+    expression: 'node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.1',
+    forDuration: '10 minutes',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['storage', 'disk'],
+    summary: 'Disk usage is critical',
+    createdAt: '1 July, 2025',
+    createdBy: 'admin@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+  {
+    id: 'ar5',
+    name: 'ImageRegistryPersistentVolumeFull',
+    description: 'Image registry PV is full',
+    severity: 'Critical',
+    state: 'Failed',
+    targetClusters: ['OCP-Prod-East', 'OCP-Prod-West', 'OCP-Stage-AppC', 'OCP-Dev-1', 'OCP-Dev-2', 'OCP-Dev-3', 'OCP-Test-1'],
+    group: 'Namespace',
+    component: 'kube-apiserver',
+    source: 'User',
+    expression: 'kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"image-registry.*"} / kubelet_volume_stats_capacity_bytes < 0.05',
+    forDuration: '5 minutes',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['registry', 'storage'],
+    summary: 'Image registry PV is nearly full',
+    createdAt: '28 June, 2025',
+    createdBy: 'admin@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+  {
+    id: 'ar6',
+    name: 'MDSCacheUsageHigh',
+    description: 'MDS cache usage is high',
+    severity: 'Critical',
+    state: 'Failed',
+    targetClusters: ['OCP-Prod-East', 'OCP-Prod-West', 'OCP-Stage-AppC', 'OCP-Dev-1', 'OCP-Dev-2', 'OCP-Dev-3', 'OCP-Test-1', 'OCP-Test-2'],
+    group: 'Cluster',
+    component: 'kube-apiserver',
+    source: 'Platform',
+    expression: 'ceph_mds_cache_size_bytes / ceph_mds_cache_limit_bytes > 0.9',
+    forDuration: '10 minutes',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['ceph', 'mds'],
+    summary: 'MDS cache usage exceeds 90%',
+    createdAt: '25 June, 2025',
+    createdBy: 'platform@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+  {
+    id: 'ar7',
+    name: 'Etcd Quorum Lost',
+    description: 'Etcd cluster has lost quorum',
+    severity: 'Warning',
+    state: 'Active',
+    targetClusters: Array.from({ length: 19 }, (_, i) => `Cluster-${i + 1}`),
+    group: 'Cluster',
+    component: 'etcd',
+    source: 'User',
+    expression: 'sum(etcd_server_has_leader) by (cluster) < count(etcd_server_has_leader) by (cluster)',
+    forDuration: '1 minute',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['etcd', 'quorum'],
+    summary: 'Etcd quorum is lost',
+    createdAt: '20 June, 2025',
+    createdBy: 'admin@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+  {
+    id: 'ar8',
+    name: 'MDSCacheUsageHigh',
+    description: 'MDS cache usage is high (namespace level)',
+    severity: 'Warning',
+    state: 'Active',
+    targetClusters: ['OCP-Prod-East'],
+    group: 'Namespace',
+    component: 'etcd',
+    source: 'Platform',
+    expression: 'ceph_mds_cache_size_bytes / ceph_mds_cache_limit_bytes > 0.8',
+    forDuration: '5 minutes',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['ceph', 'mds'],
+    summary: 'MDS cache usage exceeds 80%',
+    createdAt: '15 June, 2025',
+    createdBy: 'platform@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+  {
+    id: 'ar9',
+    name: 'Virtual Machine Memory Exhausted',
+    description: 'Virtual machine memory is exhausted',
+    severity: 'Critical',
+    state: 'Reconciling',
+    stateProgress: 75,
+    appliedClusters: 3,
+    totalClusters: 4,
+    targetClusters: ['OCP-Prod-East', 'OCP-Prod-West', 'OCP-Stage-AppC', 'OCP-Dev-1'],
+    group: 'Namespace',
+    component: 'Pod',
+    source: 'User',
+    expression: 'kubevirt_vmi_memory_used_bytes / kubevirt_vmi_memory_available_bytes > 0.95',
+    forDuration: '5 minutes',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['vm', 'memory'],
+    summary: 'VM memory is exhausted',
+    createdAt: '10 June, 2025',
+    createdBy: 'admin@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+  {
+    id: 'ar10',
+    name: 'VMCannotBeEvicted',
+    description: 'VM cannot be evicted',
+    severity: 'Critical',
+    state: 'Reconciling',
+    stateProgress: 30,
+    appliedClusters: 3,
+    totalClusters: 11,
+    targetClusters: Array.from({ length: 11 }, (_, i) => `VM-Cluster-${i + 1}`),
+    group: 'Namespace',
+    component: 'Pod',
+    source: 'Platform',
+    expression: 'kubevirt_vmi_non_evictable == 1',
+    forDuration: '10 minutes',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['vm', 'eviction'],
+    summary: 'VM cannot be evicted',
+    createdAt: '5 June, 2025',
+    createdBy: 'platform@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+  {
+    id: 'ar11',
+    name: 'NodeCPUHigh',
+    description: 'Node CPU high at namespace level',
+    severity: 'Critical',
+    state: 'Active',
+    targetClusters: Array.from({ length: 18 }, (_, i) => `NS-Cluster-${i + 1}`),
+    group: 'Namespace',
+    component: 'kube-apiserver',
+    source: 'User',
+    expression: 'node:node_cpu_utilisation:avg1m > 0.9',
+    forDuration: '5 minutes',
+    prometheusRule: 'PrometheusRule-default (namespace: openshift-monitoring)',
+    labels: ['cpu', 'node'],
+    summary: 'Node CPU is high',
+    createdAt: '1 June, 2025',
+    createdBy: 'admin@company.com',
+    modificationHistory: [],
+    activeAlerts: [],
+    enabled: true,
+  },
+];
 
 // ========================================
 // MOCK DATA GENERATION
@@ -2826,10 +3145,33 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, trend, color 
 // ========================================
 
 const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
-  // Main page tabs
-  const [mainPageTab, setMainPageTab] = React.useState<string | number>('alerts');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Main page tabs - initialize from URL params
+  const [mainPageTab, setMainPageTab] = React.useState<string | number>(() => {
+    const tab = searchParams.get('tab');
+    return tab === 'management' ? 'management' : tab === 'incidents' ? 'incidents' : 'alerts';
+  });
   const [alertsSubTab, setAlertsSubTab] = React.useState<'clusters-health' | 'firing-alerts'>('clusters-health');
-  const [managementSubTab, setManagementSubTab] = React.useState<string | number>('alert-rules');
+  const [managementSubTab, setManagementSubTab] = React.useState<string | number>(() => {
+    const subtab = searchParams.get('subtab');
+    return subtab === 'silence-rules' ? 'silence-rules' : 'alert-rules';
+  });
+  
+  // Handle URL parameter changes for tab navigation
+  React.useEffect(() => {
+    const tab = searchParams.get('tab');
+    const subtab = searchParams.get('subtab');
+    if (tab === 'management') {
+      setMainPageTab('management');
+      if (subtab === 'silence-rules') {
+        setManagementSubTab('silence-rules');
+      } else {
+        setManagementSubTab('alert-rules');
+      }
+    }
+  }, [searchParams]);
   
   // View state
   const [isDrillDownView, setIsDrillDownView] = React.useState(false);
@@ -2928,6 +3270,39 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Drawer state
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
   const [selectedAlertDetail, setSelectedAlertDetail] = React.useState<AlertData | null>(null);
+  
+  // Alert Rule Drawer state
+  const [isAlertRuleDrawerOpen, setIsAlertRuleDrawerOpen] = React.useState(false);
+  const [selectedAlertRule, setSelectedAlertRule] = React.useState<AlertRule | null>(null);
+  const [alertRuleDrawerTab, setAlertRuleDrawerTab] = React.useState<string | number>('details');
+  const [alertRuleExpandedClusters, setAlertRuleExpandedClusters] = React.useState<string[]>([]);
+  const [alertRuleExpandedAlerts, setAlertRuleExpandedAlerts] = React.useState<string[]>([]);
+  const [alertRuleTimelineRange, setAlertRuleTimelineRange] = React.useState('30 minutes');
+  const [isAlertRuleTimelineRangeOpen, setIsAlertRuleTimelineRangeOpen] = React.useState(false);
+  const [alertRuleTargetClusterFilter, setAlertRuleTargetClusterFilter] = React.useState<string>('all');
+  const [isAlertRuleTargetClusterFilterOpen, setIsAlertRuleTargetClusterFilterOpen] = React.useState(false);
+  
+  // Alert Rules Filter Panel state
+  const [isAlertRulesFilterPanelOpen, setIsAlertRulesFilterPanelOpen] = React.useState(false);
+  const [alertRulesClusterFilter, setAlertRulesClusterFilter] = React.useState<string[]>([]);
+  const [alertRulesNamespaceFilter, setAlertRulesNamespaceFilter] = React.useState<string[]>([]);
+  const [alertRulesGroupFilter, setAlertRulesGroupFilter] = React.useState<AlertGroup[]>([]);
+  const [alertRulesComponentFilter, setAlertRulesComponentFilter] = React.useState<AlertComponent[]>([]);
+  const [alertRulesSeverityFilter, setAlertRulesSeverityFilter] = React.useState<AlertSeverity[]>([]);
+  const [alertRulesStateFilter, setAlertRulesStateFilter] = React.useState<AlertRuleState[]>([]);
+  const [alertRulesSourceFilter, setAlertRulesSourceFilter] = React.useState<AlertRuleSource[]>([]);
+  const [alertRulesSearchValue, setAlertRulesSearchValue] = React.useState('');
+  const [isAlertRulesComponentDropdownOpen, setIsAlertRulesComponentDropdownOpen] = React.useState(false);
+  
+  // Alert Rules Selection and Actions state
+  const [selectedAlertRuleIds, setSelectedAlertRuleIds] = React.useState<string[]>([]);
+  const [alertRuleActionMenuOpen, setAlertRuleActionMenuOpen] = React.useState<string | null>(null);
+  const [isBulkActionsMenuOpen, setIsBulkActionsMenuOpen] = React.useState(false);
+  
+  // Disable Alert Rule Modal state
+  const [isDisableAlertRuleModalOpen, setIsDisableAlertRuleModalOpen] = React.useState(false);
+  const [alertRulesToDisable, setAlertRulesToDisable] = React.useState<AlertRule[]>([]);
+  const [disableAlertRuleExpandedIds, setDisableAlertRuleExpandedIds] = React.useState<string[]>([]);
 
   // Toast notifications
   const [toasts, setToasts] = React.useState<ToastNotification[]>([]);
@@ -4589,6 +4964,35 @@ spec:
               </div>
             )}
 
+            {/* Management Sub-tabs - styled like Alerts sub-tabs */}
+            {mainPageTab === 'management' && (
+              <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+                <Tabs 
+                  activeKey={managementSubTab} 
+                  onSelect={(_, key) => setManagementSubTab(key)}
+                  aria-label="Management sub-tabs" 
+                  variant="secondary"
+                >
+                  <Tab 
+                    eventKey="alert-rules" 
+                    title={
+                      <TabTitleText>
+                        Alert rules <Badge isRead style={{ marginLeft: '8px' }}>21</Badge>
+                      </TabTitleText>
+                    } 
+                  />
+                  <Tab 
+                    eventKey="silence-rules" 
+                    title={
+                      <TabTitleText>
+                        Silence rules <Badge isRead style={{ marginLeft: '8px' }}>2</Badge>
+                      </TabTitleText>
+                    } 
+                  />
+                </Tabs>
+              </div>
+            )}
+
           </Stack>
         </div>
 
@@ -5332,96 +5736,642 @@ spec:
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           <Stack hasGutter>
             <StackItem>
-              <Tabs activeKey={managementSubTab} onSelect={(_, key) => setManagementSubTab(key)} aria-label="Management sub-tabs">
-                <Tab eventKey="alert-rules" title="Alert Rules" />
-                <Tab eventKey="silence-rules" title="Silence Rules" />
-              </Tabs>
-            </StackItem>
-            <StackItem>
               {managementSubTab === 'alert-rules' && (
-                <Card>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  {/* Filter Panel - Matching Alerts filter panel style */}
+                  {isAlertRulesFilterPanelOpen && (
+                    <div style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0 }}>
+                      <Card>
+                        <CardHeader>
+                          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                            <FlexItem><CardTitle><FilterIcon /> Filters</CardTitle></FlexItem>
+                            <FlexItem>
+                              <Button variant="plain" onClick={() => setIsAlertRulesFilterPanelOpen(false)}><TimesIcon /></Button>
+                            </FlexItem>
+                          </Flex>
+                        </CardHeader>
+                        <CardBody>
+                          <Stack hasGutter>
+                            {/* Severity - Labels */}
+                            <StackItem>
+                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Severity</strong></Content>
+                              <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                                {(['Critical', 'Warning', 'Info'] as AlertSeverity[]).map(sev => (
+                                  <FlexItem key={sev}>
+                                    <Label
+                                      color={getSeverityLabelColor(sev)}
+                                      icon={getSeverityIcon(sev)}
+                                      onClick={() => {
+                                        if (alertRulesSeverityFilter.includes(sev)) {
+                                          setAlertRulesSeverityFilter(alertRulesSeverityFilter.filter(s => s !== sev));
+                                        } else {
+                                          setAlertRulesSeverityFilter([...alertRulesSeverityFilter, sev]);
+                                        }
+                                      }}
+                                      style={{ 
+                                        cursor: 'pointer', 
+                                        opacity: alertRulesSeverityFilter.length > 0 && !alertRulesSeverityFilter.includes(sev) ? 0.5 : 1,
+                                        outline: alertRulesSeverityFilter.includes(sev) ? '2px solid var(--pf-t--global--border--color--clicked)' : 'none',
+                                        outlineOffset: '1px'
+                                      }}
+                                    >
+                                      {sev}
+                                    </Label>
+                                  </FlexItem>
+                                ))}
+                              </Flex>
+                            </StackItem>
+                            <Divider />
+                            {/* Impact Group - Checkboxes */}
+                            <StackItem>
+                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Impact group</strong></Content>
+                              <Stack hasGutter>
+                                {(['Cluster', 'Namespace'] as AlertGroup[]).map(grp => (
+                                  <StackItem key={grp}>
+                                    <Checkbox
+                                      id={`ar-grp-${grp}`}
+                                      label={grp}
+                                      isChecked={alertRulesGroupFilter.includes(grp)}
+                                      onChange={(_, checked) => {
+                                        if (checked) setAlertRulesGroupFilter([...alertRulesGroupFilter, grp]);
+                                        else setAlertRulesGroupFilter(alertRulesGroupFilter.filter(g => g !== grp));
+                                      }}
+                                    />
+                                  </StackItem>
+                                ))}
+                              </Stack>
+                            </StackItem>
+                            <Divider />
+                            {/* Component - Dropdown */}
+                            <StackItem>
+                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Component</strong></Content>
+                              <Select
+                                role="menu"
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    onClick={() => setIsAlertRulesComponentDropdownOpen(!isAlertRulesComponentDropdownOpen)}
+                                    isExpanded={isAlertRulesComponentDropdownOpen}
+                                    style={{ width: '100%' }}
+                                  >
+                                    {alertRulesComponentFilter.length === 0 ? 'All components' : `${alertRulesComponentFilter.length} selected`}
+                                  </MenuToggle>
+                                )}
+                                onSelect={(_, value) => {
+                                  const comp = value as AlertComponent;
+                                  if (alertRulesComponentFilter.includes(comp)) {
+                                    setAlertRulesComponentFilter(alertRulesComponentFilter.filter(c => c !== comp));
+                                  } else {
+                                    setAlertRulesComponentFilter([...alertRulesComponentFilter, comp]);
+                                  }
+                                }}
+                                isOpen={isAlertRulesComponentDropdownOpen}
+                                onOpenChange={setIsAlertRulesComponentDropdownOpen}
+                              >
+                                <SelectList>
+                                  {(['kube-apiserver', 'etcd', 'Storage', 'Network', 'Scheduler', 'Controller', 'Workload', 'Pod', 'Quota'] as AlertComponent[]).map(comp => (
+                                    <SelectOption 
+                                      key={comp} 
+                                      value={comp}
+                                      hasCheckbox
+                                      isSelected={alertRulesComponentFilter.includes(comp)}
+                                    >
+                                      {comp}
+                                    </SelectOption>
+                                  ))}
+                                </SelectList>
+                              </Select>
+                            </StackItem>
+                            <Divider />
+                            {/* State - Checkboxes */}
+                            <StackItem>
+                              <Content component="small" className="pf-v6-u-mb-sm"><strong>State</strong></Content>
+                              <Stack hasGutter>
+                                {(['Active', 'Reconciling', 'Partial success', 'Failed', 'Disabled'] as AlertRuleState[]).map(state => (
+                                  <StackItem key={state}>
+                                    <Checkbox
+                                      id={`ar-state-${state}`}
+                                      label={state}
+                                      isChecked={alertRulesStateFilter.includes(state)}
+                                      onChange={(_, checked) => {
+                                        if (checked) setAlertRulesStateFilter([...alertRulesStateFilter, state]);
+                                        else setAlertRulesStateFilter(alertRulesStateFilter.filter(s => s !== state));
+                                      }}
+                                    />
+                                  </StackItem>
+                                ))}
+                              </Stack>
+                            </StackItem>
+                            <Divider />
+                            {/* Source - Checkboxes */}
+                            <StackItem>
+                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Source</strong></Content>
+                              <Stack hasGutter>
+                                {(['User', 'Platform'] as AlertRuleSource[]).map(source => (
+                                  <StackItem key={source}>
+                                    <Checkbox
+                                      id={`ar-source-${source}`}
+                                      label={source}
+                                      isChecked={alertRulesSourceFilter.includes(source)}
+                                      onChange={(_, checked) => {
+                                        if (checked) setAlertRulesSourceFilter([...alertRulesSourceFilter, source]);
+                                        else setAlertRulesSourceFilter(alertRulesSourceFilter.filter(s => s !== source));
+                                      }}
+                                    />
+                                  </StackItem>
+                                ))}
+                              </Stack>
+                            </StackItem>
+                            <Divider />
+                            {/* Clear Filters */}
+                            <StackItem>
+                              <Button 
+                                variant="link" 
+                                onClick={() => {
+                                  setAlertRulesClusterFilter([]);
+                                  setAlertRulesNamespaceFilter([]);
+                                  setAlertRulesGroupFilter([]);
+                                  setAlertRulesComponentFilter([]);
+                                  setAlertRulesSeverityFilter([]);
+                                  setAlertRulesStateFilter([]);
+                                  setAlertRulesSourceFilter([]);
+                                }}
+                              >
+                                Clear all filters
+                              </Button>
+                            </StackItem>
+                          </Stack>
+                        </CardBody>
+                      </Card>
+                    </div>
+                  )}
+                  {/* Main Table Card */}
+                <Card style={{ flex: 1 }}>
                   <CardHeader>
                     <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem>
-                        <CardTitle>Alert Rules</CardTitle>
+                        {/* Toolbar area */}
+                        <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <FlexItem>
+                            <Checkbox 
+                              id="select-all-rules" 
+                              isChecked={selectedAlertRuleIds.length === mockAlertRules.length && mockAlertRules.length > 0}
+                              onChange={(_, checked) => {
+                                if (checked) {
+                                  setSelectedAlertRuleIds(mockAlertRules.map(r => r.id));
+                                } else {
+                                  setSelectedAlertRuleIds([]);
+                                }
+                              }}
+                            />
+                          </FlexItem>
+                          <FlexItem>
+                            <Button 
+                              variant={isAlertRulesFilterPanelOpen ? 'secondary' : 'tertiary'} 
+                              icon={<FilterIcon />}
+                              onClick={() => setIsAlertRulesFilterPanelOpen(!isAlertRulesFilterPanelOpen)}
+                            >
+                              Filter
+                              {(alertRulesClusterFilter.length + alertRulesNamespaceFilter.length + alertRulesGroupFilter.length + alertRulesComponentFilter.length + alertRulesSeverityFilter.length + alertRulesStateFilter.length + alertRulesSourceFilter.length) > 0 && (
+                                <Badge style={{ marginLeft: '8px' }}>{alertRulesClusterFilter.length + alertRulesNamespaceFilter.length + alertRulesGroupFilter.length + alertRulesComponentFilter.length + alertRulesSeverityFilter.length + alertRulesStateFilter.length + alertRulesSourceFilter.length}</Badge>
+                              )}
+                            </Button>
+                          </FlexItem>
+                          <FlexItem>
+                            <SearchInput 
+                              placeholder="Search by rule name" 
+                              style={{ width: '250px' }} 
+                              value={alertRulesSearchValue}
+                              onChange={(_, value) => setAlertRulesSearchValue(value)}
+                              onClear={() => setAlertRulesSearchValue('')}
+                            />
+                          </FlexItem>
+                          <FlexItem>
+                            <Button variant="plain" icon={<ColumnsIcon />} aria-label="Manage columns" />
+                          </FlexItem>
+                        </Flex>
                       </FlexItem>
                       <FlexItem>
-                        <Button variant="primary" icon={<PlusIcon />}>Create Alert Rule</Button>
+                        <Flex gap={{ default: 'gapMd' }}>
+                          <FlexItem>
+                            {/* Bulk Actions Dropdown */}
+                            <Dropdown
+                              isOpen={isBulkActionsMenuOpen}
+                              onOpenChange={setIsBulkActionsMenuOpen}
+                              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                <MenuToggle 
+                                  ref={toggleRef} 
+                                  variant="secondary" 
+                                  onClick={() => setIsBulkActionsMenuOpen(!isBulkActionsMenuOpen)}
+                                  isDisabled={selectedAlertRuleIds.length === 0}
+                                >
+                                  Actions {selectedAlertRuleIds.length > 0 && <Badge isRead style={{ marginLeft: '4px' }}>{selectedAlertRuleIds.length}</Badge>}
+                                </MenuToggle>
+                              )}
+                            >
+                              <DropdownList>
+                                <DropdownItem 
+                                  key="disable"
+                                  onClick={() => {
+                                    const rulesToDisable = mockAlertRules.filter(r => selectedAlertRuleIds.includes(r.id));
+                                    setAlertRulesToDisable(rulesToDisable);
+                                    setIsDisableAlertRuleModalOpen(true);
+                                    setIsBulkActionsMenuOpen(false);
+                                  }}
+                                >
+                                  <div>
+                                    <div><strong>Disable</strong></div>
+                                    <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Stop the rule from running and sending alerts.</div>
+                                  </div>
+                                </DropdownItem>
+                                <DropdownItem key="edit-labels">
+                                  <div>
+                                    <div><strong>Edit labels</strong></div>
+                                    <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Modify labels for all selected alert rules.</div>
+                                  </div>
+                                </DropdownItem>
+                                <DropdownItem key="edit-components">
+                                  <div>
+                                    <div><strong>Edit components</strong></div>
+                                    <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Change the component type for all selected alert rules.</div>
+                                  </div>
+                                </DropdownItem>
+                                <Divider />
+                                <DropdownItem key="delete" isDisabled style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                  <div>
+                                    <div>Delete</div>
+                                  </div>
+                                </DropdownItem>
+                              </DropdownList>
+                            </Dropdown>
+                          </FlexItem>
+                          <FlexItem>
+                            <Button variant="primary" onClick={() => navigate('/observe/alerting/create-alert-rule')}>Create a new alert rule</Button>
+                          </FlexItem>
+                        </Flex>
                       </FlexItem>
                     </Flex>
                   </CardHeader>
-                  <CardBody>
+                  <CardBody style={{ padding: 0 }}>
                     <Table aria-label="Alert rules table" variant="compact">
                       <Thead>
                         <Tr>
-                          <Th>Rule Name</Th>
-                          <Th>Severity</Th>
-                          <Th>Clusters</Th>
-                          <Th>Status</Th>
-                          <Th>Last Triggered</Th>
-                          <Th>Actions</Th>
+                          <Th screenReaderText="Select" />
+                          <Th>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <FlexItem>Alert rule Name</FlexItem>
+                              <FlexItem><SortAmountDownIcon /></FlexItem>
+                              <FlexItem>
+                                <Tooltip content="Name of the alert rule">
+                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                </Tooltip>
+                              </FlexItem>
+                            </Flex>
+                          </Th>
+                          <Th>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <FlexItem>State</FlexItem>
+                              <FlexItem><SortAmountDownIcon /></FlexItem>
+                            </Flex>
+                          </Th>
+                          <Th>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <FlexItem>Severity</FlexItem>
+                              <FlexItem><SortAmountDownIcon /></FlexItem>
+                            </Flex>
+                          </Th>
+                          <Th>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <FlexItem>Target clusters</FlexItem>
+                              <FlexItem><SortAmountDownIcon /></FlexItem>
+                              <FlexItem>
+                                <Tooltip content="Number of clusters this rule applies to">
+                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                </Tooltip>
+                              </FlexItem>
+                            </Flex>
+                          </Th>
+                          <Th>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <FlexItem>Group</FlexItem>
+                              <FlexItem><SortAmountDownIcon /></FlexItem>
+                              <FlexItem>
+                                <Tooltip content="Group categorization for the alert">
+                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                </Tooltip>
+                              </FlexItem>
+                            </Flex>
+                          </Th>
+                          <Th>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <FlexItem>Component</FlexItem>
+                              <FlexItem><SortAmountDownIcon /></FlexItem>
+                              <FlexItem>
+                                <Tooltip content="Component that the alert relates to">
+                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                </Tooltip>
+                              </FlexItem>
+                            </Flex>
+                          </Th>
+                          <Th>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <FlexItem>Source</FlexItem>
+                              <FlexItem><SortAmountDownIcon /></FlexItem>
+                              <FlexItem>
+                                <Tooltip content="Origin of the alert rule (User or Platform)">
+                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                </Tooltip>
+                              </FlexItem>
+                            </Flex>
+                          </Th>
+                          <Th screenReaderText="Enabled" />
+                          <Th screenReaderText="Actions" />
                         </Tr>
                       </Thead>
                       <Tbody>
-                        <Tr>
-                          <Td><strong>HighCPUUsage</strong></Td>
-                          <Td><Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>Warning</Label></Td>
-                          <Td><Badge isRead>45 clusters</Badge></Td>
-                          <Td><Label color="green" isCompact>Active</Label></Td>
-                          <Td>2 hours ago</Td>
-                          <Td>
-                            <Button variant="link" isInline>Edit</Button>
-                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Disable</Button>
-                          </Td>
-                        </Tr>
-                        <Tr>
-                          <Td><strong>NodeNotReady</strong></Td>
-                          <Td><Label color="red" isCompact icon={<ExclamationCircleIcon />}>Critical</Label></Td>
-                          <Td><Badge isRead>45 clusters</Badge></Td>
-                          <Td><Label color="green" isCompact>Active</Label></Td>
-                          <Td>15 min ago</Td>
-                          <Td>
-                            <Button variant="link" isInline>Edit</Button>
-                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Disable</Button>
-                          </Td>
-                        </Tr>
-                        <Tr>
-                          <Td><strong>PodCrashLooping</strong></Td>
-                          <Td><Label color="red" isCompact icon={<ExclamationCircleIcon />}>Critical</Label></Td>
-                          <Td><Badge isRead>38 clusters</Badge></Td>
-                          <Td><Label color="green" isCompact>Active</Label></Td>
-                          <Td>5 min ago</Td>
-                          <Td>
-                            <Button variant="link" isInline>Edit</Button>
-                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Disable</Button>
-                          </Td>
-                        </Tr>
-                        <Tr>
-                          <Td><strong>EtcdHighLatency</strong></Td>
-                          <Td><Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>Warning</Label></Td>
-                          <Td><Badge isRead>45 clusters</Badge></Td>
-                          <Td><Label color="grey" isCompact>Disabled</Label></Td>
-                          <Td>-</Td>
-                          <Td>
-                            <Button variant="link" isInline>Edit</Button>
-                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Enable</Button>
-                          </Td>
-                        </Tr>
-                        <Tr>
-                          <Td><strong>ClusterVersionDegraded</strong></Td>
-                          <Td><Label color="purple" isCompact icon={<InfoCircleIcon />}>Info</Label></Td>
-                          <Td><Badge isRead>45 clusters</Badge></Td>
-                          <Td><Label color="green" isCompact>Active</Label></Td>
-                          <Td>1 day ago</Td>
-                          <Td>
-                            <Button variant="link" isInline>Edit</Button>
-                            <Button variant="link" isInline style={{ marginLeft: '8px' }}>Disable</Button>
-                          </Td>
-                        </Tr>
+                        {mockAlertRules
+                          .filter(rule => {
+                            // Search filter
+                            if (alertRulesSearchValue && !rule.name.toLowerCase().includes(alertRulesSearchValue.toLowerCase())) return false;
+                            // Cluster filter
+                            if (alertRulesClusterFilter.length > 0 && !rule.targetClusters.some(c => alertRulesClusterFilter.includes(c))) return false;
+                            // Group filter
+                            if (alertRulesGroupFilter.length > 0 && !alertRulesGroupFilter.includes(rule.group)) return false;
+                            // Component filter
+                            if (alertRulesComponentFilter.length > 0 && !alertRulesComponentFilter.includes(rule.component)) return false;
+                            // Severity filter
+                            if (alertRulesSeverityFilter.length > 0 && !alertRulesSeverityFilter.includes(rule.severity)) return false;
+                            // State filter
+                            if (alertRulesStateFilter.length > 0 && !alertRulesStateFilter.includes(rule.state)) return false;
+                            // Source filter
+                            if (alertRulesSourceFilter.length > 0 && !alertRulesSourceFilter.includes(rule.source)) return false;
+                            return true;
+                          })
+                          .map((rule) => (
+                          <Tr key={rule.id}>
+                            <Td>
+                              <Checkbox 
+                                id={`rule-${rule.id}`} 
+                                isChecked={selectedAlertRuleIds.includes(rule.id)}
+                                onChange={(_, checked) => {
+                                  if (checked) {
+                                    setSelectedAlertRuleIds([...selectedAlertRuleIds, rule.id]);
+                                  } else {
+                                    setSelectedAlertRuleIds(selectedAlertRuleIds.filter(id => id !== rule.id));
+                                  }
+                                }}
+                              />
+                            </Td>
+                            <Td>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                <FlexItem>
+                                  <Badge style={{ backgroundColor: 'var(--pf-t--global--color--status--info--default)', color: 'white' }}>AR</Badge>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button 
+                                    variant="link" 
+                                    isInline 
+                                    onClick={() => {
+                                      setSelectedAlertRule(rule);
+                                      setIsAlertRuleDrawerOpen(true);
+                                      setAlertRuleDrawerTab('details');
+                                    }}
+                                  >
+                                    {rule.name}
+                                  </Button>
+                                </FlexItem>
+                              </Flex>
+                            </Td>
+                            <Td>
+                              {rule.state === 'Active' && (
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+                                  <span>Active</span>
+                                </Flex>
+                              )}
+                              {rule.state === 'Reconciling' && (
+                                <Popover
+                                  headerIcon={<SyncIcon />}
+                                  headerContent="Reconciliation in progress"
+                                  bodyContent={
+                                    <Stack hasGutter>
+                                      <StackItem>
+                                        <Content>The rule configuration has been accepted but is currently being processed. You'll receive a notification when processing is complete.</Content>
+                                      </StackItem>
+                                      <StackItem>
+                                        <div style={{ marginBottom: '8px' }}>Configuration in progress</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          <Progress 
+                                            value={rule.stateProgress || 0} 
+                                            size="sm" 
+                                            style={{ flex: 1 }}
+                                            aria-label="Progress"
+                                          />
+                                          <span>{rule.stateProgress || 0}%</span>
+                                        </div>
+                                        <div style={{ marginTop: '8px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                          Rule applied to {rule.appliedClusters || 0} of {rule.totalClusters || 0} clusters
+                                        </div>
+                                      </StackItem>
+                                      <StackItem>
+                                        <Flex gap={{ default: 'gapMd' }}>
+                                          <Button variant="secondary" size="sm">Close</Button>
+                                          <Button variant="link" size="sm">Learn more</Button>
+                                        </Flex>
+                                      </StackItem>
+                                    </Stack>
+                                  }
+                                >
+                                  <Button variant="link" isInline style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <SyncIcon /> Reconciling
+                                  </Button>
+                                </Popover>
+                              )}
+                              {rule.state === 'Partial success' && (
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <ExclamationCircleIcon color="var(--pf-t--global--color--status--warning--default)" />
+                                  <span>Partial success</span>
+                                </Flex>
+                              )}
+                              {rule.state === 'Failed' && (
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <BanIcon color="var(--pf-t--global--color--status--danger--default)" />
+                                  <span>Failed</span>
+                                </Flex>
+                              )}
+                              {rule.state === 'Disabled' && (
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <PauseCircleIcon color="var(--pf-t--global--text--color--subtle)" />
+                                  <span>Disabled</span>
+                                </Flex>
+                              )}
+                            </Td>
+                            <Td>
+                              <Label 
+                                color={rule.severity === 'Critical' ? 'red' : rule.severity === 'Warning' ? 'orange' : 'purple'} 
+                                isCompact 
+                                icon={rule.severity === 'Critical' ? <ExclamationCircleIcon /> : rule.severity === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                              >
+                                {rule.severity}
+                              </Label>
+                            </Td>
+                            <Td>
+                              <Popover
+                                headerContent={`This alert rule is applied on ${rule.targetClusters.length} clusters`}
+                                bodyContent={
+                                  <Stack hasGutter>
+                                    <StackItem>
+                                      <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                                        {rule.targetClusters.slice(0, 5).map((cluster, idx) => (
+                                          <li key={idx}>{cluster}</li>
+                                        ))}
+                                      </ul>
+                                    </StackItem>
+                                    {rule.targetClusters.length > 5 && (
+                                      <StackItem>
+                                        <Button 
+                                          variant="link" 
+                                          isInline
+                                          onClick={() => {
+                                            setSelectedAlertRule(rule);
+                                            setIsAlertRuleDrawerOpen(true);
+                                            setAlertRuleDrawerTab('details');
+                                          }}
+                                        >
+                                          See alert rule details
+                                        </Button>
+                                      </StackItem>
+                                    )}
+                                  </Stack>
+                                }
+                              >
+                                <Button variant="link" isInline>
+                                  {rule.targetClusters.length} cluster{rule.targetClusters.length > 1 ? 's' : ''}
+                                </Button>
+                              </Popover>
+                            </Td>
+                            <Td>{rule.group}</Td>
+                            <Td>{rule.component}</Td>
+                            <Td>{rule.source}</Td>
+                            <Td>
+                              <Switch 
+                                id={`switch-${rule.id}`} 
+                                isChecked={rule.enabled} 
+                                aria-label={`Enable ${rule.name}`}
+                              />
+                            </Td>
+                            <Td>
+                              <Dropdown
+                                isOpen={alertRuleActionMenuOpen === rule.id}
+                                onOpenChange={(isOpen) => setAlertRuleActionMenuOpen(isOpen ? rule.id : null)}
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle 
+                                    ref={toggleRef} 
+                                    variant="plain" 
+                                    aria-label="Actions"
+                                    onClick={() => setAlertRuleActionMenuOpen(alertRuleActionMenuOpen === rule.id ? null : rule.id)}
+                                  >
+                                    <EllipsisVIcon />
+                                  </MenuToggle>
+                                )}
+                                popperProps={{ position: 'right' }}
+                              >
+                                <DropdownList>
+                                  {/* User-defined alert rule actions */}
+                                  {rule.source === 'User' && (
+                                    <>
+                                      <DropdownItem key="edit">
+                                        <div>
+                                          <div><strong>Edit alert rule</strong></div>
+                                          <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Modify the criteria and notification settings for an existing alert rule.</div>
+                                        </div>
+                                      </DropdownItem>
+                                      <DropdownItem 
+                                        key="disable"
+                                        onClick={() => {
+                                          setAlertRulesToDisable([rule]);
+                                          setIsDisableAlertRuleModalOpen(true);
+                                          setAlertRuleActionMenuOpen(null);
+                                        }}
+                                      >
+                                        <div>
+                                          <div><strong>Disable</strong></div>
+                                          <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Stop the rule from running altogether.</div>
+                                        </div>
+                                      </DropdownItem>
+                                      <DropdownItem key="duplicate">
+                                        <div>
+                                          <div><strong>Duplicate</strong></div>
+                                          <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Copy an alert rule and modify as new.</div>
+                                        </div>
+                                      </DropdownItem>
+                                      <DropdownItem key="silence">
+                                        <div>
+                                          <div><strong>Silence alert rule</strong></div>
+                                          <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Temporarily stop notifications for this alert rule.</div>
+                                        </div>
+                                      </DropdownItem>
+                                      <Divider />
+                                      <DropdownItem key="delete" isDanger>
+                                        <div>
+                                          <div><strong>Delete</strong></div>
+                                        </div>
+                                      </DropdownItem>
+                                    </>
+                                  )}
+                                  {/* Platform-defined alert rule actions */}
+                                  {rule.source === 'Platform' && (
+                                    <>
+                                      <DropdownItem key="edit">
+                                        <div>
+                                          <div><strong>Edit alert rule</strong></div>
+                                          <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Limited fields available for platform alerts.</div>
+                                        </div>
+                                      </DropdownItem>
+                                      <DropdownItem 
+                                        key="disable"
+                                        onClick={() => {
+                                          setAlertRulesToDisable([rule]);
+                                          setIsDisableAlertRuleModalOpen(true);
+                                          setAlertRuleActionMenuOpen(null);
+                                        }}
+                                      >
+                                        <div>
+                                          <div><strong>Disable</strong></div>
+                                          <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Stop the rule from running altogether.</div>
+                                        </div>
+                                      </DropdownItem>
+                                      <DropdownItem key="duplicate">
+                                        <div>
+                                          <div><strong>Duplicate</strong></div>
+                                          <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Copy an alert rule and modify as a new user-defined rule.</div>
+                                        </div>
+                                      </DropdownItem>
+                                      <DropdownItem key="silence">
+                                        <div>
+                                          <div><strong>Silence alert rule</strong></div>
+                                          <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Temporarily stop notifications for this alert rule.</div>
+                                        </div>
+                                      </DropdownItem>
+                                      <Divider />
+                                      <DropdownItem key="delete" isDisabled style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                        <div>
+                                          <div>Delete</div>
+                                          <div style={{ fontSize: '12px' }}>Available only for user defined alerts</div>
+                                        </div>
+                                      </DropdownItem>
+                                    </>
+                                  )}
+                                </DropdownList>
+                              </Dropdown>
+                            </Td>
+                          </Tr>
+                        ))}
                       </Tbody>
                     </Table>
                   </CardBody>
                 </Card>
+                </div>
               )}
               {managementSubTab === 'silence-rules' && (
                 <Card>
@@ -5757,6 +6707,672 @@ spec:
             setEditingFilterName('');
           }}>
             Done
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Alert Rule Details Drawer */}
+      {isAlertRuleDrawerOpen && selectedAlertRule && (
+      <div style={{ position: 'fixed', top: '76px', left: 0, right: 0, bottom: 0, zIndex: 400 }}>
+        <div 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            cursor: 'pointer'
+          }}
+          onClick={() => { setIsAlertRuleDrawerOpen(false); setSelectedAlertRule(null); }}
+        />
+        <div style={{ 
+          position: 'absolute', 
+          top: 0, 
+          right: 0, 
+          bottom: 0, 
+          width: '550px',
+          maxWidth: '90vw',
+          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+          boxShadow: '-4px 0 8px rgba(0, 0, 0, 0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+                <div style={{ padding: '16px', borderBottom: '1px solid var(--pf-t--global--border--color--default)', flexShrink: 0 }}>
+                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                    <FlexItem>
+                      <Title headingLevel="h2" size="lg">Alert rule details</Title>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex gap={{ default: 'gapSm' }}>
+                        <FlexItem>
+                          <Dropdown
+                            isOpen={false}
+                            onOpenChange={() => {}}
+                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                              <MenuToggle ref={toggleRef} variant="plain" aria-label="Actions">
+                                <EllipsisVIcon />
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              <DropdownItem>Edit</DropdownItem>
+                              <DropdownItem>Duplicate</DropdownItem>
+                              <DropdownItem isDanger>Delete</DropdownItem>
+                            </DropdownList>
+                          </Dropdown>
+                        </FlexItem>
+                        <FlexItem>
+                          <Button variant="plain" aria-label="Close" onClick={() => { setIsAlertRuleDrawerOpen(false); setSelectedAlertRule(null); }}>
+                            <TimesIcon />
+                          </Button>
+                        </FlexItem>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <Tabs activeKey={alertRuleDrawerTab} onSelect={(_, tabKey) => setAlertRuleDrawerTab(tabKey)} isFilled style={{ padding: '0 16px', flexShrink: 0 }}>
+                  <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
+                    <div style={{ padding: '16px', overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
+                      <Stack hasGutter>
+                        <StackItem>
+                          <DescriptionList isCompact isHorizontal>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Name</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <FlexItem>
+                                    <Badge style={{ backgroundColor: 'var(--pf-t--global--color--status--info--default)', color: 'white' }}>AR</Badge>
+                                  </FlexItem>
+                                  <FlexItem><strong>{selectedAlertRule.name}</strong></FlexItem>
+                                </Flex>
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Description</DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.description}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Target clusters</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                <Stack hasGutter>
+                                  {selectedAlertRule.targetClusters.slice(0, 5).map((cluster, idx) => (
+                                    <StackItem key={idx}>
+                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                        <FlexItem>
+                                          <Button 
+                                            variant="plain" 
+                                            onClick={() => {
+                                              if (alertRuleExpandedClusters.includes(cluster)) {
+                                                setAlertRuleExpandedClusters(alertRuleExpandedClusters.filter(c => c !== cluster));
+                                              } else {
+                                                setAlertRuleExpandedClusters([...alertRuleExpandedClusters, cluster]);
+                                              }
+                                            }}
+                                            style={{ padding: 0 }}
+                                          >
+                                            {alertRuleExpandedClusters.includes(cluster) ? <AngleDownIcon /> : <AngleRightIcon />}
+                                          </Button>
+                                        </FlexItem>
+                                        <FlexItem>
+                                          <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+                                        </FlexItem>
+                                        <FlexItem>{cluster}</FlexItem>
+                                      </Flex>
+                                      {alertRuleExpandedClusters.includes(cluster) && (
+                                        <div style={{ paddingLeft: '48px', marginTop: '8px' }}>
+                                          <DescriptionList isCompact isHorizontal>
+                                            <DescriptionListGroup>
+                                              <DescriptionListTerm>Environment</DescriptionListTerm>
+                                              <DescriptionListDescription>Production</DescriptionListDescription>
+                                            </DescriptionListGroup>
+                                            <DescriptionListGroup>
+                                              <DescriptionListTerm>Region</DescriptionListTerm>
+                                              <DescriptionListDescription>us-west-2 (Secondary)</DescriptionListDescription>
+                                            </DescriptionListGroup>
+                                            <DescriptionListGroup>
+                                              <DescriptionListTerm>Version</DescriptionListTerm>
+                                              <DescriptionListDescription>K8s 1.28.3</DescriptionListDescription>
+                                            </DescriptionListGroup>
+                                          </DescriptionList>
+                                        </div>
+                                      )}
+                                    </StackItem>
+                                  ))}
+                                </Stack>
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Source</DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.source}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Group</DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.group}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Component</DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.component}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Labels</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                <Flex gap={{ default: 'gapSm' }}>
+                                  {selectedAlertRule.labels.map((label, idx) => (
+                                    <FlexItem key={idx}>
+                                      <Label isCompact variant="outline">{label}</Label>
+                                    </FlexItem>
+                                  ))}
+                                </Flex>
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Severity</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                <Label 
+                                  color={selectedAlertRule.severity === 'Critical' ? 'red' : selectedAlertRule.severity === 'Warning' ? 'orange' : 'purple'} 
+                                  icon={selectedAlertRule.severity === 'Critical' ? <ExclamationCircleIcon /> : selectedAlertRule.severity === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                                >
+                                  {selectedAlertRule.severity}
+                                </Label>
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Expression</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                <code style={{ 
+                                  backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', 
+                                  padding: '8px', 
+                                  borderRadius: '4px',
+                                  display: 'block',
+                                  fontSize: '12px',
+                                  wordBreak: 'break-all'
+                                }}>
+                                  {selectedAlertRule.expression}
+                                </code>
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <FlexItem>For</FlexItem>
+                                  <FlexItem>
+                                    <Tooltip content="Duration the alert must be firing before it is considered active">
+                                      <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                    </Tooltip>
+                                  </FlexItem>
+                                </Flex>
+                              </DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.forDuration}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <FlexItem>PrometheusRule</FlexItem>
+                                  <FlexItem>
+                                    <Tooltip content="The Prometheus rule resource that contains this alert">
+                                      <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                    </Tooltip>
+                                  </FlexItem>
+                                </Flex>
+                              </DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.prometheusRule}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            {selectedAlertRule.runbookUrl && (
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Runbook</DescriptionListTerm>
+                                <DescriptionListDescription>
+                                  <Button variant="link" isInline>{selectedAlertRule.runbookUrl}</Button>
+                                </DescriptionListDescription>
+                              </DescriptionListGroup>
+                            )}
+                            {selectedAlertRule.dashboards && (
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                    <FlexItem>Dashboards</FlexItem>
+                                    <FlexItem>
+                                      <Tooltip content="Related dashboards for this alert">
+                                        <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                      </Tooltip>
+                                    </FlexItem>
+                                  </Flex>
+                                </DescriptionListTerm>
+                                <DescriptionListDescription>{selectedAlertRule.dashboards}</DescriptionListDescription>
+                              </DescriptionListGroup>
+                            )}
+                          </DescriptionList>
+                        </StackItem>
+
+                        <StackItem>
+                          <Title headingLevel="h4" size="md" style={{ marginTop: '16px', marginBottom: '16px' }}>Notifications</Title>
+                          <DescriptionList isCompact isHorizontal>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Summary</DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.summary}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Description</DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.description}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            {selectedAlertRule.notificationMatchers && (
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Notification matchers</DescriptionListTerm>
+                                <DescriptionListDescription>
+                                  <Flex gap={{ default: 'gapSm' }}>
+                                    {selectedAlertRule.notificationMatchers.map((matcher, idx) => (
+                                      <FlexItem key={idx}>
+                                        <Label isCompact variant="outline">{matcher}</Label>
+                                      </FlexItem>
+                                    ))}
+                                  </Flex>
+                                </DescriptionListDescription>
+                              </DescriptionListGroup>
+                            )}
+                            {selectedAlertRule.receivedBy && (
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Received by</DescriptionListTerm>
+                                <DescriptionListDescription>{selectedAlertRule.receivedBy}</DescriptionListDescription>
+                              </DescriptionListGroup>
+                            )}
+                            {selectedAlertRule.receivers && (
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Receivers</DescriptionListTerm>
+                                <DescriptionListDescription>{selectedAlertRule.receivers.join(', ')}</DescriptionListDescription>
+                              </DescriptionListGroup>
+                            )}
+                          </DescriptionList>
+                        </StackItem>
+
+                        <StackItem>
+                          <Title headingLevel="h4" size="md" style={{ marginTop: '16px', marginBottom: '16px' }}>Alert rule history</Title>
+                          <DescriptionList isCompact isHorizontal>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Created at</DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.createdAt}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Created by</DescriptionListTerm>
+                              <DescriptionListDescription>{selectedAlertRule.createdBy}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            {selectedAlertRule.modificationHistory.length > 0 && (
+                              <DescriptionListGroup>
+                                <DescriptionListTerm>Modified at</DescriptionListTerm>
+                                <DescriptionListDescription>
+                                  <Stack hasGutter>
+                                    {selectedAlertRule.modificationHistory.map((mod, idx) => (
+                                      <StackItem key={idx}>
+                                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                          <FlexItem>{mod.date} by {mod.user}</FlexItem>
+                                          <FlexItem>
+                                            <Button variant="link" isInline>View changes</Button>
+                                          </FlexItem>
+                                        </Flex>
+                                      </StackItem>
+                                    ))}
+                                  </Stack>
+                                </DescriptionListDescription>
+                              </DescriptionListGroup>
+                            )}
+                          </DescriptionList>
+                        </StackItem>
+                      </Stack>
+                    </div>
+                  </Tab>
+                  <Tab eventKey="active-alerts" title={<TabTitleText>Active alerts</TabTitleText>}>
+                    <div style={{ padding: '16px', overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
+                      <Stack hasGutter>
+                        <StackItem>
+                          <Card>
+                            <CardBody>
+                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <FlexItem>
+                                  <Title headingLevel="h4" size="md">Target clusters alerts</Title>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Select
+                                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                      <MenuToggle ref={toggleRef} onClick={() => setIsAlertRuleTargetClusterFilterOpen(!isAlertRuleTargetClusterFilterOpen)} isExpanded={isAlertRuleTargetClusterFilterOpen}>
+                                        {alertRuleTargetClusterFilter === 'all' ? `All target clusters (${selectedAlertRule.targetClusters.length})` : alertRuleTargetClusterFilter}
+                                      </MenuToggle>
+                                    )}
+                                    isOpen={isAlertRuleTargetClusterFilterOpen}
+                                    onOpenChange={setIsAlertRuleTargetClusterFilterOpen}
+                                    onSelect={(_, val) => { setAlertRuleTargetClusterFilter(val as string); setIsAlertRuleTargetClusterFilterOpen(false); }}
+                                  >
+                                    <SelectList>
+                                      <SelectOption value="all">All target clusters ({selectedAlertRule.targetClusters.length})</SelectOption>
+                                      {selectedAlertRule.targetClusters.map((cluster, idx) => (
+                                        <SelectOption key={idx} value={cluster}>{cluster}</SelectOption>
+                                      ))}
+                                    </SelectList>
+                                  </Select>
+                                </FlexItem>
+                              </Flex>
+                            </CardBody>
+                          </Card>
+                        </StackItem>
+                        <StackItem>
+                          <Accordion asDefinitionList={false}>
+                            <AccordionItem isExpanded>
+                              <AccordionToggle onClick={() => {}} id="alerts-timeline-toggle">
+                                Alerts timeline
+                              </AccordionToggle>
+                              <AccordionContent>
+                                <Stack hasGutter>
+                                  <StackItem>
+                                    <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                      <FlexItem>
+                                        <Select
+                                          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                            <MenuToggle ref={toggleRef} onClick={() => setIsAlertRuleTimelineRangeOpen(!isAlertRuleTimelineRangeOpen)} isExpanded={isAlertRuleTimelineRangeOpen} variant="secondary">
+                                              <ClockIcon /> {alertRuleTimelineRange}
+                                            </MenuToggle>
+                                          )}
+                                          isOpen={isAlertRuleTimelineRangeOpen}
+                                          onOpenChange={setIsAlertRuleTimelineRangeOpen}
+                                          onSelect={(_, val) => { setAlertRuleTimelineRange(val as string); setIsAlertRuleTimelineRangeOpen(false); }}
+                                        >
+                                          <SelectList>
+                                            <SelectOption value="15 minutes">15 minutes</SelectOption>
+                                            <SelectOption value="30 minutes">30 minutes</SelectOption>
+                                            <SelectOption value="1 hour">1 hour</SelectOption>
+                                            <SelectOption value="6 hours">6 hours</SelectOption>
+                                            <SelectOption value="24 hours">24 hours</SelectOption>
+                                          </SelectList>
+                                        </Select>
+                                      </FlexItem>
+                                      <FlexItem>
+                                        <Button variant="link">Reset zoom</Button>
+                                      </FlexItem>
+                                    </Flex>
+                                  </StackItem>
+                                  <StackItem>
+                                    <div style={{ height: '200px', backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', borderRadius: '4px', padding: '16px' }}>
+                                      {/* Mock chart area */}
+                                      <ReactECharts
+                                        option={{
+                                          grid: { top: 20, right: 20, bottom: 40, left: 40 },
+                                          xAxis: {
+                                            type: 'category',
+                                            data: ['12:15 PM', '12:20 PM', '12:25 PM', '12:30 PM', '12:35 PM', '12:40 PM'],
+                                            axisLine: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
+                                            axisLabel: { color: 'var(--pf-t--global--text--color--subtle)' },
+                                          },
+                                          yAxis: {
+                                            type: 'value',
+                                            min: 0,
+                                            max: 10,
+                                            axisLine: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
+                                            axisLabel: { color: 'var(--pf-t--global--text--color--subtle)' },
+                                            splitLine: { lineStyle: { color: 'var(--pf-t--global--border--color--default)', type: 'dashed' } },
+                                          },
+                                          series: [
+                                            {
+                                              name: 'Series 1',
+                                              type: 'line',
+                                              data: [7, 5, 8, 9, 8, 10],
+                                              lineStyle: { color: 'var(--pf-t--global--color--status--info--default)' },
+                                              itemStyle: { color: 'var(--pf-t--global--color--status--info--default)' },
+                                            },
+                                            {
+                                              name: 'Series 2',
+                                              type: 'line',
+                                              data: [6, 4, 6, 5, 6, 4],
+                                              lineStyle: { color: 'var(--pf-t--global--color--status--info--default)', type: 'dashed' },
+                                              itemStyle: { color: 'var(--pf-t--global--color--status--info--default)' },
+                                            },
+                                          ],
+                                          tooltip: { trigger: 'axis' },
+                                        }}
+                                        style={{ height: '100%' }}
+                                      />
+                                    </div>
+                                  </StackItem>
+                                  <StackItem>
+                                    <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                      <FlexItem>Inspect metric</FlexItem>
+                                      <FlexItem>
+                                        <Tooltip content="Inspect the metric in the console">
+                                          <ExternalLinkAltIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                        </Tooltip>
+                                      </FlexItem>
+                                    </Flex>
+                                  </StackItem>
+                                </Stack>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        </StackItem>
+                        <StackItem>
+                          <Title headingLevel="h4" size="md">Active alerts</Title>
+                        </StackItem>
+                        {selectedAlertRule.activeAlerts.length === 0 ? (
+                          <StackItem>
+                            <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>No active alerts</Content>
+                          </StackItem>
+                        ) : (
+                          selectedAlertRule.activeAlerts.map((alert, idx) => (
+                            <StackItem key={idx}>
+                              <Card isClickable onClick={() => {
+                                if (alertRuleExpandedAlerts.includes(alert.id)) {
+                                  setAlertRuleExpandedAlerts(alertRuleExpandedAlerts.filter(a => a !== alert.id));
+                                } else {
+                                  setAlertRuleExpandedAlerts([...alertRuleExpandedAlerts, alert.id]);
+                                }
+                              }}>
+                                <CardBody>
+                                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                    <FlexItem style={{ flex: 1 }}>
+                                      <Content>{alert.message}</Content>
+                                    </FlexItem>
+                                    <FlexItem>
+                                      {alertRuleExpandedAlerts.includes(alert.id) ? <AngleDownIcon /> : <AngleRightIcon />}
+                                    </FlexItem>
+                                  </Flex>
+                                  {alertRuleExpandedAlerts.includes(alert.id) && (
+                                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+                                      <DescriptionList isCompact isHorizontal>
+                                        <DescriptionListGroup>
+                                          <DescriptionListTerm>Name</DescriptionListTerm>
+                                          <DescriptionListDescription>{selectedAlertRule.description}</DescriptionListDescription>
+                                        </DescriptionListGroup>
+                                        <DescriptionListGroup>
+                                          <DescriptionListTerm>Active since</DescriptionListTerm>
+                                          <DescriptionListDescription>{alert.activeSince}</DescriptionListDescription>
+                                        </DescriptionListGroup>
+                                        <DescriptionListGroup>
+                                          <DescriptionListTerm>State</DescriptionListTerm>
+                                          <DescriptionListDescription>{alert.state}</DescriptionListDescription>
+                                        </DescriptionListGroup>
+                                        <DescriptionListGroup>
+                                          <DescriptionListTerm>Value</DescriptionListTerm>
+                                          <DescriptionListDescription>{alert.value}</DescriptionListDescription>
+                                        </DescriptionListGroup>
+                                        <DescriptionListGroup>
+                                          <DescriptionListTerm>Resource</DescriptionListTerm>
+                                          <DescriptionListDescription>{alert.resource}</DescriptionListDescription>
+                                        </DescriptionListGroup>
+                                        <DescriptionListGroup>
+                                          <DescriptionListTerm>Cluster</DescriptionListTerm>
+                                          <DescriptionListDescription>{alert.cluster}</DescriptionListDescription>
+                                        </DescriptionListGroup>
+                                      </DescriptionList>
+                                    </div>
+                                  )}
+                                </CardBody>
+                              </Card>
+                            </StackItem>
+                          ))
+                        )}
+                      </Stack>
+                    </div>
+                  </Tab>
+                  <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
+                    <div style={{ padding: '16px', overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
+                      <CodeBlock>
+                        <CodeBlockCode>
+{`apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ${selectedAlertRule.name.toLowerCase().replace(/\s+/g, '-')}
+  namespace: openshift-monitoring
+  labels:
+    prometheus: cluster-monitoring
+spec:
+  groups:
+  - name: ${selectedAlertRule.group.toLowerCase()}-alerts
+    rules:
+    - alert: ${selectedAlertRule.name}
+      expr: ${selectedAlertRule.expression}
+      for: ${selectedAlertRule.forDuration}
+      labels:
+        severity: ${selectedAlertRule.severity.toLowerCase()}
+        component: ${selectedAlertRule.component}
+        group: ${selectedAlertRule.group.toLowerCase()}
+      annotations:
+        summary: "${selectedAlertRule.summary}"
+        description: "${selectedAlertRule.description}"
+        runbook_url: "${selectedAlertRule.runbookUrl || ''}"
+        dashboard: "${selectedAlertRule.dashboards || ''}"
+# Target clusters: ${selectedAlertRule.targetClusters.join(', ')}`}
+                        </CodeBlockCode>
+                      </CodeBlock>
+                    </div>
+                  </Tab>
+                </Tabs>
+                </div>
+        </div>
+      </div>
+      )}
+      
+      {/* Disable Alert Rule Modal */}
+      <Modal
+        isOpen={isDisableAlertRuleModalOpen}
+        onClose={() => setIsDisableAlertRuleModalOpen(false)}
+        aria-labelledby="disable-alert-rule-modal-title"
+        aria-describedby="disable-alert-rule-modal-body"
+        variant="medium"
+      >
+        <ModalHeader
+          title={
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <FlexItem>
+                <ExclamationTriangleIcon color="var(--pf-t--global--color--status--warning--default)" />
+              </FlexItem>
+              <FlexItem>
+                {alertRulesToDisable.length === 1 ? 'Disable alert rule?' : 'Disable alert rules?'}
+              </FlexItem>
+            </Flex>
+          }
+          labelId="disable-alert-rule-modal-title"
+          description="Stop the rule from running altogether."
+        />
+        <ModalBody id="disable-alert-rule-modal-body">
+          <Stack hasGutter>
+            {alertRulesToDisable.length === 1 ? (
+              <>
+                {/* Single alert rule disable */}
+                <StackItem>
+                  <Content component="p">
+                    If you disable this alert rule, you'll no longer receive notifications when the conditions it monitors are met. This can lead to undetected issues that might impact your system's performance or availability.
+                  </Content>
+                </StackItem>
+                <StackItem>
+                  <Content component="p"><strong>Alert Details:</strong></Content>
+                  <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                    <li><strong>Name</strong>: {alertRulesToDisable[0]?.name}</li>
+                    <li><strong>Description</strong>: {alertRulesToDisable[0]?.description}</li>
+                    <li><strong>Severity</strong>: {alertRulesToDisable[0]?.severity}</li>
+                    <li><strong>Group</strong>: {alertRulesToDisable[0]?.group}</li>
+                    <li><strong>Component:</strong> {alertRulesToDisable[0]?.component}</li>
+                  </ul>
+                </StackItem>
+              </>
+            ) : (
+              <>
+                {/* Bulk alert rules disable */}
+                <StackItem>
+                  <Content component="p"><strong>Are you sure you want to disable {alertRulesToDisable.length} selected alert rule{alertRulesToDisable.length > 1 ? 's' : ''}?</strong></Content>
+                  <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                    Disabling an alert rule means you will no longer receive notifications when the conditions it monitors are met. This could lead to undetected issues that might impact your system's performance or availability.
+                  </Content>
+                </StackItem>
+                <StackItem>
+                  <Card>
+                    <CardBody>
+                      <Content component="p"><strong>The following Alerts will be disabled:</strong></Content>
+                      <div style={{ marginTop: '16px' }}>
+                        {alertRulesToDisable.map((rule) => (
+                          <div key={rule.id} style={{ marginBottom: '8px' }}>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <FlexItem>
+                                <Button 
+                                  variant="plain" 
+                                  aria-label="Toggle details"
+                                  onClick={() => {
+                                    if (disableAlertRuleExpandedIds.includes(rule.id)) {
+                                      setDisableAlertRuleExpandedIds(disableAlertRuleExpandedIds.filter(id => id !== rule.id));
+                                    } else {
+                                      setDisableAlertRuleExpandedIds([...disableAlertRuleExpandedIds, rule.id]);
+                                    }
+                                  }}
+                                >
+                                  {disableAlertRuleExpandedIds.includes(rule.id) ? <AngleDownIcon /> : <AngleRightIcon />}
+                                </Button>
+                              </FlexItem>
+                              <FlexItem>
+                                {rule.severity === 'Critical' && <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />}
+                                {rule.severity === 'Warning' && <ExclamationTriangleIcon color="var(--pf-t--global--color--status--warning--default)" />}
+                                {rule.severity === 'Info' && <InfoCircleIcon color="var(--pf-t--global--color--status--info--default)" />}
+                              </FlexItem>
+                              <FlexItem>{rule.name}</FlexItem>
+                            </Flex>
+                            {disableAlertRuleExpandedIds.includes(rule.id) && (
+                              <div style={{ marginLeft: '48px', marginTop: '8px', padding: '8px', backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', borderRadius: '4px' }}>
+                                <Content component="small">
+                                  <div><strong>Description:</strong> {rule.description}</div>
+                                  <div><strong>Severity:</strong> {rule.severity}</div>
+                                  <div><strong>Group:</strong> {rule.group}</div>
+                                  <div><strong>Component:</strong> {rule.component}</div>
+                                </Content>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardBody>
+                  </Card>
+                </StackItem>
+              </>
+            )}
+          </Stack>
+        </ModalBody>
+        <ModalFooter>
+          <Button 
+            variant="primary" 
+            onClick={() => {
+              addToast(`${alertRulesToDisable.length === 1 ? 'Alert rule' : `${alertRulesToDisable.length} alert rules`} disabled successfully`, 'success');
+              setIsDisableAlertRuleModalOpen(false);
+              setAlertRulesToDisable([]);
+              setSelectedAlertRuleIds([]);
+            }}
+          >
+            Disable {alertRulesToDisable.length > 1 ? `${alertRulesToDisable.length} alerts` : 'alert'}
+          </Button>
+          <Button variant="secondary" onClick={() => {
+            // Open silence modal instead
+            setIsDisableAlertRuleModalOpen(false);
+          }}>
+            Silence instead
+          </Button>
+          <Button variant="link" onClick={() => {
+            setIsDisableAlertRuleModalOpen(false);
+            setAlertRulesToDisable([]);
+          }}>
+            Cancel
           </Button>
         </ModalFooter>
       </Modal>
