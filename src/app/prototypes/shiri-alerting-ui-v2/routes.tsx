@@ -26,10 +26,10 @@ import { CreateAlertRulePage } from './pages/CreateAlertRulePage';
  * These routes are added to the Fleet Management perspective under "Observe" group.
  */
 export const routes: RouteConfig[] = [
-  // Default route - redirect to Overview page
+  // Default route - redirect to Alerting page (main landing page)
   {
     path: '/',
-    element: <Navigate to="/home/overview" replace />,
+    element: <Navigate to="/observe/alerting" replace />,
   },
   
   // Home > Overview page - high-level cluster metrics and alerts summary
