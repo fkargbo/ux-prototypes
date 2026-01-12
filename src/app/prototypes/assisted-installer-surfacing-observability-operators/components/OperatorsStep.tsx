@@ -14,7 +14,7 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { ExternalLinkAltIcon, InfoCircleIcon } from '@patternfly/react-icons';
 
 interface Operator {
   id: string;
@@ -196,7 +196,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                     height: '128px',
                     padding: '16px',
                     border: isChecked ? '2px solid #0066cc' : '1px solid #d2d2d2',
-                    borderRadius: '4px',
+                    borderRadius: '16px',
                     backgroundColor: isChecked ? '#f0f7ff' : '#fff',
                     display: 'flex',
                     flexDirection: 'column',
@@ -282,20 +282,96 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                             const isChecked = selectedOperators.includes(operator.id);
                             return (
                               <StackItem key={operator.id}>
-                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                                   <Checkbox
                                     id={`operator-${operator.id}`}
-                                    label={operator.name}
                                     isChecked={isChecked}
                                     onChange={(_, checked) => handleOperatorChange(operator.id, checked)}
+                                    style={{ marginTop: '2px' }}
                                   />
                                   <div style={{ flex: 1, marginLeft: '8px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                    {/* First line: Label and info icon */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                                      <span style={{ fontSize: '14px' }}>
+                                        {operator.name}
+                                      </span>
+                                      <Popover
+                                        headerContent={operator.name}
+                                        bodyContent={operator.description}
+                                        position="right"
+                                      >
+                                        <Button
+                                          variant="plain"
+                                          aria-label={`More information about ${operator.name}`}
+                                          style={{ padding: '0 4px' }}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <svg
+                                            aria-hidden="true"
+                                            focusable="false"
+                                            data-prefix="far"
+                                            data-icon="question-circle"
+                                            className="svg-inline--fa fa-question-circle fa-w-16"
+                                            role="img"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 512 512"
+                                            style={{ width: '16px', height: '16px', color: '#6a6e73' }}
+                                          >
+                                            <path
+                                              fill="currentColor"
+                                              d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 448c-110.532 0-200-89.431-200-200 0-110.495 89.472-200 200-200 110.491 0 200 89.471 200 200 0 110.53-89.431 200-200 200zm107.244-255.2c0 67.052-72.421 68.084-72.421 92.863V300c0 6.627-5.373 12-12 12h-45.647c-6.627 0-12-5.373-12-12v-8.659c0-35.745 27.1-50.034 47.379-61.516 17.219-9.341 27.507-21.12 27.507-39.445 0-22.112-17.561-40.883-40.887-40.883-23.189 0-33.357 16.211-40.887 32.755-3.179 5.98-9.492 9.245-15.707 7.14l-47.42-13.759c-8.126-2.358-13.484-10.024-11.625-18.207 4.837-21.29 20.075-39.407 41.23-51.432C203.67 98.483 228.441 88 256 88c57.891 0 107.244 47.353 107.244 105.2zM298 378c0 19.882-16.118 36-36 36s-36-16.118-36-36 16.118-36 36-36 36 16.118 36 36z"
+                                            />
+                                          </svg>
+                                        </Button>
+                                      </Popover>
                                       {operator.developerPreview && (
-                                        <Badge style={{ backgroundColor: '#8b8d8f', color: 'white' }}>
-                                          Developer Preview
+                                        <Badge 
+                                          style={{ 
+                                            backgroundColor: '#f8ae54', 
+                                            color: '#151515',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            padding: '4px 8px'
+                                          }}
+                                        >
+                                          <div style={{
+                                            width: '16px',
+                                            height: '16px',
+                                            borderRadius: '50%',
+                                            backgroundColor: '#151515',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
+                                          }}>
+                                            <span style={{ 
+                                              color: '#f8ae54', 
+                                              fontSize: '11px', 
+                                              fontWeight: 'bold',
+                                              lineHeight: '1',
+                                              fontFamily: 'sans-serif'
+                                            }}>
+                                              i
+                                            </span>
+                                          </div>
+                                          <span style={{ fontWeight: 'normal' }}>Developer Preview</span>
                                         </Badge>
                                       )}
+                                    </div>
+                                    {/* Second line: Description and Learn more link */}
+                                    <div style={{ 
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      flexWrap: 'wrap'
+                                    }}>
+                                      <span style={{ 
+                                        fontSize: '12px', 
+                                        color: 'var(--pf-t--global--text--color--regular)'
+                                      }}>
+                                        {operator.description}
+                                      </span>
                                       {operator.learnMoreUrl && (
                                         <a 
                                           href={operator.learnMoreUrl} 
@@ -306,16 +382,13 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                             textDecoration: 'none',
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            fontSize: '14px'
+                                            fontSize: '12px'
                                           }}
                                         >
-                                          Learn more <ExternalLinkAltIcon style={{ marginLeft: '4px' }} />
+                                          Learn more <ExternalLinkAltIcon style={{ marginLeft: '4px', width: '12px', height: '12px' }} />
                                         </a>
                                       )}
                                     </div>
-                                    <Content style={{ color: '#6a6e73', fontSize: '14px' }}>
-                                      {operator.description}
-                                    </Content>
                                   </div>
                                 </div>
                               </StackItem>
