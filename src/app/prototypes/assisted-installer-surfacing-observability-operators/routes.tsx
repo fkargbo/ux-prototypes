@@ -50,6 +50,9 @@ import { RouteConfig } from '@app/core/types';
 
 // Import your page components here when you add routes
 import { OverviewPage } from './pages/OverviewPage';
+import { OperatorHubPage } from './pages/OperatorHubPage';
+import { InstalledOperatorsPage } from './pages/InstalledOperatorsPage';
+import { ClusterListPage } from './pages/ClusterListPage';
 
 /**
  * IMPORTANT: Template Isolation
@@ -74,5 +77,37 @@ export const routes: RouteConfig[] = [
     }
   },
   
-  // Add your routes here when you copy this template...
+  // Operators menu items
+  // Note: Routes with navigation.group: 'Operators' will replace the default Operators group
+  // So we include OperatorHub, Installed Operators, and Cluster List to maintain all items
+  {
+    path: '/core/operators/hub',
+    element: <OperatorHubPage />,
+    label: 'OperatorHub',
+    title: 'OperatorHub',
+    navigation: {
+      group: 'Operators',
+      order: 1
+    }
+  },
+  {
+    path: '/core/operators/installed',
+    element: <InstalledOperatorsPage />,
+    label: 'Installed Operators',
+    title: 'Installed Operators',
+    navigation: {
+      group: 'Operators',
+      order: 2
+    }
+  },
+  {
+    path: '/core/operators/cluster-list',
+    element: <ClusterListPage />,
+    label: 'Cluster List',
+    title: 'Cluster List',
+    navigation: {
+      group: 'Operators',
+      order: 3
+    }
+  },
 ];
