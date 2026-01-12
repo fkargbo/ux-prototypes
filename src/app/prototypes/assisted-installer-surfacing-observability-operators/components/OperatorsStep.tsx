@@ -717,11 +717,12 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                           })}
                           {/* Advanced section for Observability category */}
                           {category.id === 'observability' && (
-                            <StackItem style={{ marginTop: '16px' }}>
+                            <StackItem>
                               <ExpandableSection
                                 toggleText="Advanced settings"
                                 isExpanded={isAdvancedSectionExpanded}
                                 onToggle={() => setIsAdvancedSectionExpanded(!isAdvancedSectionExpanded)}
+                                style={{ marginTop: '16px' }}
                               >
                                 <Stack hasGutter style={{ marginTop: '16px', marginLeft: '16px' }}>
                                   <StackItem>
