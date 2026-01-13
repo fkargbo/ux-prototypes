@@ -370,6 +370,8 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
             // If appliedBy is string[], allow push; if more strict, need a type assertion
             (item.appliedBy as (string | GoalID)[]).push(goalId);
           }
+        }
+      });
 
       // Add required storage
       deps.storage.forEach(storageId => {
