@@ -266,11 +266,11 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                     </FlexItem>
                     <FlexItem>
                       <Content style={{ fontSize: '14px' }}>
-                        {(data.updateApproval || 'automatic') === 'automatic' ? 'Automatic' : 'Manual'}
+                        {(data.updateApproval || 'manual') === 'automatic' ? 'Automatic' : 'Manual'}
                       </Content>
                     </FlexItem>
                   </Flex>
-                  {(data.updateApproval || 'automatic') === 'automatic' && (
+                  {(data.updateApproval || 'manual') === 'automatic' && (
                     <div style={{ marginTop: '8px', width: '100%' }}>
                       <Alert
                         variant={AlertVariant.warning}

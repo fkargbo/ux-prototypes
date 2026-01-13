@@ -13,7 +13,7 @@ const initialWizardData: WizardData = {
   installationMode: 'all-namespaces',
   updateChannel: 'stable',
   version: '1.3.1',
-  updateApproval: 'automatic',
+  updateApproval: 'manual',
   enableClusterMonitoring: true,
   // Step 2 defaults
   selectedPersona: null,

@@ -154,7 +154,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
   const [enableClusterMonitoring, setEnableClusterMonitoring] = useState<boolean>(data?.enableClusterMonitoring !== undefined ? data.enableClusterMonitoring : true);
 
   // Operator updates
-  const [updateApproval, setUpdateApproval] = useState<string>(data?.updateApproval || 'automatic');
+  const [updateApproval, setUpdateApproval] = useState<string>(data?.updateApproval || 'manual');
 
   // Sync state changes to parent
   useEffect(() => {
@@ -514,6 +514,15 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                 <Stack hasGutter>
                   <StackItem>
                     <Radio
+                      id="manual"
+                      name="update-approval"
+                      label="Manual"
+                      isChecked={updateApproval === 'manual'}
+                      onChange={() => setUpdateApproval('manual')}
+                    />
+                  </StackItem>
+                  <StackItem>
+                    <Radio
                       id="automatic"
                       name="update-approval"
                       label="Automatic"
@@ -530,15 +539,6 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                         Enabling automatic updates allows the operator to upgrade immediately when a new version is released. This may cause brief service interruptions or configuration changes during production hours.
                       </Alert>
                     )}
-                  </StackItem>
-                  <StackItem>
-                    <Radio
-                      id="manual"
-                      name="update-approval"
-                      label="Manual"
-                      isChecked={updateApproval === 'manual'}
-                      onChange={() => setUpdateApproval('manual')}
-                    />
                   </StackItem>
                 </Stack>
               </FormGroup>
