@@ -966,7 +966,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 </FlexItem>
                                 {operator.appliedBy.length > 0 && (
                                   <FlexItem>
-                                    <Badge isRead>
+                                    <Badge isRead style={{ fontWeight: 'normal' }}>
                                       Required by: {goalNames.join(', ')}
                                     </Badge>
                                   </FlexItem>
@@ -1021,7 +1021,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 </FlexItem>
                                 {storageItem.appliedBy.length > 0 && (
                                   <FlexItem>
-                                    <Badge isRead>
+                                    <Badge isRead style={{ fontWeight: 'normal' }}>
                                       Required by: {goalNames.join(', ')}
                                     </Badge>
                                   </FlexItem>
