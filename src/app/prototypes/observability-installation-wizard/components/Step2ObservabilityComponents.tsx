@@ -877,40 +877,32 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
           <Grid hasGutter>
             {goals.map((goal) => (
               <GridItem key={goal.id} span={4}>
-                <div
+                <Card
+                  isPlain
                   style={{
                     height: '100%',
                     border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
                     borderRadius: '4px',
-                    overflow: 'hidden',
                   }}
                 >
-                  <Card
-                    style={{
-                      height: '100%',
-                      border: 'none',
-                      boxShadow: 'none',
-                    }}
-                  >
-                    <CardBody>
-                      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                        <FlexItem>
-                          <Checkbox
-                            id={`goal-${goal.id}`}
-                            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{goal.name}</span>}
-                            isChecked={activeGoals.includes(goal.id)}
-                            onChange={(_, checked) => handleGoalChange(goal.id, checked)}
-                          />
-                        </FlexItem>
-                        <FlexItem>
-                          <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
-                            {goal.description}
-                          </Content>
-                        </FlexItem>
-                      </Flex>
-                    </CardBody>
-                  </Card>
-                </div>
+                  <CardBody>
+                    <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                      <FlexItem>
+                        <Checkbox
+                          id={`goal-${goal.id}`}
+                          label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{goal.name}</span>}
+                          isChecked={activeGoals.includes(goal.id)}
+                          onChange={(_, checked) => handleGoalChange(goal.id, checked)}
+                        />
+                      </FlexItem>
+                      <FlexItem>
+                        <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
+                          {goal.description}
+                        </Content>
+                      </FlexItem>
+                    </Flex>
+                  </CardBody>
+                </Card>
               </GridItem>
             ))}
           </Grid>
