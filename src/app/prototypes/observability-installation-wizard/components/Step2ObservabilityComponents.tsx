@@ -83,19 +83,19 @@ type GoalID = 'platform-governance' | 'incident-response' | 'app-performance';
 const goals: Goal[] = [
   {
     id: 'platform-governance',
-    name: 'Platform Governance',
+    name: 'Platform governance & stability',
     icon: <UserIcon />,
     description: 'Monitor infrastructure health, audit logs, enforce network policies, and manage long-term capacity planning.',
   },
   {
     id: 'incident-response',
-    name: 'Incident Response',
+    name: 'Incident response & reliability',
     icon: <ChartLineIcon />,
     description: 'Maximize uptime and reduce MTTR using full-stack debugging, distributed tracing, and automated signal correlation.',
   },
   {
     id: 'app-performance',
-    name: 'App Performance',
+    name: 'App performance & debugging',
     icon: <CodeIcon />,
     description: 'Isolate code errors, trace transactions across microservices, and optimize application latency within namespaces.',
   },
