@@ -656,24 +656,30 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     // ODF and LVM are mutually exclusive - only one can be selected at a time
     if (checked) {
       // Selecting a storage option - uncheck the other one
+      const otherStorageId = storageId === 'odf' ? 'lvm' : 'odf';
+      const otherStorage = storage.find(s => s.id === otherStorageId);
+      const wasOtherRequired = otherStorage && otherStorage.appliedBy.length > 0;
+      
+      // Update uncheckedRequiredItems: remove selected storage, add/remove other storage based on requirement
+      setUncheckedRequiredItems(prev => {
+        const newSet = new Set(prev);
+        // Remove the selected storage from warnings (it's now selected, so no warning needed)
+        newSet.delete(storageId);
+        // Add the other storage to warnings if it was required, otherwise remove it
+        if (wasOtherRequired) {
+          newSet.add(otherStorageId);
+        } else {
+          newSet.delete(otherStorageId);
+        }
+        return newSet;
+      });
+      
       const newStorage = storage.map(s => {
         if (s.id === storageId) {
           // Select the clicked item
           return { ...s, isSelected: true };
-        } else if ((storageId === 'odf' && s.id === 'lvm') || (storageId === 'lvm' && s.id === 'odf')) {
+        } else if (s.id === otherStorageId) {
           // Uncheck the other storage option
-          const wasRequired = s.appliedBy.length > 0;
-          if (wasRequired) {
-            // Show warning if the unselected option was required by a goal
-            setUncheckedRequiredItems(prev => new Set([...prev, s.id]));
-          } else {
-            // Remove from warnings if it wasn't required
-            setUncheckedRequiredItems(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(s.id);
-              return newSet;
-            });
-          }
           return { ...s, isSelected: false };
         }
         return s;
