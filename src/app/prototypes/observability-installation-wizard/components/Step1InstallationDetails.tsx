@@ -151,7 +151,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
   const [selectedProject, setSelectedProject] = useState<string>(data?.selectedProject || '');
   const [projectSelectOpen, setProjectSelectOpen] = useState<boolean>(false);
   const [projectSearchValue, setProjectSearchValue] = useState<string>('');
-  const [enableClusterMonitoring, setEnableClusterMonitoring] = useState<boolean>(data?.enableClusterMonitoring || false);
+  const [enableClusterMonitoring, setEnableClusterMonitoring] = useState<boolean>(data?.enableClusterMonitoring !== undefined ? data.enableClusterMonitoring : true);
 
   // Operator updates
   const [updateApproval, setUpdateApproval] = useState<string>(data?.updateApproval || 'automatic');
