@@ -966,9 +966,15 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 </FlexItem>
                                 {operator.appliedBy.length > 0 && (
                                   <FlexItem>
-                                    <Badge isRead style={{ fontWeight: 'normal' }}>
-                                      Required by: {goalNames.join(', ')}
-                                    </Badge>
+                                    <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                                      {goalNames.map((goalName, index) => (
+                                        <FlexItem key={index}>
+                                          <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                            {goalName}
+                                          </Badge>
+                                        </FlexItem>
+                                      ))}
+                                    </Flex>
                                   </FlexItem>
                                 )}
                               </Flex>
@@ -1021,9 +1027,15 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 </FlexItem>
                                 {storageItem.appliedBy.length > 0 && (
                                   <FlexItem>
-                                    <Badge isRead style={{ fontWeight: 'normal' }}>
-                                      Required by: {goalNames.join(', ')}
-                                    </Badge>
+                                    <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                                      {goalNames.map((goalName, index) => (
+                                        <FlexItem key={index}>
+                                          <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                            {goalName}
+                                          </Badge>
+                                        </FlexItem>
+                                      ))}
+                                    </Flex>
                                   </FlexItem>
                                 )}
                               </Flex>
@@ -1259,9 +1271,15 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                         </FlexItem>
                         {goalNames.length > 0 && (
                           <FlexItem>
-                            <Badge isRead>
-                              Required by: {goalNames.join(', ')}
-                            </Badge>
+                            <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                              {goalNames.map((goalName, index) => (
+                                <FlexItem key={index}>
+                                  <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                    {goalName}
+                                  </Badge>
+                                </FlexItem>
+                              ))}
+                            </Flex>
                           </FlexItem>
                         )}
                       </Flex>
