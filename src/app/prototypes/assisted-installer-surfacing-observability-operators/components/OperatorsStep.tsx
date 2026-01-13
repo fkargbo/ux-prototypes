@@ -256,6 +256,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
   const [isAdvancedModeEnabled, setIsAdvancedModeEnabled] = useState<boolean>(false);
   const [isAdvancedSectionExpanded, setIsAdvancedSectionExpanded] = useState<boolean>(false);
   const [selectedAdvancedOptions, setSelectedAdvancedOptions] = useState<string[]>([]);
+  const [recommendedAdvancedOptions, setRecommendedAdvancedOptions] = useState<string[]>([]);
   const advancedSectionRef = useRef<HTMLDivElement>(null);
 
   // Fix for ExpandableSection content div not collapsing properly
@@ -335,6 +336,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
       setRecommendedStorageOperators([]);
       // Clear advanced options
       setSelectedAdvancedOptions([]);
+      setRecommendedAdvancedOptions([]);
       setIsAdvancedModeEnabled(false);
       return;
     }
@@ -407,11 +409,17 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
         advancedOptionsToSelect = ['monitoring-ui', 'logging-ui', 'tracing-ui'];
         break;
     }
-    setSelectedAdvancedOptions(advancedOptionsToSelect);
-    // For Incident Response, disable advanced mode initially (all selected and disabled)
-    if (personaId === 'incident-response') {
-      setIsAdvancedModeEnabled(false);
-    }
+    
+    // Preserve manually selected options that aren't in the new recommendations
+    const manuallySelectedOptions = selectedAdvancedOptions.filter(id => !recommendedAdvancedOptions.includes(id));
+    // Combine: new recommended options + manually selected options (no duplicates)
+    const finalAdvancedOptions = Array.from(new Set([...advancedOptionsToSelect, ...manuallySelectedOptions]));
+    
+    setSelectedAdvancedOptions(finalAdvancedOptions);
+    // Track which options are recommended (auto-selected)
+    setRecommendedAdvancedOptions(advancedOptionsToSelect);
+    // Advanced mode starts disabled so recommended options are disabled
+    setIsAdvancedModeEnabled(false);
   };
 
   const handlePersonaChange = (personaId: string) => {
@@ -788,10 +796,9 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                   </StackItem>
                                   {advancedUIOptions.map((option) => {
                                     const isChecked = selectedAdvancedOptions.includes(option.id);
-                                    const isIncidentResponse = selectedPersonas.includes('incident-response');
-                                    // For Incident Response: disable when advanced mode is off and option is auto-selected
-                                    // For other personas: always enabled
-                                    const isDisabled = isIncidentResponse && !isAdvancedModeEnabled && isChecked;
+                                    const isRecommended = recommendedAdvancedOptions.includes(option.id);
+                                    // Disable if the option is recommended (auto-selected) AND Advanced mode is OFF
+                                    const isDisabled = isRecommended && !isAdvancedModeEnabled;
                                     
                                     return (
                                       <StackItem key={option.id}>
@@ -801,6 +808,9 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                             isChecked={isChecked}
                                             isDisabled={isDisabled}
                                             onChange={(_, checked) => {
+                                              // Prevent changes when disabled
+                                              if (isDisabled) return;
+                                              
                                               if (checked) {
                                                 setSelectedAdvancedOptions([...selectedAdvancedOptions, option.id]);
                                               } else {
