@@ -134,9 +134,14 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     
     // Cluster Observability Operator - included if metrics-alerting is selected (required)
     // This operator includes: Prometheus, Alertmanager, and optionally Thanos and Korrel8r as operands
-    // Note: thanos and korrel8r are operands of Cluster Observability Operator, not separate operators
     if (data.selectedCapabilities.includes('metrics-alerting')) {
       operators.push('Cluster Observability Operator (Prometheus)');
+    }
+    
+    // Thanos (Long-term Storage) - shown as a component when selected
+    // Note: Thanos is technically an operand of Cluster Observability Operator, but we display it separately for clarity
+    if (data.selectedCapabilities.includes('thanos')) {
+      operators.push('Thanos (Long-term Storage)');
     }
     
     // Map capabilities to their corresponding operators
@@ -148,7 +153,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     
     // Add operators for each selected capability
     data.selectedCapabilities.forEach(capabilityId => {
-      // Skip thanos and korrel8r as they are operands of Cluster Observability Operator, not separate operators
+      // Skip thanos (already handled above) and korrel8r as they are operands of Cluster Observability Operator
       if (capabilityId === 'thanos' || capabilityId === 'korrel8r') {
         return;
       }
