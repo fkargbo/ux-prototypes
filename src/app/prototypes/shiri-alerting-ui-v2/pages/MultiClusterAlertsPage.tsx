@@ -8234,242 +8234,7 @@ spec:
               100% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0); }
             }
           `}</style>
-          <DrawerContent
-            panelContent={
-              selectedAlertDetail && (
-                <DrawerPanelContent 
-                  widths={{ default: 'width_33', lg: 'width_50' }}
-                  style={{ maxWidth: '500px' }}
-                >
-                  <DrawerHead>
-                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
-                      <FlexItem style={{ flex: 1 }}>
-                        <Title headingLevel="h2" size="lg">{selectedAlertDetail.alertName}</Title>
-                        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginTop: '8px' }}>
-                          {selectedAlertDetail.description || `This alert indicates ${selectedAlertDetail.alertName.toLowerCase()} condition.`}
-                        </Content>
-                        {/* Cluster and Namespace - shown immediately under header with prominent styling */}
-                        <div style={{ 
-                          marginTop: '16px', 
-                          padding: '12px 16px', 
-                          backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                          borderRadius: '6px',
-                          border: '1px solid var(--pf-t--global--border--color--default)'
-                        }}>
-                          <Flex gap={{ default: 'gapLg' }}>
-                            <FlexItem>
-                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--blue--default)', color: 'white' }}>Cluster</Label>
-                                <strong style={{ fontSize: '14px' }}>{selectedAlertDetail.clusterName || 'N/A'}</strong>
-                              </Flex>
-                            </FlexItem>
-                            <FlexItem>
-                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>Namespace</Label>
-                                <strong style={{ fontSize: '14px' }}>{selectedAlertDetail.namespace}</strong>
-                              </Flex>
-                            </FlexItem>
-                          </Flex>
-                        </div>
-                      </FlexItem>
-                      <FlexItem>
-                        <DrawerActions>
-                          <DrawerCloseButton onClick={() => { setIsDrawerExpanded(false); setSelectedAlertDetail(null); }} />
-                        </DrawerActions>
-                      </FlexItem>
-                    </Flex>
-                  </DrawerHead>
-                  <DrawerPanelBody style={{ overflow: 'auto' }}>
-                    <Tabs defaultActiveKey={0}>
-                      <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>}>
-                        <div style={{ padding: '16px 0' }}>
-                          <Stack hasGutter>
-                            {/* Name */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Name</Content>
-                              <Content component="p"><strong>{selectedAlertDetail.alertName}</strong></Content>
-                            </StackItem>
-                            
-                            {/* Description */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Description</Content>
-                              <Content component="p">{selectedAlertDetail.description || `${selectedAlertDetail.component} usage on a ${selectedAlertDetail.group} component is critically high.`}</Content>
-                            </StackItem>
-                            
-                            {/* Group */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Group</Content>
-                              <Content component="p">{selectedAlertDetail.group}</Content>
-                            </StackItem>
-                            
-                            {/* Component */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Component</Content>
-                              <Content component="p">{selectedAlertDetail.component}</Content>
-                            </StackItem>
-                            
-                            {/* State */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>State</Content>
-                              <Stack>
-                                <StackItem>
-                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <Icon status="warning"><BellIcon /></Icon>
-                                    <span>Firing</span>
-                                  </Flex>
-                                </StackItem>
-                                <StackItem style={{ marginLeft: '24px' }}>
-                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <Icon><ClockIcon /></Icon>
-                                    <Content component="small">Since  {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString()}</Content>
-                                  </Flex>
-                                </StackItem>
-                              </Stack>
-                            </StackItem>
-                            
-                            {/* Labels */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Labels</Content>
-                              <Flex gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
-                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>label-label1</Label>
-                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>label2</Label>
-                              </Flex>
-                            </StackItem>
-                            
-                            {/* Severity */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Severity</Content>
-                              <div style={{ marginTop: '4px' }}>
-                                <Label 
-                                  color={selectedAlertDetail.severity === 'Critical' ? 'red' : selectedAlertDetail.severity === 'Warning' ? 'orange' : 'blue'}
-                                  icon={selectedAlertDetail.severity === 'Critical' ? <ExclamationCircleIcon /> : selectedAlertDetail.severity === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                                >
-                                  {selectedAlertDetail.severity}
-                                </Label>
-                              </div>
-                            </StackItem>
-                            
-                            {/* Source */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Source</Content>
-                              <Content component="p">Platform</Content>
-                            </StackItem>
-                            
-                            {/* Namespace */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Namespace</Content>
-                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
-                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--green--default)', color: 'white' }}>NS</Label>
-                                <span>{selectedAlertDetail.namespace}</span>
-                              </Flex>
-                            </StackItem>
-                            
-                            {/* Resource */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Resource</Content>
-                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
-                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--orange--default)', color: 'white' }}>N</Label>
-                                <Button variant="link" isInline>node-001-nb</Button>
-                              </Flex>
-                            </StackItem>
-                            
-                            {/* Alert rule */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Alert rule</Content>
-                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
-                                <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>AR</Label>
-                                <Button variant="link" isInline>{selectedAlertDetail.alertName}</Button>
-                              </Flex>
-                            </StackItem>
-                            
-                            {/* Runbook */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Runbook</Content>
-                              <Content component="p">
-                                <Button variant="link" isInline>https://mygitrunbook.com</Button>
-                              </Content>
-                            </StackItem>
-                            
-                            {/* Dashboard */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600, borderBottom: '1px dashed var(--pf-t--global--border--color--default)', display: 'inline-block' }}>Dashboard</Content>
-                              <Content component="p">ocp-perses-clusterhealthdashboard</Content>
-                            </StackItem>
-                            
-                            {/* Follow-up steps */}
-                            <StackItem>
-                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Follow-up steps</Content>
-                              <Stack hasGutter style={{ marginTop: '8px' }}>
-                                <StackItem>
-                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <Button variant="link" isInline>View logs</Button>
-                                    <Popover
-                                      headerIcon={<BellIcon />}
-                                      headerContent="Install logging operator to view logs"
-                                      bodyContent="You can deploy logging by installing the Red Hat OpenShift Logging Operator. The Red Hat OpenShift Logging Operator creates and manages the components of the logging stack."
-                                      footerContent={
-                                        <Flex gap={{ default: 'gapMd' }}>
-                                          <Button variant="secondary">Go to operator page</Button>
-                                          <Button variant="link">Cancel</Button>
-                                        </Flex>
-                                      }
-                                    >
-                                      <Button variant="plain" aria-label="More info about View logs" style={{ padding: '0 4px' }}>
-                                        <Icon status="info"><InfoCircleIcon /></Icon>
-                                      </Button>
-                                    </Popover>
-                                  </Flex>
-                                </StackItem>
-                                <StackItem>
-                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <Button variant="link" isInline>Troubleshoot</Button>
-                                    <Popover
-                                      headerContent="Install Korrel8r operator to correlate observability signals"
-                                      bodyContent="Korrel8r helps navigate from problem symptoms to related resources and signal data that can reveal the cause. It can follow relationships between disjointed observability 'silos' (logs, metrics, alerts and more) to bring together all the data available to solve a problem."
-                                      footerContent={
-                                        <Flex gap={{ default: 'gapMd' }}>
-                                          <Button variant="secondary">Go to operator page</Button>
-                                          <Button variant="link">Cancel</Button>
-                                        </Flex>
-                                      }
-                                    >
-                                      <Button variant="plain" aria-label="More info about Troubleshoot" style={{ padding: '0 4px' }}>
-                                        <Icon status="info"><InfoCircleIcon /></Icon>
-                                      </Button>
-                                    </Popover>
-                                  </Flex>
-                                </StackItem>
-                                <StackItem>
-                                  <Button variant="link" isInline>See metrics</Button>
-                                </StackItem>
-                                <StackItem>
-                                  <Button variant="link" isInline>See related incident</Button>
-                                </StackItem>
-                              </Stack>
-                            </StackItem>
-                          </Stack>
-                        </div>
-                      </Tab>
-                      <Tab eventKey={1} title={<TabTitleText>Alert timeline</TabTitleText>}>
-                        <div style={{ padding: '16px 0' }}>
-                          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                            Alert timeline visualization would appear here.
-                          </Content>
-                        </div>
-                      </Tab>
-                      <Tab eventKey={2} title={<TabTitleText>YAML</TabTitleText>}>
-                        <div style={{ padding: '16px 0' }}>
-                          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                            Alert YAML definition would appear here.
-                          </Content>
-                        </div>
-                      </Tab>
-                    </Tabs>
-                  </DrawerPanelBody>
-                </DrawerPanelContent>
-              )
-            }
-          >
+          <DrawerContent panelContent={null}>
             <DrawerContentBody style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
           {/* Filter Side Panel - Sticky */}
@@ -9241,6 +9006,14 @@ spec:
                                 id={`switch-v2-${rule.id}`} 
                                 isChecked={rule.enabled} 
                                 aria-label={`Enable ${rule.name}`}
+                                onChange={(_, checked) => {
+                                  if (!checked) {
+                                    // When turning off (disabling), show the disable modal
+                                    setAlertRulesToDisable([rule]);
+                                    setIsDisableAlertRuleModalOpen(true);
+                                  }
+                                  // For enabling, just toggle (in real app would update state)
+                                }}
                               />
                             </Td>
                             <Td>
@@ -9693,6 +9466,272 @@ spec:
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* Alert Details Side Drawer - Fixed position overlay */}
+      {isDrawerExpanded && selectedAlertDetail && (
+        <div style={{ position: 'fixed', top: '76px', left: 0, right: 0, bottom: 0, zIndex: 400 }}>
+          {/* Backdrop */}
+          <div 
+            style={{ 
+              position: 'absolute', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0, 
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              cursor: 'pointer'
+            }}
+            onClick={() => { setIsDrawerExpanded(false); setSelectedAlertDetail(null); }}
+          />
+          {/* Drawer Panel */}
+          <div style={{ 
+            position: 'absolute', 
+            top: 0, 
+            right: 0, 
+            bottom: 0, 
+            width: '550px',
+            maxWidth: '90vw',
+            backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+            boxShadow: '-4px 0 8px rgba(0, 0, 0, 0.2)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Drawer Header - Sticky */}
+            <div style={{ 
+              padding: '16px', 
+              borderBottom: '1px solid var(--pf-t--global--border--color--default)', 
+              flexShrink: 0,
+              backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
+            }}>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
+                <FlexItem style={{ flex: 1 }}>
+                  <Title headingLevel="h2" size="lg">{selectedAlertDetail.alertName}</Title>
+                  <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginTop: '8px' }}>
+                    {selectedAlertDetail.description || `This alert indicates ${selectedAlertDetail.alertName.toLowerCase()} condition.`}
+                  </Content>
+                  {/* Cluster and Namespace badges */}
+                  <div style={{ 
+                    marginTop: '16px', 
+                    padding: '12px 16px', 
+                    backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                    borderRadius: '6px',
+                    border: '1px solid var(--pf-t--global--border--color--default)'
+                  }}>
+                    <Flex gap={{ default: 'gapLg' }}>
+                      <FlexItem>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--blue--default)', color: 'white' }}>Cluster</Label>
+                          <strong style={{ fontSize: '14px' }}>{selectedAlertDetail.clusterName || 'N/A'}</strong>
+                        </Flex>
+                      </FlexItem>
+                      <FlexItem>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>Namespace</Label>
+                          <strong style={{ fontSize: '14px' }}>{selectedAlertDetail.namespace}</strong>
+                        </Flex>
+                      </FlexItem>
+                    </Flex>
+                  </div>
+                </FlexItem>
+                <FlexItem>
+                  <Button variant="plain" aria-label="Close" onClick={() => { setIsDrawerExpanded(false); setSelectedAlertDetail(null); }}>
+                    <TimesIcon />
+                  </Button>
+                </FlexItem>
+              </Flex>
+            </div>
+            {/* Drawer Body - Scrollable */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+              <Tabs defaultActiveKey={0}>
+                <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>}>
+                  <div style={{ padding: '16px 0' }}>
+                    <Stack hasGutter>
+                      {/* Name */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Name</Content>
+                        <Content component="p"><strong>{selectedAlertDetail.alertName}</strong></Content>
+                      </StackItem>
+                      
+                      {/* Description */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Description</Content>
+                        <Content component="p">{selectedAlertDetail.description || `${selectedAlertDetail.component} usage on a ${selectedAlertDetail.group} component is critically high.`}</Content>
+                      </StackItem>
+                      
+                      {/* Group */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Group</Content>
+                        <Content component="p">{selectedAlertDetail.group}</Content>
+                      </StackItem>
+                      
+                      {/* Component */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Component</Content>
+                        <Content component="p">{selectedAlertDetail.component}</Content>
+                      </StackItem>
+                      
+                      {/* State */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>State</Content>
+                        <Stack>
+                          <StackItem>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <Icon status="warning"><BellIcon /></Icon>
+                              <span>Firing</span>
+                            </Flex>
+                          </StackItem>
+                          <StackItem style={{ marginLeft: '24px' }}>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <Icon><ClockIcon /></Icon>
+                              <Content component="small">Since {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString()}</Content>
+                            </Flex>
+                          </StackItem>
+                        </Stack>
+                      </StackItem>
+                      
+                      {/* Labels */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Labels</Content>
+                        <Flex gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
+                          <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>label-label1</Label>
+                          <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>label2</Label>
+                        </Flex>
+                      </StackItem>
+                      
+                      {/* Severity */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Severity</Content>
+                        <div style={{ marginTop: '4px' }}>
+                          <Label 
+                            color={selectedAlertDetail.severity === 'Critical' ? 'red' : selectedAlertDetail.severity === 'Warning' ? 'orange' : 'blue'}
+                            icon={selectedAlertDetail.severity === 'Critical' ? <ExclamationCircleIcon /> : selectedAlertDetail.severity === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                          >
+                            {selectedAlertDetail.severity}
+                          </Label>
+                        </div>
+                      </StackItem>
+                      
+                      {/* Source */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Source</Content>
+                        <Content component="p">Platform</Content>
+                      </StackItem>
+                      
+                      {/* Namespace */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Namespace</Content>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
+                          <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--green--default)', color: 'white' }}>NS</Label>
+                          <span>{selectedAlertDetail.namespace}</span>
+                        </Flex>
+                      </StackItem>
+                      
+                      {/* Resource */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Resource</Content>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
+                          <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--orange--default)', color: 'white' }}>N</Label>
+                          <Button variant="link" isInline>node-001-nb</Button>
+                        </Flex>
+                      </StackItem>
+                      
+                      {/* Alert rule */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Alert rule</Content>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
+                          <Label isCompact style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>AR</Label>
+                          <Button variant="link" isInline>{selectedAlertDetail.alertName}</Button>
+                        </Flex>
+                      </StackItem>
+                      
+                      {/* Runbook */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Runbook</Content>
+                        <Content component="p">
+                          <Button variant="link" isInline>https://mygitrunbook.com</Button>
+                        </Content>
+                      </StackItem>
+                      
+                      {/* Dashboard */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600, borderBottom: '1px dashed var(--pf-t--global--border--color--default)', display: 'inline-block' }}>Dashboard</Content>
+                        <Content component="p">ocp-perses-clusterhealthdashboard</Content>
+                      </StackItem>
+                      
+                      {/* Follow-up steps */}
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Follow-up steps</Content>
+                        <Stack hasGutter style={{ marginTop: '8px' }}>
+                          <StackItem>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <Button variant="link" isInline>View logs</Button>
+                              <Popover
+                                headerIcon={<BellIcon />}
+                                headerContent="Install logging operator to view logs"
+                                bodyContent="You can deploy logging by installing the Red Hat OpenShift Logging Operator. The Red Hat OpenShift Logging Operator creates and manages the components of the logging stack."
+                                footerContent={
+                                  <Flex gap={{ default: 'gapMd' }}>
+                                    <Button variant="secondary">Go to operator page</Button>
+                                    <Button variant="link">Cancel</Button>
+                                  </Flex>
+                                }
+                              >
+                                <Button variant="plain" aria-label="More info about View logs" style={{ padding: '0 4px' }}>
+                                  <Icon status="info"><InfoCircleIcon /></Icon>
+                                </Button>
+                              </Popover>
+                            </Flex>
+                          </StackItem>
+                          <StackItem>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <Button variant="link" isInline>Troubleshoot</Button>
+                              <Popover
+                                headerContent="Install Korrel8r operator to correlate observability signals"
+                                bodyContent="Korrel8r helps navigate from problem symptoms to related resources and signal data that can reveal the cause. It can follow relationships between disjointed observability 'silos' (logs, metrics, alerts and more) to bring together all the data available to solve a problem."
+                                footerContent={
+                                  <Flex gap={{ default: 'gapMd' }}>
+                                    <Button variant="secondary">Go to operator page</Button>
+                                    <Button variant="link">Cancel</Button>
+                                  </Flex>
+                                }
+                              >
+                                <Button variant="plain" aria-label="More info about Troubleshoot" style={{ padding: '0 4px' }}>
+                                  <Icon status="info"><InfoCircleIcon /></Icon>
+                                </Button>
+                              </Popover>
+                            </Flex>
+                          </StackItem>
+                          <StackItem>
+                            <Button variant="link" isInline>See metrics</Button>
+                          </StackItem>
+                          <StackItem>
+                            <Button variant="link" isInline>See related incident</Button>
+                          </StackItem>
+                        </Stack>
+                      </StackItem>
+                    </Stack>
+                  </div>
+                </Tab>
+                <Tab eventKey={1} title={<TabTitleText>Alert timeline</TabTitleText>}>
+                  <div style={{ padding: '16px 0' }}>
+                    <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Alert timeline visualization would appear here.
+                    </Content>
+                  </div>
+                </Tab>
+                <Tab eventKey={2} title={<TabTitleText>YAML</TabTitleText>}>
+                  <div style={{ padding: '16px 0' }}>
+                    <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Alert YAML definition would appear here.
+                    </Content>
+                  </div>
+                </Tab>
+              </Tabs>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alert Rule Details Drawer */}
       {isAlertRuleDrawerOpen && selectedAlertRule && (
