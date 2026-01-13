@@ -401,6 +401,25 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                     Storage Infrastructure
                   </Content>
                   <List>
+                    {data.selectedStorage && data.selectedStorage.length > 0 ? (
+                      <ListItem>
+                        <Content style={{ fontSize: '14px' }}>
+                          Storage Backend: {data.selectedStorage.map((storageId) => {
+                            return storageId === 'odf' 
+                              ? 'OpenShift Data Foundation (ODF)'
+                              : storageId === 'lvm'
+                              ? 'Logical Volume Manager (LVM)'
+                              : storageId;
+                          }).join(', ')}
+                        </Content>
+                      </ListItem>
+                    ) : (
+                      <ListItem>
+                        <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
+                          Storage Backend: Not selected
+                        </Content>
+                      </ListItem>
+                    )}
                     <ListItem>
                       <Content style={{ fontSize: '14px' }}>
                         Local Cache (PV): {estimatedResources.localCache} GB (Standard-SSD)
