@@ -14,7 +14,7 @@ const initialWizardData: WizardData = {
   updateChannel: 'stable',
   version: '1.3.1',
   updateApproval: 'automatic',
-  enableClusterMonitoring: false,
+  enableClusterMonitoring: true,
   // Step 2 defaults
   selectedPersona: null,
   selectedCapabilities: ['metrics-alerting'], // Always required
