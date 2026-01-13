@@ -356,8 +356,8 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                             setProjectSelectOpen(false);
                             setSelectedProject('');
                             setProjectSearchValue('');
-                            // Reset cluster monitoring when switching to recommended namespace
-                            setEnableClusterMonitoring(false);
+                            // Enable cluster monitoring by default when switching to recommended namespace
+                            setEnableClusterMonitoring(true);
                           }}
                         />
                         <Alert
