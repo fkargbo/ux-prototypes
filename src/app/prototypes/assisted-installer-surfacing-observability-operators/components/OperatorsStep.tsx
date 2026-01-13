@@ -408,6 +408,8 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
 
   const selectedCount = selectedOperators.length;
   const totalCount = operatorCategories.reduce((sum, cat) => sum + cat.operators.length, 0);
+  const selectedAdvancedCount = selectedAdvancedOptions.length;
+  const totalAdvancedCount = advancedUIOptions.length;
 
   return (
     <div style={{ maxWidth: '1100px' }}>
@@ -725,9 +727,9 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                           })}
                           {/* Advanced section for Observability category */}
                           {category.id === 'observability' && (
-                            <StackItem>
+                            <StackItem style={{ marginBottom: 0 }}>
                               <ExpandableSection
-                                toggleText="Advanced settings"
+                                toggleText={`Advanced settings (${totalAdvancedCount} | ${selectedAdvancedCount} selected)`}
                                 isExpanded={isAdvancedSectionExpanded}
                                 onToggle={() => setIsAdvancedSectionExpanded(!isAdvancedSectionExpanded)}
                               >
