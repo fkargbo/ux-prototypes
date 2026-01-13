@@ -63,6 +63,7 @@ export interface WizardData {
   selectedNestedOptions: { [capabilityId: string]: string[] };
   advancedMode: boolean;
   selectedUIPlugins: string[];
+  selectedStorage: string[]; // Selected storage options (ODF or LVM)
 }
 
 interface Step2ObservabilityComponentsProps {
@@ -364,11 +365,11 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         const item = newOperators.find(i => i.id === opId);
         if (item && !item.isLocked) {
           item.isSelected = true;
-          if (!item.appliedBy.includes(goalId as GoalID)) {
-            item.appliedBy.push(goalId as GoalID);
+          // Type-safe: appliedBy may be GoalID[] or string[];
+          if (!item.appliedBy.includes(goalId)) {
+            // If appliedBy is string[], allow push; if more strict, need a type assertion
+            (item.appliedBy as (string | GoalID)[]).push(goalId);
           }
-        }
-      });
 
       // Add required storage
       deps.storage.forEach(storageId => {
@@ -412,9 +413,16 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       .map(op => op.id);
     
     setSelectedCapabilities(newCapabilities);
+    
+    // Update selectedStorage based on selected storage items
+    const newSelectedStorage = newStorage
+      .filter(s => s.isSelected)
+      .map(s => s.id);
+    
     onDataChange({ 
       activeGoals,
-      selectedCapabilities: newCapabilities 
+      selectedCapabilities: newCapabilities,
+      selectedStorage: newSelectedStorage
     });
   }, [activeGoals, updateDependencies, onDataChange]);
 
@@ -685,6 +693,12 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         return s;
       });
       setStorage(newStorage);
+      
+      // Update selectedStorage in wizard data
+      const newSelectedStorage = newStorage
+        .filter(s => s.isSelected)
+        .map(s => s.id);
+      onDataChange({ selectedStorage: newSelectedStorage });
     } else {
       // Unchecking - check if this storage is required by any active goal
       if (storageItem.appliedBy.length > 0) {
@@ -701,6 +715,12 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         s.id === storageId ? { ...s, isSelected: false } : s
       );
       setStorage(newStorage);
+      
+      // Update selectedStorage in wizard data
+      const newSelectedStorage = newStorage
+        .filter(s => s.isSelected)
+        .map(s => s.id);
+      onDataChange({ selectedStorage: newSelectedStorage });
     }
   };
 

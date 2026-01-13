@@ -22,6 +22,7 @@ const initialWizardData: WizardData = {
   selectedNestedOptions: {},
   advancedMode: false,
   selectedUIPlugins: ['monitoring-ui'], // Default enabled
+  selectedStorage: [], // Storage selection from Step 2
 };
 
 export const InstallationWizard: React.FC = () => {

@@ -343,6 +343,33 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
           </Card>
         </StackItem>
 
+        {/* Storage Selection */}
+        <StackItem>
+          <Card>
+            <CardTitle>Storage</CardTitle>
+            <CardBody>
+              {data.selectedStorage && data.selectedStorage.length > 0 ? (
+                <List>
+                  {data.selectedStorage.map((storageId) => {
+                    const storageName = storageId === 'odf' 
+                      ? 'OpenShift Data Foundation (ODF)'
+                      : storageId === 'lvm'
+                      ? 'Logical Volume Manager (LVM)'
+                      : storageId;
+                    return (
+                      <ListItem key={storageId}>{storageName}</ListItem>
+                    );
+                  })}
+                </List>
+              ) : (
+                <Content style={{ color: '#6a6e73' }}>
+                  No storage selected. Please go back to Step 2 to select storage.
+                </Content>
+              )}
+            </CardBody>
+          </Card>
+        </StackItem>
+
         {/* Estimated Resources */}
         <StackItem>
           <Card>
