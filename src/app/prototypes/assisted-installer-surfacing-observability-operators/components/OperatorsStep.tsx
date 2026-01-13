@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Title,
   Content,
@@ -256,7 +256,39 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
   const [isAdvancedModeEnabled, setIsAdvancedModeEnabled] = useState<boolean>(false);
   const [isAdvancedSectionExpanded, setIsAdvancedSectionExpanded] = useState<boolean>(false);
   const [selectedAdvancedOptions, setSelectedAdvancedOptions] = useState<string[]>([]);
+  const [recommendedAdvancedOptions, setRecommendedAdvancedOptions] = useState<string[]>([]);
+  const advancedSectionRef = useRef<HTMLDivElement>(null);
 
+  // Fix for ExpandableSection content div not collapsing properly
+  useEffect(() => {
+    // Use requestAnimationFrame to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      if (!advancedSectionRef.current) return;
+      
+      // Find the ExpandableSection content div within our ref
+      const contentDiv = advancedSectionRef.current.querySelector('.pf-v6-c-expandable-section__content') as HTMLElement;
+      
+      if (contentDiv) {
+        if (!isAdvancedSectionExpanded) {
+          // When collapsed, ensure the content div takes no space
+          contentDiv.style.display = 'none';
+          contentDiv.style.height = '0';
+          contentDiv.style.overflow = 'hidden';
+          contentDiv.style.margin = '0';
+          contentDiv.style.padding = '0';
+        } else {
+          // When expanded, reset styles to let PatternFly handle it
+          contentDiv.style.display = '';
+          contentDiv.style.height = '';
+          contentDiv.style.overflow = '';
+          contentDiv.style.margin = '';
+          contentDiv.style.padding = '';
+        }
+      }
+    }, 0);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isAdvancedSectionExpanded]);
 
   const handleBundleChange = (bundleId: string, checked: boolean) => {
     if (checked) {
@@ -304,6 +336,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
       setRecommendedStorageOperators([]);
       // Clear advanced options
       setSelectedAdvancedOptions([]);
+      setRecommendedAdvancedOptions([]);
       setIsAdvancedModeEnabled(false);
       return;
     }
@@ -376,11 +409,17 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
         advancedOptionsToSelect = ['monitoring-ui', 'logging-ui', 'tracing-ui'];
         break;
     }
-    setSelectedAdvancedOptions(advancedOptionsToSelect);
-    // For Incident Response, disable advanced mode initially (all selected and disabled)
-    if (personaId === 'incident-response') {
-      setIsAdvancedModeEnabled(false);
-    }
+    
+    // Preserve manually selected options that aren't in the new recommendations
+    const manuallySelectedOptions = selectedAdvancedOptions.filter(id => !recommendedAdvancedOptions.includes(id));
+    // Combine: new recommended options + manually selected options (no duplicates)
+    const finalAdvancedOptions = Array.from(new Set([...advancedOptionsToSelect, ...manuallySelectedOptions]));
+    
+    setSelectedAdvancedOptions(finalAdvancedOptions);
+    // Track which options are recommended (auto-selected)
+    setRecommendedAdvancedOptions(advancedOptionsToSelect);
+    // Advanced mode starts disabled so recommended options are disabled
+    setIsAdvancedModeEnabled(false);
   };
 
   const handlePersonaChange = (personaId: string) => {
@@ -408,6 +447,8 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
 
   const selectedCount = selectedOperators.length;
   const totalCount = operatorCategories.reduce((sum, cat) => sum + cat.operators.length, 0);
+  const selectedAdvancedCount = selectedAdvancedOptions.length;
+  const totalAdvancedCount = advancedUIOptions.length;
 
   return (
     <div style={{ maxWidth: '1100px' }}>
@@ -725,12 +766,16 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                           })}
                           {/* Advanced section for Observability category */}
                           {category.id === 'observability' && (
-                            <StackItem>
+                            <div 
+                              ref={advancedSectionRef}
+                              style={{ 
+                                marginBottom: isAdvancedSectionExpanded ? undefined : 0,
+                              }}
+                            >
                               <ExpandableSection
-                                toggleText="Advanced settings"
+                                toggleText={`Advanced settings (${totalAdvancedCount} | ${selectedAdvancedCount} selected)`}
                                 isExpanded={isAdvancedSectionExpanded}
                                 onToggle={() => setIsAdvancedSectionExpanded(!isAdvancedSectionExpanded)}
-                                style={{ marginTop: '16px' }}
                               >
                                 <Stack hasGutter style={{ marginTop: '16px', marginLeft: '16px' }}>
                                   <StackItem>
@@ -751,10 +796,9 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                   </StackItem>
                                   {advancedUIOptions.map((option) => {
                                     const isChecked = selectedAdvancedOptions.includes(option.id);
-                                    const isIncidentResponse = selectedPersonas.includes('incident-response');
-                                    // For Incident Response: disable when advanced mode is off and option is auto-selected
-                                    // For other personas: always enabled
-                                    const isDisabled = isIncidentResponse && !isAdvancedModeEnabled && isChecked;
+                                    const isRecommended = recommendedAdvancedOptions.includes(option.id);
+                                    // Disable if the option is recommended (auto-selected) AND Advanced mode is OFF
+                                    const isDisabled = isRecommended && !isAdvancedModeEnabled;
                                     
                                     return (
                                       <StackItem key={option.id}>
@@ -764,6 +808,9 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                             isChecked={isChecked}
                                             isDisabled={isDisabled}
                                             onChange={(_, checked) => {
+                                              // Prevent changes when disabled
+                                              if (isDisabled) return;
+                                              
                                               if (checked) {
                                                 setSelectedAdvancedOptions([...selectedAdvancedOptions, option.id]);
                                               } else {
@@ -792,7 +839,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                   })}
                                 </Stack>
                               </ExpandableSection>
-                            </StackItem>
+                            </div>
                           )}
                         </Stack>
                       </div>
