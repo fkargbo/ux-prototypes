@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Title,
   Content,
@@ -256,7 +256,38 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
   const [isAdvancedModeEnabled, setIsAdvancedModeEnabled] = useState<boolean>(false);
   const [isAdvancedSectionExpanded, setIsAdvancedSectionExpanded] = useState<boolean>(false);
   const [selectedAdvancedOptions, setSelectedAdvancedOptions] = useState<string[]>([]);
+  const advancedSectionRef = useRef<HTMLDivElement>(null);
 
+  // Fix for ExpandableSection content div not collapsing properly
+  useEffect(() => {
+    // Use requestAnimationFrame to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      if (!advancedSectionRef.current) return;
+      
+      // Find the ExpandableSection content div within our ref
+      const contentDiv = advancedSectionRef.current.querySelector('.pf-v6-c-expandable-section__content') as HTMLElement;
+      
+      if (contentDiv) {
+        if (!isAdvancedSectionExpanded) {
+          // When collapsed, ensure the content div takes no space
+          contentDiv.style.display = 'none';
+          contentDiv.style.height = '0';
+          contentDiv.style.overflow = 'hidden';
+          contentDiv.style.margin = '0';
+          contentDiv.style.padding = '0';
+        } else {
+          // When expanded, reset styles to let PatternFly handle it
+          contentDiv.style.display = '';
+          contentDiv.style.height = '';
+          contentDiv.style.overflow = '';
+          contentDiv.style.margin = '';
+          contentDiv.style.padding = '';
+        }
+      }
+    }, 0);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isAdvancedSectionExpanded]);
 
   const handleBundleChange = (bundleId: string, checked: boolean) => {
     if (checked) {
@@ -727,7 +758,12 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                           })}
                           {/* Advanced section for Observability category */}
                           {category.id === 'observability' && (
-                            <StackItem style={{ marginBottom: 0 }}>
+                            <div 
+                              ref={advancedSectionRef}
+                              style={{ 
+                                marginBottom: isAdvancedSectionExpanded ? undefined : 0,
+                              }}
+                            >
                               <ExpandableSection
                                 toggleText={`Advanced settings (${totalAdvancedCount} | ${selectedAdvancedCount} selected)`}
                                 isExpanded={isAdvancedSectionExpanded}
@@ -793,7 +829,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                   })}
                                 </Stack>
                               </ExpandableSection>
-                            </StackItem>
+                            </div>
                           )}
                         </Stack>
                       </div>
