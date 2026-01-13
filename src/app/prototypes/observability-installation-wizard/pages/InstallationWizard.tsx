@@ -13,14 +13,16 @@ const initialWizardData: WizardData = {
   installationMode: 'all-namespaces',
   updateChannel: 'stable',
   version: '1.3.1',
-  updateApproval: 'automatic',
-  enableClusterMonitoring: false,
+  updateApproval: 'manual',
+  enableClusterMonitoring: true,
   // Step 2 defaults
   selectedPersona: null,
+  activeGoals: [], // Goals selected by user (checkboxes)
   selectedCapabilities: ['metrics-alerting'], // Always required
   selectedNestedOptions: {},
   advancedMode: false,
   selectedUIPlugins: ['monitoring-ui'], // Default enabled
+  selectedStorage: [], // Storage selection from Step 2
 };
 
 export const InstallationWizard: React.FC = () => {

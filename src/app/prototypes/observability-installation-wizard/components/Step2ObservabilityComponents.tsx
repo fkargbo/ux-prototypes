@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Title,
   Content,
@@ -18,6 +18,7 @@ import {
   Flex,
   FlexItem,
   Switch,
+  Badge,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -56,11 +57,13 @@ export interface WizardData {
   updateApproval?: string;
   enableClusterMonitoring?: boolean;
   // Step 2 data
-  selectedPersona: string | null;
+  selectedPersona: string | null; // Deprecated, kept for backward compatibility
+  activeGoals: string[]; // New: array of selected goal IDs
   selectedCapabilities: string[];
   selectedNestedOptions: { [capabilityId: string]: string[] };
   advancedMode: boolean;
   selectedUIPlugins: string[];
+  selectedStorage: string[]; // Selected storage options (ODF or LVM)
 }
 
 interface Step2ObservabilityComponentsProps {
@@ -68,6 +71,59 @@ interface Step2ObservabilityComponentsProps {
   onDataChange: (data: Partial<WizardData>) => void;
 }
 
+// Goals (replaces personas with checkbox selection)
+export interface Goal {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  description: string;
+}
+
+type GoalID = 'platform-governance' | 'incident-response' | 'app-performance';
+
+const goals: Goal[] = [
+  {
+    id: 'platform-governance',
+    name: 'Platform governance & stability',
+    icon: <UserIcon />,
+    description: 'Monitor infrastructure health, audit logs, enforce network policies, and manage long-term capacity planning.',
+  },
+  {
+    id: 'incident-response',
+    name: 'Incident response & reliability',
+    icon: <ChartLineIcon />,
+    description: 'Maximize uptime and reduce MTTR using full-stack debugging, distributed tracing, and automated signal correlation.',
+  },
+  {
+    id: 'app-performance',
+    name: 'App performance & debugging',
+    icon: <CodeIcon />,
+    description: 'Isolate code errors, trace transactions across microservices, and optimize application latency within namespaces.',
+  },
+];
+
+// Dependency map: Each goal requires specific operators and storage
+interface GoalDependencies {
+  operators: string[]; // Operator IDs (capability IDs)
+  storage: string[]; // Storage IDs: 'odf' or 'lvm'
+}
+
+const NEED_DEPENDENCIES: Record<GoalID, GoalDependencies> = {
+  'platform-governance': {
+    operators: ['metrics-alerting', 'thanos', 'loki'],
+    storage: ['odf'], // Platform governance requires ODF
+  },
+  'incident-response': {
+    operators: ['metrics-alerting', 'thanos', 'loki', 'tempo', 'korrel8r', 'incident-detection'],
+    storage: ['odf'], // Incident response requires ODF
+  },
+  'app-performance': {
+    operators: ['metrics-alerting', 'loki', 'tempo'],
+    storage: ['lvm'], // App performance can use LVM
+  },
+};
+
+// Legacy personas (kept for backward compatibility during migration)
 const personas: Persona[] = [
   {
     id: 'administrator',
@@ -101,7 +157,7 @@ const capabilities: Capability[] = [
   },
   {
     id: 'thanos',
-    name: 'Enable Long-term Storage (Thanos)',
+    name: 'Long-term Storage (Thanos)',
     description: 'Retain metrics for capacity planning and historical analysis.',
   },
   {
@@ -216,10 +272,24 @@ const uiPlugins: UIPlugin[] = [
   },
 ];
 
+// Operator/Storage item with dependency tracking
+interface OperatorStorageItem {
+  id: string;
+  name: string;
+  description?: string;
+  isSelected: boolean;
+  isLocked: boolean; // Core Observability is always locked
+  appliedBy: GoalID[]; // Which goals require this item
+}
+
 export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponentsProps> = ({
   data,
   onDataChange,
 }) => {
+  // Goals-based state (new system)
+  const [activeGoals, setActiveGoals] = useState<string[]>(data.activeGoals || []);
+  
+  // Legacy persona state (for backward compatibility)
   const [selectedPersona, setSelectedPersona] = useState<string | null>(data.selectedPersona);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>(data.selectedCapabilities);
   const [selectedNestedOptions, setSelectedNestedOptions] = useState<{ [key: string]: string[] }>(
@@ -230,9 +300,202 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     data.selectedUIPlugins || ['monitoring-ui']
   );
   const [isPreselectionAlertDismissed, setIsPreselectionAlertDismissed] = useState(false);
+  
+  // Track manually unchecked items that were required by goals
+  const [uncheckedRequiredItems, setUncheckedRequiredItems] = useState<Set<string>>(new Set());
+
+  // Initialize operators and storage items from capabilities
+  const initialOperators: OperatorStorageItem[] = useMemo(() => {
+    return capabilities.map(cap => ({
+      id: cap.id,
+      name: cap.name,
+      description: cap.description,
+      isSelected: cap.required || false, // Core Observability (metrics-alerting) is required
+      isLocked: cap.required || false, // Core Observability is locked
+      appliedBy: [],
+    }));
+  }, []);
+
+  // Initialize storage items
+  const initialStorage: OperatorStorageItem[] = useMemo(() => [
+    {
+      id: 'odf',
+      name: 'OpenShift Data Foundation (ODF)',
+      description: 'Enterprise-grade storage for demanding observability requirements.',
+      isSelected: false,
+      isLocked: false,
+      appliedBy: [],
+    },
+    {
+      id: 'lvm',
+      name: 'Logical Volume Manager (LVM)',
+      description: 'Local storage for standard observability needs.',
+      isSelected: false,
+      isLocked: false,
+      appliedBy: [],
+    },
+  ], []);
+
+  // State for operators and storage with dependency tracking
+  const [operators, setOperators] = useState<OperatorStorageItem[]>(initialOperators);
+  const [storage, setStorage] = useState<OperatorStorageItem[]>(initialStorage);
+
+  // Dependency calculation: Updates operators and storage based on activeGoals
+  const updateDependencies = useCallback((goalIds: string[]) => {
+    // Reset all to default (except Core Observability which is locked)
+    const newOperators = initialOperators.map(item => ({
+      ...item,
+      isSelected: item.isLocked, // Only locked items remain selected
+      appliedBy: [],
+    }));
+
+    const newStorage = initialStorage.map(item => ({
+      ...item,
+      isSelected: false,
+      appliedBy: [],
+    }));
+
+    // Aggregate requirements from all active goals
+    goalIds.forEach(goalId => {
+      const deps = NEED_DEPENDENCIES[goalId as GoalID];
+      if (!deps) return;
+
+      // Add required operators
+      deps.operators.forEach(opId => {
+        const item = newOperators.find(i => i.id === opId);
+        if (item && !item.isLocked) {
+          item.isSelected = true;
+          // Type-safe: appliedBy may be GoalID[] or string[];
+          if (!item.appliedBy.includes(goalId)) {
+            // If appliedBy is string[], allow push; if more strict, need a type assertion
+            (item.appliedBy as (string | GoalID)[]).push(goalId);
+          }
+        }
+      });
+
+      // Add required storage
+      deps.storage.forEach(storageId => {
+        const item = newStorage.find(i => i.id === storageId);
+        if (item) {
+          item.isSelected = true;
+          if (!item.appliedBy.includes(goalId as GoalID)) {
+            item.appliedBy.push(goalId as GoalID);
+          }
+        }
+      });
+    });
+
+    // Conflict Resolution: ODF overrides LVM
+    const hasODF = newStorage.find(i => i.id === 'odf')?.isSelected;
+    const hasLVM = newStorage.find(i => i.id === 'lvm')?.isSelected;
+    
+    if (hasODF && hasLVM) {
+      // ODF takes priority - remove LVM requirement
+      const lvmItem = newStorage.find(i => i.id === 'lvm');
+      if (lvmItem) {
+        lvmItem.isSelected = false;
+        // Keep only ODF-requiring goals in LVM's appliedBy (for display purposes)
+        // Actually, we should remove LVM entirely when ODF is selected
+        lvmItem.appliedBy = [];
+      }
+    }
+
+    return { operators: newOperators, storage: newStorage };
+  }, [initialOperators, initialStorage]);
+
+  // Update dependencies when activeGoals change
+  useEffect(() => {
+    const { operators: newOperators, storage: newStorage } = updateDependencies(activeGoals);
+    setOperators(newOperators);
+    setStorage(newStorage);
+
+    // Update selectedCapabilities based on selected operators
+    const newCapabilities = newOperators
+      .filter(op => op.isSelected)
+      .map(op => op.id);
+    
+    setSelectedCapabilities(newCapabilities);
+    
+    // Update selectedStorage based on selected storage items
+    const newSelectedStorage = newStorage
+      .filter(s => s.isSelected)
+      .map(s => s.id);
+    
+    onDataChange({ 
+      activeGoals,
+      selectedCapabilities: newCapabilities,
+      selectedStorage: newSelectedStorage
+    });
+  }, [activeGoals, updateDependencies, onDataChange]);
+
+  // Auto-select UI plugins based on goals and selected capabilities
+  useEffect(() => {
+    // Only auto-select if we have goals or capabilities (not just on initial mount with empty state)
+    if (activeGoals.length > 0 || (selectedCapabilities.length > 0 && selectedCapabilities.includes('metrics-alerting'))) {
+      let autoUIPlugins: string[] = [];
+      
+      // monitoring-ui requires metrics-alerting (always auto-selected when dependency is met)
+      if (selectedCapabilities.includes('metrics-alerting')) {
+        autoUIPlugins.push('monitoring-ui');
+      }
+      
+      // logging-ui requires loki (auto-selected when dependency is met)
+      if (selectedCapabilities.includes('loki')) {
+        autoUIPlugins.push('logging-ui');
+      }
+      
+      // tracing-ui requires tempo (auto-selected when dependency is met)
+      if (selectedCapabilities.includes('tempo')) {
+        autoUIPlugins.push('tracing-ui');
+      }
+      
+      // troubleshooting-panel requires korrel8r (auto-selected when dependency is met)
+      if (selectedCapabilities.includes('korrel8r')) {
+        autoUIPlugins.push('troubleshooting-panel');
+      }
+      
+      // Perses requires metrics-alerting and is auto-selected for Platform Governance and Incident Response goals
+      if (selectedCapabilities.includes('metrics-alerting') && 
+          (activeGoals.includes('platform-governance') || activeGoals.includes('incident-response'))) {
+        autoUIPlugins.push('perses');
+      }
+      
+      // Incident Detection UI Plugin requires loki and is auto-selected for Incident Response goal
+      if (selectedCapabilities.includes('loki') && activeGoals.includes('incident-response')) {
+        autoUIPlugins.push('incident-detection-ui');
+      }
+      
+      // Network UI Plugin requires network-traffic and is auto-selected when network-traffic is selected
+      if (selectedCapabilities.includes('network-traffic')) {
+        autoUIPlugins.push('network-ui');
+      }
+      
+      // When goals/capabilities change, only keep plugins that should be auto-selected
+      // Don't preserve manually-selected plugins unless Advanced Mode is enabled
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const currentPlugins = selectedUIPlugins;
+      const finalPlugins = advancedMode 
+        ? // In Advanced Mode, preserve manually-selected plugins that aren't auto-selected
+          [...autoUIPlugins, ...currentPlugins.filter(pluginId => !autoUIPlugins.includes(pluginId))]
+        : // In normal mode, only use auto-selected plugins
+          autoUIPlugins;
+      
+      // Remove duplicates
+      const uniquePlugins = Array.from(new Set(finalPlugins));
+      
+      setSelectedUIPlugins(uniquePlugins);
+      onDataChange({ selectedUIPlugins: uniquePlugins });
+    }
+  }, [activeGoals, selectedCapabilities, advancedMode, onDataChange]);
 
   // Sync data prop changes to local state when props change
   // This ensures local state stays in sync if user navigates away and back
+  useEffect(() => {
+    if (data.activeGoals) {
+      setActiveGoals(data.activeGoals);
+    }
+  }, [data.activeGoals]);
+
   useEffect(() => {
     setSelectedPersona(data.selectedPersona);
   }, [data.selectedPersona]);
@@ -347,6 +610,122 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     }
   }, [selectedPersona, advancedMode, onDataChange]);
 
+  // Handle goal selection (checkboxes)
+  const handleGoalChange = (goalId: string, checked: boolean) => {
+    let newGoals: string[];
+    if (checked) {
+      newGoals = [...activeGoals, goalId];
+    } else {
+      newGoals = activeGoals.filter(id => id !== goalId);
+    }
+    setActiveGoals(newGoals);
+    onDataChange({ activeGoals: newGoals });
+  };
+
+  // Handle operator/storage selection with warning for required items
+  const handleOperatorChange = (operatorId: string, checked: boolean) => {
+    const operator = operators.find(op => op.id === operatorId);
+    if (!operator) return;
+
+    // Prevent unchecking locked items (Core Observability)
+    if (!checked && operator.isLocked) {
+      return;
+    }
+
+    // Check if this operator is required by any active goal
+    if (!checked && operator.appliedBy.length > 0) {
+      // Show warning - add to uncheckedRequiredItems
+      setUncheckedRequiredItems(prev => new Set([...prev, operatorId]));
+    } else {
+      // Remove from uncheckedRequiredItems if being checked
+      setUncheckedRequiredItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(operatorId);
+        return newSet;
+      });
+    }
+
+    // Update operator selection
+    const newOperators = operators.map(op => 
+      op.id === operatorId ? { ...op, isSelected: checked } : op
+    );
+    setOperators(newOperators);
+
+    // Update selectedCapabilities
+    const newCapabilities = newOperators
+      .filter(op => op.isSelected)
+      .map(op => op.id);
+    setSelectedCapabilities(newCapabilities);
+    onDataChange({ selectedCapabilities: newCapabilities });
+  };
+
+  const handleStorageChange = (storageId: string, checked: boolean) => {
+    const storageItem = storage.find(s => s.id === storageId);
+    if (!storageItem) return;
+
+    // ODF and LVM are mutually exclusive - only one can be selected at a time
+    if (checked) {
+      // Selecting a storage option - uncheck the other one
+      const otherStorageId = storageId === 'odf' ? 'lvm' : 'odf';
+      const otherStorage = storage.find(s => s.id === otherStorageId);
+      const wasOtherRequired = otherStorage && otherStorage.appliedBy.length > 0;
+      
+      // Update uncheckedRequiredItems: remove selected storage, add/remove other storage based on requirement
+      setUncheckedRequiredItems(prev => {
+        const newSet = new Set(prev);
+        // Remove the selected storage from warnings (it's now selected, so no warning needed)
+        newSet.delete(storageId);
+        // Add the other storage to warnings if it was required, otherwise remove it
+        if (wasOtherRequired) {
+          newSet.add(otherStorageId);
+        } else {
+          newSet.delete(otherStorageId);
+        }
+        return newSet;
+      });
+      
+      const newStorage = storage.map(s => {
+        if (s.id === storageId) {
+          // Select the clicked item
+          return { ...s, isSelected: true };
+        } else if (s.id === otherStorageId) {
+          // Uncheck the other storage option
+          return { ...s, isSelected: false };
+        }
+        return s;
+      });
+      setStorage(newStorage);
+      
+      // Update selectedStorage in wizard data
+      const newSelectedStorage = newStorage
+        .filter(s => s.isSelected)
+        .map(s => s.id);
+      onDataChange({ selectedStorage: newSelectedStorage });
+    } else {
+      // Unchecking - check if this storage is required by any active goal
+      if (storageItem.appliedBy.length > 0) {
+        // Show warning
+        setUncheckedRequiredItems(prev => new Set([...prev, storageId]));
+      } else {
+        setUncheckedRequiredItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(storageId);
+          return newSet;
+        });
+      }
+      const newStorage = storage.map(s => 
+        s.id === storageId ? { ...s, isSelected: false } : s
+      );
+      setStorage(newStorage);
+      
+      // Update selectedStorage in wizard data
+      const newSelectedStorage = newStorage
+        .filter(s => s.isSelected)
+        .map(s => s.id);
+      onDataChange({ selectedStorage: newSelectedStorage });
+    }
+  };
+
   const handlePersonaChange = (personaId: string) => {
     setSelectedPersona(personaId);
     onDataChange({ selectedPersona: personaId });
@@ -358,6 +737,25 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     if (!checked && capability?.required) {
       return; // Don't allow unchecking required capabilities
     }
+
+    // Check if this capability is required by any active goal
+    const operator = operators.find(op => op.id === capabilityId);
+    if (!checked && operator && operator.appliedBy.length > 0) {
+      // Show warning
+      setUncheckedRequiredItems(prev => new Set([...prev, capabilityId]));
+    } else {
+      setUncheckedRequiredItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(capabilityId);
+        return newSet;
+      });
+    }
+
+    // Update operator state to sync with capabilities
+    const newOperators = operators.map(op => 
+      op.id === capabilityId ? { ...op, isSelected: checked } : op
+    );
+    setOperators(newOperators);
     
     let newCapabilities: string[];
     
@@ -403,8 +801,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       }
       if (capabilityId === 'loki') {
         pluginsToRemove.push('logging-ui');
-        // Only remove incident-detection-ui if not SRE persona (it's persona-specific)
-        if (selectedPersona !== 'sre') {
+        // Only remove incident-detection-ui if not required by active goals
+        const hasIncidentResponse = activeGoals.includes('incident-response');
+        if (!hasIncidentResponse) {
           pluginsToRemove.push('incident-detection-ui');
         }
       }
@@ -497,43 +896,39 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
           </Title>
         </StackItem>
         
-        {/* Persona Selection Section */}
+        {/* Goals Selection Section (Checkboxes) */}
         <StackItem>
           <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
             Choose your Observability strategy
           </Title>
           <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-            Select an operational focus to pre-configure the recommended stack. You can customize specific components later.
+            Select one or more operational focuses to pre-configure the recommended stack. You can customize specific components later.
           </Content>
           
           <Grid hasGutter>
-            {personas.map((persona) => (
-              <GridItem key={persona.id} span={4}>
+            {goals.map((goal) => (
+              <GridItem key={goal.id} span={4}>
                 <Card
-                  isSelectable
-                  isSelected={selectedPersona === persona.id}
-                  onClick={() => handlePersonaChange(persona.id)}
+                  isPlain
                   style={{
-                    cursor: 'pointer',
                     height: '100%',
-                    border: selectedPersona === persona.id ? '2px solid #0066cc' : '1px solid #d2d2d2',
+                    border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
+                    borderRadius: '16px',
                   }}
                 >
                   <CardBody>
                     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                       <FlexItem>
-                        <Radio
-                          id={`persona-${persona.id}`}
-                          name="persona"
-                          label={<span style={{ fontWeight: '600' }}>{persona.name}</span>}
-                          isChecked={selectedPersona === persona.id}
-                          onChange={() => handlePersonaChange(persona.id)}
-                          onClick={(e) => e.stopPropagation()}
+                        <Checkbox
+                          id={`goal-${goal.id}`}
+                          label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{goal.name}</span>}
+                          isChecked={activeGoals.includes(goal.id)}
+                          onChange={(_, checked) => handleGoalChange(goal.id, checked)}
                         />
                       </FlexItem>
                       <FlexItem>
                         <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
-                          {persona.description}
+                          {goal.description}
                         </Content>
                       </FlexItem>
                     </Flex>
@@ -545,7 +940,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         </StackItem>
 
         {/* Intelligent Preselection Alert */}
-        {selectedPersona && !isPreselectionAlertDismissed && (
+        {activeGoals.length > 0 && !isPreselectionAlertDismissed && (
           <StackItem>
             <Alert
               variant={AlertVariant.info}
@@ -557,6 +952,144 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
             >
               Choosing a strategy helps us tailor your installation. The preselected components represent the industry-standard stack for your specific operational focus.
             </Alert>
+          </StackItem>
+        )}
+
+        {/* Operators and Storage Section */}
+        {activeGoals.length > 0 && (
+          <StackItem>
+            <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
+              Required operators and storage
+            </Title>
+            <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
+              The following operators and storage are required by your selected goals. You can customize these selections below.
+            </Content>
+
+            <Card>
+              <CardBody>
+                <Stack hasGutter>
+                  {/* Operators */}
+                  <StackItem>
+                    <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
+                      Operators
+                    </Title>
+                    <Stack hasGutter>
+                      {operators.map((operator) => {
+                          const goalNames = operator.appliedBy.map(goalId => {
+                            const goal = goals.find(g => g.id === goalId);
+                            return goal?.name || goalId;
+                          });
+                          
+                          return (
+                            <StackItem key={operator.id}>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                                <FlexItem>
+                                  <Checkbox
+                                    id={`operator-${operator.id}`}
+                                    label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{operator.name}</span>}
+                                    isChecked={operator.isSelected}
+                                    isDisabled={operator.isLocked}
+                                    onChange={(_, checked) => handleOperatorChange(operator.id, checked)}
+                                  />
+                                </FlexItem>
+                                {operator.appliedBy.length > 0 && (
+                                  <FlexItem>
+                                    <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                                      {goalNames.map((goalName, index) => (
+                                        <FlexItem key={index}>
+                                          <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                            {goalName}
+                                          </Badge>
+                                        </FlexItem>
+                                      ))}
+                                    </Flex>
+                                  </FlexItem>
+                                )}
+                              </Flex>
+                              {operator.description && (
+                                <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                                  {operator.description}
+                                </Content>
+                              )}
+                              {uncheckedRequiredItems.has(operator.id) && (
+                                <Alert
+                                  variant={AlertVariant.warning}
+                                  isInline
+                                  title="This operator is required by selected goals"
+                                  style={{ marginTop: '8px', marginLeft: '24px' }}
+                                >
+                                  Unchecking this operator may impact the functionality of: {goalNames.join(', ')}. Consider keeping it enabled.
+                                </Alert>
+                              )}
+                            </StackItem>
+                          );
+                        })}
+                    </Stack>
+                  </StackItem>
+
+                  <Divider />
+
+                  {/* Storage */}
+                  <StackItem>
+                    <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
+                      Storage
+                    </Title>
+                    <Stack hasGutter>
+                      {storage.map((storageItem) => {
+                          const goalNames = storageItem.appliedBy.map(goalId => {
+                            const goal = goals.find(g => g.id === goalId);
+                            return goal?.name || goalId;
+                          });
+                          
+                          return (
+                            <StackItem key={storageItem.id}>
+                              <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                                <FlexItem>
+                                  <Radio
+                                    id={`storage-${storageItem.id}`}
+                                    name="storage-selection"
+                                    label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{storageItem.name}</span>}
+                                    isChecked={storageItem.isSelected}
+                                    onChange={() => handleStorageChange(storageItem.id, true)}
+                                  />
+                                </FlexItem>
+                                {storageItem.appliedBy.length > 0 && (
+                                  <FlexItem>
+                                    <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                                      {goalNames.map((goalName, index) => (
+                                        <FlexItem key={index}>
+                                          <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                            {goalName}
+                                          </Badge>
+                                        </FlexItem>
+                                      ))}
+                                    </Flex>
+                                  </FlexItem>
+                                )}
+                              </Flex>
+                              {storageItem.description && (
+                                <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                                  {storageItem.description}
+                                </Content>
+                              )}
+                              {uncheckedRequiredItems.has(storageItem.id) && (
+                                <Alert
+                                  variant={AlertVariant.warning}
+                                  isInline
+                                  title="This storage is required by selected goals"
+                                  style={{ marginTop: '8px', marginLeft: '24px' }}
+                                >
+                                  Unchecking this storage may impact the functionality of: {goalNames.join(', ')}. Consider keeping it enabled.
+                                </Alert>
+                              )}
+                            </StackItem>
+                          );
+                        })}
+                    </Stack>
+                  </StackItem>
+                </Stack>
+              </CardBody>
+            </Card>
           </StackItem>
         )}
 
@@ -701,16 +1234,83 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
               <Stack hasGutter>
                 {availablePlugins.map((plugin) => {
                   const isChecked = selectedUIPlugins.includes(plugin.id);
+                  
+                  // Determine which goals require this plugin based on dependencies and goal-specific rules
+                  const requiredByGoals: string[] = [];
+                  
+                  // Check if plugin dependencies are satisfied and which goals require those dependencies
+                  if (plugin.dependencies && plugin.dependencies.length > 0) {
+                    activeGoals.forEach(goalId => {
+                      const deps = NEED_DEPENDENCIES[goalId as GoalID];
+                      if (deps) {
+                        // Check if all plugin dependencies are required by this goal
+                        const allDepsSatisfied = plugin.dependencies!.every(dep => 
+                          deps.operators.includes(dep) || selectedCapabilities.includes(dep)
+                        );
+                        if (allDepsSatisfied) {
+                          requiredByGoals.push(goalId);
+                        }
+                      }
+                    });
+                  }
+                  
+                  // Goal-specific plugin rules
+                  if (plugin.id === 'perses') {
+                    // Perses is specifically required by Platform Governance and Incident Response
+                    if (activeGoals.includes('platform-governance') && selectedCapabilities.includes('metrics-alerting')) {
+                      if (!requiredByGoals.includes('platform-governance')) {
+                        requiredByGoals.push('platform-governance');
+                      }
+                    }
+                    if (activeGoals.includes('incident-response') && selectedCapabilities.includes('metrics-alerting')) {
+                      if (!requiredByGoals.includes('incident-response')) {
+                        requiredByGoals.push('incident-response');
+                      }
+                    }
+                  }
+                  
+                  if (plugin.id === 'incident-detection-ui') {
+                    // Incident Detection UI is specifically required by Incident Response
+                    if (activeGoals.includes('incident-response') && selectedCapabilities.includes('loki')) {
+                      if (!requiredByGoals.includes('incident-response')) {
+                        requiredByGoals.push('incident-response');
+                      }
+                    }
+                  }
+                  
+                  // Remove duplicates
+                  const uniqueGoalIds = Array.from(new Set(requiredByGoals));
+                  const goalNames = uniqueGoalIds.map(goalId => {
+                    const goal = goals.find(g => g.id === goalId);
+                    return goal?.name || goalId;
+                  });
 
                   return (
                     <StackItem key={plugin.id}>
-                      <Checkbox
-                        id={`plugin-${plugin.id}`}
-                        label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{plugin.name}</span>}
-                        isChecked={isChecked}
-                        isDisabled={!advancedMode}
-                        onChange={(_, checked) => handleUIPluginChange(plugin.id, checked)}
-                      />
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                        <FlexItem>
+                          <Checkbox
+                            id={`plugin-${plugin.id}`}
+                            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{plugin.name}</span>}
+                            isChecked={isChecked}
+                            isDisabled={!advancedMode}
+                            onChange={(_, checked) => handleUIPluginChange(plugin.id, checked)}
+                          />
+                        </FlexItem>
+                        {goalNames.length > 0 && (
+                          <FlexItem>
+                            <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                              {goalNames.map((goalName, index) => (
+                                <FlexItem key={index}>
+                                  <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                    {goalName}
+                                  </Badge>
+                                </FlexItem>
+                              ))}
+                            </Flex>
+                          </FlexItem>
+                        )}
+                      </Flex>
                       <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
                         {plugin.description}
                       </Content>

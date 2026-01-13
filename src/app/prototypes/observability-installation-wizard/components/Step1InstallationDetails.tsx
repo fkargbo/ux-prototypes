@@ -151,10 +151,10 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
   const [selectedProject, setSelectedProject] = useState<string>(data?.selectedProject || '');
   const [projectSelectOpen, setProjectSelectOpen] = useState<boolean>(false);
   const [projectSearchValue, setProjectSearchValue] = useState<string>('');
-  const [enableClusterMonitoring, setEnableClusterMonitoring] = useState<boolean>(data?.enableClusterMonitoring || false);
+  const [enableClusterMonitoring, setEnableClusterMonitoring] = useState<boolean>(data?.enableClusterMonitoring !== undefined ? data.enableClusterMonitoring : true);
 
   // Operator updates
-  const [updateApproval, setUpdateApproval] = useState<string>(data?.updateApproval || 'automatic');
+  const [updateApproval, setUpdateApproval] = useState<string>(data?.updateApproval || 'manual');
 
   // Sync state changes to parent
   useEffect(() => {
@@ -356,8 +356,8 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                             setProjectSelectOpen(false);
                             setSelectedProject('');
                             setProjectSearchValue('');
-                            // Reset cluster monitoring when switching to recommended namespace
-                            setEnableClusterMonitoring(false);
+                            // Enable cluster monitoring by default when switching to recommended namespace
+                            setEnableClusterMonitoring(true);
                           }}
                         />
                         <Alert
@@ -514,6 +514,25 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                 <Stack hasGutter>
                   <StackItem>
                     <Radio
+                      id="manual"
+                      name="update-approval"
+                      label="Manual"
+                      isChecked={updateApproval === 'manual'}
+                      onChange={() => setUpdateApproval('manual')}
+                    />
+                    {updateApproval === 'manual' && (
+                      <Alert
+                        variant={AlertVariant.info}
+                        isInline
+                        title="Manual approval applies to all operators in a namespace"
+                        style={{ marginTop: '8px', marginLeft: '24px' }}
+                      >
+                        Installing an operator with manual approval causes all operators installed in namespace openshift-cluster-observability-operator to function as manual approval strategy and will be updated altogether. Install operators into separate namespaces for handling their updates independently. To allow automatic approval, all operators installed in the namespace must use automatic approval strategy.
+                      </Alert>
+                    )}
+                  </StackItem>
+                  <StackItem>
+                    <Radio
                       id="automatic"
                       name="update-approval"
                       label="Automatic"
@@ -530,15 +549,6 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                         Enabling automatic updates allows the operator to upgrade immediately when a new version is released. This may cause brief service interruptions or configuration changes during production hours.
                       </Alert>
                     )}
-                  </StackItem>
-                  <StackItem>
-                    <Radio
-                      id="manual"
-                      name="update-approval"
-                      label="Manual"
-                      isChecked={updateApproval === 'manual'}
-                      onChange={() => setUpdateApproval('manual')}
-                    />
                   </StackItem>
                 </Stack>
               </FormGroup>

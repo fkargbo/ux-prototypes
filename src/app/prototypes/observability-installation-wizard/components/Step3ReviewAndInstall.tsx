@@ -134,9 +134,14 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     
     // Cluster Observability Operator - included if metrics-alerting is selected (required)
     // This operator includes: Prometheus, Alertmanager, and optionally Thanos and Korrel8r as operands
-    // Note: thanos and korrel8r are operands of Cluster Observability Operator, not separate operators
     if (data.selectedCapabilities.includes('metrics-alerting')) {
       operators.push('Cluster Observability Operator (Prometheus)');
+    }
+    
+    // Long-term Storage (Thanos) - shown as a component when selected
+    // Note: Thanos is technically an operand of Cluster Observability Operator, but we display it separately for clarity
+    if (data.selectedCapabilities.includes('thanos')) {
+      operators.push('Long-term Storage (Thanos)');
     }
     
     // Map capabilities to their corresponding operators
@@ -148,7 +153,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     
     // Add operators for each selected capability
     data.selectedCapabilities.forEach(capabilityId => {
-      // Skip thanos and korrel8r as they are operands of Cluster Observability Operator, not separate operators
+      // Skip thanos (already handled above) and korrel8r as they are operands of Cluster Observability Operator
       if (capabilityId === 'thanos' || capabilityId === 'korrel8r') {
         return;
       }
@@ -266,11 +271,22 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                     </FlexItem>
                     <FlexItem>
                       <Content style={{ fontSize: '14px' }}>
-                        {(data.updateApproval || 'automatic') === 'automatic' ? 'Automatic' : 'Manual'}
+                        {(data.updateApproval || 'manual') === 'automatic' ? 'Automatic' : 'Manual'}
                       </Content>
                     </FlexItem>
                   </Flex>
-                  {(data.updateApproval || 'automatic') === 'automatic' && (
+                  {(data.updateApproval || 'manual') === 'manual' && (
+                    <div style={{ marginTop: '8px', width: '100%' }}>
+                      <Alert
+                        variant={AlertVariant.info}
+                        isInline
+                        title="Manual approval applies to all operators in a namespace"
+                      >
+                        Installing an operator with manual approval causes all operators installed in namespace openshift-cluster-observability-operator to function as manual approval strategy and will be updated altogether. Install operators into separate namespaces for handling their updates independently. To allow automatic approval, all operators installed in the namespace must use automatic approval strategy.
+                      </Alert>
+                    </div>
+                  )}
+                  {(data.updateApproval || 'manual') === 'automatic' && (
                     <div style={{ marginTop: '8px', width: '100%' }}>
                       <Alert
                         variant={AlertVariant.warning}
@@ -358,6 +374,25 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                     Storage Infrastructure
                   </Content>
                   <List>
+                    {data.selectedStorage && data.selectedStorage.length > 0 ? (
+                      <ListItem>
+                        <Content style={{ fontSize: '14px' }}>
+                          Storage Backend: {data.selectedStorage.map((storageId) => {
+                            return storageId === 'odf' 
+                              ? 'OpenShift Data Foundation (ODF)'
+                              : storageId === 'lvm'
+                              ? 'Logical Volume Manager (LVM)'
+                              : storageId;
+                          }).join(', ')}
+                        </Content>
+                      </ListItem>
+                    ) : (
+                      <ListItem>
+                        <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
+                          Storage Backend: Not selected
+                        </Content>
+                      </ListItem>
+                    )}
                     <ListItem>
                       <Content style={{ fontSize: '14px' }}>
                         Local Cache (PV): {estimatedResources.localCache} GB (Standard-SSD)
