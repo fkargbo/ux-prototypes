@@ -520,6 +520,16 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                       isChecked={updateApproval === 'manual'}
                       onChange={() => setUpdateApproval('manual')}
                     />
+                    {updateApproval === 'manual' && (
+                      <Alert
+                        variant={AlertVariant.info}
+                        isInline
+                        title="Manual approval applies to all operators in a namespace"
+                        style={{ marginTop: '8px', marginLeft: '24px' }}
+                      >
+                        Installing an operator with manual approval causes all operators installed in namespace openshift-cluster-observability-operator to function as manual approval strategy and will be updated altogether. Install operators into separate namespaces for handling their updates independently. To allow automatic approval, all operators installed in the namespace must use automatic approval strategy.
+                      </Alert>
+                    )}
                   </StackItem>
                   <StackItem>
                     <Radio
