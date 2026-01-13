@@ -343,16 +343,16 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   // Dependency calculation: Updates operators and storage based on activeGoals
   const updateDependencies = useCallback((goalIds: string[]) => {
     // Reset all to default (except Core Observability which is locked)
-    const newOperators = initialOperators.map(item => ({
+    const newOperators: OperatorStorageItem[] = initialOperators.map(item => ({
       ...item,
       isSelected: item.isLocked, // Only locked items remain selected
-      appliedBy: [],
+      appliedBy: [] as GoalID[],
     }));
 
-    const newStorage = initialStorage.map(item => ({
+    const newStorage: OperatorStorageItem[] = initialStorage.map(item => ({
       ...item,
       isSelected: false,
-      appliedBy: [],
+      appliedBy: [] as GoalID[],
     }));
 
     // Aggregate requirements from all active goals
@@ -365,10 +365,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         const item = newOperators.find(i => i.id === opId);
         if (item && !item.isLocked) {
           item.isSelected = true;
-          // Type-safe: appliedBy may be GoalID[] or string[];
-          if (!item.appliedBy.includes(goalId)) {
-            // If appliedBy is string[], allow push; if more strict, need a type assertion
-            (item.appliedBy as (string | GoalID)[]).push(goalId);
+          // Type-safe: appliedBy is GoalID[]
+          if (!item.appliedBy.includes(goalId as GoalID)) {
+            item.appliedBy.push(goalId as GoalID);
           }
         }
       });
@@ -635,7 +634,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     // Check if this operator is required by any active goal
     if (!checked && operator.appliedBy.length > 0) {
       // Show warning - add to uncheckedRequiredItems
-      setUncheckedRequiredItems(prev => new Set([...prev, operatorId]));
+      setUncheckedRequiredItems(prev => new Set([...Array.from(prev), operatorId]));
     } else {
       // Remove from uncheckedRequiredItems if being checked
       setUncheckedRequiredItems(prev => {
@@ -705,7 +704,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       // Unchecking - check if this storage is required by any active goal
       if (storageItem.appliedBy.length > 0) {
         // Show warning
-        setUncheckedRequiredItems(prev => new Set([...prev, storageId]));
+        setUncheckedRequiredItems(prev => new Set([...Array.from(prev), storageId]));
       } else {
         setUncheckedRequiredItems(prev => {
           const newSet = new Set(prev);
@@ -742,7 +741,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     const operator = operators.find(op => op.id === capabilityId);
     if (!checked && operator && operator.appliedBy.length > 0) {
       // Show warning
-      setUncheckedRequiredItems(prev => new Set([...prev, capabilityId]));
+      setUncheckedRequiredItems(prev => new Set([...Array.from(prev), capabilityId]));
     } else {
       setUncheckedRequiredItems(prev => {
         const newSet = new Set(prev);
