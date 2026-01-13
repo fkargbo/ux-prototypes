@@ -880,7 +880,10 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                 <Card
                   style={{
                     height: '100%',
-                    border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
+                    borderWidth: activeGoals.includes(goal.id) ? '2px' : '1px',
+                    borderStyle: 'solid',
+                    borderColor: activeGoals.includes(goal.id) ? '#0066cc' : '#d2d2d2',
+                    boxShadow: 'none',
                   }}
                 >
                   <CardBody>
