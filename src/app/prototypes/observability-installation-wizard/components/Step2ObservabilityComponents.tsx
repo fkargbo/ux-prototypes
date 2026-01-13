@@ -653,49 +653,44 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     const storageItem = storage.find(s => s.id === storageId);
     if (!storageItem) return;
 
-    // Check if this storage is required by any active goal
-    if (!checked && storageItem.appliedBy.length > 0) {
-      // Show warning
-      setUncheckedRequiredItems(prev => new Set([...prev, storageId]));
-    } else {
-      setUncheckedRequiredItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(storageId);
-        return newSet;
+    // ODF and LVM are mutually exclusive - only one can be selected at a time
+    if (checked) {
+      // Selecting a storage option - uncheck the other one
+      const newStorage = storage.map(s => {
+        if (s.id === storageId) {
+          // Select the clicked item
+          return { ...s, isSelected: true };
+        } else if ((storageId === 'odf' && s.id === 'lvm') || (storageId === 'lvm' && s.id === 'odf')) {
+          // Uncheck the other storage option
+          const wasRequired = s.appliedBy.length > 0;
+          if (wasRequired) {
+            // Show warning if the unselected option was required by a goal
+            setUncheckedRequiredItems(prev => new Set([...prev, s.id]));
+          } else {
+            // Remove from warnings if it wasn't required
+            setUncheckedRequiredItems(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(s.id);
+              return newSet;
+            });
+          }
+          return { ...s, isSelected: false };
+        }
+        return s;
       });
-    }
-
-    // Handle ODF vs LVM conflict
-    if (checked && storageId === 'odf') {
-      // ODF selected - uncheck LVM
-      const newStorage = storage.map(s => 
-        s.id === 'lvm' ? { ...s, isSelected: false } : 
-        s.id === storageId ? { ...s, isSelected: true } : s
-      );
       setStorage(newStorage);
-    } else if (checked && storageId === 'lvm') {
-      // LVM selected - check if ODF is required by goals
-      const odfItem = storage.find(s => s.id === 'odf');
-      if (odfItem && odfItem.appliedBy.length > 0) {
-        // ODF is required by a goal - allow LVM selection but show warning
-        // Uncheck ODF and select LVM (user override)
-        const newStorage = storage.map(s => 
-          s.id === 'odf' ? { ...s, isSelected: false } : 
-          s.id === storageId ? { ...s, isSelected: true } : s
-        );
-        setStorage(newStorage);
-        // Show warning that ODF was required
-        setUncheckedRequiredItems(prev => new Set([...prev, 'odf']));
-      } else {
-        // Uncheck ODF if it's not required
-        const newStorage = storage.map(s => 
-          s.id === 'odf' ? { ...s, isSelected: false } : 
-          s.id === storageId ? { ...s, isSelected: true } : s
-        );
-        setStorage(newStorage);
-      }
     } else {
-      // Unchecking
+      // Unchecking - check if this storage is required by any active goal
+      if (storageItem.appliedBy.length > 0) {
+        // Show warning
+        setUncheckedRequiredItems(prev => new Set([...prev, storageId]));
+      } else {
+        setUncheckedRequiredItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(storageId);
+          return newSet;
+        });
+      }
       const newStorage = storage.map(s => 
         s.id === storageId ? { ...s, isSelected: false } : s
       );
