@@ -418,6 +418,66 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     });
   }, [activeGoals, updateDependencies, onDataChange]);
 
+  // Auto-select UI plugins based on goals and selected capabilities
+  useEffect(() => {
+    // Only auto-select if we have goals or capabilities (not just on initial mount with empty state)
+    if (activeGoals.length > 0 || (selectedCapabilities.length > 0 && selectedCapabilities.includes('metrics-alerting'))) {
+      let autoUIPlugins: string[] = [];
+      
+      // monitoring-ui requires metrics-alerting (always auto-selected when dependency is met)
+      if (selectedCapabilities.includes('metrics-alerting')) {
+        autoUIPlugins.push('monitoring-ui');
+      }
+      
+      // logging-ui requires loki (auto-selected when dependency is met)
+      if (selectedCapabilities.includes('loki')) {
+        autoUIPlugins.push('logging-ui');
+      }
+      
+      // tracing-ui requires tempo (auto-selected when dependency is met)
+      if (selectedCapabilities.includes('tempo')) {
+        autoUIPlugins.push('tracing-ui');
+      }
+      
+      // troubleshooting-panel requires korrel8r (auto-selected when dependency is met)
+      if (selectedCapabilities.includes('korrel8r')) {
+        autoUIPlugins.push('troubleshooting-panel');
+      }
+      
+      // Perses requires metrics-alerting and is auto-selected for Platform Governance and Incident Response goals
+      if (selectedCapabilities.includes('metrics-alerting') && 
+          (activeGoals.includes('platform-governance') || activeGoals.includes('incident-response'))) {
+        autoUIPlugins.push('perses');
+      }
+      
+      // Incident Detection UI Plugin requires loki and is auto-selected for Incident Response goal
+      if (selectedCapabilities.includes('loki') && activeGoals.includes('incident-response')) {
+        autoUIPlugins.push('incident-detection-ui');
+      }
+      
+      // Network UI Plugin requires network-traffic and is auto-selected when network-traffic is selected
+      if (selectedCapabilities.includes('network-traffic')) {
+        autoUIPlugins.push('network-ui');
+      }
+      
+      // When goals/capabilities change, only keep plugins that should be auto-selected
+      // Don't preserve manually-selected plugins unless Advanced Mode is enabled
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const currentPlugins = selectedUIPlugins;
+      const finalPlugins = advancedMode 
+        ? // In Advanced Mode, preserve manually-selected plugins that aren't auto-selected
+          [...autoUIPlugins, ...currentPlugins.filter(pluginId => !autoUIPlugins.includes(pluginId))]
+        : // In normal mode, only use auto-selected plugins
+          autoUIPlugins;
+      
+      // Remove duplicates
+      const uniquePlugins = Array.from(new Set(finalPlugins));
+      
+      setSelectedUIPlugins(uniquePlugins);
+      onDataChange({ selectedUIPlugins: uniquePlugins });
+    }
+  }, [activeGoals, selectedCapabilities, advancedMode, onDataChange]);
+
   // Sync data prop changes to local state when props change
   // This ensures local state stays in sync if user navigates away and back
   useEffect(() => {
@@ -1128,16 +1188,77 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
               <Stack hasGutter>
                 {availablePlugins.map((plugin) => {
                   const isChecked = selectedUIPlugins.includes(plugin.id);
+                  
+                  // Determine which goals require this plugin based on dependencies and goal-specific rules
+                  const requiredByGoals: string[] = [];
+                  
+                  // Check if plugin dependencies are satisfied and which goals require those dependencies
+                  if (plugin.dependencies && plugin.dependencies.length > 0) {
+                    activeGoals.forEach(goalId => {
+                      const deps = NEED_DEPENDENCIES[goalId as GoalID];
+                      if (deps) {
+                        // Check if all plugin dependencies are required by this goal
+                        const allDepsSatisfied = plugin.dependencies!.every(dep => 
+                          deps.operators.includes(dep) || selectedCapabilities.includes(dep)
+                        );
+                        if (allDepsSatisfied) {
+                          requiredByGoals.push(goalId);
+                        }
+                      }
+                    });
+                  }
+                  
+                  // Goal-specific plugin rules
+                  if (plugin.id === 'perses') {
+                    // Perses is specifically required by Platform Governance and Incident Response
+                    if (activeGoals.includes('platform-governance') && selectedCapabilities.includes('metrics-alerting')) {
+                      if (!requiredByGoals.includes('platform-governance')) {
+                        requiredByGoals.push('platform-governance');
+                      }
+                    }
+                    if (activeGoals.includes('incident-response') && selectedCapabilities.includes('metrics-alerting')) {
+                      if (!requiredByGoals.includes('incident-response')) {
+                        requiredByGoals.push('incident-response');
+                      }
+                    }
+                  }
+                  
+                  if (plugin.id === 'incident-detection-ui') {
+                    // Incident Detection UI is specifically required by Incident Response
+                    if (activeGoals.includes('incident-response') && selectedCapabilities.includes('loki')) {
+                      if (!requiredByGoals.includes('incident-response')) {
+                        requiredByGoals.push('incident-response');
+                      }
+                    }
+                  }
+                  
+                  // Remove duplicates
+                  const uniqueGoalIds = Array.from(new Set(requiredByGoals));
+                  const goalNames = uniqueGoalIds.map(goalId => {
+                    const goal = goals.find(g => g.id === goalId);
+                    return goal?.name || goalId;
+                  });
 
                   return (
                     <StackItem key={plugin.id}>
-                      <Checkbox
-                        id={`plugin-${plugin.id}`}
-                        label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{plugin.name}</span>}
-                        isChecked={isChecked}
-                        isDisabled={!advancedMode}
-                        onChange={(_, checked) => handleUIPluginChange(plugin.id, checked)}
-                      />
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                        <FlexItem>
+                          <Checkbox
+                            id={`plugin-${plugin.id}`}
+                            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{plugin.name}</span>}
+                            isChecked={isChecked}
+                            isDisabled={!advancedMode}
+                            onChange={(_, checked) => handleUIPluginChange(plugin.id, checked)}
+                          />
+                        </FlexItem>
+                        {goalNames.length > 0 && (
+                          <FlexItem>
+                            <Badge isRead>
+                              Required by: {goalNames.join(', ')}
+                            </Badge>
+                          </FlexItem>
+                        )}
+                      </Flex>
                       <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
                         {plugin.description}
                       </Content>
