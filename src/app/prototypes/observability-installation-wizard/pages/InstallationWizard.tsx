@@ -17,6 +17,7 @@ const initialWizardData: WizardData = {
   enableClusterMonitoring: true,
   // Step 2 defaults
   selectedPersona: null,
+  activeGoals: [], // Goals selected by user (checkboxes)
   selectedCapabilities: ['metrics-alerting'], // Always required
   selectedNestedOptions: {},
   advancedMode: false,
