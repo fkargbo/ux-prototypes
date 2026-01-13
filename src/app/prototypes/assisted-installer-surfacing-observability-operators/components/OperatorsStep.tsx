@@ -730,7 +730,6 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                 toggleText="Advanced settings"
                                 isExpanded={isAdvancedSectionExpanded}
                                 onToggle={() => setIsAdvancedSectionExpanded(!isAdvancedSectionExpanded)}
-                                style={{ marginTop: '16px' }}
                               >
                                 <Stack hasGutter style={{ marginTop: '16px', marginLeft: '16px' }}>
                                   <StackItem>
