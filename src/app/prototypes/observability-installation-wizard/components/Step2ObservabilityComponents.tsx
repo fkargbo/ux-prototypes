@@ -888,7 +888,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                       <FlexItem>
                         <Checkbox
                           id={`goal-${goal.id}`}
-                          label={<span style={{ fontWeight: '600' }}>{goal.name}</span>}
+                          label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{goal.name}</span>}
                           isChecked={activeGoals.includes(goal.id)}
                           onChange={(_, checked) => handleGoalChange(goal.id, checked)}
                         />
