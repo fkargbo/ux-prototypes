@@ -327,7 +327,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     },
     {
       id: 'lvm',
-      name: 'LVM Storage',
+      name: 'Logical Volume Manager (LVM)',
       description: 'Local storage for standard observability needs.',
       isSelected: false,
       isLocked: false,
@@ -1011,11 +1011,12 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                             <StackItem key={storageItem.id}>
                               <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                                 <FlexItem>
-                                  <Checkbox
+                                  <Radio
                                     id={`storage-${storageItem.id}`}
+                                    name="storage-selection"
                                     label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{storageItem.name}</span>}
                                     isChecked={storageItem.isSelected}
-                                    onChange={(_, checked) => handleStorageChange(storageItem.id, checked)}
+                                    onChange={() => handleStorageChange(storageItem.id, true)}
                                   />
                                 </FlexItem>
                                 {storageItem.appliedBy.length > 0 && (
