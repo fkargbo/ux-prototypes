@@ -677,15 +677,23 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       // LVM selected - check if ODF is required by goals
       const odfItem = storage.find(s => s.id === 'odf');
       if (odfItem && odfItem.appliedBy.length > 0) {
-        // ODF is required - don't allow LVM
-        return;
+        // ODF is required by a goal - allow LVM selection but show warning
+        // Uncheck ODF and select LVM (user override)
+        const newStorage = storage.map(s => 
+          s.id === 'odf' ? { ...s, isSelected: false } : 
+          s.id === storageId ? { ...s, isSelected: true } : s
+        );
+        setStorage(newStorage);
+        // Show warning that ODF was required
+        setUncheckedRequiredItems(prev => new Set([...prev, 'odf']));
+      } else {
+        // Uncheck ODF if it's not required
+        const newStorage = storage.map(s => 
+          s.id === 'odf' ? { ...s, isSelected: false } : 
+          s.id === storageId ? { ...s, isSelected: true } : s
+        );
+        setStorage(newStorage);
       }
-      // Uncheck ODF if it's not required
-      const newStorage = storage.map(s => 
-        s.id === 'odf' ? { ...s, isSelected: false } : 
-        s.id === storageId ? { ...s, isSelected: true } : s
-      );
-      setStorage(newStorage);
     } else {
       // Unchecking
       const newStorage = storage.map(s => 
