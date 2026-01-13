@@ -138,10 +138,10 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
       operators.push('Cluster Observability Operator (Prometheus)');
     }
     
-    // Thanos (Long-term Storage) - shown as a component when selected
+    // Long-term Storage (Thanos) - shown as a component when selected
     // Note: Thanos is technically an operand of Cluster Observability Operator, but we display it separately for clarity
     if (data.selectedCapabilities.includes('thanos')) {
-      operators.push('Thanos (Long-term Storage)');
+      operators.push('Long-term Storage (Thanos)');
     }
     
     // Map capabilities to their corresponding operators
