@@ -6,12 +6,14 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   PageSection,
+  Page,
 } from '@patternfly/react-core';
 import { UserIcon, RobotIcon } from '@patternfly/react-icons';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import { ChatbotContent } from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
 import { ChatbotWelcomePrompt } from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
 import { ChatbotFooter } from '@patternfly/chatbot/dist/dynamic/ChatbotFooter';
+import { ChatbotToggle } from '@patternfly/chatbot/dist/dynamic/ChatbotToggle';
 import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
 import Message from '@patternfly/chatbot/dist/dynamic/Message';
@@ -78,7 +80,7 @@ export const DashboardsPersesPage: React.FC = () => {
   }, []);
 
   return (
-    <>
+    <Page className="pf-v6-c-page">
       {/* Breadcrumbs Section - 16px padding */}
       <div className="template-page-breadcrumb">
         <Breadcrumb>
@@ -104,41 +106,49 @@ export const DashboardsPersesPage: React.FC = () => {
 
       {/* Content Area - 24px padding */}
       <div className="template-page-content">
-        <PageSection hasBodyWrapper style={{ height: '600px', padding: 0 }}>
-          <Chatbot displayMode={ChatbotDisplayMode.embedded}>
-            <ChatbotContent>
-              {messages.length === 0 && (
-                <ChatbotWelcomePrompt
-                  title="Perses Dashboard Assistant"
-                  description="How can I help you with your dashboards today?"
-                />
-              )}
-              <MessageBox>
-                {messages.map((message) => (
-                  <Message
-                    key={message.id}
-                    role={message.role}
-                    content={message.content}
-                    avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
-                  />
-                ))}
-                {isLoading && (
-                  <Message
-                    role="bot"
-                    content="Thinking..."
-                    isLoading={true}
-                    avatar={<RobotIcon /> as any}
-                  />
-                )}
-                <div ref={messagesEndRef} />
-              </MessageBox>
-            </ChatbotContent>
-            <ChatbotFooter>
-              <MessageBar onSendMessage={handleSendMessage} />
-            </ChatbotFooter>
-          </Chatbot>
+        <PageSection hasBodyWrapper>
+          <Content>
+            <p>Dashboard content goes here. Click the floating button in the bottom right corner to open the AI assistant.</p>
+          </Content>
         </PageSection>
       </div>
-    </>
+
+      {/* Chatbot in overlay mode - hidden by default, opened via toggle */}
+      <Chatbot displayMode={ChatbotDisplayMode.overlay}>
+        <ChatbotContent>
+          {messages.length === 0 && (
+            <ChatbotWelcomePrompt
+              title="Perses Dashboard Assistant"
+              description="How can I help you with your dashboards today?"
+            />
+          )}
+          <MessageBox>
+            {messages.map((message) => (
+              <Message
+                key={message.id}
+                role={message.role}
+                content={message.content}
+                avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
+              />
+            ))}
+            {isLoading && (
+              <Message
+                role="bot"
+                content="Thinking..."
+                isLoading={true}
+                avatar={<RobotIcon /> as any}
+              />
+            )}
+            <div ref={messagesEndRef} />
+          </MessageBox>
+        </ChatbotContent>
+        <ChatbotFooter>
+          <MessageBar onSendMessage={handleSendMessage} />
+        </ChatbotFooter>
+      </Chatbot>
+
+      {/* Floating toggle button - round button in bottom right corner */}
+      <ChatbotToggle />
+    </Page>
   );
 };
