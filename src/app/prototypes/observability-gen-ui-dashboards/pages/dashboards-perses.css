@@ -28,14 +28,20 @@ button[aria-label="View task details"] {
 
 /* Shift page content to the left when drawer is open */
 .pf-v6-c-page__main-container.chatbot-drawer-open {
-  width: calc(100% - 400px) !important;
-  transition: width 0.2s ease-in-out;
+  transform: translateX(-400px) !important;
+  transition: transform 0.2s ease-in-out;
+  width: 100% !important;
 }
 
 @media (min-width: 992px) {
   .pf-v6-c-page__main-container.chatbot-drawer-open {
-    width: calc(100% - 450px) !important;
+    transform: translateX(-450px) !important;
   }
+}
+
+/* Also shift the main page section */
+.pf-v6-c-page__main-container.chatbot-drawer-open .pf-v6-c-page__main-section {
+  transform: translateX(0) !important;
 }
 
 /* AI Assistant Panel Container */
