@@ -7,6 +7,7 @@ import {
   BreadcrumbItem,
   PageSection,
 } from '@patternfly/react-core';
+import { UserIcon, RobotIcon } from '@patternfly/react-icons';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import { ChatbotContent } from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
 import { ChatbotWelcomePrompt } from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
@@ -22,7 +23,7 @@ import '@patternfly/chatbot/dist/css/main.css';
 interface ChatMessage {
   id: string;
   content: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'bot';
   timestamp: Date;
 }
 
@@ -48,13 +49,14 @@ export const DashboardsPersesPage: React.FC = () => {
   }, [messages, scrollToBottom]);
 
   // Handle sending messages
-  const handleSendMessage = useCallback(async (message: string) => {
-    if (!message.trim()) return;
+  const handleSendMessage = useCallback((message: string | number) => {
+    const messageText = String(message);
+    if (!messageText.trim()) return;
 
     // Add user message
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
-      content: message,
+      content: messageText,
       role: 'user',
       timestamp: new Date(),
     };
@@ -64,13 +66,13 @@ export const DashboardsPersesPage: React.FC = () => {
 
     // Simulate AI response (replace with actual API call)
     setTimeout(() => {
-      const assistantMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        content: `I received your message: "${message}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
-        role: 'assistant',
+      const botMessage: ChatMessage = {
+        id: `bot-${Date.now()}`,
+        content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
+        role: 'bot',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, botMessage]);
       setIsLoading(false);
     }, 1000);
   }, []);
@@ -103,7 +105,7 @@ export const DashboardsPersesPage: React.FC = () => {
       {/* Content Area - 24px padding */}
       <div className="template-page-content">
         <PageSection hasBodyWrapper style={{ height: '600px', padding: 0 }}>
-          <Chatbot displayMode="embedded">
+          <Chatbot displayMode={ChatbotDisplayMode.embedded}>
             <ChatbotContent>
               {messages.length === 0 && (
                 <ChatbotWelcomePrompt
@@ -117,13 +119,15 @@ export const DashboardsPersesPage: React.FC = () => {
                     key={message.id}
                     role={message.role}
                     content={message.content}
+                    avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
                   />
                 ))}
                 {isLoading && (
                   <Message
-                    role="assistant"
+                    role="bot"
                     content="Thinking..."
                     isLoading={true}
+                    avatar={<RobotIcon /> as any}
                   />
                 )}
                 <div ref={messagesEndRef} />
