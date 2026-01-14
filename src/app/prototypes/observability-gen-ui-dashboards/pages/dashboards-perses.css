@@ -19,25 +19,39 @@ button[aria-label="View task details"] {
 }
 
 /* Ensure chatbot drawer works correctly with PatternFly Page component */
+/* Based on PatternFly inline drawer chatbot demo pattern */
 /* The drawer should push the page content when expanded */
 .chatbot-drawer {
   width: 100%;
   height: 100%;
+  position: relative;
 }
 
-/* Ensure drawer content takes full height */
+/* Ensure drawer content body takes full height and is scrollable */
 .chatbot-drawer .pf-v6-c-drawer__content-body {
   height: 100%;
+  min-height: 100vh;
   overflow: auto;
 }
 
-/* When drawer is expanded, ensure it appears on the right and pushes content */
+/* When drawer is expanded, it should push content to the left */
 .chatbot-drawer.pf-m-expanded {
-  /* PatternFly Drawer handles the pushing automatically */
+  /* PatternFly Drawer handles the pushing automatically with isInline prop */
 }
 
-/* Ensure the drawer panel is positioned correctly relative to the viewport */
+/* Ensure the drawer panel appears on the right side and pushes content */
+.chatbot-drawer.pf-m-expanded .pf-v6-c-drawer__content {
+  /* Content will be pushed left automatically by PatternFly */
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Ensure drawer panel is positioned correctly */
 .chatbot-drawer .pf-v6-c-drawer__panel {
-  /* PatternFly handles positioning, but ensure it's above other content */
-  z-index: 200;
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure the page content area works with the drawer */
+.pf-v6-c-page__main-section .chatbot-drawer {
+  width: 100%;
 }

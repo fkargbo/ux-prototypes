@@ -243,10 +243,15 @@ export const DashboardsPersesPage: React.FC = () => {
 
   return (
     <>
-      {/* Drawer wraps everything - when expanded, page slides left */}
-      <Drawer isExpanded={isDrawerOpen} position="end" className="chatbot-drawer">
+      {/* Drawer wraps page content - when expanded, pushes content to the left */}
+      <Drawer 
+        isExpanded={isDrawerOpen} 
+        position="end" 
+        className="chatbot-drawer"
+        isInline
+      >
         <DrawerContent panelContent={isDrawerOpen ? chatbotPanel : undefined}>
-          <DrawerContentBody>
+          <DrawerContentBody className="chatbot-drawer-content-body">
             {/* Page content wrapped in PageSection for proper structure */}
             <PageSection>
               {/* Breadcrumbs Section - 16px padding */}
