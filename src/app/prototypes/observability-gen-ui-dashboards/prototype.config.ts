@@ -12,7 +12,7 @@ export const config: PrototypeConfig = {
   id: 'observability-gen-ui-dashboards',
   
   // Display name (shown in prototype launcher)
-  name: '📊 Observability Gen UI Dashboards',
+  name: '📊 Observability Gen UI Dashboards + AI',
   
   // Brief description (2-3 sentences max)
   description: 'AI-generated UI dashboards for observability. Prototype for exploring dashboard layouts and data visualization patterns for observability components.',
