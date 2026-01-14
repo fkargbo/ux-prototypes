@@ -608,7 +608,65 @@ export const DashboardsPersesPage: React.FC = () => {
       {/* Drawer panel - rendered via portal outside main container */}
       {isDrawerOpen && createPortal(
         <div className="ai-assistant-drawer-wrapper">
-          {aiAssistantPanel}
+          <div className="ai-assistant-panel-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
+            <Chatbot displayMode={ChatbotDisplayMode.drawer} style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+              <ChatbotHeader style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
+                <ChatbotHeaderMain>
+                  <ChatbotHeaderMenu
+                    ref={historyRef}
+                    aria-expanded={isDrawerOpen}
+                    onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)}
+                  />
+                  <ChatbotHeaderTitle>AI Assistant</ChatbotHeaderTitle>
+                </ChatbotHeaderMain>
+                <ChatbotHeaderActions>
+                  <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
+                    <DropdownList>
+                      <DropdownItem value="Granite 7B" key="granite">
+                        Granite 7B
+                      </DropdownItem>
+                      <DropdownItem value="Llama 3.0" key="llama">
+                        Llama 3.0
+                      </DropdownItem>
+                      <DropdownItem value="Mistral 3B" key="mistral">
+                        Mistral 3B
+                      </DropdownItem>
+                    </DropdownList>
+                  </ChatbotHeaderSelectorDropdown>
+                </ChatbotHeaderActions>
+              </ChatbotHeader>
+              <ChatbotContent style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+                <MessageBox announcement={announcement} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}>
+                  {messages.length === 0 && (
+                    <ChatbotWelcomePrompt
+                      title="Hi, ChatBot User!"
+                      description="How can I help you today?"
+                      prompts={welcomePrompts}
+                    />
+                  )}
+                  {messages.map((message, index) => {
+                    if (index === messages.length - 1) {
+                      return (
+                        <React.Fragment key={message.id}>
+                          <div ref={messagesEndRef}></div>
+                          <Message {...message} />
+                        </React.Fragment>
+                      );
+                    }
+                    return <Message key={message.id} {...message} />;
+                  })}
+                </MessageBox>
+              </ChatbotContent>
+              <ChatbotFooter style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
+                <MessageBar 
+                  onSendMessage={handleSendMessage} 
+                  hasMicrophoneButton 
+                  isSendButtonDisabled={isSendButtonDisabled} 
+                />
+                <ChatbotFootnote {...footnoteProps} />
+              </ChatbotFooter>
+            </Chatbot>
+          </div>
         </div>,
         document.body
       )}
