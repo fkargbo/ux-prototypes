@@ -93,6 +93,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatbotToggleRef = useRef<HTMLDivElement>(null);
 
   // Table state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -480,19 +481,21 @@ export const DashboardsPersesPage: React.FC = () => {
       </Drawer>
 
       {/* Floating toggle button - positioned outside drawer, always visible */}
-      <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}>
+      <div 
+        ref={chatbotToggleRef}
+        style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}
+        aria-describedby="chatbot-toggle-tooltip"
+      >
+        <ChatbotToggle 
+          onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
+          aria-label="AI assistant"
+        />
         <Tooltip 
+          id="chatbot-toggle-tooltip"
           content="AI assistant"
+          reference={chatbotToggleRef}
           position="left"
-          popperProps={{
-            appendTo: () => document.body,
-            enableFlip: true,
-            flipBehavior: ['left', 'top', 'bottom', 'right'],
-            preventOverflow: true
-          }}
-        >
-          <ChatbotToggle onClick={() => setIsDrawerOpen(!isDrawerOpen)} aria-label="AI assistant" />
-        </Tooltip>
+        />
       </div>
     </>
   );
