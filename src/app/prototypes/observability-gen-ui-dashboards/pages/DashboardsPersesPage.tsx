@@ -212,27 +212,11 @@ export const DashboardsPersesPage: React.FC = () => {
     }, 1000);
   }, []);
 
-  // Input state for AI Assistant
-  const [inputValue, setInputValue] = useState('');
-
   // Handle action button clicks
   const handleActionClick = useCallback((action: string) => {
     const actionMessage = `I'd like to ${action.toLowerCase()}.`;
     handleSendMessage(actionMessage);
   }, [handleSendMessage]);
-
-  // Handle suggested question clicks
-  const handleSuggestedQuestion = useCallback((question: string) => {
-    handleSendMessage(question);
-  }, [handleSendMessage]);
-
-  // Handle input submit
-  const handleInputSubmit = useCallback(() => {
-    if (inputValue.trim()) {
-      handleSendMessage(inputValue);
-      setInputValue('');
-    }
-  }, [inputValue, handleSendMessage]);
 
   // Apply class to page container when drawer is open to shift content
   useEffect(() => {
@@ -251,7 +235,7 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
-  // AI Assistant sidebar panel
+  // AI Assistant sidebar panel - using PatternFly Chatbot components
   const aiAssistantPanel = (
     <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
       <DrawerHead>
@@ -261,166 +245,63 @@ export const DashboardsPersesPage: React.FC = () => {
         </DrawerActions>
       </DrawerHead>
       <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div className="ai-assistant-content">
-          {messages.length === 0 ? (
-            <>
-              {/* Welcome Section */}
-              <div className="ai-assistant-welcome">
-                <Title headingLevel="h3" size="xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
-                  What's on your mind?
-                </Title>
-                <Content style={{ marginBottom: 'var(--pf-v5-global--spacer--lg)' }}>
-                  <p>Genie can help you explore, build, and troubleshoot OpenShift - all in one place.</p>
-                </Content>
-
-                {/* Action Buttons Grid */}
-                <div className="ai-assistant-actions-grid">
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleActionClick('Troubleshoot')}
-                    style={{ width: '100%', textAlign: 'left' }}
-                  >
-                    Troubleshoot
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleActionClick('Build / Configure')}
-                    style={{ width: '100%', textAlign: 'left' }}
-                  >
-                    Build / Configure
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleActionClick('Automate Tasks')}
-                    style={{ width: '100%', textAlign: 'left' }}
-                  >
-                    Automate Tasks
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleActionClick('Analyze / Optimize')}
-                    style={{ width: '100%', textAlign: 'left' }}
-                  >
-                    Analyze / Optimize
-                  </Button>
-                </div>
-
-                {/* Explore Button */}
-                <div style={{ marginTop: 'var(--pf-v5-global--spacer--lg)', marginBottom: 'var(--pf-v5-global--spacer--lg)' }}>
-                  <Button
-                    variant="primary"
-                    onClick={() => handleActionClick('Explore what\'s possible')}
-                    style={{ width: '100%' }}
-                  >
-                    Explore what's possible
-                  </Button>
-                </div>
-
-                {/* Suggested Questions */}
-                <div className="ai-assistant-suggestions">
-                  <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-v5-global--spacer--md)' }}>
-                    Suggested questions
-                  </Title>
-                  <Stack hasGutter>
-                    <StackItem>
-                      <Button
-                        variant="link"
-                        isInline
-                        onClick={() => handleSuggestedQuestion('What changed in the kube-system namespace just before the latency spike in the prod-api cluster 15 minutes ago?')}
-                        style={{ textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: 'var(--pf-v5-global--spacer--sm) 0' }}
-                      >
-                        What changed in the kube-system namespace just before the latency spike in the prod-api cluster 15 minutes ago?
-                      </Button>
-                    </StackItem>
-                    <StackItem>
-                      <Button
-                        variant="link"
-                        isInline
-                        onClick={() => handleSuggestedQuestion('Why did the CPU utilization suddenly spike across the \'production-web\' cluster in the last 30 minutes?')}
-                        style={{ textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: 'var(--pf-v5-global--spacer--sm) 0' }}
-                      >
-                        Why did the CPU utilization suddenly spike across the 'production-web' cluster in the last 30 minutes?
-                      </Button>
-                    </StackItem>
-                    <StackItem>
-                      <Button
-                        variant="link"
-                        isInline
-                        onClick={() => handleSuggestedQuestion('Show me any pods that have failed to restart more than 3 times in the \'staging-api\' namespace today')}
-                        style={{ textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: 'var(--pf-v5-global--spacer--sm) 0' }}
-                      >
-                        Show me any pods that have failed to restart more than 3 times in the 'staging-api' namespace today
-                      </Button>
-                    </StackItem>
-                  </Stack>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="ai-assistant-messages">
-              <MessageBox>
-                {messages.map((message) => (
-                  <Message
-                    key={message.id}
-                    role={message.role}
-                    content={message.content}
-                    avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
-                  />
-                ))}
-                {isLoading && (
-                  <Message
-                    role="bot"
-                    content="Thinking..."
-                    isLoading={true}
-                    avatar={<RobotIcon /> as any}
-                  />
-                )}
-                <div ref={messagesEndRef} />
-              </MessageBox>
-            </div>
-          )}
-        </div>
-
-        {/* Input Section */}
-        <div className="ai-assistant-input">
-          <div style={{ borderTop: '1px solid var(--pf-t--global--border--color--default)', padding: 'var(--pf-v5-global--spacer--md)' }}>
-            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-              <FlexItem>
-                <Button variant="plain" aria-label="Attach">
-                  <PlusIcon />
-                </Button>
-              </FlexItem>
-              <FlexItem grow={{ default: 'grow' }}>
-                <TextInput
-                  value={inputValue}
-                  onChange={(_event, value) => setInputValue(value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleInputSubmit();
-                    }
-                  }}
-                  placeholder="How can I support you today?"
-                  aria-label="Message input"
+        <Chatbot displayMode={ChatbotDisplayMode.drawer}>
+          <ChatbotContent>
+            {messages.length === 0 && (
+              <>
+                <ChatbotWelcomePrompt
+                  title="Hi, ChatBot User!"
+                  description="How can I help you today?"
                 />
-              </FlexItem>
-              <FlexItem>
-                <Button variant="plain" aria-label="Use microphone">
-                  <MicrophoneIcon />
-                </Button>
-              </FlexItem>
-              <FlexItem>
-                <Button
-                  variant="plain"
-                  onClick={handleInputSubmit}
-                  aria-label="Send message"
-                  isDisabled={!inputValue.trim()}
-                >
-                  <PaperPlaneIcon />
-                </Button>
-              </FlexItem>
-            </Flex>
-          </div>
-        </div>
+                {/* Action Cards - matching PatternFly compact chatbot demo */}
+                <div className="chatbot-welcome-actions">
+                  <div className="chatbot-action-card" onClick={() => handleActionClick('Set up account')}>
+                    <Button variant="link" isInline style={{ padding: 0, marginBottom: 'var(--pf-v5-global--spacer--xs)' }}>
+                      Set up account
+                    </Button>
+                    <Content>
+                      <p style={{ margin: 0, fontSize: 'var(--pf-v5-global--FontSize--sm)', color: 'var(--pf-t--global--color--text--secondary--default)' }}>
+                        Choose the necessary settings and preferences for your account.
+                      </p>
+                    </Content>
+                  </div>
+                  <div className="chatbot-action-card" onClick={() => handleActionClick('Troubleshoot issue')}>
+                    <Button variant="link" isInline style={{ padding: 0, marginBottom: 'var(--pf-v5-global--spacer--xs)' }}>
+                      Troubleshoot issue
+                    </Button>
+                    <Content>
+                      <p style={{ margin: 0, fontSize: 'var(--pf-v5-global--FontSize--sm)', color: 'var(--pf-t--global--color--text--secondary--default)' }}>
+                        Find documentation and instructions to resolve your issue.
+                      </p>
+                    </Content>
+                  </div>
+                </div>
+              </>
+            )}
+            <MessageBox>
+              {messages.map((message) => (
+                <Message
+                  key={message.id}
+                  role={message.role}
+                  content={message.content}
+                  avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
+                />
+              ))}
+              {isLoading && (
+                <Message
+                  role="bot"
+                  content="Thinking..."
+                  isLoading={true}
+                  avatar={<RobotIcon /> as any}
+                />
+              )}
+              <div ref={messagesEndRef} />
+            </MessageBox>
+          </ChatbotContent>
+          <ChatbotFooter>
+            <MessageBar onSendMessage={handleSendMessage} />
+          </ChatbotFooter>
+        </Chatbot>
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

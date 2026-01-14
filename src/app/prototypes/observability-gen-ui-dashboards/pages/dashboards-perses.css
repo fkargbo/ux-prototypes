@@ -63,73 +63,61 @@ button[aria-label="View task details"] {
   padding: 0;
 }
 
-/* AI Assistant Sidebar Styles */
-.ai-assistant-content {
-  flex: 1;
+/* Chatbot Welcome Action Cards - matching PatternFly compact chatbot demo */
+.chatbot-welcome-actions {
+  padding: 0 var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--md);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  height: 100%;
+  gap: var(--pf-v5-global--spacer--md);
 }
 
-/* Welcome Section */
-.ai-assistant-welcome {
-  padding: var(--pf-v5-global--spacer--lg);
-  overflow-y: auto;
-  flex: 1;
-}
-
-/* Action Buttons Grid - 2x2 layout */
-.ai-assistant-actions-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--pf-v5-global--spacer--sm);
-  margin-bottom: var(--pf-v5-global--spacer--md);
-}
-
-/* Suggested Questions Section */
-.ai-assistant-suggestions {
-  margin-top: var(--pf-v5-global--spacer--lg);
-  padding-top: var(--pf-v5-global--spacer--lg);
-  border-top: 1px solid var(--pf-t--global--border--color--default);
-}
-
-.ai-assistant-suggestions .pf-v5-c-button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  white-space: normal;
-  word-wrap: break-word;
-}
-
-/* Messages Section */
-.ai-assistant-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--pf-v5-global--spacer--md);
-  display: flex;
-  flex-direction: column;
-}
-
-.ai-assistant-messages .pf-v6-c-chatbot__message-box {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Input Section - Fixed at bottom */
-.ai-assistant-input {
-  flex-shrink: 0;
+.chatbot-action-card {
   background-color: var(--pf-t--global--background--color--primary--default);
-  border-top: 1px solid var(--pf-t--global--border--color--default);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-v5-global--BorderRadius--sm);
+  padding: var(--pf-v5-global--spacer--md);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
 }
 
-/* Ensure Drawer pushes content correctly */
-.pf-v6-c-drawer__content {
-  transition: margin-right 0.2s ease-in-out;
+.chatbot-action-card:hover {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  border-color: var(--pf-t--global--color--interactive--default);
 }
 
-/* Message styling */
-.ai-assistant-messages .pf-v6-c-chatbot__message {
-  margin-bottom: var(--pf-v5-global--spacer--md);
+.chatbot-action-card:active {
+  background-color: var(--pf-t--global--background--color--tertiary--default);
+}
+
+/* Ensure Chatbot component takes full height */
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__footer {
+  flex-shrink: 0;
+}
+
+/* Fix ChatbotWelcomePrompt alignment */
+.pf-v6-c-chatbot__welcome-prompt {
+  text-align: left !important;
+  padding: var(--pf-v5-global--spacer--lg) var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--md) !important;
+}
+
+.pf-v6-c-chatbot__welcome-prompt-title {
+  text-align: left !important;
+  margin-bottom: var(--pf-v5-global--spacer--sm) !important;
+}
+
+.pf-v6-c-chatbot__welcome-prompt-description {
+  text-align: left !important;
 }
