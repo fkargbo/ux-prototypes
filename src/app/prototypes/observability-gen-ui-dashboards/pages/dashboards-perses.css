@@ -17,3 +17,27 @@ button[aria-label="View task details"] {
 .pf-v6-c-chatbot__welcome-prompt-description {
   text-align: left !important;
 }
+
+/* Ensure chatbot drawer works correctly with PatternFly Page component */
+/* The drawer should push the page content when expanded */
+.chatbot-drawer {
+  width: 100%;
+  height: 100%;
+}
+
+/* Ensure drawer content takes full height */
+.chatbot-drawer .pf-v6-c-drawer__content-body {
+  height: 100%;
+  overflow: auto;
+}
+
+/* When drawer is expanded, ensure it appears on the right and pushes content */
+.chatbot-drawer.pf-m-expanded {
+  /* PatternFly Drawer handles the pushing automatically */
+}
+
+/* Ensure the drawer panel is positioned correctly relative to the viewport */
+.chatbot-drawer .pf-v6-c-drawer__panel {
+  /* PatternFly handles positioning, but ensure it's above other content */
+  z-index: 200;
+}

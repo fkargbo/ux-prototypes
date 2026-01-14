@@ -244,12 +244,13 @@ export const DashboardsPersesPage: React.FC = () => {
   return (
     <>
       {/* Drawer wraps everything - when expanded, page slides left */}
-      <Drawer isExpanded={isDrawerOpen} position="end">
+      <Drawer isExpanded={isDrawerOpen} position="end" className="chatbot-drawer">
         <DrawerContent panelContent={isDrawerOpen ? chatbotPanel : undefined}>
           <DrawerContentBody>
-            {/* Regular template page content - using plain divs to avoid Page component conflicts */}
-            {/* Breadcrumbs Section - 16px padding */}
-            <div className="template-page-breadcrumb">
+            {/* Page content wrapped in PageSection for proper structure */}
+            <PageSection>
+              {/* Breadcrumbs Section - 16px padding */}
+              <div className="template-page-breadcrumb">
               <Breadcrumb>
                 <BreadcrumbItem to="#" onClick={() => navigate('/core/observe')}>
                   Observe
@@ -475,7 +476,7 @@ export const DashboardsPersesPage: React.FC = () => {
                   />
                 </div>
               </div>
-            </div>
+            </PageSection>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
