@@ -18,40 +18,55 @@ button[aria-label="View task details"] {
   text-align: left !important;
 }
 
-/* Ensure chatbot drawer works correctly with PatternFly Page component */
-/* Based on PatternFly inline drawer chatbot demo pattern */
-/* The drawer should push the page content when expanded */
-.chatbot-drawer {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
+/* Chatbot drawer implementation - positioned outside page container */
+/* When drawer is open, shift the page content to the left */
 
-/* Ensure drawer content body takes full height and is scrollable */
-.chatbot-drawer .pf-v6-c-drawer__content-body {
-  height: 100%;
-  min-height: 100vh;
-  overflow: auto;
-}
-
-/* When drawer is expanded, it should push content to the left */
-.chatbot-drawer.pf-m-expanded {
-  /* PatternFly Drawer handles the pushing automatically with isInline prop */
-}
-
-/* Ensure the drawer panel appears on the right side and pushes content */
-.chatbot-drawer.pf-m-expanded .pf-v6-c-drawer__content {
-  /* Content will be pushed left automatically by PatternFly */
+/* Shift page content to the left when drawer is open */
+.pf-v6-c-page__main-container.chatbot-drawer-open {
+  transform: translateX(calc(-33.333% - 24px));
   transition: transform 0.2s ease-in-out;
 }
 
-/* Ensure drawer panel is positioned correctly */
-.chatbot-drawer .pf-v6-c-drawer__panel {
-  position: relative;
-  z-index: 1;
+@media (min-width: 992px) {
+  .pf-v6-c-page__main-container.chatbot-drawer-open {
+    transform: translateX(calc(-25% - 24px));
+  }
 }
 
-/* Ensure the page content area works with the drawer */
-.pf-v6-c-page__main-section .chatbot-drawer {
-  width: 100%;
+/* Drawer panel wrapper - fixed position on the right side */
+.chatbot-drawer-panel-wrapper {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 33.333%;
+  min-width: 400px;
+  max-width: 600px;
+  z-index: 300;
+  background-color: var(--pf-t--global--background--color--primary--default);
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.2s ease-in-out;
+}
+
+@media (min-width: 992px) {
+  .chatbot-drawer-panel-wrapper {
+    width: 25%;
+  }
+}
+
+/* Ensure drawer panel content takes full height */
+.chatbot-drawer-panel-wrapper .pf-v6-c-drawer__panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chatbot-drawer-panel-wrapper .pf-v6-c-drawer__panel-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }

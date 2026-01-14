@@ -241,19 +241,27 @@ export const DashboardsPersesPage: React.FC = () => {
     </DrawerPanelContent>
   );
 
+  // Apply class to page container when drawer is open to shift content
+  useEffect(() => {
+    const pageContainer = document.querySelector('.pf-v6-c-page__main-container');
+    if (pageContainer) {
+      if (isDrawerOpen) {
+        pageContainer.classList.add('chatbot-drawer-open');
+      } else {
+        pageContainer.classList.remove('chatbot-drawer-open');
+      }
+    }
+    return () => {
+      if (pageContainer) {
+        pageContainer.classList.remove('chatbot-drawer-open');
+      }
+    };
+  }, [isDrawerOpen]);
+
   return (
     <>
-      {/* Drawer wraps page content - when expanded, pushes content to the left */}
-      <Drawer 
-        isExpanded={isDrawerOpen} 
-        position="end" 
-        className="chatbot-drawer"
-        isInline
-      >
-        <DrawerContent panelContent={isDrawerOpen ? chatbotPanel : undefined}>
-          <DrawerContentBody className="chatbot-drawer-content-body">
-            {/* Page content wrapped in PageSection for proper structure */}
-            <PageSection>
+      {/* Page content */}
+      <PageSection>
               {/* Breadcrumbs Section - 16px padding */}
               <div className="template-page-breadcrumb">
               <Breadcrumb>
@@ -482,10 +490,14 @@ export const DashboardsPersesPage: React.FC = () => {
                 </div>
               </div>
             </div>
-            </PageSection>
-          </DrawerContentBody>
-        </DrawerContent>
-      </Drawer>
+      </PageSection>
+
+      {/* Drawer panel - fixed position outside page container */}
+      {isDrawerOpen && (
+        <div className="chatbot-drawer-panel-wrapper">
+          {chatbotPanel}
+        </div>
+      )}
 
       {/* Floating toggle button - positioned outside drawer, always visible */}
       <div 
