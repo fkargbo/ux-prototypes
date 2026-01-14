@@ -476,6 +476,7 @@ export const DashboardsPersesPage: React.FC = () => {
                   />
                 </div>
               </div>
+            </div>
             </PageSection>
           </DrawerContentBody>
         </DrawerContent>
