@@ -3,27 +3,14 @@ button[aria-label="View task details"] {
   display: none !important;
 }
 
-/* Shift page content to the left when drawer is open */
-.pf-v6-c-page__main-container.chatbot-drawer-open {
-  transform: translateX(calc(-33.333% - 24px));
-  transition: transform 0.2s ease-in-out;
-}
-
-@media (min-width: 992px) {
-  .pf-v6-c-page__main-container.chatbot-drawer-open {
-    transform: translateX(calc(-25% - 24px));
-  }
-}
-
 /* AI Assistant Drawer Wrapper - Fixed position outside page container */
 .ai-assistant-drawer-wrapper {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-  width: 33.333%;
-  min-width: 400px;
-  max-width: 600px;
+  width: 400px;
+  max-width: 500px;
   z-index: 300;
   background-color: var(--pf-t--global--background--color--primary--default);
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
@@ -35,7 +22,19 @@ button[aria-label="View task details"] {
 
 @media (min-width: 992px) {
   .ai-assistant-drawer-wrapper {
-    width: 25%;
+    width: 450px;
+  }
+}
+
+/* Shift page content to the left when drawer is open */
+.pf-v6-c-page__main-container.chatbot-drawer-open {
+  width: calc(100% - 400px) !important;
+  transition: width 0.2s ease-in-out;
+}
+
+@media (min-width: 992px) {
+  .pf-v6-c-page__main-container.chatbot-drawer-open {
+    width: calc(100% - 450px) !important;
   }
 }
 
