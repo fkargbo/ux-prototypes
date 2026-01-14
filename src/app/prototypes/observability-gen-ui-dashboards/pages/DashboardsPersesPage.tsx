@@ -13,7 +13,7 @@ import { ChatbotWelcomePrompt } from '@patternfly/chatbot/dist/dynamic/ChatbotWe
 import { ChatbotFooter } from '@patternfly/chatbot/dist/dynamic/ChatbotFooter';
 import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
-import { Message } from '@patternfly/chatbot/dist/dynamic/Message';
+import Message from '@patternfly/chatbot/dist/dynamic/Message';
 import '@patternfly/chatbot/dist/css/main.css';
 
 /**
