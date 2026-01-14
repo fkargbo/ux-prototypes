@@ -237,17 +237,14 @@ export const DashboardsPersesPage: React.FC = () => {
 
   // AI Assistant sidebar panel - using PatternFly Chatbot components
   const aiAssistantPanel = (
-    <div className="ai-assistant-panel-container">
-      {/* Header */}
-      <div className="ai-assistant-header">
+    <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
+      <DrawerHead>
         <Title headingLevel="h2" size="lg">AI Assistant</Title>
-        <Button variant="plain" onClick={() => setIsDrawerOpen(false)} aria-label="Close">
-          <TimesIcon />
-        </Button>
-      </div>
-      
-      {/* Chatbot Content */}
-      <div className="ai-assistant-chatbot-wrapper">
+        <DrawerActions>
+          <DrawerCloseButton onClick={() => setIsDrawerOpen(false)} />
+        </DrawerActions>
+      </DrawerHead>
+      <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Chatbot displayMode={ChatbotDisplayMode.drawer}>
           <ChatbotContent>
             {messages.length === 0 && (
@@ -305,8 +302,8 @@ export const DashboardsPersesPage: React.FC = () => {
             <MessageBar onSendMessage={handleSendMessage} />
           </ChatbotFooter>
         </Chatbot>
-      </div>
-    </div>
+      </DrawerPanelBody>
+    </DrawerPanelContent>
   );
 
   return (

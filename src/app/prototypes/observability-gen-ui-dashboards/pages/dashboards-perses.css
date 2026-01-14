@@ -3,14 +3,27 @@ button[aria-label="View task details"] {
   display: none !important;
 }
 
+/* Shift page content to the left when drawer is open */
+.pf-v6-c-page__main-container.chatbot-drawer-open {
+  transform: translateX(calc(-33.333% - 24px));
+  transition: transform 0.2s ease-in-out;
+}
+
+@media (min-width: 992px) {
+  .pf-v6-c-page__main-container.chatbot-drawer-open {
+    transform: translateX(calc(-25% - 24px));
+  }
+}
+
 /* AI Assistant Drawer Wrapper - Fixed position outside page container */
 .ai-assistant-drawer-wrapper {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-  width: 400px;
-  max-width: 500px;
+  width: 33.333%;
+  min-width: 400px;
+  max-width: 600px;
   z-index: 300;
   background-color: var(--pf-t--global--background--color--primary--default);
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
@@ -22,80 +35,49 @@ button[aria-label="View task details"] {
 
 @media (min-width: 992px) {
   .ai-assistant-drawer-wrapper {
-    width: 450px;
+    width: 25%;
   }
 }
 
-/* Shift page content to the left when drawer is open */
-.pf-v6-c-page__main-container.chatbot-drawer-open {
-  transform: translateX(-400px) !important;
-  transition: transform 0.2s ease-in-out;
-  width: 100% !important;
-}
-
-@media (min-width: 992px) {
-  .pf-v6-c-page__main-container.chatbot-drawer-open {
-    transform: translateX(-450px) !important;
-  }
-}
-
-/* Also shift the main page section */
-.pf-v6-c-page__main-container.chatbot-drawer-open .pf-v6-c-page__main-section {
-  transform: translateX(0) !important;
-}
-
-/* AI Assistant Panel Container */
-.ai-assistant-panel-container {
-  height: 100%;
+/* Override DrawerPanelContent styles when in portal */
+.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel {
+  position: static;
   width: 100%;
+  height: 100%;
+  box-shadow: none;
+  border: none;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel-main {
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: var(--pf-t--global--background--color--primary--default);
 }
 
-/* AI Assistant Header */
-.ai-assistant-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--lg);
-  border-bottom: 1px solid var(--pf-t--global--border--color--default);
-  flex-shrink: 0;
-  background-color: var(--pf-t--global--background--color--primary--default);
-}
-
-/* Chatbot Wrapper */
-.ai-assistant-chatbot-wrapper {
+.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel-body {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0;
-  width: 100%;
+  padding: 0;
 }
 
 /* Chatbot Welcome Action Cards - matching PatternFly compact chatbot demo */
-.ai-assistant-chatbot-wrapper .chatbot-welcome-actions {
+.chatbot-welcome-actions {
   padding: 0 var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--md);
   display: flex;
   flex-direction: column;
   gap: var(--pf-v5-global--spacer--md);
-  visibility: visible;
-  opacity: 1;
 }
 
-.ai-assistant-chatbot-wrapper .chatbot-action-card {
+.chatbot-action-card {
   background-color: var(--pf-t--global--background--color--primary--default);
   border: 1px solid var(--pf-t--global--border--color--default);
   border-radius: var(--pf-v5-global--BorderRadius--sm);
   padding: var(--pf-v5-global--spacer--md);
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  display: block;
-  visibility: visible;
-  opacity: 1;
-  width: 100%;
 }
 
 .chatbot-action-card:hover {
@@ -107,57 +89,35 @@ button[aria-label="View task details"] {
   background-color: var(--pf-t--global--background--color--tertiary--default);
 }
 
-/* Ensure Chatbot component takes full height and is visible */
-.ai-assistant-chatbot-wrapper .pf-v6-c-chatbot {
+/* Ensure Chatbot component takes full height */
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot {
   height: 100%;
-  width: 100%;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
-.ai-assistant-chatbot-wrapper .pf-v6-c-chatbot__content {
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  width: 100%;
 }
 
-.ai-assistant-chatbot-wrapper .pf-v6-c-chatbot__footer {
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__footer {
   flex-shrink: 0;
-  width: 100%;
 }
 
-/* Ensure MessageBox is visible */
-.ai-assistant-chatbot-wrapper .pf-v6-c-chatbot__message-box {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  width: 100%;
+/* Fix ChatbotWelcomePrompt alignment */
+.pf-v6-c-chatbot__welcome-prompt {
+  text-align: left !important;
+  padding: var(--pf-v5-global--spacer--lg) var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--md) !important;
 }
 
-/* Fix ChatbotWelcomePrompt alignment and visibility */
-.ai-assistant-chatbot-wrapper .pf-v6-c-chatbot__welcome-prompt {
-  text-align: left;
-  padding: var(--pf-v5-global--spacer--lg) var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--md);
-  display: block;
-  visibility: visible;
-  opacity: 1;
+.pf-v6-c-chatbot__welcome-prompt-title {
+  text-align: left !important;
+  margin-bottom: var(--pf-v5-global--spacer--sm) !important;
 }
 
-.ai-assistant-chatbot-wrapper .pf-v6-c-chatbot__welcome-prompt-title {
-  text-align: left;
-  margin-bottom: var(--pf-v5-global--spacer--sm);
-  display: block;
-  visibility: visible;
-}
-
-.ai-assistant-chatbot-wrapper .pf-v6-c-chatbot__welcome-prompt-description {
-  text-align: left;
-  display: block;
-  visibility: visible;
+.pf-v6-c-chatbot__welcome-prompt-description {
+  text-align: left !important;
 }
