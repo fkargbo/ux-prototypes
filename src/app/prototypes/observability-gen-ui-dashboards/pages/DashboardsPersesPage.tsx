@@ -244,9 +244,9 @@ export const DashboardsPersesPage: React.FC = () => {
           <DrawerCloseButton onClick={() => setIsDrawerOpen(false)} />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Chatbot displayMode={ChatbotDisplayMode.drawer}>
-          <ChatbotContent>
+      <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+        <Chatbot displayMode={ChatbotDisplayMode.drawer} style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <ChatbotContent style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
             {messages.length === 0 && (
               <>
                 <ChatbotWelcomePrompt
@@ -278,7 +278,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 </div>
               </>
             )}
-            <MessageBox>
+            <MessageBox style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
               {messages.map((message) => (
                 <Message
                   key={message.id}
@@ -298,7 +298,7 @@ export const DashboardsPersesPage: React.FC = () => {
               <div ref={messagesEndRef} />
             </MessageBox>
           </ChatbotContent>
-          <ChatbotFooter>
+          <ChatbotFooter style={{ flexShrink: 0, width: '100%' }}>
             <MessageBar onSendMessage={handleSendMessage} />
           </ChatbotFooter>
         </Chatbot>
