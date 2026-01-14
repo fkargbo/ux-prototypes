@@ -26,7 +26,10 @@ export default merge(common('development'), {
     rules: [
       {
         test: /\.css$/,
-        include: [...stylePaths],
+        include: [
+          ...stylePaths,
+          path.resolve('./node_modules/@patternfly/chatbot'),
+        ],
         use: ['style-loader', 'css-loader'],
       },
     ],

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
+import path from 'path';
 import { merge } from 'webpack-merge';
 import common from './webpack.common.js';
 import { stylePaths } from './stylePaths.js';
@@ -30,7 +31,10 @@ export default merge(common('production'), {
     rules: [
       {
         test: /\.css$/,
-        include: [...stylePaths],
+        include: [
+          ...stylePaths,
+          path.resolve('./node_modules/@patternfly/chatbot'),
+        ],
         use: [MiniCssExtractPlugin.loader, 'css-loader'],
       },
     ],
