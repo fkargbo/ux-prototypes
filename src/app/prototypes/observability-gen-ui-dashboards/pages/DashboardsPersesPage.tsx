@@ -58,25 +58,40 @@ import {
   Td,
 } from '@patternfly/react-table';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
-import { ChatbotContent } from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
-import { ChatbotWelcomePrompt } from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
-import { ChatbotFooter } from '@patternfly/chatbot/dist/dynamic/ChatbotFooter';
+import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
+import ChatbotWelcomePrompt from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
+import ChatbotFooter, { ChatbotFootnote } from '@patternfly/chatbot/dist/dynamic/ChatbotFooter';
 import ChatbotToggle from '@patternfly/chatbot/dist/dynamic/ChatbotToggle';
 import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
-import Message from '@patternfly/chatbot/dist/dynamic/Message';
+import Message, { MessageProps } from '@patternfly/chatbot/dist/dynamic/Message';
+import ChatbotConversationHistoryNav, { Conversation } from '@patternfly/chatbot/dist/dynamic/ChatbotConversationHistoryNav';
+import ChatbotHeader, {
+  ChatbotHeaderMenu,
+  ChatbotHeaderMain,
+  ChatbotHeaderTitle,
+  ChatbotHeaderActions,
+  ChatbotHeaderSelectorDropdown
+} from '@patternfly/chatbot/dist/dynamic/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
 
-/**
- * Message interface
- */
-interface ChatMessage {
-  id: string;
-  content: string;
-  role: 'user' | 'bot';
-  timestamp: Date;
-}
+// Welcome prompts will be defined inside the component to access handleSendMessage
+
+// Footnote props for ChatbotFootnote
+const footnoteProps = {
+  label: 'ChatBot uses AI. Check for mistakes.',
+  popover: {
+    title: 'Verify accuracy',
+    description: `While ChatBot strives for accuracy, there's always a possibility of errors. It's a good practice to verify critical information from reliable sources, especially if it's crucial for decision-making or actions.`,
+    cta: {
+      label: 'Got it',
+      onClick: () => {
+        // Handle footnote CTA
+      }
+    }
+  }
+};
 
 /**
  * Dashboard interface
@@ -100,11 +115,15 @@ interface Dashboard {
  */
 export const DashboardsPersesPage: React.FC = () => {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<MessageProps[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('Granite 7B');
+  const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
+  const [announcement, setAnnouncement] = useState<string>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
+  const historyRef = useRef<HTMLButtonElement>(null);
 
   // Table state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -174,49 +193,102 @@ export const DashboardsPersesPage: React.FC = () => {
     setPage(1);
   };
 
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
+  // Auto-scrolls to the latest message (matching demo pattern)
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    // Don't scroll on first load if no messages
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  // Generate unique ID for messages
+  const generateId = () => {
+    const id = Date.now() + Math.random();
+    return id.toString();
+  };
 
   // Handle sending messages
   const handleSendMessage = useCallback((message: string | number) => {
     const messageText = String(message);
     if (!messageText.trim()) return;
 
+    setIsSendButtonDisabled(true);
+    const date = new Date();
+
     // Add user message
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      content: messageText,
+    const userMessage: MessageProps = {
+      id: generateId(),
       role: 'user',
-      timestamp: new Date(),
+      content: messageText,
+      name: 'User',
+      avatar: <UserIcon /> as any,
+      timestamp: date.toLocaleString(),
+      avatarProps: { isBordered: true }
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
+    // Add loading bot message
+    const loadingBotMessage: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: 'Thinking...',
+      name: 'Bot',
+      avatar: <RobotIcon /> as any,
+      isLoading: true,
+      timestamp: date.toLocaleString()
+    };
+
+    setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
+    setAnnouncement(`Message from User: ${messageText}. Message from Bot is loading.`);
 
     // Simulate AI response (replace with actual API call)
     setTimeout(() => {
-      const botMessage: ChatMessage = {
-        id: `bot-${Date.now()}`,
-        content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
+      const botMessage: MessageProps = {
+        id: generateId(),
         role: 'bot',
-        timestamp: new Date(),
+        content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
+        name: 'Bot',
+        avatar: <RobotIcon /> as any,
+        isLoading: false,
+        timestamp: date.toLocaleString(),
+        actions: {
+          positive: { onClick: () => console.log('Good response') },
+          negative: { onClick: () => console.log('Bad response') },
+          copy: { onClick: () => console.log('Copy') },
+          download: { onClick: () => console.log('Download') },
+          listen: { onClick: () => console.log('Listen') }
+        }
       };
-      setMessages((prev) => [...prev, botMessage]);
-      setIsLoading(false);
-    }, 1000);
+      
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        // Replace the loading message with the actual response
+        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        if (loadingIndex !== -1) {
+          newMessages[loadingIndex] = botMessage;
+        }
+        return newMessages;
+      });
+      setAnnouncement(`Message from Bot: ${botMessage.content}`);
+      setIsSendButtonDisabled(false);
+    }, 2000);
   }, []);
 
-  // Handle action button clicks
-  const handleActionClick = useCallback((action: string) => {
-    const actionMessage = `I'd like to ${action.toLowerCase()}.`;
-    handleSendMessage(actionMessage);
-  }, [handleSendMessage]);
+  // Handle model selection
+  const onSelectModel = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+    setSelectedModel(value as string);
+  };
+
+  // Welcome prompts for ChatbotWelcomePrompt
+  const welcomePrompts = [
+    {
+      title: 'Set up account',
+      message: 'I\'d like to set up my account with the necessary settings and preferences.'
+    },
+    {
+      title: 'Troubleshoot issue',
+      message: 'I need help troubleshooting an issue with my dashboard.'
+    }
+  ];
 
   // Apply class to page container when drawer is open to shift content
   useEffect(() => {
@@ -235,74 +307,94 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
-  // AI Assistant sidebar panel - using PatternFly Chatbot components
+  // Chatbot component matching PatternFly inline drawer demo
+  const chatbot = (
+    <Chatbot displayMode={ChatbotDisplayMode.drawer}>
+      <ChatbotConversationHistoryNav
+        displayMode={ChatbotDisplayMode.drawer}
+        onDrawerToggle={() => setIsDrawerOpen(!isDrawerOpen)}
+        isDrawerOpen={isDrawerOpen}
+        setIsDrawerOpen={setIsDrawerOpen}
+        activeItemId={messages.length > 0 ? messages[messages.length - 1].id : undefined}
+        onSelectActiveItem={(_e, selectedItem) => {
+          console.log(`Selected history item with id ${selectedItem}`);
+        }}
+        conversations={{}}
+        onNewChat={() => {
+          setIsDrawerOpen(!isDrawerOpen);
+          setMessages([]);
+        }}
+        handleTextInputChange={(value: string) => {
+          // Handle search in conversation history
+          console.log('Search:', value);
+        }}
+        drawerContent={
+          <>
+            <ChatbotHeader>
+              <ChatbotHeaderMain>
+                <ChatbotHeaderMenu
+                  ref={historyRef}
+                  aria-expanded={isDrawerOpen}
+                  onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)}
+                />
+                <ChatbotHeaderTitle>AI Assistant</ChatbotHeaderTitle>
+              </ChatbotHeaderMain>
+              <ChatbotHeaderActions>
+                <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
+                  <DropdownList>
+                    <DropdownItem value="Granite 7B" key="granite">
+                      Granite 7B
+                    </DropdownItem>
+                    <DropdownItem value="Llama 3.0" key="llama">
+                      Llama 3.0
+                    </DropdownItem>
+                    <DropdownItem value="Mistral 3B" key="mistral">
+                      Mistral 3B
+                    </DropdownItem>
+                  </DropdownList>
+                </ChatbotHeaderSelectorDropdown>
+              </ChatbotHeaderActions>
+            </ChatbotHeader>
+            <ChatbotContent>
+              <MessageBox announcement={announcement}>
+                {messages.length === 0 && (
+                  <ChatbotWelcomePrompt
+                    title="Hi, ChatBot User!"
+                    description="How can I help you today?"
+                    prompts={welcomePrompts}
+                  />
+                )}
+                {messages.map((message, index) => {
+                  if (index === messages.length - 1) {
+                    return (
+                      <React.Fragment key={message.id}>
+                        <div ref={messagesEndRef}></div>
+                        <Message {...message} />
+                      </React.Fragment>
+                    );
+                  }
+                  return <Message key={message.id} {...message} />;
+                })}
+              </MessageBox>
+            </ChatbotContent>
+            <ChatbotFooter>
+              <MessageBar 
+                onSendMessage={handleSendMessage} 
+                hasMicrophoneButton 
+                isSendButtonDisabled={isSendButtonDisabled} 
+              />
+              <ChatbotFootnote {...footnoteProps} />
+            </ChatbotFooter>
+          </>
+        }
+      />
+    </Chatbot>
+  );
+
+  // AI Assistant sidebar panel - using PatternFly Drawer structure
   const aiAssistantPanel = (
     <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
-      <DrawerHead>
-        <Title headingLevel="h2" size="lg">AI Assistant</Title>
-        <DrawerActions>
-          <DrawerCloseButton onClick={() => setIsDrawerOpen(false)} />
-        </DrawerActions>
-      </DrawerHead>
-      <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Chatbot displayMode={ChatbotDisplayMode.drawer}>
-          <ChatbotContent>
-            {messages.length === 0 && (
-              <>
-                <ChatbotWelcomePrompt
-                  title="Hi, ChatBot User!"
-                  description="How can I help you today?"
-                />
-                {/* Action Cards - matching PatternFly compact chatbot demo */}
-                <div className="chatbot-welcome-actions">
-                  <div className="chatbot-action-card" onClick={() => handleActionClick('Set up account')}>
-                    <Button variant="link" isInline style={{ padding: 0, marginBottom: 'var(--pf-v5-global--spacer--xs)' }}>
-                      Set up account
-                    </Button>
-                    <Content>
-                      <p style={{ margin: 0, fontSize: 'var(--pf-v5-global--FontSize--sm)', color: 'var(--pf-t--global--color--text--secondary--default)' }}>
-                        Choose the necessary settings and preferences for your account.
-                      </p>
-                    </Content>
-                  </div>
-                  <div className="chatbot-action-card" onClick={() => handleActionClick('Troubleshoot issue')}>
-                    <Button variant="link" isInline style={{ padding: 0, marginBottom: 'var(--pf-v5-global--spacer--xs)' }}>
-                      Troubleshoot issue
-                    </Button>
-                    <Content>
-                      <p style={{ margin: 0, fontSize: 'var(--pf-v5-global--FontSize--sm)', color: 'var(--pf-t--global--color--text--secondary--default)' }}>
-                        Find documentation and instructions to resolve your issue.
-                      </p>
-                    </Content>
-                  </div>
-                </div>
-              </>
-            )}
-            <MessageBox>
-              {messages.map((message) => (
-                <Message
-                  key={message.id}
-                  role={message.role}
-                  content={message.content}
-                  avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
-                />
-              ))}
-              {isLoading && (
-                <Message
-                  role="bot"
-                  content="Thinking..."
-                  isLoading={true}
-                  avatar={<RobotIcon /> as any}
-                />
-              )}
-              <div ref={messagesEndRef} />
-            </MessageBox>
-          </ChatbotContent>
-          <ChatbotFooter>
-            <MessageBar onSendMessage={handleSendMessage} />
-          </ChatbotFooter>
-        </Chatbot>
-      </DrawerPanelBody>
+      {chatbot}
     </DrawerPanelContent>
   );
 
