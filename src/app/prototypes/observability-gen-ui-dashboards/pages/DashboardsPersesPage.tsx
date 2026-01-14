@@ -22,6 +22,7 @@ import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
 import Message from '@patternfly/chatbot/dist/dynamic/Message';
 import '@patternfly/chatbot/dist/css/main.css';
+import './dashboards-perses.css';
 
 /**
  * Message interface

@@ -1,0 +1,4 @@
+/* Hide the "View task details" floating action button for this prototype */
+button[aria-label="View task details"] {
+  display: none !important;
+}
