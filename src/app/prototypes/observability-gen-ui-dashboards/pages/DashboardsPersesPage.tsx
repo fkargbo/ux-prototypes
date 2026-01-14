@@ -65,7 +65,6 @@ import ChatbotToggle from '@patternfly/chatbot/dist/dynamic/ChatbotToggle';
 import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
 import Message, { MessageProps } from '@patternfly/chatbot/dist/dynamic/Message';
-import ChatbotConversationHistoryNav, { Conversation } from '@patternfly/chatbot/dist/dynamic/ChatbotConversationHistoryNav';
 import ChatbotHeader, {
   ChatbotHeaderMenu,
   ChatbotHeaderMain,
@@ -307,94 +306,68 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
-  // Chatbot component matching PatternFly inline drawer demo
-  const chatbot = (
-    <Chatbot displayMode={ChatbotDisplayMode.drawer}>
-      <ChatbotConversationHistoryNav
-        displayMode={ChatbotDisplayMode.drawer}
-        onDrawerToggle={() => setIsDrawerOpen(!isDrawerOpen)}
-        isDrawerOpen={isDrawerOpen}
-        setIsDrawerOpen={setIsDrawerOpen}
-        activeItemId={messages.length > 0 ? messages[messages.length - 1].id : undefined}
-        onSelectActiveItem={(_e, selectedItem) => {
-          console.log(`Selected history item with id ${selectedItem}`);
-        }}
-        conversations={{}}
-        onNewChat={() => {
-          setIsDrawerOpen(!isDrawerOpen);
-          setMessages([]);
-        }}
-        handleTextInputChange={(value: string) => {
-          // Handle search in conversation history
-          console.log('Search:', value);
-        }}
-        drawerContent={
-          <>
-            <ChatbotHeader>
-              <ChatbotHeaderMain>
-                <ChatbotHeaderMenu
-                  ref={historyRef}
-                  aria-expanded={isDrawerOpen}
-                  onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)}
-                />
-                <ChatbotHeaderTitle>AI Assistant</ChatbotHeaderTitle>
-              </ChatbotHeaderMain>
-              <ChatbotHeaderActions>
-                <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
-                  <DropdownList>
-                    <DropdownItem value="Granite 7B" key="granite">
-                      Granite 7B
-                    </DropdownItem>
-                    <DropdownItem value="Llama 3.0" key="llama">
-                      Llama 3.0
-                    </DropdownItem>
-                    <DropdownItem value="Mistral 3B" key="mistral">
-                      Mistral 3B
-                    </DropdownItem>
-                  </DropdownList>
-                </ChatbotHeaderSelectorDropdown>
-              </ChatbotHeaderActions>
-            </ChatbotHeader>
-            <ChatbotContent>
-              <MessageBox announcement={announcement}>
-                {messages.length === 0 && (
-                  <ChatbotWelcomePrompt
-                    title="Hi, ChatBot User!"
-                    description="How can I help you today?"
-                    prompts={welcomePrompts}
-                  />
-                )}
-                {messages.map((message, index) => {
-                  if (index === messages.length - 1) {
-                    return (
-                      <React.Fragment key={message.id}>
-                        <div ref={messagesEndRef}></div>
-                        <Message {...message} />
-                      </React.Fragment>
-                    );
-                  }
-                  return <Message key={message.id} {...message} />;
-                })}
-              </MessageBox>
-            </ChatbotContent>
-            <ChatbotFooter>
-              <MessageBar 
-                onSendMessage={handleSendMessage} 
-                hasMicrophoneButton 
-                isSendButtonDisabled={isSendButtonDisabled} 
-              />
-              <ChatbotFootnote {...footnoteProps} />
-            </ChatbotFooter>
-          </>
-        }
-      />
-    </Chatbot>
-  );
-
   // AI Assistant sidebar panel - using PatternFly Drawer structure
   const aiAssistantPanel = (
     <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
-      {chatbot}
+      <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Chatbot displayMode={ChatbotDisplayMode.drawer}>
+          <ChatbotHeader>
+            <ChatbotHeaderMain>
+              <ChatbotHeaderMenu
+                ref={historyRef}
+                aria-expanded={isDrawerOpen}
+                onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)}
+              />
+              <ChatbotHeaderTitle>AI Assistant</ChatbotHeaderTitle>
+            </ChatbotHeaderMain>
+            <ChatbotHeaderActions>
+              <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
+                <DropdownList>
+                  <DropdownItem value="Granite 7B" key="granite">
+                    Granite 7B
+                  </DropdownItem>
+                  <DropdownItem value="Llama 3.0" key="llama">
+                    Llama 3.0
+                  </DropdownItem>
+                  <DropdownItem value="Mistral 3B" key="mistral">
+                    Mistral 3B
+                  </DropdownItem>
+                </DropdownList>
+              </ChatbotHeaderSelectorDropdown>
+            </ChatbotHeaderActions>
+          </ChatbotHeader>
+          <ChatbotContent>
+            <MessageBox announcement={announcement}>
+              {messages.length === 0 && (
+                <ChatbotWelcomePrompt
+                  title="Hi, ChatBot User!"
+                  description="How can I help you today?"
+                  prompts={welcomePrompts}
+                />
+              )}
+              {messages.map((message, index) => {
+                if (index === messages.length - 1) {
+                  return (
+                    <React.Fragment key={message.id}>
+                      <div ref={messagesEndRef}></div>
+                      <Message {...message} />
+                    </React.Fragment>
+                  );
+                }
+                return <Message key={message.id} {...message} />;
+              })}
+            </MessageBox>
+          </ChatbotContent>
+          <ChatbotFooter>
+            <MessageBar 
+              onSendMessage={handleSendMessage} 
+              hasMicrophoneButton 
+              isSendButtonDisabled={isSendButtonDisabled} 
+            />
+            <ChatbotFootnote {...footnoteProps} />
+          </ChatbotFooter>
+        </Chatbot>
+      </DrawerPanelBody>
     </DrawerPanelContent>
   );
 
