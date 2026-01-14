@@ -132,7 +132,7 @@ export const DashboardsPersesPage: React.FC = () => {
         <DrawerContent panelContent={isDrawerOpen ? chatbotPanel : undefined}>
           <DrawerContentBody>
             {/* Regular template page - inside drawer content body so it slides left when drawer opens */}
-            <Page className="pf-v6-c-page">
+            <Page>
               {/* Breadcrumbs Section - 16px padding */}
               <div className="template-page-breadcrumb">
                 <Breadcrumb>
