@@ -495,7 +495,40 @@ export const DashboardsPersesPage: React.FC = () => {
       {/* Drawer panel - fixed position outside page container */}
       {isDrawerOpen && (
         <div className="chatbot-drawer-panel-wrapper">
-          {chatbotPanel}
+          <div className="chatbot-drawer-panel-content">
+            <Chatbot displayMode={ChatbotDisplayMode.drawer}>
+              <ChatbotContent>
+                {messages.length === 0 && (
+                  <ChatbotWelcomePrompt
+                    title="Hello, Observability user"
+                    description="How can I help you with your dashboards today?"
+                  />
+                )}
+                <MessageBox>
+                  {messages.map((message) => (
+                    <Message
+                      key={message.id}
+                      role={message.role}
+                      content={message.content}
+                      avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
+                    />
+                  ))}
+                  {isLoading && (
+                    <Message
+                      role="bot"
+                      content="Thinking..."
+                      isLoading={true}
+                      avatar={<RobotIcon /> as any}
+                    />
+                  )}
+                  <div ref={messagesEndRef} />
+                </MessageBox>
+              </ChatbotContent>
+              <ChatbotFooter>
+                <MessageBar onSendMessage={handleSendMessage} />
+              </ChatbotFooter>
+            </Chatbot>
+          </div>
         </div>
       )}
 

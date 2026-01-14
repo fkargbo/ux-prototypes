@@ -57,16 +57,23 @@ button[aria-label="View task details"] {
   }
 }
 
-/* Ensure drawer panel content takes full height */
-.chatbot-drawer-panel-wrapper .pf-v6-c-drawer__panel {
+/* Chatbot panel content - takes full height */
+.chatbot-drawer-panel-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chatbot-drawer-panel-content .pf-v6-c-chatbot {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.chatbot-drawer-panel-wrapper .pf-v6-c-drawer__panel-body {
+.chatbot-drawer-panel-content .pf-v6-c-chatbot__content {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   flex-direction: column;
 }
