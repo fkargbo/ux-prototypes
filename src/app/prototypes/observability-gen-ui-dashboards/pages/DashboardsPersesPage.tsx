@@ -480,7 +480,7 @@ export const DashboardsPersesPage: React.FC = () => {
 
       {/* Floating toggle button - positioned outside drawer, always visible */}
       <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}>
-        <ChatbotToggle onClick={() => setIsDrawerOpen(!isDrawerOpen)} />
+        <ChatbotToggle onClick={() => setIsDrawerOpen(!isDrawerOpen)} aria-label="AI assistant" />
       </div>
     </>
   );
