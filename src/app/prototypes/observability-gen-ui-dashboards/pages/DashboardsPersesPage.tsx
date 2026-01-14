@@ -444,7 +444,7 @@ export const DashboardsPersesPage: React.FC = () => {
                         <Td>
                           <LabelGroup>
                             {dashboard.labels.map((label, idx) => (
-                              <Label key={idx} isCompact variant="outline">
+                              <Label key={idx} isCompact color="grey">
                                 {label}
                               </Label>
                             ))}
