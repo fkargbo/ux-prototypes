@@ -2,3 +2,18 @@
 button[aria-label="View task details"] {
   display: none !important;
 }
+
+/* Fix ChatbotWelcomePrompt alignment and positioning */
+.pf-v6-c-chatbot__welcome-prompt {
+  text-align: left !important;
+  padding: var(--pf-v5-global--spacer--lg) var(--pf-v5-global--spacer--md) !important;
+}
+
+.pf-v6-c-chatbot__welcome-prompt-title {
+  text-align: left !important;
+  margin-bottom: var(--pf-v5-global--spacer--sm) !important;
+}
+
+.pf-v6-c-chatbot__welcome-prompt-description {
+  text-align: left !important;
+}

@@ -209,7 +209,7 @@ export const DashboardsPersesPage: React.FC = () => {
           <ChatbotContent>
             {messages.length === 0 && (
               <ChatbotWelcomePrompt
-                title="Perses Dashboard Assistant"
+                title="Hello, Observability user"
                 description="How can I help you with your dashboards today?"
               />
             )}
