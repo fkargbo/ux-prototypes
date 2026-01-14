@@ -13,7 +13,7 @@ import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Ch
 import { ChatbotContent } from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
 import { ChatbotWelcomePrompt } from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
 import { ChatbotFooter } from '@patternfly/chatbot/dist/dynamic/ChatbotFooter';
-import { ChatbotToggle } from '@patternfly/chatbot/dist/dynamic/ChatbotToggle';
+import ChatbotToggle from '@patternfly/chatbot/dist/dynamic/ChatbotToggle';
 import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
 import Message from '@patternfly/chatbot/dist/dynamic/Message';
