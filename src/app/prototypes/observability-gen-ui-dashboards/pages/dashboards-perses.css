@@ -3,24 +3,6 @@ button[aria-label="View task details"] {
   display: none !important;
 }
 
-/* Fix ChatbotWelcomePrompt alignment and positioning */
-.pf-v6-c-chatbot__welcome-prompt {
-  text-align: left !important;
-  padding: var(--pf-v5-global--spacer--lg) var(--pf-v5-global--spacer--md) !important;
-}
-
-.pf-v6-c-chatbot__welcome-prompt-title {
-  text-align: left !important;
-  margin-bottom: var(--pf-v5-global--spacer--sm) !important;
-}
-
-.pf-v6-c-chatbot__welcome-prompt-description {
-  text-align: left !important;
-}
-
-/* Chatbot drawer implementation - positioned outside page container */
-/* When drawer is open, shift the page content to the left */
-
 /* Shift page content to the left when drawer is open */
 .pf-v6-c-page__main-container.chatbot-drawer-open {
   transform: translateX(calc(-33.333% - 24px));
@@ -33,8 +15,8 @@ button[aria-label="View task details"] {
   }
 }
 
-/* Drawer panel wrapper - fixed position on the right side */
-.chatbot-drawer-panel-wrapper {
+/* AI Assistant Drawer Wrapper - Fixed position outside page container */
+.ai-assistant-drawer-wrapper {
   position: fixed;
   top: 0;
   right: 0;
@@ -52,64 +34,102 @@ button[aria-label="View task details"] {
 }
 
 @media (min-width: 992px) {
-  .chatbot-drawer-panel-wrapper {
+  .ai-assistant-drawer-wrapper {
     width: 25%;
   }
 }
 
-/* Chatbot panel content - takes full height */
-.chatbot-drawer-panel-content {
-  height: 100%;
+/* Override DrawerPanelContent styles when in portal */
+.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel {
+  position: static;
   width: 100%;
+  height: 100%;
+  box-shadow: none;
+  border: none;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel-main {
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-/* Ensure Chatbot component takes full height and displays properly */
-.chatbot-drawer-panel-content .pf-v6-c-chatbot {
+.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* AI Assistant Sidebar Styles */
+.ai-assistant-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 
-/* ChatbotContent should be scrollable and take available space */
-.chatbot-drawer-panel-content .pf-v6-c-chatbot__content {
+/* Welcome Section */
+.ai-assistant-welcome {
+  padding: var(--pf-v5-global--spacer--lg);
+  overflow-y: auto;
   flex: 1;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  width: 100%;
 }
 
-/* MessageBox should take available space and be scrollable */
-.chatbot-drawer-panel-content .pf-v6-c-chatbot__message-box {
+/* Action Buttons Grid - 2x2 layout */
+.ai-assistant-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--pf-v5-global--spacer--sm);
+  margin-bottom: var(--pf-v5-global--spacer--md);
+}
+
+/* Suggested Questions Section */
+.ai-assistant-suggestions {
+  margin-top: var(--pf-v5-global--spacer--lg);
+  padding-top: var(--pf-v5-global--spacer--lg);
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.ai-assistant-suggestions .pf-v5-c-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* Messages Section */
+.ai-assistant-messages {
   flex: 1;
   overflow-y: auto;
+  padding: var(--pf-v5-global--spacer--md);
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  width: 100%;
 }
 
-/* ChatbotFooter should be at the bottom */
-.chatbot-drawer-panel-content .pf-v6-c-chatbot__footer {
+.ai-assistant-messages .pf-v6-c-chatbot__message-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Input Section - Fixed at bottom */
+.ai-assistant-input {
   flex-shrink: 0;
-  width: 100%;
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border-top: 1px solid var(--pf-t--global--border--color--default);
 }
 
-/* Ensure welcome prompt is visible */
-.chatbot-drawer-panel-content .pf-v6-c-chatbot__welcome-prompt {
-  width: 100%;
-  display: block;
+/* Ensure Drawer pushes content correctly */
+.pf-v6-c-drawer__content {
+  transition: margin-right 0.2s ease-in-out;
 }
 
-/* Ensure messages are visible */
-.chatbot-drawer-panel-content .pf-v6-c-chatbot__message {
-  width: 100%;
-  display: block;
+/* Message styling */
+.ai-assistant-messages .pf-v6-c-chatbot__message {
+  margin-bottom: var(--pf-v5-global--spacer--md);
 }

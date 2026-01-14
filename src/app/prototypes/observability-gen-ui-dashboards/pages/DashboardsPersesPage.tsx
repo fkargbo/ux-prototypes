@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import {
   Title,
   Content,
@@ -11,6 +12,9 @@ import {
   DrawerContentBody,
   DrawerPanelContent,
   DrawerPanelBody,
+  DrawerHead,
+  DrawerActions,
+  DrawerCloseButton,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -29,6 +33,9 @@ import {
   Pagination,
   PaginationVariant,
   Tooltip,
+  TextInput,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -37,6 +44,10 @@ import {
   StarIcon,
   EllipsisVIcon,
   CaretDownIcon,
+  TimesIcon,
+  MicrophoneIcon,
+  PaperPlaneIcon,
+  PlusIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -201,45 +212,27 @@ export const DashboardsPersesPage: React.FC = () => {
     }, 1000);
   }, []);
 
-  // Chatbot component for drawer panel
-  const chatbotPanel = (
-    <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
-      <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Chatbot displayMode={ChatbotDisplayMode.drawer}>
-          <ChatbotContent>
-            {messages.length === 0 && (
-              <ChatbotWelcomePrompt
-                title="Hello, Observability user"
-                description="How can I help you with your dashboards today?"
-              />
-            )}
-            <MessageBox>
-              {messages.map((message) => (
-                <Message
-                  key={message.id}
-                  role={message.role}
-                  content={message.content}
-                  avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
-                />
-              ))}
-              {isLoading && (
-                <Message
-                  role="bot"
-                  content="Thinking..."
-                  isLoading={true}
-                  avatar={<RobotIcon /> as any}
-                />
-              )}
-              <div ref={messagesEndRef} />
-            </MessageBox>
-          </ChatbotContent>
-          <ChatbotFooter>
-            <MessageBar onSendMessage={handleSendMessage} />
-          </ChatbotFooter>
-        </Chatbot>
-      </DrawerPanelBody>
-    </DrawerPanelContent>
-  );
+  // Input state for AI Assistant
+  const [inputValue, setInputValue] = useState('');
+
+  // Handle action button clicks
+  const handleActionClick = useCallback((action: string) => {
+    const actionMessage = `I'd like to ${action.toLowerCase()}.`;
+    handleSendMessage(actionMessage);
+  }, [handleSendMessage]);
+
+  // Handle suggested question clicks
+  const handleSuggestedQuestion = useCallback((question: string) => {
+    handleSendMessage(question);
+  }, [handleSendMessage]);
+
+  // Handle input submit
+  const handleInputSubmit = useCallback(() => {
+    if (inputValue.trim()) {
+      handleSendMessage(inputValue);
+      setInputValue('');
+    }
+  }, [inputValue, handleSendMessage]);
 
   // Apply class to page container when drawer is open to shift content
   useEffect(() => {
@@ -258,9 +251,183 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
+  // AI Assistant sidebar panel
+  const aiAssistantPanel = (
+    <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
+      <DrawerHead>
+        <Title headingLevel="h2" size="lg">AI Assistant</Title>
+        <DrawerActions>
+          <DrawerCloseButton onClick={() => setIsDrawerOpen(false)} />
+        </DrawerActions>
+      </DrawerHead>
+      <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="ai-assistant-content">
+          {messages.length === 0 ? (
+            <>
+              {/* Welcome Section */}
+              <div className="ai-assistant-welcome">
+                <Title headingLevel="h3" size="xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
+                  What's on your mind?
+                </Title>
+                <Content style={{ marginBottom: 'var(--pf-v5-global--spacer--lg)' }}>
+                  <p>Genie can help you explore, build, and troubleshoot OpenShift - all in one place.</p>
+                </Content>
+
+                {/* Action Buttons Grid */}
+                <div className="ai-assistant-actions-grid">
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleActionClick('Troubleshoot')}
+                    style={{ width: '100%', textAlign: 'left' }}
+                  >
+                    Troubleshoot
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleActionClick('Build / Configure')}
+                    style={{ width: '100%', textAlign: 'left' }}
+                  >
+                    Build / Configure
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleActionClick('Automate Tasks')}
+                    style={{ width: '100%', textAlign: 'left' }}
+                  >
+                    Automate Tasks
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleActionClick('Analyze / Optimize')}
+                    style={{ width: '100%', textAlign: 'left' }}
+                  >
+                    Analyze / Optimize
+                  </Button>
+                </div>
+
+                {/* Explore Button */}
+                <div style={{ marginTop: 'var(--pf-v5-global--spacer--lg)', marginBottom: 'var(--pf-v5-global--spacer--lg)' }}>
+                  <Button
+                    variant="primary"
+                    onClick={() => handleActionClick('Explore what\'s possible')}
+                    style={{ width: '100%' }}
+                  >
+                    Explore what's possible
+                  </Button>
+                </div>
+
+                {/* Suggested Questions */}
+                <div className="ai-assistant-suggestions">
+                  <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-v5-global--spacer--md)' }}>
+                    Suggested questions
+                  </Title>
+                  <Stack hasGutter>
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() => handleSuggestedQuestion('What changed in the kube-system namespace just before the latency spike in the prod-api cluster 15 minutes ago?')}
+                        style={{ textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: 'var(--pf-v5-global--spacer--sm) 0' }}
+                      >
+                        What changed in the kube-system namespace just before the latency spike in the prod-api cluster 15 minutes ago?
+                      </Button>
+                    </StackItem>
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() => handleSuggestedQuestion('Why did the CPU utilization suddenly spike across the \'production-web\' cluster in the last 30 minutes?')}
+                        style={{ textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: 'var(--pf-v5-global--spacer--sm) 0' }}
+                      >
+                        Why did the CPU utilization suddenly spike across the 'production-web' cluster in the last 30 minutes?
+                      </Button>
+                    </StackItem>
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() => handleSuggestedQuestion('Show me any pods that have failed to restart more than 3 times in the \'staging-api\' namespace today')}
+                        style={{ textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: 'var(--pf-v5-global--spacer--sm) 0' }}
+                      >
+                        Show me any pods that have failed to restart more than 3 times in the 'staging-api' namespace today
+                      </Button>
+                    </StackItem>
+                  </Stack>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="ai-assistant-messages">
+              <MessageBox>
+                {messages.map((message) => (
+                  <Message
+                    key={message.id}
+                    role={message.role}
+                    content={message.content}
+                    avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
+                  />
+                ))}
+                {isLoading && (
+                  <Message
+                    role="bot"
+                    content="Thinking..."
+                    isLoading={true}
+                    avatar={<RobotIcon /> as any}
+                  />
+                )}
+                <div ref={messagesEndRef} />
+              </MessageBox>
+            </div>
+          )}
+        </div>
+
+        {/* Input Section */}
+        <div className="ai-assistant-input">
+          <div style={{ borderTop: '1px solid var(--pf-t--global--border--color--default)', padding: 'var(--pf-v5-global--spacer--md)' }}>
+            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem>
+                <Button variant="plain" aria-label="Attach">
+                  <PlusIcon />
+                </Button>
+              </FlexItem>
+              <FlexItem grow={{ default: 'grow' }}>
+                <TextInput
+                  value={inputValue}
+                  onChange={(_event, value) => setInputValue(value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleInputSubmit();
+                    }
+                  }}
+                  placeholder="How can I support you today?"
+                  aria-label="Message input"
+                />
+              </FlexItem>
+              <FlexItem>
+                <Button variant="plain" aria-label="Use microphone">
+                  <MicrophoneIcon />
+                </Button>
+              </FlexItem>
+              <FlexItem>
+                <Button
+                  variant="plain"
+                  onClick={handleInputSubmit}
+                  aria-label="Send message"
+                  isDisabled={!inputValue.trim()}
+                >
+                  <PaperPlaneIcon />
+                </Button>
+              </FlexItem>
+            </Flex>
+          </div>
+        </div>
+      </DrawerPanelBody>
+    </DrawerPanelContent>
+  );
+
   return (
     <>
-      {/* Page content */}
+      {/* Page content - not wrapped in Drawer */}
       <PageSection>
               {/* Breadcrumbs Section - 16px padding */}
               <div className="template-page-breadcrumb">
@@ -492,44 +659,12 @@ export const DashboardsPersesPage: React.FC = () => {
             </div>
       </PageSection>
 
-      {/* Drawer panel - fixed position outside page container */}
-      {isDrawerOpen && (
-        <div className="chatbot-drawer-panel-wrapper">
-          <div className="chatbot-drawer-panel-content">
-            <Chatbot displayMode={ChatbotDisplayMode.drawer}>
-              <ChatbotContent>
-                {messages.length === 0 && (
-                  <ChatbotWelcomePrompt
-                    title="Hello, Observability user"
-                    description="How can I help you with your dashboards today?"
-                  />
-                )}
-                <MessageBox>
-                  {messages.map((message) => (
-                    <Message
-                      key={message.id}
-                      role={message.role}
-                      content={message.content}
-                      avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
-                    />
-                  ))}
-                  {isLoading && (
-                    <Message
-                      role="bot"
-                      content="Thinking..."
-                      isLoading={true}
-                      avatar={<RobotIcon /> as any}
-                    />
-                  )}
-                  <div ref={messagesEndRef} />
-                </MessageBox>
-              </ChatbotContent>
-              <ChatbotFooter>
-                <MessageBar onSendMessage={handleSendMessage} />
-              </ChatbotFooter>
-            </Chatbot>
-          </div>
-        </div>
+      {/* Drawer panel - rendered via portal outside main container */}
+      {isDrawerOpen && createPortal(
+        <div className="ai-assistant-drawer-wrapper">
+          {aiAssistantPanel}
+        </div>,
+        document.body
       )}
 
       {/* Floating toggle button - positioned outside drawer, always visible */}
