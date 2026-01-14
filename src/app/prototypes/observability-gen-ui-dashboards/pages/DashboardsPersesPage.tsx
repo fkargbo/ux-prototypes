@@ -481,7 +481,16 @@ export const DashboardsPersesPage: React.FC = () => {
 
       {/* Floating toggle button - positioned outside drawer, always visible */}
       <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}>
-        <Tooltip content="AI assistant">
+        <Tooltip 
+          content="AI assistant"
+          position="left"
+          popperProps={{
+            appendTo: () => document.body,
+            enableFlip: true,
+            flipBehavior: ['left', 'top', 'bottom', 'right'],
+            preventOverflow: true
+          }}
+        >
           <ChatbotToggle onClick={() => setIsDrawerOpen(!isDrawerOpen)} aria-label="AI assistant" />
         </Tooltip>
       </div>
