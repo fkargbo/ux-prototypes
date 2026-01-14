@@ -44,6 +44,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -84,7 +85,7 @@ export const DashboardsPersesPage: React.FC = () => {
     }, 1000);
   }, []);
 
-  // Chatbot component for drawer panel (always visible in dock to window mode)
+  // Chatbot component for drawer panel
   const chatbotPanel = (
     <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
       <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -125,44 +126,53 @@ export const DashboardsPersesPage: React.FC = () => {
   );
 
   return (
-    <Page className="pf-v6-c-page">
-      <Drawer isExpanded={true} position="end">
-        <DrawerContent panelContent={chatbotPanel}>
+    <>
+      {/* Drawer wraps everything - when expanded, page slides left */}
+      <Drawer isExpanded={isDrawerOpen} position="end">
+        <DrawerContent panelContent={isDrawerOpen ? chatbotPanel : undefined}>
           <DrawerContentBody>
-            {/* Breadcrumbs Section - 16px padding */}
-            <div className="template-page-breadcrumb">
-              <Breadcrumb>
-                <BreadcrumbItem to="#" onClick={() => navigate('/')}>
-                  Home
-                </BreadcrumbItem>
-                <BreadcrumbItem to="#" onClick={() => navigate('/core/observe')}>
-                  Observe
-                </BreadcrumbItem>
-                <BreadcrumbItem isActive>Dashboards (Perses)</BreadcrumbItem>
-              </Breadcrumb>
-            </div>
+            {/* Regular template page - inside drawer content body so it slides left when drawer opens */}
+            <Page className="pf-v6-c-page">
+              {/* Breadcrumbs Section - 16px padding */}
+              <div className="template-page-breadcrumb">
+                <Breadcrumb>
+                  <BreadcrumbItem to="#" onClick={() => navigate('/')}>
+                    Home
+                  </BreadcrumbItem>
+                  <BreadcrumbItem to="#" onClick={() => navigate('/core/observe')}>
+                    Observe
+                  </BreadcrumbItem>
+                  <BreadcrumbItem isActive>Dashboards (Perses)</BreadcrumbItem>
+                </Breadcrumb>
+              </div>
 
-            {/* Heading Section - 24px padding */}
-            <div className="template-page-heading">
-              <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
-                Dashboards (Perses)
-              </Title>
-              <Content>
-                <p>AI-powered assistant for Perses dashboards. Ask questions about your dashboards, metrics, and observability data.</p>
-              </Content>
-            </div>
-
-            {/* Content Area - 24px padding */}
-            <div className="template-page-content">
-              <PageSection hasBodyWrapper>
+              {/* Heading Section - 24px padding */}
+              <div className="template-page-heading">
+                <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
+                  Dashboards (Perses)
+                </Title>
                 <Content>
-                  <p>Dashboard content goes here. The AI assistant is available on the right side.</p>
+                  <p>AI-powered assistant for Perses dashboards. Ask questions about your dashboards, metrics, and observability data.</p>
                 </Content>
-              </PageSection>
-            </div>
+              </div>
+
+              {/* Content Area - 24px padding */}
+              <div className="template-page-content">
+                <PageSection hasBodyWrapper>
+                  <Content>
+                    <p>Dashboard content goes here. Click the floating button in the bottom right corner to open the AI assistant.</p>
+                  </Content>
+                </PageSection>
+              </div>
+            </Page>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-    </Page>
+
+      {/* Floating toggle button - positioned outside drawer, always visible */}
+      <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}>
+        <ChatbotToggle onClick={() => setIsDrawerOpen(!isDrawerOpen)} />
+      </div>
+    </>
   );
 };
