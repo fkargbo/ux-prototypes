@@ -7,6 +7,11 @@ import {
   BreadcrumbItem,
   PageSection,
   Page,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerPanelContent,
+  DrawerPanelBody,
 } from '@patternfly/react-core';
 import { UserIcon, RobotIcon } from '@patternfly/react-icons';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
@@ -39,6 +44,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -79,76 +85,88 @@ export const DashboardsPersesPage: React.FC = () => {
     }, 1000);
   }, []);
 
-  return (
-    <Page className="pf-v6-c-page">
-      {/* Breadcrumbs Section - 16px padding */}
-      <div className="template-page-breadcrumb">
-        <Breadcrumb>
-          <BreadcrumbItem to="#" onClick={() => navigate('/')}>
-            Home
-          </BreadcrumbItem>
-          <BreadcrumbItem to="#" onClick={() => navigate('/core/observe')}>
-            Observe
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>Dashboards (Perses)</BreadcrumbItem>
-        </Breadcrumb>
-      </div>
-
-      {/* Heading Section - 24px padding */}
-      <div className="template-page-heading">
-        <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
-          Dashboards (Perses)
-        </Title>
-        <Content>
-          <p>AI-powered assistant for Perses dashboards. Ask questions about your dashboards, metrics, and observability data.</p>
-        </Content>
-      </div>
-
-      {/* Content Area - 24px padding */}
-      <div className="template-page-content">
-        <PageSection hasBodyWrapper>
-          <Content>
-            <p>Dashboard content goes here. Click the floating button in the bottom right corner to open the AI assistant.</p>
-          </Content>
-        </PageSection>
-      </div>
-
-      {/* Chatbot in overlay mode - hidden by default, opened via toggle */}
-      <Chatbot displayMode={ChatbotDisplayMode.overlay}>
-        <ChatbotContent>
-          {messages.length === 0 && (
-            <ChatbotWelcomePrompt
-              title="Perses Dashboard Assistant"
-              description="How can I help you with your dashboards today?"
-            />
-          )}
-          <MessageBox>
-            {messages.map((message) => (
-              <Message
-                key={message.id}
-                role={message.role}
-                content={message.content}
-                avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
-              />
-            ))}
-            {isLoading && (
-              <Message
-                role="bot"
-                content="Thinking..."
-                isLoading={true}
-                avatar={<RobotIcon /> as any}
+  // Chatbot component for drawer panel
+  const chatbotPanel = (
+    <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
+      <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Chatbot displayMode={ChatbotDisplayMode.drawer}>
+          <ChatbotContent>
+            {messages.length === 0 && (
+              <ChatbotWelcomePrompt
+                title="Perses Dashboard Assistant"
+                description="How can I help you with your dashboards today?"
               />
             )}
-            <div ref={messagesEndRef} />
-          </MessageBox>
-        </ChatbotContent>
-        <ChatbotFooter>
-          <MessageBar onSendMessage={handleSendMessage} />
-        </ChatbotFooter>
-      </Chatbot>
+            <MessageBox>
+              {messages.map((message) => (
+                <Message
+                  key={message.id}
+                  role={message.role}
+                  content={message.content}
+                  avatar={(message.role === 'user' ? <UserIcon /> : <RobotIcon />) as any}
+                />
+              ))}
+              {isLoading && (
+                <Message
+                  role="bot"
+                  content="Thinking..."
+                  isLoading={true}
+                  avatar={<RobotIcon /> as any}
+                />
+              )}
+              <div ref={messagesEndRef} />
+            </MessageBox>
+          </ChatbotContent>
+          <ChatbotFooter>
+            <MessageBar onSendMessage={handleSendMessage} />
+          </ChatbotFooter>
+        </Chatbot>
+      </DrawerPanelBody>
+    </DrawerPanelContent>
+  );
+
+  return (
+    <Page className="pf-v6-c-page">
+      <Drawer isExpanded={isDrawerOpen} position="end">
+        <DrawerContent panelContent={isDrawerOpen ? chatbotPanel : undefined}>
+          <DrawerContentBody>
+            {/* Breadcrumbs Section - 16px padding */}
+            <div className="template-page-breadcrumb">
+              <Breadcrumb>
+                <BreadcrumbItem to="#" onClick={() => navigate('/')}>
+                  Home
+                </BreadcrumbItem>
+                <BreadcrumbItem to="#" onClick={() => navigate('/core/observe')}>
+                  Observe
+                </BreadcrumbItem>
+                <BreadcrumbItem isActive>Dashboards (Perses)</BreadcrumbItem>
+              </Breadcrumb>
+            </div>
+
+            {/* Heading Section - 24px padding */}
+            <div className="template-page-heading">
+              <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
+                Dashboards (Perses)
+              </Title>
+              <Content>
+                <p>AI-powered assistant for Perses dashboards. Ask questions about your dashboards, metrics, and observability data.</p>
+              </Content>
+            </div>
+
+            {/* Content Area - 24px padding */}
+            <div className="template-page-content">
+              <PageSection hasBodyWrapper>
+                <Content>
+                  <p>Dashboard content goes here. Click the floating button in the bottom right corner to open the AI assistant.</p>
+                </Content>
+              </PageSection>
+            </div>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
 
       {/* Floating toggle button - round button in bottom right corner */}
-      <ChatbotToggle />
+      <ChatbotToggle onClick={() => setIsDrawerOpen(!isDrawerOpen)} />
     </Page>
   );
 };
