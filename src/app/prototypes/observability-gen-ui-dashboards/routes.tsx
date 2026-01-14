@@ -47,6 +47,7 @@
 
 import React from 'react';
 import { RouteConfig } from '@app/core/types';
+import { PageSection } from '@patternfly/react-core';
 
 // Import your page components here when you add routes
 import { OverviewPage } from './pages/OverviewPage';
@@ -75,7 +76,57 @@ export const routes: RouteConfig[] = [
     }
   },
   
-  // Core Platforms - Observe - Dashboards (Perses)
+  // Core Platforms - Observe group (all items must be defined to preserve default menu items)
+  {
+    path: '/core/observe/alerting',
+    element: <PageSection />,
+    label: 'Alerting',
+    title: 'Alerting',
+    navigation: {
+      group: 'Observe',
+      order: 1
+    }
+  },
+  {
+    path: '/core/observe/metrics',
+    element: <PageSection />,
+    label: 'Metrics',
+    title: 'Metrics',
+    navigation: {
+      group: 'Observe',
+      order: 2
+    }
+  },
+  {
+    path: '/core/observe/dashboards',
+    element: <PageSection />,
+    label: 'Dashboards',
+    title: 'Dashboards',
+    navigation: {
+      group: 'Observe',
+      order: 3
+    }
+  },
+  {
+    path: '/core/observe/targets',
+    element: <PageSection />,
+    label: 'Targets',
+    title: 'Targets',
+    navigation: {
+      group: 'Observe',
+      order: 4
+    }
+  },
+  {
+    path: '/core/observe/incidents',
+    element: <PageSection />,
+    label: 'Incidents',
+    title: 'Incidents',
+    navigation: {
+      group: 'Observe',
+      order: 5
+    }
+  },
   {
     path: '/core/observe/dashboards-perses',
     element: <DashboardsPersesPage />,
