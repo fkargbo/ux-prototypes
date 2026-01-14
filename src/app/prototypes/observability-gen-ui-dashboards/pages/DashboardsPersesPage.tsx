@@ -6,7 +6,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   PageSection,
-  Page,
   Drawer,
   DrawerContent,
   DrawerContentBody,
@@ -131,40 +130,38 @@ export const DashboardsPersesPage: React.FC = () => {
       <Drawer isExpanded={isDrawerOpen} position="end">
         <DrawerContent panelContent={isDrawerOpen ? chatbotPanel : undefined}>
           <DrawerContentBody>
-            {/* Regular template page - inside drawer content body so it slides left when drawer opens */}
-            <Page>
-              {/* Breadcrumbs Section - 16px padding */}
-              <div className="template-page-breadcrumb">
-                <Breadcrumb>
-                  <BreadcrumbItem to="#" onClick={() => navigate('/')}>
-                    Home
-                  </BreadcrumbItem>
-                  <BreadcrumbItem to="#" onClick={() => navigate('/core/observe')}>
-                    Observe
-                  </BreadcrumbItem>
-                  <BreadcrumbItem isActive>Dashboards (Perses)</BreadcrumbItem>
-                </Breadcrumb>
-              </div>
+            {/* Regular template page content - using plain divs to avoid Page component conflicts */}
+            {/* Breadcrumbs Section - 16px padding */}
+            <div className="template-page-breadcrumb">
+              <Breadcrumb>
+                <BreadcrumbItem to="#" onClick={() => navigate('/')}>
+                  Home
+                </BreadcrumbItem>
+                <BreadcrumbItem to="#" onClick={() => navigate('/core/observe')}>
+                  Observe
+                </BreadcrumbItem>
+                <BreadcrumbItem isActive>Dashboards (Perses)</BreadcrumbItem>
+              </Breadcrumb>
+            </div>
 
-              {/* Heading Section - 24px padding */}
-              <div className="template-page-heading">
-                <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
-                  Dashboards (Perses)
-                </Title>
+            {/* Heading Section - 24px padding */}
+            <div className="template-page-heading">
+              <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
+                Dashboards (Perses)
+              </Title>
+              <Content>
+                <p>AI-powered assistant for Perses dashboards. Ask questions about your dashboards, metrics, and observability data.</p>
+              </Content>
+            </div>
+
+            {/* Content Area - 24px padding */}
+            <div className="template-page-content">
+              <PageSection hasBodyWrapper>
                 <Content>
-                  <p>AI-powered assistant for Perses dashboards. Ask questions about your dashboards, metrics, and observability data.</p>
+                  <p>Dashboard content goes here. Click the floating button in the bottom right corner to open the AI assistant.</p>
                 </Content>
-              </div>
-
-              {/* Content Area - 24px padding */}
-              <div className="template-page-content">
-                <PageSection hasBodyWrapper>
-                  <Content>
-                    <p>Dashboard content goes here. Click the floating button in the bottom right corner to open the AI assistant.</p>
-                  </Content>
-                </PageSection>
-              </div>
-            </Page>
+              </PageSection>
+            </div>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
