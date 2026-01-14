@@ -350,13 +350,12 @@ export const DashboardsPersesPage: React.FC = () => {
                             variant="default"
                           >
                             Name
-                            <CaretDownIcon />
                           </MenuToggle>
                         )}
                       >
                         <DropdownList>
-                          <DropdownItem key="name-asc">Name (A-Z)</DropdownItem>
-                          <DropdownItem key="name-desc">Name (Z-A)</DropdownItem>
+                          <DropdownItem key="name">Name</DropdownItem>
+                          <DropdownItem key="label">Label</DropdownItem>
                         </DropdownList>
                       </Dropdown>
                     </ToolbarItem>
