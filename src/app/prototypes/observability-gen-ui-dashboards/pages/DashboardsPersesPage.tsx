@@ -44,7 +44,6 @@ export const DashboardsPersesPage: React.FC = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -85,7 +84,7 @@ export const DashboardsPersesPage: React.FC = () => {
     }, 1000);
   }, []);
 
-  // Chatbot component for drawer panel
+  // Chatbot component for drawer panel (always visible in dock to window mode)
   const chatbotPanel = (
     <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
       <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -127,8 +126,8 @@ export const DashboardsPersesPage: React.FC = () => {
 
   return (
     <Page className="pf-v6-c-page">
-      <Drawer isExpanded={isDrawerOpen} position="end">
-        <DrawerContent panelContent={isDrawerOpen ? chatbotPanel : undefined}>
+      <Drawer isExpanded={true} position="end">
+        <DrawerContent panelContent={chatbotPanel}>
           <DrawerContentBody>
             {/* Breadcrumbs Section - 16px padding */}
             <div className="template-page-breadcrumb">
@@ -157,16 +156,13 @@ export const DashboardsPersesPage: React.FC = () => {
             <div className="template-page-content">
               <PageSection hasBodyWrapper>
                 <Content>
-                  <p>Dashboard content goes here. Click the floating button in the bottom right corner to open the AI assistant.</p>
+                  <p>Dashboard content goes here. The AI assistant is available on the right side.</p>
                 </Content>
               </PageSection>
             </div>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-
-      {/* Floating toggle button - round button in bottom right corner */}
-      <ChatbotToggle onClick={() => setIsDrawerOpen(!isDrawerOpen)} />
     </Page>
   );
 };
