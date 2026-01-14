@@ -50,6 +50,7 @@ import { RouteConfig } from '@app/core/types';
 
 // Import your page components here when you add routes
 import { OverviewPage } from './pages/OverviewPage';
+import { DashboardsPersesPage } from './pages/DashboardsPersesPage';
 
 /**
  * IMPORTANT: Template Isolation
@@ -74,5 +75,15 @@ export const routes: RouteConfig[] = [
     }
   },
   
-  // Add your routes here when you copy this template...
+  // Core Platforms - Observe - Dashboards (Perses)
+  {
+    path: '/core/observe/dashboards-perses',
+    element: <DashboardsPersesPage />,
+    label: 'Dashboards (Perses)',
+    title: 'Dashboards (Perses)',
+    navigation: {
+      group: 'Observe',
+      order: 6
+    }
+  },
 ];
