@@ -237,16 +237,19 @@ export const DashboardsPersesPage: React.FC = () => {
 
   // AI Assistant sidebar panel - using PatternFly Chatbot components
   const aiAssistantPanel = (
-    <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
-      <DrawerHead>
+    <div className="ai-assistant-panel-container">
+      {/* Header */}
+      <div className="ai-assistant-header">
         <Title headingLevel="h2" size="lg">AI Assistant</Title>
-        <DrawerActions>
-          <DrawerCloseButton onClick={() => setIsDrawerOpen(false)} />
-        </DrawerActions>
-      </DrawerHead>
-      <DrawerPanelBody style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
-        <Chatbot displayMode={ChatbotDisplayMode.drawer} style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <ChatbotContent style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+        <Button variant="plain" onClick={() => setIsDrawerOpen(false)} aria-label="Close">
+          <TimesIcon />
+        </Button>
+      </div>
+      
+      {/* Chatbot Content */}
+      <div className="ai-assistant-chatbot-wrapper">
+        <Chatbot displayMode={ChatbotDisplayMode.drawer}>
+          <ChatbotContent>
             {messages.length === 0 && (
               <>
                 <ChatbotWelcomePrompt
@@ -278,7 +281,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 </div>
               </>
             )}
-            <MessageBox style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
+            <MessageBox>
               {messages.map((message) => (
                 <Message
                   key={message.id}
@@ -298,12 +301,12 @@ export const DashboardsPersesPage: React.FC = () => {
               <div ref={messagesEndRef} />
             </MessageBox>
           </ChatbotContent>
-          <ChatbotFooter style={{ flexShrink: 0, width: '100%' }}>
+          <ChatbotFooter>
             <MessageBar onSendMessage={handleSendMessage} />
           </ChatbotFooter>
         </Chatbot>
-      </DrawerPanelBody>
-    </DrawerPanelContent>
+      </div>
+    </div>
   );
 
   return (
