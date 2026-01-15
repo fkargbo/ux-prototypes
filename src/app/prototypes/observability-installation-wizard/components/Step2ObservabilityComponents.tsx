@@ -1145,14 +1145,25 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 </Content>
                               )}
                               {uncheckedRequiredItems.has(storageItem.id) && (
-                                <Alert
-                                  variant={AlertVariant.warning}
-                                  isInline
-                                  title="This storage is required by selected goals"
-                                  style={{ marginTop: '8px', marginLeft: '24px' }}
-                                >
-                                  Unchecking this storage may impact the functionality of: {goalNames.join(', ')}. Consider keeping it enabled.
-                                </Alert>
+                                storageItem.id === 'odf' && selectedCapabilities.includes('thanos') ? (
+                                  <Alert
+                                    variant={AlertVariant.warning}
+                                    isInline
+                                    title="Storage requirement conflict"
+                                    style={{ marginTop: '8px', marginLeft: '24px' }}
+                                  >
+                                    OpenShift Data Foundation is required to support Long-term Storage (Thanos). Deselecting it will prevent the storage of historical metrics.
+                                  </Alert>
+                                ) : (
+                                  <Alert
+                                    variant={AlertVariant.warning}
+                                    isInline
+                                    title="This storage is required by selected goals"
+                                    style={{ marginTop: '8px', marginLeft: '24px' }}
+                                  >
+                                    Unchecking this storage may impact the functionality of: {goalNames.join(', ')}. Consider keeping it enabled.
+                                  </Alert>
+                                )
                               )}
                             </StackItem>
                           );
