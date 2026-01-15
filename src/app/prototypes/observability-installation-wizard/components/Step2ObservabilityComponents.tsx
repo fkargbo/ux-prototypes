@@ -944,12 +944,12 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
             <Alert
               variant={AlertVariant.info}
               isInline
-              title="Intelligent preselection"
+              title="Recommended configuration applied"
               actionClose={
                 <AlertActionCloseButton onClose={() => setIsPreselectionAlertDismissed(true)} />
               }
             >
-              Choosing a strategy helps us tailor your installation. The preselected components represent the industry-standard stack for your specific operational focus.
+              Your strategy has pre-configured the observability stack. You can add or remove components to fit your cluster requirements.
             </Alert>
           </StackItem>
         )}
