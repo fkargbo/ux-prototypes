@@ -386,7 +386,15 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                         {operatorsBOM.map((item) => (
                           <Tr key={`operator-${item.id}`}>
                             <Td>{item.name}</Td>
-                            <Td>{item.version ? `v${item.version}` : 'N/A'}</Td>
+                            <Td>
+                              {item.version ? (
+                                <Badge isRead style={{ fontSize: '12px' }}>
+                                  v{item.version}
+                                </Badge>
+                              ) : (
+                                'N/A'
+                              )}
+                            </Td>
                             <Td>{item.channel || 'N/A'}</Td>
                             <Td>
                               <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -410,7 +418,15 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                         {storageBOM.map((item) => (
                           <Tr key={`storage-${item.id}`}>
                             <Td>{item.name}</Td>
-                            <Td>{item.version ? `v${item.version}` : 'N/A'}</Td>
+                            <Td>
+                              {item.version ? (
+                                <Badge isRead style={{ fontSize: '12px' }}>
+                                  v{item.version}
+                                </Badge>
+                              ) : (
+                                'N/A'
+                              )}
+                            </Td>
                             <Td>{item.channel || 'N/A'}</Td>
                             <Td>
                               <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
