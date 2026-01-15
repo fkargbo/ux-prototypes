@@ -26,6 +26,7 @@ import {
   TextInput,
   SearchInput,
 } from '@patternfly/react-core';
+import { CheckIcon } from '@patternfly/react-icons';
 
 interface Step1InstallationDetailsProps {
   data?: any;
@@ -177,6 +178,13 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
 
   const versionOptions = [
     { value: '1.3.1', label: '1.3.1' },
+    { value: '1.3.0', label: '1.3.0' },
+    { value: '1.2.2', label: '1.2.2' },
+    { value: '1.2.1', label: '1.2.1' },
+    { value: '1.2.0', label: '1.2.0' },
+    { value: '1.1.1', label: '1.1.1' },
+    { value: '1.1.0', label: '1.1.0' },
+    { value: '1.0.0', label: '1.0.0' },
   ];
 
   const availableProjects = [
@@ -256,32 +264,50 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                     isRequired
                     fieldId="version"
                   >
-                    <Select
-                      isOpen={versionOpen}
-                      onSelect={(_, value) => {
-                        setVersion(value as string);
-                        setVersionOpen(false);
-                      }}
-                      onOpenChange={(isOpen) => setVersionOpen(isOpen)}
-                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setVersionOpen(!versionOpen)}
-                          isExpanded={versionOpen}
-                          style={{ width: '100%' }}
-                        >
-                          {version}
-                        </MenuToggle>
-                      )}
-                    >
-                      <SelectList>
-                        {versionOptions.map((option) => (
-                          <SelectOption key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectOption>
-                        ))}
-                      </SelectList>
-                    </Select>
+                    <div className="version-select-wrapper">
+                      <Select
+                        isOpen={versionOpen}
+                        onSelect={(_, value) => {
+                          setVersion(value as string);
+                          setVersionOpen(false);
+                        }}
+                        onOpenChange={(isOpen) => setVersionOpen(isOpen)}
+                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            onClick={() => setVersionOpen(!versionOpen)}
+                            isExpanded={versionOpen}
+                            style={{ width: '100%' }}
+                          >
+                            {version}
+                          </MenuToggle>
+                        )}
+                      >
+                        <SelectList>
+                          {versionOptions.map((option) => {
+                            const isSelected = version === option.value;
+                            return (
+                              <SelectOption 
+                                key={option.value} 
+                                value={option.value}
+                              >
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'space-between',
+                                  width: '100%'
+                                }}>
+                                  <span style={{ fontWeight: isSelected ? '600' : 'normal' }}>{option.label}</span>
+                                  {isSelected && (
+                                    <CheckIcon style={{ color: 'var(--pf-t--global--color--action--primary--default)', marginLeft: 'auto', fill: 'var(--pf-t--global--color--action--primary--default)' }} />
+                                  )}
+                                </div>
+                              </SelectOption>
+                            );
+                          })}
+                        </SelectList>
+                      </Select>
+                    </div>
                   </FormGroup>
                 </StackItem>
               </Stack>
