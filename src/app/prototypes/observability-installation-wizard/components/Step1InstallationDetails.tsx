@@ -264,55 +264,50 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                     isRequired
                     fieldId="version"
                   >
-                    <Select
-                      isOpen={versionOpen}
-                      onSelect={(_, value) => {
-                        setVersion(value as string);
-                        setVersionOpen(false);
-                      }}
-                      onOpenChange={(isOpen) => setVersionOpen(isOpen)}
-                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setVersionOpen(!versionOpen)}
-                          isExpanded={versionOpen}
-                          style={{ width: '100%' }}
-                        >
-                          {version}
-                        </MenuToggle>
-                      )}
-                    >
-                      <SelectList>
-                        {versionOptions.map((option) => {
-                          const isSelected = version === option.value;
-                          return (
-                            <SelectOption 
-                              key={option.value} 
-                              value={option.value}
-                              isSelected={isSelected}
-                            >
-                              <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'space-between',
-                                width: '100%'
-                              }}>
-                                <span>{option.label}</span>
-                                {isSelected && (
-                                  <CheckIcon style={{ color: 'var(--pf-v5-global--primary-color--100)', marginLeft: 'auto' }} />
-                                )}
-                              </div>
-                            </SelectOption>
-                          );
-                        })}
-                      </SelectList>
-                      <style>{`
-                        [role="option"][aria-selected="true"] > button > span:first-child svg,
-                        [role="option"][aria-selected="true"] > button svg:first-of-type {
-                          display: none !important;
-                        }
-                      `}</style>
-                    </Select>
+                    <div className="version-select-wrapper">
+                      <Select
+                        isOpen={versionOpen}
+                        onSelect={(_, value) => {
+                          setVersion(value as string);
+                          setVersionOpen(false);
+                        }}
+                        onOpenChange={(isOpen) => setVersionOpen(isOpen)}
+                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            onClick={() => setVersionOpen(!versionOpen)}
+                            isExpanded={versionOpen}
+                            style={{ width: '100%' }}
+                          >
+                            {version}
+                          </MenuToggle>
+                        )}
+                      >
+                        <SelectList>
+                          {versionOptions.map((option) => {
+                            const isSelected = version === option.value;
+                            return (
+                              <SelectOption 
+                                key={option.value} 
+                                value={option.value}
+                              >
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'space-between',
+                                  width: '100%'
+                                }}>
+                                  <span style={{ fontWeight: isSelected ? '600' : 'normal' }}>{option.label}</span>
+                                  {isSelected && (
+                                    <CheckIcon style={{ color: 'var(--pf-v5-global--primary-color--100)', marginLeft: 'auto' }} />
+                                  )}
+                                </div>
+                              </SelectOption>
+                            );
+                          })}
+                        </SelectList>
+                      </Select>
+                    </div>
                   </FormGroup>
                 </StackItem>
               </Stack>
