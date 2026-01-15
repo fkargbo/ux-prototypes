@@ -985,7 +985,14 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 <FlexItem>
                                   <Checkbox
                                     id={`operator-${operator.id}`}
-                                    label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{operator.name}</span>}
+                                    label={
+                                      <span style={{ fontWeight: '600', fontSize: '14px' }}>
+                                        {operator.name}
+                                        {operator.isLocked && (
+                                          <span style={{ color: '#c9190b', marginLeft: '4px' }}>*</span>
+                                        )}
+                                      </span>
+                                    }
                                     isChecked={operator.isSelected}
                                     isDisabled={operator.isLocked}
                                     onChange={(_, checked) => handleOperatorChange(operator.id, checked)}
