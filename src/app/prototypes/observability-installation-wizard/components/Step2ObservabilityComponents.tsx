@@ -18,6 +18,7 @@ import {
   Flex,
   FlexItem,
   Switch,
+  Badge,
   Label,
   HelperText,
   HelperTextItem,
@@ -1265,9 +1266,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                   ) : (
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                       <FlexItem>
-                                        <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontSize: '12px', color: '#92c5f9' }}>
+                                        <Badge isRead style={{ fontSize: '12px' }}>
                                           v{operator.version}
-                                        </Label>
+                                        </Badge>
                                       </FlexItem>
                                       <FlexItem>
                                         <HelperText>
@@ -1438,9 +1439,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                   ) : (
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                       <FlexItem>
-                                        <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontSize: '12px', color: '#92c5f9' }}>
+                                        <Badge isRead style={{ fontSize: '12px' }}>
                                           v{storageItem.version}
-                                        </Label>
+                                        </Badge>
                                       </FlexItem>
                                       <FlexItem>
                                         <HelperText>
