@@ -955,14 +955,15 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         )}
 
         {/* Operators and Storage Section */}
-        {activeGoals.length > 0 && (
-          <StackItem>
-            <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
-              Required operators and storage
-            </Title>
-            <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-              The following operators and storage are required by your selected goals. You can customize these selections below.
-            </Content>
+        <StackItem>
+          <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
+            Operators and storage
+          </Title>
+          <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
+            {activeGoals.length > 0 
+              ? 'The following operators and storage are required by your selected goals. You can customize these selections below.'
+              : 'Select operators and storage for your observability stack. You can also choose an observability strategy above to pre-configure recommended options.'}
+          </Content>
 
             <Card>
               <CardBody>
@@ -1060,6 +1061,28 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 </div>
                               )}
                               
+                              {/* Nested Options for OpenTelemetry */}
+                              {operator.id === 'opentelemetry' && operator.isSelected && (
+                                <div style={{ marginLeft: '24px', marginTop: '12px', paddingLeft: '16px', borderLeft: '2px solid #d2d2d2' }}>
+                                  <Stack hasGutter>
+                                    <StackItem>
+                                      <Checkbox
+                                        id="option-auto-instrumentation"
+                                        label={
+                                          <span style={{ fontSize: '14px' }}>
+                                            Enable Auto-Instrumentation
+                                          </span>
+                                        }
+                                        isChecked={(selectedNestedOptions['opentelemetry'] || []).includes('auto-instrumentation')}
+                                        onChange={(_, checked) =>
+                                          handleNestedOptionChange('opentelemetry', 'auto-instrumentation', checked)
+                                        }
+                                      />
+                                    </StackItem>
+                                  </Stack>
+                                </div>
+                              )}
+                              
                               {uncheckedRequiredItems.has(operator.id) && (
                                 <Alert
                                   variant={AlertVariant.warning}
@@ -1141,120 +1164,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
             </Card>
           </StackItem>
         )}
-
-        {/* Capabilities Section */}
-        <StackItem>
-          <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
-            Customize capabilities
-          </Title>
-          <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-            Fine-tune which observability features to install based on your needs.
-          </Content>
-
-          <Card>
-            <CardBody>
-              <Stack hasGutter>
-                {capabilities.map((capability) => {
-                  const isChecked = selectedCapabilities.includes(capability.id);
-                  const isRequired = capability.required || false;
-                  const dependencyCheck = checkDependencies(capability);
-                  const canEnable = dependencyCheck.satisfied || isChecked;
-
-                  return (
-                    <StackItem key={capability.id}>
-                      <Checkbox
-                        id={`capability-${capability.id}`}
-                        label={
-                          <span style={{ fontWeight: '600', fontSize: '14px' }}>
-                            {capability.name}
-                            {isRequired && (
-                              <span style={{ color: '#c9190b', marginLeft: '4px' }}>*</span>
-                            )}
-                          </span>
-                        }
-                        isChecked={isChecked}
-                        isDisabled={(!canEnable && !isChecked) || (isRequired && isChecked)}
-                        onChange={(_, checked) => handleCapabilityChange(capability.id, checked)}
-                      />
-                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
-                        {capability.description}
-                      </Content>
-                      
-                      {!dependencyCheck.satisfied && !isChecked && (
-                        <Alert
-                          variant={AlertVariant.warning}
-                          isInline
-                          title={`Requires ${dependencyCheck.missing.map(dep => {
-                            const depCap = capabilities.find(c => c.id === dep);
-                            return depCap?.name || dep;
-                          }).join(' or ')} to be enabled`}
-                          style={{ marginTop: '12px', marginLeft: '24px' }}
-                        />
-                      )}
-                      
-                      {isChecked && capability.id === 'incident-detection' && (
-                        data.enableClusterMonitoring ? (
-                          <Alert
-                            variant={AlertVariant.info}
-                            isInline
-                            title="Alert data processing is enabled."
-                            style={{ marginTop: '12px', marginLeft: '24px' }}
-                          />
-                        ) : (
-                          <Alert
-                            variant={AlertVariant.warning}
-                            isInline
-                            title="Requires 'Enable Operator recommended cluster monitoring' to process alert data."
-                            style={{ marginTop: '12px', marginLeft: '24px' }}
-                          />
-                        )
-                      )}
-                      
-                      {!isChecked && capability.id === 'thanos' && 
-                       (selectedPersona === 'administrator' || selectedPersona === 'sre') && (
-                        <Alert
-                          variant={AlertVariant.warning}
-                          isInline
-                          title="Long-term storage disabled"
-                          style={{ marginTop: '12px', marginLeft: '24px' }}
-                        >
-                          Without long-term storage, you will lose the ability to retain metrics for capacity planning and historical analysis. This may impact your ability to track trends and plan for future resource needs.
-                        </Alert>
-                      )}
-
-                      {/* Nested Options */}
-                      {isChecked && capability.nestedOptions && capability.nestedOptions.length > 0 && (
-                        <div style={{ marginLeft: '24px', marginTop: '12px', paddingLeft: '16px', borderLeft: '2px solid #d2d2d2' }}>
-                          <Stack hasGutter>
-                            {capability.nestedOptions.map((option) => (
-                              <StackItem key={option.id}>
-                                <Checkbox
-                                  id={`option-${option.id}`}
-                                  label={
-                                    <span style={{ fontSize: '14px' }}>
-                                      {option.name}
-                                    </span>
-                                  }
-                                  isChecked={(selectedNestedOptions[capability.id] || []).includes(option.id)}
-                                  onChange={(_, checked) =>
-                                    handleNestedOptionChange(capability.id, option.id, checked)
-                                  }
-                                />
-                                <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
-                                  {option.description}
-                                </Content>
-                              </StackItem>
-                            ))}
-                          </Stack>
-                        </div>
-                      )}
-                    </StackItem>
-                  );
-                })}
-              </Stack>
-            </CardBody>
-          </Card>
-        </StackItem>
 
         {/* Console Experience Section */}
         <StackItem>
