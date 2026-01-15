@@ -299,7 +299,7 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                                 }}>
                                   <span style={{ fontWeight: isSelected ? '600' : 'normal' }}>{option.label}</span>
                                   {isSelected && (
-                                    <CheckIcon style={{ color: 'var(--pf-v5-global--primary-color--100)', marginLeft: 'auto', fill: 'var(--pf-v5-global--primary-color--100)' }} />
+                                    <CheckIcon style={{ color: 'var(--pf-t--global--color--action--primary--default)', marginLeft: 'auto', fill: 'var(--pf-t--global--color--action--primary--default)' }} />
                                   )}
                                 </div>
                               </SelectOption>
