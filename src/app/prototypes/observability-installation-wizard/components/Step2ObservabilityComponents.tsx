@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Title,
   Content,
@@ -308,6 +308,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   
   // Track goals that were overridden due to manual changes (for visual feedback)
   const [overriddenGoals, setOverriddenGoals] = useState<Set<string>>(new Set());
+  
+  // Ref to track when we're manually removing goals (to prevent full reset)
+  const isManualOverrideRef = useRef(false);
 
   // Initialize operators and storage items from capabilities
   const initialOperators: OperatorStorageItem[] = useMemo(() => {
@@ -407,8 +410,14 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     return { operators: newOperators, storage: newStorage };
   }, [initialOperators, initialStorage]);
 
-  // Update dependencies when activeGoals change
+  // Update dependencies when activeGoals change (but not during manual overrides)
   useEffect(() => {
+    // Skip reset if this is a manual override (user unchecking something)
+    if (isManualOverrideRef.current) {
+      isManualOverrideRef.current = false; // Reset the flag
+      return; // Don't reset everything, just keep current state
+    }
+
     const { operators: newOperators, storage: newStorage } = updateDependencies(activeGoals);
     setOperators(newOperators);
     setStorage(newStorage);
@@ -639,7 +648,8 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   }, []);
 
   // Check if any active goal no longer matches current selections
-  const checkAndRemoveMismatchedGoals = useCallback((currentOperators: OperatorStorageItem[], currentStorage: OperatorStorageItem[]) => {
+  // Returns true if mismatches were found and handled
+  const checkAndRemoveMismatchedGoals = useCallback((currentOperators: OperatorStorageItem[], currentStorage: OperatorStorageItem[]): boolean => {
     const mismatchedGoals: string[] = [];
     
     activeGoals.forEach(goalId => {
@@ -650,7 +660,25 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     });
 
     if (mismatchedGoals.length > 0) {
+      // Set flag BEFORE state update to prevent full reset - we only want to uncheck the strategy, not reset everything
+      isManualOverrideRef.current = true;
+      
       const newGoals = activeGoals.filter(id => !mismatchedGoals.includes(id));
+      
+      // Update appliedBy arrays to remove overridden goals (for badge display)
+      const updatedOperators = currentOperators.map(op => ({
+        ...op,
+        appliedBy: op.appliedBy.filter(goalId => !mismatchedGoals.includes(goalId)) as GoalID[]
+      }));
+      const updatedStorage = currentStorage.map(s => ({
+        ...s,
+        appliedBy: s.appliedBy.filter(goalId => !mismatchedGoals.includes(goalId)) as GoalID[]
+      }));
+      
+      // Update operators and storage with cleaned appliedBy arrays
+      setOperators(updatedOperators);
+      setStorage(updatedStorage);
+      
       setActiveGoals(newGoals);
       onDataChange({ activeGoals: newGoals });
       
@@ -660,7 +688,11 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         mismatchedGoals.forEach(goalId => newSet.add(goalId));
         return newSet;
       });
+      
+      return true; // Mismatches were found and handled
     }
+    
+    return false; // No mismatches
   }, [activeGoals, checkIfSelectionMatchesStrategy, onDataChange]);
 
   // Handle goal selection (checkboxes) - idempotent: always resets to factory defaults
@@ -713,8 +745,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     const newOperators = operators.map(op => 
       op.id === operatorId ? { ...op, isSelected: checked } : op
     );
-    setOperators(newOperators);
-
+    
     // Update selectedCapabilities
     const newCapabilities = newOperators
       .filter(op => op.isSelected)
@@ -723,7 +754,14 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     onDataChange({ selectedCapabilities: newCapabilities });
 
     // Check if manual override occurred - if selections no longer match active strategies, remove them
-    checkAndRemoveMismatchedGoals(newOperators, storage);
+    // This will uncheck the strategy but keep everything else as-is (only the unchecked item changes)
+    // checkAndRemoveMismatchedGoals will update operators/storage if goals are removed
+    const hadMismatches = checkAndRemoveMismatchedGoals(newOperators, storage);
+    
+    // Only set operators if no mismatches were found (otherwise checkAndRemoveMismatchedGoals already set them)
+    if (!hadMismatches) {
+      setOperators(newOperators);
+    }
   };
 
   const handleStorageChange = (storageId: string, checked: boolean) => {
@@ -761,7 +799,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         }
         return s;
       });
-      setStorage(newStorage);
       
       // Update selectedStorage in wizard data
       const newSelectedStorage = newStorage
@@ -770,7 +807,13 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       onDataChange({ selectedStorage: newSelectedStorage });
 
       // Check if manual override occurred - if selections no longer match active strategies, remove them
-      checkAndRemoveMismatchedGoals(operators, newStorage);
+      // checkAndRemoveMismatchedGoals will update storage if goals are removed
+      const hadMismatches = checkAndRemoveMismatchedGoals(operators, newStorage);
+      
+      // Only set storage if no mismatches were found (otherwise checkAndRemoveMismatchedGoals already set it)
+      if (!hadMismatches) {
+        setStorage(newStorage);
+      }
     } else {
       // Unchecking - check if this storage is required by any active goal
       if (storageItem.appliedBy.length > 0) {
@@ -786,7 +829,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       const newStorage = storage.map(s => 
         s.id === storageId ? { ...s, isSelected: false } : s
       );
-      setStorage(newStorage);
       
       // Update selectedStorage in wizard data
       const newSelectedStorage = newStorage
@@ -795,7 +837,13 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       onDataChange({ selectedStorage: newSelectedStorage });
 
       // Check if manual override occurred - if selections no longer match active strategies, remove them
-      checkAndRemoveMismatchedGoals(operators, newStorage);
+      // checkAndRemoveMismatchedGoals will update storage if goals are removed
+      const hadMismatches = checkAndRemoveMismatchedGoals(operators, newStorage);
+      
+      // Only set storage if no mismatches were found (otherwise checkAndRemoveMismatchedGoals already set it)
+      if (!hadMismatches) {
+        setStorage(newStorage);
+      }
     }
   };
 
