@@ -291,18 +291,27 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                               value={option.value}
                               isSelected={isSelected}
                             >
-                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <FlexItem>{option.label}</FlexItem>
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'space-between',
+                                width: '100%'
+                              }}>
+                                <span>{option.label}</span>
                                 {isSelected && (
-                                  <FlexItem>
-                                    <CheckIcon style={{ color: 'var(--pf-v5-global--primary-color--100)' }} />
-                                  </FlexItem>
+                                  <CheckIcon style={{ color: 'var(--pf-v5-global--primary-color--100)', marginLeft: 'auto' }} />
                                 )}
-                              </Flex>
+                              </div>
                             </SelectOption>
                           );
                         })}
                       </SelectList>
+                      <style>{`
+                        [role="option"][aria-selected="true"] > button > span:first-child svg,
+                        [role="option"][aria-selected="true"] > button svg:first-of-type {
+                          display: none !important;
+                        }
+                      `}</style>
                     </Select>
                   </FormGroup>
                 </StackItem>
