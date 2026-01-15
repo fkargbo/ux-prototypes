@@ -329,7 +329,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     {
       id: 'lvm',
       name: 'Logical Volume Manager (LVM)',
-      description: 'Local storage for standard observability needs.',
+      description: 'Provides local storage for metrics and logs. Requires external S3-compatible storage if Long-term Storage (Thanos) is enabled.',
       isSelected: false,
       isLocked: false,
       appliedBy: [],
