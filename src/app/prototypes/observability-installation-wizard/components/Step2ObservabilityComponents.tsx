@@ -158,7 +158,7 @@ const capabilities: Capability[] = [
   {
     id: 'thanos',
     name: 'Long-term Storage (Thanos)',
-    description: 'Retain metrics for capacity planning and historical analysis.',
+    description: 'Retain metrics for capacity planning and historical analysis. (Requires S3-compatible object storage)',
   },
   {
     id: 'loki',
