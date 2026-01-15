@@ -16,6 +16,8 @@ import {
   Alert,
   AlertVariant,
 } from '@patternfly/react-core';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 import { WizardData } from './Step2ObservabilityComponents';
 
 interface Step3ReviewAndInstallProps {
@@ -114,53 +116,74 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
       objectStorage = Math.round(objectStorage * 1.4 * 10) / 10; // 1.2 * 1.4 = 1.68 TB, rounded to 1 decimal
     }
 
+    // Calculate total footprint (CPU + Memory + Storage)
+    // CPU footprint: 1 core = 1 unit, Memory footprint: 1 GB = 0.1 units, Storage footprint: 1 GB = 0.01 units
+    const cpuFootprint = cpu;
+    const memoryFootprint = memory * 0.1;
+    const storageFootprint = (localCache + (hasThanos ? objectStorage * 1000 : 0)) * 0.01;
+    const totalFootprint = Math.round((cpuFootprint + memoryFootprint + storageFootprint) * 10) / 10;
+
     return {
       cpu,
       memory,
       localCache,
       objectStorage,
       hasThanos,
+      totalFootprint,
     };
   }, [data.selectedCapabilities]);
 
+  // BOM Table data structure
+  interface BOMItem {
+    name: string;
+    id: string;
+    version?: string;
+    channel?: string;
+    type: 'operator' | 'storage';
+  }
+
   // Get operators to install based on selected capabilities from Step 2
   // Maps each selected capability to its corresponding operator with version info
-  const operatorsToInstall = useMemo(() => {
-    const operators: Array<{ name: string; capabilityId: string; version?: string }> = [];
+  const bomData = useMemo(() => {
+    const items: BOMItem[] = [];
     
     if (!data.selectedCapabilities || !Array.isArray(data.selectedCapabilities)) {
-      return operators;
+      return items;
     }
     
     // Cluster Observability Operator - included if metrics-alerting is selected (required)
     // This operator includes: Prometheus, Alertmanager, and optionally Thanos and Korrel8r as operands
     if (data.selectedCapabilities.includes('metrics-alerting')) {
-      const version = data.operatorVersions?.['metrics-alerting']?.version;
-      operators.push({ 
+      const versionInfo = data.operatorVersions?.['metrics-alerting'];
+      items.push({ 
         name: 'Cluster Observability Operator (Prometheus)', 
-        capabilityId: 'metrics-alerting',
-        version 
+        id: 'metrics-alerting',
+        version: versionInfo?.version,
+        channel: versionInfo?.channel,
+        type: 'operator'
       });
     }
     
     // Long-term Storage (Thanos) - shown as a component when selected
     // Note: Thanos is technically an operand of Cluster Observability Operator, but we display it separately for clarity
     if (data.selectedCapabilities.includes('thanos')) {
-      const version = data.operatorVersions?.['thanos']?.version;
-      operators.push({ 
+      const versionInfo = data.operatorVersions?.['thanos'];
+      items.push({ 
         name: 'Long-term Storage (Thanos)', 
-        capabilityId: 'thanos',
-        version 
+        id: 'thanos',
+        version: versionInfo?.version,
+        channel: versionInfo?.channel,
+        type: 'operator'
       });
     }
     
     // Map capabilities to their corresponding operators
     const capabilityToOperatorMap: { [key: string]: string } = {
-      'loki': 'Loki Operator',
-      'tempo': 'Tempo Operator',
-      'network-traffic': 'Network Observability Operator',
-      'opentelemetry': 'OpenTelemetry Operator',
-      'incident-detection': 'Incident Detection Operator',
+      'loki': 'Centralized Logging (Loki)',
+      'tempo': 'Distributed Tracing (Tempo)',
+      'network-traffic': 'Network Traffic Analysis (NetObserve)',
+      'opentelemetry': 'Telemetry Pipeline (OpenTelemetry)',
+      'incident-detection': 'Incident Detection (Native)',
     };
     
     // Add operators for each selected capability
@@ -172,17 +195,41 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
       
       const operatorName = capabilityToOperatorMap[capabilityId];
       if (operatorName) {
-        const version = data.operatorVersions?.[capabilityId]?.version;
-        operators.push({ 
+        const versionInfo = data.operatorVersions?.[capabilityId];
+        items.push({ 
           name: operatorName, 
-          capabilityId,
-          version 
+          id: capabilityId,
+          version: versionInfo?.version,
+          channel: versionInfo?.channel,
+          type: 'operator'
         });
       }
     });
     
-    return operators;
-  }, [data.selectedCapabilities, data.operatorVersions]);
+    // Add storage items
+    if (data.selectedStorage && Array.isArray(data.selectedStorage) && data.selectedStorage.length > 0) {
+      data.selectedStorage.forEach(storageId => {
+        const storageNameMap: { [key: string]: string } = {
+          'odf': 'OpenShift Data Foundation (ODF)',
+          'lvm': 'Logical Volume Manager (LVM)',
+        };
+        const versionInfo = data.storageVersions?.[storageId];
+        items.push({
+          name: storageNameMap[storageId] || storageId,
+          id: storageId,
+          version: versionInfo?.version,
+          channel: versionInfo?.channel,
+          type: 'storage'
+        });
+      });
+    }
+    
+    return items;
+  }, [data.selectedCapabilities, data.selectedStorage, data.operatorVersions, data.storageVersions]);
+
+  // Separate operators and storage for grouped display
+  const operatorsBOM = useMemo(() => bomData.filter(item => item.type === 'operator'), [bomData]);
+  const storageBOM = useMemo(() => bomData.filter(item => item.type === 'storage'), [bomData]);
 
   // Get UI components to install based on selected UI plugins from Step 2
   const uiComponentsToInstall = useMemo(() => {
@@ -320,35 +367,74 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
           </Card>
         </StackItem>
 
-        {/* Operators to Install */}
+        {/* BOM Table - Operators and Storage */}
         <StackItem>
           <Card>
-            <CardTitle>Operators to install</CardTitle>
+            <CardTitle>Bill of Materials</CardTitle>
             <CardBody>
-              {operatorsToInstall.length > 0 ? (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #d2d2d2' }}>
-                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: '600', fontSize: '14px' }}>Operator</th>
-                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: '600', fontSize: '14px' }}>Version</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {operatorsToInstall.map((operator) => (
-                        <tr key={operator.capabilityId} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                          <td style={{ padding: '8px 0', fontSize: '14px' }}>{operator.name}</td>
-                          <td style={{ padding: '8px 0', fontSize: '14px', color: '#6a6e73' }}>
-                            {operator.version ? `v${operator.version}` : 'N/A'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              {bomData.length > 0 ? (
+                <Table variant="compact" aria-label="BOM table">
+                  <Thead>
+                    <Tr>
+                      <Th>Service</Th>
+                      <Th>Version</Th>
+                      <Th>Update Channel</Th>
+                      <Th>Status</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {/* Observability Services Section */}
+                    {operatorsBOM.length > 0 && (
+                      <>
+                        <Tr>
+                          <Th colSpan={4} style={{ backgroundColor: 'var(--pf-v5-global--BackgroundColor--200)', fontWeight: '600', fontSize: '14px', padding: '12px 8px' }}>
+                            Observability Services
+                          </Th>
+                        </Tr>
+                        {operatorsBOM.map((item) => (
+                          <Tr key={`operator-${item.id}`}>
+                            <Td>{item.name}</Td>
+                            <Td>{item.version ? `v${item.version}` : 'N/A'}</Td>
+                            <Td>{item.channel || 'N/A'}</Td>
+                            <Td>
+                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <CheckCircleIcon style={{ color: 'var(--pf-v5-global--success-color--100)', fontSize: '16px' }} />
+                                <span style={{ fontSize: '14px', color: 'var(--pf-v5-global--success-color--100)' }}>Ready to install</span>
+                              </Flex>
+                            </Td>
+                          </Tr>
+                        ))}
+                      </>
+                    )}
+                    
+                    {/* Infrastructure Storage Section */}
+                    {storageBOM.length > 0 && (
+                      <>
+                        <Tr>
+                          <Th colSpan={4} style={{ backgroundColor: 'var(--pf-v5-global--BackgroundColor--200)', fontWeight: '600', fontSize: '14px', padding: '12px 8px' }}>
+                            Infrastructure Storage
+                          </Th>
+                        </Tr>
+                        {storageBOM.map((item) => (
+                          <Tr key={`storage-${item.id}`}>
+                            <Td>{item.name}</Td>
+                            <Td>{item.version ? `v${item.version}` : 'N/A'}</Td>
+                            <Td>{item.channel || 'N/A'}</Td>
+                            <Td>
+                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <CheckCircleIcon style={{ color: 'var(--pf-v5-global--success-color--100)', fontSize: '16px' }} />
+                                <span style={{ fontSize: '14px', color: 'var(--pf-v5-global--success-color--100)' }}>Ready to install</span>
+                              </Flex>
+                            </Td>
+                          </Tr>
+                        ))}
+                      </>
+                    )}
+                  </Tbody>
+                </Table>
               ) : (
                 <Content style={{ color: '#6a6e73' }}>
-                  No operators selected. Please go back to Step 2 to select capabilities.
+                  No operators or storage selected. Please go back to Step 2 to select capabilities.
                 </Content>
               )}
             </CardBody>
@@ -445,6 +531,23 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                       </>
                     )}
                   </List>
+                </StackItem>
+
+                {/* Calculated Total Footprint */}
+                <StackItem>
+                  <Divider style={{ margin: '16px 0' }} />
+                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>
+                        Calculated Total Footprint:
+                      </Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Badge isRead style={{ fontSize: '14px' }}>
+                        {estimatedResources.totalFootprint} units
+                      </Badge>
+                    </FlexItem>
+                  </Flex>
                 </StackItem>
               </Stack>
             </CardBody>
