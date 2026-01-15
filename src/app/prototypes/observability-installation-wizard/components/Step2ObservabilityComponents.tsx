@@ -1010,6 +1010,49 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                   {operator.description}
                                 </Content>
                               )}
+                              
+                              {/* Nested Options for Loki */}
+                              {operator.id === 'loki' && operator.isSelected && (
+                                <div style={{ marginLeft: '24px', marginTop: '12px', paddingLeft: '16px', borderLeft: '2px solid #d2d2d2' }}>
+                                  <Stack hasGutter>
+                                    <StackItem>
+                                      <Checkbox
+                                        id="option-infrastructure-logs"
+                                        label={
+                                          <span style={{ fontSize: '14px' }}>
+                                            Infrastructure logs
+                                          </span>
+                                        }
+                                        isChecked={(selectedNestedOptions['loki'] || []).includes('infrastructure-logs')}
+                                        onChange={(_, checked) =>
+                                          handleNestedOptionChange('loki', 'infrastructure-logs', checked)
+                                        }
+                                      />
+                                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                                        Node, API server, and control plane logs.
+                                      </Content>
+                                    </StackItem>
+                                    <StackItem>
+                                      <Checkbox
+                                        id="option-application-logs"
+                                        label={
+                                          <span style={{ fontSize: '14px' }}>
+                                            Application logs
+                                          </span>
+                                        }
+                                        isChecked={(selectedNestedOptions['loki'] || []).includes('application-logs')}
+                                        onChange={(_, checked) =>
+                                          handleNestedOptionChange('loki', 'application-logs', checked)
+                                        }
+                                      />
+                                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                                        Container stdout/stderr from workloads.
+                                      </Content>
+                                    </StackItem>
+                                  </Stack>
+                                </div>
+                              )}
+                              
                               {uncheckedRequiredItems.has(operator.id) && (
                                 <Alert
                                   variant={AlertVariant.warning}
