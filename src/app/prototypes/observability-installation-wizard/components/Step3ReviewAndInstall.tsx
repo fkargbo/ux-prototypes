@@ -124,9 +124,9 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
   }, [data.selectedCapabilities]);
 
   // Get operators to install based on selected capabilities from Step 2
-  // Maps each selected capability to its corresponding operator
+  // Maps each selected capability to its corresponding operator with version info
   const operatorsToInstall = useMemo(() => {
-    const operators: string[] = [];
+    const operators: Array<{ name: string; capabilityId: string; version?: string }> = [];
     
     if (!data.selectedCapabilities || !Array.isArray(data.selectedCapabilities)) {
       return operators;
@@ -135,13 +135,23 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     // Cluster Observability Operator - included if metrics-alerting is selected (required)
     // This operator includes: Prometheus, Alertmanager, and optionally Thanos and Korrel8r as operands
     if (data.selectedCapabilities.includes('metrics-alerting')) {
-      operators.push('Cluster Observability Operator (Prometheus)');
+      const version = data.operatorVersions?.['metrics-alerting']?.version;
+      operators.push({ 
+        name: 'Cluster Observability Operator (Prometheus)', 
+        capabilityId: 'metrics-alerting',
+        version 
+      });
     }
     
     // Long-term Storage (Thanos) - shown as a component when selected
     // Note: Thanos is technically an operand of Cluster Observability Operator, but we display it separately for clarity
     if (data.selectedCapabilities.includes('thanos')) {
-      operators.push('Long-term Storage (Thanos)');
+      const version = data.operatorVersions?.['thanos']?.version;
+      operators.push({ 
+        name: 'Long-term Storage (Thanos)', 
+        capabilityId: 'thanos',
+        version 
+      });
     }
     
     // Map capabilities to their corresponding operators
@@ -149,6 +159,8 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
       'loki': 'Loki Operator',
       'tempo': 'Tempo Operator',
       'network-traffic': 'Network Observability Operator',
+      'opentelemetry': 'OpenTelemetry Operator',
+      'incident-detection': 'Incident Detection Operator',
     };
     
     // Add operators for each selected capability
@@ -158,14 +170,19 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
         return;
       }
       
-      const operator = capabilityToOperatorMap[capabilityId];
-      if (operator && !operators.includes(operator)) {
-        operators.push(operator);
+      const operatorName = capabilityToOperatorMap[capabilityId];
+      if (operatorName) {
+        const version = data.operatorVersions?.[capabilityId]?.version;
+        operators.push({ 
+          name: operatorName, 
+          capabilityId,
+          version 
+        });
       }
     });
     
     return operators;
-  }, [data.selectedCapabilities]);
+  }, [data.selectedCapabilities, data.operatorVersions]);
 
   // Get UI components to install based on selected UI plugins from Step 2
   const uiComponentsToInstall = useMemo(() => {
@@ -309,11 +326,26 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
             <CardTitle>Operators to install</CardTitle>
             <CardBody>
               {operatorsToInstall.length > 0 ? (
-                <List>
-                  {operatorsToInstall.map((operator) => (
-                    <ListItem key={operator}>{operator}</ListItem>
-                  ))}
-                </List>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #d2d2d2' }}>
+                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: '600', fontSize: '14px' }}>Operator</th>
+                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: '600', fontSize: '14px' }}>Version</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {operatorsToInstall.map((operator) => (
+                        <tr key={operator.capabilityId} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                          <td style={{ padding: '8px 0', fontSize: '14px' }}>{operator.name}</td>
+                          <td style={{ padding: '8px 0', fontSize: '14px', color: '#6a6e73' }}>
+                            {operator.version ? `v${operator.version}` : 'N/A'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <Content style={{ color: '#6a6e73' }}>
                   No operators selected. Please go back to Step 2 to select capabilities.

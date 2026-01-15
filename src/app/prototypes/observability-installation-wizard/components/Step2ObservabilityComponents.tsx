@@ -19,6 +19,9 @@ import {
   FlexItem,
   Switch,
   Badge,
+  HelperText,
+  HelperTextItem,
+  Skeleton,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -65,6 +68,8 @@ export interface WizardData {
   advancedMode: boolean;
   selectedUIPlugins: string[];
   selectedStorage: string[]; // Selected storage options (ODF or LVM)
+  operatorVersions?: { [capabilityId: string]: { version: string; channel: string } }; // Version and channel for each selected operator
+  storageVersions?: { [storageId: string]: { version: string; channel: string } }; // Version and channel for each selected storage
 }
 
 interface Step2ObservabilityComponentsProps {
@@ -122,6 +127,24 @@ const NEED_DEPENDENCIES: Record<GoalID, GoalDependencies> = {
     operators: ['metrics-alerting', 'loki', 'tempo'],
     storage: ['lvm'], // App performance can use LVM
   },
+};
+
+// Default versions and channels for operators
+const OPERATOR_VERSIONS: Record<string, { version: string; channel: string }> = {
+  'metrics-alerting': { version: '1.3.1', channel: 'stable' },
+  'thanos': { version: '0.40.0', channel: 'stable' },
+  'loki': { version: '5.8.1', channel: 'stable-5.8' },
+  'tempo': { version: '2.5.0', channel: 'stable-2.5' },
+  'opentelemetry': { version: '0.95.0', channel: 'stable' },
+  'network-traffic': { version: '1.2.0', channel: 'stable' },
+  'korrel8r': { version: '0.8.0', channel: 'stable' },
+  'incident-detection': { version: '1.0.0', channel: 'stable' },
+};
+
+// Default versions and channels for storage
+const STORAGE_VERSIONS: Record<string, { version: string; channel: string }> = {
+  'odf': { version: '4.16.0', channel: 'stable-4.16' },
+  'lvm': { version: '4.15.0', channel: 'stable-4.15' },
 };
 
 // Legacy personas (kept for backward compatibility during migration)
@@ -282,6 +305,9 @@ interface OperatorStorageItem {
   isSelected: boolean;
   isLocked: boolean; // Core Observability is always locked
   appliedBy: GoalID[]; // Which goals require this item
+  version?: string; // Operator version (e.g., "5.8.1")
+  channel?: string; // Update channel (e.g., "stable-5.8")
+  isUpdating?: boolean; // Simulates "Fetching latest version" state
 }
 
 export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponentsProps> = ({
@@ -314,14 +340,20 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
 
   // Initialize operators and storage items from capabilities
   const initialOperators: OperatorStorageItem[] = useMemo(() => {
-    return capabilities.map(cap => ({
-      id: cap.id,
-      name: cap.name,
-      description: cap.description,
-      isSelected: cap.required || false, // Core Observability (metrics-alerting) is required
-      isLocked: cap.required || false, // Core Observability is locked
-      appliedBy: [],
-    }));
+    return capabilities.map(cap => {
+      const versionInfo = OPERATOR_VERSIONS[cap.id] || { version: '1.0.0', channel: 'stable' };
+      return {
+        id: cap.id,
+        name: cap.name,
+        description: cap.description,
+        isSelected: cap.required || false, // Core Observability (metrics-alerting) is required
+        isLocked: cap.required || false, // Core Observability is locked
+        appliedBy: [],
+        version: versionInfo.version,
+        channel: versionInfo.channel,
+        isUpdating: false,
+      };
+    });
   }, []);
 
   // Initialize storage items
@@ -333,6 +365,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       isSelected: false,
       isLocked: false,
       appliedBy: [],
+      version: STORAGE_VERSIONS.odf.version,
+      channel: STORAGE_VERSIONS.odf.channel,
+      isUpdating: false,
     },
     {
       id: 'lvm',
@@ -341,6 +376,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       isSelected: false,
       isLocked: false,
       appliedBy: [],
+      version: STORAGE_VERSIONS.lvm.version,
+      channel: STORAGE_VERSIONS.lvm.channel,
+      isUpdating: false,
     },
   ], []);
 
@@ -351,16 +389,19 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   // Dependency calculation: Updates operators and storage based on activeGoals
   const updateDependencies = useCallback((goalIds: string[]) => {
     // Reset all to default (except Core Observability which is locked)
+    // Preserve version, channel, and set isUpdating to false
     const newOperators: OperatorStorageItem[] = initialOperators.map(item => ({
       ...item,
       isSelected: item.isLocked, // Only locked items remain selected
       appliedBy: [] as GoalID[],
+      isUpdating: false, // Reset updating state
     }));
 
     const newStorage: OperatorStorageItem[] = initialStorage.map(item => ({
       ...item,
       isSelected: false,
       appliedBy: [] as GoalID[],
+      isUpdating: false, // Reset updating state
     }));
 
     // Aggregate requirements from all active goals
@@ -434,10 +475,27 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       .filter(s => s.isSelected)
       .map(s => s.id);
     
+    // Build version maps for selected operators and storage
+    const operatorVersions: { [key: string]: { version: string; channel: string } } = {};
+    newOperators
+      .filter(op => op.isSelected && op.version && op.channel)
+      .forEach(op => {
+        operatorVersions[op.id] = { version: op.version!, channel: op.channel! };
+      });
+    
+    const storageVersions: { [key: string]: { version: string; channel: string } } = {};
+    newStorage
+      .filter(s => s.isSelected && s.version && s.channel)
+      .forEach(s => {
+        storageVersions[s.id] = { version: s.version!, channel: s.channel! };
+      });
+    
     onDataChange({ 
       activeGoals,
       selectedCapabilities: newCapabilities,
-      selectedStorage: newSelectedStorage
+      selectedStorage: newSelectedStorage,
+      operatorVersions,
+      storageVersions
     });
   }, [activeGoals, updateDependencies, onDataChange]);
 
@@ -698,18 +756,25 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   // Handle goal selection (checkboxes) - idempotent: always resets to factory defaults
   const handleGoalChange = (goalId: string, checked: boolean) => {
     if (checked) {
-      // Re-apply strategy: reset to factory defaults for this goal
-      // This will trigger the useEffect that calls updateDependencies
-      const newGoals = [...activeGoals, goalId];
-      setActiveGoals(newGoals);
-      onDataChange({ activeGoals: newGoals });
+      // Set updating state for all operators/storage to simulate "checking catalog"
+      setOperators(prev => prev.map(op => ({ ...op, isUpdating: true })));
+      setStorage(prev => prev.map(s => ({ ...s, isUpdating: true })));
       
-      // Remove from overridden goals when re-applying
-      setOverriddenGoals(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(goalId);
-        return newSet;
-      });
+      // Simulate catalog check delay (500ms)
+      setTimeout(() => {
+        // Re-apply strategy: reset to factory defaults for this goal
+        // This will trigger the useEffect that calls updateDependencies
+        const newGoals = [...activeGoals, goalId];
+        setActiveGoals(newGoals);
+        onDataChange({ activeGoals: newGoals });
+        
+        // Remove from overridden goals when re-applying
+        setOverriddenGoals(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(goalId);
+          return newSet;
+        });
+      }, 500);
     } else {
       // Remove goal
       const newGoals = activeGoals.filter(id => id !== goalId);
@@ -751,7 +816,19 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       .filter(op => op.isSelected)
       .map(op => op.id);
     setSelectedCapabilities(newCapabilities);
-    onDataChange({ selectedCapabilities: newCapabilities });
+    
+    // Build version map for selected operators
+    const operatorVersions: { [key: string]: { version: string; channel: string } } = {};
+    newOperators
+      .filter(op => op.isSelected && op.version && op.channel)
+      .forEach(op => {
+        operatorVersions[op.id] = { version: op.version!, channel: op.channel! };
+      });
+    
+    onDataChange({ 
+      selectedCapabilities: newCapabilities,
+      operatorVersions 
+    });
 
     // Check if manual override occurred - if selections no longer match active strategies, remove them
     // This will uncheck the strategy but keep everything else as-is (only the unchecked item changes)
@@ -804,7 +881,19 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       const newSelectedStorage = newStorage
         .filter(s => s.isSelected)
         .map(s => s.id);
-      onDataChange({ selectedStorage: newSelectedStorage });
+      
+      // Build version map for selected storage
+      const storageVersions: { [key: string]: { version: string; channel: string } } = {};
+      newStorage
+        .filter(s => s.isSelected && s.version && s.channel)
+        .forEach(s => {
+          storageVersions[s.id] = { version: s.version!, channel: s.channel! };
+        });
+      
+      onDataChange({ 
+        selectedStorage: newSelectedStorage,
+        storageVersions 
+      });
 
       // Check if manual override occurred - if selections no longer match active strategies, remove them
       // checkAndRemoveMismatchedGoals will update storage if goals are removed
@@ -834,7 +923,19 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       const newSelectedStorage = newStorage
         .filter(s => s.isSelected)
         .map(s => s.id);
-      onDataChange({ selectedStorage: newSelectedStorage });
+      
+      // Build version map for selected storage
+      const storageVersions: { [key: string]: { version: string; channel: string } } = {};
+      newStorage
+        .filter(s => s.isSelected && s.version && s.channel)
+        .forEach(s => {
+          storageVersions[s.id] = { version: s.version!, channel: s.channel! };
+        });
+      
+      onDataChange({ 
+        selectedStorage: newSelectedStorage,
+        storageVersions 
+      });
 
       // Check if manual override occurred - if selections no longer match active strategies, remove them
       // checkAndRemoveMismatchedGoals will update storage if goals are removed
@@ -1156,6 +1257,30 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 </Content>
                               )}
                               
+                              {/* Version and Channel Display */}
+                              {operator.isSelected && operator.version && operator.channel && (
+                                <div style={{ marginLeft: '24px', marginTop: '8px' }}>
+                                  {operator.isUpdating ? (
+                                    <Skeleton width="200px" height="20px" />
+                                  ) : (
+                                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                      <FlexItem>
+                                        <Badge isRead style={{ fontSize: '12px' }}>
+                                          v{operator.version}
+                                        </Badge>
+                                      </FlexItem>
+                                      <FlexItem>
+                                        <HelperText>
+                                          <HelperTextItem variant="muted">
+                                            Update channel: {operator.channel}
+                                          </HelperTextItem>
+                                        </HelperText>
+                                      </FlexItem>
+                                    </Flex>
+                                  )}
+                                </div>
+                              )}
+                              
                               {/* Nested Options for Loki */}
                               {operator.id === 'loki' && operator.isSelected && (
                                 <div style={{ marginLeft: '24px', marginTop: '12px', paddingLeft: '16px', borderLeft: '2px solid #d2d2d2' }}>
@@ -1303,6 +1428,30 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
                                   {storageItem.description}
                                 </Content>
+                              )}
+                              
+                              {/* Version and Channel Display */}
+                              {storageItem.isSelected && storageItem.version && storageItem.channel && (
+                                <div style={{ marginLeft: '24px', marginTop: '8px' }}>
+                                  {storageItem.isUpdating ? (
+                                    <Skeleton width="200px" height="20px" />
+                                  ) : (
+                                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                      <FlexItem>
+                                        <Badge isRead style={{ fontSize: '12px' }}>
+                                          v{storageItem.version}
+                                        </Badge>
+                                      </FlexItem>
+                                      <FlexItem>
+                                        <HelperText>
+                                          <HelperTextItem variant="muted">
+                                            Update channel: {storageItem.channel}
+                                          </HelperTextItem>
+                                        </HelperText>
+                                      </FlexItem>
+                                    </Flex>
+                                  )}
+                                </div>
                               )}
                               {uncheckedRequiredItems.has(storageItem.id) && (
                                 storageItem.id === 'odf' && selectedCapabilities.includes('thanos') ? (
