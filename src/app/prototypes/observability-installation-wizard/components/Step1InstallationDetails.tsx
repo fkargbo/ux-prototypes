@@ -26,6 +26,7 @@ import {
   TextInput,
   SearchInput,
 } from '@patternfly/react-core';
+import { CheckIcon } from '@patternfly/react-icons';
 
 interface Step1InstallationDetailsProps {
   data?: any;
@@ -282,11 +283,25 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
                       )}
                     >
                       <SelectList>
-                        {versionOptions.map((option) => (
-                          <SelectOption key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectOption>
-                        ))}
+                        {versionOptions.map((option) => {
+                          const isSelected = version === option.value;
+                          return (
+                            <SelectOption 
+                              key={option.value} 
+                              value={option.value}
+                              isSelected={isSelected}
+                            >
+                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <FlexItem>{option.label}</FlexItem>
+                                {isSelected && (
+                                  <FlexItem>
+                                    <CheckIcon style={{ color: 'var(--pf-v5-global--primary-color--100)' }} />
+                                  </FlexItem>
+                                )}
+                              </Flex>
+                            </SelectOption>
+                          );
+                        })}
                       </SelectList>
                     </Select>
                   </FormGroup>
