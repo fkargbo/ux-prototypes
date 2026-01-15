@@ -390,7 +390,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                             <Td>{item.channel || 'N/A'}</Td>
                             <Td>
                               <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <CheckCircleIcon style={{ color: 'var(--pf-v6-chart-color-green-300)', fontSize: '16px' }} />
+                                <CheckCircleIcon style={{ color: 'var(--pf-t-chart-color-green-300)', fontSize: '16px' }} />
                                 <span style={{ fontSize: '14px', color: 'var(--pf-v5-global--success-color--100)' }}>Ready to install</span>
                               </Flex>
                             </Td>
@@ -414,7 +414,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                             <Td>{item.channel || 'N/A'}</Td>
                             <Td>
                               <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <CheckCircleIcon style={{ color: 'var(--pf-v6-chart-color-green-300)', fontSize: '16px' }} />
+                                <CheckCircleIcon style={{ color: 'var(--pf-t-chart-color-green-300)', fontSize: '16px' }} />
                                 <span style={{ fontSize: '14px', color: 'var(--pf-v5-global--success-color--100)' }}>Ready to install</span>
                               </Flex>
                             </Td>
