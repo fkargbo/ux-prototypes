@@ -1163,7 +1163,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
               </CardBody>
             </Card>
           </StackItem>
-        )}
 
         {/* Console Experience Section */}
         <StackItem>
