@@ -2921,7 +2921,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
   return (
     <Card id="all-alerts-card">
-      <CardHeader>
+      <CardHeader style={{ gap: '0px' }}>
         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>
             <CardTitle>
@@ -3958,15 +3958,28 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     </FlexItem>
                     <FlexItem>
                       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                        <Button variant="control" icon={<MinusIcon />} onClick={() => setSilenceDuration(Math.max(1, silenceDuration - 1))} />
-                        <TextInputGroup style={{ width: '60px' }}>
-                          <TextInputGroupMain 
+                        <FlexItem>
+                          <Button variant="control" icon={<MinusIcon />} onClick={() => setSilenceDuration(Math.max(1, silenceDuration - 1))} />
+                        </FlexItem>
+                        <FlexItem>
+                          <input 
                             type="number" 
                             value={silenceDuration} 
-                            onChange={(_, val) => setSilenceDuration(parseInt(val) || 1)}
+                            onChange={(e) => setSilenceDuration(parseInt(e.target.value) || 1)}
+                            style={{ 
+                              width: '60px', 
+                              textAlign: 'center',
+                              padding: '6px 8px',
+                              border: '1px solid var(--pf-t--global--border--color--default)',
+                              borderRadius: '3px',
+                              fontSize: '14px'
+                            }}
+                            min={1}
                           />
-                        </TextInputGroup>
-                        <Button variant="control" icon={<PlusIcon />} onClick={() => setSilenceDuration(silenceDuration + 1)} />
+                        </FlexItem>
+                        <FlexItem>
+                          <Button variant="control" icon={<PlusIcon />} onClick={() => setSilenceDuration(silenceDuration + 1)} />
+                        </FlexItem>
                         <Dropdown
                           isOpen={isDurationUnitOpen}
                           onOpenChange={setIsDurationUnitOpen}
@@ -4296,28 +4309,41 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     </FlexItem>
                     <FlexItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <Button 
-                          variant="control" 
-                          onClick={() => setSilenceDuration(Math.max(1, silenceDuration - 1))}
-                          isDisabled={silenceDurationType !== 'for'}
-                        >
-                          -
-                        </Button>
-                        <TextInputGroup isDisabled={silenceDurationType !== 'for'}>
-                          <TextInputGroupMain 
+                        <FlexItem>
+                          <Button 
+                            variant="control" 
+                            onClick={() => setSilenceDuration(Math.max(1, silenceDuration - 1))}
+                            isDisabled={silenceDurationType !== 'for'}
+                          >
+                            -
+                          </Button>
+                        </FlexItem>
+                        <FlexItem>
+                          <input 
                             type="number" 
                             value={silenceDuration} 
-                            onChange={(_, value) => setSilenceDuration(Number(value) || 1)} 
-                            style={{ width: '60px', textAlign: 'center' }}
+                            onChange={(e) => setSilenceDuration(Number(e.target.value) || 1)} 
+                            disabled={silenceDurationType !== 'for'}
+                            style={{ 
+                              width: '60px', 
+                              textAlign: 'center',
+                              padding: '6px 8px',
+                              border: '1px solid var(--pf-t--global--border--color--default)',
+                              borderRadius: '3px',
+                              fontSize: '14px'
+                            }}
+                            min={1}
                           />
-                        </TextInputGroup>
-                        <Button 
-                          variant="control" 
-                          onClick={() => setSilenceDuration(silenceDuration + 1)}
-                          isDisabled={silenceDurationType !== 'for'}
-                        >
-                          +
-                        </Button>
+                        </FlexItem>
+                        <FlexItem>
+                          <Button 
+                            variant="control" 
+                            onClick={() => setSilenceDuration(silenceDuration + 1)}
+                            isDisabled={silenceDurationType !== 'for'}
+                          >
+                            +
+                          </Button>
+                        </FlexItem>
                         {silenceDurationType === 'for' ? (
                           <Select
                             isOpen={isSilenceDurationUnitOpen}
@@ -6386,7 +6412,7 @@ spec:
                         <Card>
                           <CardHeader style={{ padding: '24px 24px 0 24px' }}>
                             <Toolbar style={{ padding: 0, margin: 0, paddingBottom: '24px', minHeight: 'auto' }}>
-                              <ToolbarContent style={{ padding: 0, alignItems: 'center' }}>
+                              <ToolbarContent style={{ alignItems: 'center' }}>
                                 {/* Saved Filters Dropdown */}
                                 <ToolbarItem>
                                   <Dropdown
@@ -7061,27 +7087,13 @@ spec:
         backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
         borderBottom: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
         zIndex: 100,
+        paddingBottom: '0px',
       }}>
         {/* Page Header */}
         <div>
-          <div className="alerting-page-header" style={{ padding: '12px 24px 0 24px' }}>
-            {/* Compact Header Row - Breadcrumbs + Title + Actions */}
-            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
-              <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                  <FlexItem>
-                    <Breadcrumb>
-                      <BreadcrumbItem to="/">Home</BreadcrumbItem>
-                      <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-                      <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
-                    </Breadcrumb>
-                  </FlexItem>
-                </Flex>
-              </FlexItem>
-            </Flex>
-
-            {/* Title Row with Refresh */}
-            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
+          <div className="alerting-page-header" style={{ padding: '16px 24px 0' }}>
+            {/* Compact Header Row - Title + Refresh on same line */}
+            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '4px' }}>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                 <FlexItem>
                   <Icon size="md" status="danger">
@@ -7089,7 +7101,7 @@ spec:
                   </Icon>
                 </FlexItem>
                 <FlexItem>
-                  <Title headingLevel="h1" size="xl">Multi-cluster alerting</Title>
+                  <Title headingLevel="h1" size="lg">Multi-cluster alerting</Title>
                 </FlexItem>
               </Flex>
               {/* Refresh with interval dropdown - moved to header */}
@@ -7153,62 +7165,63 @@ spec:
               </Flex>
             </Flex>
 
-            {/* Main Page Tabs - Compact */}
-            <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
+            {/* Main Page Tabs */}
+            <Tabs 
+              activeKey={mainPageTab} 
+              onSelect={(_, key) => setMainPageTab(key)} 
+              aria-label="Main alerting tabs"
+            >
               <Tab eventKey="alerts" title={<TabTitleText><BellIcon /> Alerts</TabTitleText>} />
               <Tab eventKey="incidents" title={<TabTitleText><PortIcon /> Incidents</TabTitleText>} />
               <Tab eventKey="management" title={<TabTitleText><CogIcon /> Management</TabTitleText>} />
             </Tabs>
 
-            {/* V2: Alerts Sub-tabs - Only show when alerts tab is active */}
+            {/* V2: Alerts Sub-tabs - Subtab styling per PatternFly v6 guidelines */}
             {mainPageTab === 'alerts' && (
-              <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
-                <Tabs 
-                  activeKey={alertsSubTab} 
-                  onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
-                  aria-label="Alerts sub-tabs" 
-                  variant="secondary"
-                >
-                  <Tab eventKey="clusters-health" title={<TabTitleText>Clusters health</TabTitleText>} />
-                  <Tab eventKey="firing-alerts" title={<TabTitleText>Firing alerts</TabTitleText>} />
-                </Tabs>
-              </div>
+              <Tabs 
+                activeKey={alertsSubTab} 
+                onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
+                aria-label="Alerts sub-tabs" 
+                isSubtab
+              >
+                <Tab eventKey="clusters-health" title={<TabTitleText>Clusters health</TabTitleText>} />
+                <Tab eventKey="firing-alerts" title={<TabTitleText>Firing alerts</TabTitleText>} />
+              </Tabs>
             )}
 
-            {/* Management Sub-tabs - styled like Alerts sub-tabs */}
+            {/* Management Sub-tabs - Subtab styling per PatternFly v6 guidelines */}
             {mainPageTab === 'management' && (
-              <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
-                <Tabs 
-                  activeKey={managementSubTab} 
-                  onSelect={(_, key) => setManagementSubTab(key)}
-                  aria-label="Management sub-tabs" 
-                  variant="secondary"
-                >
-                  <Tab 
-                    eventKey="alert-rules" 
-                    title={
-                      <TabTitleText>
-                        Alert rules <Badge isRead style={{ marginLeft: '8px' }}>21</Badge>
-                      </TabTitleText>
-                    } 
-                  />
-                  <Tab 
-                    eventKey="silence-rules" 
-                    title={
-                      <TabTitleText>
-                        Silence rules <Badge isRead style={{ marginLeft: '8px' }}>2</Badge>
-                      </TabTitleText>
-                    } 
-                  />
-                </Tabs>
-              </div>
+              <Tabs 
+                activeKey={managementSubTab} 
+                onSelect={(_, key) => setManagementSubTab(key)}
+                aria-label="Management sub-tabs" 
+                isSubtab
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                <Tab 
+                  eventKey="alert-rules" 
+                  title={
+                    <TabTitleText>
+                      Alert rules <Badge isRead style={{ marginLeft: '8px' }}>21</Badge>
+                    </TabTitleText>
+                  } 
+                />
+                <Tab 
+                  eventKey="silence-rules" 
+                  title={
+                    <TabTitleText>
+                      Silence rules <Badge isRead style={{ marginLeft: '8px' }}>2</Badge>
+                    </TabTitleText>
+                  } 
+                />
+              </Tabs>
             )}
           </div>
         </div>
 
         {/* Toolbar section - Always visible (sticky) */}
         {mainPageTab === 'alerts' && (
-          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
+          <div style={{ padding: '8px 24px 0', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
             <Toolbar className="pf-m-align-items-center">
               <ToolbarContent className="pf-m-align-items-center">
                 {/* Saved Filters Dropdown - First */}
@@ -7301,7 +7314,7 @@ spec:
             gap={{ default: 'gapSm' }} 
             alignItems={{ default: 'alignItemsCenter' }} 
             style={{ 
-              marginTop: '8px', 
+              marginTop: '16px', 
               marginBottom: '16px',
               padding: showFilterAnimation ? '8px 12px' : undefined,
               borderRadius: showFilterAnimation ? '6px' : undefined,
@@ -7534,60 +7547,68 @@ spec:
         )}
 
         {/* Main Content Area - Scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0px 8px' }}>
             <Stack hasGutter>
-              {/* Stats Cards */}
-              <StackItem>
-                <Grid hasGutter>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Clusters in Fleet"
-                      value={filteredClusters.length}
-                      icon={<Icon><CubesIcon /></Icon>}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Firing Alerts"
-                      value={totalAlerts}
-                      icon={<Icon><BellIcon /></Icon>}
-                      trend={{ value: 12, isUp: true }}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Critical"
-                      value={criticalAlerts}
-                      icon={<Icon status="danger"><ExclamationCircleIcon /></Icon>}
-                      color="danger"
-                      trend={{ value: 5, isUp: true }}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Warning"
-                      value={warningAlerts}
-                      icon={<Icon status="warning"><ExclamationTriangleIcon /></Icon>}
-                      color="warning"
-                      trend={{ value: 8, isUp: false }}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Info"
-                      value={filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)}
-                      icon={<Icon status="info"><InfoCircleIcon /></Icon>}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Healthy Clusters"
-                      value={healthyClusters}
-                      icon={<Icon status="success"><CheckCircleIcon /></Icon>}
-                      color="success"
-                    />
-                  </GridItem>
-                </Grid>
+              {/* Horizontal Metric Bar */}
+              <StackItem style={{ marginTop: '16px', marginBottom: '16px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '24px',
+                  padding: '12px 16px',
+                  backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--pf-t--global--border--color--default)',
+                  flexWrap: 'wrap'
+                }}>
+                  <Tooltip content={`Clusters: ${filteredClusters.length} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon><CubesIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Clusters</span>
+                      <strong style={{ fontSize: '16px' }}>{filteredClusters.length}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon><BellIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Firing</span>
+                      <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Critical: ${criticalAlerts} - ${Math.floor(Math.random() * 15) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
+                      <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Warning: ${warningAlerts} - ${Math.floor(Math.random() * 12) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
+                      <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Info: ${filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)} - ${Math.floor(Math.random() * 8) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon status="info"><InfoCircleIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Info</span>
+                      <strong style={{ fontSize: '16px' }}>{filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Healthy: ${healthyClusters} - ${Math.floor(Math.random() * 5) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon status="success"><CheckCircleIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Healthy</span>
+                      <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--success--default)' }}>{healthyClusters}</strong>
+                    </div>
+                  </Tooltip>
+                </div>
               </StackItem>
 
               {/* Cluster Overview Card */}
@@ -8185,11 +8206,27 @@ spec:
                 clusters={filteredClusters}
                 onAlertRuleClick={(alertName) => {
                   setMainAlertNameFilter(alertName);
-                  setAlertsSubTab('firing-alerts');
+                  setAlertsSubTabState('firing-alerts');
+                  // Update URL with tab and alert name params
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.set('tab', 'firing-alerts');
+                  newParams.set('alertName', alertName);
+                  navigate(`?${newParams.toString()}`, { replace: false });
+                  // Trigger animation to highlight the filtered view
+                  setShowFilterAnimation(true);
+                  setTimeout(() => setShowFilterAnimation(false), 1500);
                 }}
                 onComponentClick={(componentName) => {
                   setMainComponentFilter(componentName);
-                  setAlertsSubTab('firing-alerts');
+                  setAlertsSubTabState('firing-alerts');
+                  // Update URL with tab and component params
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.set('tab', 'firing-alerts');
+                  newParams.set('component', componentName);
+                  navigate(`?${newParams.toString()}`, { replace: false });
+                  // Trigger animation to highlight the filtered view
+                  setShowFilterAnimation(true);
+                  setTimeout(() => setShowFilterAnimation(false), 1500);
                 }}
               />
 
@@ -8296,43 +8333,53 @@ spec:
           )}
 
           {/* Main Content Area - Firing Alerts */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-            <Stack hasGutter>
-              {/* Stats Summary Row - Hidden when viewing single cluster */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 8px' }}>
+            <Stack hasGutter style={{ gap: '16px' }}>
+              {/* Horizontal Metric Bar - Hidden when viewing single cluster */}
               {firingAlertsCardView === 'all-clusters' && (
-                <StackItem>
-                  <Grid hasGutter>
-                    <GridItem md={3}>
-                      <StatsCard
-                        title="Total Firing Alerts"
-                        value={totalAlerts}
-                        icon={<Icon><BellIcon /></Icon>}
-                      />
-                    </GridItem>
-                    <GridItem md={3}>
-                      <StatsCard
-                        title="Critical"
-                        value={criticalAlerts}
-                        icon={<Icon status="danger"><ExclamationCircleIcon /></Icon>}
-                        color="danger"
-                      />
-                    </GridItem>
-                    <GridItem md={3}>
-                      <StatsCard
-                        title="Warning"
-                        value={warningAlerts}
-                        icon={<Icon status="warning"><ExclamationTriangleIcon /></Icon>}
-                        color="warning"
-                      />
-                    </GridItem>
-                    <GridItem md={3}>
-                      <StatsCard
-                        title="Affected Clusters"
-                        value={filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length}
-                        icon={<Icon><ClusterIcon /></Icon>}
-                      />
-                    </GridItem>
-                  </Grid>
+                <StackItem style={{ marginTop: '16px', marginBottom: '16px' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '24px',
+                    padding: '12px 16px',
+                    backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+                    borderRadius: '6px',
+                    border: '1px solid var(--pf-t--global--border--color--default)',
+                    flexWrap: 'wrap'
+                  }}>
+                    <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                        <Icon><BellIcon /></Icon>
+                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Total Firing</span>
+                        <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
+                      </div>
+                    </Tooltip>
+                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                    <Tooltip content={`Critical: ${criticalAlerts} - ${Math.floor(Math.random() * 15) + 1}% more from last day`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                        <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
+                        <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
+                      </div>
+                    </Tooltip>
+                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                    <Tooltip content={`Warning: ${warningAlerts} - ${Math.floor(Math.random() * 12) + 1}% more from last day`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                        <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
+                        <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
+                      </div>
+                    </Tooltip>
+                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                    <Tooltip content={`Affected Clusters: ${filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                        <Icon><ClusterIcon /></Icon>
+                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Affected Clusters</span>
+                        <strong style={{ fontSize: '16px' }}>{filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length}</strong>
+                      </div>
+                    </Tooltip>
+                  </div>
                 </StackItem>
               )}
 
@@ -8456,7 +8503,7 @@ spec:
 
       {/* Incidents Tab Content */}
       {mainPageTab === 'incidents' && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0px 8px' }}>
           <Card>
             <CardBody>
               <EmptyState 
@@ -8480,12 +8527,12 @@ spec:
       )}
 
       {/* Management Tab Content */}
-      {mainPageTab === 'management' && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+      {mainPageTab === 'management' && navigationView === 'fleet-overview' && (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0px 8px' }}>
           <Stack hasGutter>
             <StackItem>
               {managementSubTab === 'alert-rules' && (
-                <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ display: 'flex', gap: '16px', paddingTop: '16px' }}>
                   {/* Filter Panel - Matching Alerts filter panel style */}
                   {isAlertRulesFilterPanelOpen && (
                     <div style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0 }}>
