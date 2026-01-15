@@ -177,6 +177,13 @@ export const Step1InstallationDetails: React.FC<Step1InstallationDetailsProps> =
 
   const versionOptions = [
     { value: '1.3.1', label: '1.3.1' },
+    { value: '1.3.0', label: '1.3.0' },
+    { value: '1.2.2', label: '1.2.2' },
+    { value: '1.2.1', label: '1.2.1' },
+    { value: '1.2.0', label: '1.2.0' },
+    { value: '1.1.1', label: '1.1.1' },
+    { value: '1.1.0', label: '1.1.0' },
+    { value: '1.0.0', label: '1.0.0' },
   ];
 
   const availableProjects = [
