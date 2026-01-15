@@ -40,6 +40,7 @@ export interface Capability {
   description: string;
   required?: boolean;
   dependencies?: string[];
+  requiresHighPerformanceStorage?: boolean;
   nestedOptions?: Array<{
     id: string;
     name: string;
@@ -204,6 +205,7 @@ const capabilities: Capability[] = [
     name: 'Network Traffic Analysis (NetObserve)',
     description: 'Visualize pod-to-pod traffic and debug connection issues.',
     dependencies: ['loki', 'metrics-alerting'],
+    requiresHighPerformanceStorage: true,
   },
   {
     id: 'korrel8r',
@@ -980,6 +982,14 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                             return goal?.name || goalId;
                           });
                           
+                          // Check for high-demand storage requirements
+                          const capability = capabilities.find(c => c.id === operator.id);
+                          const hasLVM = storage.find(s => s.id === 'lvm')?.isSelected;
+                          const hasODF = storage.find(s => s.id === 'odf')?.isSelected;
+                          const showHighDemandWarning = operator.id === 'network-traffic' && 
+                                                         operator.isSelected && 
+                                                         capability?.requiresHighPerformanceStorage;
+                          
                           return (
                             <StackItem key={operator.id}>
                               <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
@@ -1091,6 +1101,29 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                   style={{ marginTop: '8px', marginLeft: '24px' }}
                                 >
                                   Unchecking this operator may impact the functionality of: {goalNames.join(', ')}. Consider keeping it enabled.
+                                </Alert>
+                              )}
+                              
+                              {/* High-Demand Storage Warning for Network Traffic Analysis */}
+                              {showHighDemandWarning && hasLVM && (
+                                <Alert
+                                  variant={AlertVariant.warning}
+                                  isInline
+                                  title="High storage demand detected"
+                                  style={{ marginTop: '8px', marginLeft: '24px' }}
+                                >
+                                  Network Traffic Analysis generates high volumes of data. LVM storage may experience performance issues or rapid disk exhaustion. OpenShift Data Foundation (ODF) is recommended for this capability.
+                                </Alert>
+                              )}
+                              
+                              {showHighDemandWarning && hasODF && (
+                                <Alert
+                                  variant={AlertVariant.info}
+                                  isInline
+                                  title="Storage optimization"
+                                  style={{ marginTop: '8px', marginLeft: '24px' }}
+                                >
+                                  You have selected ODF, which is optimized for the high-throughput requirements of Network Traffic Analysis.
                                 </Alert>
                               )}
                             </StackItem>
