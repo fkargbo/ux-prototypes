@@ -957,7 +957,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         {/* Operators and Storage Section */}
         <StackItem>
           <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
-            Operators and storage
+            Observability Services
           </Title>
           <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
             {activeGoals.length > 0 
@@ -971,7 +971,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                   {/* Operators */}
                   <StackItem>
                     <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
-                      Operators
+                      Capabilities (operators)
                     </Title>
                     <Stack hasGutter>
                       {operators.map((operator) => {
