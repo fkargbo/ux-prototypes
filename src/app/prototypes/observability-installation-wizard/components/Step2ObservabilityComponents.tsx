@@ -18,7 +18,7 @@ import {
   Flex,
   FlexItem,
   Switch,
-  Badge,
+  Label,
   HelperText,
   HelperTextItem,
   Spinner,
@@ -1242,9 +1242,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                                       {goalNames.map((goalName, index) => (
                                         <FlexItem key={index}>
-                                          <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                          <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontWeight: 'normal', fontSize: '14px', color: '#92c5f9' }}>
                                             {goalName}
-                                          </Badge>
+                                          </Label>
                                         </FlexItem>
                                       ))}
                                     </Flex>
@@ -1265,9 +1265,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                   ) : (
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                       <FlexItem>
-                                        <Badge isRead style={{ fontSize: '12px' }}>
+                                        <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontSize: '12px', color: '#92c5f9' }}>
                                           v{operator.version}
-                                        </Badge>
+                                        </Label>
                                       </FlexItem>
                                       <FlexItem>
                                         <HelperText>
@@ -1415,9 +1415,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                                       {goalNames.map((goalName, index) => (
                                         <FlexItem key={index}>
-                                          <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                          <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontWeight: 'normal', fontSize: '14px', color: '#92c5f9' }}>
                                             {goalName}
-                                          </Badge>
+                                          </Label>
                                         </FlexItem>
                                       ))}
                                     </Flex>
@@ -1438,9 +1438,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                   ) : (
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                       <FlexItem>
-                                        <Badge isRead style={{ fontSize: '12px' }}>
+                                        <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontSize: '12px', color: '#92c5f9' }}>
                                           v{storageItem.version}
-                                        </Badge>
+                                        </Label>
                                       </FlexItem>
                                       <FlexItem>
                                         <HelperText>
@@ -1579,9 +1579,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                             <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                               {goalNames.map((goalName, index) => (
                                 <FlexItem key={index}>
-                                  <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                  <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontWeight: 'normal', fontSize: '14px', color: '#92c5f9' }}>
                                     {goalName}
-                                  </Badge>
+                                  </Label>
                                 </FlexItem>
                               ))}
                             </Flex>
