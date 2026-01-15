@@ -305,6 +305,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   
   // Track manually unchecked items that were required by goals
   const [uncheckedRequiredItems, setUncheckedRequiredItems] = useState<Set<string>>(new Set());
+  
+  // Track goals that were overridden due to manual changes (for visual feedback)
+  const [overriddenGoals, setOverriddenGoals] = useState<Set<string>>(new Set());
 
   // Initialize operators and storage items from capabilities
   const initialOperators: OperatorStorageItem[] = useMemo(() => {
@@ -611,16 +614,76 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     }
   }, [selectedPersona, advancedMode, onDataChange]);
 
-  // Handle goal selection (checkboxes)
-  const handleGoalChange = (goalId: string, checked: boolean) => {
-    let newGoals: string[];
-    if (checked) {
-      newGoals = [...activeGoals, goalId];
-    } else {
-      newGoals = activeGoals.filter(id => id !== goalId);
+  // Check if current selections match a strategy's requirements
+  const checkIfSelectionMatchesStrategy = useCallback((goalId: GoalID, currentOperators: OperatorStorageItem[], currentStorage: OperatorStorageItem[]): boolean => {
+    const deps = NEED_DEPENDENCIES[goalId];
+    if (!deps) return false;
+
+    // Check if all required operators are selected
+    const requiredOperatorsSelected = deps.operators.every(opId => {
+      const operator = currentOperators.find(op => op.id === opId);
+      return operator?.isSelected === true;
+    });
+
+    // Check if required storage is selected
+    const requiredStorageSelected = deps.storage.every(storageId => {
+      const storageItem = currentStorage.find(s => s.id === storageId);
+      return storageItem?.isSelected === true;
+    });
+
+    // Check if no extra operators are selected that aren't in the strategy
+    // (This is optional - you might want to allow extra operators)
+    // For now, we'll just check that required items are selected
+
+    return requiredOperatorsSelected && requiredStorageSelected;
+  }, []);
+
+  // Check if any active goal no longer matches current selections
+  const checkAndRemoveMismatchedGoals = useCallback((currentOperators: OperatorStorageItem[], currentStorage: OperatorStorageItem[]) => {
+    const mismatchedGoals: string[] = [];
+    
+    activeGoals.forEach(goalId => {
+      const matches = checkIfSelectionMatchesStrategy(goalId as GoalID, currentOperators, currentStorage);
+      if (!matches) {
+        mismatchedGoals.push(goalId);
+      }
+    });
+
+    if (mismatchedGoals.length > 0) {
+      const newGoals = activeGoals.filter(id => !mismatchedGoals.includes(id));
+      setActiveGoals(newGoals);
+      onDataChange({ activeGoals: newGoals });
+      
+      // Track overridden goals for visual feedback
+      setOverriddenGoals(prev => {
+        const newSet = new Set(prev);
+        mismatchedGoals.forEach(goalId => newSet.add(goalId));
+        return newSet;
+      });
     }
-    setActiveGoals(newGoals);
-    onDataChange({ activeGoals: newGoals });
+  }, [activeGoals, checkIfSelectionMatchesStrategy, onDataChange]);
+
+  // Handle goal selection (checkboxes) - idempotent: always resets to factory defaults
+  const handleGoalChange = (goalId: string, checked: boolean) => {
+    if (checked) {
+      // Re-apply strategy: reset to factory defaults for this goal
+      // This will trigger the useEffect that calls updateDependencies
+      const newGoals = [...activeGoals, goalId];
+      setActiveGoals(newGoals);
+      onDataChange({ activeGoals: newGoals });
+      
+      // Remove from overridden goals when re-applying
+      setOverriddenGoals(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(goalId);
+        return newSet;
+      });
+    } else {
+      // Remove goal
+      const newGoals = activeGoals.filter(id => id !== goalId);
+      setActiveGoals(newGoals);
+      onDataChange({ activeGoals: newGoals });
+    }
   };
 
   // Handle operator/storage selection with warning for required items
@@ -658,6 +721,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       .map(op => op.id);
     setSelectedCapabilities(newCapabilities);
     onDataChange({ selectedCapabilities: newCapabilities });
+
+    // Check if manual override occurred - if selections no longer match active strategies, remove them
+    checkAndRemoveMismatchedGoals(newOperators, storage);
   };
 
   const handleStorageChange = (storageId: string, checked: boolean) => {
@@ -702,6 +768,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         .filter(s => s.isSelected)
         .map(s => s.id);
       onDataChange({ selectedStorage: newSelectedStorage });
+
+      // Check if manual override occurred - if selections no longer match active strategies, remove them
+      checkAndRemoveMismatchedGoals(operators, newStorage);
     } else {
       // Unchecking - check if this storage is required by any active goal
       if (storageItem.appliedBy.length > 0) {
@@ -724,6 +793,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         .filter(s => s.isSelected)
         .map(s => s.id);
       onDataChange({ selectedStorage: newSelectedStorage });
+
+      // Check if manual override occurred - if selections no longer match active strategies, remove them
+      checkAndRemoveMismatchedGoals(operators, newStorage);
     }
   };
 
@@ -932,6 +1004,13 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                           {goal.description}
                         </Content>
                       </FlexItem>
+                      {overriddenGoals.has(goal.id) && !activeGoals.includes(goal.id) && (
+                        <FlexItem>
+                          <Content style={{ fontSize: '12px', color: '#c9190b', fontStyle: 'italic', marginTop: '4px' }}>
+                            Selection modified: Configuration is now custom.
+                          </Content>
+                        </FlexItem>
+                      )}
                     </Flex>
                   </CardBody>
                 </Card>
