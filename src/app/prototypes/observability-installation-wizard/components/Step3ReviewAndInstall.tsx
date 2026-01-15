@@ -116,20 +116,12 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
       objectStorage = Math.round(objectStorage * 1.4 * 10) / 10; // 1.2 * 1.4 = 1.68 TB, rounded to 1 decimal
     }
 
-    // Calculate total footprint (CPU + Memory + Storage)
-    // CPU footprint: 1 core = 1 unit, Memory footprint: 1 GB = 0.1 units, Storage footprint: 1 GB = 0.01 units
-    const cpuFootprint = cpu;
-    const memoryFootprint = memory * 0.1;
-    const storageFootprint = (localCache + (hasThanos ? objectStorage * 1000 : 0)) * 0.01;
-    const totalFootprint = Math.round((cpuFootprint + memoryFootprint + storageFootprint) * 10) / 10;
-
     return {
       cpu,
       memory,
       localCache,
       objectStorage,
       hasThanos,
-      totalFootprint,
     };
   }, [data.selectedCapabilities]);
 
@@ -531,23 +523,6 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                       </>
                     )}
                   </List>
-                </StackItem>
-
-                {/* Calculated Total Footprint */}
-                <StackItem>
-                  <Divider style={{ margin: '16px 0' }} />
-                  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>
-                      <Content style={{ fontWeight: '600', fontSize: '14px' }}>
-                        Calculated Total Footprint:
-                      </Content>
-                    </FlexItem>
-                    <FlexItem>
-                      <Badge isRead style={{ fontSize: '14px' }}>
-                        {estimatedResources.totalFootprint} units
-                      </Badge>
-                    </FlexItem>
-                  </Flex>
                 </StackItem>
               </Stack>
             </CardBody>
