@@ -1137,7 +1137,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                   {/* Storage */}
                   <StackItem>
                     <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
-                      Storage
+                      Storage (operators)
                     </Title>
                     <Stack hasGutter>
                       {storage.map((storageItem) => {
