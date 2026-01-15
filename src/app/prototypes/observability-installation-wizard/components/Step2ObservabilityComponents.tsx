@@ -21,7 +21,7 @@ import {
   Badge,
   HelperText,
   HelperTextItem,
-  Skeleton,
+  Spinner,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -1261,7 +1261,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                               {operator.isSelected && operator.version && operator.channel && (
                                 <div style={{ marginLeft: '24px', marginTop: '8px' }}>
                                   {operator.isUpdating ? (
-                                    <Skeleton width="200px" height="20px" />
+                                    <Spinner size="xs" style={{ width: '10px', height: '10px' }} />
                                   ) : (
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                       <FlexItem>
@@ -1434,7 +1434,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                               {storageItem.isSelected && storageItem.version && storageItem.channel && (
                                 <div style={{ marginLeft: '24px', marginTop: '8px' }}>
                                   {storageItem.isUpdating ? (
-                                    <Skeleton width="200px" height="20px" />
+                                    <Spinner size="xs" style={{ width: '10px', height: '10px' }} />
                                   ) : (
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                       <FlexItem>
