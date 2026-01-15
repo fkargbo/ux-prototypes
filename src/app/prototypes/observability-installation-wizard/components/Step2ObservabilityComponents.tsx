@@ -1262,7 +1262,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                               {operator.isSelected && operator.version && operator.channel && (
                                 <div style={{ marginLeft: '24px', marginTop: '8px' }}>
                                   {operator.isUpdating ? (
-                                    <Spinner size="xs" style={{ width: '10px', height: '10px' }} />
+                                    <Spinner size="sm" style={{ width: '10px', height: '10px' }} />
                                   ) : (
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                       <FlexItem>
@@ -1272,7 +1272,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                       </FlexItem>
                                       <FlexItem>
                                         <HelperText>
-                                          <HelperTextItem variant="muted">
+                                          <HelperTextItem variant="default" style={{ color: 'var(--pf-v5-global--Color--200)' }}>
                                             Update channel: {operator.channel}
                                           </HelperTextItem>
                                         </HelperText>
@@ -1435,7 +1435,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                               {storageItem.isSelected && storageItem.version && storageItem.channel && (
                                 <div style={{ marginLeft: '24px', marginTop: '8px' }}>
                                   {storageItem.isUpdating ? (
-                                    <Spinner size="xs" style={{ width: '10px', height: '10px' }} />
+                                    <Spinner size="sm" style={{ width: '10px', height: '10px' }} />
                                   ) : (
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                                       <FlexItem>
@@ -1445,7 +1445,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                       </FlexItem>
                                       <FlexItem>
                                         <HelperText>
-                                          <HelperTextItem variant="muted">
+                                          <HelperTextItem variant="default" style={{ color: 'var(--pf-v5-global--Color--200)' }}>
                                             Update channel: {storageItem.channel}
                                           </HelperTextItem>
                                         </HelperText>

@@ -16,7 +16,7 @@ import {
   Alert,
   AlertVariant,
 } from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td, width } from '@patternfly/react-table';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { WizardData } from './Step2ObservabilityComponents';
 
