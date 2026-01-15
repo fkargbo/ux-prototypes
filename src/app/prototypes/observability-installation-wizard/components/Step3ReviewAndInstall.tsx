@@ -16,7 +16,7 @@ import {
   Alert,
   AlertVariant,
 } from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { Table, Thead, Tbody, Tr, Th, Td, width } from '@patternfly/react-table';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { WizardData } from './Step2ObservabilityComponents';
 
@@ -368,10 +368,10 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                 <Table variant="compact" aria-label="BOM table">
                   <Thead>
                     <Tr>
-                      <Th>Service</Th>
-                      <Th>Version</Th>
-                      <Th>Update Channel</Th>
-                      <Th>Status</Th>
+                      <Th width={25} style={{ fontSize: '14px' }}>Service</Th>
+                      <Th width={25} style={{ fontSize: '14px' }}>Version</Th>
+                      <Th width={25} style={{ fontSize: '14px' }}>Update Channel</Th>
+                      <Th width={25} style={{ fontSize: '14px' }}>Status</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -390,7 +390,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                             <Td>{item.channel || 'N/A'}</Td>
                             <Td>
                               <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <CheckCircleIcon style={{ color: 'var(--pf-t-chart-color-green-300)', fontSize: '16px' }} />
+                                <CheckCircleIcon style={{ color: '#3d7317', fontSize: '16px' }} />
                                 <span style={{ fontSize: '14px', color: 'var(--pf-v5-global--success-color--100)' }}>Ready to install</span>
                               </Flex>
                             </Td>
@@ -404,7 +404,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                       <>
                         <Tr>
                           <Th colSpan={4} style={{ backgroundColor: 'var(--pf-v5-global--BackgroundColor--200)', fontWeight: '600', fontSize: '14px', padding: '12px 8px' }}>
-                            Infrastructure Storage
+                            Storage Infrastructure
                           </Th>
                         </Tr>
                         {storageBOM.map((item) => (
@@ -414,7 +414,7 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
                             <Td>{item.channel || 'N/A'}</Td>
                             <Td>
                               <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <CheckCircleIcon style={{ color: 'var(--pf-t-chart-color-green-300)', fontSize: '16px' }} />
+                                <CheckCircleIcon style={{ color: '#3d7317', fontSize: '16px' }} />
                                 <span style={{ fontSize: '14px', color: 'var(--pf-v5-global--success-color--100)' }}>Ready to install</span>
                               </Flex>
                             </Td>
