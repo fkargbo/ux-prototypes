@@ -1278,12 +1278,14 @@ interface ClusterComponentsHealthProps {
   cluster: ClusterData;
   onComponentClick: (component: AlertComponent) => void;
   onBackToFleet: () => void;
+  groupFilter?: AlertGroup[];
 }
 
 const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
   cluster,
   onComponentClick,
   onBackToFleet,
+  groupFilter = [],
 }) => {
   // Define component metadata with icons
   // Components are organized by Impact Group:
@@ -1306,7 +1308,12 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
     const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
     const components: AlertComponent[] = ['kube-apiserver', 'etcd', 'Scheduler', 'Controller', 'Storage', 'Network', 'Workload', 'Pod', 'Quota'];
     
-    return components.map(component => {
+    // Filter components by impact group if groupFilter is active
+    const filteredComponents = groupFilter.length > 0 
+      ? components.filter(component => groupFilter.includes(componentMeta[component].impactGroup))
+      : components;
+    
+    return filteredComponents.map(component => {
       const componentAlerts = firingAlerts.filter(a => a.component === component);
       const criticalCount = componentAlerts.filter(a => a.severity === 'Critical').length;
       const warningCount = componentAlerts.filter(a => a.severity === 'Warning').length;
@@ -1337,7 +1344,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
       const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
       return statusOrder[a.healthStatus] - statusOrder[b.healthStatus];
     });
-  }, [cluster.alerts]);
+  }, [cluster.alerts, groupFilter]);
 
   // Calculate cluster health status based on highest severity alert
   const clusterHealthStatus = React.useMemo((): 'critical' | 'warning' | 'info' | 'healthy' => {
@@ -2935,15 +2942,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 <StackItem>
                   <Toolbar>
                     <ToolbarContent>
-                      <ToolbarItem>
-                        <SearchInput
-                          placeholder="Search alerts..."
-                          value={searchValue}
-                          onChange={(_, value) => setSearchValue(value)}
-                          onClear={() => setSearchValue('')}
-                          style={{ width: '250px' }}
-                        />
-                      </ToolbarItem>
                       <ToolbarItem>
                         <Dropdown
                           isOpen={isGroupByOpen}
@@ -5311,10 +5309,14 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
 
   // View and grouping
   const [viewMode, setViewMode] = React.useState<ViewMode>('treemap');
-  const [groupBy, setGroupBy] = React.useState<GroupByOption>('none');
+  const [groupBy, setGroupBy] = React.useState<GroupByOption>('component');
   const [sortBy, setSortBy] = React.useState<SortByOption>('severity');
   const [importanceSizing, setImportanceSizing] = React.useState<ImportanceSizing>('nodeCount');
   const [userRole] = React.useState<UserRole>('admin');
+  
+  // Table sorting state
+  const [activeSortIndex, setActiveSortIndex] = React.useState<number | null>(null);
+  const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const [isGroupByOpen, setIsGroupByOpen] = React.useState(false);
   // Treemap legend filters
   const [treemapLegendFilters, setTreemapLegendFilters] = React.useState<('Critical' | 'Warning' | 'Info' | 'Healthy')[]>([]);
@@ -5562,30 +5564,70 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     });
   }, [regionFilter, clusterFilter, namespaceFilter, searchValue, severityFilter]);
 
-  // Sort clusters
+  // Sort clusters - supports both legacy sortBy and table column sorting
   const sortedClusters = React.useMemo(() => {
     const sorted = [...filteredClusters];
-    switch (sortBy) {
-      case 'severity':
-        sorted.sort((a, b) => {
-          const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
-          const statusDiff = statusOrder[getClusterAlertStatus(a)] - statusOrder[getClusterAlertStatus(b)];
-          if (statusDiff !== 0) return statusDiff;
-          const aFiring = a.alerts.filter(al => al.status === 'firing').length;
-          const bFiring = b.alerts.filter(al => al.status === 'firing').length;
-          if (aFiring !== bFiring) return bFiring - aFiring;
-          return a.name.localeCompare(b.name);
-        });
-        break;
-      case 'alertCount':
-        sorted.sort((a, b) => b.alerts.filter(al => al.status === 'firing').length - a.alerts.filter(al => al.status === 'firing').length);
-        break;
-      case 'clusterName':
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
-        break;
+    
+    // If table column sorting is active, use that
+    if (activeSortIndex !== null) {
+      sorted.sort((a, b) => {
+        let comparison = 0;
+        const aFiring = a.alerts.filter(al => al.status === 'firing');
+        const bFiring = b.alerts.filter(al => al.status === 'firing');
+        const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
+        
+        switch (activeSortIndex) {
+          case 0: // Cluster Status
+            comparison = statusOrder[getClusterAlertStatus(a)] - statusOrder[getClusterAlertStatus(b)];
+            break;
+          case 1: // Cluster Name
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case 2: // Region
+            comparison = a.region.localeCompare(b.region);
+            break;
+          case 3: // Total Alerts
+            comparison = aFiring.length - bFiring.length;
+            break;
+          case 4: // Severity Breakdown (sort by critical count first)
+            const aCritical = aFiring.filter(al => al.severity === 'Critical').length;
+            const bCritical = bFiring.filter(al => al.severity === 'Critical').length;
+            if (aCritical !== bCritical) {
+              comparison = aCritical - bCritical;
+            } else {
+              const aWarning = aFiring.filter(al => al.severity === 'Warning').length;
+              const bWarning = bFiring.filter(al => al.severity === 'Warning').length;
+              comparison = aWarning - bWarning;
+            }
+            break;
+        }
+        
+        return activeSortDirection === 'asc' ? comparison : -comparison;
+      });
+    } else {
+      // Legacy sortBy behavior
+      switch (sortBy) {
+        case 'severity':
+          sorted.sort((a, b) => {
+            const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
+            const statusDiff = statusOrder[getClusterAlertStatus(a)] - statusOrder[getClusterAlertStatus(b)];
+            if (statusDiff !== 0) return statusDiff;
+            const aFiring = a.alerts.filter(al => al.status === 'firing').length;
+            const bFiring = b.alerts.filter(al => al.status === 'firing').length;
+            if (aFiring !== bFiring) return bFiring - aFiring;
+            return a.name.localeCompare(b.name);
+          });
+          break;
+        case 'alertCount':
+          sorted.sort((a, b) => b.alerts.filter(al => al.status === 'firing').length - a.alerts.filter(al => al.status === 'firing').length);
+          break;
+        case 'clusterName':
+          sorted.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+      }
     }
     return sorted;
-  }, [filteredClusters, sortBy]);
+  }, [filteredClusters, sortBy, activeSortIndex, activeSortDirection]);
 
   // Metrics
   const totalAlerts = filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.status === 'firing').length, 0);
@@ -7293,18 +7335,16 @@ spec:
                 Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{regionFilter.length + clusterFilter.length + severityFilter.length + groupFilter.length + componentFilter.length}</Badge>}
               </Button>
             </ToolbarItem>
-            {/* Search Input - Third - Hidden on Firing Alerts tab as it's in the card */}
-            {alertsSubTab !== 'firing-alerts' && (
-              <ToolbarItem>
-                <SearchInput
-                  placeholder="Search clusters..."
-                  value={searchValue}
-                  onChange={(_, value) => setSearchValue(value)}
-                  onClear={() => setSearchValue('')}
-                  style={{ width: '300px' }}
-                />
-              </ToolbarItem>
-            )}
+            {/* Search Input - Third - Changes scope based on tab */}
+            <ToolbarItem>
+              <SearchInput
+                placeholder={alertsSubTab === 'firing-alerts' ? 'Search alerts...' : 'Search clusters...'}
+                value={searchValue}
+                onChange={(_, value) => setSearchValue(value)}
+                onClear={() => setSearchValue('')}
+                style={{ width: '300px' }}
+              />
+            </ToolbarItem>
           </ToolbarContent>
         </Toolbar>
 
@@ -7547,8 +7587,8 @@ spec:
         )}
 
         {/* Main Content Area - Scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0px 8px' }}>
-            <Stack hasGutter>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 8px' }}>
+            <Stack hasGutter style={{ gap: '16px' }}>
               {/* Horizontal Metric Bar */}
               <StackItem style={{ marginTop: '16px', marginBottom: '16px' }}>
                 <div style={{ 
@@ -8082,11 +8122,66 @@ spec:
                       <Table aria-label="Clusters table">
                         <Thead>
                           <Tr>
-                            <Th>Cluster Status</Th>
-                            <Th>Cluster</Th>
-                            <Th>Region</Th>
-                            <Th>Total Alerts</Th>
-                            <Th>Severity Breakdown</Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 0
+                              }}
+                            >
+                              Cluster Status
+                            </Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 1
+                              }}
+                            >
+                              Cluster
+                            </Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 2
+                              }}
+                            >
+                              Region
+                            </Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 3
+                              }}
+                            >
+                              Total Alerts
+                            </Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 4
+                              }}
+                            >
+                              Severity Breakdown
+                            </Th>
                           </Tr>
                         </Thead>
                         <Tbody>
@@ -8425,6 +8520,7 @@ spec:
           cluster={selectedCluster}
           onComponentClick={handleComponentClick}
           onBackToFleet={handleBackToFleet}
+          groupFilter={groupFilter}
         />
       )}
 
