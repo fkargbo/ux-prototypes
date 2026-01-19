@@ -1790,7 +1790,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const [componentSearchValue, setComponentSearchValue] = React.useState('');
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
-    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0;
+    labelFilter.length > 0 || severityFilter.length > 0 || (groupFilter.length > 0 && groupFilter.length < 2) || componentFilter.length > 0;
 
   const clearAllFilters = () => {
     setRegionFilter([]);
@@ -1798,7 +1798,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     setNamespaceFilter([]);
     setLabelFilter([]);
     setSeverityFilter([]);
-    setGroupFilter([]);
+    setGroupFilter(['Cluster', 'Namespace']); // Reset to default with both groups selected
     setComponentFilter([]);
   };
 
@@ -5831,7 +5831,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setNamespaceFilter([]);
     setLabelFilter([]);
     setSeverityFilter([]);
-    setGroupFilter([]);
+    setGroupFilter(['Cluster', 'Namespace']); // Reset to default with both groups selected
     setComponentFilter([]);
     setSearchValue('');
     // Also clear in-card view states
@@ -5887,7 +5887,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   };
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
-    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0 || searchValue.length > 0 ||
+    labelFilter.length > 0 || severityFilter.length > 0 || (groupFilter.length > 0 && groupFilter.length < 2) || componentFilter.length > 0 || searchValue.length > 0 ||
     selectedClusterInCard !== null || selectedClusterForAlerts !== null || mainComponentFilter !== null || mainAlertNameFilter !== null;
 
   const hasDrillDownActiveFilters = drillDownSeverityFilter.length > 0 || drillDownGroupFilter.length > 0 || 
