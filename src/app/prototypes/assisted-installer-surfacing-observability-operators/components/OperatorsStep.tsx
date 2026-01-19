@@ -78,7 +78,7 @@ const operatorCategories: OperatorCategory[] = [
       { id: 'local-storage', name: 'Local Storage Operator', description: 'Allows provisioning of persistent storage by using local volumes.' },
       { id: 'lvm-storage', name: 'Logical Volume Manager Storage', description: 'Storage virtualization that offers a more flexible approach for disk space management.' },
       { id: 'odf', name: 'OpenShift Data Foundation (ODF)', description: 'Persistent software-defined storage for hybrid applications.' },
-      { id: 'oadp', name: 'OADP', description: 'Backup and restore OpenShift cluster resources and persistent volumes.' },
+      { id: 'oadp', name: 'OpenShift APIs for Data Protection (OADP)', description: 'Backup and restore OpenShift cluster resources and persistent volumes.' },
     ],
   },
   {
@@ -383,7 +383,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
           observabilityOperators.add('loki');
           // ODF is prioritized for Observability
           storageOperators.add('odf');
-          storageOperators.add('oadp');
+          // OADP is always disabled, so don't auto-select it
           advancedOptionsToSelect.add('monitoring-ui');
           advancedOptionsToSelect.add('logging-ui');
           advancedOptionsToSelect.add('tracing-ui');
@@ -397,7 +397,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
           observabilityOperators.add('opentelemetry');
           // ODF is prioritized for Observability (replaces local-storage)
           storageOperators.add('odf');
-          storageOperators.add('oadp');
+          // OADP is always disabled, so don't auto-select it
           advancedOptionsToSelect.add('monitoring-ui');
           advancedOptionsToSelect.add('logging-ui');
           advancedOptionsToSelect.add('tracing-ui');
@@ -418,13 +418,21 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
     // (preserve manually selected storage that wasn't recommended by any persona)
     const currentStorageOps = selectedOperators.filter(id => allStorageOperatorIds.includes(id));
     const manuallySelectedStorage = currentStorageOps.filter(id => !storageOpsArray.includes(id));
+    
+    // Always preserve OADP and Local Storage Operator if they were previously selected
+    // (they are always disabled, so they should remain selected regardless of persona changes)
+    const alwaysDisabledStorageOps = ['oadp', 'local-storage'];
+    const preservedDisabledStorage = currentStorageOps.filter(id => 
+      alwaysDisabledStorageOps.includes(id)
+    );
 
-    // Combine: new observability operators + new recommended storage + manually selected storage + other operators
+    // Combine: new observability operators + new recommended storage + manually selected storage + preserved disabled storage + other operators
     // Use Set to ensure no duplicates (defensive programming)
     const finalOperators = Array.from(new Set([
       ...observabilityOpsArray,
       ...storageOpsArray,
       ...manuallySelectedStorage,
+      ...preservedDisabledStorage,
       ...otherOperators
     ]));
     onOperatorsChange(finalOperators);
@@ -663,6 +671,8 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                           {category.operators.map((operator) => {
                             const isChecked = selectedOperators.includes(operator.id);
                             const isRecommended = isStorageCategory && recommendedStorageOperators.includes(operator.id);
+                            // OADP and Local Storage Operator are always disabled
+                            const isAlwaysDisabled = operator.id === 'oadp' || operator.id === 'local-storage';
                             return (
                               <StackItem key={operator.id}>
                                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
@@ -670,13 +680,17 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                     id={`operator-${operator.id}`}
                                     isChecked={isChecked}
                                     onChange={(_, checked) => {
+                                      // Prevent changes to always-disabled operators
+                                      if (isAlwaysDisabled) {
+                                        return;
+                                      }
                                       // Prevent unchecking required operators
                                       if (operator.required && !checked) {
                                         return;
                                       }
                                       handleOperatorChange(operator.id, checked);
                                     }}
-                                    isDisabled={operator.required}
+                                    isDisabled={operator.required || isAlwaysDisabled}
                                     style={{ marginTop: '2px' }}
                                   />
                                   <div style={{ flex: 1, marginLeft: '8px' }}>
