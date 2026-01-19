@@ -301,6 +301,19 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
       onBundlesChange([...selectedBundles, bundleId]);
     } else {
       onBundlesChange(selectedBundles.filter((id) => id !== bundleId));
+      
+      // If unchecking the Observability bundle, clear all observability-related selections
+      if (bundleId === 'observability') {
+        // Clear selected personas - this will trigger the useEffect to clear operators and recommendations
+        if (onPersonasChange) {
+          onPersonasChange([]);
+        }
+        
+        // Also directly clear observability operators to ensure immediate cleanup
+        const allObservabilityOperatorIds = ['core-observability', 'loki', 'incident-detection', 'netobserve', 'tempo', 'opentelemetry', 'korrel8r', 'thanos'];
+        const updatedOperators = selectedOperators.filter(id => !allObservabilityOperatorIds.includes(id));
+        onOperatorsChange(updatedOperators);
+      }
     }
   };
 
