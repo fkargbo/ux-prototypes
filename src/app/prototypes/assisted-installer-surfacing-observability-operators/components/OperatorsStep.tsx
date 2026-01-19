@@ -77,7 +77,7 @@ const operatorCategories: OperatorCategory[] = [
     operators: [
       { id: 'local-storage', name: 'Local Storage Operator', description: 'Allows provisioning of persistent storage by using local volumes.' },
       { id: 'lvm-storage', name: 'Logical Volume Manager Storage', description: 'Storage virtualization that offers a more flexible approach for disk space management.' },
-      { id: 'odf', name: 'OpenShift Data Foundation', description: 'Persistent software-defined storage for hybrid applications.' },
+      { id: 'odf', name: 'OpenShift Data Foundation (ODF)', description: 'Persistent software-defined storage for hybrid applications.' },
       { id: 'oadp', name: 'OADP', description: 'Backup and restore OpenShift cluster resources and persistent volumes.' },
     ],
   },
@@ -370,7 +370,8 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
       switch (personaId) {
         case 'platform-governance':
           observabilityOperators.add('loki');
-          storageOperators.add('lvm-storage');
+          // ODF is prioritized for Observability (replaces LVM)
+          storageOperators.add('odf');
           advancedOptionsToSelect.add('monitoring-ui');
           advancedOptionsToSelect.add('logging-ui');
           advancedOptionsToSelect.add('custom-dashboards-ui');
@@ -380,6 +381,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
           observabilityOperators.add('incident-detection');
           observabilityOperators.add('netobserve');
           observabilityOperators.add('loki');
+          // ODF is prioritized for Observability
           storageOperators.add('odf');
           storageOperators.add('oadp');
           advancedOptionsToSelect.add('monitoring-ui');
@@ -393,7 +395,8 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
         case 'app-performance':
           observabilityOperators.add('tempo');
           observabilityOperators.add('opentelemetry');
-          storageOperators.add('local-storage');
+          // ODF is prioritized for Observability (replaces local-storage)
+          storageOperators.add('odf');
           storageOperators.add('oadp');
           advancedOptionsToSelect.add('monitoring-ui');
           advancedOptionsToSelect.add('logging-ui');
