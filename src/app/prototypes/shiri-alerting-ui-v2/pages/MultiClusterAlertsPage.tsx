@@ -7587,7 +7587,7 @@ spec:
         )}
 
         {/* Main Content Area - Scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 8px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
             <Stack hasGutter style={{ gap: '16px' }}>
               {/* Horizontal Metric Bar */}
               <StackItem style={{ marginTop: '16px', marginBottom: '16px' }}>
@@ -8428,7 +8428,7 @@ spec:
           )}
 
           {/* Main Content Area - Firing Alerts */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 8px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
             <Stack hasGutter style={{ gap: '16px' }}>
               {/* Horizontal Metric Bar - Hidden when viewing single cluster */}
               {firingAlertsCardView === 'all-clusters' && (
