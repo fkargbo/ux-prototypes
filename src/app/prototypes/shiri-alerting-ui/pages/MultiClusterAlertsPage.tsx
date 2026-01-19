@@ -4956,7 +4956,7 @@ spec:
                   activeKey={alertsSubTab} 
                   onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')}
                   aria-label="Alerts sub-tabs" 
-                  variant="subtabs"
+                  isSubtab
                 >
                   <Tab eventKey="clusters-health" title={<TabTitleText>Clusters health</TabTitleText>} />
                   <Tab eventKey="firing-alerts" title={<TabTitleText>Firing alerts</TabTitleText>} />
@@ -4971,7 +4971,7 @@ spec:
                   activeKey={managementSubTab} 
                   onSelect={(_, key) => setManagementSubTab(key)}
                   aria-label="Management sub-tabs" 
-                  variant="subtabs"
+                  isSubtab
                 >
                   <Tab 
                     eventKey="alert-rules" 
