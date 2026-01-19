@@ -4956,7 +4956,7 @@ spec:
                   activeKey={alertsSubTab} 
                   onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')}
                   aria-label="Alerts sub-tabs" 
-                  variant="secondary"
+                  variant="subtabs"
                 >
                   <Tab eventKey="clusters-health" title={<TabTitleText>Clusters health</TabTitleText>} />
                   <Tab eventKey="firing-alerts" title={<TabTitleText>Firing alerts</TabTitleText>} />
@@ -4971,7 +4971,7 @@ spec:
                   activeKey={managementSubTab} 
                   onSelect={(_, key) => setManagementSubTab(key)}
                   aria-label="Management sub-tabs" 
-                  variant="secondary"
+                  variant="subtabs"
                 >
                   <Tab 
                     eventKey="alert-rules" 
@@ -5675,12 +5675,14 @@ spec:
         }}>
           {/* Cluster Sub-Header - Fixed at top */}
           <div style={{ padding: '24px 24px 16px 24px', flexShrink: 0 }}>
-            <Content component="p" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', margin: '0 0 4px 0' }}>
+            <Content component="p" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', margin: '0 0 12px 0' }}>
               Cluster alerts
             </Content>
-            <Title headingLevel="h2" size="xl" style={{ margin: '0 0 12px 0' }}>{selectedCluster.name}</Title>
-            {/* Status Labels - Below the sub-header */}
+            {/* Cluster name and status in one row - center aligned */}
             <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem>
+                <Title headingLevel="h2" size="xl" style={{ margin: 0 }}>{selectedCluster.name}</Title>
+              </FlexItem>
               <FlexItem>
                 <Label 
                   color={getClusterAlertStatus(selectedCluster) === 'healthy' ? 'green' : getClusterAlertStatus(selectedCluster) === 'critical' ? 'red' : getClusterAlertStatus(selectedCluster) === 'warning' ? 'orange' : 'purple'}
