@@ -259,6 +259,12 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
   const [recommendedAdvancedOptions, setRecommendedAdvancedOptions] = useState<string[]>([]);
   const advancedSectionRef = useRef<HTMLDivElement>(null);
 
+  // Sync operational needs when selectedPersonas changes from props
+  useEffect(() => {
+    handleOperationalNeedChange(selectedPersonas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPersonas]);
+
   // Fix for ExpandableSection content div not collapsing properly
   useEffect(() => {
     // Use requestAnimationFrame to ensure DOM is ready
@@ -306,13 +312,14 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
     }
   };
 
-  const handleOperationalNeedChange = (personaId: string | null) => {
+  const handleOperationalNeedChange = (selectedPersonaIds: string[]) => {
     // Define all observability and storage operator IDs
     const allObservabilityOperatorIds = ['core-observability', 'loki', 'incident-detection', 'netobserve', 'tempo', 'opentelemetry', 'korrel8r', 'thanos'];
     const allStorageOperatorIds = ['local-storage', 'lvm-storage', 'odf', 'oadp'];
+    const allAdvancedUIOptionIds = advancedUIOptions.map(opt => opt.id);
 
-    if (!personaId) {
-      // Deselecting - remove persona-specific observability operators but keep core-observability
+    if (selectedPersonaIds.length === 0) {
+      // No personas selected - remove persona-specific observability operators but keep core-observability
       // Remove previously recommended storage operators
       const currentObservabilityOps = selectedOperators.filter(id => allObservabilityOperatorIds.includes(id));
       const currentStorageOps = selectedOperators.filter(id => allStorageOperatorIds.includes(id));
@@ -326,7 +333,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
       
       // Keep all non-observability, non-storage operators (from other categories)
       const otherOperators = selectedOperators.filter(id => 
-        !allObservabilityOperatorIds.includes(id) && !allStorageOperatorIds.includes(id)
+        !allObservabilityOperatorIds.includes(id) && !allStorageOperatorIds.includes(id) && !allAdvancedUIOptionIds.includes(id)
       );
       
       onOperatorsChange([...updatedObservabilityOps, ...updatedStorageOps, ...otherOperators]);
@@ -341,97 +348,107 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
       return;
     }
 
-    // Define observability and storage dependencies based on persona
-    let observabilityOperators: string[] = ['core-observability']; // Core is always required
-    let storageOperators: string[] = [];
+    // Combine requirements from all selected personas
+    let observabilityOperators: Set<string> = new Set(['core-observability']); // Core is always required
+    let storageOperators: Set<string> = new Set();
+    let advancedOptionsToSelect: Set<string> = new Set();
 
-    switch (personaId) {
-      case 'platform-governance':
-        // Platform Governance: Core Observability + Loki
-        observabilityOperators = ['core-observability', 'loki'];
-        // Storage: LVM Storage
-        storageOperators = ['lvm-storage'];
-        break;
-      
-      case 'incident-response':
-        // Incident Response: Core + Incident Detection + NetObserve + Loki
-        observabilityOperators = ['core-observability', 'incident-detection', 'netobserve', 'loki'];
-        // Storage: ODF + OADP
-        storageOperators = ['odf', 'oadp'];
-        break;
-      
-      case 'app-performance':
-        // App Performance: Core + Tempo + OpenTelemetry
-        observabilityOperators = ['core-observability', 'tempo', 'opentelemetry'];
-        // Storage: Local Storage + OADP
-        storageOperators = ['local-storage', 'oadp'];
-        break;
-    }
+    selectedPersonaIds.forEach((personaId) => {
+      switch (personaId) {
+        case 'platform-governance':
+          observabilityOperators.add('loki');
+          storageOperators.add('lvm-storage');
+          advancedOptionsToSelect.add('monitoring-ui');
+          advancedOptionsToSelect.add('logging-ui');
+          advancedOptionsToSelect.add('custom-dashboards-ui');
+          break;
+        
+        case 'incident-response':
+          observabilityOperators.add('incident-detection');
+          observabilityOperators.add('netobserve');
+          observabilityOperators.add('loki');
+          storageOperators.add('odf');
+          storageOperators.add('oadp');
+          advancedOptionsToSelect.add('monitoring-ui');
+          advancedOptionsToSelect.add('logging-ui');
+          advancedOptionsToSelect.add('tracing-ui');
+          advancedOptionsToSelect.add('troubleshooting-panel-ui');
+          advancedOptionsToSelect.add('custom-dashboards-ui');
+          advancedOptionsToSelect.add('incident-detection-ui');
+          break;
+        
+        case 'app-performance':
+          observabilityOperators.add('tempo');
+          observabilityOperators.add('opentelemetry');
+          storageOperators.add('local-storage');
+          storageOperators.add('oadp');
+          advancedOptionsToSelect.add('monitoring-ui');
+          advancedOptionsToSelect.add('logging-ui');
+          advancedOptionsToSelect.add('tracing-ui');
+          break;
+      }
+    });
 
-    // Get current operators from other categories (non-observability, non-storage)
+    const observabilityOpsArray = Array.from(observabilityOperators);
+    const storageOpsArray = Array.from(storageOperators);
+    const advancedOptionsArray = Array.from(advancedOptionsToSelect);
+
+    // Get current operators from other categories (non-observability, non-storage, non-advanced)
     const otherOperators = selectedOperators.filter(id => 
-      !allObservabilityOperatorIds.includes(id) && !allStorageOperatorIds.includes(id)
+      !allObservabilityOperatorIds.includes(id) && !allStorageOperatorIds.includes(id) && !allAdvancedUIOptionIds.includes(id)
     );
 
     // Get currently selected storage operators that are NOT in the new recommendations
-    // (preserve manually selected storage that wasn't recommended by the new persona)
+    // (preserve manually selected storage that wasn't recommended by any persona)
     const currentStorageOps = selectedOperators.filter(id => allStorageOperatorIds.includes(id));
-    // Filter out storage operators that are in the NEW recommendations to prevent duplicates
-    const manuallySelectedStorage = currentStorageOps.filter(id => !storageOperators.includes(id));
+    const manuallySelectedStorage = currentStorageOps.filter(id => !storageOpsArray.includes(id));
 
     // Combine: new observability operators + new recommended storage + manually selected storage + other operators
     // Use Set to ensure no duplicates (defensive programming)
     const finalOperators = Array.from(new Set([
-      ...observabilityOperators,
-      ...storageOperators,
+      ...observabilityOpsArray,
+      ...storageOpsArray,
       ...manuallySelectedStorage,
       ...otherOperators
     ]));
     onOperatorsChange(finalOperators);
 
     // Set recommendation state
-    setRecommendedStorageOperators(storageOperators);
-    setShowStorageRecommendation(true);
+    setRecommendedStorageOperators(storageOpsArray);
+    setShowStorageRecommendation(storageOpsArray.length > 0);
 
-    // Auto-select advanced UI options based on persona
-    let advancedOptionsToSelect: string[] = [];
-    switch (personaId) {
-      case 'platform-governance':
-        // Platform Governance: Monitoring UI, Logging UI, Custom dashboards
-        advancedOptionsToSelect = ['monitoring-ui', 'logging-ui', 'custom-dashboards-ui'];
-        break;
-      case 'incident-response':
-        // Incident Response: All options
-        advancedOptionsToSelect = ['monitoring-ui', 'logging-ui', 'tracing-ui', 'troubleshooting-panel-ui', 'custom-dashboards-ui', 'incident-detection-ui'];
-        break;
-      case 'app-performance':
-        // App Performance: Monitoring UI, Logging UI, Tracing UI
-        advancedOptionsToSelect = ['monitoring-ui', 'logging-ui', 'tracing-ui'];
-        break;
-    }
+    // Preserve manually selected advanced options that aren't in the new recommendations
+    const currentAdvancedOps = selectedAdvancedOptions.filter(id => allAdvancedUIOptionIds.includes(id));
+    const manuallySelectedAdvanced = currentAdvancedOps.filter(id => !advancedOptionsArray.includes(id));
     
-    // Preserve manually selected options that aren't in the new recommendations
-    const manuallySelectedOptions = selectedAdvancedOptions.filter(id => !recommendedAdvancedOptions.includes(id));
     // Combine: new recommended options + manually selected options (no duplicates)
-    const finalAdvancedOptions = Array.from(new Set([...advancedOptionsToSelect, ...manuallySelectedOptions]));
+    const finalAdvancedOptions = Array.from(new Set([...advancedOptionsArray, ...manuallySelectedAdvanced]));
     
     setSelectedAdvancedOptions(finalAdvancedOptions);
     // Track which options are recommended (auto-selected)
-    setRecommendedAdvancedOptions(advancedOptionsToSelect);
+    setRecommendedAdvancedOptions(advancedOptionsArray);
+    
     // Advanced mode starts disabled so recommended options are disabled
+    // If any persona requires advanced mode disabled, keep it disabled
     setIsAdvancedModeEnabled(false);
   };
 
   const handlePersonaChange = (personaId: string) => {
     if (onPersonasChange) {
-      // Single select: if already selected, deselect; otherwise, select only this one
+      // Multi-select: toggle the selection
+      let updatedPersonas: string[];
       if (selectedPersonas.includes(personaId)) {
-        onPersonasChange([]);
-        handleOperationalNeedChange(null);
+        // Deselect this persona
+        updatedPersonas = selectedPersonas.filter(id => id !== personaId);
       } else {
-        onPersonasChange([personaId]);
-        handleOperationalNeedChange(personaId);
+        // Select this persona (add to existing selections)
+        updatedPersonas = [...selectedPersonas, personaId];
       }
+      
+      onPersonasChange(updatedPersonas);
+      
+      // Handle operational needs based on all selected personas
+      handleOperationalNeedChange(updatedPersonas);
     }
   };
 
@@ -440,9 +457,14 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
       return 'Choose Observability strategy';
     }
     
-    // Single select: show the selected option
-    const selectedPersona = personaOptions.find(p => p.id === selectedPersonas[0]);
-    return selectedPersona ? selectedPersona.label : 'Choose Observability strategy';
+    if (selectedPersonas.length === 1) {
+      // Show the single selected option
+      const selectedPersona = personaOptions.find(p => p.id === selectedPersonas[0]);
+      return selectedPersona ? selectedPersona.label : 'Choose Observability strategy';
+    }
+    
+    // Show count for multiple selections
+    return `${selectedPersonas.length} selected`;
   };
 
   const selectedCount = selectedOperators.length;
@@ -556,7 +578,18 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                   handlePersonaChange(persona.id);
                                 }}
                               >
-                                {persona.label}
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                  <Checkbox
+                                    id={`persona-${persona.id}`}
+                                    isChecked={isPersonaSelected}
+                                    onChange={(_, checked) => {
+                                      handlePersonaChange(persona.id);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ marginRight: '8px' }}
+                                  />
+                                  <span>{persona.label}</span>
+                                </div>
                               </DropdownItem>
                             );
                           })}
