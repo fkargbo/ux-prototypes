@@ -783,7 +783,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                     }}>
                                       <span style={{ 
                                         fontSize: '12px', 
-                                        color: 'var(--pf-t--global--text--color--regular)'
+                                        color: '#6a6e73'
                                       }}>
                                         {operator.description}
                                       </span>
@@ -889,7 +889,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                             </div>
                                             <div style={{ 
                                               fontSize: '12px', 
-                                              color: 'var(--pf-t--global--text--color--regular)',
+                                              color: '#6a6e73',
                                               marginTop: '4px'
                                             }}>
                                               {option.description}
