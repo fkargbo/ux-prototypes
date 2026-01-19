@@ -5278,7 +5278,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   
   // Firing Alerts grouping
   type AlertsGroupByOption = 'none' | 'time' | 'severity' | 'alertRule' | 'impact' | 'component';
-  const [alertsGroupBy, setAlertsGroupBy] = React.useState<AlertsGroupByOption>('none');
+  const [alertsGroupBy, setAlertsGroupBy] = React.useState<AlertsGroupByOption>('component');
   const [isAlertsGroupByOpen, setIsAlertsGroupByOpen] = React.useState(false);
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   
