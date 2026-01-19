@@ -471,6 +471,15 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
       
       onPersonasChange(updatedPersonas);
       
+      // Automatically select the Observability bundle if a persona is selected
+      if (updatedPersonas.length > 0 && !selectedBundles.includes('observability')) {
+        onBundlesChange([...selectedBundles, 'observability']);
+      }
+      // Automatically uncheck the Observability bundle if no personas are selected
+      else if (updatedPersonas.length === 0 && selectedBundles.includes('observability')) {
+        onBundlesChange(selectedBundles.filter(id => id !== 'observability'));
+      }
+      
       // Handle operational needs based on all selected personas
       handleOperationalNeedChange(updatedPersonas);
     }
