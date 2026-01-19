@@ -1,0 +1,199 @@
+/* Hide the "View task details" floating action button for this prototype */
+button[aria-label="View task details"] {
+  display: none !important;
+}
+
+/* Shift page content to the left when drawer is open */
+.pf-v6-c-page__main-container.chatbot-drawer-open {
+  transform: translateX(calc(-33.333% - 24px));
+  transition: transform 0.2s ease-in-out;
+}
+
+@media (min-width: 992px) {
+  .pf-v6-c-page__main-container.chatbot-drawer-open {
+    transform: translateX(calc(-25% - 24px));
+  }
+}
+
+/* AI Assistant Drawer Wrapper - Fixed position outside page container */
+.ai-assistant-drawer-wrapper {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 33.333% !important;
+  min-width: 400px !important;
+  max-width: 600px !important;
+  z-index: 300 !important;
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  transition: transform 0.2s ease-in-out !important;
+  contain: layout style paint !important;
+  box-sizing: border-box !important;
+}
+
+@media (min-width: 992px) {
+  .ai-assistant-drawer-wrapper {
+    width: 25% !important;
+  }
+}
+
+/* Inner panel container - ensures proper containment */
+.ai-assistant-panel-inner {
+  height: 100% !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  contain: layout style paint !important;
+  box-sizing: border-box !important;
+}
+
+/* Override DrawerPanelContent styles when in portal */
+.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel {
+  position: static !important;
+  width: 100% !important;
+  height: 100% !important;
+  box-shadow: none !important;
+  border: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel-main {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel-body {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+/* Chatbot Welcome Action Cards - matching PatternFly compact chatbot demo */
+.chatbot-welcome-actions {
+  padding: 0 var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-v5-global--spacer--md);
+}
+
+.chatbot-action-card {
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-v5-global--BorderRadius--sm);
+  padding: var(--pf-v5-global--spacer--md);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.chatbot-action-card:hover {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  border-color: var(--pf-t--global--color--interactive--default);
+}
+
+.chatbot-action-card:active {
+  background-color: var(--pf-t--global--background--color--tertiary--default);
+}
+
+/* Ensure Chatbot component takes full height and is visible */
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot,
+.ai-assistant-panel-inner .pf-v6-c-chatbot {
+  height: 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  contain: layout style paint !important;
+  box-sizing: border-box !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__header {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  visibility: visible !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content,
+.ai-assistant-panel-inner .pf-v6-c-chatbot__content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  contain: layout style paint !important;
+  box-sizing: border-box !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__footer {
+  flex-shrink: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  visibility: visible !important;
+}
+
+/* Ensure MessageBox is visible */
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__message-box {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  width: 100% !important;
+}
+
+/* Ensure MessageBar is visible */
+.ai-assistant-drawer-wrapper .pf-v6-c-message-bar {
+  display: flex !important;
+  visibility: visible !important;
+  width: 100% !important;
+}
+
+/* Fix ChatbotWelcomePrompt alignment and visibility */
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__welcome-prompt {
+  text-align: left !important;
+  padding: var(--pf-v5-global--spacer--lg) var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--md) !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__welcome-prompt-title {
+  text-align: left !important;
+  margin-bottom: var(--pf-v5-global--spacer--sm) !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__welcome-prompt-description {
+  text-align: left !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Ensure all chatbot content is visible */
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot * {
+  visibility: visible !important;
+}

@@ -76,6 +76,7 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
+    "@patternfly/chatbot": "^6.4.1",
     "@patternfly/react-charts": "^8.4.0",
     "@patternfly/react-core": "^6.3.0",
     "@patternfly/react-icons": "^6.3.0",
