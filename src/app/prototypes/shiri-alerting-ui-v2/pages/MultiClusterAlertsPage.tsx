@@ -5309,7 +5309,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
 
   // View and grouping
   const [viewMode, setViewMode] = React.useState<ViewMode>('treemap');
-  const [groupBy, setGroupBy] = React.useState<GroupByOption>('component');
+  const [groupBy, setGroupBy] = React.useState<GroupByOption>('none');
   const [sortBy, setSortBy] = React.useState<SortByOption>('severity');
   const [importanceSizing, setImportanceSizing] = React.useState<ImportanceSizing>('nodeCount');
   const [userRole] = React.useState<UserRole>('admin');
