@@ -72,7 +72,8 @@ import ChatbotHeader, {
   ChatbotHeaderActions,
   ChatbotHeaderSelectorDropdown
 } from '@patternfly/chatbot/dist/dynamic/ChatbotHeader';
-import '@patternfly/chatbot/dist/css/main.css';
+// TODO: Uncomment after running 'npm install' to install @patternfly/chatbot
+// import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
