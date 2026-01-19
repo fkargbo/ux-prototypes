@@ -2362,6 +2362,7 @@ interface AllAlertsCardProps {
   clusters: ClusterData[];
   alertNameFilter: string | null;
   componentFilter: string | null;
+  groupFilter?: AlertGroup[];
   onClearAlertNameFilter: () => void;
   onClearComponentFilter: () => void;
   onClusterClick: (cluster: ClusterData) => void;
@@ -2377,6 +2378,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   clusters,
   alertNameFilter,
   componentFilter,
+  groupFilter = [],
   onClearAlertNameFilter,
   onClearComponentFilter,
   onClusterClick,
@@ -2387,6 +2389,19 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   groupBy = 'none',
   onGroupByChange,
 }) => {
+  // Component metadata with impact groups
+  const componentMeta: Record<AlertComponent, { impactGroup: 'Cluster' | 'Namespace' }> = {
+    'kube-apiserver': { impactGroup: 'Cluster' },
+    'etcd': { impactGroup: 'Cluster' },
+    'Scheduler': { impactGroup: 'Cluster' },
+    'Controller': { impactGroup: 'Cluster' },
+    'Network': { impactGroup: 'Cluster' },
+    'Storage': { impactGroup: 'Namespace' },
+    'Workload': { impactGroup: 'Namespace' },
+    'Pod': { impactGroup: 'Namespace' },
+    'Quota': { impactGroup: 'Namespace' },
+  };
+  
   const [searchValue, setSearchValue] = React.useState('');
   const [severityFilter, setSeverityFilter] = React.useState<AlertSeverity[]>([]);
   const [page, setPage] = React.useState(1);
@@ -2692,6 +2707,11 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
       if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase())) return false;
+      // Filter by impact group - only show components that match selected groups
+      if (groupFilter && groupFilter.length > 0 && groupFilter.length < 2 && alert.component) {
+        const componentImpactGroup = componentMeta[alert.component as AlertComponent]?.impactGroup;
+        if (componentImpactGroup && !groupFilter.includes(componentImpactGroup)) return false;
+      }
       return true;
     });
     
@@ -2736,7 +2756,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       }
       return 0;
     });
-  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue, sortConfigs]);
+  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue, sortConfigs, groupFilter]);
 
   // Get selected alerts data for silence modal
   const selectedAlertsData = React.useMemo(() => {
@@ -5303,7 +5323,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [namespaceFilter, setNamespaceFilter] = React.useState<string[]>([]);
   const [labelFilter, setLabelFilter] = React.useState<string[]>([]);
   const [severityFilter, setSeverityFilter] = React.useState<AlertSeverity[]>([]);
-  const [groupFilter, setGroupFilter] = React.useState<AlertGroup[]>([]);
+  const [groupFilter, setGroupFilter] = React.useState<AlertGroup[]>(['Cluster', 'Namespace']);
   const [componentFilter, setComponentFilter] = React.useState<AlertComponent[]>([]);
   const [searchValue, setSearchValue] = React.useState('');
 
@@ -7387,7 +7407,11 @@ spec:
                   </LabelGroup>
                 )}
                 {componentFilter.length > 0 && (
-                  <LabelGroup categoryName="Component">
+                  <LabelGroup categoryName={
+                    groupFilter.length > 0 && groupFilter.length < 2
+                      ? `Component (in: Impact: ${groupFilter.join(', Impact: ')})`
+                      : "Component"
+                  }>
                     {componentFilter.map(c => (
                       <Label key={c} variant="outline" onClose={() => setComponentFilter(componentFilter.filter(x => x !== c))}>{c}</Label>
                     ))}
@@ -8487,6 +8511,7 @@ spec:
                     : filteredClusters}
                   alertNameFilter={mainAlertNameFilter}
                   componentFilter={mainComponentFilter}
+                  groupFilter={groupFilter}
                   onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
                   onClearComponentFilter={() => setMainComponentFilter(null)}
                   onClusterClick={handleClusterClickInAlerts}
