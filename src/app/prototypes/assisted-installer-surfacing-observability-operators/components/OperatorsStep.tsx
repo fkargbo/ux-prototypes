@@ -203,9 +203,9 @@ const operatorCategories: OperatorCategory[] = [
 ];
 
 const personaOptions = [
-  { id: 'platform-governance', label: 'Platform governance' },
-  { id: 'incident-response', label: 'Incident response' },
-  { id: 'app-performance', label: 'App performance' },
+  { id: 'platform-governance', label: 'Platform governance & stability' },
+  { id: 'incident-response', label: 'Incident response & reliability' },
+  { id: 'app-performance', label: 'App performance & debugging' },
 ];
 
 const advancedUIOptions = [
