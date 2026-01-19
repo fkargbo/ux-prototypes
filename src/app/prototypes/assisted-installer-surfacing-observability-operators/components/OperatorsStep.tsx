@@ -610,9 +610,8 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                       handlePersonaChange(persona.id);
                                     }}
                                     onClick={(e) => e.stopPropagation()}
-                                    style={{ marginRight: '8px' }}
                                   />
-                                  <span>{persona.label}</span>
+                                  <span style={{ marginLeft: '8px' }}>{persona.label}</span>
                                 </div>
                               </DropdownItem>
                             );
