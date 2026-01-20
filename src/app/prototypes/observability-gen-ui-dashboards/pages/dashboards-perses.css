@@ -27,6 +27,7 @@ button[aria-label="View task details"] {
   align-items: center !important;
   padding: 0 !important;
   margin: 0 !important;
+  gap: var(--pf-t--global--spacer--md) !important;
 }
 
 .notification-section-title {
@@ -36,6 +37,7 @@ button[aria-label="View task details"] {
   flex: 0 0 auto !important;
   margin: 0 !important;
   padding: 0 !important;
+  margin-right: var(--pf-t--global--spacer--md) !important;
   display: inline-block !important;
 }
 
