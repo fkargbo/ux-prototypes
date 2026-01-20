@@ -53,6 +53,7 @@ import {
   BellIcon,
   ExclamationTriangleIcon,
   ExternalLinkAltIcon,
+  AngleRightIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -141,7 +142,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const [isNotificationsDrawerOpen, setIsNotificationsDrawerOpen] = useState(false);
   const [isCriticalAlertsExpanded, setIsCriticalAlertsExpanded] = useState(false);
   const [isOtherAlertsExpanded, setIsOtherAlertsExpanded] = useState(false);
-  const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(true);
+  const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(false);
 
   // Mock notifications data
   const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string }> = [];
@@ -463,14 +464,14 @@ export const DashboardsPersesPage: React.FC = () => {
             <DrawerPanelBody style={{ padding: '24px', overflowY: 'auto' }}>
               <Stack hasGutter>
                 {/* Critical Alerts Section */}
-                <StackItem style={{ marginLeft: '-24px', marginRight: '-24px', paddingLeft: '24px', paddingRight: '24px', borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
                     toggleText={
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
                         <span>Critical Alerts</span>
                         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                           <Badge>{criticalAlerts.length}</Badge>
-                          <CaretDownIcon style={{ transform: isCriticalAlertsExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                          {isCriticalAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
                         </Flex>
                       </Flex>
                     }
@@ -510,14 +511,14 @@ export const DashboardsPersesPage: React.FC = () => {
                 </StackItem>
 
                 {/* Other Alerts Section */}
-                <StackItem style={{ marginLeft: '-24px', marginRight: '-24px', paddingLeft: '24px', paddingRight: '24px', borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
                     toggleText={
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
                         <span>Other Alerts</span>
                         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                           <Badge>{otherAlerts.length}</Badge>
-                          <CaretDownIcon style={{ transform: isOtherAlertsExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                          {isOtherAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
                         </Flex>
                       </Flex>
                     }
@@ -557,14 +558,14 @@ export const DashboardsPersesPage: React.FC = () => {
                 </StackItem>
 
                 {/* Recommendations Section */}
-                <StackItem style={{ marginLeft: '-24px', marginRight: '-24px', paddingLeft: '24px', paddingRight: '24px', borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
                     toggleText={
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
                         <span>Recommendations</span>
                         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                           <Badge>{recommendations.length}</Badge>
-                          <CaretDownIcon style={{ transform: isRecommendationsExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                          {isRecommendationsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
                         </Flex>
                       </Flex>
                     }
