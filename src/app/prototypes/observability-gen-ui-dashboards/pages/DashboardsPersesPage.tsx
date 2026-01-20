@@ -38,6 +38,11 @@ import {
   StackItem,
   ExpandableSection,
   Alert,
+  EmptyState,
+  EmptyStateHeader,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -482,9 +487,19 @@ export const DashboardsPersesPage: React.FC = () => {
                   {isCriticalAlertsExpanded && (
                     <div style={{ paddingTop: '8px' }}>
                     {criticalAlerts.length === 0 ? (
-                      <Content style={{ padding: '16px 0', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                        No critical alerts
-                      </Content>
+                      <EmptyState>
+                        <EmptyStateHeader titleText="No critical alerts" headingLevel="h4" />
+                        <EmptyStateBody>
+                          There are currently no critical alerts firing. There may be firing alerts of other severities or silenced critical alerts however.
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                          <EmptyStateActions>
+                            <Button variant="link" component="a" href="#">
+                              View all alerts
+                            </Button>
+                          </EmptyStateActions>
+                        </EmptyStateFooter>
+                      </EmptyState>
                     ) : (
                       <Stack hasGutter>
                         {criticalAlerts.map((alert) => (
@@ -534,9 +549,19 @@ export const DashboardsPersesPage: React.FC = () => {
                   {isOtherAlertsExpanded && (
                     <div style={{ paddingTop: '8px' }}>
                     {otherAlerts.length === 0 ? (
-                      <Content style={{ padding: '16px 0', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                        No other alerts
-                      </Content>
+                      <EmptyState>
+                        <EmptyStateHeader titleText="No other alerts" headingLevel="h4" />
+                        <EmptyStateBody>
+                          There are currently no other alerts firing. There may be firing alerts of other severities or silenced alerts however.
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                          <EmptyStateActions>
+                            <Button variant="link" component="a" href="#">
+                              View all alerts
+                            </Button>
+                          </EmptyStateActions>
+                        </EmptyStateFooter>
+                      </EmptyState>
                     ) : (
                       <Stack hasGutter>
                         {otherAlerts.map((alert) => (
@@ -586,9 +611,19 @@ export const DashboardsPersesPage: React.FC = () => {
                   {isRecommendationsExpanded && (
                     <div style={{ paddingTop: '8px' }}>
                     {recommendations.length === 0 ? (
-                      <Content style={{ padding: '16px 0', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                        No recommendations
-                      </Content>
+                      <EmptyState>
+                        <EmptyStateHeader titleText="No recommendations" headingLevel="h4" />
+                        <EmptyStateBody>
+                          There are currently no recommendations available. Recommendations will appear here when they become available.
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                          <EmptyStateActions>
+                            <Button variant="link" component="a" href="#">
+                              View all alerts
+                            </Button>
+                          </EmptyStateActions>
+                        </EmptyStateFooter>
+                      </EmptyState>
                     ) : (
                       <Stack hasGutter>
                         {recommendations.map((rec) => (
