@@ -609,7 +609,8 @@ export const DashboardsPersesPage: React.FC = () => {
       {isDrawerOpen && createPortal(
         <div className="ai-assistant-drawer-wrapper">
           <div className="ai-assistant-panel-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
-            <Chatbot displayMode={ChatbotDisplayMode.drawer} style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Chatbot displayMode={ChatbotDisplayMode.drawer}>
               <ChatbotHeader style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
                 <ChatbotHeaderMain>
                   <ChatbotHeaderMenu
@@ -666,6 +667,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 <ChatbotFootnote {...footnoteProps} />
               </ChatbotFooter>
             </Chatbot>
+            </div>
           </div>
         </div>,
         document.body
@@ -675,18 +677,14 @@ export const DashboardsPersesPage: React.FC = () => {
       <div 
         ref={chatbotToggleRef}
         style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}
-        aria-describedby="chatbot-toggle-tooltip"
       >
-        <ChatbotToggle 
-          onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
-          aria-label="AI assistant"
-        />
-        <Tooltip 
-          id="chatbot-toggle-tooltip"
-          content="AI assistant"
-          reference={chatbotToggleRef}
-          position="left"
-        />
+        <Tooltip content="AI assistant" position="left">
+          <ChatbotToggle 
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
+            aria-label="AI assistant"
+            tooltipLabel="AI assistant"
+          />
+        </Tooltip>
       </div>
     </>
   );
