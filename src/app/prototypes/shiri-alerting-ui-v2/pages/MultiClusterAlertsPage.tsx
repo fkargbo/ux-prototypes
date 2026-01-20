@@ -1278,12 +1278,14 @@ interface ClusterComponentsHealthProps {
   cluster: ClusterData;
   onComponentClick: (component: AlertComponent) => void;
   onBackToFleet: () => void;
+  groupFilter?: AlertGroup[];
 }
 
 const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
   cluster,
   onComponentClick,
   onBackToFleet,
+  groupFilter = [],
 }) => {
   // Define component metadata with icons
   // Components are organized by Impact Group:
@@ -1306,7 +1308,12 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
     const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
     const components: AlertComponent[] = ['kube-apiserver', 'etcd', 'Scheduler', 'Controller', 'Storage', 'Network', 'Workload', 'Pod', 'Quota'];
     
-    return components.map(component => {
+    // Filter components by impact group if groupFilter is active
+    const filteredComponents = groupFilter.length > 0 
+      ? components.filter(component => groupFilter.includes(componentMeta[component].impactGroup))
+      : components;
+    
+    return filteredComponents.map(component => {
       const componentAlerts = firingAlerts.filter(a => a.component === component);
       const criticalCount = componentAlerts.filter(a => a.severity === 'Critical').length;
       const warningCount = componentAlerts.filter(a => a.severity === 'Warning').length;
@@ -1337,7 +1344,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
       const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
       return statusOrder[a.healthStatus] - statusOrder[b.healthStatus];
     });
-  }, [cluster.alerts]);
+  }, [cluster.alerts, groupFilter]);
 
   // Calculate cluster health status based on highest severity alert
   const clusterHealthStatus = React.useMemo((): 'critical' | 'warning' | 'info' | 'healthy' => {
@@ -1783,7 +1790,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const [componentSearchValue, setComponentSearchValue] = React.useState('');
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
-    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0;
+    labelFilter.length > 0 || severityFilter.length > 0 || (groupFilter.length > 0 && groupFilter.length < 2) || componentFilter.length > 0;
 
   const clearAllFilters = () => {
     setRegionFilter([]);
@@ -1791,7 +1798,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     setNamespaceFilter([]);
     setLabelFilter([]);
     setSeverityFilter([]);
-    setGroupFilter([]);
+    setGroupFilter(['Cluster', 'Namespace']); // Reset to default with both groups selected
     setComponentFilter([]);
   };
 
@@ -2355,6 +2362,7 @@ interface AllAlertsCardProps {
   clusters: ClusterData[];
   alertNameFilter: string | null;
   componentFilter: string | null;
+  groupFilter?: AlertGroup[];
   onClearAlertNameFilter: () => void;
   onClearComponentFilter: () => void;
   onClusterClick: (cluster: ClusterData) => void;
@@ -2370,6 +2378,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   clusters,
   alertNameFilter,
   componentFilter,
+  groupFilter = [],
   onClearAlertNameFilter,
   onClearComponentFilter,
   onClusterClick,
@@ -2380,6 +2389,19 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   groupBy = 'none',
   onGroupByChange,
 }) => {
+  // Component metadata with impact groups
+  const componentMeta: Record<AlertComponent, { impactGroup: 'Cluster' | 'Namespace' }> = {
+    'kube-apiserver': { impactGroup: 'Cluster' },
+    'etcd': { impactGroup: 'Cluster' },
+    'Scheduler': { impactGroup: 'Cluster' },
+    'Controller': { impactGroup: 'Cluster' },
+    'Network': { impactGroup: 'Cluster' },
+    'Storage': { impactGroup: 'Namespace' },
+    'Workload': { impactGroup: 'Namespace' },
+    'Pod': { impactGroup: 'Namespace' },
+    'Quota': { impactGroup: 'Namespace' },
+  };
+  
   const [searchValue, setSearchValue] = React.useState('');
   const [severityFilter, setSeverityFilter] = React.useState<AlertSeverity[]>([]);
   const [page, setPage] = React.useState(1);
@@ -2685,6 +2707,11 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
       if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase())) return false;
+      // Filter by impact group - only show components that match selected groups
+      if (groupFilter && groupFilter.length > 0 && groupFilter.length < 2 && alert.component) {
+        const componentImpactGroup = componentMeta[alert.component as AlertComponent]?.impactGroup;
+        if (componentImpactGroup && !groupFilter.includes(componentImpactGroup)) return false;
+      }
       return true;
     });
     
@@ -2729,7 +2756,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       }
       return 0;
     });
-  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue, sortConfigs]);
+  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue, sortConfigs, groupFilter]);
 
   // Get selected alerts data for silence modal
   const selectedAlertsData = React.useMemo(() => {
@@ -2921,7 +2948,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
   return (
     <Card id="all-alerts-card">
-      <CardHeader>
+      <CardHeader style={{ gap: '0px' }}>
         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>
             <CardTitle>
@@ -2935,15 +2962,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 <StackItem>
                   <Toolbar>
                     <ToolbarContent>
-                      <ToolbarItem>
-                        <SearchInput
-                          placeholder="Search alerts..."
-                          value={searchValue}
-                          onChange={(_, value) => setSearchValue(value)}
-                          onClear={() => setSearchValue('')}
-                          style={{ width: '250px' }}
-                        />
-                      </ToolbarItem>
                       <ToolbarItem>
                         <Dropdown
                           isOpen={isGroupByOpen}
@@ -3958,15 +3976,28 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     </FlexItem>
                     <FlexItem>
                       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                        <Button variant="control" icon={<MinusIcon />} onClick={() => setSilenceDuration(Math.max(1, silenceDuration - 1))} />
-                        <TextInputGroup style={{ width: '60px' }}>
-                          <TextInputGroupMain 
+                        <FlexItem>
+                          <Button variant="control" icon={<MinusIcon />} onClick={() => setSilenceDuration(Math.max(1, silenceDuration - 1))} />
+                        </FlexItem>
+                        <FlexItem>
+                          <input 
                             type="number" 
                             value={silenceDuration} 
-                            onChange={(_, val) => setSilenceDuration(parseInt(val) || 1)}
+                            onChange={(e) => setSilenceDuration(parseInt(e.target.value) || 1)}
+                            style={{ 
+                              width: '60px', 
+                              textAlign: 'center',
+                              padding: '6px 8px',
+                              border: '1px solid var(--pf-t--global--border--color--default)',
+                              borderRadius: '3px',
+                              fontSize: '14px'
+                            }}
+                            min={1}
                           />
-                        </TextInputGroup>
-                        <Button variant="control" icon={<PlusIcon />} onClick={() => setSilenceDuration(silenceDuration + 1)} />
+                        </FlexItem>
+                        <FlexItem>
+                          <Button variant="control" icon={<PlusIcon />} onClick={() => setSilenceDuration(silenceDuration + 1)} />
+                        </FlexItem>
                         <Dropdown
                           isOpen={isDurationUnitOpen}
                           onOpenChange={setIsDurationUnitOpen}
@@ -4296,28 +4327,41 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     </FlexItem>
                     <FlexItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <Button 
-                          variant="control" 
-                          onClick={() => setSilenceDuration(Math.max(1, silenceDuration - 1))}
-                          isDisabled={silenceDurationType !== 'for'}
-                        >
-                          -
-                        </Button>
-                        <TextInputGroup isDisabled={silenceDurationType !== 'for'}>
-                          <TextInputGroupMain 
+                        <FlexItem>
+                          <Button 
+                            variant="control" 
+                            onClick={() => setSilenceDuration(Math.max(1, silenceDuration - 1))}
+                            isDisabled={silenceDurationType !== 'for'}
+                          >
+                            -
+                          </Button>
+                        </FlexItem>
+                        <FlexItem>
+                          <input 
                             type="number" 
                             value={silenceDuration} 
-                            onChange={(_, value) => setSilenceDuration(Number(value) || 1)} 
-                            style={{ width: '60px', textAlign: 'center' }}
+                            onChange={(e) => setSilenceDuration(Number(e.target.value) || 1)} 
+                            disabled={silenceDurationType !== 'for'}
+                            style={{ 
+                              width: '60px', 
+                              textAlign: 'center',
+                              padding: '6px 8px',
+                              border: '1px solid var(--pf-t--global--border--color--default)',
+                              borderRadius: '3px',
+                              fontSize: '14px'
+                            }}
+                            min={1}
                           />
-                        </TextInputGroup>
-                        <Button 
-                          variant="control" 
-                          onClick={() => setSilenceDuration(silenceDuration + 1)}
-                          isDisabled={silenceDurationType !== 'for'}
-                        >
-                          +
-                        </Button>
+                        </FlexItem>
+                        <FlexItem>
+                          <Button 
+                            variant="control" 
+                            onClick={() => setSilenceDuration(silenceDuration + 1)}
+                            isDisabled={silenceDurationType !== 'for'}
+                          >
+                            +
+                          </Button>
+                        </FlexItem>
                         {silenceDurationType === 'for' ? (
                           <Select
                             isOpen={isSilenceDurationUnitOpen}
@@ -5254,7 +5298,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   
   // Firing Alerts grouping
   type AlertsGroupByOption = 'none' | 'time' | 'severity' | 'alertRule' | 'impact' | 'component';
-  const [alertsGroupBy, setAlertsGroupBy] = React.useState<AlertsGroupByOption>('none');
+  const [alertsGroupBy, setAlertsGroupBy] = React.useState<AlertsGroupByOption>('component');
   const [isAlertsGroupByOpen, setIsAlertsGroupByOpen] = React.useState(false);
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   
@@ -5279,7 +5323,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [namespaceFilter, setNamespaceFilter] = React.useState<string[]>([]);
   const [labelFilter, setLabelFilter] = React.useState<string[]>([]);
   const [severityFilter, setSeverityFilter] = React.useState<AlertSeverity[]>([]);
-  const [groupFilter, setGroupFilter] = React.useState<AlertGroup[]>([]);
+  const [groupFilter, setGroupFilter] = React.useState<AlertGroup[]>(['Cluster', 'Namespace']);
   const [componentFilter, setComponentFilter] = React.useState<AlertComponent[]>([]);
   const [searchValue, setSearchValue] = React.useState('');
 
@@ -5289,6 +5333,10 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [sortBy, setSortBy] = React.useState<SortByOption>('severity');
   const [importanceSizing, setImportanceSizing] = React.useState<ImportanceSizing>('nodeCount');
   const [userRole] = React.useState<UserRole>('admin');
+  
+  // Table sorting state
+  const [activeSortIndex, setActiveSortIndex] = React.useState<number | null>(null);
+  const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const [isGroupByOpen, setIsGroupByOpen] = React.useState(false);
   // Treemap legend filters
   const [treemapLegendFilters, setTreemapLegendFilters] = React.useState<('Critical' | 'Warning' | 'Info' | 'Healthy')[]>([]);
@@ -5536,30 +5584,70 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     });
   }, [regionFilter, clusterFilter, namespaceFilter, searchValue, severityFilter]);
 
-  // Sort clusters
+  // Sort clusters - supports both legacy sortBy and table column sorting
   const sortedClusters = React.useMemo(() => {
     const sorted = [...filteredClusters];
-    switch (sortBy) {
-      case 'severity':
-        sorted.sort((a, b) => {
-          const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
-          const statusDiff = statusOrder[getClusterAlertStatus(a)] - statusOrder[getClusterAlertStatus(b)];
-          if (statusDiff !== 0) return statusDiff;
-          const aFiring = a.alerts.filter(al => al.status === 'firing').length;
-          const bFiring = b.alerts.filter(al => al.status === 'firing').length;
-          if (aFiring !== bFiring) return bFiring - aFiring;
-          return a.name.localeCompare(b.name);
-        });
-        break;
-      case 'alertCount':
-        sorted.sort((a, b) => b.alerts.filter(al => al.status === 'firing').length - a.alerts.filter(al => al.status === 'firing').length);
-        break;
-      case 'clusterName':
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
-        break;
+    
+    // If table column sorting is active, use that
+    if (activeSortIndex !== null) {
+      sorted.sort((a, b) => {
+        let comparison = 0;
+        const aFiring = a.alerts.filter(al => al.status === 'firing');
+        const bFiring = b.alerts.filter(al => al.status === 'firing');
+        const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
+        
+        switch (activeSortIndex) {
+          case 0: // Cluster Status
+            comparison = statusOrder[getClusterAlertStatus(a)] - statusOrder[getClusterAlertStatus(b)];
+            break;
+          case 1: // Cluster Name
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case 2: // Region
+            comparison = a.region.localeCompare(b.region);
+            break;
+          case 3: // Total Alerts
+            comparison = aFiring.length - bFiring.length;
+            break;
+          case 4: // Severity Breakdown (sort by critical count first)
+            const aCritical = aFiring.filter(al => al.severity === 'Critical').length;
+            const bCritical = bFiring.filter(al => al.severity === 'Critical').length;
+            if (aCritical !== bCritical) {
+              comparison = aCritical - bCritical;
+            } else {
+              const aWarning = aFiring.filter(al => al.severity === 'Warning').length;
+              const bWarning = bFiring.filter(al => al.severity === 'Warning').length;
+              comparison = aWarning - bWarning;
+            }
+            break;
+        }
+        
+        return activeSortDirection === 'asc' ? comparison : -comparison;
+      });
+    } else {
+      // Legacy sortBy behavior
+      switch (sortBy) {
+        case 'severity':
+          sorted.sort((a, b) => {
+            const statusOrder = { critical: 0, warning: 1, info: 2, healthy: 3 };
+            const statusDiff = statusOrder[getClusterAlertStatus(a)] - statusOrder[getClusterAlertStatus(b)];
+            if (statusDiff !== 0) return statusDiff;
+            const aFiring = a.alerts.filter(al => al.status === 'firing').length;
+            const bFiring = b.alerts.filter(al => al.status === 'firing').length;
+            if (aFiring !== bFiring) return bFiring - aFiring;
+            return a.name.localeCompare(b.name);
+          });
+          break;
+        case 'alertCount':
+          sorted.sort((a, b) => b.alerts.filter(al => al.status === 'firing').length - a.alerts.filter(al => al.status === 'firing').length);
+          break;
+        case 'clusterName':
+          sorted.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+      }
     }
     return sorted;
-  }, [filteredClusters, sortBy]);
+  }, [filteredClusters, sortBy, activeSortIndex, activeSortDirection]);
 
   // Metrics
   const totalAlerts = filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.status === 'firing').length, 0);
@@ -5743,7 +5831,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setNamespaceFilter([]);
     setLabelFilter([]);
     setSeverityFilter([]);
-    setGroupFilter([]);
+    setGroupFilter(['Cluster', 'Namespace']); // Reset to default with both groups selected
     setComponentFilter([]);
     setSearchValue('');
     // Also clear in-card view states
@@ -5799,7 +5887,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   };
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
-    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0 || searchValue.length > 0 ||
+    labelFilter.length > 0 || severityFilter.length > 0 || (groupFilter.length > 0 && groupFilter.length < 2) || componentFilter.length > 0 || searchValue.length > 0 ||
     selectedClusterInCard !== null || selectedClusterForAlerts !== null || mainComponentFilter !== null || mainAlertNameFilter !== null;
 
   const hasDrillDownActiveFilters = drillDownSeverityFilter.length > 0 || drillDownGroupFilter.length > 0 || 
@@ -6386,7 +6474,7 @@ spec:
                         <Card>
                           <CardHeader style={{ padding: '24px 24px 0 24px' }}>
                             <Toolbar style={{ padding: 0, margin: 0, paddingBottom: '24px', minHeight: 'auto' }}>
-                              <ToolbarContent style={{ padding: 0, alignItems: 'center' }}>
+                              <ToolbarContent style={{ alignItems: 'center' }}>
                                 {/* Saved Filters Dropdown */}
                                 <ToolbarItem>
                                   <Dropdown
@@ -7061,27 +7149,13 @@ spec:
         backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
         borderBottom: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
         zIndex: 100,
+        paddingBottom: '0px',
       }}>
         {/* Page Header */}
         <div>
-          <div className="alerting-page-header" style={{ padding: '12px 24px 0 24px' }}>
-            {/* Compact Header Row - Breadcrumbs + Title + Actions */}
-            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
-              <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                  <FlexItem>
-                    <Breadcrumb>
-                      <BreadcrumbItem to="/">Home</BreadcrumbItem>
-                      <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-                      <BreadcrumbItem isActive>Alerting</BreadcrumbItem>
-                    </Breadcrumb>
-                  </FlexItem>
-                </Flex>
-              </FlexItem>
-            </Flex>
-
-            {/* Title Row with Refresh */}
-            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
+          <div className="alerting-page-header" style={{ padding: '16px 24px 0' }}>
+            {/* Compact Header Row - Title + Refresh on same line */}
+            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '4px' }}>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                 <FlexItem>
                   <Icon size="md" status="danger">
@@ -7089,7 +7163,7 @@ spec:
                   </Icon>
                 </FlexItem>
                 <FlexItem>
-                  <Title headingLevel="h1" size="xl">Multi-cluster alerting</Title>
+                  <Title headingLevel="h1" size="lg">Multi-cluster alerting</Title>
                 </FlexItem>
               </Flex>
               {/* Refresh with interval dropdown - moved to header */}
@@ -7153,62 +7227,63 @@ spec:
               </Flex>
             </Flex>
 
-            {/* Main Page Tabs - Compact */}
-            <Tabs activeKey={mainPageTab} onSelect={(_, key) => setMainPageTab(key)} aria-label="Main alerting tabs" isFilled={false}>
+            {/* Main Page Tabs */}
+            <Tabs 
+              activeKey={mainPageTab} 
+              onSelect={(_, key) => setMainPageTab(key)} 
+              aria-label="Main alerting tabs"
+            >
               <Tab eventKey="alerts" title={<TabTitleText><BellIcon /> Alerts</TabTitleText>} />
               <Tab eventKey="incidents" title={<TabTitleText><PortIcon /> Incidents</TabTitleText>} />
               <Tab eventKey="management" title={<TabTitleText><CogIcon /> Management</TabTitleText>} />
             </Tabs>
 
-            {/* V2: Alerts Sub-tabs - Only show when alerts tab is active */}
+            {/* V2: Alerts Sub-tabs - Subtab styling per PatternFly v6 guidelines */}
             {mainPageTab === 'alerts' && (
-              <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
-                <Tabs 
-                  activeKey={alertsSubTab} 
-                  onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
-                  aria-label="Alerts sub-tabs" 
-                  variant="secondary"
-                >
-                  <Tab eventKey="clusters-health" title={<TabTitleText>Clusters health</TabTitleText>} />
-                  <Tab eventKey="firing-alerts" title={<TabTitleText>Firing alerts</TabTitleText>} />
-                </Tabs>
-              </div>
+              <Tabs 
+                activeKey={alertsSubTab} 
+                onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
+                aria-label="Alerts sub-tabs" 
+                isSubtab
+              >
+                <Tab eventKey="clusters-health" title={<TabTitleText>Clusters health</TabTitleText>} />
+                <Tab eventKey="firing-alerts" title={<TabTitleText>Firing alerts</TabTitleText>} />
+              </Tabs>
             )}
 
-            {/* Management Sub-tabs - styled like Alerts sub-tabs */}
+            {/* Management Sub-tabs - Subtab styling per PatternFly v6 guidelines */}
             {mainPageTab === 'management' && (
-              <div style={{ marginTop: '-1px', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
-                <Tabs 
-                  activeKey={managementSubTab} 
-                  onSelect={(_, key) => setManagementSubTab(key)}
-                  aria-label="Management sub-tabs" 
-                  variant="secondary"
-                >
-                  <Tab 
-                    eventKey="alert-rules" 
-                    title={
-                      <TabTitleText>
-                        Alert rules <Badge isRead style={{ marginLeft: '8px' }}>21</Badge>
-                      </TabTitleText>
-                    } 
-                  />
-                  <Tab 
-                    eventKey="silence-rules" 
-                    title={
-                      <TabTitleText>
-                        Silence rules <Badge isRead style={{ marginLeft: '8px' }}>2</Badge>
-                      </TabTitleText>
-                    } 
-                  />
-                </Tabs>
-              </div>
+              <Tabs 
+                activeKey={managementSubTab} 
+                onSelect={(_, key) => setManagementSubTab(key)}
+                aria-label="Management sub-tabs" 
+                isSubtab
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                <Tab 
+                  eventKey="alert-rules" 
+                  title={
+                    <TabTitleText>
+                      Alert rules <Badge isRead style={{ marginLeft: '8px' }}>21</Badge>
+                    </TabTitleText>
+                  } 
+                />
+                <Tab 
+                  eventKey="silence-rules" 
+                  title={
+                    <TabTitleText>
+                      Silence rules <Badge isRead style={{ marginLeft: '8px' }}>2</Badge>
+                    </TabTitleText>
+                  } 
+                />
+              </Tabs>
             )}
           </div>
         </div>
 
         {/* Toolbar section - Always visible (sticky) */}
         {mainPageTab === 'alerts' && (
-          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
+          <div style={{ padding: '8px 24px 0', borderTop: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)' }}>
             <Toolbar className="pf-m-align-items-center">
               <ToolbarContent className="pf-m-align-items-center">
                 {/* Saved Filters Dropdown - First */}
@@ -7280,18 +7355,16 @@ spec:
                 Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{regionFilter.length + clusterFilter.length + severityFilter.length + groupFilter.length + componentFilter.length}</Badge>}
               </Button>
             </ToolbarItem>
-            {/* Search Input - Third - Hidden on Firing Alerts tab as it's in the card */}
-            {alertsSubTab !== 'firing-alerts' && (
-              <ToolbarItem>
-                <SearchInput
-                  placeholder="Search clusters..."
-                  value={searchValue}
-                  onChange={(_, value) => setSearchValue(value)}
-                  onClear={() => setSearchValue('')}
-                  style={{ width: '300px' }}
-                />
-              </ToolbarItem>
-            )}
+            {/* Search Input - Third - Changes scope based on tab */}
+            <ToolbarItem>
+              <SearchInput
+                placeholder={alertsSubTab === 'firing-alerts' ? 'Search alerts...' : 'Search clusters...'}
+                value={searchValue}
+                onChange={(_, value) => setSearchValue(value)}
+                onClear={() => setSearchValue('')}
+                style={{ width: '300px' }}
+              />
+            </ToolbarItem>
           </ToolbarContent>
         </Toolbar>
 
@@ -7301,7 +7374,7 @@ spec:
             gap={{ default: 'gapSm' }} 
             alignItems={{ default: 'alignItemsCenter' }} 
             style={{ 
-              marginTop: '8px', 
+              marginTop: '16px', 
               marginBottom: '16px',
               padding: showFilterAnimation ? '8px 12px' : undefined,
               borderRadius: showFilterAnimation ? '6px' : undefined,
@@ -7334,7 +7407,11 @@ spec:
                   </LabelGroup>
                 )}
                 {componentFilter.length > 0 && (
-                  <LabelGroup categoryName="Component">
+                  <LabelGroup categoryName={
+                    groupFilter.length > 0 && groupFilter.length < 2
+                      ? `Component (in: Impact: ${groupFilter.join(', Impact: ')})`
+                      : "Component"
+                  }>
                     {componentFilter.map(c => (
                       <Label key={c} variant="outline" onClose={() => setComponentFilter(componentFilter.filter(x => x !== c))}>{c}</Label>
                     ))}
@@ -7534,60 +7611,68 @@ spec:
         )}
 
         {/* Main Content Area - Scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-            <Stack hasGutter>
-              {/* Stats Cards */}
-              <StackItem>
-                <Grid hasGutter>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Clusters in Fleet"
-                      value={filteredClusters.length}
-                      icon={<Icon><CubesIcon /></Icon>}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Firing Alerts"
-                      value={totalAlerts}
-                      icon={<Icon><BellIcon /></Icon>}
-                      trend={{ value: 12, isUp: true }}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Critical"
-                      value={criticalAlerts}
-                      icon={<Icon status="danger"><ExclamationCircleIcon /></Icon>}
-                      color="danger"
-                      trend={{ value: 5, isUp: true }}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Warning"
-                      value={warningAlerts}
-                      icon={<Icon status="warning"><ExclamationTriangleIcon /></Icon>}
-                      color="warning"
-                      trend={{ value: 8, isUp: false }}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Info"
-                      value={filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)}
-                      icon={<Icon status="info"><InfoCircleIcon /></Icon>}
-                    />
-                  </GridItem>
-                  <GridItem md={2}>
-                    <StatsCard
-                      title="Healthy Clusters"
-                      value={healthyClusters}
-                      icon={<Icon status="success"><CheckCircleIcon /></Icon>}
-                      color="success"
-                    />
-                  </GridItem>
-                </Grid>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+            <Stack hasGutter style={{ gap: '16px' }}>
+              {/* Horizontal Metric Bar */}
+              <StackItem style={{ marginTop: '16px', marginBottom: '16px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '24px',
+                  padding: '12px 16px',
+                  backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--pf-t--global--border--color--default)',
+                  flexWrap: 'wrap'
+                }}>
+                  <Tooltip content={`Clusters: ${filteredClusters.length} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon><CubesIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Clusters</span>
+                      <strong style={{ fontSize: '16px' }}>{filteredClusters.length}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon><BellIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Firing</span>
+                      <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Critical: ${criticalAlerts} - ${Math.floor(Math.random() * 15) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
+                      <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Warning: ${warningAlerts} - ${Math.floor(Math.random() * 12) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
+                      <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Info: ${filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)} - ${Math.floor(Math.random() * 8) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon status="info"><InfoCircleIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Info</span>
+                      <strong style={{ fontSize: '16px' }}>{filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)}</strong>
+                    </div>
+                  </Tooltip>
+                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                  <Tooltip content={`Healthy: ${healthyClusters} - ${Math.floor(Math.random() * 5) + 1}% more from last day`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                      <Icon status="success"><CheckCircleIcon /></Icon>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Healthy</span>
+                      <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--success--default)' }}>{healthyClusters}</strong>
+                    </div>
+                  </Tooltip>
+                </div>
               </StackItem>
 
               {/* Cluster Overview Card */}
@@ -8061,11 +8146,66 @@ spec:
                       <Table aria-label="Clusters table">
                         <Thead>
                           <Tr>
-                            <Th>Cluster Status</Th>
-                            <Th>Cluster</Th>
-                            <Th>Region</Th>
-                            <Th>Total Alerts</Th>
-                            <Th>Severity Breakdown</Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 0
+                              }}
+                            >
+                              Cluster Status
+                            </Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 1
+                              }}
+                            >
+                              Cluster
+                            </Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 2
+                              }}
+                            >
+                              Region
+                            </Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 3
+                              }}
+                            >
+                              Total Alerts
+                            </Th>
+                            <Th 
+                              sort={{
+                                sortBy: { index: activeSortIndex || 0, direction: activeSortDirection },
+                                onSort: (_event, index, direction) => {
+                                  setActiveSortIndex(index);
+                                  setActiveSortDirection(direction);
+                                },
+                                columnIndex: 4
+                              }}
+                            >
+                              Severity Breakdown
+                            </Th>
                           </Tr>
                         </Thead>
                         <Tbody>
@@ -8185,11 +8325,27 @@ spec:
                 clusters={filteredClusters}
                 onAlertRuleClick={(alertName) => {
                   setMainAlertNameFilter(alertName);
-                  setAlertsSubTab('firing-alerts');
+                  setAlertsSubTabState('firing-alerts');
+                  // Update URL with tab and alert name params
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.set('tab', 'firing-alerts');
+                  newParams.set('alertName', alertName);
+                  navigate(`?${newParams.toString()}`, { replace: false });
+                  // Trigger animation to highlight the filtered view
+                  setShowFilterAnimation(true);
+                  setTimeout(() => setShowFilterAnimation(false), 1500);
                 }}
                 onComponentClick={(componentName) => {
                   setMainComponentFilter(componentName);
-                  setAlertsSubTab('firing-alerts');
+                  setAlertsSubTabState('firing-alerts');
+                  // Update URL with tab and component params
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.set('tab', 'firing-alerts');
+                  newParams.set('component', componentName);
+                  navigate(`?${newParams.toString()}`, { replace: false });
+                  // Trigger animation to highlight the filtered view
+                  setShowFilterAnimation(true);
+                  setTimeout(() => setShowFilterAnimation(false), 1500);
                 }}
               />
 
@@ -8296,43 +8452,53 @@ spec:
           )}
 
           {/* Main Content Area - Firing Alerts */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-            <Stack hasGutter>
-              {/* Stats Summary Row - Hidden when viewing single cluster */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+            <Stack hasGutter style={{ gap: '16px' }}>
+              {/* Horizontal Metric Bar - Hidden when viewing single cluster */}
               {firingAlertsCardView === 'all-clusters' && (
-                <StackItem>
-                  <Grid hasGutter>
-                    <GridItem md={3}>
-                      <StatsCard
-                        title="Total Firing Alerts"
-                        value={totalAlerts}
-                        icon={<Icon><BellIcon /></Icon>}
-                      />
-                    </GridItem>
-                    <GridItem md={3}>
-                      <StatsCard
-                        title="Critical"
-                        value={criticalAlerts}
-                        icon={<Icon status="danger"><ExclamationCircleIcon /></Icon>}
-                        color="danger"
-                      />
-                    </GridItem>
-                    <GridItem md={3}>
-                      <StatsCard
-                        title="Warning"
-                        value={warningAlerts}
-                        icon={<Icon status="warning"><ExclamationTriangleIcon /></Icon>}
-                        color="warning"
-                      />
-                    </GridItem>
-                    <GridItem md={3}>
-                      <StatsCard
-                        title="Affected Clusters"
-                        value={filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length}
-                        icon={<Icon><ClusterIcon /></Icon>}
-                      />
-                    </GridItem>
-                  </Grid>
+                <StackItem style={{ marginTop: '16px', marginBottom: '16px' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '24px',
+                    padding: '12px 16px',
+                    backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+                    borderRadius: '6px',
+                    border: '1px solid var(--pf-t--global--border--color--default)',
+                    flexWrap: 'wrap'
+                  }}>
+                    <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                        <Icon><BellIcon /></Icon>
+                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Total Firing</span>
+                        <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
+                      </div>
+                    </Tooltip>
+                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                    <Tooltip content={`Critical: ${criticalAlerts} - ${Math.floor(Math.random() * 15) + 1}% more from last day`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                        <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
+                        <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
+                      </div>
+                    </Tooltip>
+                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                    <Tooltip content={`Warning: ${warningAlerts} - ${Math.floor(Math.random() * 12) + 1}% more from last day`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                        <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
+                        <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
+                      </div>
+                    </Tooltip>
+                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                    <Tooltip content={`Affected Clusters: ${filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                        <Icon><ClusterIcon /></Icon>
+                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Affected Clusters</span>
+                        <strong style={{ fontSize: '16px' }}>{filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length}</strong>
+                      </div>
+                    </Tooltip>
+                  </div>
                 </StackItem>
               )}
 
@@ -8345,6 +8511,7 @@ spec:
                     : filteredClusters}
                   alertNameFilter={mainAlertNameFilter}
                   componentFilter={mainComponentFilter}
+                  groupFilter={groupFilter}
                   onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
                   onClearComponentFilter={() => setMainComponentFilter(null)}
                   onClusterClick={handleClusterClickInAlerts}
@@ -8378,6 +8545,7 @@ spec:
           cluster={selectedCluster}
           onComponentClick={handleComponentClick}
           onBackToFleet={handleBackToFleet}
+          groupFilter={groupFilter}
         />
       )}
 
@@ -8456,7 +8624,7 @@ spec:
 
       {/* Incidents Tab Content */}
       {mainPageTab === 'incidents' && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0px 8px' }}>
           <Card>
             <CardBody>
               <EmptyState 
@@ -8480,12 +8648,12 @@ spec:
       )}
 
       {/* Management Tab Content */}
-      {mainPageTab === 'management' && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+      {mainPageTab === 'management' && navigationView === 'fleet-overview' && (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0px 8px' }}>
           <Stack hasGutter>
             <StackItem>
               {managementSubTab === 'alert-rules' && (
-                <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ display: 'flex', gap: '16px', paddingTop: '16px' }}>
                   {/* Filter Panel - Matching Alerts filter panel style */}
                   {isAlertRulesFilterPanelOpen && (
                     <div style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0 }}>

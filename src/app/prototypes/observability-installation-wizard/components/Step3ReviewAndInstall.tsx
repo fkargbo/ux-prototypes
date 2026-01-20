@@ -16,6 +16,8 @@ import {
   Alert,
   AlertVariant,
 } from '@patternfly/react-core';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 import { WizardData } from './Step2ObservabilityComponents';
 
 interface Step3ReviewAndInstallProps {
@@ -123,32 +125,57 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
     };
   }, [data.selectedCapabilities]);
 
+  // BOM Table data structure
+  interface BOMItem {
+    name: string;
+    id: string;
+    version?: string;
+    channel?: string;
+    type: 'operator' | 'storage';
+  }
+
   // Get operators to install based on selected capabilities from Step 2
-  // Maps each selected capability to its corresponding operator
-  const operatorsToInstall = useMemo(() => {
-    const operators: string[] = [];
+  // Maps each selected capability to its corresponding operator with version info
+  const bomData = useMemo(() => {
+    const items: BOMItem[] = [];
     
     if (!data.selectedCapabilities || !Array.isArray(data.selectedCapabilities)) {
-      return operators;
+      return items;
     }
     
     // Cluster Observability Operator - included if metrics-alerting is selected (required)
     // This operator includes: Prometheus, Alertmanager, and optionally Thanos and Korrel8r as operands
     if (data.selectedCapabilities.includes('metrics-alerting')) {
-      operators.push('Cluster Observability Operator (Prometheus)');
+      const versionInfo = data.operatorVersions?.['metrics-alerting'];
+      items.push({ 
+        name: 'Cluster Observability Operator (Prometheus)', 
+        id: 'metrics-alerting',
+        version: versionInfo?.version,
+        channel: versionInfo?.channel,
+        type: 'operator'
+      });
     }
     
     // Long-term Storage (Thanos) - shown as a component when selected
     // Note: Thanos is technically an operand of Cluster Observability Operator, but we display it separately for clarity
     if (data.selectedCapabilities.includes('thanos')) {
-      operators.push('Long-term Storage (Thanos)');
+      const versionInfo = data.operatorVersions?.['thanos'];
+      items.push({ 
+        name: 'Long-term Storage (Thanos)', 
+        id: 'thanos',
+        version: versionInfo?.version,
+        channel: versionInfo?.channel,
+        type: 'operator'
+      });
     }
     
     // Map capabilities to their corresponding operators
     const capabilityToOperatorMap: { [key: string]: string } = {
-      'loki': 'Loki Operator',
-      'tempo': 'Tempo Operator',
-      'network-traffic': 'Network Observability Operator',
+      'loki': 'Centralized Logging (Loki)',
+      'tempo': 'Distributed Tracing (Tempo)',
+      'network-traffic': 'Network Traffic Analysis (NetObserve)',
+      'opentelemetry': 'Telemetry Pipeline (OpenTelemetry)',
+      'incident-detection': 'Incident Detection (Native)',
     };
     
     // Add operators for each selected capability
@@ -158,14 +185,43 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
         return;
       }
       
-      const operator = capabilityToOperatorMap[capabilityId];
-      if (operator && !operators.includes(operator)) {
-        operators.push(operator);
+      const operatorName = capabilityToOperatorMap[capabilityId];
+      if (operatorName) {
+        const versionInfo = data.operatorVersions?.[capabilityId];
+        items.push({ 
+          name: operatorName, 
+          id: capabilityId,
+          version: versionInfo?.version,
+          channel: versionInfo?.channel,
+          type: 'operator'
+        });
       }
     });
     
-    return operators;
-  }, [data.selectedCapabilities]);
+    // Add storage items
+    if (data.selectedStorage && Array.isArray(data.selectedStorage) && data.selectedStorage.length > 0) {
+      data.selectedStorage.forEach(storageId => {
+        const storageNameMap: { [key: string]: string } = {
+          'odf': 'OpenShift Data Foundation (ODF)',
+          'lvm': 'Logical Volume Manager (LVM)',
+        };
+        const versionInfo = data.storageVersions?.[storageId];
+        items.push({
+          name: storageNameMap[storageId] || storageId,
+          id: storageId,
+          version: versionInfo?.version,
+          channel: versionInfo?.channel,
+          type: 'storage'
+        });
+      });
+    }
+    
+    return items;
+  }, [data.selectedCapabilities, data.selectedStorage, data.operatorVersions, data.storageVersions]);
+
+  // Separate operators and storage for grouped display
+  const operatorsBOM = useMemo(() => bomData.filter(item => item.type === 'operator'), [bomData]);
+  const storageBOM = useMemo(() => bomData.filter(item => item.type === 'storage'), [bomData]);
 
   // Get UI components to install based on selected UI plugins from Step 2
   const uiComponentsToInstall = useMemo(() => {
@@ -303,20 +359,90 @@ export const Step3ReviewAndInstall: React.FC<Step3ReviewAndInstallProps> = ({
           </Card>
         </StackItem>
 
-        {/* Operators to Install */}
+        {/* BOM Table - Operators and Storage */}
         <StackItem>
           <Card>
-            <CardTitle>Operators to install</CardTitle>
+            <CardTitle>Bill of Materials</CardTitle>
             <CardBody>
-              {operatorsToInstall.length > 0 ? (
-                <List>
-                  {operatorsToInstall.map((operator) => (
-                    <ListItem key={operator}>{operator}</ListItem>
-                  ))}
-                </List>
+              {bomData.length > 0 ? (
+                <Table variant="compact" aria-label="BOM table">
+                  <Thead>
+                    <Tr>
+                      <Th width={25} style={{ fontSize: '14px' }}>Service</Th>
+                      <Th width={25} style={{ fontSize: '14px' }}>Version</Th>
+                      <Th width={25} style={{ fontSize: '14px' }}>Update Channel</Th>
+                      <Th width={25} style={{ fontSize: '14px' }}>Status</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {/* Observability Services Section */}
+                    {operatorsBOM.length > 0 && (
+                      <>
+                        <Tr>
+                          <Th colSpan={4} style={{ backgroundColor: 'var(--pf-v5-global--BackgroundColor--200)', fontWeight: '600', fontSize: '14px', padding: '12px 8px' }}>
+                            Observability Services
+                          </Th>
+                        </Tr>
+                        {operatorsBOM.map((item) => (
+                          <Tr key={`operator-${item.id}`}>
+                            <Td>{item.name}</Td>
+                            <Td>
+                              {item.version ? (
+                                <Badge isRead style={{ fontSize: '12px' }}>
+                                  v{item.version}
+                                </Badge>
+                              ) : (
+                                'N/A'
+                              )}
+                            </Td>
+                            <Td>{item.channel || 'N/A'}</Td>
+                            <Td>
+                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <CheckCircleIcon style={{ color: '#3d7317', fontSize: '16px' }} />
+                                <span style={{ fontSize: '14px', color: 'var(--pf-v5-global--success-color--100)' }}>Ready to install</span>
+                              </Flex>
+                            </Td>
+                          </Tr>
+                        ))}
+                      </>
+                    )}
+                    
+                    {/* Infrastructure Storage Section */}
+                    {storageBOM.length > 0 && (
+                      <>
+                        <Tr>
+                          <Th colSpan={4} style={{ backgroundColor: 'var(--pf-v5-global--BackgroundColor--200)', fontWeight: '600', fontSize: '14px', padding: '12px 8px' }}>
+                            Storage Infrastructure
+                          </Th>
+                        </Tr>
+                        {storageBOM.map((item) => (
+                          <Tr key={`storage-${item.id}`}>
+                            <Td>{item.name}</Td>
+                            <Td>
+                              {item.version ? (
+                                <Badge isRead style={{ fontSize: '12px' }}>
+                                  v{item.version}
+                                </Badge>
+                              ) : (
+                                'N/A'
+                              )}
+                            </Td>
+                            <Td>{item.channel || 'N/A'}</Td>
+                            <Td>
+                              <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <CheckCircleIcon style={{ color: '#3d7317', fontSize: '16px' }} />
+                                <span style={{ fontSize: '14px', color: 'var(--pf-v5-global--success-color--100)' }}>Ready to install</span>
+                              </Flex>
+                            </Td>
+                          </Tr>
+                        ))}
+                      </>
+                    )}
+                  </Tbody>
+                </Table>
               ) : (
                 <Content style={{ color: '#6a6e73' }}>
-                  No operators selected. Please go back to Step 2 to select capabilities.
+                  No operators or storage selected. Please go back to Step 2 to select capabilities.
                 </Content>
               )}
             </CardBody>

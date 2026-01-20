@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Title,
   Content,
@@ -19,6 +19,10 @@ import {
   FlexItem,
   Switch,
   Badge,
+  Label,
+  HelperText,
+  HelperTextItem,
+  Spinner,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -40,6 +44,7 @@ export interface Capability {
   description: string;
   required?: boolean;
   dependencies?: string[];
+  requiresHighPerformanceStorage?: boolean;
   nestedOptions?: Array<{
     id: string;
     name: string;
@@ -64,6 +69,8 @@ export interface WizardData {
   advancedMode: boolean;
   selectedUIPlugins: string[];
   selectedStorage: string[]; // Selected storage options (ODF or LVM)
+  operatorVersions?: { [capabilityId: string]: { version: string; channel: string } }; // Version and channel for each selected operator
+  storageVersions?: { [storageId: string]: { version: string; channel: string } }; // Version and channel for each selected storage
 }
 
 interface Step2ObservabilityComponentsProps {
@@ -123,6 +130,24 @@ const NEED_DEPENDENCIES: Record<GoalID, GoalDependencies> = {
   },
 };
 
+// Default versions and channels for operators
+const OPERATOR_VERSIONS: Record<string, { version: string; channel: string }> = {
+  'metrics-alerting': { version: '1.3.1', channel: 'stable' },
+  'thanos': { version: '0.40.0', channel: 'stable' },
+  'loki': { version: '5.8.1', channel: 'stable-5.8' },
+  'tempo': { version: '2.5.0', channel: 'stable-2.5' },
+  'opentelemetry': { version: '0.95.0', channel: 'stable' },
+  'network-traffic': { version: '1.2.0', channel: 'stable' },
+  'korrel8r': { version: '0.8.0', channel: 'stable' },
+  'incident-detection': { version: '1.0.0', channel: 'stable' },
+};
+
+// Default versions and channels for storage
+const STORAGE_VERSIONS: Record<string, { version: string; channel: string }> = {
+  'odf': { version: '4.16.0', channel: 'stable-4.16' },
+  'lvm': { version: '4.15.0', channel: 'stable-4.15' },
+};
+
 // Legacy personas (kept for backward compatibility during migration)
 const personas: Persona[] = [
   {
@@ -158,7 +183,7 @@ const capabilities: Capability[] = [
   {
     id: 'thanos',
     name: 'Long-term Storage (Thanos)',
-    description: 'Retain metrics for capacity planning and historical analysis.',
+    description: 'Retain metrics for capacity planning and historical analysis. (Requires S3-compatible object storage)',
   },
   {
     id: 'loki',
@@ -204,6 +229,7 @@ const capabilities: Capability[] = [
     name: 'Network Traffic Analysis (NetObserve)',
     description: 'Visualize pod-to-pod traffic and debug connection issues.',
     dependencies: ['loki', 'metrics-alerting'],
+    requiresHighPerformanceStorage: true,
   },
   {
     id: 'korrel8r',
@@ -280,6 +306,9 @@ interface OperatorStorageItem {
   isSelected: boolean;
   isLocked: boolean; // Core Observability is always locked
   appliedBy: GoalID[]; // Which goals require this item
+  version?: string; // Operator version (e.g., "5.8.1")
+  channel?: string; // Update channel (e.g., "stable-5.8")
+  isUpdating?: boolean; // Simulates "Fetching latest version" state
 }
 
 export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponentsProps> = ({
@@ -303,17 +332,29 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   
   // Track manually unchecked items that were required by goals
   const [uncheckedRequiredItems, setUncheckedRequiredItems] = useState<Set<string>>(new Set());
+  
+  // Track goals that were overridden due to manual changes (for visual feedback)
+  const [overriddenGoals, setOverriddenGoals] = useState<Set<string>>(new Set());
+  
+  // Ref to track when we're manually removing goals (to prevent full reset)
+  const isManualOverrideRef = useRef(false);
 
   // Initialize operators and storage items from capabilities
   const initialOperators: OperatorStorageItem[] = useMemo(() => {
-    return capabilities.map(cap => ({
-      id: cap.id,
-      name: cap.name,
-      description: cap.description,
-      isSelected: cap.required || false, // Core Observability (metrics-alerting) is required
-      isLocked: cap.required || false, // Core Observability is locked
-      appliedBy: [],
-    }));
+    return capabilities.map(cap => {
+      const versionInfo = OPERATOR_VERSIONS[cap.id] || { version: '1.0.0', channel: 'stable' };
+      return {
+        id: cap.id,
+        name: cap.name,
+        description: cap.description,
+        isSelected: cap.required || false, // Core Observability (metrics-alerting) is required
+        isLocked: cap.required || false, // Core Observability is locked
+        appliedBy: [],
+        version: versionInfo.version,
+        channel: versionInfo.channel,
+        isUpdating: false,
+      };
+    });
   }, []);
 
   // Initialize storage items
@@ -325,14 +366,20 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       isSelected: false,
       isLocked: false,
       appliedBy: [],
+      version: STORAGE_VERSIONS.odf.version,
+      channel: STORAGE_VERSIONS.odf.channel,
+      isUpdating: false,
     },
     {
       id: 'lvm',
       name: 'Logical Volume Manager (LVM)',
-      description: 'Local storage for standard observability needs.',
+      description: 'Provides local storage for metrics and logs. Requires external S3-compatible storage if Long-term Storage (Thanos) is enabled.',
       isSelected: false,
       isLocked: false,
       appliedBy: [],
+      version: STORAGE_VERSIONS.lvm.version,
+      channel: STORAGE_VERSIONS.lvm.channel,
+      isUpdating: false,
     },
   ], []);
 
@@ -343,16 +390,19 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
   // Dependency calculation: Updates operators and storage based on activeGoals
   const updateDependencies = useCallback((goalIds: string[]) => {
     // Reset all to default (except Core Observability which is locked)
+    // Preserve version, channel, and set isUpdating to false
     const newOperators: OperatorStorageItem[] = initialOperators.map(item => ({
       ...item,
       isSelected: item.isLocked, // Only locked items remain selected
       appliedBy: [] as GoalID[],
+      isUpdating: false, // Reset updating state
     }));
 
     const newStorage: OperatorStorageItem[] = initialStorage.map(item => ({
       ...item,
       isSelected: false,
       appliedBy: [] as GoalID[],
+      isUpdating: false, // Reset updating state
     }));
 
     // Aggregate requirements from all active goals
@@ -402,8 +452,14 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     return { operators: newOperators, storage: newStorage };
   }, [initialOperators, initialStorage]);
 
-  // Update dependencies when activeGoals change
+  // Update dependencies when activeGoals change (but not during manual overrides)
   useEffect(() => {
+    // Skip reset if this is a manual override (user unchecking something)
+    if (isManualOverrideRef.current) {
+      isManualOverrideRef.current = false; // Reset the flag
+      return; // Don't reset everything, just keep current state
+    }
+
     const { operators: newOperators, storage: newStorage } = updateDependencies(activeGoals);
     setOperators(newOperators);
     setStorage(newStorage);
@@ -420,10 +476,27 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       .filter(s => s.isSelected)
       .map(s => s.id);
     
+    // Build version maps for selected operators and storage
+    const operatorVersions: { [key: string]: { version: string; channel: string } } = {};
+    newOperators
+      .filter(op => op.isSelected && op.version && op.channel)
+      .forEach(op => {
+        operatorVersions[op.id] = { version: op.version!, channel: op.channel! };
+      });
+    
+    const storageVersions: { [key: string]: { version: string; channel: string } } = {};
+    newStorage
+      .filter(s => s.isSelected && s.version && s.channel)
+      .forEach(s => {
+        storageVersions[s.id] = { version: s.version!, channel: s.channel! };
+      });
+    
     onDataChange({ 
       activeGoals,
       selectedCapabilities: newCapabilities,
-      selectedStorage: newSelectedStorage
+      selectedStorage: newSelectedStorage,
+      operatorVersions,
+      storageVersions
     });
   }, [activeGoals, updateDependencies, onDataChange]);
 
@@ -609,16 +682,106 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     }
   }, [selectedPersona, advancedMode, onDataChange]);
 
-  // Handle goal selection (checkboxes)
-  const handleGoalChange = (goalId: string, checked: boolean) => {
-    let newGoals: string[];
-    if (checked) {
-      newGoals = [...activeGoals, goalId];
-    } else {
-      newGoals = activeGoals.filter(id => id !== goalId);
+  // Check if current selections match a strategy's requirements
+  const checkIfSelectionMatchesStrategy = useCallback((goalId: GoalID, currentOperators: OperatorStorageItem[], currentStorage: OperatorStorageItem[]): boolean => {
+    const deps = NEED_DEPENDENCIES[goalId];
+    if (!deps) return false;
+
+    // Check if all required operators are selected
+    const requiredOperatorsSelected = deps.operators.every(opId => {
+      const operator = currentOperators.find(op => op.id === opId);
+      return operator?.isSelected === true;
+    });
+
+    // Check if required storage is selected
+    const requiredStorageSelected = deps.storage.every(storageId => {
+      const storageItem = currentStorage.find(s => s.id === storageId);
+      return storageItem?.isSelected === true;
+    });
+
+    // Check if no extra operators are selected that aren't in the strategy
+    // (This is optional - you might want to allow extra operators)
+    // For now, we'll just check that required items are selected
+
+    return requiredOperatorsSelected && requiredStorageSelected;
+  }, []);
+
+  // Check if any active goal no longer matches current selections
+  // Returns true if mismatches were found and handled
+  const checkAndRemoveMismatchedGoals = useCallback((currentOperators: OperatorStorageItem[], currentStorage: OperatorStorageItem[]): boolean => {
+    const mismatchedGoals: string[] = [];
+    
+    activeGoals.forEach(goalId => {
+      const matches = checkIfSelectionMatchesStrategy(goalId as GoalID, currentOperators, currentStorage);
+      if (!matches) {
+        mismatchedGoals.push(goalId);
+      }
+    });
+
+    if (mismatchedGoals.length > 0) {
+      // Set flag BEFORE state update to prevent full reset - we only want to uncheck the strategy, not reset everything
+      isManualOverrideRef.current = true;
+      
+      const newGoals = activeGoals.filter(id => !mismatchedGoals.includes(id));
+      
+      // Update appliedBy arrays to remove overridden goals (for badge display)
+      const updatedOperators = currentOperators.map(op => ({
+        ...op,
+        appliedBy: op.appliedBy.filter(goalId => !mismatchedGoals.includes(goalId)) as GoalID[]
+      }));
+      const updatedStorage = currentStorage.map(s => ({
+        ...s,
+        appliedBy: s.appliedBy.filter(goalId => !mismatchedGoals.includes(goalId)) as GoalID[]
+      }));
+      
+      // Update operators and storage with cleaned appliedBy arrays
+      setOperators(updatedOperators);
+      setStorage(updatedStorage);
+      
+      setActiveGoals(newGoals);
+      onDataChange({ activeGoals: newGoals });
+      
+      // Track overridden goals for visual feedback
+      setOverriddenGoals(prev => {
+        const newSet = new Set(prev);
+        mismatchedGoals.forEach(goalId => newSet.add(goalId));
+        return newSet;
+      });
+      
+      return true; // Mismatches were found and handled
     }
-    setActiveGoals(newGoals);
-    onDataChange({ activeGoals: newGoals });
+    
+    return false; // No mismatches
+  }, [activeGoals, checkIfSelectionMatchesStrategy, onDataChange]);
+
+  // Handle goal selection (checkboxes) - idempotent: always resets to factory defaults
+  const handleGoalChange = (goalId: string, checked: boolean) => {
+    if (checked) {
+      // Set updating state for all operators/storage to simulate "checking catalog"
+      setOperators(prev => prev.map(op => ({ ...op, isUpdating: true })));
+      setStorage(prev => prev.map(s => ({ ...s, isUpdating: true })));
+      
+      // Simulate catalog check delay (500ms)
+      setTimeout(() => {
+        // Re-apply strategy: reset to factory defaults for this goal
+        // This will trigger the useEffect that calls updateDependencies
+        const newGoals = [...activeGoals, goalId];
+        setActiveGoals(newGoals);
+        onDataChange({ activeGoals: newGoals });
+        
+        // Remove from overridden goals when re-applying
+        setOverriddenGoals(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(goalId);
+          return newSet;
+        });
+      }, 500);
+    } else {
+      // Remove goal
+      const newGoals = activeGoals.filter(id => id !== goalId);
+      setActiveGoals(newGoals);
+      onDataChange({ activeGoals: newGoals });
+    }
   };
 
   // Handle operator/storage selection with warning for required items
@@ -648,14 +811,35 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     const newOperators = operators.map(op => 
       op.id === operatorId ? { ...op, isSelected: checked } : op
     );
-    setOperators(newOperators);
-
+    
     // Update selectedCapabilities
     const newCapabilities = newOperators
       .filter(op => op.isSelected)
       .map(op => op.id);
     setSelectedCapabilities(newCapabilities);
-    onDataChange({ selectedCapabilities: newCapabilities });
+    
+    // Build version map for selected operators
+    const operatorVersions: { [key: string]: { version: string; channel: string } } = {};
+    newOperators
+      .filter(op => op.isSelected && op.version && op.channel)
+      .forEach(op => {
+        operatorVersions[op.id] = { version: op.version!, channel: op.channel! };
+      });
+    
+    onDataChange({ 
+      selectedCapabilities: newCapabilities,
+      operatorVersions 
+    });
+
+    // Check if manual override occurred - if selections no longer match active strategies, remove them
+    // This will uncheck the strategy but keep everything else as-is (only the unchecked item changes)
+    // checkAndRemoveMismatchedGoals will update operators/storage if goals are removed
+    const hadMismatches = checkAndRemoveMismatchedGoals(newOperators, storage);
+    
+    // Only set operators if no mismatches were found (otherwise checkAndRemoveMismatchedGoals already set them)
+    if (!hadMismatches) {
+      setOperators(newOperators);
+    }
   };
 
   const handleStorageChange = (storageId: string, checked: boolean) => {
@@ -693,13 +877,33 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
         }
         return s;
       });
-      setStorage(newStorage);
       
       // Update selectedStorage in wizard data
       const newSelectedStorage = newStorage
         .filter(s => s.isSelected)
         .map(s => s.id);
-      onDataChange({ selectedStorage: newSelectedStorage });
+      
+      // Build version map for selected storage
+      const storageVersions: { [key: string]: { version: string; channel: string } } = {};
+      newStorage
+        .filter(s => s.isSelected && s.version && s.channel)
+        .forEach(s => {
+          storageVersions[s.id] = { version: s.version!, channel: s.channel! };
+        });
+      
+      onDataChange({ 
+        selectedStorage: newSelectedStorage,
+        storageVersions 
+      });
+
+      // Check if manual override occurred - if selections no longer match active strategies, remove them
+      // checkAndRemoveMismatchedGoals will update storage if goals are removed
+      const hadMismatches = checkAndRemoveMismatchedGoals(operators, newStorage);
+      
+      // Only set storage if no mismatches were found (otherwise checkAndRemoveMismatchedGoals already set it)
+      if (!hadMismatches) {
+        setStorage(newStorage);
+      }
     } else {
       // Unchecking - check if this storage is required by any active goal
       if (storageItem.appliedBy.length > 0) {
@@ -715,13 +919,33 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
       const newStorage = storage.map(s => 
         s.id === storageId ? { ...s, isSelected: false } : s
       );
-      setStorage(newStorage);
       
       // Update selectedStorage in wizard data
       const newSelectedStorage = newStorage
         .filter(s => s.isSelected)
         .map(s => s.id);
-      onDataChange({ selectedStorage: newSelectedStorage });
+      
+      // Build version map for selected storage
+      const storageVersions: { [key: string]: { version: string; channel: string } } = {};
+      newStorage
+        .filter(s => s.isSelected && s.version && s.channel)
+        .forEach(s => {
+          storageVersions[s.id] = { version: s.version!, channel: s.channel! };
+        });
+      
+      onDataChange({ 
+        selectedStorage: newSelectedStorage,
+        storageVersions 
+      });
+
+      // Check if manual override occurred - if selections no longer match active strategies, remove them
+      // checkAndRemoveMismatchedGoals will update storage if goals are removed
+      const hadMismatches = checkAndRemoveMismatchedGoals(operators, newStorage);
+      
+      // Only set storage if no mismatches were found (otherwise checkAndRemoveMismatchedGoals already set it)
+      if (!hadMismatches) {
+        setStorage(newStorage);
+      }
     }
   };
 
@@ -930,6 +1154,13 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                           {goal.description}
                         </Content>
                       </FlexItem>
+                      {overriddenGoals.has(goal.id) && !activeGoals.includes(goal.id) && (
+                        <FlexItem>
+                          <Content style={{ fontSize: '12px', color: '#c9190b', fontStyle: 'italic', marginTop: '4px' }}>
+                            Selection modified: Configuration is now custom.
+                          </Content>
+                        </FlexItem>
+                      )}
                     </Flex>
                   </CardBody>
                 </Card>
@@ -944,25 +1175,26 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
             <Alert
               variant={AlertVariant.info}
               isInline
-              title="Intelligent preselection"
+              title="Recommended configuration applied"
               actionClose={
                 <AlertActionCloseButton onClose={() => setIsPreselectionAlertDismissed(true)} />
               }
             >
-              Choosing a strategy helps us tailor your installation. The preselected components represent the industry-standard stack for your specific operational focus.
+              Your strategy has pre-configured the observability stack. You can add or remove components to fit your cluster requirements.
             </Alert>
           </StackItem>
         )}
 
         {/* Operators and Storage Section */}
-        {activeGoals.length > 0 && (
-          <StackItem>
-            <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
-              Required operators and storage
-            </Title>
-            <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-              The following operators and storage are required by your selected goals. You can customize these selections below.
-            </Content>
+        <StackItem>
+          <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
+            Observability Services
+          </Title>
+          <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
+            {activeGoals.length > 0 
+              ? 'The following operators and storage are required by your selected goals. You can customize these selections below.'
+              : 'Select operators and storage for your observability stack. You can also choose an observability strategy above to pre-configure recommended options.'}
+          </Content>
 
             <Card>
               <CardBody>
@@ -970,7 +1202,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                   {/* Operators */}
                   <StackItem>
                     <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
-                      Operators
+                      Capabilities (operators)
                     </Title>
                     <Stack hasGutter>
                       {operators.map((operator) => {
@@ -979,13 +1211,28 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                             return goal?.name || goalId;
                           });
                           
+                          // Check for high-demand storage requirements
+                          const capability = capabilities.find(c => c.id === operator.id);
+                          const hasLVM = storage.find(s => s.id === 'lvm')?.isSelected;
+                          const hasODF = storage.find(s => s.id === 'odf')?.isSelected;
+                          const showHighDemandWarning = operator.id === 'network-traffic' && 
+                                                         operator.isSelected && 
+                                                         capability?.requiresHighPerformanceStorage;
+                          
                           return (
                             <StackItem key={operator.id}>
                               <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                                 <FlexItem>
                                   <Checkbox
                                     id={`operator-${operator.id}`}
-                                    label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{operator.name}</span>}
+                                    label={
+                                      <span style={{ fontWeight: '600', fontSize: '14px' }}>
+                                        {operator.name}
+                                        {operator.isLocked && (
+                                          <span style={{ color: '#c9190b', marginLeft: '4px' }}>*</span>
+                                        )}
+                                      </span>
+                                    }
                                     isChecked={operator.isSelected}
                                     isDisabled={operator.isLocked}
                                     onChange={(_, checked) => handleOperatorChange(operator.id, checked)}
@@ -996,9 +1243,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                                       {goalNames.map((goalName, index) => (
                                         <FlexItem key={index}>
-                                          <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                          <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontWeight: 'normal', fontSize: '14px', color: '#92c5f9' }}>
                                             {goalName}
-                                          </Badge>
+                                          </Label>
                                         </FlexItem>
                                       ))}
                                     </Flex>
@@ -1010,6 +1257,95 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                   {operator.description}
                                 </Content>
                               )}
+                              
+                              {/* Version and Channel Display */}
+                              {operator.isSelected && operator.version && operator.channel && (
+                                <div style={{ marginLeft: '24px', marginTop: '8px' }}>
+                                  {operator.isUpdating ? (
+                                    <Spinner size="sm" style={{ width: '10px', height: '10px' }} />
+                                  ) : (
+                                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                      <FlexItem>
+                                        <Badge isRead style={{ fontSize: '12px' }}>
+                                          v{operator.version}
+                                        </Badge>
+                                      </FlexItem>
+                                      <FlexItem>
+                                        <HelperText>
+                                          <HelperTextItem variant="default" style={{ color: 'var(--pf-v5-global--Color--200)' }}>
+                                            Update channel: {operator.channel}
+                                          </HelperTextItem>
+                                        </HelperText>
+                                      </FlexItem>
+                                    </Flex>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* Nested Options for Loki */}
+                              {operator.id === 'loki' && operator.isSelected && (
+                                <div style={{ marginLeft: '24px', marginTop: '12px', paddingLeft: '16px', borderLeft: '2px solid #d2d2d2' }}>
+                                  <Stack hasGutter>
+                                    <StackItem>
+                                      <Checkbox
+                                        id="option-infrastructure-logs"
+                                        label={
+                                          <span style={{ fontSize: '14px' }}>
+                                            Infrastructure logs
+                                          </span>
+                                        }
+                                        isChecked={(selectedNestedOptions['loki'] || []).includes('infrastructure-logs')}
+                                        onChange={(_, checked) =>
+                                          handleNestedOptionChange('loki', 'infrastructure-logs', checked)
+                                        }
+                                      />
+                                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                                        Node, API server, and control plane logs.
+                                      </Content>
+                                    </StackItem>
+                                    <StackItem>
+                                      <Checkbox
+                                        id="option-application-logs"
+                                        label={
+                                          <span style={{ fontSize: '14px' }}>
+                                            Application logs
+                                          </span>
+                                        }
+                                        isChecked={(selectedNestedOptions['loki'] || []).includes('application-logs')}
+                                        onChange={(_, checked) =>
+                                          handleNestedOptionChange('loki', 'application-logs', checked)
+                                        }
+                                      />
+                                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
+                                        Container stdout/stderr from workloads.
+                                      </Content>
+                                    </StackItem>
+                                  </Stack>
+                                </div>
+                              )}
+                              
+                              {/* Nested Options for OpenTelemetry */}
+                              {operator.id === 'opentelemetry' && operator.isSelected && (
+                                <div style={{ marginLeft: '24px', marginTop: '12px', paddingLeft: '16px', borderLeft: '2px solid #d2d2d2' }}>
+                                  <Stack hasGutter>
+                                    <StackItem>
+                                      <Checkbox
+                                        id="option-auto-instrumentation"
+                                        label={
+                                          <span style={{ fontSize: '14px' }}>
+                                            Enable Auto-Instrumentation
+                                          </span>
+                                        }
+                                        isChecked={(selectedNestedOptions['opentelemetry'] || []).includes('auto-instrumentation')}
+                                        onChange={(_, checked) =>
+                                          handleNestedOptionChange('opentelemetry', 'auto-instrumentation', checked)
+                                        }
+                                      />
+                                    </StackItem>
+                                  </Stack>
+                                </div>
+                              )}
+                              
                               {uncheckedRequiredItems.has(operator.id) && (
                                 <Alert
                                   variant={AlertVariant.warning}
@@ -1018,6 +1354,29 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                   style={{ marginTop: '8px', marginLeft: '24px' }}
                                 >
                                   Unchecking this operator may impact the functionality of: {goalNames.join(', ')}. Consider keeping it enabled.
+                                </Alert>
+                              )}
+                              
+                              {/* High-Demand Storage Warning for Network Traffic Analysis */}
+                              {showHighDemandWarning && hasLVM && (
+                                <Alert
+                                  variant={AlertVariant.warning}
+                                  isInline
+                                  title="High storage demand detected"
+                                  style={{ marginTop: '8px', marginLeft: '24px' }}
+                                >
+                                  Network Traffic Analysis generates high volumes of data. LVM storage may experience performance issues or rapid disk exhaustion. OpenShift Data Foundation (ODF) is recommended for this capability.
+                                </Alert>
+                              )}
+                              
+                              {showHighDemandWarning && hasODF && (
+                                <Alert
+                                  variant={AlertVariant.info}
+                                  isInline
+                                  title="Storage optimization"
+                                  style={{ marginTop: '8px', marginLeft: '24px' }}
+                                >
+                                  You have selected ODF, which is optimized for the high-throughput requirements of Network Traffic Analysis.
                                 </Alert>
                               )}
                             </StackItem>
@@ -1031,7 +1390,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                   {/* Storage */}
                   <StackItem>
                     <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
-                      Storage
+                      Storage (operators)
                     </Title>
                     <Stack hasGutter>
                       {storage.map((storageItem) => {
@@ -1057,9 +1416,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                                       {goalNames.map((goalName, index) => (
                                         <FlexItem key={index}>
-                                          <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                          <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontWeight: 'normal', fontSize: '14px', color: '#92c5f9' }}>
                                             {goalName}
-                                          </Badge>
+                                          </Label>
                                         </FlexItem>
                                       ))}
                                     </Flex>
@@ -1071,15 +1430,50 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                   {storageItem.description}
                                 </Content>
                               )}
+                              
+                              {/* Version and Channel Display */}
+                              {storageItem.isSelected && storageItem.version && storageItem.channel && (
+                                <div style={{ marginLeft: '24px', marginTop: '8px' }}>
+                                  {storageItem.isUpdating ? (
+                                    <Spinner size="sm" style={{ width: '10px', height: '10px' }} />
+                                  ) : (
+                                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                      <FlexItem>
+                                        <Badge isRead style={{ fontSize: '12px' }}>
+                                          v{storageItem.version}
+                                        </Badge>
+                                      </FlexItem>
+                                      <FlexItem>
+                                        <HelperText>
+                                          <HelperTextItem variant="default" style={{ color: 'var(--pf-v5-global--Color--200)' }}>
+                                            Update channel: {storageItem.channel}
+                                          </HelperTextItem>
+                                        </HelperText>
+                                      </FlexItem>
+                                    </Flex>
+                                  )}
+                                </div>
+                              )}
                               {uncheckedRequiredItems.has(storageItem.id) && (
-                                <Alert
-                                  variant={AlertVariant.warning}
-                                  isInline
-                                  title="This storage is required by selected goals"
-                                  style={{ marginTop: '8px', marginLeft: '24px' }}
-                                >
-                                  Unchecking this storage may impact the functionality of: {goalNames.join(', ')}. Consider keeping it enabled.
-                                </Alert>
+                                storageItem.id === 'odf' && selectedCapabilities.includes('thanos') ? (
+                                  <Alert
+                                    variant={AlertVariant.warning}
+                                    isInline
+                                    title="Storage requirement conflict"
+                                    style={{ marginTop: '8px', marginLeft: '24px' }}
+                                  >
+                                    OpenShift Data Foundation is required to support Long-term Storage (Thanos). Deselecting it will prevent the storage of historical metrics.
+                                  </Alert>
+                                ) : (
+                                  <Alert
+                                    variant={AlertVariant.warning}
+                                    isInline
+                                    title="This storage is required by selected goals"
+                                    style={{ marginTop: '8px', marginLeft: '24px' }}
+                                  >
+                                    Unchecking this storage may impact the functionality of: {goalNames.join(', ')}. Consider keeping it enabled.
+                                  </Alert>
+                                )
                               )}
                             </StackItem>
                           );
@@ -1090,121 +1484,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
               </CardBody>
             </Card>
           </StackItem>
-        )}
-
-        {/* Capabilities Section */}
-        <StackItem>
-          <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
-            Customize capabilities
-          </Title>
-          <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-            Fine-tune which observability features to install based on your needs.
-          </Content>
-
-          <Card>
-            <CardBody>
-              <Stack hasGutter>
-                {capabilities.map((capability) => {
-                  const isChecked = selectedCapabilities.includes(capability.id);
-                  const isRequired = capability.required || false;
-                  const dependencyCheck = checkDependencies(capability);
-                  const canEnable = dependencyCheck.satisfied || isChecked;
-
-                  return (
-                    <StackItem key={capability.id}>
-                      <Checkbox
-                        id={`capability-${capability.id}`}
-                        label={
-                          <span style={{ fontWeight: '600', fontSize: '14px' }}>
-                            {capability.name}
-                            {isRequired && (
-                              <span style={{ color: '#c9190b', marginLeft: '4px' }}>*</span>
-                            )}
-                          </span>
-                        }
-                        isChecked={isChecked}
-                        isDisabled={(!canEnable && !isChecked) || (isRequired && isChecked)}
-                        onChange={(_, checked) => handleCapabilityChange(capability.id, checked)}
-                      />
-                      <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
-                        {capability.description}
-                      </Content>
-                      
-                      {!dependencyCheck.satisfied && !isChecked && (
-                        <Alert
-                          variant={AlertVariant.warning}
-                          isInline
-                          title={`Requires ${dependencyCheck.missing.map(dep => {
-                            const depCap = capabilities.find(c => c.id === dep);
-                            return depCap?.name || dep;
-                          }).join(' or ')} to be enabled`}
-                          style={{ marginTop: '12px', marginLeft: '24px' }}
-                        />
-                      )}
-                      
-                      {isChecked && capability.id === 'incident-detection' && (
-                        data.enableClusterMonitoring ? (
-                          <Alert
-                            variant={AlertVariant.info}
-                            isInline
-                            title="Alert data processing is enabled."
-                            style={{ marginTop: '12px', marginLeft: '24px' }}
-                          />
-                        ) : (
-                          <Alert
-                            variant={AlertVariant.warning}
-                            isInline
-                            title="Requires 'Enable Operator recommended cluster monitoring' to process alert data."
-                            style={{ marginTop: '12px', marginLeft: '24px' }}
-                          />
-                        )
-                      )}
-                      
-                      {!isChecked && capability.id === 'thanos' && 
-                       (selectedPersona === 'administrator' || selectedPersona === 'sre') && (
-                        <Alert
-                          variant={AlertVariant.warning}
-                          isInline
-                          title="Long-term storage disabled"
-                          style={{ marginTop: '12px', marginLeft: '24px' }}
-                        >
-                          Without long-term storage, you will lose the ability to retain metrics for capacity planning and historical analysis. This may impact your ability to track trends and plan for future resource needs.
-                        </Alert>
-                      )}
-
-                      {/* Nested Options */}
-                      {isChecked && capability.nestedOptions && capability.nestedOptions.length > 0 && (
-                        <div style={{ marginLeft: '24px', marginTop: '12px', paddingLeft: '16px', borderLeft: '2px solid #d2d2d2' }}>
-                          <Stack hasGutter>
-                            {capability.nestedOptions.map((option) => (
-                              <StackItem key={option.id}>
-                                <Checkbox
-                                  id={`option-${option.id}`}
-                                  label={
-                                    <span style={{ fontSize: '14px' }}>
-                                      {option.name}
-                                    </span>
-                                  }
-                                  isChecked={(selectedNestedOptions[capability.id] || []).includes(option.id)}
-                                  onChange={(_, checked) =>
-                                    handleNestedOptionChange(capability.id, option.id, checked)
-                                  }
-                                />
-                                <Content style={{ marginLeft: '24px', marginTop: '4px', fontSize: '14px', color: '#6a6e73' }}>
-                                  {option.description}
-                                </Content>
-                              </StackItem>
-                            ))}
-                          </Stack>
-                        </div>
-                      )}
-                    </StackItem>
-                  );
-                })}
-              </Stack>
-            </CardBody>
-          </Card>
-        </StackItem>
 
         {/* Console Experience Section */}
         <StackItem>
@@ -1301,9 +1580,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                             <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                               {goalNames.map((goalName, index) => (
                                 <FlexItem key={index}>
-                                  <Badge isRead style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                                  <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontWeight: 'normal', fontSize: '14px', color: '#92c5f9' }}>
                                     {goalName}
-                                  </Badge>
+                                  </Label>
                                 </FlexItem>
                               ))}
                             </Flex>
