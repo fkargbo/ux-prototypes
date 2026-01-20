@@ -39,7 +39,6 @@ import {
   ExpandableSection,
   Alert,
   EmptyState,
-  EmptyStateHeader,
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateActions,
@@ -487,8 +486,7 @@ export const DashboardsPersesPage: React.FC = () => {
                   {isCriticalAlertsExpanded && (
                     <div style={{ paddingTop: '8px' }}>
                     {criticalAlerts.length === 0 ? (
-                      <EmptyState>
-                        <EmptyStateHeader titleText="No critical alerts" headingLevel="h4" />
+                      <EmptyState titleText="No critical alerts" headingLevel="h4">
                         <EmptyStateBody>
                           There are currently no critical alerts firing. There may be firing alerts of other severities or silenced critical alerts however.
                         </EmptyStateBody>
@@ -549,8 +547,7 @@ export const DashboardsPersesPage: React.FC = () => {
                   {isOtherAlertsExpanded && (
                     <div style={{ paddingTop: '8px' }}>
                     {otherAlerts.length === 0 ? (
-                      <EmptyState>
-                        <EmptyStateHeader titleText="No other alerts" headingLevel="h4" />
+                      <EmptyState titleText="No other alerts" headingLevel="h4">
                         <EmptyStateBody>
                           There are currently no other alerts firing. There may be firing alerts of other severities or silenced alerts however.
                         </EmptyStateBody>
@@ -611,8 +608,7 @@ export const DashboardsPersesPage: React.FC = () => {
                   {isRecommendationsExpanded && (
                     <div style={{ paddingTop: '8px' }}>
                     {recommendations.length === 0 ? (
-                      <EmptyState>
-                        <EmptyStateHeader titleText="No recommendations" headingLevel="h4" />
+                      <EmptyState titleText="No recommendations" headingLevel="h4">
                         <EmptyStateBody>
                           There are currently no recommendations available. Recommendations will appear here when they become available.
                         </EmptyStateBody>
