@@ -333,7 +333,7 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
-  // Attach click handler to masthead bell icon
+  // Attach click handler to masthead bell icon - toggle drawer open/close
   useEffect(() => {
     const handleMastheadBellClick = (event: MouseEvent) => {
       // Find the masthead bell button by aria-label
@@ -342,7 +342,7 @@ export const DashboardsPersesPage: React.FC = () => {
       if (bellButton) {
         event.preventDefault();
         event.stopPropagation();
-        setIsNotificationsDrawerOpen(true);
+        setIsNotificationsDrawerOpen(prev => !prev);
       }
     };
 
@@ -476,7 +476,7 @@ export const DashboardsPersesPage: React.FC = () => {
             <DrawerPanelBody style={{ padding: '24px', overflowY: 'auto' }}>
               <Stack hasGutter>
                 {/* Critical Alerts Section */}
-                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <StackItem style={{ marginLeft: '-24px', marginRight: '-24px', paddingLeft: '24px', paddingRight: '24px', borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
                     toggleText={
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
@@ -523,7 +523,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 </StackItem>
 
                 {/* Other Alerts Section */}
-                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <StackItem style={{ marginLeft: '-24px', marginRight: '-24px', paddingLeft: '24px', paddingRight: '24px', borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
                     toggleText={
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
@@ -570,7 +570,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 </StackItem>
 
                 {/* Recommendations Section */}
-                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <StackItem style={{ marginLeft: '-24px', marginRight: '-24px', paddingLeft: '24px', paddingRight: '24px', borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
                     toggleText={
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
