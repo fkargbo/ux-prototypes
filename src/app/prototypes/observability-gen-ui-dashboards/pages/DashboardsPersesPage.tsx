@@ -172,6 +172,13 @@ export const DashboardsPersesPage: React.FC = () => {
     },
   ];
 
+  // Auto-expand critical alerts section if there are critical alerts
+  useEffect(() => {
+    if (criticalAlerts.length > 0) {
+      setIsCriticalAlertsExpanded(true);
+    }
+  }, [criticalAlerts.length]);
+
   // Sample dashboard data
   const allDashboards: Dashboard[] = [
     {
@@ -510,28 +517,21 @@ export const DashboardsPersesPage: React.FC = () => {
                       <Stack hasGutter>
                         {criticalAlerts.map((alert) => (
                           <StackItem key={alert.id}>
-                            <div style={{ padding: '12px', border: '1px solid var(--pf-t--global--border--color--default)', borderRadius: '4px' }}>
-                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
-                                <FlexItem>
-                                  <Title headingLevel="h4" size="md" style={{ marginBottom: '4px' }}>
-                                    {alert.name}
-                                  </Title>
-                                  <Content style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: alert.description ? '8px' : '0' }}>
-                                    {alert.severity} • {alert.duration}
-                                  </Content>
-                                  {alert.description && (
-                                    <Content style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--default)', marginTop: '8px' }}>
-                                      {alert.description}
-                                    </Content>
-                                  )}
-                                </FlexItem>
-                                <FlexItem>
-                                  <Button variant="plain" aria-label="View details">
-                                    <CaretDownIcon style={{ transform: 'rotate(-90deg)' }} />
-                                  </Button>
-                                </FlexItem>
-                              </Flex>
-                            </div>
+                            <Alert
+                              variant="danger"
+                              isInline
+                              title={alert.name}
+                              style={{ marginBottom: '12px' }}
+                            >
+                              <Content style={{ marginTop: '8px', marginBottom: '8px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                {alert.severity} • {alert.duration}
+                              </Content>
+                              {alert.description && (
+                                <Content style={{ marginTop: '8px', marginBottom: '12px' }}>
+                                  {alert.description}
+                                </Content>
+                              )}
+                            </Alert>
                           </StackItem>
                         ))}
                       </Stack>
