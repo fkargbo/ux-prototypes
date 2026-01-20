@@ -3,6 +3,13 @@ button[aria-label="View task details"] {
   display: none !important;
 }
 
+/* Ensure notification drawer section buttons align badges/carets to right edge */
+.pf-v6-c-drawer__panel-body button[aria-label*="Alerts"],
+.pf-v6-c-drawer__panel-body button[aria-label*="Recommendations"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 /* Shift page content to the left when drawer is open */
 .pf-v6-c-page__main-container.chatbot-drawer-open {
   transform: translateX(calc(-33.333% - 24px));

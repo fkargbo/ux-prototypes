@@ -466,25 +466,21 @@ export const DashboardsPersesPage: React.FC = () => {
                 {/* Critical Alerts Section */}
                 <StackItem>
                   <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
-                  <ExpandableSection
-                    toggle={
-                      <Button
-                        variant="plain"
-                        onClick={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
-                        style={{ width: '100%', justifyContent: 'space-between', padding: 0 }}
-                      >
-                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                          <span>Critical Alerts</span>
-                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                            <Badge>{criticalAlerts.length}</Badge>
-                            {isCriticalAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
-                          </Flex>
-                        </Flex>
-                      </Button>
-                    }
-                    onToggle={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
-                    isExpanded={isCriticalAlertsExpanded}
-                  >
+                  <div style={{ marginBottom: '8px' }}>
+                    <Button
+                      variant="plain"
+                      onClick={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
+                      style={{ width: '100%', padding: '8px 0', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
+                    >
+                      <span style={{ fontWeight: 400, fontSize: '16px' }}>Critical Alerts</span>
+                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ flexShrink: 0 }}>
+                        <Badge className="pf-v6-c-badge pf-m-unread">{criticalAlerts.length}</Badge>
+                        {isCriticalAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                      </Flex>
+                    </Button>
+                  </div>
+                  {isCriticalAlertsExpanded && (
+                    <div style={{ paddingTop: '8px' }}>
                     {criticalAlerts.length === 0 ? (
                       <Content style={{ padding: '16px 0', color: 'var(--pf-t--global--text--color--subtle)' }}>
                         No critical alerts
@@ -514,32 +510,29 @@ export const DashboardsPersesPage: React.FC = () => {
                         ))}
                       </Stack>
                     )}
-                  </ExpandableSection>
+                    </div>
+                  )}
                   </div>
                 </StackItem>
 
                 {/* Other Alerts Section */}
                 <StackItem>
                   <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
-                  <ExpandableSection
-                    toggle={
-                      <Button
-                        variant="plain"
-                        onClick={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
-                        style={{ width: '100%', justifyContent: 'space-between', padding: 0 }}
-                      >
-                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                          <span>Other Alerts</span>
-                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                            <Badge>{otherAlerts.length}</Badge>
-                            {isOtherAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
-                          </Flex>
-                        </Flex>
-                      </Button>
-                    }
-                    onToggle={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
-                    isExpanded={isOtherAlertsExpanded}
-                  >
+                  <div style={{ marginBottom: '8px' }}>
+                    <Button
+                      variant="plain"
+                      onClick={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
+                      style={{ width: '100%', padding: '8px 0', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
+                    >
+                      <span style={{ fontWeight: 400, fontSize: '16px' }}>Other Alerts</span>
+                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ flexShrink: 0 }}>
+                        <Badge className="pf-v6-c-badge pf-m-unread">{otherAlerts.length}</Badge>
+                        {isOtherAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                      </Flex>
+                    </Button>
+                  </div>
+                  {isOtherAlertsExpanded && (
+                    <div style={{ paddingTop: '8px' }}>
                     {otherAlerts.length === 0 ? (
                       <Content style={{ padding: '16px 0', color: 'var(--pf-t--global--text--color--subtle)' }}>
                         No other alerts
@@ -569,32 +562,29 @@ export const DashboardsPersesPage: React.FC = () => {
                         ))}
                       </Stack>
                     )}
-                  </ExpandableSection>
+                    </div>
+                  )}
                   </div>
                 </StackItem>
 
                 {/* Recommendations Section */}
                 <StackItem>
                   <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
-                  <ExpandableSection
-                    toggle={
-                      <Button
-                        variant="plain"
-                        onClick={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
-                        style={{ width: '100%', justifyContent: 'space-between', padding: 0 }}
-                      >
-                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                          <span>Recommendations</span>
-                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                            <Badge>{recommendations.length}</Badge>
-                            {isRecommendationsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
-                          </Flex>
-                        </Flex>
-                      </Button>
-                    }
-                    onToggle={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
-                    isExpanded={isRecommendationsExpanded}
-                  >
+                  <div style={{ marginBottom: '8px' }}>
+                    <Button
+                      variant="plain"
+                      onClick={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
+                      style={{ width: '100%', padding: '8px 0', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
+                    >
+                      <span style={{ fontWeight: 400, fontSize: '16px' }}>Recommendations</span>
+                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ flexShrink: 0 }}>
+                        <Badge className="pf-v6-c-badge pf-m-unread">{recommendations.length}</Badge>
+                        {isRecommendationsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                      </Flex>
+                    </Button>
+                  </div>
+                  {isRecommendationsExpanded && (
+                    <div style={{ paddingTop: '8px' }}>
                     {recommendations.length === 0 ? (
                       <Content style={{ padding: '16px 0', color: 'var(--pf-t--global--text--color--subtle)' }}>
                         No recommendations
@@ -627,7 +617,8 @@ export const DashboardsPersesPage: React.FC = () => {
                         ))}
                       </Stack>
                     )}
-                  </ExpandableSection>
+                    </div>
+                  )}
                   </div>
                 </StackItem>
               </Stack>
