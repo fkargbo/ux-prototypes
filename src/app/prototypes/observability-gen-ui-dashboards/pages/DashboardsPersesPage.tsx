@@ -149,8 +149,16 @@ export const DashboardsPersesPage: React.FC = () => {
   const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(false);
 
   // Mock notifications data
-  const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string }> = [];
-  const otherAlerts: Array<{ id: string; name: string; severity: string; duration: string }> = [
+  const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string; description?: string }> = [
+    {
+      id: '1',
+      name: 'KubeCPUOvercommit',
+      severity: 'Critical',
+      duration: '1h 30m',
+      description: 'Cluster-wide CPU requests have exceeded the total available capacity. New pods cannot be scheduled, and existing workloads may experience performance degradation or throttling if they attempt to utilize their defined CPU limits.'
+    }
+  ];
+  const otherAlerts: Array<{ id: string; name: string; severity: string; duration: string; description?: string }> = [
     { id: '1', name: 'ClusterAutoscalerUnableToScale', severity: 'Warning', duration: '2h 15m' },
     { id: '2', name: 'NodeMemoryHigh', severity: 'Info', duration: '45m' },
   ];
@@ -508,9 +516,14 @@ export const DashboardsPersesPage: React.FC = () => {
                                   <Title headingLevel="h4" size="md" style={{ marginBottom: '4px' }}>
                                     {alert.name}
                                   </Title>
-                                  <Content style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                  <Content style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: alert.description ? '8px' : '0' }}>
                                     {alert.severity} • {alert.duration}
                                   </Content>
+                                  {alert.description && (
+                                    <Content style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--default)', marginTop: '8px' }}>
+                                      {alert.description}
+                                    </Content>
+                                  )}
                                 </FlexItem>
                                 <FlexItem>
                                   <Button variant="plain" aria-label="View details">
