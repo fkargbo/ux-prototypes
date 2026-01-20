@@ -354,44 +354,31 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, []);
 
-  // Add badge to masthead bell icon - plain number count next to icon
+  // Add plain number count next to masthead bell icon
   useEffect(() => {
     const bellButton = document.querySelector('button[aria-label="Notifications"]');
     if (bellButton) {
-      // Check if badge already exists
-      let badge = bellButton.querySelector('.notifications-badge') as HTMLElement;
+      // Check if count already exists
+      let countElement = bellButton.querySelector('.notifications-count') as HTMLElement;
       
       const totalAlerts = criticalAlerts.length + otherAlerts.length;
       
       if (totalAlerts > 0) {
-        if (!badge) {
-          badge = document.createElement('span');
-          badge.className = 'notifications-badge';
-          badge.style.cssText = `
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            min-width: 16px;
-            height: 16px;
-            font-size: 11px;
-            font-weight: 600;
-            padding: 0 4px;
-            background-color: var(--pf-t--global--color--status--info--default, #0066CC);
-            color: white;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1;
+        if (!countElement) {
+          countElement = document.createElement('span');
+          countElement.className = 'notifications-count';
+          countElement.style.cssText = `
+            margin-left: 4px;
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--pf-t--global--text--color--default, #151515);
             line-height: 1;
           `;
-          // Make button position relative
-          (bellButton as HTMLElement).style.position = 'relative';
-          bellButton.appendChild(badge);
+          bellButton.appendChild(countElement);
         }
-        badge.textContent = totalAlerts.toString();
-      } else if (badge) {
-        badge.remove();
+        countElement.textContent = totalAlerts.toString();
+      } else if (countElement) {
+        countElement.remove();
       }
     }
   }, [criticalAlerts.length, otherAlerts.length]);
