@@ -19,7 +19,7 @@ button[aria-label="View task details"] {
   text-align: left !important;
 }
 
-.notification-section-button .pf-v6-c-flex {
+.notification-section-button > div {
   width: 100% !important;
 }
 

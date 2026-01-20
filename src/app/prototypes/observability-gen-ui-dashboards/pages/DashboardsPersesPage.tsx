@@ -472,13 +472,13 @@ export const DashboardsPersesPage: React.FC = () => {
                       onClick={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
                       className="notification-section-button"
                     >
-                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                         <span className="notification-section-title">Critical Alerts</span>
-                        <Flex className="notification-section-right" gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <div className="notification-section-right">
                           <Badge className="pf-v6-c-badge pf-m-unread">{criticalAlerts.length}</Badge>
                           {isCriticalAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
-                        </Flex>
-                      </Flex>
+                        </div>
+                      </div>
                     </Button>
                   </div>
                   {isCriticalAlertsExpanded && (
@@ -526,13 +526,13 @@ export const DashboardsPersesPage: React.FC = () => {
                       onClick={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
                       className="notification-section-button"
                     >
-                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                         <span className="notification-section-title">Other Alerts</span>
-                        <Flex className="notification-section-right" gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <div className="notification-section-right">
                           <Badge className="pf-v6-c-badge pf-m-unread">{otherAlerts.length}</Badge>
                           {isOtherAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
-                        </Flex>
-                      </Flex>
+                        </div>
+                      </div>
                     </Button>
                   </div>
                   {isOtherAlertsExpanded && (
@@ -580,13 +580,13 @@ export const DashboardsPersesPage: React.FC = () => {
                       onClick={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
                       className="notification-section-button"
                     >
-                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                         <span className="notification-section-title">Recommendations</span>
-                        <Flex className="notification-section-right" gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <div className="notification-section-right">
                           <Badge className="pf-v6-c-badge pf-m-unread">{recommendations.length}</Badge>
                           {isRecommendationsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
-                        </Flex>
-                      </Flex>
+                        </div>
+                      </div>
                     </Button>
                   </div>
                   {isRecommendationsExpanded && (
