@@ -21,6 +21,13 @@ button[aria-label="View task details"] {
 
 .notification-section-button > div {
   width: 100% !important;
+  justify-content: space-between !important;
+}
+
+.notification-section-button > div > .notification-section-title {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  text-align: left !important;
 }
 
 .notification-section-title {
@@ -28,6 +35,8 @@ button[aria-label="View task details"] {
   font-size: 16px !important;
   text-align: left !important;
   flex: 0 0 auto !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
 }
 
 .notification-section-right {
