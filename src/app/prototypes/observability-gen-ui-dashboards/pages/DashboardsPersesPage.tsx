@@ -399,7 +399,8 @@ export const DashboardsPersesPage: React.FC = () => {
   );
 
   return (
-    <Drawer isExpanded={isNotificationsDrawerOpen} position="end">
+    <>
+      <Drawer isExpanded={isNotificationsDrawerOpen} position="end">
       <DrawerContent
         panelContent={
           <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
@@ -818,7 +819,10 @@ export const DashboardsPersesPage: React.FC = () => {
           </PageSection>
         </DrawerContentBody>
       </DrawerContent>
-      {isDrawerOpen && createPortal(
+    </Drawer>
+
+    {/* AI Assistant Chatbot - rendered via portal outside main container */}
+    {isDrawerOpen && createPortal(
         <div className="ai-assistant-drawer-wrapper">
           <div className="ai-assistant-panel-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
             <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -885,19 +889,19 @@ export const DashboardsPersesPage: React.FC = () => {
         document.body
       )}
 
-      {/* Floating toggle button - positioned outside drawer, always visible */}
-      <div 
-        ref={chatbotToggleRef}
-        style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}
-      >
-        <Tooltip content="AI assistant" position="left">
-          <ChatbotToggle 
-            onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
-            aria-label="AI assistant"
-            tooltipLabel="AI assistant"
-          />
-        </Tooltip>
-      </div>
-    </>
+    {/* Floating toggle button - positioned outside drawer, always visible */}
+    <div 
+      ref={chatbotToggleRef}
+      style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}
+    >
+      <Tooltip content="AI assistant" position="left">
+        <ChatbotToggle 
+          onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
+          aria-label="AI assistant"
+          tooltipLabel="AI assistant"
+        />
+      </Tooltip>
+    </div>
+  </>
   );
 };
