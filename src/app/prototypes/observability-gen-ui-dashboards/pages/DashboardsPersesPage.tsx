@@ -333,6 +333,65 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
+  // Attach click handler to masthead bell icon
+  useEffect(() => {
+    const handleMastheadBellClick = (event: MouseEvent) => {
+      // Find the masthead bell button by aria-label
+      const target = event.target as HTMLElement;
+      const bellButton = target.closest('button[aria-label="Notifications"]');
+      if (bellButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsNotificationsDrawerOpen(true);
+      }
+    };
+
+    // Add click listener to document (event delegation)
+    document.addEventListener('click', handleMastheadBellClick);
+    
+    return () => {
+      document.removeEventListener('click', handleMastheadBellClick);
+    };
+  }, []);
+
+  // Add badge to masthead bell icon
+  useEffect(() => {
+    const bellButton = document.querySelector('button[aria-label="Notifications"]');
+    if (bellButton) {
+      // Check if badge already exists
+      let badge = bellButton.querySelector('.notifications-badge') as HTMLElement;
+      
+      if (otherAlerts.length > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'notifications-badge';
+          badge.style.cssText = `
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 18px;
+            height: 18px;
+            font-size: 11px;
+            padding: 0 6px;
+            background-color: var(--pf-t--global--color--status--info--default, #0066CC);
+            color: white;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+          `;
+          // Make button position relative
+          (bellButton as HTMLElement).style.position = 'relative';
+          bellButton.appendChild(badge);
+        }
+        badge.textContent = otherAlerts.length.toString();
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+  }, [otherAlerts.length]);
+
   // AI Assistant sidebar panel - using PatternFly Drawer structure
   const aiAssistantPanel = (
     <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
@@ -589,31 +648,6 @@ export const DashboardsPersesPage: React.FC = () => {
                     <FlexItem>
                       <Button variant="plain" aria-label="Favorite">
                         <StarIcon />
-                      </Button>
-                    </FlexItem>
-                    <FlexItem>
-                      <Button
-                        variant="plain"
-                        aria-label="Notifications"
-                        onClick={() => setIsNotificationsDrawerOpen(true)}
-                        style={{ position: 'relative' }}
-                      >
-                        <BellIcon />
-                        {otherAlerts.length > 0 && (
-                          <Badge
-                            style={{
-                              position: 'absolute',
-                              top: '-4px',
-                              right: '-4px',
-                              minWidth: '18px',
-                              height: '18px',
-                              fontSize: '11px',
-                              padding: '0 6px',
-                            }}
-                          >
-                            {otherAlerts.length}
-                          </Badge>
-                        )}
                       </Button>
                     </FlexItem>
                     <FlexItem>
