@@ -466,7 +466,6 @@ export const DashboardsPersesPage: React.FC = () => {
                 {/* Critical Alerts Section */}
                 <StackItem>
                   <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
-                  <div style={{ marginBottom: '8px' }}>
                     <Button
                       variant="plain"
                       onClick={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
@@ -480,7 +479,6 @@ export const DashboardsPersesPage: React.FC = () => {
                         </div>
                       </div>
                     </Button>
-                  </div>
                   {isCriticalAlertsExpanded && (
                     <div style={{ paddingTop: '8px' }}>
                     {criticalAlerts.length === 0 ? (
@@ -520,7 +518,6 @@ export const DashboardsPersesPage: React.FC = () => {
                 {/* Other Alerts Section */}
                 <StackItem>
                   <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
-                  <div style={{ marginBottom: '8px' }}>
                     <Button
                       variant="plain"
                       onClick={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
@@ -534,7 +531,6 @@ export const DashboardsPersesPage: React.FC = () => {
                         </div>
                       </div>
                     </Button>
-                  </div>
                   {isOtherAlertsExpanded && (
                     <div style={{ paddingTop: '8px' }}>
                     {otherAlerts.length === 0 ? (
@@ -574,7 +570,6 @@ export const DashboardsPersesPage: React.FC = () => {
                 {/* Recommendations Section */}
                 <StackItem>
                   <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
-                  <div style={{ marginBottom: '8px' }}>
                     <Button
                       variant="plain"
                       onClick={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
@@ -588,7 +583,6 @@ export const DashboardsPersesPage: React.FC = () => {
                         </div>
                       </div>
                     </Button>
-                  </div>
                   {isRecommendationsExpanded && (
                     <div style={{ paddingTop: '8px' }}>
                     {recommendations.length === 0 ? (

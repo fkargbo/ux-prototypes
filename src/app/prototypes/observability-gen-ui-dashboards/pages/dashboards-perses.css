@@ -12,22 +12,20 @@ button[aria-label="View task details"] {
 
 /* Notification drawer section alignment */
 .notification-section-button {
-  width: calc(100% + 48px) !important;
-  padding: 8px 24px !important;
-  margin-left: -24px !important;
-  margin-right: -24px !important;
+  width: 100% !important;
+  padding: 8px 0 !important;
+  margin: 0 !important;
   text-align: left !important;
+  justify-content: flex-start !important;
 }
 
 .notification-section-button > div {
   width: 100% !important;
+  display: flex !important;
   justify-content: space-between !important;
-}
-
-.notification-section-button > div > .notification-section-title {
-  margin-left: 0 !important;
-  padding-left: 0 !important;
-  text-align: left !important;
+  align-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .notification-section-title {
@@ -35,8 +33,9 @@ button[aria-label="View task details"] {
   font-size: 16px !important;
   text-align: left !important;
   flex: 0 0 auto !important;
-  margin-left: 0 !important;
-  padding-left: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-block !important;
 }
 
 .notification-section-right {
@@ -45,6 +44,7 @@ button[aria-label="View task details"] {
   align-items: center !important;
   flex-shrink: 0 !important;
   margin-left: auto !important;
+  padding: 0 !important;
 }
 
 /* Shift page content to the left when drawer is open */
