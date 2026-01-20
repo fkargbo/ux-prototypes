@@ -470,12 +470,14 @@ export const DashboardsPersesPage: React.FC = () => {
                     <Button
                       variant="plain"
                       onClick={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
-                      style={{ width: '100%', padding: '8px 0', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
+                      style={{ width: '100%', padding: '8px 0', textAlign: 'left' }}
                     >
-                      <span style={{ fontWeight: 400, fontSize: '16px' }}>Critical Alerts</span>
-                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ flexShrink: 0 }}>
-                        <Badge className="pf-v6-c-badge pf-m-unread">{criticalAlerts.length}</Badge>
-                        {isCriticalAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                        <span style={{ fontWeight: 400, fontSize: '16px' }}>Critical Alerts</span>
+                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ flexShrink: 0 }}>
+                          <Badge className="pf-v6-c-badge pf-m-unread">{criticalAlerts.length}</Badge>
+                          {isCriticalAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                        </Flex>
                       </Flex>
                     </Button>
                   </div>
@@ -522,12 +524,14 @@ export const DashboardsPersesPage: React.FC = () => {
                     <Button
                       variant="plain"
                       onClick={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
-                      style={{ width: '100%', padding: '8px 0', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
+                      style={{ width: '100%', padding: '8px 0', textAlign: 'left' }}
                     >
-                      <span style={{ fontWeight: 400, fontSize: '16px' }}>Other Alerts</span>
-                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ flexShrink: 0 }}>
-                        <Badge className="pf-v6-c-badge pf-m-unread">{otherAlerts.length}</Badge>
-                        {isOtherAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                        <span style={{ fontWeight: 400, fontSize: '16px' }}>Other Alerts</span>
+                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ flexShrink: 0 }}>
+                          <Badge className="pf-v6-c-badge pf-m-unread">{otherAlerts.length}</Badge>
+                          {isOtherAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                        </Flex>
                       </Flex>
                     </Button>
                   </div>
@@ -574,12 +578,14 @@ export const DashboardsPersesPage: React.FC = () => {
                     <Button
                       variant="plain"
                       onClick={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
-                      style={{ width: '100%', padding: '8px 0', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
+                      style={{ width: '100%', padding: '8px 0', textAlign: 'left' }}
                     >
-                      <span style={{ fontWeight: 400, fontSize: '16px' }}>Recommendations</span>
-                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ flexShrink: 0 }}>
-                        <Badge className="pf-v6-c-badge pf-m-unread">{recommendations.length}</Badge>
-                        {isRecommendationsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                        <span style={{ fontWeight: 400, fontSize: '16px' }}>Recommendations</span>
+                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ flexShrink: 0 }}>
+                          <Badge className="pf-v6-c-badge pf-m-unread">{recommendations.length}</Badge>
+                          {isRecommendationsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                        </Flex>
                       </Flex>
                     </Button>
                   </div>
