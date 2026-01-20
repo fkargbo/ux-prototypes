@@ -36,6 +36,12 @@ import {
   TextInput,
   Stack,
   StackItem,
+  ExpandableSection,
+  Alert,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -48,6 +54,10 @@ import {
   MicrophoneIcon,
   PaperPlaneIcon,
   PlusIcon,
+  BellIcon,
+  ExclamationTriangleIcon,
+  ExternalLinkAltIcon,
+  AngleRightIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -131,6 +141,43 @@ export const DashboardsPersesPage: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+
+  // Notifications drawer state
+  const [isNotificationsDrawerOpen, setIsNotificationsDrawerOpen] = useState(false);
+  const [isCriticalAlertsExpanded, setIsCriticalAlertsExpanded] = useState(false);
+  const [isOtherAlertsExpanded, setIsOtherAlertsExpanded] = useState(false);
+  const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(false);
+
+  // Mock notifications data
+  const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string; description?: string }> = [
+    {
+      id: '1',
+      name: 'KubeCPUOvercommit',
+      severity: 'Critical',
+      duration: '1h 30m',
+      description: 'Cluster-wide CPU requests have exceeded the total available capacity. New pods cannot be scheduled, and existing workloads may experience performance degradation or throttling if they attempt to utilize their defined CPU limits.'
+    }
+  ];
+  const otherAlerts: Array<{ id: string; name: string; severity: string; duration: string; description?: string }> = [
+    { id: '1', name: 'ClusterAutoscalerUnableToScale', severity: 'Warning', duration: '2h 15m' },
+    { id: '2', name: 'NodeMemoryHigh', severity: 'Info', duration: '45m' },
+  ];
+  const recommendations: Array<{ id: string; title: string; message: string; actionLabel: string; actionUrl: string }> = [
+    {
+      id: '1',
+      title: 'This cluster is not supported.',
+      message: 'Your 60-day self-support trial will end in 59 day on Mar 21, 2026.s For continued support, upgrade your cluster or transfer cluster ownership to an account with an active subscription.',
+      actionLabel: 'Get support',
+      actionUrl: '#',
+    },
+  ];
+
+  // Auto-expand critical alerts section if there are critical alerts
+  useEffect(() => {
+    if (criticalAlerts.length > 0) {
+      setIsCriticalAlertsExpanded(true);
+    }
+  }, [criticalAlerts.length]);
 
   // Sample dashboard data
   const allDashboards: Dashboard[] = [
@@ -306,6 +353,56 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
+  // Attach click handler to masthead bell icon - toggle drawer open/close
+  useEffect(() => {
+    const handleMastheadBellClick = (event: MouseEvent) => {
+      // Find the masthead bell button by aria-label
+      const target = event.target as HTMLElement;
+      const bellButton = target.closest('button[aria-label="Notifications"]');
+      if (bellButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsNotificationsDrawerOpen(prev => !prev);
+      }
+    };
+
+    // Add click listener to document (event delegation)
+    document.addEventListener('click', handleMastheadBellClick);
+    
+    return () => {
+      document.removeEventListener('click', handleMastheadBellClick);
+    };
+  }, []);
+
+  // Add plain number count next to masthead bell icon
+  useEffect(() => {
+    const bellButton = document.querySelector('button[aria-label="Notifications"]');
+    if (bellButton) {
+      // Check if count already exists
+      let countElement = bellButton.querySelector('.notifications-count') as HTMLElement;
+      
+      const totalAlerts = criticalAlerts.length + otherAlerts.length;
+      
+      if (totalAlerts > 0) {
+        if (!countElement) {
+          countElement = document.createElement('span');
+          countElement.className = 'notifications-count';
+          countElement.style.cssText = `
+            margin-left: 4px;
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--pf-t--global--text--color--default, #151515);
+            line-height: 1;
+          `;
+          bellButton.appendChild(countElement);
+        }
+        countElement.textContent = totalAlerts.toString();
+      } else if (countElement) {
+        countElement.remove();
+      }
+    }
+  }, [criticalAlerts.length, otherAlerts.length]);
+
   // AI Assistant sidebar panel - using PatternFly Drawer structure
   const aiAssistantPanel = (
     <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
@@ -373,8 +470,209 @@ export const DashboardsPersesPage: React.FC = () => {
 
   return (
     <>
-      {/* Page content - not wrapped in Drawer */}
-      <PageSection>
+      <Drawer isExpanded={isNotificationsDrawerOpen} position="end">
+      <DrawerContent
+        panelContent={
+          <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
+            <DrawerHead>
+              <Title headingLevel="h2" size="xl">Notifications</Title>
+              <DrawerActions>
+                <DrawerCloseButton onClick={() => setIsNotificationsDrawerOpen(false)} />
+              </DrawerActions>
+            </DrawerHead>
+            <DrawerPanelBody style={{ padding: '24px', overflowY: 'auto' }}>
+              <Stack hasGutter>
+                {/* Critical Alerts Section */}
+                <StackItem>
+                  <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                    <Button
+                      variant="plain"
+                      onClick={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
+                      className="notification-section-button"
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <span className="notification-section-title">Critical Alerts</span>
+                        <div className="notification-section-right">
+                          <Badge className="pf-v6-c-badge pf-m-unread">{criticalAlerts.length}</Badge>
+                          {isCriticalAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                        </div>
+                      </div>
+                    </Button>
+                  {isCriticalAlertsExpanded && (
+                    <div style={{ paddingTop: '8px' }}>
+                    {criticalAlerts.length === 0 ? (
+                      <EmptyState titleText="No critical alerts" headingLevel="h4">
+                        <EmptyStateBody>
+                          There are currently no critical alerts firing. There may be firing alerts of other severities or silenced critical alerts however.
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                          <EmptyStateActions>
+                            <Button variant="link" component="a" href="#">
+                              View all alerts
+                            </Button>
+                          </EmptyStateActions>
+                        </EmptyStateFooter>
+                      </EmptyState>
+                    ) : (
+                      <Stack hasGutter>
+                        {criticalAlerts.map((alert) => (
+                          <StackItem key={alert.id}>
+                            <Alert
+                              variant="danger"
+                              isInline
+                              title={alert.name}
+                              style={{ marginBottom: '12px' }}
+                            >
+                              <Content style={{ marginTop: '8px', marginBottom: '8px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                {alert.severity} • {alert.duration}
+                              </Content>
+                              {alert.description && (
+                                <Content style={{ marginTop: '8px', marginBottom: '12px' }}>
+                                  {alert.description}
+                                </Content>
+                              )}
+                            </Alert>
+                          </StackItem>
+                        ))}
+                      </Stack>
+                    )}
+                    </div>
+                  )}
+                  </div>
+                </StackItem>
+
+                {/* Other Alerts Section */}
+                <StackItem>
+                  <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                    <Button
+                      variant="plain"
+                      onClick={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
+                      className="notification-section-button"
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <span className="notification-section-title">Other Alerts</span>
+                        <div className="notification-section-right">
+                          <Badge className="pf-v6-c-badge pf-m-unread">{otherAlerts.length}</Badge>
+                          {isOtherAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                        </div>
+                      </div>
+                    </Button>
+                  {isOtherAlertsExpanded && (
+                    <div style={{ paddingTop: '8px' }}>
+                    {otherAlerts.length === 0 ? (
+                      <EmptyState titleText="No other alerts" headingLevel="h4">
+                        <EmptyStateBody>
+                          There are currently no other alerts firing. There may be firing alerts of other severities or silenced alerts however.
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                          <EmptyStateActions>
+                            <Button variant="link" component="a" href="#">
+                              View all alerts
+                            </Button>
+                          </EmptyStateActions>
+                        </EmptyStateFooter>
+                      </EmptyState>
+                    ) : (
+                      <Stack hasGutter>
+                        {otherAlerts.map((alert) => (
+                          <StackItem key={alert.id}>
+                            <div style={{ padding: '12px', border: '1px solid var(--pf-t--global--border--color--default)', borderRadius: '4px' }}>
+                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
+                                <FlexItem>
+                                  <Title headingLevel="h4" size="md" style={{ marginBottom: '4px' }}>
+                                    {alert.name}
+                                  </Title>
+                                  <Content style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    {alert.severity} • {alert.duration}
+                                  </Content>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="plain" aria-label="View details">
+                                    <CaretDownIcon style={{ transform: 'rotate(-90deg)' }} />
+                                  </Button>
+                                </FlexItem>
+                              </Flex>
+                            </div>
+                          </StackItem>
+                        ))}
+                      </Stack>
+                    )}
+                    </div>
+                  )}
+                  </div>
+                </StackItem>
+
+                {/* Recommendations Section */}
+                <StackItem>
+                  <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                    <Button
+                      variant="plain"
+                      onClick={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
+                      className="notification-section-button"
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <span className="notification-section-title">Recommendations</span>
+                        <div className="notification-section-right">
+                          <Badge className="pf-v6-c-badge pf-m-unread">{recommendations.length}</Badge>
+                          {isRecommendationsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                        </div>
+                      </div>
+                    </Button>
+                  {isRecommendationsExpanded && (
+                    <div style={{ paddingTop: '8px' }}>
+                    {recommendations.length === 0 ? (
+                      <EmptyState titleText="No recommendations" headingLevel="h4">
+                        <EmptyStateBody>
+                          There are currently no recommendations available. Recommendations will appear here when they become available.
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                          <EmptyStateActions>
+                            <Button variant="link" component="a" href="#">
+                              View all alerts
+                            </Button>
+                          </EmptyStateActions>
+                        </EmptyStateFooter>
+                      </EmptyState>
+                    ) : (
+                      <Stack hasGutter>
+                        {recommendations.map((rec) => (
+                          <StackItem key={rec.id}>
+                            <Alert
+                              variant="warning"
+                              isInline
+                              title={rec.title}
+                              style={{ marginBottom: '12px' }}
+                            >
+                              <Content style={{ marginTop: '8px', marginBottom: '12px' }}>
+                                {rec.message}
+                              </Content>
+                              <Button
+                                variant="link"
+                                isInline
+                                component="a"
+                                href={rec.actionUrl}
+                                icon={<ExternalLinkAltIcon />}
+                                iconPosition="end"
+                              >
+                                {rec.actionLabel}
+                              </Button>
+                            </Alert>
+                          </StackItem>
+                        ))}
+                      </Stack>
+                    )}
+                    </div>
+                  )}
+                  </div>
+                </StackItem>
+              </Stack>
+            </DrawerPanelBody>
+          </DrawerPanelContent>
+        }
+      >
+        <DrawerContentBody>
+          {/* Page content */}
+          <PageSection>
               {/* Breadcrumbs Section - 16px padding */}
               <div className="template-page-breadcrumb">
               <Breadcrumb>
@@ -603,10 +901,13 @@ export const DashboardsPersesPage: React.FC = () => {
                 </div>
               </div>
             </div>
-      </PageSection>
+          </PageSection>
+        </DrawerContentBody>
+      </DrawerContent>
+    </Drawer>
 
-      {/* Drawer panel - rendered via portal outside main container */}
-      {isDrawerOpen && createPortal(
+    {/* AI Assistant Chatbot - rendered via portal outside main container */}
+    {isDrawerOpen && createPortal(
         <div className="ai-assistant-drawer-wrapper">
           <div className="ai-assistant-panel-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
             <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -673,19 +974,19 @@ export const DashboardsPersesPage: React.FC = () => {
         document.body
       )}
 
-      {/* Floating toggle button - positioned outside drawer, always visible */}
-      <div 
-        ref={chatbotToggleRef}
-        style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}
-      >
-        <Tooltip content="AI assistant" position="left">
-          <ChatbotToggle 
-            onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
-            aria-label="AI assistant"
-            tooltipLabel="AI assistant"
-          />
-        </Tooltip>
-      </div>
-    </>
+    {/* Floating toggle button - positioned outside drawer, always visible */}
+    <div 
+      ref={chatbotToggleRef}
+      style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}
+    >
+      <Tooltip content="AI assistant" position="left">
+        <ChatbotToggle 
+          onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
+          aria-label="AI assistant"
+          tooltipLabel="AI assistant"
+        />
+      </Tooltip>
+    </div>
+  </>
   );
 };
