@@ -464,16 +464,23 @@ export const DashboardsPersesPage: React.FC = () => {
             <DrawerPanelBody style={{ padding: '24px', overflowY: 'auto' }}>
               <Stack hasGutter>
                 {/* Critical Alerts Section */}
-                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <StackItem>
+                  <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
-                    toggleText={
-                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                        <span>Critical Alerts</span>
-                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <Badge>{criticalAlerts.length}</Badge>
-                          {isCriticalAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                    toggle={
+                      <Button
+                        variant="plain"
+                        onClick={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
+                        style={{ width: '100%', justifyContent: 'space-between', padding: 0 }}
+                      >
+                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                          <span>Critical Alerts</span>
+                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                            <Badge>{criticalAlerts.length}</Badge>
+                            {isCriticalAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                          </Flex>
                         </Flex>
-                      </Flex>
+                      </Button>
                     }
                     onToggle={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
                     isExpanded={isCriticalAlertsExpanded}
@@ -508,19 +515,27 @@ export const DashboardsPersesPage: React.FC = () => {
                       </Stack>
                     )}
                   </ExpandableSection>
+                  </div>
                 </StackItem>
 
                 {/* Other Alerts Section */}
-                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <StackItem>
+                  <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
-                    toggleText={
-                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                        <span>Other Alerts</span>
-                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <Badge>{otherAlerts.length}</Badge>
-                          {isOtherAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                    toggle={
+                      <Button
+                        variant="plain"
+                        onClick={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
+                        style={{ width: '100%', justifyContent: 'space-between', padding: 0 }}
+                      >
+                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                          <span>Other Alerts</span>
+                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                            <Badge>{otherAlerts.length}</Badge>
+                            {isOtherAlertsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                          </Flex>
                         </Flex>
-                      </Flex>
+                      </Button>
                     }
                     onToggle={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
                     isExpanded={isOtherAlertsExpanded}
@@ -555,19 +570,27 @@ export const DashboardsPersesPage: React.FC = () => {
                       </Stack>
                     )}
                   </ExpandableSection>
+                  </div>
                 </StackItem>
 
                 {/* Recommendations Section */}
-                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <StackItem>
+                  <div style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
-                    toggleText={
-                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                        <span>Recommendations</span>
-                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <Badge>{recommendations.length}</Badge>
-                          {isRecommendationsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                    toggle={
+                      <Button
+                        variant="plain"
+                        onClick={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
+                        style={{ width: '100%', justifyContent: 'space-between', padding: 0 }}
+                      >
+                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                          <span>Recommendations</span>
+                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                            <Badge>{recommendations.length}</Badge>
+                            {isRecommendationsExpanded ? <CaretDownIcon /> : <AngleRightIcon />}
+                          </Flex>
                         </Flex>
-                      </Flex>
+                      </Button>
                     }
                     onToggle={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
                     isExpanded={isRecommendationsExpanded}
@@ -605,6 +628,7 @@ export const DashboardsPersesPage: React.FC = () => {
                       </Stack>
                     )}
                   </ExpandableSection>
+                  </div>
                 </StackItem>
               </Stack>
             </DrawerPanelBody>
