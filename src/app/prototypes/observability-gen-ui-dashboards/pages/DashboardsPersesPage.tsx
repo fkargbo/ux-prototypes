@@ -354,43 +354,47 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, []);
 
-  // Add badge to masthead bell icon
+  // Add badge to masthead bell icon - plain number count next to icon
   useEffect(() => {
     const bellButton = document.querySelector('button[aria-label="Notifications"]');
     if (bellButton) {
       // Check if badge already exists
       let badge = bellButton.querySelector('.notifications-badge') as HTMLElement;
       
-      if (otherAlerts.length > 0) {
+      const totalAlerts = criticalAlerts.length + otherAlerts.length;
+      
+      if (totalAlerts > 0) {
         if (!badge) {
           badge = document.createElement('span');
           badge.className = 'notifications-badge';
           badge.style.cssText = `
             position: absolute;
-            top: -4px;
-            right: -4px;
-            min-width: 18px;
-            height: 18px;
+            top: -2px;
+            right: -2px;
+            min-width: 16px;
+            height: 16px;
             font-size: 11px;
-            padding: 0 6px;
+            font-weight: 600;
+            padding: 0 4px;
             background-color: var(--pf-t--global--color--status--info--default, #0066CC);
             color: white;
-            border-radius: 9px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1;
+            line-height: 1;
           `;
           // Make button position relative
           (bellButton as HTMLElement).style.position = 'relative';
           bellButton.appendChild(badge);
         }
-        badge.textContent = otherAlerts.length.toString();
+        badge.textContent = totalAlerts.toString();
       } else if (badge) {
         badge.remove();
       }
     }
-  }, [otherAlerts.length]);
+  }, [criticalAlerts.length, otherAlerts.length]);
 
   // AI Assistant sidebar panel - using PatternFly Drawer structure
   const aiAssistantPanel = (
@@ -472,7 +476,7 @@ export const DashboardsPersesPage: React.FC = () => {
             <DrawerPanelBody style={{ padding: '24px', overflowY: 'auto' }}>
               <Stack hasGutter>
                 {/* Critical Alerts Section */}
-                <StackItem>
+                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
                     toggleText={
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
@@ -519,7 +523,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 </StackItem>
 
                 {/* Other Alerts Section */}
-                <StackItem>
+                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
                     toggleText={
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
@@ -566,7 +570,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 </StackItem>
 
                 {/* Recommendations Section */}
-                <StackItem>
+                <StackItem style={{ borderBottom: '1px solid var(--pf-t--global--border--color--default)', paddingBottom: '16px', marginBottom: '16px' }}>
                   <ExpandableSection
                     toggleText={
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
