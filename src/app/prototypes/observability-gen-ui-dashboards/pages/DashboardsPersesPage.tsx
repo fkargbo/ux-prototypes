@@ -36,6 +36,8 @@ import {
   TextInput,
   Stack,
   StackItem,
+  ExpandableSection,
+  Alert,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -48,6 +50,9 @@ import {
   MicrophoneIcon,
   PaperPlaneIcon,
   PlusIcon,
+  BellIcon,
+  ExclamationTriangleIcon,
+  ExternalLinkAltIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -131,6 +136,28 @@ export const DashboardsPersesPage: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+
+  // Notifications drawer state
+  const [isNotificationsDrawerOpen, setIsNotificationsDrawerOpen] = useState(false);
+  const [isCriticalAlertsExpanded, setIsCriticalAlertsExpanded] = useState(false);
+  const [isOtherAlertsExpanded, setIsOtherAlertsExpanded] = useState(false);
+  const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(true);
+
+  // Mock notifications data
+  const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string }> = [];
+  const otherAlerts: Array<{ id: string; name: string; severity: string; duration: string }> = [
+    { id: '1', name: 'ClusterAutoscalerUnableToScale', severity: 'Warning', duration: '2h 15m' },
+    { id: '2', name: 'NodeMemoryHigh', severity: 'Info', duration: '45m' },
+  ];
+  const recommendations: Array<{ id: string; title: string; message: string; actionLabel: string; actionUrl: string }> = [
+    {
+      id: '1',
+      title: 'This cluster is not supported.',
+      message: 'Your 60-day self-support trial will end in 59 day on Mar 21, 2026.s For continued support, upgrade your cluster or transfer cluster ownership to an account with an active subscription.',
+      actionLabel: 'Get support',
+      actionUrl: '#',
+    },
+  ];
 
   // Sample dashboard data
   const allDashboards: Dashboard[] = [
@@ -372,9 +399,169 @@ export const DashboardsPersesPage: React.FC = () => {
   );
 
   return (
-    <>
-      {/* Page content - not wrapped in Drawer */}
-      <PageSection>
+    <Drawer isExpanded={isNotificationsDrawerOpen} position="end">
+      <DrawerContent
+        panelContent={
+          <DrawerPanelContent widths={{ default: 'width_33', lg: 'width_33', xl: 'width_25' }} style={{ minWidth: '400px' }}>
+            <DrawerHead>
+              <Title headingLevel="h2" size="xl">Notifications</Title>
+              <DrawerActions>
+                <DrawerCloseButton onClick={() => setIsNotificationsDrawerOpen(false)} />
+              </DrawerActions>
+            </DrawerHead>
+            <DrawerPanelBody style={{ padding: '24px', overflowY: 'auto' }}>
+              <Stack hasGutter>
+                {/* Critical Alerts Section */}
+                <StackItem>
+                  <ExpandableSection
+                    toggleText={
+                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                        <span>Critical Alerts</span>
+                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <Badge>{criticalAlerts.length}</Badge>
+                          <CaretDownIcon style={{ transform: isCriticalAlertsExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                        </Flex>
+                      </Flex>
+                    }
+                    onToggle={() => setIsCriticalAlertsExpanded(!isCriticalAlertsExpanded)}
+                    isExpanded={isCriticalAlertsExpanded}
+                  >
+                    {criticalAlerts.length === 0 ? (
+                      <Content style={{ padding: '16px 0', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        No critical alerts
+                      </Content>
+                    ) : (
+                      <Stack hasGutter>
+                        {criticalAlerts.map((alert) => (
+                          <StackItem key={alert.id}>
+                            <div style={{ padding: '12px', border: '1px solid var(--pf-t--global--border--color--default)', borderRadius: '4px' }}>
+                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
+                                <FlexItem>
+                                  <Title headingLevel="h4" size="md" style={{ marginBottom: '4px' }}>
+                                    {alert.name}
+                                  </Title>
+                                  <Content style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    {alert.severity} • {alert.duration}
+                                  </Content>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="plain" aria-label="View details">
+                                    <CaretDownIcon style={{ transform: 'rotate(-90deg)' }} />
+                                  </Button>
+                                </FlexItem>
+                              </Flex>
+                            </div>
+                          </StackItem>
+                        ))}
+                      </Stack>
+                    )}
+                  </ExpandableSection>
+                </StackItem>
+
+                {/* Other Alerts Section */}
+                <StackItem>
+                  <ExpandableSection
+                    toggleText={
+                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                        <span>Other Alerts</span>
+                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <Badge>{otherAlerts.length}</Badge>
+                          <CaretDownIcon style={{ transform: isOtherAlertsExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                        </Flex>
+                      </Flex>
+                    }
+                    onToggle={() => setIsOtherAlertsExpanded(!isOtherAlertsExpanded)}
+                    isExpanded={isOtherAlertsExpanded}
+                  >
+                    {otherAlerts.length === 0 ? (
+                      <Content style={{ padding: '16px 0', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        No other alerts
+                      </Content>
+                    ) : (
+                      <Stack hasGutter>
+                        {otherAlerts.map((alert) => (
+                          <StackItem key={alert.id}>
+                            <div style={{ padding: '12px', border: '1px solid var(--pf-t--global--border--color--default)', borderRadius: '4px' }}>
+                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
+                                <FlexItem>
+                                  <Title headingLevel="h4" size="md" style={{ marginBottom: '4px' }}>
+                                    {alert.name}
+                                  </Title>
+                                  <Content style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    {alert.severity} • {alert.duration}
+                                  </Content>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="plain" aria-label="View details">
+                                    <CaretDownIcon style={{ transform: 'rotate(-90deg)' }} />
+                                  </Button>
+                                </FlexItem>
+                              </Flex>
+                            </div>
+                          </StackItem>
+                        ))}
+                      </Stack>
+                    )}
+                  </ExpandableSection>
+                </StackItem>
+
+                {/* Recommendations Section */}
+                <StackItem>
+                  <ExpandableSection
+                    toggleText={
+                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                        <span>Recommendations</span>
+                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <Badge>{recommendations.length}</Badge>
+                          <CaretDownIcon style={{ transform: isRecommendationsExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                        </Flex>
+                      </Flex>
+                    }
+                    onToggle={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
+                    isExpanded={isRecommendationsExpanded}
+                  >
+                    {recommendations.length === 0 ? (
+                      <Content style={{ padding: '16px 0', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        No recommendations
+                      </Content>
+                    ) : (
+                      <Stack hasGutter>
+                        {recommendations.map((rec) => (
+                          <StackItem key={rec.id}>
+                            <Alert
+                              variant="warning"
+                              isInline
+                              title={rec.title}
+                              style={{ marginBottom: '12px' }}
+                            >
+                              <Content style={{ marginTop: '8px', marginBottom: '12px' }}>
+                                {rec.message}
+                              </Content>
+                              <Button
+                                variant="link"
+                                isInline
+                                component="a"
+                                href={rec.actionUrl}
+                                icon={<ExternalLinkAltIcon />}
+                                iconPosition="end"
+                              >
+                                {rec.actionLabel}
+                              </Button>
+                            </Alert>
+                          </StackItem>
+                        ))}
+                      </Stack>
+                    )}
+                  </ExpandableSection>
+                </StackItem>
+              </Stack>
+            </DrawerPanelBody>
+          </DrawerPanelContent>
+        }
+      >
+        <DrawerContentBody>
+          {/* Page content */}
+          <PageSection>
               {/* Breadcrumbs Section - 16px padding */}
               <div className="template-page-breadcrumb">
               <Breadcrumb>
@@ -401,6 +588,31 @@ export const DashboardsPersesPage: React.FC = () => {
                     <FlexItem>
                       <Button variant="plain" aria-label="Favorite">
                         <StarIcon />
+                      </Button>
+                    </FlexItem>
+                    <FlexItem>
+                      <Button
+                        variant="plain"
+                        aria-label="Notifications"
+                        onClick={() => setIsNotificationsDrawerOpen(true)}
+                        style={{ position: 'relative' }}
+                      >
+                        <BellIcon />
+                        {otherAlerts.length > 0 && (
+                          <Badge
+                            style={{
+                              position: 'absolute',
+                              top: '-4px',
+                              right: '-4px',
+                              minWidth: '18px',
+                              height: '18px',
+                              fontSize: '11px',
+                              padding: '0 6px',
+                            }}
+                          >
+                            {otherAlerts.length}
+                          </Badge>
+                        )}
                       </Button>
                     </FlexItem>
                     <FlexItem>
@@ -603,9 +815,9 @@ export const DashboardsPersesPage: React.FC = () => {
                 </div>
               </div>
             </div>
-      </PageSection>
-
-      {/* Drawer panel - rendered via portal outside main container */}
+          </PageSection>
+        </DrawerContentBody>
+      </DrawerContent>
       {isDrawerOpen && createPortal(
         <div className="ai-assistant-drawer-wrapper">
           <div className="ai-assistant-panel-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
