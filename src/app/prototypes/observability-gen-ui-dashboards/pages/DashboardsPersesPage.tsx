@@ -64,6 +64,7 @@ import {
   PlusIcon,
   BellIcon,
   ExclamationTriangleIcon,
+  ExclamationCircleIcon,
   ExternalLinkAltIcon,
   AngleRightIcon,
   CubesIcon,
@@ -315,22 +316,21 @@ const TroubleshootingDashboard: React.FC = () => {
                 </CardHeader>
                 <CardBody>
                   <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} style={{ height: '100%', justifyContent: 'center' }}>
-                    <Title 
-                      headingLevel="h1" 
-                      size="4xl" 
-                      className={cpuCommitmentPercent > 100 ? 'pf-v6-u-danger-color-100' : ''}
-                      style={{ marginBottom: '8px' }}
-                    >
-                      {cpuCommitmentPercent}%
-                    </Title>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: '8px' }}>
+                      {cpuCommitmentPercent > 100 && (
+                        <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                      )}
+                      <Title 
+                        headingLevel="h1" 
+                        size="4xl" 
+                        className={cpuCommitmentPercent > 100 ? 'pf-v6-u-danger-color-100' : ''}
+                      >
+                        {cpuCommitmentPercent}%
+                      </Title>
+                    </Flex>
                     <Content component="small" className="pf-v6-u-color-200">
                       {'(sum(kube_pod_container_resource_requests{resource="cpu"}) / sum(kube_node_status_capacity{resource="cpu"})) * 100'}
                     </Content>
-                    {cpuCommitmentPercent > 100 && (
-                      <Alert variant="danger" isInline title="Overcommitted" style={{ marginTop: '16px' }}>
-                        Cluster CPU requests exceed available capacity. New pods cannot be scheduled.
-                      </Alert>
-                    )}
                   </Flex>
                 </CardBody>
               </Card>
@@ -344,22 +344,21 @@ const TroubleshootingDashboard: React.FC = () => {
                 </CardHeader>
                 <CardBody>
                   <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} style={{ height: '100%', justifyContent: 'center' }}>
-                    <Title 
-                      headingLevel="h1" 
-                      size="4xl" 
-                      className={throttledContainers > 10 ? 'pf-v6-u-warning-color-100' : ''}
-                      style={{ marginBottom: '8px' }}
-                    >
-                      {throttledContainers}
-                    </Title>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: '8px' }}>
+                      {throttledContainers > 10 && (
+                        <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                      )}
+                      <Title 
+                        headingLevel="h1" 
+                        size="4xl" 
+                        className={throttledContainers > 10 ? 'pf-v6-u-warning-color-100' : ''}
+                      >
+                        {throttledContainers}
+                      </Title>
+                    </Flex>
                     <Content component="small" className="pf-v6-u-color-200">
                       count(rate(container_cpu_cfs_throttled_seconds_total[5m]) &gt; 0)
                     </Content>
-                    {throttledContainers > 10 && (
-                      <Alert variant="warning" isInline title="Performance Impact" style={{ marginTop: '16px' }}>
-                        Containers are experiencing CPU throttling, indicating real latency impact.
-                      </Alert>
-                    )}
                   </Flex>
                 </CardBody>
               </Card>
