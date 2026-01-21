@@ -148,6 +148,9 @@ export const DashboardsPersesPage: React.FC = () => {
   const [isOtherAlertsExpanded, setIsOtherAlertsExpanded] = useState(false);
   const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(false);
 
+  // Troubleshooting workflow state
+  const [workflowStage, setWorkflowStage] = useState<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
+
   // Mock notifications data
   const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string; description?: string }> = [
     {
@@ -323,6 +326,101 @@ export const DashboardsPersesPage: React.FC = () => {
   const onSelectModel = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
     setSelectedModel(value as string);
   };
+
+  // Handle starting troubleshooting workflow from alert
+  const handleStartTroubleshooting = useCallback((alertName: string) => {
+    // Close notifications drawer
+    setIsNotificationsDrawerOpen(false);
+    
+    // Open chatbot drawer
+    setIsDrawerOpen(true);
+    
+    // Clear existing messages
+    setMessages([]);
+    
+    // Set workflow stage
+    setWorkflowStage('stage1');
+    
+    const date = new Date();
+    
+    // Add user message (simulated - user clicked "Troubleshoot with AI")
+    const userMessage: MessageProps = {
+      id: generateId(),
+      role: 'user',
+      content: `Troubleshoot ${alertName}`,
+      name: 'User',
+      avatar: <UserIcon /> as any,
+      timestamp: date.toLocaleString(),
+      avatarProps: { isBordered: true }
+    };
+    
+    // Add loading bot message
+    const loadingBotMessage: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: 'Analyzing alert...',
+      name: 'Bot',
+      avatar: <RobotIcon /> as any,
+      isLoading: true,
+      timestamp: date.toLocaleString()
+    };
+    
+    setMessages([userMessage, loadingBotMessage]);
+    
+    // Simulate AI analysis and show Stage 1 response
+    setTimeout(() => {
+      const stage1Message: MessageProps = {
+        id: generateId(),
+        role: 'bot',
+        content: (
+          <div>
+            <Alert
+              variant="danger"
+              isInline
+              title="KubeCPUOvercommit Analysis"
+              style={{ marginBottom: '16px' }}
+            >
+              <Content style={{ marginTop: '8px' }}>
+                I've analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.
+              </Content>
+            </Alert>
+          </div>
+        ) as any,
+        name: 'Bot',
+        avatar: <RobotIcon /> as any,
+        isLoading: false,
+        timestamp: date.toLocaleString(),
+        actions: [
+          {
+            id: 'analyze-root-cause',
+            label: 'Analyze Root Cause',
+            onClick: () => {
+              console.log('Analyze Root Cause clicked');
+              // Will implement Stage 2 in next step
+            }
+          },
+          {
+            id: 'check-node-capacity',
+            label: 'Check Node Capacity',
+            onClick: () => {
+              console.log('Check Node Capacity clicked');
+              // Will implement in next step
+            }
+          }
+        ]
+      };
+      
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        if (loadingIndex !== -1) {
+          newMessages[loadingIndex] = stage1Message;
+        }
+        return newMessages;
+      });
+      setAnnouncement('AI analysis complete. Review the alert details and select an action.');
+    }, 2000);
+  }, []);
 
   // Welcome prompts for ChatbotWelcomePrompt
   const welcomePrompts = [
@@ -531,6 +629,14 @@ export const DashboardsPersesPage: React.FC = () => {
                                   {alert.description}
                                 </Content>
                               )}
+                              <Button
+                                variant="link"
+                                isInline
+                                onClick={() => handleStartTroubleshooting(alert.name)}
+                                style={{ marginTop: '8px' }}
+                              >
+                                Troubleshoot with AI
+                              </Button>
                             </Alert>
                           </StackItem>
                         ))}
