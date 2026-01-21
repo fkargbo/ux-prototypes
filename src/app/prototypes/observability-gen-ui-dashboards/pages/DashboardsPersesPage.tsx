@@ -372,24 +372,23 @@ export const DashboardsPersesPage: React.FC = () => {
       const stage1Message: MessageProps = {
         id: generateId(),
         role: 'bot',
-        content: (
-          <div>
-            <Alert
-              variant="danger"
-              isInline
-              title="KubeCPUOvercommit Analysis"
-              style={{ marginBottom: '16px' }}
-            >
-              <Content style={{ marginTop: '8px' }}>
-                I've analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.
-              </Content>
-            </Alert>
-          </div>
-        ) as any,
+        content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.',
         name: 'Bot',
         avatar: <RobotIcon /> as any,
         isLoading: false,
         timestamp: date.toLocaleString(),
+        extraContent: (
+          <Alert
+            variant="danger"
+            isInline
+            title="KubeCPUOvercommit Analysis"
+            style={{ marginTop: '16px', marginBottom: '16px' }}
+          >
+            <Content style={{ marginTop: '8px' }}>
+              I've analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.
+            </Content>
+          </Alert>
+        ) as any,
         actions: [
           {
             id: 'analyze-root-cause',
