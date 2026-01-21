@@ -42,6 +42,14 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateActions,
+  Card,
+  CardTitle,
+  CardBody,
+  CardHeader,
+  Grid,
+  GridItem,
+  Icon,
+  Spinner,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -58,6 +66,8 @@ import {
   ExclamationTriangleIcon,
   ExternalLinkAltIcon,
   AngleRightIcon,
+  CubesIcon,
+  ServerIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -72,6 +82,10 @@ import {
   ChartGroup,
   ChartAxis,
   ChartThemeColor,
+  ChartArea,
+  ChartDonut,
+  ChartLegend,
+  ChartVoronoiContainer,
 } from '@patternfly/react-charts/victory';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
@@ -122,6 +136,413 @@ interface Dashboard {
   lastModified: string;
 }
 
+// Troubleshooting Dashboard Component
+const TroubleshootingDashboard: React.FC = () => {
+  // Mock data for the dashboard
+  const inventoryData = {
+    totalNodes: 12,
+    totalCpuCores: 96,
+    totalPods: 342,
+    unschedulablePods: 8
+  };
+
+  const cpuQuotaData = [
+    { x: '00:00', y: 85 },
+    { x: '04:00', y: 92 },
+    { x: '08:00', y: 98 },
+    { x: '12:00', y: 105 },
+    { x: '16:00', y: 112 },
+    { x: '20:00', y: 115 }
+  ];
+
+  const cpuActualData = [
+    { x: '00:00', y: 72 },
+    { x: '04:00', y: 78 },
+    { x: '08:00', y: 82 },
+    { x: '12:00', y: 88 },
+    { x: '16:00', y: 91 },
+    { x: '20:00', y: 94 }
+  ];
+
+  const topNamespacesData = [
+    { namespace: 'marketing-prod', cpu: 45 },
+    { namespace: 'sales-prod', cpu: 32 },
+    { namespace: 'support-prod', cpu: 23 },
+    { namespace: 'dev-staging', cpu: 18 },
+    { namespace: 'qa-testing', cpu: 15 },
+    { namespace: 'monitoring', cpu: 12 },
+    { namespace: 'logging', cpu: 10 },
+    { namespace: 'security', cpu: 8 },
+    { namespace: 'backup', cpu: 6 },
+    { namespace: 'default', cpu: 4 }
+  ];
+
+  const nodePressureData = [
+    { node: 'node-1', cpu: 92 },
+    { node: 'node-2', cpu: 88 },
+    { node: 'node-3', cpu: 95 }
+  ];
+
+  const cpuCommitmentPercent = 115;
+  const throttledContainers = 23;
+
+  return (
+    <div style={{ 
+      height: '100vh',
+      padding: '24px',
+      boxSizing: 'border-box',
+      backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)',
+      overflow: 'auto'
+    }}>
+      <Stack hasGutter>
+        {/* Header */}
+        <StackItem>
+          <Breadcrumb>
+            <BreadcrumbItem to="#" onClick={() => window.location.reload()}>
+              Dashboards
+            </BreadcrumbItem>
+            <BreadcrumbItem isActive>Investigation Room: KubeCPUOvercommit</BreadcrumbItem>
+          </Breadcrumb>
+          <Title headingLevel="h1" size="2xl" style={{ marginTop: '16px', marginBottom: '8px' }}>
+            Investigation Room: KubeCPUOvercommit
+          </Title>
+          <Content>
+            <p>Temporary troubleshooting dashboard for marketing-prod namespace</p>
+          </Content>
+        </StackItem>
+
+        {/* Inventory Bar */}
+        <StackItem>
+          <Card>
+            <CardHeader>
+              <CardTitle>Cluster Resource Health Summary</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <Grid hasGutter>
+                <GridItem md={3}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <Content component="small" className="pf-v6-u-color-200">Total Nodes</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <Icon><ServerIcon /></Icon>
+                        <Title headingLevel="h2" size="3xl">{inventoryData.totalNodes}</Title>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </GridItem>
+                <GridItem md={3}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <Content component="small" className="pf-v6-u-color-200">Total CPU Cores</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <Icon><CubesIcon /></Icon>
+                        <Title headingLevel="h2" size="3xl">{inventoryData.totalCpuCores}</Title>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </GridItem>
+                <GridItem md={3}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <Content component="small" className="pf-v6-u-color-200">Total Pods</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <Icon><CubesIcon /></Icon>
+                        <Title headingLevel="h2" size="3xl">{inventoryData.totalPods}</Title>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </GridItem>
+                <GridItem md={3}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <Content component="small" className="pf-v6-u-color-200">Unschedulable Pods</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <Icon status="danger"><ExclamationTriangleIcon /></Icon>
+                        <Title headingLevel="h2" size="3xl" className="pf-v6-u-danger-color-100">{inventoryData.unschedulablePods}</Title>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </GridItem>
+              </Grid>
+            </CardBody>
+          </Card>
+        </StackItem>
+
+        {/* Metrics Cards Grid */}
+        <StackItem>
+          <Grid hasGutter>
+            {/* CPU Request Commitment % - Smoking Gun */}
+            <GridItem md={6}>
+              <Card isFullHeight>
+                <CardHeader>
+                  <CardTitle>CPU Request Commitment %</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} style={{ height: '100%', justifyContent: 'center' }}>
+                    <Title 
+                      headingLevel="h1" 
+                      size="4xl" 
+                      className={cpuCommitmentPercent > 100 ? 'pf-v6-u-danger-color-100' : ''}
+                      style={{ marginBottom: '8px' }}
+                    >
+                      {cpuCommitmentPercent}%
+                    </Title>
+                    <Content component="small" className="pf-v6-u-color-200">
+                      {'(sum(kube_pod_container_resource_requests{resource="cpu"}) / sum(kube_node_status_capacity{resource="cpu"})) * 100'}
+                    </Content>
+                    {cpuCommitmentPercent > 100 && (
+                      <Alert variant="danger" isInline title="Overcommitted" style={{ marginTop: '16px' }}>
+                        Cluster CPU requests exceed available capacity. New pods cannot be scheduled.
+                      </Alert>
+                    )}
+                  </Flex>
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* Throttled Container Count */}
+            <GridItem md={6}>
+              <Card isFullHeight>
+                <CardHeader>
+                  <CardTitle>Throttled Container Count</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} style={{ height: '100%', justifyContent: 'center' }}>
+                    <Title 
+                      headingLevel="h1" 
+                      size="4xl" 
+                      className={throttledContainers > 10 ? 'pf-v6-u-warning-color-100' : ''}
+                      style={{ marginBottom: '8px' }}
+                    >
+                      {throttledContainers}
+                    </Title>
+                    <Content component="small" className="pf-v6-u-color-200">
+                      count(rate(container_cpu_cfs_throttled_seconds_total[5m]) &gt; 0)
+                    </Content>
+                    {throttledContainers > 10 && (
+                      <Alert variant="warning" isInline title="Performance Impact" style={{ marginTop: '16px' }}>
+                        Containers are experiencing CPU throttling, indicating real latency impact.
+                      </Alert>
+                    )}
+                  </Flex>
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* CPU Quota vs. Actual */}
+            <GridItem md={6}>
+              <Card isFullHeight>
+                <CardHeader>
+                  <CardTitle>CPU Quota vs. Actual</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <div style={{ height: '250px' }}>
+                    <ChartGroup
+                      height={250}
+                      padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
+                      themeColor={ChartThemeColor.multi}
+                      containerComponent={
+                        <ChartVoronoiContainer
+                          labels={({ datum }) => `${datum.name}: ${datum.y}%`}
+                          constrainToVisibleArea
+                        />
+                      }
+                    >
+                      <ChartAxis 
+                        tickFormat={(t) => t}
+                        style={{
+                          axisLabel: { fontSize: 12 },
+                          tickLabels: { fontSize: 12 }
+                        }}
+                        label="Time"
+                      />
+                      <ChartAxis 
+                        dependentAxis 
+                        showGrid
+                        tickFormat={(t) => `${t}%`}
+                        style={{
+                          axisLabel: { fontSize: 12 },
+                          tickLabels: { fontSize: 12 }
+                        }}
+                        label="CPU Usage (%)"
+                      />
+                      <ChartArea
+                        data={cpuQuotaData}
+                        name="Quota"
+                      />
+                      <ChartArea
+                        data={cpuActualData}
+                        name="Actual"
+                      />
+                      <ChartLegend
+                        data={[{ name: 'Quota' }, { name: 'Actual' }]}
+                        orientation="horizontal"
+                        height={30}
+                        style={{
+                          labels: { fontSize: 14 }
+                        }}
+                      />
+                    </ChartGroup>
+                  </div>
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* Top 10 Resource-Heavy Namespaces */}
+            <GridItem md={6}>
+              <Card isFullHeight>
+                <CardHeader>
+                  <CardTitle>Top 10 Resource-Heavy Namespaces</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <div style={{ height: '250px' }}>
+                    <ChartGroup
+                      height={250}
+                      padding={{ left: 120, bottom: 50, top: 20, right: 20 }}
+                      themeColor={ChartThemeColor.multi}
+                      containerComponent={
+                        <ChartVoronoiContainer
+                          labels={({ datum }) => `${datum.x}: ${datum.y}%`}
+                          constrainToVisibleArea
+                        />
+                      }
+                    >
+                      <ChartAxis 
+                        tickFormat={(t) => t.length > 12 ? `${t.substring(0, 12)}...` : t}
+                        style={{
+                          axisLabel: { fontSize: 12 },
+                          tickLabels: { fontSize: 12 }
+                        }}
+                        label="Namespace"
+                      />
+                      <ChartAxis 
+                        dependentAxis 
+                        showGrid
+                        tickFormat={(t) => `${t}%`}
+                        style={{
+                          axisLabel: { fontSize: 12 },
+                          tickLabels: { fontSize: 12 }
+                        }}
+                        label="CPU Usage (%)"
+                      />
+                      <ChartBar
+                        data={topNamespacesData.map(ns => ({ x: ns.namespace, y: ns.cpu }))}
+                        horizontal
+                        labels={({ datum }) => `${datum.y}%`}
+                      />
+                    </ChartGroup>
+                  </div>
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* Node Resource Pressure */}
+            <GridItem md={12}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Node Resource Pressure</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <Grid hasGutter>
+                    {nodePressureData.map((node) => (
+                      <GridItem key={node.node} md={4}>
+                        <Card>
+                          <CardBody>
+                            <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
+                                {node.node}
+                              </Title>
+                              <div style={{ height: '150px', width: '100%' }}>
+                                <ChartDonut
+                                  data={[
+                                    { x: 'Used', y: node.cpu },
+                                    { x: 'Available', y: 100 - node.cpu }
+                                  ]}
+                                  height={150}
+                                  title={`${node.cpu}%`}
+                                  subTitle="CPU Usage"
+                                  colorScale={[
+                                    node.cpu > 90 ? 'var(--pf-v6-chart-color-red-300)' : 'var(--pf-v6-chart-color-orange-300)',
+                                    'var(--pf-v6-chart-color-gray-200)'
+                                  ]}
+                                  legendData={[
+                                    { name: `Used: ${node.cpu}%` },
+                                    { name: `Available: ${100 - node.cpu}%` }
+                                  ]}
+                                  legendOrientation="vertical"
+                                  legendPosition="right"
+                                  style={{
+                                    labels: { fontSize: 12 }
+                                  }}
+                                />
+                              </div>
+                            </Flex>
+                          </CardBody>
+                        </Card>
+                      </GridItem>
+                    ))}
+                  </Grid>
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* Pod Status Heatmap */}
+            <GridItem md={12}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pod Status Heatmap</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <Table aria-label="Pod status heatmap" variant="compact">
+                    <Thead>
+                      <Tr>
+                        <Th>Namespace</Th>
+                        <Th>Running</Th>
+                        <Th>Pending</Th>
+                        <Th>Failed</Th>
+                        <Th>Unknown</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {topNamespacesData.slice(0, 5).map((ns) => (
+                        <Tr key={ns.namespace}>
+                          <Td>{ns.namespace}</Td>
+                          <Td>
+                            <Badge>{Math.floor(Math.random() * 50) + 20}</Badge>
+                          </Td>
+                          <Td>
+                            <Badge className={ns.namespace === 'marketing-prod' ? 'pf-v6-c-badge pf-m-warning' : ''}>
+                              {ns.namespace === 'marketing-prod' ? inventoryData.unschedulablePods : 0}
+                            </Badge>
+                          </Td>
+                          <Td>
+                            <Badge>{Math.floor(Math.random() * 3)}</Badge>
+                          </Td>
+                          <Td>
+                            <Badge>0</Badge>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </CardBody>
+              </Card>
+            </GridItem>
+          </Grid>
+        </StackItem>
+      </Stack>
+    </div>
+  );
+};
+
 /**
  * Dashboards (Perses) Page
  * 
@@ -156,6 +577,7 @@ export const DashboardsPersesPage: React.FC = () => {
 
   // Troubleshooting workflow state
   const [workflowStage, setWorkflowStage] = useState<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
+  const [showTroubleshootingDashboard, setShowTroubleshootingDashboard] = useState(false);
 
   // Mock notifications data
   const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string; description?: string }> = [
@@ -471,9 +893,31 @@ export const DashboardsPersesPage: React.FC = () => {
                   height={200}
                   padding={{ left: 80, bottom: 50, top: 20, right: 20 }}
                   themeColor={ChartThemeColor.multi}
+                  containerComponent={
+                    <ChartVoronoiContainer
+                      labels={({ datum }) => `${datum.x}: ${datum.y}%`}
+                      constrainToVisibleArea
+                    />
+                  }
                 >
-                  <ChartAxis />
-                  <ChartAxis dependentAxis showGrid />
+                  <ChartAxis 
+                    tickFormat={(t) => t}
+                    style={{
+                      axisLabel: { fontSize: 12 },
+                      tickLabels: { fontSize: 12 }
+                    }}
+                    label="Namespace"
+                  />
+                  <ChartAxis 
+                    dependentAxis 
+                    showGrid
+                    tickFormat={(t) => `${t}%`}
+                    style={{
+                      axisLabel: { fontSize: 12 },
+                      tickLabels: { fontSize: 12 }
+                    }}
+                    label="CPU Usage (%)"
+                  />
                   <ChartBar
                     data={cpuData}
                     labels={({ datum }) => `${datum.y}%`}
@@ -487,10 +931,7 @@ export const DashboardsPersesPage: React.FC = () => {
           {
             id: 'generate-dashboard',
             content: 'Generate Troubleshooting Dashboard',
-            onClick: () => {
-              console.log('Generate Troubleshooting Dashboard clicked');
-              // Will implement Stage 3 in next step
-            }
+            onClick: () => handleStage3()
           },
           {
             id: 'scale-down-replicas',
@@ -514,6 +955,70 @@ export const DashboardsPersesPage: React.FC = () => {
       setAnnouncement('Root cause analysis complete. The web-head deployment in marketing-prod is the culprit.');
     }, 2000);
   }, [generateId, setWorkflowStage, setMessages, setAnnouncement]);
+
+  // Handle Stage 3: Dashboard Generation
+  const handleStage3 = useCallback(() => {
+    setWorkflowStage('stage3');
+    
+    const date = new Date();
+    
+    // Add loading bot message
+    const loadingBotMessage: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: 'Building Perses Dashboard Definition...',
+      name: 'Bot',
+      avatar: <RobotIcon /> as any,
+      isLoading: true,
+      timestamp: date.toLocaleString()
+    };
+    
+    setMessages((prev) => [...prev, loadingBotMessage]);
+    
+    // Simulate dashboard generation
+    setTimeout(() => {
+      const stage3Message: MessageProps = {
+        id: generateId(),
+        role: 'bot',
+        content: 'I have generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. You can save this to your Perses projects library or proceed with the fix.',
+        name: 'Bot',
+        avatar: <RobotIcon /> as any,
+        isLoading: false,
+        timestamp: date.toLocaleString(),
+        quickResponses: [
+          {
+            id: 'save-dashboard',
+            content: 'Save Dashboard',
+            onClick: () => {
+              console.log('Save Dashboard clicked');
+              // Will implement in next step
+            }
+          },
+          {
+            id: 'execute-scale-down',
+            content: 'Execute Scale Down',
+            onClick: () => {
+              console.log('Execute Scale Down clicked');
+              // Will implement in next step
+            }
+          }
+        ]
+      };
+      
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        if (loadingIndex !== -1) {
+          newMessages[loadingIndex] = stage3Message;
+        }
+        return newMessages;
+      });
+      setAnnouncement('Troubleshooting dashboard generated. Review the investigation room below.');
+      
+      // Show the troubleshooting dashboard
+      setShowTroubleshootingDashboard(true);
+    }, 3000);
+  }, [generateId, setWorkflowStage, setMessages, setAnnouncement, setShowTroubleshootingDashboard]);
 
   // Welcome prompts for ChatbotWelcomePrompt
   const welcomePrompts = [
@@ -871,6 +1376,9 @@ export const DashboardsPersesPage: React.FC = () => {
       >
         <DrawerContentBody>
           {/* Page content */}
+          {showTroubleshootingDashboard ? (
+            <TroubleshootingDashboard />
+          ) : (
           <PageSection>
               {/* Breadcrumbs Section - 16px padding */}
               <div className="template-page-breadcrumb">
@@ -1101,6 +1609,7 @@ export const DashboardsPersesPage: React.FC = () => {
               </div>
             </div>
           </PageSection>
+          )}
         </DrawerContentBody>
       </DrawerContent>
     </Drawer>
