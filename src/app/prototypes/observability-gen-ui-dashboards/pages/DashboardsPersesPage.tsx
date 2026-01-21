@@ -67,6 +67,12 @@ import {
   Th,
   Td,
 } from '@patternfly/react-table';
+import {
+  ChartBar,
+  ChartGroup,
+  ChartAxis,
+  ChartThemeColor,
+} from '@patternfly/react-charts/victory';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
 import ChatbotWelcomePrompt from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
@@ -393,10 +399,7 @@ export const DashboardsPersesPage: React.FC = () => {
           {
             id: 'analyze-root-cause',
             content: 'Analyze Root Cause',
-            onClick: () => {
-              console.log('Analyze Root Cause clicked');
-              // Will implement Stage 2 in next step
-            }
+            onClick: () => handleStage2()
           },
           {
             id: 'check-node-capacity',
@@ -420,6 +423,97 @@ export const DashboardsPersesPage: React.FC = () => {
       setAnnouncement('AI analysis complete. Review the alert details and select an action.');
     }, 2000);
   }, []);
+
+  // Handle Stage 2: Root Cause Analysis
+  const handleStage2 = useCallback(() => {
+    setWorkflowStage('stage2');
+    
+    const date = new Date();
+    
+    // Add loading bot message
+    const loadingBotMessage: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: 'Analyzing root cause...',
+      name: 'Bot',
+      avatar: <RobotIcon /> as any,
+      isLoading: true,
+      timestamp: date.toLocaleString()
+    };
+    
+    setMessages((prev) => [...prev, loadingBotMessage]);
+    
+    // Simulate AI root cause analysis
+    setTimeout(() => {
+      // Mock data for top 3 CPU-consuming namespaces
+      const cpuData = [
+        { x: 'marketing-prod', y: 45 },
+        { x: 'sales-prod', y: 32 },
+        { x: 'support-prod', y: 23 }
+      ];
+      
+      const stage2Message: MessageProps = {
+        id: generateId(),
+        role: 'bot',
+        content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota.',
+        name: 'Bot',
+        avatar: <RobotIcon /> as any,
+        isLoading: false,
+        timestamp: date.toLocaleString(),
+        extraContent: {
+          afterMainContent: (
+            <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <Title headingLevel="h4" size="md" style={{ marginBottom: '12px' }}>
+                Top 3 CPU-Consuming Namespaces
+              </Title>
+              <div style={{ height: '200px', width: '100%' }}>
+                <ChartGroup
+                  height={200}
+                  padding={{ left: 80, bottom: 50, top: 20, right: 20 }}
+                  themeColor={ChartThemeColor.multi}
+                >
+                  <ChartAxis />
+                  <ChartAxis dependentAxis showGrid />
+                  <ChartBar
+                    data={cpuData}
+                    labels={({ datum }) => `${datum.y}%`}
+                  />
+                </ChartGroup>
+              </div>
+            </div>
+          )
+        },
+        quickResponses: [
+          {
+            id: 'generate-dashboard',
+            content: 'Generate Troubleshooting Dashboard',
+            onClick: () => {
+              console.log('Generate Troubleshooting Dashboard clicked');
+              // Will implement Stage 3 in next step
+            }
+          },
+          {
+            id: 'scale-down-replicas',
+            content: 'Scale Down Replicas',
+            onClick: () => {
+              console.log('Scale Down Replicas clicked');
+              // Will implement in next step
+            }
+          }
+        ]
+      };
+      
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        if (loadingIndex !== -1) {
+          newMessages[loadingIndex] = stage2Message;
+        }
+        return newMessages;
+      });
+      setAnnouncement('Root cause analysis complete. The web-head deployment in marketing-prod is the culprit.');
+    }, 2000);
+  }, [generateId, setWorkflowStage, setMessages, setAnnouncement]);
 
   // Welcome prompts for ChatbotWelcomePrompt
   const welcomePrompts = [
