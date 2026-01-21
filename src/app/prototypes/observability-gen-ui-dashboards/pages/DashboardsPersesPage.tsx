@@ -58,8 +58,6 @@ import {
   ExclamationTriangleIcon,
   ExternalLinkAltIcon,
   AngleRightIcon,
-  SearchIcon,
-  ServerIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -391,26 +389,24 @@ export const DashboardsPersesPage: React.FC = () => {
             </Content>
           </Alert>
         ) as any,
-        actions: {
-          'analyze-root-cause': {
-            ariaLabel: 'Analyze Root Cause',
-            tooltipContent: 'Analyze Root Cause',
-            icon: <SearchIcon />,
+        quickResponses: [
+          {
+            id: 'analyze-root-cause',
+            content: 'Analyze Root Cause',
             onClick: () => {
               console.log('Analyze Root Cause clicked');
               // Will implement Stage 2 in next step
             }
           },
-          'check-node-capacity': {
-            ariaLabel: 'Check Node Capacity',
-            tooltipContent: 'Check Node Capacity',
-            icon: <ServerIcon />,
+          {
+            id: 'check-node-capacity',
+            content: 'Check Node Capacity',
             onClick: () => {
               console.log('Check Node Capacity clicked');
               // Will implement in next step
             }
           }
-        }
+        ]
       };
       
       setMessages((prev) => {
