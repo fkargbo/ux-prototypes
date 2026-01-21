@@ -68,6 +68,8 @@ import {
   AngleRightIcon,
   CubesIcon,
   ServerIcon,
+  CpuIcon,
+  ClockIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -142,8 +144,19 @@ const TroubleshootingDashboard: React.FC = () => {
   const inventoryData = {
     totalNodes: 12,
     totalCpuCores: 96,
-    totalPods: 342,
-    unschedulablePods: 8
+    runningPods: 247,
+    pendingPods: 8
+  };
+
+  // Get current time for "Last updated"
+  const getLastUpdatedTime = () => {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      second: '2-digit',
+      hour12: true 
+    });
   };
 
   const cpuQuotaData = [
@@ -215,14 +228,23 @@ const TroubleshootingDashboard: React.FC = () => {
         <StackItem>
           <Card>
             <CardHeader>
-              <CardTitle>Cluster Resource Health Summary</CardTitle>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <CardTitle>Cluster Resource Health Summary</CardTitle>
+                </FlexItem>
+                <FlexItem>
+                  <Content component="small" className="pf-v6-u-color-200">
+                    Last updated: {getLastUpdatedTime()}
+                  </Content>
+                </FlexItem>
+              </Flex>
             </CardHeader>
             <CardBody>
               <Grid hasGutter>
                 <GridItem md={3}>
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
                     <FlexItem>
-                      <Content component="small" className="pf-v6-u-color-200">Total Nodes</Content>
+                      <Content component="small" className="pf-v6-u-color-200">TOTAL NODES</Content>
                     </FlexItem>
                     <FlexItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -235,11 +257,11 @@ const TroubleshootingDashboard: React.FC = () => {
                 <GridItem md={3}>
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
                     <FlexItem>
-                      <Content component="small" className="pf-v6-u-color-200">Total CPU Cores</Content>
+                      <Content component="small" className="pf-v6-u-color-200">TOTAL CPU CORES</Content>
                     </FlexItem>
                     <FlexItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <Icon><CubesIcon /></Icon>
+                        <Icon><CpuIcon /></Icon>
                         <Title headingLevel="h2" size="3xl">{inventoryData.totalCpuCores}</Title>
                       </Flex>
                     </FlexItem>
@@ -248,28 +270,34 @@ const TroubleshootingDashboard: React.FC = () => {
                 <GridItem md={3}>
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
                     <FlexItem>
-                      <Content component="small" className="pf-v6-u-color-200">Total Pods</Content>
+                      <Content component="small" className="pf-v6-u-color-200">RUNNING PODS</Content>
                     </FlexItem>
                     <FlexItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                         <Icon><CubesIcon /></Icon>
-                        <Title headingLevel="h2" size="3xl">{inventoryData.totalPods}</Title>
+                        <Title headingLevel="h2" size="3xl">{inventoryData.runningPods}</Title>
                       </Flex>
                     </FlexItem>
                   </Flex>
                 </GridItem>
                 <GridItem md={3}>
-                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
-                    <FlexItem>
-                      <Content component="small" className="pf-v6-u-color-200">Unschedulable Pods</Content>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <Icon status="danger"><ExclamationTriangleIcon /></Icon>
-                        <Title headingLevel="h2" size="3xl" className="pf-v6-u-danger-color-100">{inventoryData.unschedulablePods}</Title>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
+                  <div style={{ 
+                    borderLeft: '4px solid var(--pf-v6-global--palette--orange-300)',
+                    paddingLeft: '16px',
+                    height: '100%'
+                  }}>
+                    <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                      <FlexItem>
+                        <Content component="small" className="pf-v6-u-color-200">PENDING PODS</Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                          <Title headingLevel="h2" size="3xl" className="pf-v6-u-warning-color-100">{inventoryData.pendingPods}</Title>
+                        </Flex>
+                      </FlexItem>
+                    </Flex>
+                  </div>
                 </GridItem>
               </Grid>
             </CardBody>
@@ -520,7 +548,7 @@ const TroubleshootingDashboard: React.FC = () => {
                           </Td>
                           <Td>
                             <Badge className={ns.namespace === 'marketing-prod' ? 'pf-v6-c-badge pf-m-warning' : ''}>
-                              {ns.namespace === 'marketing-prod' ? inventoryData.unschedulablePods : 0}
+                              {ns.namespace === 'marketing-prod' ? inventoryData.pendingPods : 0}
                             </Badge>
                           </Td>
                           <Td>
