@@ -427,7 +427,11 @@ const TroubleshootingDashboard: React.FC = () => {
       },
       legend: {
         data: ['Requested Quota', 'Actual Usage'],
-        bottom: 0
+        bottom: 0,
+        itemGap: 20,
+        textStyle: {
+          fontSize: 14
+        }
       },
       grid: {
         left: '60px',
@@ -442,13 +446,25 @@ const TroubleshootingDashboard: React.FC = () => {
         data: timeLabels,
         name: 'Time',
         nameLocation: 'middle',
-        nameGap: 30
+        nameGap: 30,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)'
+        }
       },
       yAxis: {
         type: 'value',
         name: 'Cores',
         nameLocation: 'middle',
-        nameGap: 50
+        nameGap: 50,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)'
+        }
       },
       series: [
         {
