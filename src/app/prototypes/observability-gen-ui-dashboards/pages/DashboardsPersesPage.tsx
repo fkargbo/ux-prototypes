@@ -350,6 +350,42 @@ const TroubleshootingDashboard: React.FC = () => {
     // Prepare data for ECharts horizontal bar chart
     const namespaces = topNamespacesData.map(ns => ns.namespace);
     const cpuValues = topNamespacesData.map(ns => ns.cpu);
+    const chartRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+      // Post-process to apply transform to Namespace label after chart renders
+      const applyTransform = () => {
+        if (chartRef.current) {
+          const svg = chartRef.current.querySelector('svg');
+          if (svg) {
+            const textElements = svg.querySelectorAll('text');
+            textElements.forEach((text: Element) => {
+              const textContent = text.textContent?.trim();
+              if (textContent === 'Namespace') {
+                (text as SVGTextElement).setAttribute('y', '-5.1100006103515625');
+                (text as SVGTextElement).setAttribute('transform', 'matrix(0,-1,1,0,10,100.89)');
+              }
+            });
+          }
+        }
+      };
+
+      // Wait for chart to render
+      const timeoutId = setTimeout(applyTransform, 100);
+      
+      // Also try with MutationObserver for dynamic updates
+      if (chartRef.current) {
+        const observer = new MutationObserver(applyTransform);
+        observer.observe(chartRef.current, { childList: true, subtree: true });
+        
+        return () => {
+          clearTimeout(timeoutId);
+          observer.disconnect();
+        };
+      }
+      
+      return () => clearTimeout(timeoutId);
+    }, [namespaces, cpuValues]);
 
     const option = {
       tooltip: {
@@ -389,9 +425,7 @@ const TroubleshootingDashboard: React.FC = () => {
         nameLocation: 'middle',
         nameGap: 50,
         nameTextStyle: {
-          color: 'var(--pf-t--global--text--color--default)',
-          y: -5.1100006103515625,
-          transform: 'matrix(0,-1,1,0,10,100.89)'
+          color: 'var(--pf-t--global--text--color--default)'
         },
         axisLabel: {
           color: 'var(--pf-t--global--text--color--default)',
@@ -419,7 +453,7 @@ const TroubleshootingDashboard: React.FC = () => {
     };
 
     return (
-      <div style={{ width: '100%', height: '250px' }}>
+      <div ref={chartRef} style={{ width: '100%', height: '250px' }}>
         <Charts
           height={250}
           option={option}
