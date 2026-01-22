@@ -112,13 +112,9 @@ import ChatbotHeader, {
 import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
 
-// Import custom profile images (optional - uncomment when you add your images)
-// Place your images in: src/app/prototypes/observability-gen-ui-dashboards/assets/
-// Recommended formats: PNG, JPG, or SVG
-// Recommended size: 64x64px or 128x128px for best quality
-// Uncomment these lines after adding your images:
-// import userProfilePicUrl from '../assets/user-profile.png';
-// import botProfilePicUrl from '../assets/bot-profile.png';
+// Import custom profile images
+import userProfilePicUrl from '../assets/user-profile.png';
+import botProfilePicUrl from '../assets/bot-profile.png';
 
 // Helper function to create SVG data URL
 const createIconDataUrl = (svgContent: string): string => {
@@ -137,14 +133,9 @@ const robotIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 5
   <path fill="currentColor" d="M32 224h32v192H32c-17.7 0-32-14.3-32-32V256c0-17.7 14.3-32 32-32zm544-32c17.7 0 32 14.3 32 32v128c0 17.7-14.3 32-32 32h-32V224h32zm-120 96c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zm192 0c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zM592 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h544c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM160 368H64v-64h96v64zm0-128H64v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64z"/>
 </svg>`;
 
-// Avatar configuration - use custom images if available, otherwise use icon data URLs
-// When you add your images, uncomment the imports above and update these:
-const userProfilePic: string = ''; // Replace with: userProfilePicUrl || createIconDataUrl(userIconSvg)
-const botProfilePic: string = ''; // Replace with: botProfilePicUrl || createIconDataUrl(robotIconSvg)
-
-// For now, use icon data URLs as fallback
-const userAvatarSrc = userProfilePic || createIconDataUrl(userIconSvg);
-const botAvatarSrc = botProfilePic || createIconDataUrl(robotIconSvg);
+// Avatar configuration - use custom images, fallback to icon data URLs if images fail to load
+const userAvatarSrc = userProfilePicUrl || createIconDataUrl(userIconSvg);
+const botAvatarSrc = botProfilePicUrl || createIconDataUrl(robotIconSvg);
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
