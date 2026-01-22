@@ -334,8 +334,92 @@ const TroubleshootingDashboard: React.FC = () => {
     );
   };
   
+  // Top 10 Resource-Heavy Namespaces Chart Component
+  const TopNamespacesChart: React.FC = () => {
+    const chartContainerRef = React.useRef<HTMLDivElement>(null);
+    const [chartWidth, setChartWidth] = React.useState(600);
+
+    React.useEffect(() => {
+      const updateWidth = () => {
+        if (chartContainerRef.current) {
+          const width = chartContainerRef.current.offsetWidth;
+          setChartWidth(Math.max(width - 40, 400));
+        }
+      };
+      updateWidth();
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }, []);
+
+    const chartData = topNamespacesData.map(ns => ({ 
+      x: ns.namespace, 
+      y: ns.cpu 
+    }));
+
+    return (
+      <div ref={chartContainerRef} style={{ width: '100%', height: '250px' }}>
+        <ChartGroup
+          height={250}
+          width={chartWidth}
+          padding={{ left: 120, bottom: 50, top: 20, right: 20 }}
+          themeColor={ChartThemeColor.multi}
+          containerComponent={
+            <ChartVoronoiContainer
+              labels={({ datum }) => `${datum.x}: ${datum.y}%`}
+              constrainToVisibleArea
+            />
+          }
+        >
+          <ChartAxis 
+            tickFormat={(t) => t.length > 12 ? `${t.substring(0, 12)}...` : t}
+            style={{
+              axisLabel: { fontSize: 12 },
+              tickLabels: { fontSize: 12 }
+            }}
+            label="Namespace"
+          />
+          <ChartAxis 
+            dependentAxis 
+            showGrid
+            tickFormat={(t) => `${t}%`}
+            style={{
+              axisLabel: { fontSize: 12 },
+              tickLabels: { fontSize: 12 }
+            }}
+            label="CPU Usage (%)"
+          />
+          <ChartBar
+            data={chartData}
+            horizontal
+            labels={({ datum }) => `${datum.y}%`}
+            style={{
+              data: {
+                fill: '#0066cc'
+              }
+            }}
+          />
+        </ChartGroup>
+      </div>
+    );
+  };
+
   // CPU Quota vs Actual Chart Component
   const CPUQuotaVsActualChart: React.FC = () => {
+    const chartContainerRef = React.useRef<HTMLDivElement>(null);
+    const [chartWidth, setChartWidth] = React.useState(600);
+
+    React.useEffect(() => {
+      const updateWidth = () => {
+        if (chartContainerRef.current) {
+          const width = chartContainerRef.current.offsetWidth;
+          setChartWidth(Math.max(width - 40, 400));
+        }
+      };
+      updateWidth();
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }, []);
+
     // Format data arrays with name property (matching working chart format)
     // Ensure data is properly structured for Victory charts
     const quotaDataFormatted: Array<{ name: string; x: string; y: number }> = [
@@ -379,17 +463,19 @@ const TroubleshootingDashboard: React.FC = () => {
     };
 
     return (
-      <ChartGroup
-        height={250}
-        padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
-        themeColor={ChartThemeColor.multi}
-        containerComponent={
-          <ChartVoronoiContainer
-            labels={getTooltipLabel}
-            constrainToVisibleArea
-          />
-        }
-      >
+      <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }}>
+        <ChartGroup
+          height={250}
+          width={chartWidth}
+          padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
+          themeColor={ChartThemeColor.multi}
+          containerComponent={
+            <ChartVoronoiContainer
+              labels={getTooltipLabel}
+              constrainToVisibleArea
+            />
+          }
+        >
         <ChartAxis 
           tickFormat={(t) => t}
           style={{
@@ -420,11 +506,13 @@ const TroubleshootingDashboard: React.FC = () => {
             }
           }}
         />
-        {/* Quota line - dark grey dashed line with no fill (rendered on top) */}
-        <ChartLine
+        {/* Quota line - dark grey dashed line with no fill (using ChartArea with no fill) */}
+        <ChartArea
           data={quotaDataFormatted}
           style={{
             data: {
+              fill: 'none',
+              fillOpacity: 0,
               stroke: '#6a6e73',
               strokeWidth: 2,
               strokeDasharray: '5,5'
@@ -443,6 +531,7 @@ const TroubleshootingDashboard: React.FC = () => {
           }}
         />
       </ChartGroup>
+      </div>
     );
   };
   
@@ -656,9 +745,7 @@ const TroubleshootingDashboard: React.FC = () => {
                   <CardTitle>CPU Quota vs. Actual</CardTitle>
                 </CardHeader>
                 <CardBody>
-                  <div style={{ height: '250px' }}>
-                    <CPUQuotaVsActualChart />
-                  </div>
+                  <CPUQuotaVsActualChart />
                 </CardBody>
               </Card>
             </GridItem>
@@ -670,46 +757,7 @@ const TroubleshootingDashboard: React.FC = () => {
                   <CardTitle>Top 10 Resource-Heavy Namespaces</CardTitle>
                 </CardHeader>
                 <CardBody>
-                  <div style={{ height: '250px' }}>
-                    <ChartGroup
-                      height={250}
-                      padding={{ left: 120, bottom: 50, top: 20, right: 20 }}
-                      themeColor={ChartThemeColor.multi}
-                      containerComponent={
-                        <ChartVoronoiContainer
-                          labels={({ datum }) => `${datum.x}: ${datum.y}%`}
-                          constrainToVisibleArea
-                        />
-                      }
-                    >
-                      <ChartAxis 
-                        tickFormat={(t) => t.length > 12 ? `${t.substring(0, 12)}...` : t}
-                        style={{
-                          axisLabel: { fontSize: 12 },
-                          tickLabels: { fontSize: 12 }
-                        }}
-                        label="Namespace"
-                      />
-                      <ChartAxis 
-                        dependentAxis 
-                        showGrid
-                        tickFormat={(t) => `${t}%`}
-                        style={{
-                          axisLabel: { fontSize: 12 },
-                          tickLabels: { fontSize: 12 }
-                        }}
-                        label="CPU Usage (%)"
-                      />
-                      <ChartBar
-                        data={topNamespacesData.map(ns => ({ 
-                          x: ns.namespace, 
-                          y: ns.cpu 
-                        }))}
-                        horizontal
-                        labels={({ datum }) => `${datum.y}%`}
-                      />
-                    </ChartGroup>
-                  </div>
+                  <TopNamespacesChart />
                 </CardBody>
               </Card>
             </GridItem>
