@@ -120,10 +120,31 @@ import './dashboards-perses.css';
 // import userProfilePicUrl from '../assets/user-profile.png';
 // import botProfilePicUrl from '../assets/bot-profile.png';
 
-// Avatar configuration - use custom images if available, otherwise use icons
+// Helper function to create SVG data URL
+const createIconDataUrl = (svgContent: string): string => {
+  const encoded = encodeURIComponent(svgContent);
+  return `data:image/svg+xml;charset=utf-8,${encoded}`;
+};
+
+// Simple SVG icons as data URLs
+// User icon - simple person silhouette
+const userIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="64" height="64">
+  <path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"/>
+</svg>`;
+
+// Robot icon - simple robot head
+const robotIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="64" height="64">
+  <path fill="currentColor" d="M32 224h32v192H32c-17.7 0-32-14.3-32-32V256c0-17.7 14.3-32 32-32zm544-32c17.7 0 32 14.3 32 32v128c0 17.7-14.3 32-32 32h-32V224h32zm-120 96c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zm192 0c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zM592 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h544c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM160 368H64v-64h96v64zm0-128H64v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64z"/>
+</svg>`;
+
+// Avatar configuration - use custom images if available, otherwise use icon data URLs
 // When you add your images, uncomment the imports above and update these:
-const userProfilePic: string | React.ReactElement = <UserIcon />; // Replace with: userProfilePicUrl
-const botProfilePic: string | React.ReactElement = <RobotIcon />; // Replace with: botProfilePicUrl
+const userProfilePic: string = ''; // Replace with: userProfilePicUrl || createIconDataUrl(userIconSvg)
+const botProfilePic: string = ''; // Replace with: botProfilePicUrl || createIconDataUrl(robotIconSvg)
+
+// For now, use icon data URLs as fallback
+const userAvatarSrc = userProfilePic || createIconDataUrl(userIconSvg);
+const botAvatarSrc = botProfilePic || createIconDataUrl(robotIconSvg);
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
@@ -888,7 +909,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'user',
       content: messageText,
       name: 'User',
-      avatar: userProfilePic,
+      avatar: userAvatarSrc,
       timestamp: date.toLocaleString(),
       avatarProps: { isBordered: true }
     };
@@ -899,7 +920,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'bot',
       content: 'Thinking...',
       name: 'Bot',
-      avatar: botProfilePic,
+      avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
@@ -914,7 +935,7 @@ export const DashboardsPersesPage: React.FC = () => {
         role: 'bot',
         content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
         name: 'Bot',
-        avatar: botProfilePic,
+        avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
         actions: {
@@ -967,7 +988,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'user',
       content: `Troubleshoot ${alertName}`,
       name: 'User',
-      avatar: userProfilePic,
+      avatar: userAvatarSrc,
       timestamp: date.toLocaleString(),
       avatarProps: { isBordered: true }
     };
@@ -978,7 +999,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'bot',
       content: 'Analyzing alert...',
       name: 'Bot',
-      avatar: botProfilePic,
+      avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
@@ -992,7 +1013,7 @@ export const DashboardsPersesPage: React.FC = () => {
         role: 'bot',
         content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.',
         name: 'Bot',
-        avatar: botProfilePic,
+        avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
         extraContent: (
@@ -1048,7 +1069,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'bot',
       content: 'Analyzing root cause...',
       name: 'Bot',
-      avatar: botProfilePic,
+      avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
@@ -1069,7 +1090,7 @@ export const DashboardsPersesPage: React.FC = () => {
         role: 'bot',
         content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota.',
         name: 'Bot',
-        avatar: botProfilePic,
+        avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
         extraContent: {
@@ -1158,7 +1179,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'bot',
       content: 'Building Perses Dashboard Definition...',
       name: 'Bot',
-      avatar: botProfilePic,
+      avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
@@ -1172,7 +1193,7 @@ export const DashboardsPersesPage: React.FC = () => {
         role: 'bot',
         content: 'I have generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. You can save this to your Perses projects library or proceed with the fix.',
         name: 'Bot',
-        avatar: botProfilePic,
+        avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
         quickResponses: [
