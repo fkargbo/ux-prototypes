@@ -363,7 +363,7 @@ const TroubleshootingDashboard: React.FC = () => {
         }
       },
       grid: {
-        left: '80px',
+        left: '140px',
         right: '20px',
         bottom: '50px',
         top: '20px',
@@ -387,7 +387,7 @@ const TroubleshootingDashboard: React.FC = () => {
         data: namespaces,
         name: 'Namespace',
         nameLocation: 'start',
-        nameGap: 8,
+        nameGap: 24,
         nameRotate: 90,
         nameTextStyle: {
           color: 'var(--pf-t--global--text--color--default)'
