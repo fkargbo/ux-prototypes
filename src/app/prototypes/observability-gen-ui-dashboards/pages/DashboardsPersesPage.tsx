@@ -355,7 +355,7 @@ const TroubleshootingDashboard: React.FC = () => {
     return (
       <ChartGroup
         height={250}
-        padding={{ left: 60, bottom: 60, top: 20, right: 20 }}
+        padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
         containerComponent={
           <ChartVoronoiContainer
             labels={getTooltipLabel}
@@ -632,7 +632,9 @@ const TroubleshootingDashboard: React.FC = () => {
                   <CardTitle>CPU Quota vs. Actual</CardTitle>
                 </CardHeader>
                 <CardBody>
-                  <CPUQuotaVsActualChart />
+                  <div style={{ height: '250px' }}>
+                    <CPUQuotaVsActualChart />
+                  </div>
                 </CardBody>
               </Card>
             </GridItem>
