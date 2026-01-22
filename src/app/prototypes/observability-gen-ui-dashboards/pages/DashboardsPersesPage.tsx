@@ -86,6 +86,7 @@ import {
   ChartAxis,
   ChartThemeColor,
   ChartArea,
+  ChartLine,
   ChartDonut,
   ChartLegend,
   ChartVoronoiContainer,
@@ -189,22 +190,23 @@ const TroubleshootingDashboard: React.FC = () => {
     });
   };
 
+  // CPU Quota vs Actual data (in cores)
   const cpuQuotaData = [
-    { x: '00:00', y: 85 },
-    { x: '04:00', y: 92 },
-    { x: '08:00', y: 98 },
-    { x: '12:00', y: 105 },
-    { x: '16:00', y: 112 },
-    { x: '20:00', y: 115 }
+    { x: '00:00', y: 82 },
+    { x: '04:00', y: 88 },
+    { x: '08:00', y: 94 },
+    { x: '12:00', y: 101 },
+    { x: '16:00', y: 108 },
+    { x: '20:00', y: 110 }
   ];
 
   const cpuActualData = [
-    { x: '00:00', y: 72 },
-    { x: '04:00', y: 78 },
-    { x: '08:00', y: 82 },
-    { x: '12:00', y: 88 },
-    { x: '16:00', y: 91 },
-    { x: '20:00', y: 94 }
+    { x: '00:00', y: 69 },
+    { x: '04:00', y: 75 },
+    { x: '08:00', y: 79 },
+    { x: '12:00', y: 84 },
+    { x: '16:00', y: 87 },
+    { x: '20:00', y: 90 }
   ];
 
   const topNamespacesData = [
@@ -329,6 +331,94 @@ const TroubleshootingDashboard: React.FC = () => {
           </Content>
         </FlexItem>
       </Flex>
+    );
+  };
+  
+  // CPU Quota vs Actual Chart Component
+  const CPUQuotaVsActualChart: React.FC = () => {
+    // Custom label function to show both values in tooltip
+    const getTooltipLabel = (datum: any) => {
+      const time = datum.x;
+      const quotaPoint = cpuQuotaData.find(d => d.x === time);
+      const actualPoint = cpuActualData.find(d => d.x === time);
+      
+      if (quotaPoint && actualPoint) {
+        return [
+          `Time: ${time}`,
+          `Requested Quota: ${quotaPoint.y} Cores`,
+          `Actual Usage: ${actualPoint.y} Cores`
+        ];
+      }
+      return `${datum.name || 'Value'}: ${datum.y} Cores`;
+    };
+
+    return (
+      <ChartGroup
+        height={300}
+        padding={{ left: 60, bottom: 60, top: 20, right: 20 }}
+        containerComponent={
+          <ChartVoronoiContainer
+            labels={getTooltipLabel}
+            constrainToVisibleArea
+          />
+        }
+      >
+        <ChartAxis 
+          tickFormat={(t) => t}
+          style={{
+            axisLabel: { fontSize: 12 },
+            tickLabels: { fontSize: 12 }
+          }}
+          label="Time"
+        />
+        <ChartAxis 
+          dependentAxis 
+          showGrid
+          tickFormat={(t) => `${t}`}
+          style={{
+            axisLabel: { fontSize: 12 },
+            tickLabels: { fontSize: 12 }
+          }}
+          label="Cores"
+        />
+        {/* Quota line - dark grey dashed line with no fill */}
+        <ChartLine
+          data={cpuQuotaData}
+          name="quota"
+          style={{
+            data: {
+              stroke: 'var(--pf-t--global--Color--200)',
+              strokeWidth: 2,
+              strokeDasharray: '5,5',
+              fill: 'none'
+            }
+          }}
+        />
+        {/* Actual usage - blue line with semi-transparent area fill */}
+        <ChartArea
+          data={cpuActualData}
+          name="actual"
+          style={{
+            data: {
+              fill: 'var(--pf-t--global--color--nonstatus--blue--default)',
+              fillOpacity: 0.3,
+              stroke: 'var(--pf-t--global--color--nonstatus--blue--default)',
+              strokeWidth: 2
+            }
+          }}
+        />
+        <ChartLegend
+          data={[
+            { name: 'Requested Quota', symbol: { type: 'line', strokeDasharray: '5,5', stroke: 'var(--pf-t--global--Color--200)' } },
+            { name: 'Actual Usage', symbol: { type: 'square', fill: 'var(--pf-t--global--color--nonstatus--blue--default)' } }
+          ]}
+          orientation="horizontal"
+          height={30}
+          style={{
+            labels: { fontSize: 14 }
+          }}
+        />
+      </ChartGroup>
     );
   };
   
@@ -542,54 +632,7 @@ const TroubleshootingDashboard: React.FC = () => {
                   <CardTitle>CPU Quota vs. Actual</CardTitle>
                 </CardHeader>
                 <CardBody>
-                  <div style={{ height: '250px' }}>
-                    <ChartGroup
-                      height={250}
-                      padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
-                      themeColor={ChartThemeColor.multi}
-                      containerComponent={
-                        <ChartVoronoiContainer
-                          labels={({ datum }) => `${datum.name}: ${datum.y}%`}
-                          constrainToVisibleArea
-                        />
-                      }
-                    >
-                      <ChartAxis 
-                        tickFormat={(t) => t}
-                        style={{
-                          axisLabel: { fontSize: 12 },
-                          tickLabels: { fontSize: 12 }
-                        }}
-                        label="Time"
-                      />
-                      <ChartAxis 
-                        dependentAxis 
-                        showGrid
-                        tickFormat={(t) => `${t}%`}
-                        style={{
-                          axisLabel: { fontSize: 12 },
-                          tickLabels: { fontSize: 12 }
-                        }}
-                        label="CPU Usage (%)"
-                      />
-                      <ChartArea
-                        data={cpuQuotaData}
-                        name="Quota"
-                      />
-                      <ChartArea
-                        data={cpuActualData}
-                        name="Actual"
-                      />
-                      <ChartLegend
-                        data={[{ name: 'Quota' }, { name: 'Actual' }]}
-                        orientation="horizontal"
-                        height={30}
-                        style={{
-                          labels: { fontSize: 14 }
-                        }}
-                      />
-                    </ChartGroup>
-                  </div>
+                  <CPUQuotaVsActualChart />
                 </CardBody>
               </Card>
             </GridItem>
