@@ -95,6 +95,7 @@ import {
   ChartContainer,
   ChartLabel,
 } from '@patternfly/react-charts/victory';
+import { Charts } from '@patternfly/react-charts/echarts';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
 import ChatbotWelcomePrompt from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
@@ -403,134 +404,94 @@ const TroubleshootingDashboard: React.FC = () => {
     );
   };
 
-  // CPU Quota vs Actual Chart Component
+  // CPU Quota vs Actual Chart Component using ECharts
   const CPUQuotaVsActualChart: React.FC = () => {
-    const chartContainerRef = React.useRef<HTMLDivElement>(null);
-    const [chartWidth, setChartWidth] = React.useState(600);
+    // Prepare data for ECharts
+    const timeLabels = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'];
+    const quotaValues = [82, 88, 94, 101, 108, 110];
+    const actualValues = [69, 75, 79, 84, 87, 90];
 
-    React.useEffect(() => {
-      const updateWidth = () => {
-        if (chartContainerRef.current) {
-          const width = chartContainerRef.current.offsetWidth;
-          setChartWidth(Math.max(width - 40, 400));
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          const time = params[0].axisValue;
+          const quota = params.find((p: any) => p.seriesName === 'Requested Quota');
+          const actual = params.find((p: any) => p.seriesName === 'Actual Usage');
+          return [
+            `Time: ${time}`,
+            `Requested Quota: ${quota?.value} Cores`,
+            `Actual Usage: ${actual?.value} Cores`
+          ].join('<br/>');
         }
-      };
-      updateWidth();
-      window.addEventListener('resize', updateWidth);
-      return () => window.removeEventListener('resize', updateWidth);
-    }, []);
-
-    // Format data arrays with name property (matching working chart format)
-    // Ensure data is properly structured for Victory charts
-    const quotaDataFormatted: Array<{ name: string; x: string; y: number }> = [
-      { name: 'Requested Quota', x: '00:00', y: 82 },
-      { name: 'Requested Quota', x: '04:00', y: 88 },
-      { name: 'Requested Quota', x: '08:00', y: 94 },
-      { name: 'Requested Quota', x: '12:00', y: 101 },
-      { name: 'Requested Quota', x: '16:00', y: 108 },
-      { name: 'Requested Quota', x: '20:00', y: 110 }
-    ];
-    
-    const actualDataFormatted: Array<{ name: string; x: string; y: number }> = [
-      { name: 'Actual Usage', x: '00:00', y: 69 },
-      { name: 'Actual Usage', x: '04:00', y: 75 },
-      { name: 'Actual Usage', x: '08:00', y: 79 },
-      { name: 'Actual Usage', x: '12:00', y: 84 },
-      { name: 'Actual Usage', x: '16:00', y: 87 },
-      { name: 'Actual Usage', x: '20:00', y: 90 }
-    ];
-
-    // Calculate domain for Y-axis
-    const allValues = [...quotaDataFormatted.map(d => d.y), ...actualDataFormatted.map(d => d.y)];
-    const maxY = Math.max(...allValues);
-    const minY = Math.min(...allValues);
-    const yPadding = (maxY - minY) * 0.1 || 5; // 10% padding, minimum 5
-
-    // Custom label function to show both values in tooltip
-    const getTooltipLabel = (datum: any) => {
-      const time = datum.x;
-      const quotaPoint = quotaDataFormatted.find(d => d.x === time);
-      const actualPoint = actualDataFormatted.find(d => d.x === time);
-      
-      if (quotaPoint && actualPoint) {
-        return [
-          `Time: ${time}`,
-          `Requested Quota: ${quotaPoint.y} Cores`,
-          `Actual Usage: ${actualPoint.y} Cores`
-        ];
-      }
-      return `${datum.name || 'Value'}: ${datum.y} Cores`;
+      },
+      legend: {
+        data: ['Requested Quota', 'Actual Usage'],
+        bottom: 0
+      },
+      grid: {
+        left: '60px',
+        right: '20px',
+        bottom: '50px',
+        top: '20px',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: timeLabels,
+        name: 'Time',
+        nameLocation: 'middle',
+        nameGap: 30
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Cores',
+        nameLocation: 'middle',
+        nameGap: 50
+      },
+      series: [
+        {
+          name: 'Actual Usage',
+          type: 'line',
+          data: actualValues,
+          areaStyle: {
+            color: '#0066cc',
+            opacity: 0.3
+          },
+          lineStyle: {
+            color: '#0066cc',
+            width: 2
+          },
+          itemStyle: {
+            color: '#0066cc'
+          }
+        },
+        {
+          name: 'Requested Quota',
+          type: 'line',
+          data: quotaValues,
+          lineStyle: {
+            color: '#6a6e73',
+            width: 2,
+            type: 'dashed'
+          },
+          itemStyle: {
+            color: '#6a6e73'
+          },
+          areaStyle: {
+            opacity: 0
+          }
+        }
+      ]
     };
 
     return (
-      <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }}>
-        <ChartGroup
+      <div style={{ width: '100%', height: '250px' }}>
+        <Charts
           height={250}
-          width={chartWidth}
-          padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
-          themeColor={ChartThemeColor.multi}
-          containerComponent={
-            <ChartVoronoiContainer
-              labels={getTooltipLabel}
-              constrainToVisibleArea
-            />
-          }
-        >
-        <ChartAxis 
-          tickFormat={(t) => t}
-          style={{
-            axisLabel: { fontSize: 12 },
-            tickLabels: { fontSize: 12 }
-          }}
-          label="Time"
+          option={option}
         />
-        <ChartAxis 
-          dependentAxis 
-          showGrid
-          tickFormat={(t) => `${Math.round(t)}`}
-          style={{
-            axisLabel: { fontSize: 12 },
-            tickLabels: { fontSize: 12 }
-          }}
-          label="Cores"
-        />
-        {/* Actual usage - blue line with semi-transparent area fill */}
-        <ChartArea
-          data={actualDataFormatted}
-          style={{
-            data: {
-              fill: '#0066cc',
-              fillOpacity: 0.3,
-              stroke: '#0066cc',
-              strokeWidth: 2
-            }
-          }}
-        />
-        {/* Quota line - dark grey dashed line with no fill (using ChartArea with no fill) */}
-        <ChartArea
-          data={quotaDataFormatted}
-          style={{
-            data: {
-              fill: 'none',
-              fillOpacity: 0,
-              stroke: '#6a6e73',
-              strokeWidth: 2,
-              strokeDasharray: '5,5'
-            }
-          }}
-        />
-        <ChartLegend
-          data={[
-            { name: 'Requested Quota', symbol: { type: 'line', strokeDasharray: '5,5', stroke: '#6a6e73' } },
-            { name: 'Actual Usage', symbol: { type: 'square', fill: '#0066cc' } }
-          ]}
-          orientation="horizontal"
-          height={30}
-          style={{
-            labels: { fontSize: 14 }
-          }}
-        />
-      </ChartGroup>
       </div>
     );
   };
