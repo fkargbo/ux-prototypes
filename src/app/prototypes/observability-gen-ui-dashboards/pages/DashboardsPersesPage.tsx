@@ -89,6 +89,8 @@ import {
   ChartDonut,
   ChartLegend,
   ChartVoronoiContainer,
+  ChartDonutUtilization,
+  ChartDonutThreshold,
 } from '@patternfly/react-charts/victory';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
@@ -199,6 +201,67 @@ const TroubleshootingDashboard: React.FC = () => {
 
   const cpuCommitmentPercent = 115;
   const throttledContainers = 23;
+  
+  // Mock data for CPU cores (in a real implementation, this would come from PromQL queries)
+  const requestedCores = 110; // Calculated from: sum(kube_pod_container_resource_requests{resource="cpu"})
+  const totalCores = 96; // Calculated from: sum(kube_node_status_capacity{resource="cpu"})
+  
+  // CPU Commitment Donut Component
+  const CPUCommitmentDonut: React.FC = () => {
+    // Cap the visual fill at 100% but show actual percentage in center
+    const visualPercent = Math.min(cpuCommitmentPercent, 100);
+    
+    // Determine color based on thresholds: Green < 85%, Gold 85-100%, Red > 100%
+    const getThemeColor = () => {
+      if (cpuCommitmentPercent > 100) {
+        return ChartThemeColor.red;
+      } else if (cpuCommitmentPercent >= 85) {
+        return ChartThemeColor.gold;
+      } else {
+        return ChartThemeColor.green;
+      }
+    };
+    
+    const themeColor = getThemeColor();
+    
+    // Static thresholds: 85% (warning) and 100% (danger)
+    const thresholdData = [
+      { x: 'Warning at 85%', y: 85 },
+      { x: 'Danger at 100%', y: 100 }
+    ];
+    
+    const utilizationData = { 
+      x: 'CPU Request Commitment', 
+      y: visualPercent 
+    };
+    
+    return (
+      <div style={{ height: '230px', width: '230px', margin: '0 auto' }}>
+        <ChartDonutThreshold
+          ariaDesc="CPU Request Commitment percentage with static thresholds at 85% and 100%"
+          ariaTitle="CPU Request Commitment Donut Chart"
+          constrainToVisibleArea
+          data={thresholdData}
+          labels={({ datum }) => (datum.x ? datum.x : null)}
+          name="cpu-commitment-threshold"
+          themeColor={themeColor}
+        >
+          <ChartDonutUtilization
+            ariaDesc="CPU Request Commitment utilization"
+            ariaTitle="CPU Request Commitment"
+            data={utilizationData}
+            labels={({ datum }) => (datum.x ? `${datum.x}: ${datum.y}%` : null)}
+            subTitle={`${requestedCores} / ${totalCores} Cores`}
+            title={`${cpuCommitmentPercent}%`}
+            name="cpu-commitment-utilization"
+            themeColor={themeColor}
+            height={230}
+            width={230}
+          />
+        </ChartDonutThreshold>
+      </div>
+    );
+  };
 
   return (
     <div style={{ 
@@ -316,19 +379,8 @@ const TroubleshootingDashboard: React.FC = () => {
                 </CardHeader>
                 <CardBody>
                   <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} style={{ height: '100%', justifyContent: 'center' }}>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: '8px' }}>
-                      {cpuCommitmentPercent > 100 && (
-                        <Icon status="danger"><ExclamationCircleIcon /></Icon>
-                      )}
-                      <Title 
-                        headingLevel="h1" 
-                        size="4xl" 
-                        className={cpuCommitmentPercent > 100 ? 'pf-v6-u-danger-color-100' : ''}
-                      >
-                        {cpuCommitmentPercent}%
-                      </Title>
-                    </Flex>
-                    <Content component="small" className="pf-v6-u-color-200">
+                    <CPUCommitmentDonut />
+                    <Content component="small" className="pf-v6-u-color-200" style={{ marginTop: '16px', textAlign: 'center' }}>
                       {'(sum(kube_pod_container_resource_requests{resource="cpu"}) / sum(kube_node_status_capacity{resource="cpu"})) * 100'}
                     </Content>
                   </Flex>
