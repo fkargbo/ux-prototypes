@@ -251,8 +251,6 @@ const TroubleshootingDashboard: React.FC = () => {
   
   // Throttled Container Stat Component with Sparkline
   const ThrottledContainerStat: React.FC = () => {
-    const hasThrottledContainers = throttledContainers > 0;
-    const textColor = hasThrottledContainers ? '#C9190B' : 'var(--pf-v6-global--Color--200)';
     const [sparklineWidth, setSparklineWidth] = React.useState(300);
     const sparklineContainerRef = React.useRef<HTMLDivElement>(null);
     
@@ -272,7 +270,7 @@ const TroubleshootingDashboard: React.FC = () => {
     
     return (
       <Flex direction={{ default: 'column' }} style={{ height: '100%', width: '100%' }}>
-        {/* Large numeric display with conditional styling */}
+        {/* Large numeric display with regular text color */}
         <FlexItem>
           <Tooltip content="The number of containers currently being restricted by the CPU scheduler due to reaching their limit.">
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} justifyContent={{ default: 'justifyContentCenter' }}>
@@ -280,7 +278,7 @@ const TroubleshootingDashboard: React.FC = () => {
                 headingLevel="h2" 
                 size="3xl" 
                 style={{ 
-                  color: textColor,
+                  color: 'var(--pf-t--global--text--color--default)',
                   marginBottom: '8px'
                 }}
               >
@@ -290,7 +288,7 @@ const TroubleshootingDashboard: React.FC = () => {
           </Tooltip>
         </FlexItem>
         
-        {/* Sparkline chart - Compact size */}
+        {/* Sparkline chart - Compact size with PatternFly blue */}
         <FlexItem style={{ marginTop: '16px' }}>
           <div ref={sparklineContainerRef} style={{ height: '60px', width: '100%', overflow: 'hidden' }}>
             <ChartGroup
@@ -307,15 +305,15 @@ const TroubleshootingDashboard: React.FC = () => {
               minDomain={{ y: 0 }}
               name="throttled-containers-sparkline"
               padding={0}
-              themeColor={hasThrottledContainers ? ChartThemeColor.redOrange : ChartThemeColor.gray}
+              themeColor={ChartThemeColor.blue}
               width={sparklineWidth}
             >
               <ChartArea 
                 data={throttledContainersSparklineData}
                 style={{
                   data: {
-                    fill: hasThrottledContainers ? '#C9190B' : 'var(--pf-v6-global--Color--200)',
-                    stroke: hasThrottledContainers ? '#C9190B' : 'var(--pf-v6-global--Color--200)',
+                    fill: 'var(--pf-t--global--color--nonstatus--blue--default)',
+                    stroke: 'var(--pf-t--global--color--nonstatus--blue--default)',
                     strokeWidth: 2
                   }
                 }}
