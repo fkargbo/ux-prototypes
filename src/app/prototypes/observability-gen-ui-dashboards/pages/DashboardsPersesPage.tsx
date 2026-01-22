@@ -646,9 +646,9 @@ const TroubleshootingDashboard: React.FC = () => {
               </Flex>
             </CardHeader>
             <CardBody>
-              <Grid hasGutter>
-                <GridItem md={3} style={{ display: 'flex', flexDirection: 'column' }}>
-                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }} style={{ height: '100%' }}>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsStretch' }} gap={{ default: 'gapLg' }}>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
                     <FlexItem>
                       <Content component="small" className="pf-v6-u-color-200">TOTAL NODES</Content>
                     </FlexItem>
@@ -659,9 +659,9 @@ const TroubleshootingDashboard: React.FC = () => {
                       </Flex>
                     </FlexItem>
                   </Flex>
-                </GridItem>
-                <GridItem md={3} style={{ display: 'flex', flexDirection: 'column' }}>
-                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }} style={{ height: '100%' }}>
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
                     <FlexItem>
                       <Content component="small" className="pf-v6-u-color-200">TOTAL CPU CORES</Content>
                     </FlexItem>
@@ -672,9 +672,9 @@ const TroubleshootingDashboard: React.FC = () => {
                       </Flex>
                     </FlexItem>
                   </Flex>
-                </GridItem>
-                <GridItem md={3} style={{ display: 'flex', flexDirection: 'column' }}>
-                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }} style={{ height: '100%' }}>
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
                     <FlexItem>
                       <Content component="small" className="pf-v6-u-color-200">RUNNING PODS</Content>
                     </FlexItem>
@@ -685,16 +685,14 @@ const TroubleshootingDashboard: React.FC = () => {
                       </Flex>
                     </FlexItem>
                   </Flex>
-                </GridItem>
-                <GridItem md={3} style={{ display: 'flex', flexDirection: 'column' }}>
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
                   <div style={{ 
                     borderLeft: '4px solid var(--pf-v6-global--palette--orange-300)',
                     paddingLeft: '16px',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column'
+                    height: '100%'
                   }}>
-                    <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }} style={{ height: '100%' }}>
+                    <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
                       <FlexItem>
                         <Content component="small" className="pf-v6-u-color-200">PENDING PODS</Content>
                       </FlexItem>
@@ -706,8 +704,8 @@ const TroubleshootingDashboard: React.FC = () => {
                       </FlexItem>
                     </Flex>
                   </div>
-                </GridItem>
-              </Grid>
+                </FlexItem>
+              </Flex>
             </CardBody>
           </Card>
         </StackItem>
