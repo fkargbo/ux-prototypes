@@ -223,10 +223,20 @@ const TroubleshootingDashboard: React.FC = () => {
     { namespace: 'default', cpu: 4 }
   ];
 
+  // Node Resource Pressure data - 12 nodes with mixed statuses
   const nodePressureData = [
-    { node: 'node-1', cpu: 92 },
-    { node: 'node-2', cpu: 88 },
-    { node: 'node-3', cpu: 95 }
+    { node: 'node-1', cpu: 105, status: 'critical' }, // Overcommit - Red
+    { node: 'node-2', cpu: 98, status: 'warning' },   // High - Gold
+    { node: 'node-3', cpu: 92, status: 'warning' },  // High - Gold
+    { node: 'node-4', cpu: 87, status: 'warning' },  // High - Gold
+    { node: 'node-5', cpu: 78, status: 'healthy' },  // Normal - Blue
+    { node: 'node-6', cpu: 65, status: 'healthy' },  // Normal - Blue
+    { node: 'node-7', cpu: 82, status: 'healthy' },   // Normal - Blue
+    { node: 'node-8', cpu: 95, status: 'warning' },  // High - Gold
+    { node: 'node-9', cpu: 72, status: 'healthy' },  // Normal - Blue
+    { node: 'node-10', cpu: 88, status: 'warning' }, // High - Gold
+    { node: 'node-11', cpu: 110, status: 'critical' }, // Overcommit - Red
+    { node: 'node-12', cpu: 68, status: 'healthy' }   // Normal - Blue
   ];
 
   const cpuCommitmentPercent = 115;
@@ -764,43 +774,72 @@ const TroubleshootingDashboard: React.FC = () => {
                 </CardHeader>
                 <CardBody>
                   <Grid hasGutter>
-                    {nodePressureData.map((node) => (
-                      <GridItem key={node.node} md={4}>
-                        <Card>
-                          <CardBody>
-                            <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Title headingLevel="h3" size="lg" style={{ marginBottom: '16px' }}>
-                                {node.node}
-                              </Title>
-                              <div style={{ height: '150px', width: '100%' }}>
-                                <ChartDonut
-                                  data={[
-                                    { x: 'Used', y: node.cpu },
-                                    { x: 'Available', y: 100 - node.cpu }
-                                  ]}
-                                  height={150}
-                                  title={`${node.cpu}%`}
-                                  subTitle="CPU Usage"
-                                  colorScale={[
-                                    node.cpu > 90 ? 'var(--pf-v6-chart-color-red-300)' : 'var(--pf-v6-chart-color-orange-300)',
-                                    'var(--pf-v6-chart-color-gray-200)'
-                                  ]}
-                                  legendData={[
-                                    { name: `Used: ${node.cpu}%` },
-                                    { name: `Available: ${100 - node.cpu}%` }
-                                  ]}
-                                  legendOrientation="vertical"
-                                  legendPosition="right"
-                                  style={{
-                                    labels: { fontSize: 12 }
-                                  }}
-                                />
-                              </div>
-                            </Flex>
-                          </CardBody>
-                        </Card>
-                      </GridItem>
-                    ))}
+                    {nodePressureData.map((node) => {
+                      // Determine color based on status
+                      const getThemeColor = () => {
+                        if (node.status === 'critical') {
+                          return null; // Use colorScale for red
+                        } else if (node.status === 'warning') {
+                          return ChartThemeColor.gold;
+                        } else {
+                          return ChartThemeColor.blue;
+                        }
+                      };
+
+                      const themeColor = getThemeColor();
+                      const visualPercent = Math.min(node.cpu, 100);
+                      const colorScale = node.status === 'critical' 
+                        ? ['#c9190b', '#d2d2d2'] // PatternFly red and gray
+                        : undefined;
+
+                      // Threshold data for static thresholds
+                      const thresholdData = [
+                        { x: 'Warning at 85%', y: 85 },
+                        { x: 'Critical at 100%', y: 100 }
+                      ];
+
+                      // Utilization data - ChartDonutUtilization expects { x, y } format
+                      const utilizationData = { x: 'CPU Usage', y: visualPercent };
+
+                      return (
+                        <GridItem key={node.node} md={3}>
+                          <Card>
+                            <CardBody>
+                              <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                <Title headingLevel="h4" size="md">
+                                  {node.node}
+                                </Title>
+                                <div style={{ height: '180px', width: '180px', margin: '0 auto' }}>
+                                  <ChartDonutThreshold
+                                    ariaDesc={`CPU utilization for ${node.node} with static thresholds at 85% and 100%`}
+                                    ariaTitle={`${node.node} CPU Utilization`}
+                                    constrainToVisibleArea
+                                    data={thresholdData}
+                                    labels={({ datum }) => (datum.x ? datum.x : null)}
+                                    name={`${node.node}-threshold`}
+                                  >
+                                    <ChartDonutUtilization
+                                      ariaDesc={`CPU utilization for ${node.node}`}
+                                      ariaTitle={`${node.node} CPU Utilization`}
+                                      data={utilizationData}
+                                      labels={({ datum }) => (datum.x ? `${datum.x}: ${datum.y}%` : null)}
+                                      subTitle="CPU Usage"
+                                      title={`${node.cpu}%`}
+                                      name={`${node.node}-utilization`}
+                                      themeColor={themeColor || undefined}
+                                      colorScale={colorScale}
+                                      thresholds={[{ value: 85 }, { value: 100 }]}
+                                      height={180}
+                                      width={180}
+                                    />
+                                  </ChartDonutThreshold>
+                                </div>
+                              </Flex>
+                            </CardBody>
+                          </Card>
+                        </GridItem>
+                      );
+                    })}
                   </Grid>
                 </CardBody>
               </Card>
