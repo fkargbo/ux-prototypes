@@ -392,7 +392,9 @@ const TroubleshootingDashboard: React.FC = () => {
         nameTextStyle: {
           color: 'var(--pf-t--global--text--color--default)',
           dominantBaseline: 'central',
-          textAnchor: 'middle'
+          textAnchor: 'middle',
+          y: -5.1100006103515625,
+          transform: 'matrix(0,-1,1,0,10,100.89)'
         },
         axisLabel: {
           color: 'var(--pf-t--global--text--color--default)',
