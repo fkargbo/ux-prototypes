@@ -647,8 +647,8 @@ const TroubleshootingDashboard: React.FC = () => {
             </CardHeader>
             <CardBody>
               <Grid hasGutter>
-                <GridItem md={3}>
-                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                <GridItem md={3} style={{ display: 'flex', flexDirection: 'column' }}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }} style={{ height: '100%' }}>
                     <FlexItem>
                       <Content component="small" className="pf-v6-u-color-200">TOTAL NODES</Content>
                     </FlexItem>
@@ -660,8 +660,8 @@ const TroubleshootingDashboard: React.FC = () => {
                     </FlexItem>
                   </Flex>
                 </GridItem>
-                <GridItem md={3}>
-                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                <GridItem md={3} style={{ display: 'flex', flexDirection: 'column' }}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }} style={{ height: '100%' }}>
                     <FlexItem>
                       <Content component="small" className="pf-v6-u-color-200">TOTAL CPU CORES</Content>
                     </FlexItem>
@@ -673,8 +673,8 @@ const TroubleshootingDashboard: React.FC = () => {
                     </FlexItem>
                   </Flex>
                 </GridItem>
-                <GridItem md={3}>
-                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                <GridItem md={3} style={{ display: 'flex', flexDirection: 'column' }}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }} style={{ height: '100%' }}>
                     <FlexItem>
                       <Content component="small" className="pf-v6-u-color-200">RUNNING PODS</Content>
                     </FlexItem>
@@ -686,13 +686,15 @@ const TroubleshootingDashboard: React.FC = () => {
                     </FlexItem>
                   </Flex>
                 </GridItem>
-                <GridItem md={3}>
+                <GridItem md={3} style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ 
                     borderLeft: '4px solid var(--pf-v6-global--palette--orange-300)',
                     paddingLeft: '16px',
-                    height: '100%'
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column'
                   }}>
-                    <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }} style={{ height: '100%' }}>
                       <FlexItem>
                         <Content component="small" className="pf-v6-u-color-200">PENDING PODS</Content>
                       </FlexItem>
