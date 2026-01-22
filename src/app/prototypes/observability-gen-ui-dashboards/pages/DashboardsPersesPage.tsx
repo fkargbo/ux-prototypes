@@ -336,6 +336,16 @@ const TroubleshootingDashboard: React.FC = () => {
   
   // CPU Quota vs Actual Chart Component
   const CPUQuotaVsActualChart: React.FC = () => {
+    // Format data with name property for tooltip
+    const quotaDataWithName = cpuQuotaData.map(d => ({ ...d, name: 'Requested Quota' }));
+    const actualDataWithName = cpuActualData.map(d => ({ ...d, name: 'Actual Usage' }));
+
+    // Calculate domain for Y-axis
+    const allValues = [...cpuQuotaData.map(d => d.y), ...cpuActualData.map(d => d.y)];
+    const maxY = Math.max(...allValues);
+    const minY = Math.min(...allValues);
+    const yPadding = (maxY - minY) * 0.1 || 5; // 10% padding, minimum 5
+
     // Custom label function to show both values in tooltip
     const getTooltipLabel = (datum: any) => {
       const time = datum.x;
@@ -356,6 +366,8 @@ const TroubleshootingDashboard: React.FC = () => {
       <ChartGroup
         height={250}
         padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
+        maxDomain={{ y: maxY + yPadding }}
+        minDomain={{ y: Math.max(0, minY - yPadding) }}
         containerComponent={
           <ChartVoronoiContainer
             labels={getTooltipLabel}
@@ -374,36 +386,34 @@ const TroubleshootingDashboard: React.FC = () => {
         <ChartAxis 
           dependentAxis 
           showGrid
-          tickFormat={(t) => `${t}`}
+          tickFormat={(t) => `${Math.round(t)}`}
           style={{
             axisLabel: { fontSize: 12 },
             tickLabels: { fontSize: 12 }
           }}
           label="Cores"
         />
-        {/* Quota line - dark grey dashed line with no fill */}
-        <ChartLine
-          data={cpuQuotaData}
-          name="quota"
-          style={{
-            data: {
-              stroke: 'var(--pf-t--global--Color--200)',
-              strokeWidth: 2,
-              strokeDasharray: '5,5',
-              fill: 'none'
-            }
-          }}
-        />
         {/* Actual usage - blue line with semi-transparent area fill */}
         <ChartArea
-          data={cpuActualData}
-          name="actual"
+          data={actualDataWithName}
           style={{
             data: {
               fill: 'var(--pf-t--global--color--nonstatus--blue--default)',
               fillOpacity: 0.3,
               stroke: 'var(--pf-t--global--color--nonstatus--blue--default)',
               strokeWidth: 2
+            }
+          }}
+        />
+        {/* Quota line - dark grey dashed line with no fill (rendered on top) */}
+        <ChartLine
+          data={quotaDataWithName}
+          style={{
+            data: {
+              stroke: '#6a6e73',
+              strokeWidth: 2,
+              strokeDasharray: '5,5',
+              fill: 'none'
             }
           }}
         />
