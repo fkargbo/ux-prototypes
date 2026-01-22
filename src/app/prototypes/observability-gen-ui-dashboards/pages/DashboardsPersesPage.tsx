@@ -336,9 +336,18 @@ const TroubleshootingDashboard: React.FC = () => {
   
   // CPU Quota vs Actual Chart Component
   const CPUQuotaVsActualChart: React.FC = () => {
-    // Format data with name property for tooltip
-    const quotaDataWithName = cpuQuotaData.map(d => ({ ...d, name: 'Requested Quota' }));
-    const actualDataWithName = cpuActualData.map(d => ({ ...d, name: 'Actual Usage' }));
+    // Format data arrays with name property (matching working chart format)
+    const quotaDataFormatted = cpuQuotaData.map(d => ({ 
+      name: 'Requested Quota',
+      x: d.x,
+      y: d.y
+    }));
+    
+    const actualDataFormatted = cpuActualData.map(d => ({ 
+      name: 'Actual Usage',
+      x: d.x,
+      y: d.y
+    }));
 
     // Calculate domain for Y-axis
     const allValues = [...cpuQuotaData.map(d => d.y), ...cpuActualData.map(d => d.y)];
@@ -349,8 +358,8 @@ const TroubleshootingDashboard: React.FC = () => {
     // Custom label function to show both values in tooltip
     const getTooltipLabel = (datum: any) => {
       const time = datum.x;
-      const quotaPoint = cpuQuotaData.find(d => d.x === time);
-      const actualPoint = cpuActualData.find(d => d.x === time);
+      const quotaPoint = quotaDataFormatted.find(d => d.x === time);
+      const actualPoint = actualDataFormatted.find(d => d.x === time);
       
       if (quotaPoint && actualPoint) {
         return [
@@ -367,7 +376,7 @@ const TroubleshootingDashboard: React.FC = () => {
         height={250}
         padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
         maxDomain={{ y: maxY + yPadding }}
-        minDomain={{ y: Math.max(0, minY - yPadding) }}
+        minDomain={{ y: 0 }}
         themeColor={ChartThemeColor.multi}
         containerComponent={
           <ChartVoronoiContainer
@@ -396,7 +405,7 @@ const TroubleshootingDashboard: React.FC = () => {
         />
         {/* Actual usage - blue line with semi-transparent area fill */}
         <ChartArea
-          data={actualDataWithName}
+          data={actualDataFormatted}
           style={{
             data: {
               fill: '#0066cc',
@@ -408,7 +417,7 @@ const TroubleshootingDashboard: React.FC = () => {
         />
         {/* Quota line - dark grey dashed line with no fill (rendered on top) */}
         <ChartLine
-          data={quotaDataWithName}
+          data={quotaDataFormatted}
           style={{
             data: {
               stroke: '#6a6e73',
