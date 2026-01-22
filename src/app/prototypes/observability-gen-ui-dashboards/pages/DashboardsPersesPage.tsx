@@ -404,11 +404,10 @@ const TroubleshootingDashboard: React.FC = () => {
 
   return (
     <div style={{ 
-      height: '100vh',
+      minHeight: '100vh',
       padding: '24px',
       boxSizing: 'border-box',
-      backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)',
-      overflow: 'auto'
+      backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)'
     }}>
       <Stack hasGutter>
         {/* Header */}
