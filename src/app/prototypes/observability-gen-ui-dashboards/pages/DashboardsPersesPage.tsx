@@ -277,11 +277,10 @@ const TroubleshootingDashboard: React.FC = () => {
           <Tooltip content="The number of containers currently being restricted by the CPU scheduler due to reaching their limit.">
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} justifyContent={{ default: 'justifyContentCenter' }}>
               <Title 
-                headingLevel="h1" 
-                size="4xl" 
+                headingLevel="h2" 
+                size="3xl" 
                 style={{ 
                   color: textColor,
-                  fontWeight: 'bold',
                   marginBottom: '8px'
                 }}
               >
