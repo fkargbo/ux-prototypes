@@ -387,12 +387,9 @@ const TroubleshootingDashboard: React.FC = () => {
         data: namespaces,
         name: 'Namespace',
         nameLocation: 'middle',
-        nameGap: 24,
-        nameRotate: 90,
+        nameGap: 50,
         nameTextStyle: {
           color: 'var(--pf-t--global--text--color--default)',
-          dominantBaseline: 'central',
-          textAnchor: 'middle',
           y: -5.1100006103515625,
           transform: 'matrix(0,-1,1,0,10,100.89)'
         },
