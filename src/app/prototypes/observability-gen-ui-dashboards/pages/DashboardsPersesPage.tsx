@@ -428,10 +428,14 @@ const TroubleshootingDashboard: React.FC = () => {
       legend: {
         data: ['Requested Quota', 'Actual Usage'],
         bottom: 0,
-        itemGap: 20,
+        orient: 'horizontal',
+        itemGap: 40,
+        itemWidth: 25,
+        itemHeight: 14,
         textStyle: {
           fontSize: 14
-        }
+        },
+        left: 'center'
       },
       grid: {
         left: '60px',
