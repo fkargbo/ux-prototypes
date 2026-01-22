@@ -335,71 +335,83 @@ const TroubleshootingDashboard: React.FC = () => {
     );
   };
   
-  // Top 10 Resource-Heavy Namespaces Chart Component
+  // Top 10 Resource-Heavy Namespaces Chart Component using ECharts
   const TopNamespacesChart: React.FC = () => {
-    const chartContainerRef = React.useRef<HTMLDivElement>(null);
-    const [chartWidth, setChartWidth] = React.useState(600);
+    // Prepare data for ECharts horizontal bar chart
+    const namespaces = topNamespacesData.map(ns => ns.namespace);
+    const cpuValues = topNamespacesData.map(ns => ns.cpu);
 
-    React.useEffect(() => {
-      const updateWidth = () => {
-        if (chartContainerRef.current) {
-          const width = chartContainerRef.current.offsetWidth;
-          setChartWidth(Math.max(width - 40, 400));
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        },
+        formatter: (params: any) => {
+          const param = params[0];
+          return `${param.name}<br/>CPU Usage: ${param.value}%`;
         }
-      };
-      updateWidth();
-      window.addEventListener('resize', updateWidth);
-      return () => window.removeEventListener('resize', updateWidth);
-    }, []);
-
-    const chartData = topNamespacesData.map(ns => ({ 
-      x: ns.namespace, 
-      y: ns.cpu 
-    }));
+      },
+      grid: {
+        left: '120px',
+        right: '20px',
+        bottom: '50px',
+        top: '20px',
+        containLabel: false
+      },
+      xAxis: {
+        type: 'value',
+        name: 'CPU Usage (%)',
+        nameLocation: 'middle',
+        nameGap: 30,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)',
+          formatter: '{value}%'
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: namespaces,
+        name: 'Namespace',
+        nameLocation: 'middle',
+        nameGap: 80,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)',
+          formatter: (value: string) => {
+            return value.length > 12 ? `${value.substring(0, 12)}...` : value;
+          }
+        }
+      },
+      series: [
+        {
+          name: 'CPU Usage',
+          type: 'bar',
+          data: cpuValues,
+          label: {
+            show: true,
+            position: 'right',
+            formatter: '{c}%',
+            color: 'var(--pf-t--global--text--color--default)'
+          },
+          itemStyle: {
+            color: '#0066cc'
+          }
+        }
+      ]
+    };
 
     return (
-      <div ref={chartContainerRef} style={{ width: '100%', height: '250px' }}>
-        <ChartGroup
+      <div style={{ width: '100%', height: '250px' }}>
+        <Charts
           height={250}
-          width={chartWidth}
-          padding={{ left: 120, bottom: 50, top: 20, right: 20 }}
-          themeColor={ChartThemeColor.multi}
-          containerComponent={
-            <ChartVoronoiContainer
-              labels={({ datum }) => `${datum.x}: ${datum.y}%`}
-              constrainToVisibleArea
-            />
-          }
-        >
-          <ChartAxis 
-            tickFormat={(t) => t.length > 12 ? `${t.substring(0, 12)}...` : t}
-            style={{
-              axisLabel: { fontSize: 12 },
-              tickLabels: { fontSize: 12 }
-            }}
-            label="Namespace"
-          />
-          <ChartAxis 
-            dependentAxis 
-            showGrid
-            tickFormat={(t) => `${t}%`}
-            style={{
-              axisLabel: { fontSize: 12 },
-              tickLabels: { fontSize: 12 }
-            }}
-            label="CPU Usage (%)"
-          />
-          <ChartBar
-            data={chartData}
-            horizontal
-            labels={({ datum }) => `${datum.y}%`}
-            style={{
-              data: {
-                fill: '#0066cc'
-              }
-            }}
-          />
-        </ChartGroup>
+          option={option}
+        />
       </div>
     );
   };
