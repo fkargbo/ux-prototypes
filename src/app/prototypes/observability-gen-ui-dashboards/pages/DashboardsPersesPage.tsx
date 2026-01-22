@@ -315,8 +315,8 @@ const TroubleshootingDashboard: React.FC = () => {
                 data={throttledContainersSparklineData}
                 style={{
                   data: {
-                    fill: 'var(--pf-t--global--color--nonstatus--blue--default)',
-                    stroke: 'var(--pf-t--global--color--nonstatus--blue--default)',
+                    fill: '#0066cc',
+                    stroke: '#0066cc',
                     strokeWidth: 2
                   }
                 }}
