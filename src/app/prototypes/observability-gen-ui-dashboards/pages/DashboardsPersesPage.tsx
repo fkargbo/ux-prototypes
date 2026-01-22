@@ -117,13 +117,13 @@ import './dashboards-perses.css';
 // Recommended formats: PNG, JPG, or SVG
 // Recommended size: 64x64px or 128x128px for best quality
 // Uncomment these lines after adding your images:
-// import userProfilePic from '../assets/user-profile.png';
-// import botProfilePic from '../assets/bot-profile.png';
+// import userProfilePicUrl from '../assets/user-profile.png';
+// import botProfilePicUrl from '../assets/bot-profile.png';
 
-// Fallback to icons if images are not available
-// Replace these with your imported images once you add them to the assets folder
-const userProfilePic = UserIcon;
-const botProfilePic = RobotIcon;
+// Avatar configuration - use custom images if available, otherwise use icons
+// When you add your images, uncomment the imports above and update these:
+const userProfilePic: string | React.ReactElement = <UserIcon />; // Replace with: userProfilePicUrl
+const botProfilePic: string | React.ReactElement = <RobotIcon />; // Replace with: botProfilePicUrl
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 

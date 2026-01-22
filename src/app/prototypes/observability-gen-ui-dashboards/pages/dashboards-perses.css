@@ -263,3 +263,21 @@ button[aria-label="View task details"] {
 .ai-assistant-drawer-wrapper .pf-v6-c-chatbot * {
   visibility: visible !important;
 }
+
+/* Ensure message avatars are visible */
+.ai-assistant-drawer-wrapper .pf-v6-c-message__avatar,
+.ai-assistant-drawer-wrapper .pf-v6-c-avatar {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-message__avatar svg,
+.ai-assistant-drawer-wrapper .pf-v6-c-avatar svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  visibility: visible !important;
+}
