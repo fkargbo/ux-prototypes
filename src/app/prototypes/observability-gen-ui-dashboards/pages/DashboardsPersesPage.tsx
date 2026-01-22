@@ -1886,7 +1886,14 @@ export const DashboardsPersesPage: React.FC = () => {
     {/* Floating toggle button - positioned outside drawer, always visible */}
     <div 
       ref={chatbotToggleRef}
-      style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}
+      className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
+      style={{ 
+        position: 'fixed', 
+        bottom: '24px', 
+        right: '24px',
+        zIndex: 1000,
+        transition: 'right 0.2s ease-in-out'
+      }}
     >
       <Tooltip content="AI assistant" position="left">
         <ChatbotToggle 

@@ -300,6 +300,33 @@ button[aria-label="View task details"] {
   flex-shrink: 0 !important;
 }
 
+/* Floating chatbot toggle button - adjust position when drawer is open */
+/* This ensures the button is always visible and not hidden by the drawer */
+.chatbot-toggle-button.drawer-open {
+  right: calc(33.333% + 24px) !important;
+}
+
+@media (min-width: 992px) {
+  /* On larger screens, drawer is 25% width */
+  .chatbot-toggle-button.drawer-open {
+    right: calc(25% + 24px) !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  /* On smaller screens, drawer has min-width 400px */
+  .chatbot-toggle-button.drawer-open {
+    right: calc(400px + 24px) !important;
+  }
+}
+
+@media (min-width: 2400px) {
+  /* On very large screens, drawer has max-width 600px */
+  .chatbot-toggle-button.drawer-open {
+    right: calc(600px + 24px) !important;
+  }
+}
+
 .ai-assistant-drawer-wrapper .pf-v6-c-message__avatar img,
 .ai-assistant-drawer-wrapper .pf-v6-c-avatar img {
   width: 48px !important;
