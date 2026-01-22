@@ -910,14 +910,14 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Thinking...',
-      name: 'Jasmine',
+      name: 'Aladdin',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
 
     setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
-    setAnnouncement(`Message from User: ${messageText}. Message from Jasmine is loading.`);
+    setAnnouncement(`Message from User: ${messageText}. Message from Aladdin is loading.`);
 
     // Simulate AI response (replace with actual API call)
     setTimeout(() => {
@@ -925,7 +925,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
-        name: 'Jasmine',
+        name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -947,7 +947,7 @@ export const DashboardsPersesPage: React.FC = () => {
         }
         return newMessages;
       });
-      setAnnouncement(`Message from Jasmine: ${botMessage.content}`);
+      setAnnouncement(`Message from Aladdin: ${botMessage.content}`);
       setIsSendButtonDisabled(false);
     }, 2000);
   }, []);
@@ -989,7 +989,7 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Analyzing alert...',
-      name: 'Jasmine',
+      name: 'Aladdin',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -1003,7 +1003,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.',
-        name: 'Jasmine',
+        name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -1059,7 +1059,7 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Analyzing root cause...',
-      name: 'Jasmine',
+      name: 'Aladdin',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -1080,7 +1080,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota.',
-        name: 'Jasmine',
+        name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -1169,7 +1169,7 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Building Perses Dashboard Definition...',
-      name: 'Jasmine',
+      name: 'Aladdin',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -1183,7 +1183,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I have generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. You can save this to your Perses projects library or proceed with the fix.',
-        name: 'Jasmine',
+        name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
