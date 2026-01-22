@@ -225,18 +225,18 @@ const TroubleshootingDashboard: React.FC = () => {
 
   // Node Resource Pressure data - 12 nodes with mixed statuses
   const nodePressureData = [
-    { node: 'node-1', cpu: 105, status: 'critical' }, // Overcommit - Red
-    { node: 'node-2', cpu: 98, status: 'warning' },   // High - Gold
-    { node: 'node-3', cpu: 92, status: 'warning' },  // High - Gold
-    { node: 'node-4', cpu: 87, status: 'warning' },  // High - Gold
-    { node: 'node-5', cpu: 78, status: 'healthy' },  // Normal - Blue
-    { node: 'node-6', cpu: 65, status: 'healthy' },  // Normal - Blue
-    { node: 'node-7', cpu: 82, status: 'healthy' },   // Normal - Blue
-    { node: 'node-8', cpu: 95, status: 'warning' },  // High - Gold
-    { node: 'node-9', cpu: 72, status: 'healthy' },  // Normal - Blue
-    { node: 'node-10', cpu: 88, status: 'warning' }, // High - Gold
-    { node: 'node-11', cpu: 110, status: 'critical' }, // Overcommit - Red
-    { node: 'node-12', cpu: 68, status: 'healthy' }   // Normal - Blue
+    { node: 'node-pool-1-abc', cpu: 105, status: 'critical' }, // Overcommit - Red
+    { node: 'node-pool-2-abc', cpu: 98, status: 'warning' },   // High - Gold
+    { node: 'node-pool-3-abc', cpu: 92, status: 'warning' },  // High - Gold
+    { node: 'node-pool-4-abc', cpu: 87, status: 'warning' },  // High - Gold
+    { node: 'node-pool-5-abc', cpu: 78, status: 'healthy' },  // Normal - Blue
+    { node: 'node-pool-6-abc', cpu: 65, status: 'healthy' },  // Normal - Blue
+    { node: 'node-pool-7-abc', cpu: 82, status: 'healthy' },   // Normal - Blue
+    { node: 'node-pool-8-abc', cpu: 95, status: 'warning' },  // High - Gold
+    { node: 'node-pool-9-abc', cpu: 72, status: 'healthy' },  // Normal - Blue
+    { node: 'node-pool-10-abc', cpu: 88, status: 'warning' }, // High - Gold
+    { node: 'node-pool-11-abc', cpu: 110, status: 'critical' }, // Overcommit - Red
+    { node: 'node-pool-12-abc', cpu: 68, status: 'healthy' }   // Normal - Blue
   ];
 
   const cpuCommitmentPercent = 115;
