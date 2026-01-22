@@ -354,7 +354,7 @@ const TroubleshootingDashboard: React.FC = () => {
 
     return (
       <ChartGroup
-        height={300}
+        height={250}
         padding={{ left: 60, bottom: 60, top: 20, right: 20 }}
         containerComponent={
           <ChartVoronoiContainer
