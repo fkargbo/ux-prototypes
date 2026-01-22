@@ -1884,25 +1884,28 @@ export const DashboardsPersesPage: React.FC = () => {
       )}
 
     {/* Floating toggle button - positioned outside drawer, always visible */}
-    <div 
-      ref={chatbotToggleRef}
-      className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
-      style={{ 
-        position: 'fixed', 
-        bottom: '24px', 
-        right: '24px',
-        zIndex: 1000,
-        transition: 'right 0.2s ease-in-out'
-      }}
-    >
-      <Tooltip content="AI assistant" position="left">
-        <ChatbotToggle 
-          onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
-          aria-label="AI assistant"
-          tooltipLabel="AI assistant"
-        />
-      </Tooltip>
-    </div>
+    {createPortal(
+      <div 
+        ref={chatbotToggleRef}
+        className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
+        style={{ 
+          position: 'fixed', 
+          bottom: '24px', 
+          right: '24px',
+          zIndex: 10000,
+          transition: 'right 0.2s ease-in-out'
+        }}
+      >
+        <Tooltip content="AI assistant" position="left">
+          <ChatbotToggle 
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
+            aria-label="AI assistant"
+            tooltipLabel="AI assistant"
+          />
+        </Tooltip>
+      </div>,
+      document.body
+    )}
   </>
   );
 };
