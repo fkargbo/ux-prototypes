@@ -1762,9 +1762,17 @@ export const DashboardsPersesPage: React.FC = () => {
                           </Flex>
                         </Td>
                         <Td>
-                          <Content style={{ color: 'var(--pf-t--global--text--color--default)' }}>
+                          <Badge
+                            isRead
+                            style={{
+                              backgroundColor: dashboard.type === 'Global-scoped' 
+                                ? 'var(--pf-t--global--color--nonstatus--blue--default)' 
+                                : 'var(--pf-t--global--color--nonstatus--purple--default)',
+                              color: 'var(--pf-t--global--text--color--default)'
+                            }}
+                          >
                             {dashboard.type}
-                          </Content>
+                          </Badge>
                         </Td>
                         <Td>{dashboard.createdBy}</Td>
                         <Td>
