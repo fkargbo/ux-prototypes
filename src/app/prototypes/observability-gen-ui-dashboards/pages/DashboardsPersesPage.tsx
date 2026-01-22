@@ -91,6 +91,8 @@ import {
   ChartVoronoiContainer,
   ChartDonutUtilization,
   ChartDonutThreshold,
+  ChartContainer,
+  ChartLabel,
 } from '@patternfly/react-charts/victory';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
@@ -206,23 +208,117 @@ const TroubleshootingDashboard: React.FC = () => {
   const requestedCores = 110; // Calculated from: sum(kube_pod_container_resource_requests{resource="cpu"})
   const totalCores = 96; // Calculated from: sum(kube_node_status_capacity{resource="cpu"})
   
+  // Mock data for throttled containers sparkline (last hour, 12 data points = 5-minute intervals)
+  const throttledContainersSparklineData = [
+    { name: 'Throttled Containers', x: '0', y: 15 },
+    { name: 'Throttled Containers', x: '5', y: 18 },
+    { name: 'Throttled Containers', x: '10', y: 22 },
+    { name: 'Throttled Containers', x: '15', y: 20 },
+    { name: 'Throttled Containers', x: '20', y: 25 },
+    { name: 'Throttled Containers', x: '25', y: 23 },
+    { name: 'Throttled Containers', x: '30', y: 21 },
+    { name: 'Throttled Containers', x: '35', y: 24 },
+    { name: 'Throttled Containers', x: '40', y: 22 },
+    { name: 'Throttled Containers', x: '45', y: 20 },
+    { name: 'Throttled Containers', x: '50', y: 23 },
+    { name: 'Throttled Containers', x: '55', y: 23 },
+  ];
+  
+  // Throttled Container Stat Component with Sparkline
+  const ThrottledContainerStat: React.FC = () => {
+    const hasThrottledContainers = throttledContainers > 0;
+    const textColor = hasThrottledContainers ? '#C9190B' : 'var(--pf-v6-global--Color--200)';
+    const [sparklineWidth, setSparklineWidth] = React.useState(300);
+    const sparklineContainerRef = React.useRef<HTMLDivElement>(null);
+    
+    // Make sparkline responsive
+    React.useEffect(() => {
+      const updateWidth = () => {
+        if (sparklineContainerRef.current) {
+          const width = sparklineContainerRef.current.offsetWidth;
+          setSparklineWidth(Math.max(width - 40, 200)); // Min 200px, with padding
+        }
+      };
+      
+      updateWidth();
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }, []);
+    
+    return (
+      <Flex direction={{ default: 'column' }} style={{ height: '100%', width: '100%' }}>
+        {/* Large numeric display with conditional styling */}
+        <FlexItem>
+          <Tooltip content="The number of containers currently being restricted by the CPU scheduler due to reaching their limit.">
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} justifyContent={{ default: 'justifyContentCenter' }}>
+              {hasThrottledContainers && (
+                <Icon status="danger">
+                  <ExclamationTriangleIcon />
+                </Icon>
+              )}
+              <Title 
+                headingLevel="h1" 
+                size="4xl" 
+                style={{ 
+                  color: textColor,
+                  fontWeight: 'bold',
+                  marginBottom: '8px'
+                }}
+              >
+                {throttledContainers}
+              </Title>
+            </Flex>
+          </Tooltip>
+        </FlexItem>
+        
+        {/* Sparkline chart - Compact size */}
+        <FlexItem style={{ marginTop: '16px' }}>
+          <div ref={sparklineContainerRef} style={{ height: '60px', width: '100%', overflow: 'hidden' }}>
+            <ChartGroup
+              ariaDesc="Throttled container count trend over the last hour"
+              ariaTitle="Throttled Container Trend"
+              containerComponent={
+                <ChartVoronoiContainer 
+                  labels={({ datum }) => `${datum.y} containers`} 
+                  constrainToVisibleArea 
+                />
+              }
+              height={60}
+              maxDomain={{ y: Math.max(...throttledContainersSparklineData.map(d => d.y)) + 5 }}
+              minDomain={{ y: 0 }}
+              name="throttled-containers-sparkline"
+              padding={0}
+              themeColor={hasThrottledContainers ? ChartThemeColor.redOrange : ChartThemeColor.gray}
+              width={sparklineWidth}
+            >
+              <ChartArea 
+                data={throttledContainersSparklineData}
+                style={{
+                  data: {
+                    fill: hasThrottledContainers ? '#C9190B' : 'var(--pf-v6-global--Color--200)',
+                    stroke: hasThrottledContainers ? '#C9190B' : 'var(--pf-v6-global--Color--200)',
+                    strokeWidth: 2
+                  }
+                }}
+              />
+            </ChartGroup>
+          </div>
+        </FlexItem>
+        
+        {/* PromQL query */}
+        <FlexItem style={{ marginTop: '8px' }}>
+          <Content component="small" className="pf-v6-u-color-200" style={{ textAlign: 'center' }}>
+            count(rate(container_cpu_cfs_throttled_seconds_total[5m]) &gt; 0)
+          </Content>
+        </FlexItem>
+      </Flex>
+    );
+  };
+  
   // CPU Commitment Donut Component
   const CPUCommitmentDonut: React.FC = () => {
     // Cap the visual fill at 100% but show actual percentage in center
     const visualPercent = Math.min(cpuCommitmentPercent, 100);
-    
-    // Determine color based on thresholds: Green < 85%, Gold 85-100%, Red > 100%
-    const getThemeColor = () => {
-      if (cpuCommitmentPercent > 100) {
-        return ChartThemeColor.red;
-      } else if (cpuCommitmentPercent >= 85) {
-        return ChartThemeColor.gold;
-      } else {
-        return ChartThemeColor.green;
-      }
-    };
-    
-    const themeColor = getThemeColor();
     
     // Static thresholds: 85% (warning) and 100% (danger)
     const thresholdData = [
@@ -235,6 +331,28 @@ const TroubleshootingDashboard: React.FC = () => {
       y: visualPercent 
     };
     
+    // Determine theme color based on thresholds: Green < 85%, Gold 85-100%, Red > 100%
+    // ChartDonutUtilization will automatically change color based on thresholds
+    const getThemeColor = () => {
+      if (cpuCommitmentPercent > 100) {
+        // Use red-orange theme for overcommitment (PatternFly uses red-orange for failure)
+        // Since ChartThemeColor.red doesn't exist, we'll use a custom colorScale
+        return null; // Will use colorScale instead
+      } else if (cpuCommitmentPercent >= 85) {
+        return ChartThemeColor.gold;
+      } else {
+        return ChartThemeColor.green;
+      }
+    };
+    
+    const themeColor = getThemeColor();
+    
+    // For values over 100%, use colorScale with red color
+    // PatternFly red color: #c9190b (from PatternFly color palette)
+    const colorScale = cpuCommitmentPercent > 100 
+      ? ['#c9190b', '#d2d2d2']
+      : undefined;
+    
     return (
       <div style={{ height: '230px', width: '230px', margin: '0 auto' }}>
         <ChartDonutThreshold
@@ -244,7 +362,6 @@ const TroubleshootingDashboard: React.FC = () => {
           data={thresholdData}
           labels={({ datum }) => (datum.x ? datum.x : null)}
           name="cpu-commitment-threshold"
-          themeColor={themeColor}
         >
           <ChartDonutUtilization
             ariaDesc="CPU Request Commitment utilization"
@@ -254,7 +371,9 @@ const TroubleshootingDashboard: React.FC = () => {
             subTitle={`${requestedCores} / ${totalCores} Cores`}
             title={`${cpuCommitmentPercent}%`}
             name="cpu-commitment-utilization"
-            themeColor={themeColor}
+            themeColor={themeColor || undefined}
+            colorScale={colorScale}
+            thresholds={[{ value: 85 }, { value: 100 }]}
             height={230}
             width={230}
           />
@@ -395,23 +514,7 @@ const TroubleshootingDashboard: React.FC = () => {
                   <CardTitle>Throttled Container Count</CardTitle>
                 </CardHeader>
                 <CardBody>
-                  <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} style={{ height: '100%', justifyContent: 'center' }}>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: '8px' }}>
-                      {throttledContainers > 10 && (
-                        <Icon status="warning"><ExclamationTriangleIcon /></Icon>
-                      )}
-                      <Title 
-                        headingLevel="h1" 
-                        size="4xl" 
-                        className={throttledContainers > 10 ? 'pf-v6-u-warning-color-100' : ''}
-                      >
-                        {throttledContainers}
-                      </Title>
-                    </Flex>
-                    <Content component="small" className="pf-v6-u-color-200">
-                      count(rate(container_cpu_cfs_throttled_seconds_total[5m]) &gt; 0)
-                    </Content>
-                  </Flex>
+                  <ThrottledContainerStat />
                 </CardBody>
               </Card>
             </GridItem>
