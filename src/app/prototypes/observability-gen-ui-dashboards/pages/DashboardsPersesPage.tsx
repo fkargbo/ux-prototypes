@@ -770,7 +770,25 @@ const TroubleshootingDashboard: React.FC = () => {
             <GridItem md={12}>
               <Card>
                 <CardHeader>
-                  <CardTitle>Node Resource Pressure</CardTitle>
+                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <CardTitle>Node Resource Pressure</CardTitle>
+                    </FlexItem>
+                    <FlexItem>
+                      <ChartLegend
+                        data={[
+                          { name: 'Critical (overcommit)', symbol: { type: 'square', fill: '#c9190b' } },
+                          { name: 'Warning (high)', symbol: { type: 'square', fill: '#f0ab00' } },
+                          { name: 'Healthy (normal)', symbol: { type: 'square', fill: '#0066cc' } }
+                        ]}
+                        orientation="horizontal"
+                        height={25}
+                        style={{
+                          labels: { fontSize: 14 }
+                        }}
+                      />
+                    </FlexItem>
+                  </Flex>
                 </CardHeader>
                 <CardBody>
                   <Grid hasGutter>
