@@ -390,7 +390,9 @@ const TroubleshootingDashboard: React.FC = () => {
         nameGap: 24,
         nameRotate: 90,
         nameTextStyle: {
-          color: 'var(--pf-t--global--text--color--default)'
+          color: 'var(--pf-t--global--text--color--default)',
+          dominantBaseline: 'central',
+          textAnchor: 'middle'
         },
         axisLabel: {
           color: 'var(--pf-t--global--text--color--default)',
