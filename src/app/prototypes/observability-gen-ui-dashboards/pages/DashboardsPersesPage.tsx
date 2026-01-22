@@ -337,20 +337,27 @@ const TroubleshootingDashboard: React.FC = () => {
   // CPU Quota vs Actual Chart Component
   const CPUQuotaVsActualChart: React.FC = () => {
     // Format data arrays with name property (matching working chart format)
-    const quotaDataFormatted = cpuQuotaData.map(d => ({ 
-      name: 'Requested Quota',
-      x: d.x,
-      y: d.y
-    }));
+    // Ensure data is properly structured for Victory charts
+    const quotaDataFormatted: Array<{ name: string; x: string; y: number }> = [
+      { name: 'Requested Quota', x: '00:00', y: 82 },
+      { name: 'Requested Quota', x: '04:00', y: 88 },
+      { name: 'Requested Quota', x: '08:00', y: 94 },
+      { name: 'Requested Quota', x: '12:00', y: 101 },
+      { name: 'Requested Quota', x: '16:00', y: 108 },
+      { name: 'Requested Quota', x: '20:00', y: 110 }
+    ];
     
-    const actualDataFormatted = cpuActualData.map(d => ({ 
-      name: 'Actual Usage',
-      x: d.x,
-      y: d.y
-    }));
+    const actualDataFormatted: Array<{ name: string; x: string; y: number }> = [
+      { name: 'Actual Usage', x: '00:00', y: 69 },
+      { name: 'Actual Usage', x: '04:00', y: 75 },
+      { name: 'Actual Usage', x: '08:00', y: 79 },
+      { name: 'Actual Usage', x: '12:00', y: 84 },
+      { name: 'Actual Usage', x: '16:00', y: 87 },
+      { name: 'Actual Usage', x: '20:00', y: 90 }
+    ];
 
     // Calculate domain for Y-axis
-    const allValues = [...cpuQuotaData.map(d => d.y), ...cpuActualData.map(d => d.y)];
+    const allValues = [...quotaDataFormatted.map(d => d.y), ...actualDataFormatted.map(d => d.y)];
     const maxY = Math.max(...allValues);
     const minY = Math.min(...allValues);
     const yPadding = (maxY - minY) * 0.1 || 5; // 10% padding, minimum 5
@@ -375,8 +382,6 @@ const TroubleshootingDashboard: React.FC = () => {
       <ChartGroup
         height={250}
         padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
-        maxDomain={{ y: maxY + yPadding }}
-        minDomain={{ y: 0 }}
         themeColor={ChartThemeColor.multi}
         containerComponent={
           <ChartVoronoiContainer
@@ -428,8 +433,8 @@ const TroubleshootingDashboard: React.FC = () => {
         />
         <ChartLegend
           data={[
-            { name: 'Requested Quota', symbol: { type: 'line', strokeDasharray: '5,5', stroke: 'var(--pf-t--global--Color--200)' } },
-            { name: 'Actual Usage', symbol: { type: 'square', fill: 'var(--pf-t--global--color--nonstatus--blue--default)' } }
+            { name: 'Requested Quota', symbol: { type: 'line', strokeDasharray: '5,5', stroke: '#6a6e73' } },
+            { name: 'Actual Usage', symbol: { type: 'square', fill: '#0066cc' } }
           ]}
           orientation="horizontal"
           height={30}
@@ -696,7 +701,10 @@ const TroubleshootingDashboard: React.FC = () => {
                         label="CPU Usage (%)"
                       />
                       <ChartBar
-                        data={topNamespacesData.map(ns => ({ x: ns.namespace, y: ns.cpu }))}
+                        data={topNamespacesData.map(ns => ({ 
+                          x: ns.namespace, 
+                          y: ns.cpu 
+                        }))}
                         horizontal
                         labels={({ datum }) => `${datum.y}%`}
                       />
