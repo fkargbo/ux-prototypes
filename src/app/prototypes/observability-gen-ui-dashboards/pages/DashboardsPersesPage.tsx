@@ -792,7 +792,7 @@ const TroubleshootingDashboard: React.FC = () => {
                         ? ['#c9190b', '#d2d2d2'] // PatternFly red and gray
                         : undefined;
 
-                      // Threshold data for static thresholds
+                      // Threshold data for static thresholds - must be array format
                       const thresholdData = [
                         { x: 'Warning at 85%', y: 85 },
                         { x: 'Critical at 100%', y: 100 }
@@ -817,6 +817,8 @@ const TroubleshootingDashboard: React.FC = () => {
                                     data={thresholdData}
                                     labels={({ datum }) => (datum.x ? datum.x : null)}
                                     name={`${node.node}-threshold`}
+                                    height={180}
+                                    width={180}
                                   >
                                     <ChartDonutUtilization
                                       ariaDesc={`CPU utilization for ${node.node}`}
