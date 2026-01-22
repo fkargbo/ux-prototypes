@@ -386,7 +386,7 @@ const TroubleshootingDashboard: React.FC = () => {
         type: 'category',
         data: namespaces,
         name: 'Namespace',
-        nameLocation: 'start',
+        nameLocation: 'middle',
         nameGap: 24,
         nameRotate: 90,
         nameTextStyle: {
