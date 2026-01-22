@@ -112,12 +112,18 @@ import ChatbotHeader, {
 import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
 
-// Import custom profile images
+// Import custom profile images (optional - uncomment when you add your images)
 // Place your images in: src/app/prototypes/observability-gen-ui-dashboards/assets/
 // Recommended formats: PNG, JPG, or SVG
 // Recommended size: 64x64px or 128x128px for best quality
-import userProfilePic from '../assets/user-profile.png';
-import botProfilePic from '../assets/bot-profile.png';
+// Uncomment these lines after adding your images:
+// import userProfilePic from '../assets/user-profile.png';
+// import botProfilePic from '../assets/bot-profile.png';
+
+// Fallback to icons if images are not available
+// Replace these with your imported images once you add them to the assets folder
+const userProfilePic = UserIcon;
+const botProfilePic = RobotIcon;
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
