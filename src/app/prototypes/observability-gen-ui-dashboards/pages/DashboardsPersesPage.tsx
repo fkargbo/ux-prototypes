@@ -368,6 +368,7 @@ const TroubleshootingDashboard: React.FC = () => {
         padding={{ left: 60, bottom: 50, top: 20, right: 20 }}
         maxDomain={{ y: maxY + yPadding }}
         minDomain={{ y: Math.max(0, minY - yPadding) }}
+        themeColor={ChartThemeColor.multi}
         containerComponent={
           <ChartVoronoiContainer
             labels={getTooltipLabel}
@@ -398,9 +399,9 @@ const TroubleshootingDashboard: React.FC = () => {
           data={actualDataWithName}
           style={{
             data: {
-              fill: 'var(--pf-t--global--color--nonstatus--blue--default)',
+              fill: '#0066cc',
               fillOpacity: 0.3,
-              stroke: 'var(--pf-t--global--color--nonstatus--blue--default)',
+              stroke: '#0066cc',
               strokeWidth: 2
             }
           }}
@@ -412,8 +413,7 @@ const TroubleshootingDashboard: React.FC = () => {
             data: {
               stroke: '#6a6e73',
               strokeWidth: 2,
-              strokeDasharray: '5,5',
-              fill: 'none'
+              strokeDasharray: '5,5'
             }
           }}
         />
