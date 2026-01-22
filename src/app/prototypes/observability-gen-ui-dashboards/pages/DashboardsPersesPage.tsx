@@ -1768,7 +1768,8 @@ export const DashboardsPersesPage: React.FC = () => {
                               backgroundColor: dashboard.type === 'Global-scoped' 
                                 ? 'var(--pf-t--global--color--nonstatus--blue--default)' 
                                 : 'var(--pf-t--global--color--nonstatus--purple--default)',
-                              color: 'var(--pf-t--global--text--color--default)'
+                              color: 'var(--pf-t--global--text--color--default)',
+                              fontWeight: 'normal'
                             }}
                           >
                             {dashboard.type}
