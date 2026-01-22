@@ -112,6 +112,13 @@ import ChatbotHeader, {
 import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
 
+// Import custom profile images
+// Place your images in: src/app/prototypes/observability-gen-ui-dashboards/assets/
+// Recommended formats: PNG, JPG, or SVG
+// Recommended size: 64x64px or 128x128px for best quality
+import userProfilePic from '../assets/user-profile.png';
+import botProfilePic from '../assets/bot-profile.png';
+
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
 // Footnote props for ChatbotFootnote
@@ -251,11 +258,6 @@ const TroubleshootingDashboard: React.FC = () => {
         <FlexItem>
           <Tooltip content="The number of containers currently being restricted by the CPU scheduler due to reaching their limit.">
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} justifyContent={{ default: 'justifyContentCenter' }}>
-              {hasThrottledContainers && (
-                <Icon status="danger">
-                  <ExclamationTriangleIcon />
-                </Icon>
-              )}
               <Title 
                 headingLevel="h1" 
                 size="4xl" 
@@ -880,7 +882,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'user',
       content: messageText,
       name: 'User',
-      avatar: <UserIcon /> as any,
+      avatar: userProfilePic,
       timestamp: date.toLocaleString(),
       avatarProps: { isBordered: true }
     };
@@ -891,7 +893,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'bot',
       content: 'Thinking...',
       name: 'Bot',
-      avatar: <RobotIcon /> as any,
+      avatar: botProfilePic,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
@@ -906,7 +908,7 @@ export const DashboardsPersesPage: React.FC = () => {
         role: 'bot',
         content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
         name: 'Bot',
-        avatar: <RobotIcon /> as any,
+        avatar: botProfilePic,
         isLoading: false,
         timestamp: date.toLocaleString(),
         actions: {
@@ -959,7 +961,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'user',
       content: `Troubleshoot ${alertName}`,
       name: 'User',
-      avatar: <UserIcon /> as any,
+      avatar: userProfilePic,
       timestamp: date.toLocaleString(),
       avatarProps: { isBordered: true }
     };
@@ -970,7 +972,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'bot',
       content: 'Analyzing alert...',
       name: 'Bot',
-      avatar: <RobotIcon /> as any,
+      avatar: botProfilePic,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
@@ -984,7 +986,7 @@ export const DashboardsPersesPage: React.FC = () => {
         role: 'bot',
         content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.',
         name: 'Bot',
-        avatar: <RobotIcon /> as any,
+        avatar: botProfilePic,
         isLoading: false,
         timestamp: date.toLocaleString(),
         extraContent: (
@@ -1040,7 +1042,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'bot',
       content: 'Analyzing root cause...',
       name: 'Bot',
-      avatar: <RobotIcon /> as any,
+      avatar: botProfilePic,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
@@ -1061,7 +1063,7 @@ export const DashboardsPersesPage: React.FC = () => {
         role: 'bot',
         content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota.',
         name: 'Bot',
-        avatar: <RobotIcon /> as any,
+        avatar: botProfilePic,
         isLoading: false,
         timestamp: date.toLocaleString(),
         extraContent: {
@@ -1150,7 +1152,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'bot',
       content: 'Building Perses Dashboard Definition...',
       name: 'Bot',
-      avatar: <RobotIcon /> as any,
+      avatar: botProfilePic,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
@@ -1164,7 +1166,7 @@ export const DashboardsPersesPage: React.FC = () => {
         role: 'bot',
         content: 'I have generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. You can save this to your Perses projects library or proceed with the fix.',
         name: 'Bot',
-        avatar: <RobotIcon /> as any,
+        avatar: botProfilePic,
         isLoading: false,
         timestamp: date.toLocaleString(),
         quickResponses: [
