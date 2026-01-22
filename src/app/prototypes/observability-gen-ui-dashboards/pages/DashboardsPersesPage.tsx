@@ -377,7 +377,7 @@ const TroubleshootingDashboard: React.FC = () => {
         data: namespaces,
         name: 'Namespace',
         nameLocation: 'middle',
-        nameGap: 80,
+        nameGap: 50,
         nameTextStyle: {
           color: 'var(--pf-t--global--text--color--default)'
         },
