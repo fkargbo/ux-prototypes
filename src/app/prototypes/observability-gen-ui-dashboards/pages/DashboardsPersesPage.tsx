@@ -376,12 +376,11 @@ const TroubleshootingDashboard: React.FC = () => {
         type: 'category',
         data: namespaces,
         name: 'Namespace',
-        nameLocation: 'start',
-        nameGap: -96,
+        nameLocation: 'middle',
+        nameGap: 50,
         nameRotate: 90,
         nameTextStyle: {
-          color: 'var(--pf-t--global--text--color--default)',
-          padding: [0, 0, 0, 0]
+          color: 'var(--pf-t--global--text--color--default)'
         },
         axisLabel: {
           color: 'var(--pf-t--global--text--color--default)',
