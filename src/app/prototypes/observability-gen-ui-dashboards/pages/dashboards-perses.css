@@ -264,20 +264,33 @@ button[aria-label="View task details"] {
   visibility: visible !important;
 }
 
-/* Ensure message avatars are visible */
+/* Ensure message avatars are visible and properly sized */
 .ai-assistant-drawer-wrapper .pf-v6-c-message__avatar,
 .ai-assistant-drawer-wrapper .pf-v6-c-avatar {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
-  width: auto !important;
-  height: auto !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+  flex-shrink: 0 !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-message__avatar img,
+.ai-assistant-drawer-wrapper .pf-v6-c-avatar img {
+  width: 48px !important;
+  height: 48px !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
 }
 
 .ai-assistant-drawer-wrapper .pf-v6-c-message__avatar svg,
 .ai-assistant-drawer-wrapper .pf-v6-c-avatar svg {
-  width: 100% !important;
-  height: 100% !important;
+  width: 48px !important;
+  height: 48px !important;
   display: block !important;
   visibility: visible !important;
 }
