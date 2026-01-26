@@ -1626,8 +1626,11 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem><Icon size="lg"><ClusterIcon /></Icon></FlexItem>
                       <FlexItem>
+                        <Title headingLevel="h3" size="lg">Cluster</Title>
+                      </FlexItem>
+                      <FlexItem>
                         <Tooltip content="Monitor the health and stability of your control plane with these alerts. They cover foundational components like the Kubernetes API server, etcd database, and the scheduler. You can also add your own custom cluster components to this group to keep your foundation strong.">
-                          <Title headingLevel="h3" size="lg" style={{ cursor: 'help' }}>Cluster</Title>
+                          <QuestionCircleIcon style={{ cursor: 'help', color: 'var(--pf-t--global--icon--color--subtle)' }} />
                         </Tooltip>
                       </FlexItem>
                       <FlexItem>
@@ -1671,8 +1674,11 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem><Icon size="lg"><CubesIcon /></Icon></FlexItem>
                       <FlexItem>
+                        <Title headingLevel="h3" size="lg">Namespace</Title>
+                      </FlexItem>
+                      <FlexItem>
                         <Tooltip content="Track the performance and resources of your worker cluster to stay ahead of issues. This group includes alerts for high CPU or memory use, disk pressure, and node network connectivity. You can also add custom node components to this group to better manage your specific application environments.">
-                          <Title headingLevel="h3" size="lg" style={{ cursor: 'help' }}>Namespace</Title>
+                          <QuestionCircleIcon style={{ cursor: 'help', color: 'var(--pf-t--global--icon--color--subtle)' }} />
                         </Tooltip>
                       </FlexItem>
                       <FlexItem>
@@ -3628,8 +3634,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 <Table aria-label="Aggregated alerts table" variant="compact" isExpandable>
                   <Thead>
                     <Tr>
-                      <Th screenReaderText="Expand" isStickyColumn stickyMinWidth="45px" hasRightBorder modifier="nowrap" />
-                      <Th isStickyColumn stickyMinWidth="45px" stickyLeftOffset="45px" hasRightBorder modifier="nowrap">
+                      <Th screenReaderText="Expand" isStickyColumn stickyMinWidth="45px" modifier="nowrap" />
+                      <Th isStickyColumn stickyMinWidth="45px" stickyLeftOffset="45px" modifier="nowrap">
                         <Checkbox 
                           id="select-all-alerts"
                           aria-label="Select all alerts"
@@ -3652,7 +3658,22 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           thProps.isStickyColumn = true;
                           thProps.stickyMinWidth = "200px";
                           thProps.stickyLeftOffset = "90px";
-                          thProps.hasRightBorder = true;
+                        }
+                        
+                        // Column content with optional tooltip icon
+                        let columnContent: React.ReactNode = col.label;
+                        
+                        if (col.key === 'group') {
+                          columnContent = (
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                              <FlexItem>{col.label}</FlexItem>
+                              <FlexItem>
+                                <Tooltip content="Categorize your alerts by a high-level domain, such as cluster or namespace, and then by the specific component like a database or web server. This organization helps you quickly identify, prioritize, and route alerts to the right team so you can reduce noise and improve response times.">
+                                  <QuestionCircleIcon style={{ cursor: 'help', color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                                </Tooltip>
+                              </FlexItem>
+                            </Flex>
+                          );
                         }
                         
                         if (canSort) {
@@ -3664,24 +3685,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                             onSort: () => handleSort(columnKey),
                             columnIndex: colIdx
                           };
-                          
-                          if (sortConfig) {
-                            thProps.info = { 
-                              tooltip: `Sort priority: ${sortConfig.priority}`,
-                              tooltipProps: { position: 'top' }
-                            };
-                          }
                         }
                         
-                        // Add column description tooltips
-                        if (col.key === 'group' && !thProps.info) {
-                          thProps.info = {
-                            tooltip: "Categorize your alerts by a high-level domain, such as cluster or namespace, and then by the specific component like a database or web server. This organization helps you quickly identify, prioritize, and route alerts to the right team so you can reduce noise and improve response times.",
-                            tooltipProps: { position: 'top' }
-                          };
-                        }
-                        
-                        return <Th {...thProps}>{col.label}</Th>;
+                        return <Th {...thProps}>{columnContent}</Th>;
                       })}
                     </Tr>
                   </Thead>
@@ -3750,10 +3756,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           }}
                           isStickyColumn
                           stickyMinWidth="45px"
-                          hasRightBorder
                           modifier="nowrap"
                         />
-                        <Td isStickyColumn stickyMinWidth="45px" stickyLeftOffset="45px" hasRightBorder modifier="nowrap">
+                        <Td isStickyColumn stickyMinWidth="45px" stickyLeftOffset="45px" modifier="nowrap">
                           <Checkbox 
                             id={`checkbox-${alertKey}`}
                             aria-label={`Select ${agg.alertName}`}
@@ -3772,14 +3777,13 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                             tdProps.isStickyColumn = true;
                             tdProps.stickyMinWidth = "200px";
                             tdProps.stickyLeftOffset = "90px";
-                            tdProps.hasRightBorder = true;
                           }
                           
                           return <Td {...tdProps}>{renderCellContent(col)}</Td>;
                         })}
                       </Tr>
                       <Tr isExpanded={isExpanded}>
-                        <Td colSpan={singleClusterView ? 8 : 8}>
+                        <Td colSpan={getVisibleColumns().length + 2} noPadding>
                           <ExpandableRowContent>
                             <Stack hasGutter>
                               <StackItem>
@@ -5393,7 +5397,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   
   // Firing Alerts grouping
   type AlertsGroupByOption = 'none' | 'time' | 'severity' | 'alertRule' | 'impact' | 'component';
-  const [alertsGroupBy, setAlertsGroupBy] = React.useState<AlertsGroupByOption>('component');
+  const [alertsGroupBy, setAlertsGroupBy] = React.useState<AlertsGroupByOption>('none');
   const [isAlertsGroupByOpen, setIsAlertsGroupByOpen] = React.useState(false);
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   
