@@ -113,6 +113,7 @@ import {
   Th,
   Td,
   ExpandableRowContent,
+  InnerScrollContainer,
 } from '@patternfly/react-table';
 import {
   ChartDonut,
@@ -1625,7 +1626,9 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem><Icon size="lg"><ClusterIcon /></Icon></FlexItem>
                       <FlexItem>
-                        <Title headingLevel="h3" size="lg">Cluster</Title>
+                        <Tooltip content="Monitor the health and stability of your control plane with these alerts. They cover foundational components like the Kubernetes API server, etcd database, and the scheduler. You can also add your own custom cluster components to this group to keep your foundation strong.">
+                          <Title headingLevel="h3" size="lg" style={{ cursor: 'help' }}>Cluster</Title>
+                        </Tooltip>
                       </FlexItem>
                       <FlexItem>
                         <Badge isRead>{clusterGroupAlerts.length} alerts</Badge>
@@ -1668,7 +1671,9 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem><Icon size="lg"><CubesIcon /></Icon></FlexItem>
                       <FlexItem>
-                        <Title headingLevel="h3" size="lg">Namespace</Title>
+                        <Tooltip content="Track the performance and resources of your worker cluster to stay ahead of issues. This group includes alerts for high CPU or memory use, disk pressure, and node network connectivity. You can also add custom node components to this group to better manage your specific application environments.">
+                          <Title headingLevel="h3" size="lg" style={{ cursor: 'help' }}>Namespace</Title>
+                        </Tooltip>
                       </FlexItem>
                       <FlexItem>
                         <Badge isRead>{namespaceGroupAlerts.length} alerts</Badge>
@@ -1745,6 +1750,14 @@ interface FilterPanelProps {
   setStateFilter?: (v: string[]) => void;
   sourceFilter?: string[];
   setSourceFilter?: (v: string[]) => void;
+  triggeredFromDate?: string;
+  setTriggeredFromDate?: (v: string) => void;
+  triggeredFromTime?: string;
+  setTriggeredFromTime?: (v: string) => void;
+  triggeredToDate?: string;
+  setTriggeredToDate?: (v: string) => void;
+  triggeredToTime?: string;
+  setTriggeredToTime?: (v: string) => void;
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
@@ -1764,6 +1777,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   setStateFilter,
   sourceFilter = [],
   setSourceFilter,
+  triggeredFromDate,
+  setTriggeredFromDate,
+  triggeredFromTime,
+  setTriggeredFromTime,
+  triggeredToDate,
+  setTriggeredToDate,
+  triggeredToTime,
+  setTriggeredToTime,
 }) => {
   const allSeverities: AlertSeverity[] = ['Critical', 'Warning', 'Info'];
   const allGroups: AlertGroup[] = ['Cluster', 'Namespace'];
@@ -2323,6 +2344,57 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                     ))}
                   </LabelGroup>
                 )}
+              </StackItem>
+
+              {/* Triggered Time Range Filters */}
+              <StackItem>
+                <Content component="small" className="pf-v6-u-mb-sm"><strong>Triggered</strong></Content>
+                <Stack hasGutter>
+                  <StackItem>
+                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
+                    <Flex gap={{ default: 'gapSm' }}>
+                      <FlexItem flex={{ default: 'flex_1' }}>
+                        <DatePicker
+                          value={triggeredFromDate || ''}
+                          onChange={(_, str) => setTriggeredFromDate && setTriggeredFromDate(str)}
+                          placeholder="YYYY-MM-DD"
+                          style={{ width: '100%' }}
+                        />
+                      </FlexItem>
+                      <FlexItem style={{ width: '90px' }}>
+                        <TimePicker
+                          time={triggeredFromTime || ''}
+                          onChange={(_, time) => setTriggeredFromTime && setTriggeredFromTime(time)}
+                          placeholder="HH:MM"
+                          is24Hour
+                          style={{ width: '100%' }}
+                        />
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                  <StackItem>
+                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
+                    <Flex gap={{ default: 'gapSm' }}>
+                      <FlexItem flex={{ default: 'flex_1' }}>
+                        <DatePicker
+                          value={triggeredToDate || ''}
+                          onChange={(_, str) => setTriggeredToDate && setTriggeredToDate(str)}
+                          placeholder="YYYY-MM-DD"
+                          style={{ width: '100%' }}
+                        />
+                      </FlexItem>
+                      <FlexItem style={{ width: '90px' }}>
+                        <TimePicker
+                          time={triggeredToTime || ''}
+                          onChange={(_, time) => setTriggeredToTime && setTriggeredToTime(time)}
+                          placeholder="HH:MM"
+                          is24Hour
+                          style={{ width: '100%' }}
+                        />
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                </Stack>
               </StackItem>
             </>
           )}
@@ -3279,10 +3351,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                                   <Td>{clusterInfo.name}</Td>
                                                   <Td>{clusterInfo.cluster.alerts.find(a => a.alertName === agg.alertName)?.namespace || 'N/A'}</Td>
                                                   <Td>
-                                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                                      <Icon status="warning"><ExclamationTriangleIcon /></Icon>
-                                                      <span>Firing</span>
-                                                    </Flex>
+                                                    <Tooltip content={`${clusterInfo.cluster.alerts.filter(a => a.alertName === agg.alertName && a.status === 'firing').length} alerts firing since ${clusterInfo.lastFired}`}>
+                                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ cursor: 'help' }}>
+                                                        <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                                                        <span>Firing</span>
+                                                      </Flex>
+                                                    </Tooltip>
                                                   </Td>
                                                   <Td>{clusterInfo.lastFired}</Td>
                                                 </Tr>
@@ -3550,99 +3624,121 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
               </EmptyState>
             ) : isAggregated ? (
               /* Aggregated View */
-              <Table aria-label="Aggregated alerts table" variant="compact" isExpandable>
-                <Thead>
-                  <Tr>
-                    <Th screenReaderText="Expand" />
-                    <Th>
-                      <Checkbox 
-                        id="select-all-alerts"
-                        aria-label="Select all alerts"
-                        isChecked={paginatedAggregatedAlerts.length > 0 && paginatedAggregatedAlerts.every(agg => selectedAlertKeys.has(`${agg.alertName}-${agg.severity}`))}
-                        onChange={toggleSelectAll}
-                      />
-                    </Th>
-                    <Th 
-                      sort={getSortParams('alertName') ? {
-                        sortBy: getSortParams('alertName')!.sortBy,
-                        onSort: () => handleSort('alertName'),
-                        columnIndex: 0
-                      } : undefined}
-                      info={sortConfigs.find(c => c.column === 'alertName') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'alertName')?.priority}` } : undefined}
-                    >
-                      Alert name
-                    </Th>
-                    <Th 
-                      sort={{
-                        sortBy: {
-                          index: sortConfigs.findIndex(c => c.column === 'severity'),
-                          direction: sortConfigs.find(c => c.column === 'severity')?.direction || 'asc'
-                        },
-                        onSort: () => handleSort('severity'),
-                        columnIndex: 1
-                      }}
-                      info={sortConfigs.find(c => c.column === 'severity') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'severity')?.priority}` } : undefined}
-                    >
-                      Severity
-                    </Th>
-                    <Th 
-                      sort={{
-                        sortBy: {
-                          index: sortConfigs.findIndex(c => c.column === 'total'),
-                          direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
-                        },
-                        onSort: () => handleSort('total'),
-                        columnIndex: 2
-                      }}
-                    >
-                      Total
-                    </Th>
-                    <Th 
-                      sort={{
-                        sortBy: {
-                          index: sortConfigs.findIndex(c => c.column === 'clusters'),
-                          direction: sortConfigs.find(c => c.column === 'clusters')?.direction || 'asc'
-                        },
-                        onSort: () => handleSort('clusters'),
-                        columnIndex: 3
-                      }}
-                    >
-                      Clusters
-                    </Th>
-                    <Th 
-                      sort={{
-                        sortBy: {
-                          index: sortConfigs.findIndex(c => c.column === 'group'),
-                          direction: sortConfigs.find(c => c.column === 'group')?.direction || 'asc'
-                        },
-                        onSort: () => handleSort('group'),
-                        columnIndex: 4
-                      }}
-                      info={sortConfigs.find(c => c.column === 'group') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'group')?.priority}` } : undefined}
-                    >
-                      Impact group
-                    </Th>
-                    <Th 
-                      sort={{
-                        sortBy: {
-                          index: sortConfigs.findIndex(c => c.column === 'component'),
-                          direction: sortConfigs.find(c => c.column === 'component')?.direction || 'asc'
-                        },
-                        onSort: () => handleSort('component'),
-                        columnIndex: 5
-                      }}
-                      info={sortConfigs.find(c => c.column === 'component') ? { tooltip: `Sort priority: ${sortConfigs.find(c => c.column === 'component')?.priority}` } : undefined}
-                    >
-                      Component
-                    </Th>
-                  </Tr>
-                </Thead>
+              <InnerScrollContainer>
+                <Table aria-label="Aggregated alerts table" variant="compact" isExpandable>
+                  <Thead>
+                    <Tr>
+                      <Th screenReaderText="Expand" isStickyColumn stickyMinWidth="45px" hasRightBorder modifier="nowrap" />
+                      <Th isStickyColumn stickyMinWidth="45px" stickyLeftOffset="45px" hasRightBorder modifier="nowrap">
+                        <Checkbox 
+                          id="select-all-alerts"
+                          aria-label="Select all alerts"
+                          isChecked={paginatedAggregatedAlerts.length > 0 && paginatedAggregatedAlerts.every(agg => selectedAlertKeys.has(`${agg.alertName}-${agg.severity}`))}
+                          onChange={toggleSelectAll}
+                        />
+                      </Th>
+                      {getVisibleColumns().map((col, colIdx) => {
+                        const columnKey = col.key as SortConfig['column'];
+                        const canSort = ['alertName', 'severity', 'total', 'clusters', 'group', 'component'].includes(col.key);
+                        const sortConfig = sortConfigs.find(c => c.column === columnKey);
+                        
+                        const thProps: any = {
+                          key: col.key,
+                          modifier: "nowrap" as const,
+                        };
+                        
+                        // Make Alert Name sticky
+                        if (col.key === 'alertName') {
+                          thProps.isStickyColumn = true;
+                          thProps.stickyMinWidth = "200px";
+                          thProps.stickyLeftOffset = "90px";
+                          thProps.hasRightBorder = true;
+                        }
+                        
+                        if (canSort) {
+                          thProps.sort = {
+                            sortBy: {
+                              index: sortConfig ? sortConfig.priority - 1 : -1,
+                              direction: sortConfig?.direction || 'asc'
+                            },
+                            onSort: () => handleSort(columnKey),
+                            columnIndex: colIdx
+                          };
+                          
+                          if (sortConfig) {
+                            thProps.info = { 
+                              tooltip: `Sort priority: ${sortConfig.priority}`,
+                              tooltipProps: { position: 'top' }
+                            };
+                          }
+                        }
+                        
+                        // Add column description tooltips
+                        if (col.key === 'group' && !thProps.info) {
+                          thProps.info = {
+                            tooltip: "Categorize your alerts by a high-level domain, such as cluster or namespace, and then by the specific component like a database or web server. This organization helps you quickly identify, prioritize, and route alerts to the right team so you can reduce noise and improve response times.",
+                            tooltipProps: { position: 'top' }
+                          };
+                        }
+                        
+                        return <Th {...thProps}>{col.label}</Th>;
+                      })}
+                    </Tr>
+                  </Thead>
                 {paginatedAggregatedAlerts.map((agg, idx) => {
                   const alertKey = `${agg.alertName}-${agg.severity}`;
                   const isExpanded = expandedAlerts.includes(alertKey);
                   // Get first alert for state and source info
                   const firstAlertInfo = agg.clusters[0];
                   const firstAlert = firstAlertInfo?.cluster?.alerts?.find(a => a.alertName === agg.alertName && a.severity === agg.severity);
+                  
+                  const renderCellContent = (col: ColumnConfig) => {
+                    switch (col.key) {
+                      case 'alertName':
+                        return (
+                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                            <FlexItem>
+                              <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
+                            </FlexItem>
+                            <FlexItem>{agg.alertName}</FlexItem>
+                          </Flex>
+                        );
+                      case 'severity':
+                        return (
+                          <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>
+                            {agg.severity}
+                          </Label>
+                        );
+                      case 'total':
+                        return <Badge>{agg.totalCount}</Badge>;
+                      case 'clusters':
+                        return <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>;
+                      case 'state':
+                        return (
+                          <Tooltip content={`${agg.totalCount} alerts firing since ${firstAlertInfo?.lastFired || 'N/A'}`}>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ cursor: 'help' }}>
+                              <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                              <span>Firing</span>
+                            </Flex>
+                          </Tooltip>
+                        );
+                      case 'group':
+                        return <Label isCompact>{agg.group}</Label>;
+                      case 'component':
+                        return <Label isCompact variant="outline">{agg.component}</Label>;
+                      case 'source':
+                        return firstAlert?.source || '-';
+                      case 'description':
+                        return firstAlert?.description || '-';
+                      case 'startTime':
+                        return firstAlertInfo?.lastFired || '-';
+                      case 'endTime':
+                        return '-';
+                      default:
+                        return '-';
+                    }
+                  };
+                  
                   return (
                     <Tbody key={alertKey} isExpanded={isExpanded}>
                       <Tr>
@@ -3652,37 +3748,35 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                             isExpanded,
                             onToggle: () => toggleExpanded(alertKey),
                           }}
+                          isStickyColumn
+                          stickyMinWidth="45px"
+                          hasRightBorder
+                          modifier="nowrap"
                         />
-                        <Td>
+                        <Td isStickyColumn stickyMinWidth="45px" stickyLeftOffset="45px" hasRightBorder modifier="nowrap">
                           <Checkbox 
-                            id={`checkbox-${alertKey}`} 
+                            id={`checkbox-${alertKey}`}
                             aria-label={`Select ${agg.alertName}`}
                             isChecked={selectedAlertKeys.has(alertKey)}
                             onChange={() => toggleAlertSelection(alertKey)}
                           />
                         </Td>
-                        <Td>
-                          {/* Alert name is plain text when aggregated - clickable only in expanded rows */}
-                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                            <FlexItem>
-                              <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
-                            </FlexItem>
-                            <FlexItem>{agg.alertName}</FlexItem>
-                          </Flex>
-                        </Td>
-                        <Td>
-                          <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>
-                            {agg.severity}
-                          </Label>
-                        </Td>
-                        <Td>
-                          <Badge>{agg.totalCount}</Badge>
-                        </Td>
-                        <Td>
-                          <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>
-                        </Td>
-                        <Td><Label isCompact>{agg.group}</Label></Td>
-                        <Td><Label isCompact variant="outline">{agg.component}</Label></Td>
+                        {getVisibleColumns().map(col => {
+                          const tdProps: any = {
+                            key: col.key,
+                            modifier: "nowrap" as const,
+                          };
+                          
+                          // Make Alert Name sticky
+                          if (col.key === 'alertName') {
+                            tdProps.isStickyColumn = true;
+                            tdProps.stickyMinWidth = "200px";
+                            tdProps.stickyLeftOffset = "90px";
+                            tdProps.hasRightBorder = true;
+                          }
+                          
+                          return <Td {...tdProps}>{renderCellContent(col)}</Td>;
+                        })}
                       </Tr>
                       <Tr isExpanded={isExpanded}>
                         <Td colSpan={singleClusterView ? 8 : 8}>
@@ -3843,6 +3937,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                   );
                 })}
               </Table>
+              </InnerScrollContainer>
             ) : (
               /* Individual Alerts View */
               <Table aria-label="All alerts table" variant="compact">
@@ -5326,6 +5421,10 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [groupFilter, setGroupFilter] = React.useState<AlertGroup[]>(['Cluster', 'Namespace']);
   const [componentFilter, setComponentFilter] = React.useState<AlertComponent[]>([]);
   const [searchValue, setSearchValue] = React.useState('');
+  const [triggeredFromDate, setTriggeredFromDate] = React.useState<string>('');
+  const [triggeredFromTime, setTriggeredFromTime] = React.useState<string>('');
+  const [triggeredToDate, setTriggeredToDate] = React.useState<string>('');
+  const [triggeredToTime, setTriggeredToTime] = React.useState<string>('');
 
   // View and grouping
   const [viewMode, setViewMode] = React.useState<ViewMode>('treemap');
@@ -5834,6 +5933,10 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setGroupFilter(['Cluster', 'Namespace']); // Reset to default with both groups selected
     setComponentFilter([]);
     setSearchValue('');
+    setTriggeredFromDate('');
+    setTriggeredFromTime('');
+    setTriggeredToDate('');
+    setTriggeredToTime('');
     // Also clear in-card view states
     setSelectedClusterInCard(null);
     setClusterCardView('all-clusters');
@@ -7560,11 +7663,12 @@ spec:
         {/* Filter Side Panel - Sticky */}
         {isFilterPanelOpen && (
           <div style={{ 
-            width: '280px', 
-            minWidth: '280px', 
+            width: window.innerWidth < 1080 ? '320px' : '280px', 
+            minWidth: window.innerWidth < 1080 ? '320px' : '280px', 
             flexShrink: 0, 
             height: '100%',
             overflowY: 'auto',
+            overflowX: 'hidden',
             borderRight: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
             backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
           }}>
@@ -8396,11 +8500,12 @@ spec:
           {/* Filter Side Panel - Sticky */}
           {isFilterPanelOpen && (
             <div style={{ 
-              width: '280px', 
-              minWidth: '280px', 
+              width: window.innerWidth < 1080 ? '320px' : '280px', 
+              minWidth: window.innerWidth < 1080 ? '320px' : '280px', 
               flexShrink: 0, 
               height: '100%',
               overflowY: 'auto',
+              overflowX: 'hidden',
               borderRight: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
               backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
             }}>
@@ -8447,6 +8552,14 @@ spec:
                 setStateFilter={setAlertStateFilter}
                 sourceFilter={alertSourceFilter}
                 setSourceFilter={setAlertSourceFilter}
+                triggeredFromDate={triggeredFromDate}
+                setTriggeredFromDate={setTriggeredFromDate}
+                triggeredFromTime={triggeredFromTime}
+                setTriggeredFromTime={setTriggeredFromTime}
+                triggeredToDate={triggeredToDate}
+                setTriggeredToDate={setTriggeredToDate}
+                triggeredToTime={triggeredToTime}
+                setTriggeredToTime={setTriggeredToTime}
               />
             </div>
           )}
