@@ -1309,15 +1309,16 @@ export const DashboardsPersesPage: React.FC = () => {
                       }
                     },
                     grid: {
-                      left: '80px',
+                      left: '60px',
                       right: '20px',
-                      bottom: '50px',
+                      bottom: '60px',
                       top: '20px',
                       containLabel: false
                     },
                     xAxis: {
-                      type: 'value',
-                      name: 'CPU Usage (%)',
+                      type: 'category',
+                      data: cpuData.map(d => d.x),
+                      name: 'Namespace',
                       nameLocation: 'middle',
                       nameGap: 30,
                       nameTextStyle: {
@@ -1325,24 +1326,23 @@ export const DashboardsPersesPage: React.FC = () => {
                       },
                       axisLabel: {
                         color: 'var(--pf-t--global--text--color--default)',
-                        formatter: '{value}%'
+                        formatter: (value: string) => {
+                          return value.length > 12 ? `${value.substring(0, 12)}...` : value;
+                        },
+                        rotate: 45
                       }
                     },
                     yAxis: {
-                      type: 'category',
-                      data: cpuData.map(d => d.x),
-                      name: 'Namespace',
+                      type: 'value',
+                      name: 'CPU Usage (%)',
                       nameLocation: 'middle',
                       nameGap: 50,
-                      nameRotate: 90,
                       nameTextStyle: {
                         color: 'var(--pf-t--global--text--color--default)'
                       },
                       axisLabel: {
                         color: 'var(--pf-t--global--text--color--default)',
-                        formatter: (value: string) => {
-                          return value.length > 12 ? `${value.substring(0, 12)}...` : value;
-                        }
+                        formatter: '{value}%'
                       }
                     },
                     series: [
@@ -1352,7 +1352,7 @@ export const DashboardsPersesPage: React.FC = () => {
                         data: cpuData.map(d => d.y),
                         label: {
                           show: true,
-                          position: 'right',
+                          position: 'top',
                           formatter: '{c}%',
                           color: 'var(--pf-t--global--text--color--default)'
                         },
