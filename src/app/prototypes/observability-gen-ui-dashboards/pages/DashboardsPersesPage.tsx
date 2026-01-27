@@ -1295,40 +1295,74 @@ export const DashboardsPersesPage: React.FC = () => {
                 Top 3 CPU-Consuming Namespaces
               </Title>
               <div style={{ height: '200px', width: '100%' }}>
-                <ChartGroup
+                <Charts
                   height={200}
-                  padding={{ left: 80, bottom: 50, top: 20, right: 20 }}
-                  themeColor={ChartThemeColor.multi}
-                  containerComponent={
-                    <ChartVoronoiContainer
-                      labels={({ datum }) => `${datum.x}: ${datum.y}%`}
-                      constrainToVisibleArea
-                    />
-                  }
-                >
-                  <ChartAxis 
-                    tickFormat={(t) => t}
-                    style={{
-                      axisLabel: { fontSize: 12 },
-                      tickLabels: { fontSize: 12 }
-                    }}
-                    label="Namespace"
-                  />
-                  <ChartAxis 
-                    dependentAxis 
-                    showGrid
-                    tickFormat={(t) => `${t}%`}
-                    style={{
-                      axisLabel: { fontSize: 12 },
-                      tickLabels: { fontSize: 12 }
-                    }}
-                    label="CPU Usage (%)"
-                  />
-                  <ChartBar
-                    data={cpuData}
-                    labels={({ datum }) => `${datum.y}%`}
-                  />
-                </ChartGroup>
+                  option={{
+                    tooltip: {
+                      trigger: 'axis',
+                      axisPointer: {
+                        type: 'shadow'
+                      },
+                      formatter: (params: any) => {
+                        const param = params[0];
+                        return `${param.name}<br/>CPU Usage: ${param.value}%`;
+                      }
+                    },
+                    grid: {
+                      left: '80px',
+                      right: '20px',
+                      bottom: '50px',
+                      top: '20px',
+                      containLabel: false
+                    },
+                    xAxis: {
+                      type: 'value',
+                      name: 'CPU Usage (%)',
+                      nameLocation: 'middle',
+                      nameGap: 30,
+                      nameTextStyle: {
+                        color: 'var(--pf-t--global--text--color--default)'
+                      },
+                      axisLabel: {
+                        color: 'var(--pf-t--global--text--color--default)',
+                        formatter: '{value}%'
+                      }
+                    },
+                    yAxis: {
+                      type: 'category',
+                      data: cpuData.map(d => d.x),
+                      name: 'Namespace',
+                      nameLocation: 'middle',
+                      nameGap: 50,
+                      nameRotate: 90,
+                      nameTextStyle: {
+                        color: 'var(--pf-t--global--text--color--default)'
+                      },
+                      axisLabel: {
+                        color: 'var(--pf-t--global--text--color--default)',
+                        formatter: (value: string) => {
+                          return value.length > 12 ? `${value.substring(0, 12)}...` : value;
+                        }
+                      }
+                    },
+                    series: [
+                      {
+                        name: 'CPU Usage',
+                        type: 'bar',
+                        data: cpuData.map(d => d.y),
+                        label: {
+                          show: true,
+                          position: 'right',
+                          formatter: '{c}%',
+                          color: 'var(--pf-t--global--text--color--default)'
+                        },
+                        itemStyle: {
+                          color: '#0066cc'
+                        }
+                      }
+                    ]
+                  }}
+                />
               </div>
             </div>
           )
