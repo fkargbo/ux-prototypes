@@ -377,3 +377,23 @@ button[aria-label="View task details"] {
   display: block !important;
   visibility: visible !important;
 }
+
+/* Template page breadcrumb section - white background, 16px padding */
+.template-page-breadcrumb {
+  padding: 16px !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+}
+
+/* Template page heading section - white background, 24px padding */
+.template-page-heading {
+  padding: 24px !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+}
+
+/* Template page content section - gray background, 24px padding */
+.template-page-content {
+  padding: 24px !important;
+  background-color: #f5f5f5 !important;
+}

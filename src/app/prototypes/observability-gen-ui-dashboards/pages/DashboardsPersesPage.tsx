@@ -6,7 +6,6 @@ import {
   Content,
   Breadcrumb,
   BreadcrumbItem,
-  PageSection,
   Drawer,
   DrawerContent,
   DrawerContentBody,
@@ -1827,9 +1826,9 @@ export const DashboardsPersesPage: React.FC = () => {
           {showTroubleshootingDashboard ? (
             <TroubleshootingDashboard />
           ) : (
-          <PageSection>
+          <>
               {/* Project MenuToggle Section - above breadcrumbs */}
-              <div style={{ paddingBottom: '16px', paddingLeft: '24px', backgroundColor: 'transparent' }}>
+              <div className="template-page-breadcrumb">
                 <Dropdown
                   isOpen={isProjectDropdownOpen}
                   onSelect={(event, value) => {
@@ -2091,7 +2090,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </PageSection>
+          </>
           )}
         </DrawerContentBody>
       </DrawerContent>
