@@ -971,6 +971,8 @@ export const DashboardsPersesPage: React.FC = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isNameFilterOpen, setIsNameFilterOpen] = useState(false);
   const [isCreateDropdownOpen, setIsCreateDropdownOpen] = useState(false);
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState('All projects');
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
@@ -1826,6 +1828,36 @@ export const DashboardsPersesPage: React.FC = () => {
             <TroubleshootingDashboard />
           ) : (
           <PageSection>
+              {/* Project MenuToggle Section - above breadcrumbs */}
+              <div style={{ paddingBottom: '16px' }}>
+                <Dropdown
+                  isOpen={isProjectDropdownOpen}
+                  onSelect={(event, value) => {
+                    setSelectedProject(value as string);
+                    setIsProjectDropdownOpen(false);
+                  }}
+                  onOpenChange={(isOpen: boolean) => setIsProjectDropdownOpen(isOpen)}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                      isExpanded={isProjectDropdownOpen}
+                      variant="plain"
+                      style={{ padding: 0 }}
+                    >
+                      Project: {selectedProject}
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    <DropdownItem key="all-projects">All projects</DropdownItem>
+                    <DropdownItem key="project-1">project-1</DropdownItem>
+                    <DropdownItem key="project-2">project-2</DropdownItem>
+                    <DropdownItem key="project-3">project-3</DropdownItem>
+                  </DropdownList>
+                </Dropdown>
+              </div>
+
               {/* Breadcrumbs Section - 16px padding */}
               <div className="template-page-breadcrumb">
               <Breadcrumb>
@@ -1867,7 +1899,6 @@ export const DashboardsPersesPage: React.FC = () => {
                             variant="primary"
                           >
                             Create
-                            <CaretDownIcon />
                           </MenuToggle>
                         )}
                       >
