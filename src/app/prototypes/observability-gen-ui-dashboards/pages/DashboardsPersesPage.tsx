@@ -1845,7 +1845,12 @@ export const DashboardsPersesPage: React.FC = () => {
                       variant="plain"
                       style={{ padding: 0, backgroundColor: 'transparent' }}
                     >
-                      Project: {selectedProject}
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <FlexItem>Project: {selectedProject}</FlexItem>
+                        <FlexItem>
+                          <CaretDownIcon style={{ color: 'var(--pf-t--global--text--color--default)' }} />
+                        </FlexItem>
+                      </Flex>
                     </MenuToggle>
                   )}
                 >
