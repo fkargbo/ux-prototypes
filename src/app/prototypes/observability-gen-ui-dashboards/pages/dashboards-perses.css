@@ -102,6 +102,34 @@ button[aria-label="View task details"] {
   }
 }
 
+/* Adjust masthead toolbar items to slide left when chatbot drawer is open */
+.pf-v6-c-masthead__content.chatbot-drawer-open,
+.pf-v6-c-page.chatbot-drawer-open .pf-v6-c-masthead__content {
+  width: calc(100% - 33.333%);
+  transition: width 0.2s ease-in-out;
+}
+
+@media (min-width: 992px) {
+  .pf-v6-c-masthead__content.chatbot-drawer-open,
+  .pf-v6-c-page.chatbot-drawer-open .pf-v6-c-masthead__content {
+    width: calc(100% - 25%);
+  }
+}
+
+@media (max-width: 1200px) {
+  .pf-v6-c-masthead__content.chatbot-drawer-open,
+  .pf-v6-c-page.chatbot-drawer-open .pf-v6-c-masthead__content {
+    width: calc(100% - 400px);
+  }
+}
+
+@media (min-width: 2400px) {
+  .pf-v6-c-masthead__content.chatbot-drawer-open,
+  .pf-v6-c-page.chatbot-drawer-open .pf-v6-c-masthead__content {
+    width: calc(100% - 600px);
+  }
+}
+
 /* AI Assistant Drawer Wrapper - Fixed position outside page container */
 .ai-assistant-drawer-wrapper {
   position: fixed !important;

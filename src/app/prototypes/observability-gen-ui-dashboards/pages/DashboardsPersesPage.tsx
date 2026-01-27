@@ -1438,20 +1438,26 @@ export const DashboardsPersesPage: React.FC = () => {
     }
   ];
 
-  // Apply class to page container when drawer is open to shift content
+  // Apply class to page container and masthead when drawer is open to shift content
   useEffect(() => {
     const pageContainer = document.querySelector('.pf-v6-c-page__main-container');
-    if (pageContainer) {
-      if (isDrawerOpen) {
-        pageContainer.classList.add('chatbot-drawer-open');
-      } else {
-        pageContainer.classList.remove('chatbot-drawer-open');
-      }
+    const pageElement = document.querySelector('.pf-v6-c-page');
+    const mastheadContent = document.querySelector('.pf-v6-c-masthead__content');
+    
+    if (isDrawerOpen) {
+      pageContainer?.classList.add('chatbot-drawer-open');
+      pageElement?.classList.add('chatbot-drawer-open');
+      mastheadContent?.classList.add('chatbot-drawer-open');
+    } else {
+      pageContainer?.classList.remove('chatbot-drawer-open');
+      pageElement?.classList.remove('chatbot-drawer-open');
+      mastheadContent?.classList.remove('chatbot-drawer-open');
     }
+    
     return () => {
-      if (pageContainer) {
-        pageContainer.classList.remove('chatbot-drawer-open');
-      }
+      pageContainer?.classList.remove('chatbot-drawer-open');
+      pageElement?.classList.remove('chatbot-drawer-open');
+      mastheadContent?.classList.remove('chatbot-drawer-open');
     };
   }, [isDrawerOpen]);
 
