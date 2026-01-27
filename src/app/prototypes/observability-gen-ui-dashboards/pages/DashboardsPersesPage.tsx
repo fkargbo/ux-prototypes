@@ -1829,7 +1829,7 @@ export const DashboardsPersesPage: React.FC = () => {
           ) : (
           <PageSection>
               {/* Project MenuToggle Section - above breadcrumbs */}
-              <div style={{ paddingBottom: '16px' }}>
+              <div style={{ paddingBottom: '16px', paddingLeft: '24px', backgroundColor: 'transparent' }}>
                 <Dropdown
                   isOpen={isProjectDropdownOpen}
                   onSelect={(event, value) => {
@@ -1843,7 +1843,7 @@ export const DashboardsPersesPage: React.FC = () => {
                       onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
                       isExpanded={isProjectDropdownOpen}
                       variant="plain"
-                      style={{ padding: 0 }}
+                      style={{ padding: 0, backgroundColor: 'transparent' }}
                     >
                       Project: {selectedProject}
                     </MenuToggle>
