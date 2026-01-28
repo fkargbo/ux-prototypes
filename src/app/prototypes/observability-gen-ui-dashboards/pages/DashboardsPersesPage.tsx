@@ -1832,7 +1832,7 @@ export const DashboardsPersesPage: React.FC = () => {
           ) : isGeneratingDashboard ? (
             <Bullseye
               style={{
-                minHeight: '400px',
+                minHeight: 'calc(100vh - 120px)',
                 width: '100%',
                 backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
               }}
