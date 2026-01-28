@@ -188,7 +188,7 @@ import {
 } from '@patternfly/react-icons';
 
 // ========================================
-// DATA TYPES
+// DATA TYPES  
 // ========================================
 
 type AlertSeverity = 'Critical' | 'Warning' | 'Info';
@@ -2661,7 +2661,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     { key: 'source', label: 'Source', isVisible: true, isLocked: false, order: 6 },
     { key: 'description', label: 'Description', isVisible: false, isLocked: false, order: 7 },
     { key: 'startTime', label: 'Start (Firing time)', isVisible: false, isLocked: false, order: 8 },
-    { key: 'endTime', label: 'End', isVisible: false, isLocked: false, order: 9 },
   ]);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
   const [tempColumns, setTempColumns] = React.useState<ColumnConfig[]>([]);
@@ -2705,7 +2704,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
           case 'source': return agg.clusters[0]?.cluster?.alerts?.[0]?.source || '';
           case 'description': return `"${agg.clusters[0]?.cluster?.alerts?.find(a => a.alertName === agg.alertName)?.description || ''}"`;
           case 'startTime': return agg.clusters[0]?.lastFired || '';
-          case 'endTime': return '';
           default: return '';
         }
       }).join(',');
@@ -3297,12 +3295,51 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
                             </FlexItem>
                             
-                            {/* Severity Breakdown - inline text with colored labels */}
+                            {/* Severity Breakdown - clickable labels for filtering */}
                             <FlexItem>
                               <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                {criticalCount > 0 && <Label color="red" isCompact>{criticalCount} critical</Label>}
-                                {warningCount > 0 && <Label color="orange" isCompact>{warningCount} warning</Label>}
-                                {infoCount > 0 && <Label color="blue" isCompact>{infoCount} info</Label>}
+                                {criticalCount > 0 && (
+                                  <Label 
+                                    color="red" 
+                                    isCompact 
+                                    onClick={() => {
+                                      if (!severityFilter.includes('Critical')) {
+                                        setSeverityFilter([...severityFilter, 'Critical']);
+                                      }
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    {criticalCount} critical
+                                  </Label>
+                                )}
+                                {warningCount > 0 && (
+                                  <Label 
+                                    color="orange" 
+                                    isCompact 
+                                    onClick={() => {
+                                      if (!severityFilter.includes('Warning')) {
+                                        setSeverityFilter([...severityFilter, 'Warning']);
+                                      }
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    {warningCount} warning
+                                  </Label>
+                                )}
+                                {infoCount > 0 && (
+                                  <Label 
+                                    color="blue" 
+                                    isCompact 
+                                    onClick={() => {
+                                      if (!severityFilter.includes('Info')) {
+                                        setSeverityFilter([...severityFilter, 'Info']);
+                                      }
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    {infoCount} info
+                                  </Label>
+                                )}
                               </Flex>
                             </FlexItem>
                             
@@ -3813,8 +3850,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         return firstAlert?.description || '-';
                       case 'startTime':
                         return firstAlertInfo?.lastFired || '-';
-                      case 'endTime':
-                        return '-';
                       default:
                         return '-';
                     }
@@ -4262,37 +4297,29 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
               </Content>
             </StackItem>
             <StackItem>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                padding: '8px',
-                border: '1px solid var(--pf-t--global--border--color--default)',
-                borderRadius: '3px',
-                marginBottom: '8px'
-              }}>
-                <Checkbox 
-                  id="select-all-columns-toggle" 
-                  label=""
-                  isChecked={tempColumns.filter(c => !c.isLocked).every(c => c.isVisible)}
-                  onChange={(_, checked) => {
-                    const visibleLockedCount = tempColumns.filter(c => c.isLocked).length;
-                    const availableSlots = MAX_VISIBLE_COLUMNS - visibleLockedCount;
-                    
-                    setTempColumns(prev => {
-                      let slotsUsed = 0;
-                      return prev.map(c => {
-                        if (c.isLocked) return c;
-                        if (checked && slotsUsed < availableSlots) {
-                          slotsUsed++;
-                          return { ...c, isVisible: true };
-                        }
-                        return { ...c, isVisible: checked ? slotsUsed < availableSlots : false };
-                      });
+              <Button 
+                variant="link" 
+                isInline
+                onClick={() => {
+                  const allSelected = tempColumns.filter(c => !c.isLocked).every(c => c.isVisible);
+                  const visibleLockedCount = tempColumns.filter(c => c.isLocked).length;
+                  const availableSlots = MAX_VISIBLE_COLUMNS - visibleLockedCount;
+                  
+                  setTempColumns(prev => {
+                    let slotsUsed = 0;
+                    return prev.map(c => {
+                      if (c.isLocked) return c;
+                      if (!allSelected && slotsUsed < availableSlots) {
+                        slotsUsed++;
+                        return { ...c, isVisible: true };
+                      }
+                      return { ...c, isVisible: !allSelected ? slotsUsed < availableSlots : false };
                     });
-                  }}
-                />
-                <AngleDownIcon style={{ marginLeft: '4px' }} />
-              </div>
+                  });
+                }}
+              >
+                Select all
+              </Button>
             </StackItem>
             <StackItem>
               <div style={{ 
@@ -8081,24 +8108,45 @@ spec:
                     </div>
                   </Tooltip>
                   <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                  <Tooltip content={`Critical: ${criticalAlerts} - ${Math.floor(Math.random() * 15) + 1}% more from last day`}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                  <Tooltip content={`Critical: ${criticalAlerts} - Click to filter`}>
+                    <div 
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                      onClick={() => {
+                        if (!severityFilter.includes('Critical')) {
+                          setSeverityFilter([...severityFilter, 'Critical']);
+                        }
+                      }}
+                    >
                       <Icon status="danger"><ExclamationCircleIcon /></Icon>
                       <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
                       <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
                     </div>
                   </Tooltip>
                   <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                  <Tooltip content={`Warning: ${warningAlerts} - ${Math.floor(Math.random() * 12) + 1}% more from last day`}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                  <Tooltip content={`Warning: ${warningAlerts} - Click to filter`}>
+                    <div 
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                      onClick={() => {
+                        if (!severityFilter.includes('Warning')) {
+                          setSeverityFilter([...severityFilter, 'Warning']);
+                        }
+                      }}
+                    >
                       <Icon status="warning"><ExclamationTriangleIcon /></Icon>
                       <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
                       <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
                     </div>
                   </Tooltip>
                   <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                  <Tooltip content={`Info: ${filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)} - ${Math.floor(Math.random() * 8) + 1}% more from last day`}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                  <Tooltip content={`Info: ${filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)} - Click to filter`}>
+                    <div 
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                      onClick={() => {
+                        if (!severityFilter.includes('Info')) {
+                          setSeverityFilter([...severityFilter, 'Info']);
+                        }
+                      }}
+                    >
                       <Icon status="info"><InfoCircleIcon /></Icon>
                       <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Info</span>
                       <strong style={{ fontSize: '16px' }}>{filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)}</strong>
@@ -8975,16 +9023,30 @@ spec:
                       </div>
                     </Tooltip>
                     <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                    <Tooltip content={`Critical: ${criticalAlerts} - ${Math.floor(Math.random() * 15) + 1}% more from last day`}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                    <Tooltip content={`Critical: ${criticalAlerts} - Click to filter`}>
+                      <div 
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                        onClick={() => {
+                          if (!severityFilter.includes('Critical')) {
+                            setSeverityFilter([...severityFilter, 'Critical']);
+                          }
+                        }}
+                      >
                         <Icon status="danger"><ExclamationCircleIcon /></Icon>
                         <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
                         <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
                       </div>
                     </Tooltip>
                     <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                    <Tooltip content={`Warning: ${warningAlerts} - ${Math.floor(Math.random() * 12) + 1}% more from last day`}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                    <Tooltip content={`Warning: ${warningAlerts} - Click to filter`}>
+                      <div 
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                        onClick={() => {
+                          if (!severityFilter.includes('Warning')) {
+                            setSeverityFilter([...severityFilter, 'Warning']);
+                          }
+                        }}
+                      >
                         <Icon status="warning"><ExclamationTriangleIcon /></Icon>
                         <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
                         <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
