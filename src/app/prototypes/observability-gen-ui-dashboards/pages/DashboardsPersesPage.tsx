@@ -223,7 +223,7 @@ const TroubleshootingDashboard: React.FC = () => {
     { namespace: 'default', cpu: 4 }
   ];
 
-  // Node Resource Pressure data - 12 nodes (node_load1 / machine_cpu_cores as %)
+  // Node Resource Pressure data - 12 nodes with mixed statuses
   const nodePressureData = [
     { node: 'node-pool-1-abc', cpu: 105, status: 'critical' }, // Overcommit - Red
     { node: 'node-pool-2-abc', cpu: 98, status: 'warning' },   // High - Gold
@@ -238,103 +238,6 @@ const TroubleshootingDashboard: React.FC = () => {
     { node: 'node-pool-11-abc', cpu: 110, status: 'critical' }, // Overcommit - Red
     { node: 'node-pool-12-abc', cpu: 68, status: 'healthy' }   // Normal - Blue
   ];
-
-  // Dashboard variable $node - selected node for filtering (updated by honeycomb click)
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
-
-  // Interpolate color from green (#3E8635) to red (#C9190B) based on value 0-100
-  const valueToColor = (value: number): string => {
-    const t = Math.min(Math.max(value, 0), 100) / 100;
-    const green = { r: 62, g: 134, b: 53 };   // #3E8635
-    const red = { r: 201, g: 25, b: 11 };     // #C9190B
-    const r = Math.round(green.r + t * (red.r - green.r));
-    const g = Math.round(green.g + t * (red.g - green.g));
-    const b = Math.round(green.b + t * (red.b - green.b));
-    return `rgb(${r},${g},${b})`;
-  };
-
-  // Short hostname from node name (e.g. "node-pool-1-abc" -> "1-abc")
-  const shortHostname = (nodeName: string): string => {
-    return nodeName.replace(/^node-pool-/, '') || nodeName;
-  };
-
-  // Honeycomb Heatmap component - 12 nodes, green-to-red scale, click sets $node
-  const HoneycombHeatmap: React.FC<{
-    nodes: Array<{ node: string; cpu: number }>;
-    selectedNode: string | null;
-    onNodeSelect: (node: string) => void;
-  }> = ({ nodes, selectedNode: selected, onNodeSelect }) => {
-    const r = 28; // hex radius
-    const sqrt3 = Math.sqrt(3);
-    const hexWidth = sqrt3 * r;
-    const hexHeight = 2 * r;
-    const colCount = 4;
-    const rowCount = 3;
-    // Flat-top hexagon path (center at 0,0): top, top-right, bottom-right, bottom, bottom-left, top-left
-    const hexPath = [
-      [0, -r],
-      [hexWidth / 2, -r / 2],
-      [hexWidth / 2, r / 2],
-      [0, r],
-      [-hexWidth / 2, r / 2],
-      [-hexWidth / 2, -r / 2]
-    ].map(([x, y]) => `${x},${y}`).join(' L ');
-    const pathD = `M ${hexPath} Z`;
-
-    const width = colCount * hexWidth + (hexWidth / 2);
-    const height = rowCount * 1.5 * r + r;
-    const padding = 16;
-    const viewBox = `${-padding} ${-padding} ${width + 2 * padding} ${height + 2 * padding}`;
-
-    return (
-      <div style={{ width: '100%', overflow: 'auto' }}>
-        <svg
-          viewBox={viewBox}
-          preserveAspectRatio="xMidYMid meet"
-          style={{ maxWidth: '100%', height: 'auto', minHeight: '180px' }}
-          aria-label="Node Resource Pressure honeycomb heatmap"
-        >
-          {nodes.map((item, index) => {
-            const col = index % colCount;
-            const row = Math.floor(index / colCount);
-            const offsetX = (row % 2) * (hexWidth / 2);
-            const x = col * hexWidth + offsetX + hexWidth / 2 + padding;
-            const y = row * 1.5 * r + r + padding;
-            const fill = valueToColor(item.cpu);
-            const isSelected = selected === item.node;
-            return (
-              <g
-                key={item.node}
-                transform={`translate(${x},${y})`}
-                style={{ cursor: 'pointer' }}
-                onClick={() => onNodeSelect(item.node)}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onNodeSelect(item.node))}
-                role="button"
-                tabIndex={0}
-                aria-label={`Node ${item.node}, load ${item.cpu}%, click to filter dashboard to this node`}
-              >
-                <path
-                  d={pathD}
-                  fill={fill}
-                  stroke={isSelected ? 'var(--pf-t--global--color--interactive--default)' : '#333'}
-                  strokeWidth={isSelected ? 3 : 1}
-                />
-                <text
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fill="var(--pf-t--global--text--color--default)"
-                  fontSize={10}
-                  fontWeight="bold"
-                >
-                  {shortHostname(item.node)}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-    );
-  };
 
   const cpuCommitmentPercent = 115;
   const throttledContainers = 23;
@@ -898,7 +801,7 @@ const TroubleshootingDashboard: React.FC = () => {
               </Card>
             </GridItem>
 
-            {/* Node Resource Pressure - Honeycomb Heatmap */}
+            {/* Node Resource Pressure */}
             <GridItem md={12}>
               <Card>
                 <CardHeader>
@@ -909,8 +812,9 @@ const TroubleshootingDashboard: React.FC = () => {
                     <FlexItem>
                       <ChartLegend
                         data={[
-                          { name: 'Low load', symbol: { type: 'square', fill: '#3E8635' } },
-                          { name: 'High load', symbol: { type: 'square', fill: '#C9190B' } }
+                          { name: 'Critical (overcommit)', symbol: { type: 'square', fill: '#c9190b' } },
+                          { name: 'Warning (high)', symbol: { type: 'square', fill: '#f0ab00' } },
+                          { name: 'Healthy (normal)', symbol: { type: 'square', fill: '#3E8635' } }
                         ]}
                         orientation="horizontal"
                         height={25}
@@ -922,16 +826,78 @@ const TroubleshootingDashboard: React.FC = () => {
                   </Flex>
                 </CardHeader>
                 <CardBody>
-                  <HoneycombHeatmap
-                    nodes={nodePressureData.map(({ node, cpu }) => ({ node, cpu }))}
-                    selectedNode={selectedNode}
-                    onNodeSelect={(node) => setSelectedNode(node)}
-                  />
-                  {selectedNode && (
-                    <Content style={{ marginTop: '12px', fontSize: '14px' }}>
-                      <strong>Variable $node</strong> = {selectedNode} (dashboard filtered to this node)
-                    </Content>
-                  )}
+                  <Grid hasGutter>
+                    {nodePressureData.map((node) => {
+                      // Determine color based on status
+                      const getThemeColor = () => {
+                        if (node.status === 'critical') {
+                          return null; // Use colorScale for red
+                        } else if (node.status === 'warning') {
+                          return ChartThemeColor.gold;
+                        } else {
+                          return null; // Use colorScale for green
+                        }
+                      };
+
+                      const themeColor = getThemeColor();
+                      const visualPercent = Math.min(node.cpu, 100);
+                      const colorScale = node.status === 'critical'
+                        ? ['#c9190b', '#d2d2d2'] // PatternFly red and gray
+                        : node.status === 'healthy'
+                        ? ['#3E8635', '#d2d2d2'] // PatternFly green and gray
+                        : undefined;
+
+                      // Threshold data for static thresholds - must be array format
+                      const thresholdData = [
+                        { x: 'Warning at 85%', y: 85 },
+                        { x: 'Critical at 100%', y: 100 }
+                      ];
+
+                      // Utilization data - ChartDonutUtilization expects { x, y } format
+                      const utilizationData = { x: 'CPU Usage', y: visualPercent };
+
+                      return (
+                        <GridItem key={node.node} md={3}>
+                          <Card>
+                            <CardBody>
+                              <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                <Title headingLevel="h4" size="md">
+                                  {node.node}
+                                </Title>
+                                <div style={{ height: '180px', width: '180px', margin: '0 auto' }}>
+                                  <ChartDonutThreshold
+                                    ariaDesc={`CPU utilization for ${node.node} with static thresholds at 85% and 100%`}
+                                    ariaTitle={`${node.node} CPU Utilization`}
+                                    constrainToVisibleArea
+                                    data={thresholdData}
+                                    labels={({ datum }) => (datum.x ? datum.x : null)}
+                                    name={`${node.node}-threshold`}
+                                    height={180}
+                                    width={180}
+                                  >
+                                    <ChartDonutUtilization
+                                      ariaDesc={`CPU utilization for ${node.node}`}
+                                      ariaTitle={`${node.node} CPU Utilization`}
+                                      data={utilizationData}
+                                      labels={({ datum }) => (datum.x ? `${datum.x}: ${datum.y}%` : null)}
+                                      subTitle="CPU Usage"
+                                      title={`${node.cpu}%`}
+                                      name={`${node.node}-utilization`}
+                                      themeColor={themeColor || undefined}
+                                      colorScale={colorScale}
+                                      thresholds={[{ value: 85 }, { value: 100 }]}
+                                      height={180}
+                                      width={180}
+                                    />
+                                  </ChartDonutThreshold>
+                                </div>
+                              </Flex>
+                            </CardBody>
+                          </Card>
+                        </GridItem>
+                      );
+                    })}
+                  </Grid>
                 </CardBody>
               </Card>
             </GridItem>
