@@ -1837,7 +1837,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
               }}
             >
-              <Spinner size="lg" aria-label="Loading dashboards" />
+              <Spinner diameter="54px" aria-label="Loading dashboards" />
             </Bullseye>
           ) : (
           <>
