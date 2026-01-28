@@ -46,6 +46,10 @@ import {
   CardTitle,
   CardBody,
   CardHeader,
+  DescriptionList,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
   Grid,
   GridItem,
   Icon,
@@ -238,6 +242,87 @@ const TroubleshootingDashboard: React.FC = () => {
     { node: 'node-pool-11-abc', cpu: 110, status: 'critical' }, // Overcommit - Red
     { node: 'node-pool-12-abc', cpu: 68, status: 'healthy' }   // Normal - Blue
   ];
+
+  // Pod Status Health Map mock data (counts per namespace)
+  const podStatusCounts: Record<string, { running: number; pending: number; failed: number; unknown: number }> = {
+    'marketing-prod': { running: 51, pending: 8, failed: 2, unknown: 2 },
+    'sales-prod': { running: 24, pending: 0, failed: 1, unknown: 0 },
+    'support-prod': { running: 68, pending: 0, failed: 1, unknown: 0 },
+    'dev-staging': { running: 29, pending: 0, failed: 1, unknown: 0 },
+    'qa-testing': { running: 46, pending: 0, failed: 1, unknown: 0 }
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    Running: '#3E8635',
+    Pending: '#F0AB00',
+    Failed: '#C9190B',
+    Unknown: '#8A8D90'
+  };
+
+  const buildPodsForNamespace = (namespace: string): Array<{ podName: string; status: string }> => {
+    const counts = podStatusCounts[namespace] || { running: 0, pending: 0, failed: 0, unknown: 0 };
+    const pods: Array<{ podName: string; status: string }> = [];
+    let idx = 0;
+    (['Failed', 'Unknown', 'Pending', 'Running'] as const).forEach((status) => {
+      const count = counts[status === 'Failed' ? 'failed' : status === 'Unknown' ? 'unknown' : status === 'Pending' ? 'pending' : 'running'];
+      for (let i = 0; i < count; i++) {
+        pods.push({ podName: `pod-${namespace.replace(/-/g, '')}-${idx}`, status });
+        idx += 1;
+      }
+    });
+    return pods;
+  };
+
+  const PodStatusHealthMap: React.FC = () => (
+    <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
+      <DescriptionList isCompact>
+        {Object.keys(podStatusCounts).map((namespace) => {
+          const pods = buildPodsForNamespace(namespace);
+          return (
+            <DescriptionListGroup key={namespace}>
+              <DescriptionListTerm style={{ marginBottom: '4px', minWidth: '120px' }}>{namespace}</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Flex style={{ flexWrap: 'wrap', alignItems: 'center', gap: 'var(--pf-t--global--spacer--xs, 4px)' }}>
+                  {pods.map((pod, i) => (
+                    <Tooltip key={`${namespace}-${i}`} content={<div>Pod: {pod.podName}<br />Status: {pod.status}</div>}>
+                      <div
+                        role="img"
+                        aria-label={`${pod.podName} - ${pod.status}`}
+                        style={{
+                          width: 12,
+                          height: 12,
+                          backgroundColor: STATUS_COLORS[pod.status] || '#8A8D90',
+                          flexShrink: 0
+                        }}
+                      />
+                    </Tooltip>
+                  ))}
+                </Flex>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          );
+        })}
+      </DescriptionList>
+      <Flex gap={{ default: 'gapMd' }} style={{ marginTop: '8px', flexWrap: 'wrap' }}>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <div style={{ width: 12, height: 12, backgroundColor: '#3E8635', flexShrink: 0 }} aria-hidden />
+          <span>Running</span>
+        </Flex>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <div style={{ width: 12, height: 12, backgroundColor: '#F0AB00', flexShrink: 0 }} aria-hidden />
+          <span>Pending</span>
+        </Flex>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <div style={{ width: 12, height: 12, backgroundColor: '#C9190B', flexShrink: 0 }} aria-hidden />
+          <span>Failed</span>
+        </Flex>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <div style={{ width: 12, height: 12, backgroundColor: '#8A8D90', flexShrink: 0 }} aria-hidden />
+          <span>Unknown</span>
+        </Flex>
+      </Flex>
+    </Flex>
+  );
 
   const cpuCommitmentPercent = 115;
   const throttledContainers = 23;
@@ -902,45 +987,14 @@ const TroubleshootingDashboard: React.FC = () => {
               </Card>
             </GridItem>
 
-            {/* Pod Status Heatmap */}
+            {/* Pod Status Heatmap - Health Map (Status Grid) */}
             <GridItem md={12}>
               <Card>
                 <CardHeader>
                   <CardTitle>Pod Status Heatmap</CardTitle>
                 </CardHeader>
                 <CardBody>
-                  <Table aria-label="Pod status heatmap" variant="compact">
-                    <Thead>
-                      <Tr>
-                        <Th>Namespace</Th>
-                        <Th>Running</Th>
-                        <Th>Pending</Th>
-                        <Th>Failed</Th>
-                        <Th>Unknown</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {topNamespacesData.slice(0, 5).map((ns) => (
-                        <Tr key={ns.namespace}>
-                          <Td>{ns.namespace}</Td>
-                          <Td>
-                            <Badge>{Math.floor(Math.random() * 50) + 20}</Badge>
-                          </Td>
-                          <Td>
-                            <Badge className={ns.namespace === 'marketing-prod' ? 'pf-v6-c-badge pf-m-warning' : ''}>
-                              {ns.namespace === 'marketing-prod' ? inventoryData.pendingPods : 0}
-                            </Badge>
-                          </Td>
-                          <Td>
-                            <Badge>{Math.floor(Math.random() * 3)}</Badge>
-                          </Td>
-                          <Td>
-                            <Badge>0</Badge>
-                          </Td>
-                        </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
+                  <PodStatusHealthMap />
                 </CardBody>
               </Card>
             </GridItem>
