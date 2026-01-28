@@ -273,55 +273,56 @@ const TroubleshootingDashboard: React.FC = () => {
     return pods;
   };
 
-  const PodStatusHealthMap: React.FC = () => (
-    <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
-      <DescriptionList isCompact>
-        {Object.keys(podStatusCounts).map((namespace) => {
-          const pods = buildPodsForNamespace(namespace);
-          return (
-            <DescriptionListGroup key={namespace}>
-              <DescriptionListTerm style={{ marginBottom: '4px', minWidth: '120px' }}>{namespace}</DescriptionListTerm>
-              <DescriptionListDescription>
-                <Flex style={{ flexWrap: 'wrap', alignItems: 'center', gap: 'var(--pf-t--global--spacer--xs, 4px)' }}>
-                  {pods.map((pod, i) => (
-                    <Tooltip key={`${namespace}-${i}`} content={<div>Pod: {pod.podName}<br />Status: {pod.status}</div>}>
-                      <div
-                        role="img"
-                        aria-label={`${pod.podName} - ${pod.status}`}
-                        style={{
-                          width: 12,
-                          height: 12,
-                          backgroundColor: STATUS_COLORS[pod.status] || '#8A8D90',
-                          flexShrink: 0
-                        }}
-                      />
-                    </Tooltip>
-                  ))}
-                </Flex>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          );
-        })}
-      </DescriptionList>
-      <Flex gap={{ default: 'gapMd' }} style={{ marginTop: '8px', flexWrap: 'wrap' }}>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <div style={{ width: 12, height: 12, backgroundColor: '#3E8635', flexShrink: 0 }} aria-hidden />
-          <span>Running</span>
-        </Flex>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <div style={{ width: 12, height: 12, backgroundColor: '#F0AB00', flexShrink: 0 }} aria-hidden />
-          <span>Pending</span>
-        </Flex>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <div style={{ width: 12, height: 12, backgroundColor: '#C9190B', flexShrink: 0 }} aria-hidden />
-          <span>Failed</span>
-        </Flex>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <div style={{ width: 12, height: 12, backgroundColor: '#8A8D90', flexShrink: 0 }} aria-hidden />
-          <span>Unknown</span>
-        </Flex>
+  const PodStatusHealthMapLegend: React.FC = () => (
+    <Flex gap={{ default: 'gapMd' }} style={{ flexWrap: 'wrap' }}>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+        <div style={{ width: 12, height: 12, backgroundColor: '#3E8635', flexShrink: 0 }} aria-hidden />
+        <span>Running</span>
+      </Flex>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+        <div style={{ width: 12, height: 12, backgroundColor: '#F0AB00', flexShrink: 0 }} aria-hidden />
+        <span>Pending</span>
+      </Flex>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+        <div style={{ width: 12, height: 12, backgroundColor: '#C9190B', flexShrink: 0 }} aria-hidden />
+        <span>Failed</span>
+      </Flex>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+        <div style={{ width: 12, height: 12, backgroundColor: '#8A8D90', flexShrink: 0 }} aria-hidden />
+        <span>Unknown</span>
       </Flex>
     </Flex>
+  );
+
+  const PodStatusHealthMap: React.FC = () => (
+    <DescriptionList isCompact>
+      {Object.keys(podStatusCounts).map((namespace) => {
+        const pods = buildPodsForNamespace(namespace);
+        return (
+          <DescriptionListGroup key={namespace}>
+            <DescriptionListTerm style={{ marginBottom: '4px', minWidth: '120px' }}>{namespace}</DescriptionListTerm>
+            <DescriptionListDescription>
+              <Flex style={{ flexWrap: 'wrap', alignItems: 'center', gap: 'var(--pf-t--global--spacer--xs, 4px)' }}>
+                {pods.map((pod, i) => (
+                  <Tooltip key={`${namespace}-${i}`} content={<div>Pod: {pod.podName}<br />Status: {pod.status}</div>}>
+                    <div
+                      role="img"
+                      aria-label={`${pod.podName} - ${pod.status}`}
+                      style={{
+                        width: 12,
+                        height: 12,
+                        backgroundColor: STATUS_COLORS[pod.status] || '#8A8D90',
+                        flexShrink: 0
+                      }}
+                    />
+                  </Tooltip>
+                ))}
+              </Flex>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        );
+      })}
+    </DescriptionList>
   );
 
   const cpuCommitmentPercent = 115;
@@ -991,7 +992,14 @@ const TroubleshootingDashboard: React.FC = () => {
             <GridItem md={12}>
               <Card>
                 <CardHeader>
-                  <CardTitle>Pod Status Heatmap</CardTitle>
+                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <CardTitle>Pod Status Heatmap</CardTitle>
+                    </FlexItem>
+                    <FlexItem>
+                      <PodStatusHealthMapLegend />
+                    </FlexItem>
+                  </Flex>
                 </CardHeader>
                 <CardBody>
                   <PodStatusHealthMap />
