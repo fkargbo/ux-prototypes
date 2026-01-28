@@ -549,12 +549,12 @@ const TroubleshootingDashboard: React.FC = () => {
           type: 'line',
           data: quotaValues,
           lineStyle: {
-            color: '#6a6e73',
+            color: '#C66B25',
             width: 2,
             type: 'dashed'
           },
           itemStyle: {
-            color: '#6a6e73'
+            color: '#C66B25'
           },
           areaStyle: {
             opacity: 0
