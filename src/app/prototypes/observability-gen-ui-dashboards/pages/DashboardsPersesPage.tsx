@@ -36,6 +36,7 @@ import {
   Stack,
   StackItem,
   ExpandableSection,
+  Bullseye,
   Alert,
   EmptyState,
   EmptyStateBody,
@@ -985,6 +986,7 @@ export const DashboardsPersesPage: React.FC = () => {
   // Troubleshooting workflow state
   const [workflowStage, setWorkflowStage] = useState<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
   const [showTroubleshootingDashboard, setShowTroubleshootingDashboard] = useState(false);
+  const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
 
   // Mock notifications data
   const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string; description?: string }> = [
@@ -1400,9 +1402,10 @@ export const DashboardsPersesPage: React.FC = () => {
   // Handle Stage 3: Dashboard Generation
   const handleStage3 = useCallback(() => {
     setWorkflowStage('stage3');
-    
+    setIsGeneratingDashboard(true);
+
     const date = new Date();
-    
+
     // Add loading bot message
     const loadingBotMessage: MessageProps = {
       id: generateId(),
@@ -1455,9 +1458,10 @@ export const DashboardsPersesPage: React.FC = () => {
         return newMessages;
       });
       setAnnouncement('Troubleshooting dashboard generated. Review the investigation room below.');
-      
-      // Show the troubleshooting dashboard
+
+      // Show the troubleshooting dashboard and hide spinner
       setShowTroubleshootingDashboard(true);
+      setIsGeneratingDashboard(false);
     }, 3000);
   }, [generateId, setWorkflowStage, setMessages, setAnnouncement, setShowTroubleshootingDashboard]);
 
@@ -1825,6 +1829,16 @@ export const DashboardsPersesPage: React.FC = () => {
           {/* Page content */}
           {showTroubleshootingDashboard ? (
             <TroubleshootingDashboard />
+          ) : isGeneratingDashboard ? (
+            <Bullseye
+              style={{
+                minHeight: '400px',
+                width: '100%',
+                backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
+              }}
+            >
+              <Spinner size="lg" aria-label="Loading dashboards" />
+            </Bullseye>
           ) : (
           <>
               {/* Project MenuToggle Section - above breadcrumbs */}
