@@ -183,6 +183,8 @@ import {
   QuestionCircleIcon,
   PauseCircleIcon,
   ExportIcon,
+  EditAltIcon,
+  PlusCircleIcon,
 } from '@patternfly/react-icons';
 
 // ========================================
@@ -195,7 +197,7 @@ type ClusterAlertStatus = 'critical' | 'warning' | 'info' | 'healthy'; // Based 
 type ACMClusterStatus = 'Ready' | 'Offline' | 'Failed' | 'Pending Import' | 'Installing' | 'Degraded' | 'Hibernating' | 'Unknown' | 'Detaching';
 type AlertGroup = 'Cluster' | 'Namespace';
 type AlertComponent = 'kube-apiserver' | 'Storage' | 'Network' | 'etcd' | 'Scheduler' | 'Controller' | 'Workload' | 'Pod' | 'Quota';
-type GroupByOption = 'none' | 'region' | 'cloudProvider' | 'team' | 'severity';
+type GroupByOption = 'none' | 'region' | 'cloudProvider' | 'team' | 'severity' | 'environment';
 type SortByOption = 'severity' | 'alertCount' | 'clusterName' | 'lastFired';
 type ViewMode = 'treemap' | 'summary';
 type ImportanceSizing = 'nodeCount' | 'cpuCores' | 'totalMemory' | 'podCount' | 'vmCount' | 'totalAlerts' | 'cpuRequests' | 'memoryRequests';
@@ -613,7 +615,7 @@ const mockTrendData: TrendData[] = [
   { timestamp: '5h ago', critical: 4, warning: 15, info: 10 },
   { timestamp: '4h ago', critical: 7, warning: 11, info: 6 },
   { timestamp: '3h ago', critical: 3, warning: 18, info: 9 },
-  { timestamp: '2h ago', critical: 6, warning: 14, info: 7 },
+  { timestamp: '2h ago', critical: 28, warning: 45, info: 23 }, // Anomaly spike - 96 total (300% increase from baseline)
   { timestamp: '1h ago', critical: 4, warning: 10, info: 5 },
   { timestamp: 'Now', critical: 5, warning: 8, info: 4 },
 ];
@@ -835,6 +837,20 @@ const getTileValue = (cluster: ClusterData, sizing: ImportanceSizing, severityFi
 // TREEMAP HEATMAP COMPONENT
 // ========================================
 
+interface EnvironmentCategory {
+  id: string;
+  label: string;
+  color: string;
+  patterns: string[];
+}
+
+interface TeamCategory {
+  id: string;
+  label: string;
+  color: string;
+  patterns: string[];
+}
+
 interface TreemapHeatmapProps {
   clusters: ClusterData[];
   groupBy: GroupByOption;
@@ -843,6 +859,8 @@ interface TreemapHeatmapProps {
   onDrillDown: (cluster: ClusterData) => void;
   onLegendClick?: (severity: 'Critical' | 'Warning' | 'Info' | 'Healthy') => void;
   activeLegendFilters?: ('Critical' | 'Warning' | 'Info' | 'Healthy')[];
+  environmentCategories?: EnvironmentCategory[];
+  teamCategories?: TeamCategory[];
 }
 
 const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
@@ -853,6 +871,8 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
   onDrillDown,
   onLegendClick,
   activeLegendFilters = [],
+  environmentCategories = [],
+  teamCategories = [],
 }) => {
   // PatternFly 6 color palette
   // Critical: Red, Warning: Orange, Info: Purple, Healthy: Green
@@ -946,6 +966,24 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       let key: string;
       if (groupBy === 'severity') {
         key = getClusterAlertStatus(cluster).charAt(0).toUpperCase() + getClusterAlertStatus(cluster).slice(1);
+      } else if (groupBy === 'environment') {
+        // Match cluster name against environment patterns
+        key = 'Other'; // Default to "Other" if no match
+        for (const category of environmentCategories) {
+          if (category.patterns.some(pattern => cluster.name.toLowerCase().startsWith(pattern.toLowerCase()))) {
+            key = category.label;
+            break;
+          }
+        }
+      } else if (groupBy === 'team') {
+        // Match cluster name against team patterns
+        key = 'Other'; // Default to "Other" if no match
+        for (const category of teamCategories) {
+          if (category.patterns.some(pattern => cluster.name.toLowerCase().startsWith(pattern.toLowerCase()))) {
+            key = category.label;
+            break;
+          }
+        }
       } else {
         key = String(cluster[groupBy as keyof ClusterData]);
       }
@@ -1827,6 +1865,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     setSeverityFilter([]);
     setGroupFilter(['Cluster', 'Namespace']); // Reset to default with both groups selected
     setComponentFilter([]);
+    setTriggeredFromDate?.('');
+    setTriggeredFromTime?.('');
+    setTriggeredToDate?.('');
+    setTriggeredToTime?.('');
   };
 
   // Get available components based on selected groups
@@ -2434,7 +2476,7 @@ interface AggregatedAlert {
   group: AlertGroup;
 }
 
-type AlertsGroupByOption = 'none' | 'time' | 'severity' | 'alertRule' | 'impact' | 'component';
+type AlertsGroupByOption = 'none' | 'time' | 'severity' | 'alertName' | 'impact' | 'component';
 
 interface AllAlertsCardProps {
   clusters: ClusterData[];
@@ -2450,9 +2492,17 @@ interface AllAlertsCardProps {
   singleClusterView?: boolean;
   groupBy?: AlertsGroupByOption;
   onGroupByChange?: (groupBy: AlertsGroupByOption) => void;
+  triggeredFromDate?: string;
+  triggeredFromTime?: string;
+  triggeredToDate?: string;
+  triggeredToTime?: string;
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
+  triggeredFromDate,
+  triggeredFromTime,
+  triggeredToDate,
+  triggeredToTime,
   clusters,
   alertNameFilter,
   componentFilter,
@@ -2790,6 +2840,32 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
         const componentImpactGroup = componentMeta[alert.component as AlertComponent]?.impactGroup;
         if (componentImpactGroup && !groupFilter.includes(componentImpactGroup)) return false;
       }
+      
+      // Filter by triggered date/time range
+      if (triggeredFromDate || triggeredFromTime || triggeredToDate || triggeredToTime) {
+        // Get the first alert instance to check triggered time
+        const firstCluster = alert.clusters[0];
+        if (firstCluster && firstCluster.lastFired) {
+          const alertDate = new Date(firstCluster.lastFired);
+          
+          // Parse from date/time
+          if (triggeredFromDate || triggeredFromTime) {
+            const fromDateStr = triggeredFromDate || new Date().toISOString().split('T')[0];
+            const fromTimeStr = triggeredFromTime || '00:00';
+            const fromDateTime = new Date(`${fromDateStr}T${fromTimeStr}`);
+            if (alertDate < fromDateTime) return false;
+          }
+          
+          // Parse to date/time
+          if (triggeredToDate || triggeredToTime) {
+            const toDateStr = triggeredToDate || new Date().toISOString().split('T')[0];
+            const toTimeStr = triggeredToTime || '23:59';
+            const toDateTime = new Date(`${toDateStr}T${toTimeStr}`);
+            if (alertDate > toDateTime) return false;
+          }
+        }
+      }
+      
       return true;
     });
     
@@ -2834,7 +2910,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       }
       return 0;
     });
-  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue, sortConfigs, groupFilter]);
+  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue, sortConfigs, groupFilter, triggeredFromDate, triggeredFromTime, triggeredToDate, triggeredToTime]);
 
   // Get selected alerts data for silence modal
   const selectedAlertsData = React.useMemo(() => {
@@ -2871,7 +2947,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
         case 'severity':
           groupKey = agg.severity;
           break;
-        case 'alertRule':
+        case 'alertName':
           groupKey = agg.alertName;
           break;
         case 'impact':
@@ -3050,12 +3126,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               onClick={() => setIsGroupByOpen(!isGroupByOpen)}
                               isExpanded={isGroupByOpen}
                             >
-                              Group by: {groupBy === 'none' ? 'None' : groupBy === 'alertRule' ? 'Alert rule' : groupBy === 'impact' ? 'Impact group' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                              Group by: {groupBy === 'none' ? 'None' : groupBy === 'alertName' ? 'Alert name' : groupBy === 'impact' ? 'Impact group' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </MenuToggle>
                           )}
                         >
                           <DropdownList>
-                            {(['none', 'time', 'severity', 'alertRule', 'impact', 'component'] as AlertsGroupByOption[]).map(option => (
+                            {(['none', 'time', 'severity', 'alertName', 'impact', 'component'] as AlertsGroupByOption[]).map(option => (
                               <DropdownItem 
                                 key={option}
                                 onClick={() => {
@@ -3066,7 +3142,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                 }}
                               >
                                 <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                                  <FlexItem>{option === 'none' ? 'None' : option === 'alertRule' ? 'Alert rule' : option === 'impact' ? 'Impact group' : option.charAt(0).toUpperCase() + option.slice(1)}</FlexItem>
+                                  <FlexItem>{option === 'none' ? 'None' : option === 'alertName' ? 'Alert name' : option === 'impact' ? 'Impact group' : option.charAt(0).toUpperCase() + option.slice(1)}</FlexItem>
                                   {groupBy === option && (
                                     <FlexItem>
                                       <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
@@ -3660,20 +3736,19 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           thProps.stickyLeftOffset = "90px";
                         }
                         
-                        // Column content with optional tooltip icon
-                        let columnContent: React.ReactNode = col.label;
-                        
+                        // Add info tooltips using PatternFly's info prop
                         if (col.key === 'group') {
-                          columnContent = (
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                              <FlexItem>{col.label}</FlexItem>
-                              <FlexItem>
-                                <Tooltip content="Categorize your alerts by a high-level domain, such as cluster or namespace, and then by the specific component like a database or web server. This organization helps you quickly identify, prioritize, and route alerts to the right team so you can reduce noise and improve response times.">
-                                  <QuestionCircleIcon style={{ cursor: 'help', color: 'var(--pf-t--global--icon--color--subtle)' }} />
-                                </Tooltip>
-                              </FlexItem>
-                            </Flex>
-                          );
+                          thProps.info = {
+                            tooltip: "Categorize your alerts by a high-level domain, such as cluster or namespace, and then by the specific component like a database or web server. This organization helps you quickly identify, prioritize, and route alerts to the right team so you can reduce noise and improve response times.",
+                            ariaLabel: "More information about impact group"
+                          };
+                        }
+                        
+                        if (col.key === 'component') {
+                          thProps.info = {
+                            tooltip: "The component is the specific OpenShift service or operator that is the subject of the alert.",
+                            ariaLabel: "More information about component"
+                          };
                         }
                         
                         if (canSort) {
@@ -3687,7 +3762,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           };
                         }
                         
-                        return <Th {...thProps}>{columnContent}</Th>;
+                        return <Th {...thProps}>{col.label}</Th>;
                       })}
                     </Tr>
                   </Thead>
@@ -4773,7 +4848,29 @@ interface AlertsTimelineCardProps {
   trendData: TrendData[];
 }
 
+type TimeRange = '1h' | '6h' | '24h' | '7d' | 'custom';
+
 const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) => {
+  const [timeRange, setTimeRange] = React.useState<TimeRange>('6h');
+  const [selectedAnomaly, setSelectedAnomaly] = React.useState<{ timestamp: string; index: number } | null>(null);
+
+  // Detect anomalies (simple threshold-based detection)
+  const detectAnomalies = React.useMemo(() => {
+    const totals = trendData.map(d => d.critical + d.warning + d.info);
+    const avg = totals.reduce((a, b) => a + b, 0) / totals.length;
+    const threshold = avg * 2; // 200% increase
+    
+    return trendData.map((d, i) => {
+      const total = d.critical + d.warning + d.info;
+      return total > threshold ? { index: i, value: total, timestamp: d.timestamp, increase: Math.round((total / avg - 1) * 100) } : null;
+    }).filter(Boolean);
+  }, [trendData]);
+
+  const hasAnomaly = detectAnomalies.length > 0;
+  const mostSignificantAnomaly = detectAnomalies.length > 0 ? detectAnomalies[0] : null;
+
+  const chartRef = React.useRef<any>(null);
+
   const option = {
     tooltip: {
       trigger: 'axis',
@@ -4835,19 +4932,197 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
         lineStyle: { color: '#6753ac' },
         areaStyle: { color: '#6753ac', opacity: 0.3 },
       },
+      // Anomaly markers
+      ...(detectAnomalies.length > 0 ? [{
+        name: 'Anomaly',
+        type: 'scatter',
+        data: detectAnomalies.map(anomaly => [anomaly!.index, anomaly!.value]),
+        symbol: 'circle',
+        symbolSize: 12,
+        itemStyle: {
+          color: '#c9190b',
+          borderColor: '#fff',
+          borderWidth: 2,
+        },
+        emphasis: {
+          itemStyle: {
+            color: '#c9190b',
+            borderColor: '#fff',
+            borderWidth: 3,
+            shadowBlur: 10,
+            shadowColor: 'rgba(201, 25, 11, 0.5)',
+          },
+        },
+        zlevel: 10,
+      }] : []),
     ],
+  };
+
+  const handleChartClick = (params: any) => {
+    if (params.seriesName === 'Anomaly') {
+      const anomaly = detectAnomalies[params.dataIndex];
+      if (anomaly) {
+        setSelectedAnomaly({ timestamp: anomaly.timestamp, index: anomaly.index });
+      }
+    }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Alert Trend (Last 6 Hours)</CardTitle>
+        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            <CardTitle>Alert velocity & trends</CardTitle>
+          </FlexItem>
+          <FlexItem>
+            <ToggleGroup aria-label="Time range selector">
+              <ToggleGroupItem
+                text="1h"
+                isSelected={timeRange === '1h'}
+                onChange={() => setTimeRange('1h')}
+              />
+              <ToggleGroupItem
+                text="6h"
+                isSelected={timeRange === '6h'}
+                onChange={() => setTimeRange('6h')}
+              />
+              <ToggleGroupItem
+                text="24h"
+                isSelected={timeRange === '24h'}
+                onChange={() => setTimeRange('24h')}
+              />
+              <ToggleGroupItem
+                text="7d"
+                isSelected={timeRange === '7d'}
+                onChange={() => setTimeRange('7d')}
+              />
+              <ToggleGroupItem
+                text="Custom"
+                isSelected={timeRange === 'custom'}
+                onChange={() => setTimeRange('custom')}
+              />
+            </ToggleGroup>
+          </FlexItem>
+        </Flex>
       </CardHeader>
       <CardBody>
-        <div style={{ height: '300px', width: '100%' }}>
-          <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
-        </div>
+        <Stack hasGutter>
+          {hasAnomaly && (
+            <StackItem>
+              <PfAlert variant="warning" isInline title="Anomaly detected" style={{ marginBottom: '16px' }}>
+                <Content component="p">
+                  Unusual spike detected in alert volume. Click on the highlighted point in the chart to investigate.
+                </Content>
+              </PfAlert>
+            </StackItem>
+          )}
+          <StackItem>
+            <div style={{ height: '300px', width: '100%' }}>
+              <ReactECharts 
+                ref={chartRef}
+                option={option} 
+                style={{ height: '100%', width: '100%', cursor: 'pointer' }} 
+                onEvents={{ click: handleChartClick }}
+              />
+            </div>
+          </StackItem>
+          {mostSignificantAnomaly && (
+            <StackItem>
+              <PfAlert variant="info" isInline title="Trends Insights">
+                <Content component="p">
+                  Volume increased {mostSignificantAnomaly.increase}% at {mostSignificantAnomaly.timestamp}. Major clusters Prod-01 and Stage-02 report Disk Pressure.
+                </Content>
+              </PfAlert>
+            </StackItem>
+          )}
+        </Stack>
       </CardBody>
+      
+      {/* Popover-style floating card for anomaly details */}
+      {selectedAnomaly && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 9999,
+            maxWidth: '400px',
+            backgroundColor: 'var(--pf-t--global--background--color--primary--default, #fff)',
+            border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+            borderRadius: 'var(--pf-t--global--border--radius--medium, 8px)',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+          }}
+        >
+          <Card isPlain>
+            <CardHeader>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <CardTitle>Anomaly at {selectedAnomaly.timestamp}</CardTitle>
+                </FlexItem>
+                <FlexItem>
+                  <Button 
+                    variant="plain" 
+                    aria-label="Close"
+                    onClick={() => setSelectedAnomaly(null)}
+                  >
+                    <TimesIcon />
+                  </Button>
+                </FlexItem>
+              </Flex>
+            </CardHeader>
+            <CardBody>
+              <Stack hasGutter>
+                <StackItem>
+                  <Content component="p">
+                    This spike represents an unusual increase in alert volume.
+                  </Content>
+                </StackItem>
+                <StackItem>
+                  <Button 
+                    variant="link" 
+                    isInline
+                    onClick={() => {
+                      setSelectedAnomaly(null);
+                      // Navigate to alert details
+                    }}
+                  >
+                    View alert details →
+                  </Button>
+                </StackItem>
+                <StackItem>
+                  <Button 
+                    variant="link" 
+                    isInline
+                    onClick={() => {
+                      setSelectedAnomaly(null);
+                      // Navigate to incidents tab
+                    }}
+                  >
+                    Review in Incidents tab →
+                  </Button>
+                </StackItem>
+              </Stack>
+            </CardBody>
+          </Card>
+        </div>
+      )}
+      
+      {/* Backdrop overlay when popover is open */}
+      {selectedAnomaly && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            zIndex: 9998,
+          }}
+          onClick={() => setSelectedAnomaly(null)}
+        />
+      )}
     </Card>
   );
 };
@@ -5396,7 +5671,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [selectedClusterForAlerts, setSelectedClusterForAlerts] = React.useState<ClusterData | null>(null);
   
   // Firing Alerts grouping
-  type AlertsGroupByOption = 'none' | 'time' | 'severity' | 'alertRule' | 'impact' | 'component';
+  type AlertsGroupByOption = 'none' | 'time' | 'severity' | 'alertName' | 'impact' | 'component';
   const [alertsGroupBy, setAlertsGroupBy] = React.useState<AlertsGroupByOption>('none');
   const [isAlertsGroupByOpen, setIsAlertsGroupByOpen] = React.useState(false);
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
@@ -5436,6 +5711,26 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [sortBy, setSortBy] = React.useState<SortByOption>('severity');
   const [importanceSizing, setImportanceSizing] = React.useState<ImportanceSizing>('nodeCount');
   const [userRole] = React.useState<UserRole>('admin');
+  
+  // Environment grouping settings
+  const [environmentCategories, setEnvironmentCategories] = React.useState<EnvironmentCategory[]>([
+    { id: 'production', label: 'Production', color: 'red', patterns: ['prod-', 'prd-', 'live-'] },
+    { id: 'staging', label: 'Staging', color: 'orange', patterns: ['staging-', 'stg-'] },
+    { id: 'development', label: 'Development', color: 'blue', patterns: ['dev-', 'development-'] },
+  ]);
+  const [isEnvironmentSettingsOpen, setIsEnvironmentSettingsOpen] = React.useState(false);
+  const [tempEnvironmentCategories, setTempEnvironmentCategories] = React.useState<EnvironmentCategory[]>([]);
+  const [newPatternInputs, setNewPatternInputs] = React.useState<Record<string, string>>({});
+  
+  // Team grouping settings
+  const [teamCategories, setTeamCategories] = React.useState<TeamCategory[]>([
+    { id: 'platform', label: 'Platform', color: 'blue', patterns: ['platform-', 'infra-', 'core-'] },
+    { id: 'applications', label: 'Applications', color: 'green', patterns: ['app-', 'service-'] },
+    { id: 'data', label: 'Data', color: 'purple', patterns: ['data-', 'db-', 'analytics-'] },
+  ]);
+  const [isTeamSettingsOpen, setIsTeamSettingsOpen] = React.useState(false);
+  const [tempTeamCategories, setTempTeamCategories] = React.useState<TeamCategory[]>([]);
+  const [newTeamPatternInputs, setNewTeamPatternInputs] = React.useState<Record<string, string>>({});
   
   // Table sorting state
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | null>(null);
@@ -5995,7 +6290,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
     labelFilter.length > 0 || severityFilter.length > 0 || (groupFilter.length > 0 && groupFilter.length < 2) || componentFilter.length > 0 || searchValue.length > 0 ||
-    selectedClusterInCard !== null || selectedClusterForAlerts !== null || mainComponentFilter !== null || mainAlertNameFilter !== null;
+    selectedClusterInCard !== null || selectedClusterForAlerts !== null || mainComponentFilter !== null || mainAlertNameFilter !== null ||
+    triggeredFromDate.length > 0 || triggeredFromTime.length > 0 || triggeredToDate.length > 0 || triggeredToTime.length > 0;
 
   const hasDrillDownActiveFilters = drillDownSeverityFilter.length > 0 || drillDownGroupFilter.length > 0 || 
     drillDownComponentFilter.length > 0 || drillDownSourceFilter.length > 0 || drillDownStateFilter.length > 0 ||
@@ -7459,7 +7755,15 @@ spec:
                 icon={<FilterIcon />}
                 onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
               >
-                Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{regionFilter.length + clusterFilter.length + severityFilter.length + groupFilter.length + componentFilter.length}</Badge>}
+                Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{
+                  regionFilter.length + 
+                  clusterFilter.length + 
+                  severityFilter.length + 
+                  groupFilter.length + 
+                  componentFilter.length + 
+                  (triggeredFromDate || triggeredFromTime ? 1 : 0) + 
+                  (triggeredToDate || triggeredToTime ? 1 : 0)
+                }</Badge>}
               </Button>
             </ToolbarItem>
             {/* Search Input - Third - Changes scope based on tab */}
@@ -7560,6 +7864,34 @@ spec:
                     {labelFilter.map(l => (
                       <Label key={l} variant="outline" onClose={() => setLabelFilter(labelFilter.filter(x => x !== l))}>{l}</Label>
                     ))}
+                  </LabelGroup>
+                )}
+                {(triggeredFromDate || triggeredFromTime || triggeredToDate || triggeredToTime) && (
+                  <LabelGroup categoryName="Triggered">
+                    {(triggeredFromDate || triggeredFromTime) && (
+                      <Label 
+                        key="from" 
+                        variant="outline" 
+                        onClose={() => {
+                          setTriggeredFromDate('');
+                          setTriggeredFromTime('');
+                        }}
+                      >
+                        From: {triggeredFromDate || 'today'} {triggeredFromTime || '00:00'}
+                      </Label>
+                    )}
+                    {(triggeredToDate || triggeredToTime) && (
+                      <Label 
+                        key="to" 
+                        variant="outline" 
+                        onClose={() => {
+                          setTriggeredToDate('');
+                          setTriggeredToTime('');
+                        }}
+                      >
+                        To: {triggeredToDate || 'today'} {triggeredToTime || '23:59'}
+                      </Label>
+                    )}
                   </LabelGroup>
                 )}
                 {mainComponentFilter && (
@@ -7832,10 +8164,20 @@ spec:
                                     isDisabled={viewMode === 'summary'}
                                     style={{ width: '140px' }}
                                   >
-                                    {groupBy === 'none' ? 'None' : groupBy === 'cloudProvider' ? 'Provider' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                                    {groupBy === 'none' ? 'None' : groupBy === 'cloudProvider' ? 'Provider' : groupBy === 'environment' ? 'Environment' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                                   </MenuToggle>
                                 )}
-                                onSelect={(_, value) => { setGroupBy(value as GroupByOption); setIsGroupByOpen(false); }}
+                                onSelect={(_, value) => { 
+                                  if (value === 'environment-settings') {
+                                    setTempEnvironmentCategories([...environmentCategories]);
+                                    setNewPatternInputs({});
+                                    setIsEnvironmentSettingsOpen(true);
+                                    setIsGroupByOpen(false);
+                                  } else {
+                                    setGroupBy(value as GroupByOption); 
+                                    setIsGroupByOpen(false);
+                                  }
+                                }}
                                 isOpen={isGroupByOpen}
                                 onOpenChange={setIsGroupByOpen}
                                 selected={groupBy}
@@ -7844,8 +8186,47 @@ spec:
                                   <SelectOption value="none">None</SelectOption>
                                   <SelectOption value="region">Region</SelectOption>
                                   <SelectOption value="cloudProvider">Cloud Provider</SelectOption>
-                                  <SelectOption value="team">Team</SelectOption>
+                                  <SelectOption value="team">
+                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                      <FlexItem>Team</FlexItem>
+                                      <FlexItem>
+                                        <Button
+                                          variant="plain"
+                                          size="sm"
+                                          icon={<EditAltIcon />}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setTempTeamCategories([...teamCategories]);
+                                            setNewTeamPatternInputs({});
+                                            setIsTeamSettingsOpen(true);
+                                            setIsGroupByOpen(false);
+                                          }}
+                                          aria-label="Configure team settings"
+                                        />
+                                      </FlexItem>
+                                    </Flex>
+                                  </SelectOption>
                                   <SelectOption value="severity">Severity</SelectOption>
+                                  <SelectOption value="environment">
+                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                      <FlexItem>Environment</FlexItem>
+                                      <FlexItem>
+                                        <Button
+                                          variant="plain"
+                                          size="sm"
+                                          icon={<EditAltIcon />}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setTempEnvironmentCategories([...environmentCategories]);
+                                            setNewPatternInputs({});
+                                            setIsEnvironmentSettingsOpen(true);
+                                            setIsGroupByOpen(false);
+                                          }}
+                                          aria-label="Configure environment settings"
+                                        />
+                                      </FlexItem>
+                                    </Flex>
+                                  </SelectOption>
                                 </SelectList>
                               </Select>
                             </Flex>
@@ -8236,6 +8617,8 @@ spec:
                         severityFilter={severityFilter}
                         onDrillDown={handleDrillDown}
                         activeLegendFilters={treemapLegendFilters}
+                        environmentCategories={environmentCategories}
+                        teamCategories={teamCategories}
                         onLegendClick={(status) => {
                           setTreemapLegendFilters(prev => {
                             if (prev.includes(status)) {
@@ -8646,6 +9029,10 @@ spec:
                   singleClusterView={firingAlertsCardView === 'single-cluster'}
                   groupBy={alertsGroupBy}
                   onGroupByChange={setAlertsGroupBy}
+                  triggeredFromDate={triggeredFromDate}
+                  triggeredFromTime={triggeredFromTime}
+                  triggeredToDate={triggeredToDate}
+                  triggeredToTime={triggeredToTime}
                 />
               </StackItem>
             </Stack>
@@ -10679,6 +11066,352 @@ spec:
             setIsDisableAlertRuleModalOpen(false);
             setAlertRulesToDisable([]);
           }}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Environment Grouping Settings Modal */}
+      <Modal
+        isOpen={isEnvironmentSettingsOpen}
+        onClose={() => setIsEnvironmentSettingsOpen(false)}
+        variant="medium"
+        aria-labelledby="environment-settings-modal-title"
+      >
+        <ModalHeader
+          title="Environment grouping settings"
+          labelId="environment-settings-modal-title"
+        />
+        <ModalBody>
+          <Stack hasGutter>
+            <StackItem>
+              <PfAlert variant="info" isInline title="Group your clusters by mapping name patterns to specific environments">
+                <Content component="p">
+                  Group your clusters by mapping name patterns to specific environments. We process these rules in order—the first match determines the cluster's group.
+                </Content>
+              </PfAlert>
+            </StackItem>
+            
+            {tempEnvironmentCategories.map((category, categoryIdx) => (
+              <StackItem key={category.id}>
+                <Card>
+                  <CardBody>
+                    <Stack hasGutter>
+                      <StackItem>
+                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <FlexItem>
+                            <Content component="h4">
+                              <strong>Category label</strong>
+                            </Content>
+                          </FlexItem>
+                          <FlexItem>
+                            <Button
+                              variant="plain"
+                              icon={<TrashIcon />}
+                              aria-label="Delete category"
+                              onClick={() => {
+                                setTempEnvironmentCategories(tempEnvironmentCategories.filter((_, idx) => idx !== categoryIdx));
+                              }}
+                            />
+                          </FlexItem>
+                        </Flex>
+                      </StackItem>
+                      <StackItem>
+                        <TextInput
+                          value={category.label}
+                          onChange={(_, value) => {
+                            const updated = [...tempEnvironmentCategories];
+                            updated[categoryIdx] = { ...updated[categoryIdx], label: value };
+                            setTempEnvironmentCategories(updated);
+                          }}
+                          aria-label="Category label"
+                        />
+                      </StackItem>
+                      <StackItem>
+                        <Content component="h4">
+                          <strong>Matching patterns</strong>
+                        </Content>
+                      </StackItem>
+                      <StackItem>
+                        <LabelGroup>
+                          {category.patterns.map((pattern, patternIdx) => (
+                            <Label
+                              key={patternIdx}
+                              color="grey"
+                              onClose={() => {
+                                const updated = [...tempEnvironmentCategories];
+                                updated[categoryIdx] = {
+                                  ...updated[categoryIdx],
+                                  patterns: updated[categoryIdx].patterns.filter((_, idx) => idx !== patternIdx),
+                                };
+                                setTempEnvironmentCategories(updated);
+                              }}
+                            >
+                              {pattern}
+                            </Label>
+                          ))}
+                        </LabelGroup>
+                      </StackItem>
+                      <StackItem>
+                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <FlexItem flex={{ default: 'flex_1' }}>
+                            <TextInput
+                              value={newPatternInputs[category.id] || ''}
+                              onChange={(_, value) => {
+                                setNewPatternInputs({ ...newPatternInputs, [category.id]: value });
+                              }}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter' && newPatternInputs[category.id]?.trim()) {
+                                  const updated = [...tempEnvironmentCategories];
+                                  updated[categoryIdx] = {
+                                    ...updated[categoryIdx],
+                                    patterns: [...updated[categoryIdx].patterns, newPatternInputs[category.id].trim()],
+                                  };
+                                  setTempEnvironmentCategories(updated);
+                                  setNewPatternInputs({ ...newPatternInputs, [category.id]: '' });
+                                }
+                              }}
+                              placeholder="Enter pattern (e.g., prod-)"
+                              aria-label="New pattern"
+                            />
+                          </FlexItem>
+                          <FlexItem>
+                            <Button
+                              variant="link"
+                              icon={<PlusCircleIcon />}
+                              onClick={() => {
+                                if (newPatternInputs[category.id]?.trim()) {
+                                  const updated = [...tempEnvironmentCategories];
+                                  updated[categoryIdx] = {
+                                    ...updated[categoryIdx],
+                                    patterns: [...updated[categoryIdx].patterns, newPatternInputs[category.id].trim()],
+                                  };
+                                  setTempEnvironmentCategories(updated);
+                                  setNewPatternInputs({ ...newPatternInputs, [category.id]: '' });
+                                }
+                              }}
+                              isDisabled={!newPatternInputs[category.id]?.trim()}
+                            >
+                              Add pattern
+                            </Button>
+                          </FlexItem>
+                        </Flex>
+                      </StackItem>
+                    </Stack>
+                  </CardBody>
+                </Card>
+              </StackItem>
+            ))}
+            
+            <StackItem>
+              <Button
+                variant="link"
+                icon={<PlusIcon />}
+                onClick={() => {
+                  const newId = `category-${Date.now()}`;
+                  setTempEnvironmentCategories([
+                    ...tempEnvironmentCategories,
+                    {
+                      id: newId,
+                      label: 'New Category',
+                      color: 'purple',
+                      patterns: [],
+                    },
+                  ]);
+                }}
+              >
+                Add category
+              </Button>
+            </StackItem>
+          </Stack>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setEnvironmentCategories(tempEnvironmentCategories);
+              setIsEnvironmentSettingsOpen(false);
+            }}
+          >
+            Save changes
+          </Button>
+          <Button
+            variant="link"
+            onClick={() => setIsEnvironmentSettingsOpen(false)}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Team Grouping Settings Modal */}
+      <Modal
+        isOpen={isTeamSettingsOpen}
+        onClose={() => setIsTeamSettingsOpen(false)}
+        variant="medium"
+        aria-labelledby="team-settings-modal-title"
+      >
+        <ModalHeader
+          title="Team grouping settings"
+          labelId="team-settings-modal-title"
+        />
+        <ModalBody>
+          <Stack hasGutter>
+            <StackItem>
+              <PfAlert variant="info" isInline title="Group your clusters by mapping name patterns to specific teams">
+                <Content component="p">
+                  Group your clusters by mapping name patterns to specific teams. We process these rules in order—the first match determines the cluster's group.
+                </Content>
+              </PfAlert>
+            </StackItem>
+            
+            {tempTeamCategories.map((category, categoryIdx) => (
+              <StackItem key={category.id}>
+                <Card>
+                  <CardBody>
+                    <Stack hasGutter>
+                      <StackItem>
+                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <FlexItem>
+                            <Content component="h4">
+                              <strong>Category label</strong>
+                            </Content>
+                          </FlexItem>
+                          <FlexItem>
+                            <Button
+                              variant="plain"
+                              icon={<TrashIcon />}
+                              aria-label="Delete category"
+                              onClick={() => {
+                                setTempTeamCategories(tempTeamCategories.filter((_, idx) => idx !== categoryIdx));
+                              }}
+                            />
+                          </FlexItem>
+                        </Flex>
+                      </StackItem>
+                      <StackItem>
+                        <TextInput
+                          value={category.label}
+                          onChange={(_, value) => {
+                            const updated = [...tempTeamCategories];
+                            updated[categoryIdx] = { ...updated[categoryIdx], label: value };
+                            setTempTeamCategories(updated);
+                          }}
+                          aria-label="Category label"
+                        />
+                      </StackItem>
+                      <StackItem>
+                        <Content component="h4">
+                          <strong>Matching patterns</strong>
+                        </Content>
+                      </StackItem>
+                      <StackItem>
+                        <LabelGroup>
+                          {category.patterns.map((pattern, patternIdx) => (
+                            <Label
+                              key={patternIdx}
+                              color="grey"
+                              onClose={() => {
+                                const updated = [...tempTeamCategories];
+                                updated[categoryIdx] = {
+                                  ...updated[categoryIdx],
+                                  patterns: updated[categoryIdx].patterns.filter((_, idx) => idx !== patternIdx),
+                                };
+                                setTempTeamCategories(updated);
+                              }}
+                            >
+                              {pattern}
+                            </Label>
+                          ))}
+                        </LabelGroup>
+                      </StackItem>
+                      <StackItem>
+                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <FlexItem flex={{ default: 'flex_1' }}>
+                            <TextInput
+                              value={newTeamPatternInputs[category.id] || ''}
+                              onChange={(_, value) => {
+                                setNewTeamPatternInputs({ ...newTeamPatternInputs, [category.id]: value });
+                              }}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter' && newTeamPatternInputs[category.id]?.trim()) {
+                                  const updated = [...tempTeamCategories];
+                                  updated[categoryIdx] = {
+                                    ...updated[categoryIdx],
+                                    patterns: [...updated[categoryIdx].patterns, newTeamPatternInputs[category.id].trim()],
+                                  };
+                                  setTempTeamCategories(updated);
+                                  setNewTeamPatternInputs({ ...newTeamPatternInputs, [category.id]: '' });
+                                }
+                              }}
+                              placeholder="Enter pattern (e.g., platform-)"
+                              aria-label="New pattern"
+                            />
+                          </FlexItem>
+                          <FlexItem>
+                            <Button
+                              variant="link"
+                              icon={<PlusCircleIcon />}
+                              onClick={() => {
+                                if (newTeamPatternInputs[category.id]?.trim()) {
+                                  const updated = [...tempTeamCategories];
+                                  updated[categoryIdx] = {
+                                    ...updated[categoryIdx],
+                                    patterns: [...updated[categoryIdx].patterns, newTeamPatternInputs[category.id].trim()],
+                                  };
+                                  setTempTeamCategories(updated);
+                                  setNewTeamPatternInputs({ ...newTeamPatternInputs, [category.id]: '' });
+                                }
+                              }}
+                              isDisabled={!newTeamPatternInputs[category.id]?.trim()}
+                            >
+                              Add pattern
+                            </Button>
+                          </FlexItem>
+                        </Flex>
+                      </StackItem>
+                    </Stack>
+                  </CardBody>
+                </Card>
+              </StackItem>
+            ))}
+            
+            <StackItem>
+              <Button
+                variant="link"
+                icon={<PlusIcon />}
+                onClick={() => {
+                  const newId = `category-${Date.now()}`;
+                  setTempTeamCategories([
+                    ...tempTeamCategories,
+                    {
+                      id: newId,
+                      label: 'New Category',
+                      color: 'purple',
+                      patterns: [],
+                    },
+                  ]);
+                }}
+              >
+                Add category
+              </Button>
+            </StackItem>
+          </Stack>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setTeamCategories(tempTeamCategories);
+              setIsTeamSettingsOpen(false);
+            }}
+          >
+            Save changes
+          </Button>
+          <Button
+            variant="link"
+            onClick={() => setIsTeamSettingsOpen(false)}
+          >
             Cancel
           </Button>
         </ModalFooter>
