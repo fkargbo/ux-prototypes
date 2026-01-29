@@ -454,10 +454,10 @@ button[aria-label="View task details"] {
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] {
-  /* Interactive blue filled selected state */
-  background-color: var(--pf-t--global--color--interactive--default, #0066cc) !important;
-  border-color: var(--pf-t--global--color--interactive--default, #0066cc) !important;
-  color: var(--pf-t--global--text--color--on-brand--default, #fff) !important;
+  /* Activated chip background (matches chatbot-style selection) */
+  background-color: #9FCCF7 !important;
+  border-color: #9FCCF7 !important;
+  color: var(--pf-t--global--text--color--default, #151515) !important;
 }
 
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__content,
@@ -468,15 +468,15 @@ button[aria-label="View task details"] {
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__text,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__text,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__text {
-  color: var(--pf-t--global--text--color--on-brand--default, #fff) !important;
+  color: var(--pf-t--global--text--color--default, #151515) !important;
 }
 
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked:hover,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active:hover,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected:hover,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"]:hover {
-  background-color: var(--pf-t--global--color--interactive--hover, var(--pf-t--global--color--interactive--default, #0066cc)) !important;
-  border-color: var(--pf-t--global--color--interactive--hover, var(--pf-t--global--color--interactive--default, #0066cc)) !important;
+  background-color: #9FCCF7 !important;
+  border-color: #9FCCF7 !important;
 }
 
 /* Ensure the check icon inherits the selected (white) color */
@@ -484,5 +484,5 @@ button[aria-label="View task details"] {
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__icon,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__icon,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__icon {
-  color: var(--pf-t--global--text--color--on-brand--default, #fff) !important;
+  color: var(--pf-t--global--text--color--default, #151515) !important;
 }
