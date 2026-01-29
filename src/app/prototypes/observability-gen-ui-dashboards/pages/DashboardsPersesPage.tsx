@@ -1279,32 +1279,32 @@ export const DashboardsPersesPage: React.FC = () => {
         isLoading: false,
         timestamp: date.toLocaleString(),
         extraContent: (
-          <Alert
-            variant="danger"
-            isInline
-            title="KubeCPUOvercommit Analysis"
-            style={{ marginTop: '16px', marginBottom: '16px' }}
-          >
-            <Content style={{ marginTop: '8px' }}>
-              I've analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.
-            </Content>
-          </Alert>
-        ) as any,
-        quickResponses: [
-          {
-            id: 'analyze-root-cause',
-            content: 'Analyze Root Cause',
-            onClick: () => handleStage2()
-          },
-          {
-            id: 'check-node-capacity',
-            content: 'Check Node Capacity',
-            onClick: () => {
-              console.log('Check Node Capacity clicked');
-              // Will implement in next step
-            }
-          }
-        ]
+          <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+            <Alert variant="danger" isInline title="KubeCPUOvercommit Analysis">
+              <Content style={{ marginTop: '8px' }}>
+                I've analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.
+              </Content>
+            </Alert>
+            <div style={{ marginTop: '12px' }}>
+              <Flex wrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
+                <Button className="chatbot-suggestion-chip" variant="secondary" isSmall onClick={() => handleStage2()}>
+                  Analyze Root Cause
+                </Button>
+                <Button
+                  className="chatbot-suggestion-chip"
+                  variant="secondary"
+                  isSmall
+                  onClick={() => {
+                    console.log('Check Node Capacity clicked');
+                    // Will implement in next step
+                  }}
+                >
+                  Check Node Capacity
+                </Button>
+              </Flex>
+            </div>
+          </div>
+        ) as any
       };
       
       setMessages((prev) => {
@@ -1431,24 +1431,27 @@ export const DashboardsPersesPage: React.FC = () => {
                   }}
                 />
               </div>
+              <div style={{ marginTop: '12px' }}>
+                <Flex wrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
+                  <Button className="chatbot-suggestion-chip" variant="secondary" isSmall onClick={() => handleStage3()}>
+                    Generate Troubleshooting Dashboard
+                  </Button>
+                  <Button
+                    className="chatbot-suggestion-chip"
+                    variant="secondary"
+                    isSmall
+                    onClick={() => {
+                      console.log('Scale Down Replicas clicked');
+                      // Will implement in next step
+                    }}
+                  >
+                    Scale Down Replicas
+                  </Button>
+                </Flex>
+              </div>
             </div>
           )
-        },
-        quickResponses: [
-          {
-            id: 'generate-dashboard',
-            content: 'Generate Troubleshooting Dashboard',
-            onClick: () => handleStage3()
-          },
-          {
-            id: 'scale-down-replicas',
-            content: 'Scale Down Replicas',
-            onClick: () => {
-              console.log('Scale Down Replicas clicked');
-              // Will implement in next step
-            }
-          }
-        ]
+        }
       };
       
       setMessages((prev) => {
@@ -1493,24 +1496,36 @@ export const DashboardsPersesPage: React.FC = () => {
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
-        quickResponses: [
-          {
-            id: 'save-dashboard',
-            content: 'Save Dashboard',
-            onClick: () => {
-              console.log('Save Dashboard clicked');
-              // Will implement in next step
-            }
-          },
-          {
-            id: 'execute-scale-down',
-            content: 'Execute Scale Down',
-            onClick: () => {
-              console.log('Execute Scale Down clicked');
-              // Will implement in next step
-            }
-          }
-        ]
+        extraContent: {
+          afterMainContent: (
+            <div style={{ marginTop: '12px' }}>
+              <Flex wrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
+                <Button
+                  className="chatbot-suggestion-chip"
+                  variant="secondary"
+                  isSmall
+                  onClick={() => {
+                    console.log('Save Dashboard clicked');
+                    // Will implement in next step
+                  }}
+                >
+                  Save Dashboard
+                </Button>
+                <Button
+                  className="chatbot-suggestion-chip"
+                  variant="secondary"
+                  isSmall
+                  onClick={() => {
+                    console.log('Execute Scale Down clicked');
+                    // Will implement in next step
+                  }}
+                >
+                  Execute Scale Down
+                </Button>
+              </Flex>
+            </div>
+          )
+        }
       };
       
       setMessages((prev) => {
