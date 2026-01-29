@@ -333,7 +333,7 @@ button[aria-label="View task details"] {
 .chatbot-toggle-sticky-host {
   /* Sticky within the page container scroll viewport */
   position: sticky;
-  bottom: 24px;
+  bottom: 0;
   height: 0;
   z-index: 10000;
   display: flex;
