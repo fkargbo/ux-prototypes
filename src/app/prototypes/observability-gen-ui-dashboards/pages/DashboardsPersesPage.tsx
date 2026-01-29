@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import * as echarts from 'echarts';
 import {
   Title,
   Content,
   Breadcrumb,
   BreadcrumbItem,
-  PageSection,
   Drawer,
   DrawerContent,
   DrawerContentBody,
@@ -37,11 +37,24 @@ import {
   Stack,
   StackItem,
   ExpandableSection,
+  Bullseye,
   Alert,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateActions,
+  Card,
+  CardTitle,
+  CardBody,
+  CardHeader,
+  DescriptionList,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
+  Grid,
+  GridItem,
+  Icon,
+  Spinner,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -56,8 +69,14 @@ import {
   PlusIcon,
   BellIcon,
   ExclamationTriangleIcon,
+  ExclamationCircleIcon,
+  CheckIcon,
   ExternalLinkAltIcon,
   AngleRightIcon,
+  CubesIcon,
+  ServerIcon,
+  CpuIcon,
+  ClockIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -67,14 +86,30 @@ import {
   Th,
   Td,
 } from '@patternfly/react-table';
-import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/esm/Chatbot';
-import ChatbotContent from '@patternfly/chatbot/dist/esm/ChatbotContent';
-import ChatbotWelcomePrompt from '@patternfly/chatbot/dist/esm/ChatbotWelcomePrompt';
-import ChatbotFooter, { ChatbotFootnote } from '@patternfly/chatbot/dist/esm/ChatbotFooter';
-import ChatbotToggle from '@patternfly/chatbot/dist/esm/ChatbotToggle';
-import { MessageBar } from '@patternfly/chatbot/dist/esm/MessageBar';
-import { MessageBox } from '@patternfly/chatbot/dist/esm/MessageBox';
-import Message, { MessageProps } from '@patternfly/chatbot/dist/esm/Message';
+import {
+  ChartBar,
+  ChartGroup,
+  ChartAxis,
+  ChartThemeColor,
+  ChartArea,
+  ChartLine,
+  ChartDonut,
+  ChartLegend,
+  ChartVoronoiContainer,
+  ChartDonutUtilization,
+  ChartDonutThreshold,
+  ChartContainer,
+  ChartLabel,
+} from '@patternfly/react-charts/victory';
+import { Charts } from '@patternfly/react-charts/echarts';
+import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
+import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
+import ChatbotWelcomePrompt from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
+import ChatbotFooter, { ChatbotFootnote } from '@patternfly/chatbot/dist/dynamic/ChatbotFooter';
+import ChatbotToggle from '@patternfly/chatbot/dist/dynamic/ChatbotToggle';
+import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
+import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
+import Message, { MessageProps } from '@patternfly/chatbot/dist/dynamic/Message';
 import ChatbotHeader, {
   ChatbotHeaderMenu,
   ChatbotHeaderMain,
@@ -84,6 +119,31 @@ import ChatbotHeader, {
 } from '@patternfly/chatbot/dist/esm/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
+
+// Import custom profile images
+import userProfilePicUrl from '../assets/user-profile.png';
+import botProfilePicUrl from '../assets/bot-profile.png';
+
+// Helper function to create SVG data URL
+const createIconDataUrl = (svgContent: string): string => {
+  const encoded = encodeURIComponent(svgContent);
+  return `data:image/svg+xml;charset=utf-8,${encoded}`;
+};
+
+// Simple SVG icons as data URLs
+// User icon - simple person silhouette
+const userIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="64" height="64">
+  <path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"/>
+</svg>`;
+
+// Robot icon - simple robot head
+const robotIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="64" height="64">
+  <path fill="currentColor" d="M32 224h32v192H32c-17.7 0-32-14.3-32-32V256c0-17.7 14.3-32 32-32zm544-32c17.7 0 32 14.3 32 32v128c0 17.7-14.3 32-32 32h-32V224h32zm-120 96c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zm192 0c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zM592 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h544c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM160 368H64v-64h96v64zm0-128H64v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64z"/>
+</svg>`;
+
+// Avatar configuration - use custom images, fallback to icon data URLs if images fail to load
+const userAvatarSrc = userProfilePicUrl || createIconDataUrl(userIconSvg);
+const botAvatarSrc = botProfilePicUrl || createIconDataUrl(robotIconSvg);
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
@@ -116,6 +176,948 @@ interface Dashboard {
   lastModified: string;
 }
 
+// Troubleshooting Dashboard Component
+const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => void }> = ({ onPodNavigate }) => {
+  // Mock data for the dashboard
+  const inventoryData = {
+    totalNodes: 12,
+    totalCpuCores: 96,
+    runningPods: 247,
+    pendingPods: 8
+  };
+
+  // Get current time for "Last updated"
+  const getLastUpdatedTime = () => {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      second: '2-digit',
+      hour12: true 
+    });
+  };
+
+  // CPU Quota vs Actual data (in cores)
+  const cpuQuotaData = [
+    { x: '00:00', y: 82 },
+    { x: '04:00', y: 88 },
+    { x: '08:00', y: 94 },
+    { x: '12:00', y: 101 },
+    { x: '16:00', y: 108 },
+    { x: '20:00', y: 110 }
+  ];
+
+  const cpuActualData = [
+    { x: '00:00', y: 69 },
+    { x: '04:00', y: 75 },
+    { x: '08:00', y: 79 },
+    { x: '12:00', y: 84 },
+    { x: '16:00', y: 87 },
+    { x: '20:00', y: 90 }
+  ];
+
+  const topNamespacesData = [
+    { namespace: 'marketing-prod', cpu: 45 },
+    { namespace: 'sales-prod', cpu: 32 },
+    { namespace: 'support-prod', cpu: 23 },
+    { namespace: 'dev-staging', cpu: 18 },
+    { namespace: 'qa-testing', cpu: 15 },
+    { namespace: 'monitoring', cpu: 12 },
+    { namespace: 'logging', cpu: 10 },
+    { namespace: 'security', cpu: 8 },
+    { namespace: 'backup', cpu: 6 },
+    { namespace: 'default', cpu: 4 }
+  ];
+
+  // Node Resource Pressure data - 12 nodes with mixed statuses
+  const nodePressureData = [
+    { node: 'node-pool-1-abc', cpu: 105, status: 'critical' }, // Overcommit - Red
+    { node: 'node-pool-2-abc', cpu: 98, status: 'warning' },   // High - Gold
+    { node: 'node-pool-3-abc', cpu: 92, status: 'warning' },  // High - Gold
+    { node: 'node-pool-4-abc', cpu: 87, status: 'warning' },  // High - Gold
+    { node: 'node-pool-5-abc', cpu: 78, status: 'healthy' },  // Normal - Blue
+    { node: 'node-pool-6-abc', cpu: 65, status: 'healthy' },  // Normal - Blue
+    { node: 'node-pool-7-abc', cpu: 82, status: 'healthy' },   // Normal - Blue
+    { node: 'node-pool-8-abc', cpu: 95, status: 'warning' },  // High - Gold
+    { node: 'node-pool-9-abc', cpu: 72, status: 'healthy' },  // Normal - Blue
+    { node: 'node-pool-10-abc', cpu: 88, status: 'warning' }, // High - Gold
+    { node: 'node-pool-11-abc', cpu: 110, status: 'critical' }, // Overcommit - Red
+    { node: 'node-pool-12-abc', cpu: 68, status: 'healthy' }   // Normal - Blue
+  ];
+
+  // Pod Status Health Map mock data (counts per namespace)
+  const podStatusCounts: Record<string, { running: number; pending: number; failed: number; unknown: number }> = {
+    'marketing-prod': { running: 51, pending: 8, failed: 2, unknown: 2 },
+    'sales-prod': { running: 24, pending: 0, failed: 1, unknown: 0 },
+    'support-prod': { running: 68, pending: 0, failed: 1, unknown: 0 },
+    'dev-staging': { running: 29, pending: 0, failed: 1, unknown: 0 },
+    'qa-testing': { running: 46, pending: 0, failed: 1, unknown: 0 }
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    Running: '#3E8635',
+    Pending: '#F0AB00',
+    Failed: '#C9190B',
+    Unknown: '#8A8D90'
+  };
+
+  const buildPodsForNamespace = (namespace: string): Array<{ podName: string; status: string }> => {
+    const counts = podStatusCounts[namespace] || { running: 0, pending: 0, failed: 0, unknown: 0 };
+    const pods: Array<{ podName: string; status: string }> = [];
+    let idx = 0;
+    (['Failed', 'Unknown', 'Pending', 'Running'] as const).forEach((status) => {
+      const count = counts[status === 'Failed' ? 'failed' : status === 'Unknown' ? 'unknown' : status === 'Pending' ? 'pending' : 'running'];
+      for (let i = 0; i < count; i++) {
+        pods.push({ podName: `pod-${namespace.replace(/-/g, '')}-${idx}`, status });
+        idx += 1;
+      }
+    });
+    return pods;
+  };
+
+  // Treemap visualization: Root > Namespace > Pod
+  const PodStatusTreemap: React.FC<{ onPodClick?: (podName: string) => void }> = ({ onPodClick }) => {
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    const treemapData = React.useMemo(() => {
+      const namespaces = Object.keys(podStatusCounts);
+      return [
+        {
+          name: 'Pods',
+          children: namespaces.map((ns) => ({
+            name: ns,
+            children: buildPodsForNamespace(ns).map((p) => ({
+              name: p.podName,
+              podName: p.podName,
+              status: p.status,
+              value: 1,
+              itemStyle: { color: STATUS_COLORS[p.status] || '#8A8D90' },
+              label: { show: false }
+            })),
+            itemStyle: { borderColor: '#ffffff', borderWidth: 2, gapWidth: 2 },
+            upperLabel: { show: true }
+          }))
+        }
+      ];
+    }, []);
+
+    const option = React.useMemo(
+      () => ({
+        tooltip: {
+          formatter: (info: any) => {
+            const d = info?.data;
+            if (!d) return '';
+            if (d?.children) return `${d.name}`;
+            return `${d.podName || d.name}<br/>Status: ${d.status || ''}`;
+          }
+        },
+        series: [
+          {
+            type: 'treemap',
+            data: treemapData,
+            roam: false,
+            nodeClick: false,
+            breadcrumb: { show: false },
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            label: {
+              show: true,
+              formatter: '{b}',
+              color: 'var(--pf-t--global--text--color--default)'
+            },
+            upperLabel: {
+              show: true,
+              height: 20,
+              color: 'var(--pf-t--global--text--color--default)'
+            },
+            levels: [
+              { itemStyle: { borderColor: '#ffffff', borderWidth: 2, gapWidth: 2 }, upperLabel: { show: true } },
+              { itemStyle: { borderColor: '#ffffff', borderWidth: 1, gapWidth: 1 }, upperLabel: { show: true } },
+              { itemStyle: { borderColor: '#ffffff', borderWidth: 0.5, gapWidth: 0.5 }, label: { show: false } }
+            ]
+          }
+        ]
+      }),
+      [treemapData]
+    );
+
+    React.useEffect(() => {
+      if (!containerRef.current) return;
+
+      const chart = echarts.init(containerRef.current, undefined, { renderer: 'svg' });
+      chart.setOption(option as any, { notMerge: true });
+
+      chart.on('click', (params: any) => {
+        const d = params?.data;
+        if (d && !d.children && d.podName) {
+          onPodClick?.(d.podName);
+        }
+      });
+
+      const onResize = () => chart.resize();
+      window.addEventListener('resize', onResize);
+      return () => {
+        window.removeEventListener('resize', onResize);
+        chart.dispose();
+      };
+    }, [option, onPodClick]);
+
+    return <div ref={containerRef} style={{ width: '100%', height: 420 }} />;
+  };
+
+  const PodStatusHealthMapLegend: React.FC = () => (
+    <Flex gap={{ default: 'gapMd' }} style={{ flexWrap: 'wrap' }}>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+        <div style={{ width: 12, height: 12, backgroundColor: '#3E8635', flexShrink: 0 }} aria-hidden />
+        <span>Running</span>
+      </Flex>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+        <div style={{ width: 12, height: 12, backgroundColor: '#F0AB00', flexShrink: 0 }} aria-hidden />
+        <span>Pending</span>
+      </Flex>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+        <div style={{ width: 12, height: 12, backgroundColor: '#C9190B', flexShrink: 0 }} aria-hidden />
+        <span>Failed</span>
+      </Flex>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+        <div style={{ width: 12, height: 12, backgroundColor: '#8A8D90', flexShrink: 0 }} aria-hidden />
+        <span>Unknown</span>
+      </Flex>
+    </Flex>
+  );
+
+  const PodStatusHealthMap: React.FC = () => (
+    <DescriptionList isCompact>
+      {Object.keys(podStatusCounts).map((namespace) => {
+        const pods = buildPodsForNamespace(namespace);
+        return (
+          <DescriptionListGroup key={namespace}>
+            <DescriptionListTerm style={{ marginBottom: '4px', minWidth: '120px' }}>{namespace}</DescriptionListTerm>
+            <DescriptionListDescription>
+              <Flex style={{ flexWrap: 'wrap', alignItems: 'center', gap: 'var(--pf-t--global--spacer--xs, 4px)' }}>
+                {pods.map((pod, i) => (
+                  <Tooltip key={`${namespace}-${i}`} content={<div>Pod: {pod.podName}<br />Status: {pod.status}</div>}>
+                    <div
+                      role="img"
+                      aria-label={`${pod.podName} - ${pod.status}`}
+                      style={{
+                        width: 12,
+                        height: 12,
+                        backgroundColor: STATUS_COLORS[pod.status] || '#8A8D90',
+                        flexShrink: 0
+                      }}
+                    />
+                  </Tooltip>
+                ))}
+              </Flex>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        );
+      })}
+    </DescriptionList>
+  );
+
+  const cpuCommitmentPercent = 115;
+  const throttledContainers = 23;
+  
+  // Mock data for CPU cores (in a real implementation, this would come from PromQL queries)
+  const requestedCores = 110; // Calculated from: sum(kube_pod_container_resource_requests{resource="cpu"})
+  const totalCores = 96; // Calculated from: sum(kube_node_status_capacity{resource="cpu"})
+  
+  // Mock data for throttled containers sparkline (last hour, 12 data points = 5-minute intervals)
+  const throttledContainersSparklineData = [
+    { name: 'Throttled Containers', x: '0', y: 15 },
+    { name: 'Throttled Containers', x: '5', y: 18 },
+    { name: 'Throttled Containers', x: '10', y: 22 },
+    { name: 'Throttled Containers', x: '15', y: 20 },
+    { name: 'Throttled Containers', x: '20', y: 25 },
+    { name: 'Throttled Containers', x: '25', y: 23 },
+    { name: 'Throttled Containers', x: '30', y: 21 },
+    { name: 'Throttled Containers', x: '35', y: 24 },
+    { name: 'Throttled Containers', x: '40', y: 22 },
+    { name: 'Throttled Containers', x: '45', y: 20 },
+    { name: 'Throttled Containers', x: '50', y: 23 },
+    { name: 'Throttled Containers', x: '55', y: 23 },
+  ];
+  
+  // Throttled Container Stat Component with Sparkline
+  const ThrottledContainerStat: React.FC = () => {
+    const [sparklineWidth, setSparklineWidth] = React.useState(300);
+    const sparklineContainerRef = React.useRef<HTMLDivElement>(null);
+    
+    // Make sparkline responsive
+    React.useEffect(() => {
+      const updateWidth = () => {
+        if (sparklineContainerRef.current) {
+          const width = sparklineContainerRef.current.offsetWidth;
+          setSparklineWidth(Math.max(width - 40, 200)); // Min 200px, with padding
+        }
+      };
+      
+      updateWidth();
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }, []);
+    
+    return (
+      <Flex direction={{ default: 'column' }} style={{ height: '100%', width: '100%' }}>
+        {/* Large numeric display with regular text color */}
+        <FlexItem>
+          <Tooltip content="The number of containers currently being restricted by the CPU scheduler due to reaching their limit.">
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} justifyContent={{ default: 'justifyContentCenter' }}>
+              <Title 
+                headingLevel="h2" 
+                size="3xl" 
+                style={{ 
+                  color: 'var(--pf-t--global--text--color--default)',
+                  marginBottom: '8px'
+                }}
+              >
+                {throttledContainers}
+              </Title>
+            </Flex>
+          </Tooltip>
+        </FlexItem>
+        
+        {/* Sparkline chart - Compact size with PatternFly blue */}
+        <FlexItem style={{ marginTop: '16px' }}>
+          <div ref={sparklineContainerRef} style={{ height: '60px', width: '100%', overflow: 'hidden' }}>
+            <ChartGroup
+              ariaDesc="Throttled container count trend over the last hour"
+              ariaTitle="Throttled Container Trend"
+              containerComponent={
+                <ChartVoronoiContainer 
+                  labels={({ datum }) => `${datum.y} containers`} 
+                  constrainToVisibleArea 
+                />
+              }
+              height={60}
+              maxDomain={{ y: Math.max(...throttledContainersSparklineData.map(d => d.y)) + 5 }}
+              minDomain={{ y: 0 }}
+              name="throttled-containers-sparkline"
+              padding={0}
+              themeColor={ChartThemeColor.blue}
+              width={sparklineWidth}
+            >
+              <ChartArea 
+                data={throttledContainersSparklineData}
+                style={{
+                  data: {
+                    fill: '#0066cc',
+                    stroke: '#0066cc',
+                    strokeWidth: 2
+                  }
+                }}
+              />
+            </ChartGroup>
+          </div>
+        </FlexItem>
+        
+        {/* PromQL query */}
+        <FlexItem style={{ marginTop: '8px' }}>
+          <Content component="small" className="pf-v6-u-color-200" style={{ textAlign: 'center' }}>
+            count(rate(container_cpu_cfs_throttled_seconds_total[5m]) &gt; 0)
+          </Content>
+        </FlexItem>
+      </Flex>
+    );
+  };
+  
+  // Top 10 Resource-Heavy Namespaces Chart Component using ECharts
+  const TopNamespacesChart: React.FC = () => {
+    // Prepare data for ECharts horizontal bar chart
+    const namespaces = topNamespacesData.map(ns => ns.namespace);
+    const cpuValues = topNamespacesData.map(ns => ns.cpu);
+    const chartRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+      // Post-process to apply transform to Namespace label after chart renders
+      const applyTransform = () => {
+        if (chartRef.current) {
+          const svg = chartRef.current.querySelector('svg');
+          if (svg) {
+            const textElements = svg.querySelectorAll('text');
+            textElements.forEach((text: Element) => {
+              const textContent = text.textContent?.trim();
+              if (textContent === 'Namespace') {
+                (text as SVGTextElement).setAttribute('y', '-5.1100006103515625');
+                (text as SVGTextElement).setAttribute('transform', 'matrix(0,-1,1,0,10,100.89)');
+              }
+            });
+          }
+        }
+      };
+
+      // Wait for chart to render
+      const timeoutId = setTimeout(applyTransform, 100);
+      
+      // Also try with MutationObserver for dynamic updates
+      if (chartRef.current) {
+        const observer = new MutationObserver(applyTransform);
+        observer.observe(chartRef.current, { childList: true, subtree: true });
+        
+        return () => {
+          clearTimeout(timeoutId);
+          observer.disconnect();
+        };
+      }
+      
+      return () => clearTimeout(timeoutId);
+    }, [namespaces, cpuValues]);
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        },
+        formatter: (params: any) => {
+          const param = params[0];
+          return `${param.name}<br/>CPU Usage: ${param.value}%`;
+        }
+      },
+      grid: {
+        left: '140px',
+        right: '20px',
+        bottom: '50px',
+        top: '20px',
+        containLabel: false
+      },
+      xAxis: {
+        type: 'value',
+        name: 'CPU Usage (%)',
+        nameLocation: 'middle',
+        nameGap: 30,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)',
+          formatter: '{value}%'
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: namespaces,
+        name: 'Namespace',
+        nameLocation: 'middle',
+        nameGap: 50,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)',
+          formatter: (value: string) => {
+            return value.length > 12 ? `${value.substring(0, 12)}...` : value;
+          }
+        }
+      },
+      series: [
+        {
+          name: 'CPU Usage',
+          type: 'bar',
+          data: cpuValues,
+          label: {
+            show: true,
+            position: 'right',
+            formatter: '{c}%',
+            color: 'var(--pf-t--global--text--color--default)'
+          },
+          itemStyle: {
+            color: '#0066cc'
+          }
+        }
+      ]
+    };
+
+    return (
+      <div ref={chartRef} style={{ width: '100%', height: '250px' }}>
+        <Charts
+          height={250}
+          option={option}
+        />
+      </div>
+    );
+  };
+
+  // CPU Quota vs Actual Chart Component using ECharts
+  const CPUQuotaVsActualChart: React.FC = () => {
+    // Prepare data for ECharts
+    const timeLabels = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'];
+    const quotaValues = [82, 88, 94, 101, 108, 110];
+    const actualValues = [69, 75, 79, 84, 87, 90];
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          const time = params[0].axisValue;
+          const quota = params.find((p: any) => p.seriesName === 'Requested Quota');
+          const actual = params.find((p: any) => p.seriesName === 'Actual Usage');
+          return [
+            `Time: ${time}`,
+            `Requested Quota: ${quota?.value} Cores`,
+            `Actual Usage: ${actual?.value} Cores`
+          ].join('<br/>');
+        }
+      },
+      legend: {
+        data: ['Requested Quota', 'Actual Usage'],
+        bottom: 0,
+        orient: 'horizontal',
+        itemGap: 40,
+        itemWidth: 25,
+        itemHeight: 14,
+        textStyle: {
+          fontSize: 14
+        },
+        left: 'center'
+      },
+      grid: {
+        left: '60px',
+        right: '20px',
+        bottom: '50px',
+        top: '20px',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: timeLabels,
+        name: 'Time',
+        nameLocation: 'middle',
+        nameGap: 30,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)'
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Cores',
+        nameLocation: 'middle',
+        nameGap: 50,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)'
+        }
+      },
+      series: [
+        {
+          name: 'Actual Usage',
+          type: 'line',
+          data: actualValues,
+          areaStyle: {
+            color: '#0066cc',
+            opacity: 0.3
+          },
+          lineStyle: {
+            color: '#0066cc',
+            width: 2
+          },
+          itemStyle: {
+            color: '#0066cc'
+          }
+        },
+        {
+          name: 'Requested Quota',
+          type: 'line',
+          data: quotaValues,
+          lineStyle: {
+            color: '#C66B25',
+            width: 2,
+            type: 'dashed'
+          },
+          itemStyle: {
+            color: '#C66B25'
+          },
+          areaStyle: {
+            opacity: 0
+          }
+        }
+      ]
+    };
+
+    return (
+      <div style={{ width: '100%', height: '250px' }}>
+        <Charts
+          height={250}
+          option={option}
+        />
+      </div>
+    );
+  };
+  
+  // CPU Commitment Donut Component
+  const CPUCommitmentDonut: React.FC = () => {
+    // Cap the visual fill at 100% but show actual percentage in center
+    const visualPercent = Math.min(cpuCommitmentPercent, 100);
+    
+    // Static thresholds: 85% (warning) and 100% (danger)
+    const thresholdData = [
+      { x: 'Warning at 85%', y: 85 },
+      { x: 'Danger at 100%', y: 100 }
+    ];
+    
+    const utilizationData = { 
+      x: 'CPU Request Commitment', 
+      y: visualPercent 
+    };
+    
+    // Determine theme color based on thresholds: Green < 85%, Gold 85-100%, Red > 100%
+    // ChartDonutUtilization will automatically change color based on thresholds
+    const getThemeColor = () => {
+      if (cpuCommitmentPercent > 100) {
+        // Use red-orange theme for overcommitment (PatternFly uses red-orange for failure)
+        // Since ChartThemeColor.red doesn't exist, we'll use a custom colorScale
+        return null; // Will use colorScale instead
+      } else if (cpuCommitmentPercent >= 85) {
+        return ChartThemeColor.gold;
+      } else {
+        return ChartThemeColor.green;
+      }
+    };
+    
+    const themeColor = getThemeColor();
+    
+    // For values over 100%, use colorScale with red color
+    // PatternFly red color: #c9190b (from PatternFly color palette)
+    const colorScale = cpuCommitmentPercent > 100 
+      ? ['#c9190b', '#d2d2d2']
+      : undefined;
+    
+    return (
+      <div style={{ height: '230px', width: '230px', margin: '0 auto' }}>
+        <ChartDonutThreshold
+          ariaDesc="CPU Request Commitment percentage with static thresholds at 85% and 100%"
+          ariaTitle="CPU Request Commitment Donut Chart"
+          constrainToVisibleArea
+          data={thresholdData}
+          labels={({ datum }) => (datum.x ? datum.x : null)}
+          name="cpu-commitment-threshold"
+        >
+          <ChartDonutUtilization
+            ariaDesc="CPU Request Commitment utilization"
+            ariaTitle="CPU Request Commitment"
+            data={utilizationData}
+            labels={({ datum }) => (datum.x ? `${datum.x}: ${datum.y}%` : null)}
+            subTitle={`${requestedCores} / ${totalCores} Cores`}
+            title={`${cpuCommitmentPercent}%`}
+            name="cpu-commitment-utilization"
+            themeColor={themeColor || undefined}
+            colorScale={colorScale}
+            thresholds={[{ value: 85 }, { value: 100 }]}
+            height={230}
+            width={230}
+          />
+        </ChartDonutThreshold>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ 
+      minHeight: '100vh',
+      padding: '24px',
+      boxSizing: 'border-box',
+      backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)'
+    }}>
+      <Stack hasGutter>
+        {/* Header */}
+        <StackItem>
+          <Breadcrumb>
+            <BreadcrumbItem to="#" onClick={() => window.location.reload()}>
+              Dashboards
+            </BreadcrumbItem>
+            <BreadcrumbItem isActive>Investigation Room: KubeCPUOvercommit</BreadcrumbItem>
+          </Breadcrumb>
+          <Title headingLevel="h1" size="2xl" style={{ marginTop: '16px', marginBottom: '8px' }}>
+            Investigation Room: KubeCPUOvercommit
+          </Title>
+          <Content>
+            <p>Temporary troubleshooting dashboard for marketing-prod namespace</p>
+          </Content>
+        </StackItem>
+
+        {/* Inventory Bar */}
+        <StackItem>
+          <Card>
+            <CardHeader>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <CardTitle>Cluster Resource Health Summary</CardTitle>
+                </FlexItem>
+                <FlexItem>
+                  <Content component="small" className="pf-v6-u-color-200">
+                    Last updated: {getLastUpdatedTime()}
+                  </Content>
+                </FlexItem>
+              </Flex>
+            </CardHeader>
+            <CardBody>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsStretch' }} gap={{ default: 'gapLg' }}>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <Content component="small" className="pf-v6-u-color-200">TOTAL NODES</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <Icon><ServerIcon /></Icon>
+                        <Title headingLevel="h2" size="3xl">{inventoryData.totalNodes}</Title>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <Content component="small" className="pf-v6-u-color-200">TOTAL CPU CORES</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <Icon><CpuIcon /></Icon>
+                        <Title headingLevel="h2" size="3xl">{inventoryData.totalCpuCores}</Title>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <Content component="small" className="pf-v6-u-color-200">RUNNING PODS</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <Icon><CubesIcon /></Icon>
+                        <Title headingLevel="h2" size="3xl">{inventoryData.runningPods}</Title>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <div style={{ 
+                    borderLeft: '4px solid var(--pf-v6-global--palette--orange-300)',
+                    paddingLeft: '16px',
+                    height: '100%'
+                  }}>
+                    <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                      <FlexItem>
+                        <Content component="small" className="pf-v6-u-color-200">PENDING PODS</Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                          <Title headingLevel="h2" size="3xl" className="pf-v6-u-warning-color-100">{inventoryData.pendingPods}</Title>
+                        </Flex>
+                      </FlexItem>
+                    </Flex>
+                  </div>
+                </FlexItem>
+              </Flex>
+            </CardBody>
+          </Card>
+        </StackItem>
+
+        {/* Metrics Cards Grid */}
+        <StackItem>
+          <Grid hasGutter>
+            {/* CPU Request Commitment % - Smoking Gun */}
+            <GridItem md={6}>
+              <Card isFullHeight>
+                <CardHeader>
+                  <CardTitle>CPU Request Commitment %</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} style={{ height: '100%', justifyContent: 'center' }}>
+                    <CPUCommitmentDonut />
+                    <Content component="small" className="pf-v6-u-color-200" style={{ marginTop: '16px', textAlign: 'center' }}>
+                      {'(sum(kube_pod_container_resource_requests{resource="cpu"}) / sum(kube_node_status_capacity{resource="cpu"})) * 100'}
+                    </Content>
+                  </Flex>
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* Throttled Container Count */}
+            <GridItem md={6}>
+              <Card isFullHeight>
+                <CardHeader>
+                  <CardTitle>Throttled Container Count</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <ThrottledContainerStat />
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* CPU Quota vs. Actual */}
+            <GridItem md={6}>
+              <Card isFullHeight>
+                <CardHeader>
+                  <CardTitle>CPU Quota vs. Actual</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <CPUQuotaVsActualChart />
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* Top 10 Resource-Heavy Namespaces */}
+            <GridItem md={6}>
+              <Card isFullHeight>
+                <CardHeader>
+                  <CardTitle>Top 10 Resource-Heavy Namespaces</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <TopNamespacesChart />
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* Node Resource Pressure */}
+            <GridItem md={12}>
+              <Card>
+                <CardHeader>
+                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <CardTitle>Node Resource Pressure</CardTitle>
+                    </FlexItem>
+                    <FlexItem>
+                      <ChartLegend
+                        data={[
+                          { name: 'Critical (overcommit)', symbol: { type: 'square', fill: '#c9190b' } },
+                          { name: 'Warning (high)', symbol: { type: 'square', fill: '#f0ab00' } },
+                          { name: 'Healthy (normal)', symbol: { type: 'square', fill: '#3E8635' } }
+                        ]}
+                        orientation="horizontal"
+                        height={25}
+                        style={{
+                          labels: { fontSize: 14 }
+                        }}
+                      />
+                    </FlexItem>
+                  </Flex>
+                </CardHeader>
+                <CardBody>
+                  <Grid hasGutter>
+                    {nodePressureData.map((node) => {
+                      // Determine color based on status
+                      const getThemeColor = () => {
+                        if (node.status === 'critical') {
+                          return null; // Use colorScale for red
+                        } else if (node.status === 'warning') {
+                          return ChartThemeColor.gold;
+                        } else {
+                          return null; // Use colorScale for green
+                        }
+                      };
+
+                      const themeColor = getThemeColor();
+                      const visualPercent = Math.min(node.cpu, 100);
+                      const colorScale = node.status === 'critical'
+                        ? ['#c9190b', '#d2d2d2'] // PatternFly red and gray
+                        : node.status === 'healthy'
+                        ? ['#3E8635', '#d2d2d2'] // PatternFly green and gray
+                        : undefined;
+
+                      // Threshold data for static thresholds - must be array format
+                      const thresholdData = [
+                        { x: 'Warning at 85%', y: 85 },
+                        { x: 'Critical at 100%', y: 100 }
+                      ];
+
+                      // Utilization data - ChartDonutUtilization expects { x, y } format
+                      const utilizationData = { x: 'CPU Usage', y: visualPercent };
+
+                      return (
+                        <GridItem key={node.node} md={3}>
+                          <Card>
+                            <CardBody>
+                              <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                <Title headingLevel="h4" size="md">
+                                  {node.node}
+                                </Title>
+                                <div style={{ height: '180px', width: '180px', margin: '0 auto' }}>
+                                  <ChartDonutThreshold
+                                    ariaDesc={`CPU utilization for ${node.node} with static thresholds at 85% and 100%`}
+                                    ariaTitle={`${node.node} CPU Utilization`}
+                                    constrainToVisibleArea
+                                    data={thresholdData}
+                                    labels={({ datum }) => (datum.x ? datum.x : null)}
+                                    name={`${node.node}-threshold`}
+                                    height={180}
+                                    width={180}
+                                  >
+                                    <ChartDonutUtilization
+                                      ariaDesc={`CPU utilization for ${node.node}`}
+                                      ariaTitle={`${node.node} CPU Utilization`}
+                                      data={utilizationData}
+                                      labels={({ datum }) => (datum.x ? `${datum.x}: ${datum.y}%` : null)}
+                                      subTitle="CPU Usage"
+                                      title={`${node.cpu}%`}
+                                      name={`${node.node}-utilization`}
+                                      themeColor={themeColor || undefined}
+                                      colorScale={colorScale}
+                                      thresholds={[{ value: 85 }, { value: 100 }]}
+                                      height={180}
+                                      width={180}
+                                    />
+                                  </ChartDonutThreshold>
+                                </div>
+                              </Flex>
+                            </CardBody>
+                          </Card>
+                        </GridItem>
+                      );
+                    })}
+                  </Grid>
+                </CardBody>
+              </Card>
+            </GridItem>
+
+            {/* Pod Status Heatmap - Health Map (Status Grid) */}
+            <GridItem md={12}>
+              <Card>
+                <CardHeader>
+                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>
+                      <CardTitle>Pod Status Heatmap</CardTitle>
+                    </FlexItem>
+                    <FlexItem>
+                      <PodStatusHealthMapLegend />
+                    </FlexItem>
+                  </Flex>
+                </CardHeader>
+                <CardBody>
+                  <PodStatusTreemap
+                    onPodClick={(podName) => {
+                      // Set global variable and navigate to Pod Detail dashboard
+                      try {
+                        (window as any).__dashboardVars = { ...(window as any).__dashboardVars, pod_name: podName };
+                        window.localStorage.setItem('pf_var_pod_name', podName);
+                      } catch {
+                        // ignore
+                      }
+                      onPodNavigate?.(podName);
+                    }}
+                  />
+                </CardBody>
+              </Card>
+            </GridItem>
+          </Grid>
+        </StackItem>
+      </Stack>
+    </div>
+  );
+};
+
 /**
  * Dashboards (Perses) Page
  * 
@@ -127,17 +1129,46 @@ export const DashboardsPersesPage: React.FC = () => {
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedQuickResponse, setSelectedQuickResponse] = useState<{ containerId: string; content: string } | null>(null);
   const [selectedModel, setSelectedModel] = useState('Granite 7B');
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
+  const [chatbotTogglePortalTarget, setChatbotTogglePortalTarget] = useState<HTMLElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLButtonElement>(null);
+  const messagesRef = useRef<MessageProps[]>([]);
+  const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
+
+  const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
+    setSelectedQuickResponse({ containerId, content });
+    setMessages((prev) =>
+      prev.map((m: any) => {
+        if (m?.quickResponseContainerProps?.id !== containerId || !Array.isArray(m?.quickResponses)) return m;
+        return {
+          ...m,
+          quickResponses: m.quickResponses.map((qr: any) => ({
+            ...qr,
+            // Show a checkmark on the selected chip
+            icon: qr?.content === content ? <CheckIcon /> : undefined,
+            // If the component supports selection state, set it too (harmless if ignored)
+            isSelected: qr?.content === content
+          }))
+        };
+      })
+    );
+  }, []);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Table state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isNameFilterOpen, setIsNameFilterOpen] = useState(false);
   const [isCreateDropdownOpen, setIsCreateDropdownOpen] = useState(false);
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState('All projects');
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
@@ -147,6 +1178,74 @@ export const DashboardsPersesPage: React.FC = () => {
   const [isCriticalAlertsExpanded, setIsCriticalAlertsExpanded] = useState(false);
   const [isOtherAlertsExpanded, setIsOtherAlertsExpanded] = useState(false);
   const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(false);
+
+  // Troubleshooting workflow state
+  const [workflowStage, setWorkflowStage] = useState<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
+  const [showTroubleshootingDashboard, setShowTroubleshootingDashboard] = useState(false);
+  const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
+
+  useEffect(() => {
+    workflowStageRef.current = workflowStage;
+  }, [workflowStage]);
+
+  const triggerQuickResponseByContent = useCallback(
+    (desiredContent: string) => {
+      const list = messagesRef.current as any[];
+      for (let i = list.length - 1; i >= 0; i--) {
+        const m = list[i];
+        const qrs = m?.quickResponses;
+        if (m?.role === 'bot' && Array.isArray(qrs)) {
+          const qr = qrs.find((x: any) => String(x?.content || '').toLowerCase() === desiredContent.toLowerCase());
+          if (qr) {
+            const containerId = m?.quickResponseContainerProps?.id;
+            if (containerId) {
+              markQuickResponseSelected(containerId, String(qr.content));
+            }
+            if (typeof qr.onClick === 'function') {
+              qr.onClick();
+            }
+            return true;
+          }
+        }
+      }
+      return false;
+    },
+    [markQuickResponseSelected]
+  );
+
+  const getWorkflowIntentQuickResponse = (text: string) => {
+    const normalized = text.toLowerCase().replace(/[^\w\s-]/g, ' ').replace(/\s+/g, ' ').trim();
+    const stage = workflowStageRef.current;
+
+    if (stage === 'stage1') {
+      if (normalized.includes('root cause') || (normalized.includes('analyze') && normalized.includes('root'))) {
+        return 'Analyze root cause';
+      }
+      if (normalized.includes('node capacity') || (normalized.includes('check') && normalized.includes('node'))) {
+        return 'Check node capacity';
+      }
+    }
+
+    if (stage === 'stage2') {
+      if (normalized.includes('troubleshooting dashboard') || (normalized.includes('generate') && normalized.includes('dashboard'))) {
+        return 'Generate troubleshooting dashboard';
+      }
+      if (normalized.includes('scale down') || normalized.includes('replica')) {
+        return 'Scale down replicas';
+      }
+    }
+
+    if (stage === 'stage3') {
+      if (normalized.includes('save') && normalized.includes('dashboard')) {
+        return 'Save dashboard';
+      }
+      if (normalized.includes('execute') && normalized.includes('scale')) {
+        return 'Execute scale down';
+      }
+    }
+
+    return null;
+  };
 
   // Mock notifications data
   const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string; description?: string }> = [
@@ -258,6 +1357,29 @@ export const DashboardsPersesPage: React.FC = () => {
     const messageText = String(message);
     if (!messageText.trim()) return;
 
+    // Conversational shortcut: let typed responses trigger the existing quick response chips.
+    const intent = getWorkflowIntentQuickResponse(messageText);
+    if (intent) {
+      const date = new Date();
+      const userMessage: MessageProps = {
+        id: generateId(),
+        role: 'user',
+        content: messageText,
+        name: 'User',
+        avatar: userAvatarSrc,
+        timestamp: date.toLocaleString(),
+        avatarProps: { isBordered: true }
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setAnnouncement(`Message from User: ${messageText}.`);
+
+      setTimeout(() => {
+        triggerQuickResponseByContent(intent);
+      }, 0);
+      return;
+    }
+
     setIsSendButtonDisabled(true);
     const date = new Date();
 
@@ -267,7 +1389,7 @@ export const DashboardsPersesPage: React.FC = () => {
       role: 'user',
       content: messageText,
       name: 'User',
-      avatar: <UserIcon /> as any,
+      avatar: userAvatarSrc,
       timestamp: date.toLocaleString(),
       avatarProps: { isBordered: true }
     };
@@ -277,14 +1399,14 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Thinking...',
-      name: 'Bot',
-      avatar: <RobotIcon /> as any,
+      name: 'Aladdin',
+      avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
 
     setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
-    setAnnouncement(`Message from User: ${messageText}. Message from Bot is loading.`);
+    setAnnouncement(`Message from User: ${messageText}. Message from Aladdin is loading.`);
 
     // Simulate AI response (replace with actual API call)
     setTimeout(() => {
@@ -292,8 +1414,8 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
-        name: 'Bot',
-        avatar: <RobotIcon /> as any,
+        name: 'Aladdin',
+        avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
         actions: {
@@ -314,7 +1436,7 @@ export const DashboardsPersesPage: React.FC = () => {
         }
         return newMessages;
       });
-      setAnnouncement(`Message from Bot: ${botMessage.content}`);
+      setAnnouncement(`Message from Aladdin: ${botMessage.content}`);
       setIsSendButtonDisabled(false);
     }, 2000);
   }, []);
@@ -323,6 +1445,315 @@ export const DashboardsPersesPage: React.FC = () => {
   const onSelectModel = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
     setSelectedModel(value as string);
   };
+
+  // Handle starting troubleshooting workflow from alert
+  const handleStartTroubleshooting = useCallback((alertName: string) => {
+    // Close notifications drawer
+    setIsNotificationsDrawerOpen(false);
+    
+    // Open chatbot drawer
+    setIsDrawerOpen(true);
+    
+    // Clear existing messages
+    setMessages([]);
+    
+    // Set workflow stage
+    setWorkflowStage('stage1');
+    
+    const date = new Date();
+    
+    // Add user message (simulated - user clicked "Troubleshoot with AI")
+    const userMessage: MessageProps = {
+      id: generateId(),
+      role: 'user',
+      content: `Troubleshoot ${alertName}`,
+      name: 'User',
+      avatar: userAvatarSrc,
+      timestamp: date.toLocaleString(),
+      avatarProps: { isBordered: true }
+    };
+    
+    // Add loading bot message
+    const loadingBotMessage: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: 'Analyzing alert...',
+      name: 'Aladdin',
+      avatar: botAvatarSrc,
+      isLoading: true,
+      timestamp: date.toLocaleString()
+    };
+    
+    setMessages([userMessage, loadingBotMessage]);
+    
+    // Simulate AI analysis and show Stage 1 response
+    setTimeout(() => {
+      const stage1QuickResponsesId = `qr-stage1-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
+      const stage1Message: MessageProps = {
+        id: generateId(),
+        role: 'bot',
+        content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU. Would you like me to analyze the root cause or check the node capacity?',
+        name: 'Aladdin',
+        avatar: botAvatarSrc,
+        isLoading: false,
+        timestamp: date.toLocaleString(),
+        quickResponseContainerProps: { id: stage1QuickResponsesId } as any,
+        quickResponses: [
+          {
+            id: 'analyze-root-cause',
+            content: 'Analyze root cause',
+            onClick: () => {
+              markQuickResponseSelected(stage1QuickResponsesId, 'Analyze root cause');
+              handleStage2();
+            }
+          },
+          {
+            id: 'check-node-capacity',
+            content: 'Check node capacity',
+            onClick: () => {
+              markQuickResponseSelected(stage1QuickResponsesId, 'Check node capacity');
+              console.log('Check Node Capacity clicked');
+              // Will implement in next step
+            }
+          }
+        ]
+      };
+      
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        if (loadingIndex !== -1) {
+          newMessages[loadingIndex] = stage1Message;
+        }
+        return newMessages;
+      });
+      setAnnouncement('AI analysis complete. Review the alert details and select an action.');
+    }, 2000);
+  }, []);
+
+  // Handle Stage 2: Root Cause Analysis
+  const handleStage2 = useCallback(() => {
+    setWorkflowStage('stage2');
+    
+    const date = new Date();
+    
+    // Add loading bot message
+    const loadingBotMessage: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: 'Analyzing root cause...',
+      name: 'Aladdin',
+      avatar: botAvatarSrc,
+      isLoading: true,
+      timestamp: date.toLocaleString()
+    };
+    
+    setMessages((prev) => [...prev, loadingBotMessage]);
+    
+    // Simulate AI root cause analysis
+    setTimeout(() => {
+      const stage2QuickResponsesId = `qr-stage2-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
+      // Mock data for top 3 CPU-consuming namespaces
+      const cpuData = [
+        { x: 'marketing-prod', y: 45 },
+        { x: 'sales-prod', y: 32 },
+        { x: 'support-prod', y: 23 }
+      ];
+      
+      const stage2Message: MessageProps = {
+        id: generateId(),
+        role: 'bot',
+        content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota. Would you like me to generate a troubleshooting dashboard or scale down replicas?',
+        name: 'Aladdin',
+        avatar: botAvatarSrc,
+        isLoading: false,
+        timestamp: date.toLocaleString(),
+        extraContent: {
+          afterMainContent: (
+            <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top 3 CPU-Consuming Namespaces</CardTitle>
+                </CardHeader>
+                <CardBody className="pf-v6-u-pb-0">
+                  <div style={{ height: '200px', width: '100%' }}>
+                    <Charts
+                      height={200}
+                      option={{
+                        tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                            type: 'shadow'
+                          },
+                          formatter: (params: any) => {
+                            const param = params[0];
+                            return `${param.name}<br/>CPU Usage: ${param.value}%`;
+                          }
+                        },
+                        grid: {
+                          left: '60px',
+                          right: '20px',
+                          bottom: '100px',
+                          top: '20px',
+                          containLabel: false
+                        },
+                        xAxis: {
+                          type: 'category',
+                          data: cpuData.map(d => d.x),
+                          name: 'Namespace',
+                          nameLocation: 'middle',
+                          nameGap: 80,
+                          nameTextStyle: {
+                            color: 'var(--pf-t--global--text--color--default)'
+                          },
+                          axisLabel: {
+                            color: 'var(--pf-t--global--text--color--default)',
+                            formatter: (value: string) => {
+                              return value.length > 12 ? `${value.substring(0, 12)}...` : value;
+                            },
+                            rotate: 45
+                          }
+                        },
+                        yAxis: {
+                          type: 'value',
+                          name: 'CPU Usage (%)',
+                          nameLocation: 'middle',
+                          nameGap: 50,
+                          nameTextStyle: {
+                            color: 'var(--pf-t--global--text--color--default)'
+                          },
+                          axisLabel: {
+                            color: 'var(--pf-t--global--text--color--default)',
+                            formatter: '{value}%'
+                          }
+                        },
+                        series: [
+                          {
+                            name: 'CPU Usage',
+                            type: 'bar',
+                            data: cpuData.map(d => d.y),
+                            label: {
+                              show: true,
+                              position: 'top',
+                              formatter: '{c}%',
+                              color: 'var(--pf-t--global--text--color--default)'
+                            },
+                            itemStyle: {
+                              color: '#0066cc'
+                            }
+                          }
+                        ]
+                      }}
+                    />
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
+          )
+        },
+        quickResponseContainerProps: { id: stage2QuickResponsesId } as any,
+        quickResponses: [
+          {
+            id: 'generate-dashboard',
+            content: 'Generate troubleshooting dashboard',
+            onClick: () => {
+              markQuickResponseSelected(stage2QuickResponsesId, 'Generate troubleshooting dashboard');
+              handleStage3();
+            }
+          },
+          {
+            id: 'scale-down-replicas',
+            content: 'Scale down replicas',
+            onClick: () => {
+              markQuickResponseSelected(stage2QuickResponsesId, 'Scale down replicas');
+              console.log('Scale Down Replicas clicked');
+              // Will implement in next step
+            }
+          }
+        ]
+      };
+      
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        if (loadingIndex !== -1) {
+          newMessages[loadingIndex] = stage2Message;
+        }
+        return newMessages;
+      });
+      setAnnouncement('Root cause analysis complete. The web-head deployment in marketing-prod is the culprit.');
+    }, 2000);
+  }, [generateId, setWorkflowStage, setMessages, setAnnouncement]);
+
+  // Handle Stage 3: Dashboard Generation
+  const handleStage3 = useCallback(() => {
+    setWorkflowStage('stage3');
+    setIsGeneratingDashboard(true);
+
+    const date = new Date();
+
+    // Add loading bot message
+    const loadingBotMessage: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: 'Building Perses Dashboard Definition...',
+      name: 'Aladdin',
+      avatar: botAvatarSrc,
+      isLoading: true,
+      timestamp: date.toLocaleString()
+    };
+    
+    setMessages((prev) => [...prev, loadingBotMessage]);
+    
+    // Simulate dashboard generation
+    setTimeout(() => {
+      const stage3QuickResponsesId = `qr-stage3-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
+      const stage3Message: MessageProps = {
+        id: generateId(),
+        role: 'bot',
+        content: 'I have generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like me to save the dashboard or execute the scale down?',
+        name: 'Aladdin',
+        avatar: botAvatarSrc,
+        isLoading: false,
+        timestamp: date.toLocaleString(),
+        quickResponseContainerProps: { id: stage3QuickResponsesId } as any,
+        quickResponses: [
+          {
+            id: 'save-dashboard',
+            content: 'Save dashboard',
+            onClick: () => {
+              markQuickResponseSelected(stage3QuickResponsesId, 'Save dashboard');
+              console.log('Save Dashboard clicked');
+              // Will implement in next step
+            }
+          },
+          {
+            id: 'execute-scale-down',
+            content: 'Execute scale down',
+            onClick: () => {
+              markQuickResponseSelected(stage3QuickResponsesId, 'Execute scale down');
+              console.log('Execute Scale Down clicked');
+              // Will implement in next step
+            }
+          }
+        ]
+      };
+      
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        if (loadingIndex !== -1) {
+          newMessages[loadingIndex] = stage3Message;
+        }
+        return newMessages;
+      });
+      setAnnouncement('Troubleshooting dashboard generated. Review the investigation room below.');
+
+      // Show the troubleshooting dashboard and hide spinner
+      setShowTroubleshootingDashboard(true);
+      setIsGeneratingDashboard(false);
+    }, 3000);
+  }, [generateId, setWorkflowStage, setMessages, setAnnouncement, setShowTroubleshootingDashboard]);
 
   // Welcome prompts for ChatbotWelcomePrompt
   const welcomePrompts = [
@@ -336,22 +1767,68 @@ export const DashboardsPersesPage: React.FC = () => {
     }
   ];
 
-  // Apply class to page container when drawer is open to shift content
+  // Apply class to page container and masthead when drawer is open to shift content
   useEffect(() => {
     const pageContainer = document.querySelector('.pf-v6-c-page__main-container');
-    if (pageContainer) {
-      if (isDrawerOpen) {
-        pageContainer.classList.add('chatbot-drawer-open');
-      } else {
-        pageContainer.classList.remove('chatbot-drawer-open');
-      }
+    const pageElement = document.querySelector('.pf-v6-c-page');
+    const mastheadContent = document.querySelector('.pf-v6-c-masthead__content');
+    
+    if (isDrawerOpen) {
+      pageContainer?.classList.add('chatbot-drawer-open');
+      pageElement?.classList.add('chatbot-drawer-open');
+      mastheadContent?.classList.add('chatbot-drawer-open');
+    } else {
+      pageContainer?.classList.remove('chatbot-drawer-open');
+      pageElement?.classList.remove('chatbot-drawer-open');
+      mastheadContent?.classList.remove('chatbot-drawer-open');
     }
+    
     return () => {
-      if (pageContainer) {
-        pageContainer.classList.remove('chatbot-drawer-open');
-      }
+      pageContainer?.classList.remove('chatbot-drawer-open');
+      pageElement?.classList.remove('chatbot-drawer-open');
+      mastheadContent?.classList.remove('chatbot-drawer-open');
     };
   }, [isDrawerOpen]);
+
+  // Render the floating toggle inside the page's scroll container so it moves with that viewport.
+  useEffect(() => {
+    const updateTarget = () => {
+      const target = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
+      setChatbotTogglePortalTarget(target);
+    };
+
+    updateTarget();
+    // The page shell can re-render; refresh after layout and on resize.
+    const raf = window.requestAnimationFrame(updateTarget);
+    window.addEventListener('resize', updateTarget);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', updateTarget);
+    };
+  }, []);
+
+  // Make quick response "chips" show a persistent clicked state (survives re-renders)
+  useEffect(() => {
+    if (!isDrawerOpen || !selectedQuickResponse) return;
+
+    const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
+    if (!wrapper) return;
+
+    const container = wrapper.querySelector<HTMLElement>(`#${selectedQuickResponse.containerId}`);
+    if (!container) return;
+
+    const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
+    allLabels.forEach((label) => {
+      label.classList.remove('pf-m-clicked');
+      label.setAttribute('aria-pressed', 'false');
+    });
+
+    const selectedLabel = allLabels.find((label) => (label.textContent || '').trim() === selectedQuickResponse.content);
+    if (selectedLabel) {
+      selectedLabel.classList.add('pf-m-clicked');
+      selectedLabel.setAttribute('aria-pressed', 'true');
+    }
+  }, [isDrawerOpen, selectedQuickResponse, messages]);
 
   // Attach click handler to masthead bell icon - toggle drawer open/close
   useEffect(() => {
@@ -531,6 +2008,14 @@ export const DashboardsPersesPage: React.FC = () => {
                                   {alert.description}
                                 </Content>
                               )}
+                              <Button
+                                variant="link"
+                                isInline
+                                onClick={() => handleStartTroubleshooting(alert.name)}
+                                style={{ marginTop: '8px' }}
+                              >
+                                Troubleshoot with AI
+                              </Button>
                             </Alert>
                           </StackItem>
                         ))}
@@ -672,7 +2157,60 @@ export const DashboardsPersesPage: React.FC = () => {
       >
         <DrawerContentBody>
           {/* Page content */}
-          <PageSection>
+          {showTroubleshootingDashboard ? (
+            <TroubleshootingDashboard
+              onPodNavigate={(podName) => {
+                // Navigate to the Pod Detail dashboard
+                navigate(`/core/observe/pod-detail?pod_name=${encodeURIComponent(podName)}`);
+              }}
+            />
+          ) : isGeneratingDashboard ? (
+            <Bullseye
+              style={{
+                minHeight: 'calc(100vh - 120px)',
+                width: '100%',
+                backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
+              }}
+            >
+              <Spinner diameter="54px" aria-label="Loading dashboards" />
+            </Bullseye>
+          ) : (
+          <>
+              {/* Project MenuToggle Section - above breadcrumbs */}
+              <div className="template-page-breadcrumb">
+                <Dropdown
+                  isOpen={isProjectDropdownOpen}
+                  onSelect={(event, value) => {
+                    setSelectedProject(value as string);
+                    setIsProjectDropdownOpen(false);
+                  }}
+                  onOpenChange={(isOpen: boolean) => setIsProjectDropdownOpen(isOpen)}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                      isExpanded={isProjectDropdownOpen}
+                      variant="plain"
+                      style={{ padding: 0, backgroundColor: 'transparent' }}
+                    >
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <FlexItem>Project: {selectedProject}</FlexItem>
+                        <FlexItem>
+                          <CaretDownIcon style={{ color: 'var(--pf-t--global--text--color--default)' }} />
+                        </FlexItem>
+                      </Flex>
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    <DropdownItem key="all-projects">All projects</DropdownItem>
+                    <DropdownItem key="project-1">project-1</DropdownItem>
+                    <DropdownItem key="project-2">project-2</DropdownItem>
+                    <DropdownItem key="project-3">project-3</DropdownItem>
+                  </DropdownList>
+                </Dropdown>
+              </div>
+
               {/* Breadcrumbs Section - 16px padding */}
               <div className="template-page-breadcrumb">
               <Breadcrumb>
@@ -714,7 +2252,6 @@ export const DashboardsPersesPage: React.FC = () => {
                             variant="primary"
                           >
                             Create
-                            <CaretDownIcon />
                           </MenuToggle>
                         )}
                       >
@@ -860,7 +2397,8 @@ export const DashboardsPersesPage: React.FC = () => {
                               backgroundColor: dashboard.type === 'Global-scoped' 
                                 ? 'var(--pf-t--global--color--nonstatus--blue--default)' 
                                 : 'var(--pf-t--global--color--nonstatus--purple--default)',
-                              color: 'white'
+                              color: 'var(--pf-t--global--text--color--default)',
+                              fontWeight: 'normal'
                             }}
                           >
                             {dashboard.type}
@@ -901,7 +2439,8 @@ export const DashboardsPersesPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </PageSection>
+          </>
+          )}
         </DrawerContentBody>
       </DrawerContent>
     </Drawer>
@@ -975,18 +2514,21 @@ export const DashboardsPersesPage: React.FC = () => {
       )}
 
     {/* Floating toggle button - positioned outside drawer, always visible */}
-    <div 
-      ref={chatbotToggleRef}
-      style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}
-    >
-      <Tooltip content="AI assistant" position="left">
-        <ChatbotToggle 
-          onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
-          aria-label="AI assistant"
-          tooltipLabel="AI assistant"
-        />
-      </Tooltip>
-    </div>
+    {createPortal(
+      <div className="chatbot-toggle-sticky-host">
+        <div
+          ref={chatbotToggleRef}
+          className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
+        >
+          <ChatbotToggle
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            aria-label="AI assistant"
+            tooltipLabel="AI assistant"
+          />
+        </div>
+      </div>,
+      chatbotTogglePortalTarget || document.body
+    )}
   </>
   );
 };

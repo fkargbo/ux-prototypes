@@ -52,6 +52,7 @@ import { PageSection } from '@patternfly/react-core';
 // Import your page components here when you add routes
 import { OverviewPage } from './pages/OverviewPage';
 import { DashboardsPersesPage } from './pages/DashboardsPersesPage';
+import { PodDetailDashboardPage } from './pages/PodDetailDashboardPage';
 
 /**
  * IMPORTANT: Template Isolation
@@ -136,5 +137,11 @@ export const routes: RouteConfig[] = [
       group: 'Observe',
       order: 6
     }
+  },
+  // Detail route (not in sidebar)
+  {
+    path: '/core/observe/pod-detail',
+    element: <PodDetailDashboardPage />,
+    title: 'Pod detail'
   },
 ];
