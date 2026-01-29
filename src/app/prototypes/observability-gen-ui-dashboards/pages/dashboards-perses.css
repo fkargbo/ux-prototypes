@@ -435,6 +435,11 @@ button[aria-label="View task details"] {
   font-weight: 500 !important;
 }
 
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable .pf-v6-c-label__content,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable .pf-v6-c-label__text {
+  color: var(--pf-t--global--text--color--brand--default) !important;
+}
+
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable:hover {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
@@ -451,6 +456,17 @@ button[aria-label="View task details"] {
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] {
   background-color: var(--pf-t--global--color--brand--default) !important;
   border-color: var(--pf-t--global--color--brand--default) !important;
+  color: var(--pf-t--global--text--color--on-brand--default, #fff) !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__content,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__content,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__content,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__content,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__text,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__text,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__text,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__text {
   color: var(--pf-t--global--text--color--on-brand--default, #fff) !important;
 }
 

@@ -1563,14 +1563,20 @@ export const DashboardsPersesPage: React.FC = () => {
       const target = event.target as HTMLElement | null;
       if (!target) return;
 
-      // Quick responses are clickable PatternFly labels; persist a selected state within the label group.
-      const clickedLabel = target.closest('.pf-v6-c-label.pf-m-clickable') as HTMLElement | null;
+      // Quick responses are clickable PatternFly Labels. Depending on markup, the click can land on:
+      // - `.pf-v6-c-label` (wrapper)
+      // - `.pf-v6-c-label__content` (inner <button>)
+      const clickedLabel =
+        (target.closest('.pf-v6-c-label') as HTMLElement | null) ||
+        ((target.closest('.pf-v6-c-label__content') as HTMLElement | null)?.closest('.pf-v6-c-label') as HTMLElement | null);
       if (!clickedLabel) return;
 
-      const labelGroup = clickedLabel.closest('.pf-v6-c-label-group') as HTMLElement | null;
+      const labelGroup =
+        (clickedLabel.closest('.pf-v6-c-label-group') as HTMLElement | null) ||
+        (clickedLabel.closest('[class*="label-group"]') as HTMLElement | null);
       if (!labelGroup) return;
 
-      const allLabels = Array.from(labelGroup.querySelectorAll('.pf-v6-c-label.pf-m-clickable')) as HTMLElement[];
+      const allLabels = Array.from(labelGroup.querySelectorAll('.pf-v6-c-label')) as HTMLElement[];
       allLabels.forEach((label) => {
         label.classList.remove('pf-m-clicked');
         label.setAttribute('aria-pressed', 'false');
