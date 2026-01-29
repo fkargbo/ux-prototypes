@@ -330,15 +330,30 @@ button[aria-label="View task details"] {
 
 /* Floating chatbot toggle button - adjust position when drawer is open */
 /* This ensures the button is always visible and not hidden by the drawer */
+.chatbot-toggle-sticky-host {
+  /* Sticky within the page container scroll viewport */
+  position: sticky;
+  bottom: 24px;
+  height: 0;
+  z-index: 10000;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 24px;
+  pointer-events: none;
+}
+
 .chatbot-toggle-button {
-  position: fixed !important;
+  position: relative !important;
   z-index: 10000 !important;
   visibility: visible !important;
   opacity: 1 !important;
+  pointer-events: auto;
+  /* Host is height: 0; lift the button into view */
+  transform: translateY(-48px);
 }
 
 .chatbot-toggle-button.drawer-open {
-  /* Right offset is measured/set dynamically in JS when open */
+  /* No special positioning needed; it stays in the content viewport */
 }
 
 @media (min-width: 992px) {

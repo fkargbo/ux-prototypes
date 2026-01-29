@@ -1133,7 +1133,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState('Granite 7B');
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
-  const [chatbotToggleRightPx, setChatbotToggleRightPx] = useState(24);
+  const [chatbotTogglePortalTarget, setChatbotTogglePortalTarget] = useState<HTMLElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLButtonElement>(null);
@@ -1786,42 +1786,22 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
-  // Keep the floating toggle aligned with the content viewport (left of the drawer).
+  // Render the floating toggle inside the page's scroll container so it moves with that viewport.
   useEffect(() => {
-    const updateRight = () => {
-      if (!isDrawerOpen) {
-        setChatbotToggleRightPx(24);
-        return;
-      }
-
-      const pageContainer = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
-      const rect = pageContainer?.getBoundingClientRect();
-
-      // Anchor to the bottom-right of the *content viewport* (the page container),
-      // not the window. When the drawer opens, the container's right edge shifts left.
-      if (rect) {
-        const windowRightInset = Math.max(0, Math.round(window.innerWidth - rect.right));
-        setChatbotToggleRightPx(windowRightInset + 24);
-      } else {
-        // Fallback: keep visible even if we can't find the container.
-        setChatbotToggleRightPx(24);
-      }
+    const updateTarget = () => {
+      const target = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
+      setChatbotTogglePortalTarget(target);
     };
 
-    // Wait a frame so the portal DOM is definitely laid out.
-    const raf = window.requestAnimationFrame(updateRight);
-    window.addEventListener('resize', updateRight);
-
-    const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
-    const ro = wrapper ? new ResizeObserver(updateRight) : null;
-    if (wrapper && ro) ro.observe(wrapper);
-
+    updateTarget();
+    // The page shell can re-render; refresh after layout and on resize.
+    const raf = window.requestAnimationFrame(updateTarget);
+    window.addEventListener('resize', updateTarget);
     return () => {
       window.cancelAnimationFrame(raf);
-      window.removeEventListener('resize', updateRight);
-      ro?.disconnect();
+      window.removeEventListener('resize', updateTarget);
     };
-  }, [isDrawerOpen]);
+  }, []);
 
   // Make quick response "chips" show a persistent clicked state (survives re-renders)
   useEffect(() => {
@@ -2531,26 +2511,21 @@ export const DashboardsPersesPage: React.FC = () => {
 
     {/* Floating toggle button - positioned outside drawer, always visible */}
     {createPortal(
-      <div 
-        ref={chatbotToggleRef}
-        className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
-        style={{ 
-          position: 'fixed', 
-          bottom: '24px', 
-          right: `${chatbotToggleRightPx}px`,
-          zIndex: 10000,
-          transition: 'right 0.2s ease-in-out'
-        }}
-      >
-        <Tooltip content="AI assistant" position="left">
-          <ChatbotToggle 
-            onClick={() => setIsDrawerOpen(!isDrawerOpen)} 
-            aria-label="AI assistant"
-            tooltipLabel="AI assistant"
-          />
-        </Tooltip>
+      <div className="chatbot-toggle-sticky-host">
+        <div
+          ref={chatbotToggleRef}
+          className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
+        >
+          <Tooltip content="AI assistant" position="left">
+            <ChatbotToggle
+              onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+              aria-label="AI assistant"
+              tooltipLabel="AI assistant"
+            />
+          </Tooltip>
+        </div>
       </div>,
-      document.body
+      chatbotTogglePortalTarget || document.body
     )}
   </>
   );
