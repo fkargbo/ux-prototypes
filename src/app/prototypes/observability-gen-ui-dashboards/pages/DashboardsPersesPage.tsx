@@ -1794,10 +1794,18 @@ export const DashboardsPersesPage: React.FC = () => {
         return;
       }
 
-      const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
-      const drawerWidth = wrapper?.getBoundingClientRect().width ?? 0;
-      // 24px gutter + drawer width (so the button sits in the main content "viewport")
-      setChatbotToggleRightPx(Math.max(24, Math.round(drawerWidth) + 24));
+      const pageContainer = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
+      const rect = pageContainer?.getBoundingClientRect();
+
+      // Anchor to the bottom-right of the *content viewport* (the page container),
+      // not the window. When the drawer opens, the container's right edge shifts left.
+      if (rect) {
+        const windowRightInset = Math.max(0, Math.round(window.innerWidth - rect.right));
+        setChatbotToggleRightPx(windowRightInset + 24);
+      } else {
+        // Fallback: keep visible even if we can't find the container.
+        setChatbotToggleRightPx(24);
+      }
     };
 
     // Wait a frame so the portal DOM is definitely laid out.
