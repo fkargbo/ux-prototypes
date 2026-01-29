@@ -318,6 +318,10 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
             roam: false,
             nodeClick: false,
             breadcrumb: { show: false },
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
             label: {
               show: true,
               formatter: '{b}',
@@ -325,7 +329,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
             },
             upperLabel: {
               show: true,
-              height: 22,
+              height: 20,
               color: 'var(--pf-t--global--text--color--default)'
             },
             levels: [
@@ -360,7 +364,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
       };
     }, [option, onPodClick]);
 
-    return <div ref={containerRef} style={{ width: '100%', height: 320 }} />;
+    return <div ref={containerRef} style={{ width: '100%', height: 420 }} />;
   };
 
   const PodStatusHealthMapLegend: React.FC = () => (
