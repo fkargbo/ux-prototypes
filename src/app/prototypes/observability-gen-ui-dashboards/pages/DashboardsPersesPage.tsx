@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import * as echarts from 'echarts';
 import {
   Title,
   Content,
@@ -176,7 +177,7 @@ interface Dashboard {
 }
 
 // Troubleshooting Dashboard Component
-const TroubleshootingDashboard: React.FC = () => {
+const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => void }> = ({ onPodNavigate }) => {
   // Mock data for the dashboard
   const inventoryData = {
     totalNodes: 12,
@@ -272,6 +273,94 @@ const TroubleshootingDashboard: React.FC = () => {
       }
     });
     return pods;
+  };
+
+  // Treemap visualization: Root > Namespace > Pod
+  const PodStatusTreemap: React.FC<{ onPodClick?: (podName: string) => void }> = ({ onPodClick }) => {
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    const treemapData = React.useMemo(() => {
+      const namespaces = Object.keys(podStatusCounts);
+      return [
+        {
+          name: 'Pods',
+          children: namespaces.map((ns) => ({
+            name: ns,
+            children: buildPodsForNamespace(ns).map((p) => ({
+              name: p.podName,
+              podName: p.podName,
+              status: p.status,
+              value: 1,
+              itemStyle: { color: STATUS_COLORS[p.status] || '#8A8D90' },
+              label: { show: false }
+            })),
+            itemStyle: { borderColor: '#ffffff', borderWidth: 2, gapWidth: 2 },
+            upperLabel: { show: true }
+          }))
+        }
+      ];
+    }, []);
+
+    const option = React.useMemo(
+      () => ({
+        tooltip: {
+          formatter: (info: any) => {
+            const d = info?.data;
+            if (!d) return '';
+            if (d?.children) return `${d.name}`;
+            return `${d.podName || d.name}<br/>Status: ${d.status || ''}`;
+          }
+        },
+        series: [
+          {
+            type: 'treemap',
+            data: treemapData,
+            roam: false,
+            nodeClick: false,
+            breadcrumb: { show: false },
+            label: {
+              show: true,
+              formatter: '{b}',
+              color: 'var(--pf-t--global--text--color--default)'
+            },
+            upperLabel: {
+              show: true,
+              height: 22,
+              color: 'var(--pf-t--global--text--color--default)'
+            },
+            levels: [
+              { itemStyle: { borderColor: '#ffffff', borderWidth: 2, gapWidth: 2 }, upperLabel: { show: true } },
+              { itemStyle: { borderColor: '#ffffff', borderWidth: 1, gapWidth: 1 }, upperLabel: { show: true } },
+              { itemStyle: { borderColor: '#ffffff', borderWidth: 0.5, gapWidth: 0.5 }, label: { show: false } }
+            ]
+          }
+        ]
+      }),
+      [treemapData]
+    );
+
+    React.useEffect(() => {
+      if (!containerRef.current) return;
+
+      const chart = echarts.init(containerRef.current, undefined, { renderer: 'svg' });
+      chart.setOption(option as any, { notMerge: true });
+
+      chart.on('click', (params: any) => {
+        const d = params?.data;
+        if (d && !d.children && d.podName) {
+          onPodClick?.(d.podName);
+        }
+      });
+
+      const onResize = () => chart.resize();
+      window.addEventListener('resize', onResize);
+      return () => {
+        window.removeEventListener('resize', onResize);
+        chart.dispose();
+      };
+    }, [option, onPodClick]);
+
+    return <div ref={containerRef} style={{ width: '100%', height: 320 }} />;
   };
 
   const PodStatusHealthMapLegend: React.FC = () => (
@@ -1003,7 +1092,18 @@ const TroubleshootingDashboard: React.FC = () => {
                   </Flex>
                 </CardHeader>
                 <CardBody>
-                  <PodStatusHealthMap />
+                  <PodStatusTreemap
+                    onPodClick={(podName) => {
+                      // Set global variable and navigate to Pod Detail dashboard
+                      try {
+                        (window as any).__dashboardVars = { ...(window as any).__dashboardVars, pod_name: podName };
+                        window.localStorage.setItem('pf_var_pod_name', podName);
+                      } catch {
+                        // ignore
+                      }
+                      onPodNavigate?.(podName);
+                    }}
+                  />
                 </CardBody>
               </Card>
             </GridItem>
@@ -1940,7 +2040,12 @@ export const DashboardsPersesPage: React.FC = () => {
         <DrawerContentBody>
           {/* Page content */}
           {showTroubleshootingDashboard ? (
-            <TroubleshootingDashboard />
+            <TroubleshootingDashboard
+              onPodNavigate={(podName) => {
+                // Navigate to the Pod Detail dashboard
+                navigate(`/core/observe/pod-detail?pod_name=${encodeURIComponent(podName)}`);
+              }}
+            />
           ) : isGeneratingDashboard ? (
             <Bullseye
               style={{
