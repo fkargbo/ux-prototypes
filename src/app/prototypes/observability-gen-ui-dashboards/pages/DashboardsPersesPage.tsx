@@ -2520,7 +2520,6 @@ export const DashboardsPersesPage: React.FC = () => {
             <ChatbotToggle
               onClick={() => setIsDrawerOpen(!isDrawerOpen)}
               aria-label="AI assistant"
-              tooltipLabel="AI assistant"
             />
           </Tooltip>
         </div>
