@@ -397,3 +397,32 @@ button[aria-label="View task details"] {
   padding: 24px !important;
   background-color: #f5f5f5 !important;
 }
+
+/* Chatbot suggestion chips (quick responses) - brand interactive blue */
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses .pf-v6-c-button,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses button,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-button,
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content .pf-v6-c-message .pf-v6-c-button:not(.pf-m-plain):not(.pf-m-link) {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  border: 1px solid var(--pf-t--global--border--color--interactive--default) !important;
+  color: var(--pf-t--global--text--color--brand--default) !important;
+  border-radius: 9999px !important;
+  font-weight: 500 !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses .pf-v6-c-button:hover,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses button:hover,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response:hover,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-button:hover,
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content .pf-v6-c-message .pf-v6-c-button:not(.pf-m-plain):not(.pf-m-link):hover {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses .pf-v6-c-button:active,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses button:active,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response:active,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-button:active,
+.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content .pf-v6-c-message .pf-v6-c-button:not(.pf-m-plain):not(.pf-m-link):active {
+  background-color: var(--pf-t--global--background--color--tertiary--default) !important;
+}
