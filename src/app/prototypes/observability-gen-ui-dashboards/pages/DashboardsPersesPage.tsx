@@ -1133,6 +1133,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState('Granite 7B');
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
+  const [chatbotToggleRightPx, setChatbotToggleRightPx] = useState(24);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLButtonElement>(null);
@@ -1782,6 +1783,35 @@ export const DashboardsPersesPage: React.FC = () => {
       pageContainer?.classList.remove('chatbot-drawer-open');
       pageElement?.classList.remove('chatbot-drawer-open');
       mastheadContent?.classList.remove('chatbot-drawer-open');
+    };
+  }, [isDrawerOpen]);
+
+  // Keep the floating toggle aligned with the content viewport (left of the drawer).
+  useEffect(() => {
+    const updateRight = () => {
+      if (!isDrawerOpen) {
+        setChatbotToggleRightPx(24);
+        return;
+      }
+
+      const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
+      const drawerWidth = wrapper?.getBoundingClientRect().width ?? 0;
+      // 24px gutter + drawer width (so the button sits in the main content "viewport")
+      setChatbotToggleRightPx(Math.max(24, Math.round(drawerWidth) + 24));
+    };
+
+    // Wait a frame so the portal DOM is definitely laid out.
+    const raf = window.requestAnimationFrame(updateRight);
+    window.addEventListener('resize', updateRight);
+
+    const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
+    const ro = wrapper ? new ResizeObserver(updateRight) : null;
+    if (wrapper && ro) ro.observe(wrapper);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', updateRight);
+      ro?.disconnect();
     };
   }, [isDrawerOpen]);
 
@@ -2499,7 +2529,7 @@ export const DashboardsPersesPage: React.FC = () => {
         style={{ 
           position: 'fixed', 
           bottom: '24px', 
-          right: '24px',
+          right: `${chatbotToggleRightPx}px`,
           zIndex: 10000,
           transition: 'right 0.2s ease-in-out'
         }}

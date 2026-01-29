@@ -338,14 +338,13 @@ button[aria-label="View task details"] {
 }
 
 .chatbot-toggle-button.drawer-open {
-  /* Match drawer sizing: width + min/max constraints */
-  right: calc(clamp(400px, 33.333vw, 600px) + 24px) !important;
+  /* Right offset is measured/set dynamically in JS when open */
 }
 
 @media (min-width: 992px) {
-  /* On larger screens, drawer targets 25% width (still clamped) */
+  /* Keep for future overrides if needed */
   .chatbot-toggle-button.drawer-open {
-    right: calc(clamp(400px, 25vw, 600px) + 24px) !important;
+    /* no-op */
   }
 }
 
