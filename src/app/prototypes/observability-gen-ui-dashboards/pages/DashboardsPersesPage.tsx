@@ -636,7 +636,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
       <div ref={chartRef} style={{ width: '100%', height: '250px' }}>
         <Charts
           height={250}
-          option={option}
+          option={option as any}
         />
       </div>
     );
@@ -748,7 +748,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
       <div style={{ width: '100%', height: '250px' }}>
         <Charts
           height={250}
-          option={option}
+          option={option as any}
         />
       </div>
     );
@@ -770,27 +770,14 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
       y: visualPercent 
     };
     
-    // Determine theme color based on thresholds: Green < 85%, Gold 85-100%, Red > 100%
-    // ChartDonutUtilization will automatically change color based on thresholds
-    const getThemeColor = () => {
-      if (cpuCommitmentPercent > 100) {
-        // Use red-orange theme for overcommitment (PatternFly uses red-orange for failure)
-        // Since ChartThemeColor.red doesn't exist, we'll use a custom colorScale
-        return null; // Will use colorScale instead
-      } else if (cpuCommitmentPercent >= 85) {
-        return ChartThemeColor.gold;
-      } else {
-        return ChartThemeColor.green;
-      }
-    };
-    
-    const themeColor = getThemeColor();
-    
-    // For values over 100%, use colorScale with red color
-    // PatternFly red color: #c9190b (from PatternFly color palette)
-    const colorScale = cpuCommitmentPercent > 100 
-      ? ['#c9190b', '#d2d2d2']
-      : undefined;
+    // Explicit colors to avoid relying on non-existent ChartThemeColor values.
+    // <85%: green, 85-100%: gold, >100%: red
+    const colorScale =
+      cpuCommitmentPercent > 100
+        ? ['#c9190b', '#d2d2d2'] // red + gray
+        : cpuCommitmentPercent >= 85
+          ? ['#f0ab00', '#d2d2d2'] // gold + gray
+          : ['#3E8635', '#d2d2d2']; // green + gray
     
     return (
       <div style={{ height: '230px', width: '230px', margin: '0 auto' }}>
@@ -810,7 +797,6 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
             subTitle={`${requestedCores} / ${totalCores} Cores`}
             title={`${cpuCommitmentPercent}%`}
             name="cpu-commitment-utilization"
-            themeColor={themeColor || undefined}
             colorScale={colorScale}
             thresholds={[{ value: 85 }, { value: 100 }]}
             height={230}
@@ -1008,24 +994,13 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
                 <CardBody>
                   <Grid hasGutter>
                     {nodePressureData.map((node) => {
-                      // Determine color based on status
-                      const getThemeColor = () => {
-                        if (node.status === 'critical') {
-                          return null; // Use colorScale for red
-                        } else if (node.status === 'warning') {
-                          return ChartThemeColor.gold;
-                        } else {
-                          return null; // Use colorScale for green
-                        }
-                      };
-
-                      const themeColor = getThemeColor();
                       const visualPercent = Math.min(node.cpu, 100);
-                      const colorScale = node.status === 'critical'
-                        ? ['#c9190b', '#d2d2d2'] // PatternFly red and gray
-                        : node.status === 'healthy'
-                        ? ['#3E8635', '#d2d2d2'] // PatternFly green and gray
-                        : undefined;
+                      const colorScale =
+                        node.status === 'critical'
+                          ? ['#c9190b', '#d2d2d2'] // red + gray
+                          : node.status === 'warning'
+                            ? ['#f0ab00', '#d2d2d2'] // gold + gray
+                            : ['#3E8635', '#d2d2d2']; // green + gray
 
                       // Threshold data for static thresholds - must be array format
                       const thresholdData = [
@@ -1063,7 +1038,6 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
                                       subTitle="CPU Usage"
                                       title={`${node.cpu}%`}
                                       name={`${node.node}-utilization`}
-                                      themeColor={themeColor || undefined}
                                       colorScale={colorScale}
                                       thresholds={[{ value: 85 }, { value: 100 }]}
                                       height={180}
