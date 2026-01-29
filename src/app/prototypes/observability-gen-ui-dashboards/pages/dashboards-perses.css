@@ -427,19 +427,37 @@ button[aria-label="View task details"] {
   background-color: var(--pf-t--global--background--color--tertiary--default) !important;
 }
 
-/* Explicit class we control for chatbot suggestion chips */
-.ai-assistant-drawer-wrapper .chatbot-suggestion-chip {
+/* Chatbot quick response chips are rendered as clickable PatternFly Labels. */
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable {
   background-color: var(--pf-t--global--background--color--primary--default) !important;
-  border: 1px solid var(--pf-t--global--border--color--interactive--default) !important;
+  border-color: var(--pf-t--global--border--color--interactive--default) !important;
   color: var(--pf-t--global--text--color--brand--default) !important;
-  border-radius: 9999px !important;
   font-weight: 500 !important;
 }
 
-.ai-assistant-drawer-wrapper .chatbot-suggestion-chip:hover {
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable:hover {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-.ai-assistant-drawer-wrapper .chatbot-suggestion-chip:active {
-  background-color: var(--pf-t--global--background--color--tertiary--default) !important;
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable:focus-visible {
+  outline: 2px solid var(--pf-t--global--border--color--interactive--default) !important;
+  outline-offset: 2px !important;
+}
+
+/* Persisted clicked/selected state (when PF sets pf-m-clicked or aria-pressed). */
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] {
+  background-color: var(--pf-t--global--color--brand--default) !important;
+  border-color: var(--pf-t--global--color--brand--default) !important;
+  color: var(--pf-t--global--text--color--on-brand--default, #fff) !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked:hover,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active:hover,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected:hover,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"]:hover {
+  background-color: var(--pf-t--global--color--brand--hover, var(--pf-t--global--color--brand--default)) !important;
+  border-color: var(--pf-t--global--color--brand--hover, var(--pf-t--global--color--brand--default)) !important;
 }

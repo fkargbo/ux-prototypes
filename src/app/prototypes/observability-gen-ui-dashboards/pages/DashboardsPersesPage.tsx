@@ -1552,6 +1552,38 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
+  // Make quick response "chips" show a persistent clicked state
+  useEffect(() => {
+    if (!isDrawerOpen) return;
+
+    const wrapper = document.querySelector<HTMLDivElement>('.ai-assistant-drawer-wrapper');
+    if (!wrapper) return;
+
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      // Quick responses are clickable PatternFly labels; persist a selected state within the label group.
+      const clickedLabel = target.closest('.pf-v6-c-label.pf-m-clickable') as HTMLElement | null;
+      if (!clickedLabel) return;
+
+      const labelGroup = clickedLabel.closest('.pf-v6-c-label-group') as HTMLElement | null;
+      if (!labelGroup) return;
+
+      const allLabels = Array.from(labelGroup.querySelectorAll('.pf-v6-c-label.pf-m-clickable')) as HTMLElement[];
+      allLabels.forEach((label) => {
+        label.classList.remove('pf-m-clicked');
+        label.setAttribute('aria-pressed', 'false');
+      });
+
+      clickedLabel.classList.add('pf-m-clicked');
+      clickedLabel.setAttribute('aria-pressed', 'true');
+    };
+
+    wrapper.addEventListener('click', onClick);
+    return () => wrapper.removeEventListener('click', onClick);
+  }, [isDrawerOpen]);
+
   // Attach click handler to masthead bell icon - toggle drawer open/close
   useEffect(() => {
     const handleMastheadBellClick = (event: MouseEvent) => {
