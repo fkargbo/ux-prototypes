@@ -66,6 +66,7 @@ import {
   SplitItem,
   Breadcrumb,
   BreadcrumbItem,
+  Banner,
   Drawer,
   DrawerContent,
   DrawerContentBody,
@@ -4883,6 +4884,25 @@ spec:
   // ========================================
   return (
     <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* Version Banner */}
+      <Banner status="info" screenReaderText="Info notification">
+        <Flex justifyContent={{ default: 'justifyContentCenter' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            This is an older version of the alerting interface.
+          </FlexItem>
+          <FlexItem>
+            <Button 
+              component="a" 
+              href="/prototypes/shiri-alerting-ui-v2/observe/alerting" 
+              variant="link" 
+              isInline
+            >
+              View updated prototype (Version 2)
+            </Button>
+          </FlexItem>
+        </Flex>
+      </Banner>
+      
       {/* Sticky Header Section - Breadcrumbs + Header + Tabs + Toolbar */}
       <div style={{ 
         flexShrink: 0,

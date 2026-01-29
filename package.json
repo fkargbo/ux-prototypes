@@ -82,6 +82,7 @@
     "@patternfly/react-icons": "^6.3.0",
     "@patternfly/react-styles": "^6.3.0",
     "@patternfly/react-table": "^6.3.1",
+    "@patternfly/react-templates": "^6.4.1",
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",
     "react": "^18",

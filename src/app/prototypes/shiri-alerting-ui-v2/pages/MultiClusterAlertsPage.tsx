@@ -187,6 +187,8 @@ import {
   PlusCircleIcon,
 } from '@patternfly/react-icons';
 
+import { TypeaheadSelect } from '@patternfly/react-templates';
+
 // ========================================
 // DATA TYPES  
 // ========================================
@@ -1327,7 +1329,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
   groupFilter = [],
 }) => {
   // Define component metadata with icons
-  // Components are organized by Impact Group:
+  // Components are organized by Alert Scope:
   // - Cluster: Components related to cluster control plane health (API server, etcd, scheduler, controller, network)
   // - Namespace: Components related to user applications and services (workloads, pods, storage, quotas)
   const componentMeta: Record<AlertComponent, { displayName: string; icon: React.ReactNode; impactGroup: 'Cluster' | 'Namespace' }> = {
@@ -1347,7 +1349,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
     const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
     const components: AlertComponent[] = ['kube-apiserver', 'etcd', 'Scheduler', 'Controller', 'Storage', 'Network', 'Workload', 'Pod', 'Quota'];
     
-    // Filter components by impact group if groupFilter is active
+    // Filter components by alert scope if groupFilter is active
     const filteredComponents = groupFilter.length > 0 
       ? components.filter(component => groupFilter.includes(componentMeta[component].impactGroup))
       : components;
@@ -1423,11 +1425,11 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
     return { text: 'Healthy', color: 'green' as const };
   };
 
-  // Group components by Impact Group
+  // Group components by Alert Scope
   const clusterComponents = componentHealthData.filter(c => componentMeta[c.component].impactGroup === 'Cluster');
   const namespaceComponents = componentHealthData.filter(c => componentMeta[c.component].impactGroup === 'Namespace');
   
-  // Calculate totals for each impact group
+  // Calculate totals for each alert scope
   const clusterGroupAlerts = cluster.alerts.filter(a => a.status === 'firing' && a.group === 'Cluster');
   const namespaceGroupAlerts = cluster.alerts.filter(a => a.status === 'firing' && a.group === 'Namespace');
 
@@ -1655,7 +1657,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
             </Card>
           </StackItem>
 
-          {/* Impact Group: Cluster */}
+          {/* Alert Scope: Cluster */}
           <StackItem>
             <Card isPlain>
               <CardHeader>
@@ -1703,7 +1705,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
             </Card>
           </StackItem>
 
-          {/* Impact Group: Namespace */}
+          {/* Alert Scope: Namespace */}
           <StackItem>
             <Card isPlain>
               <CardHeader>
@@ -2183,9 +2185,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
 
           <Divider />
 
-          {/* Impact Group Checkboxes */}
+          {/* Alert Scope Checkboxes */}
           <StackItem>
-            <Content component="small" className="pf-v6-u-mb-sm"><strong>Impact group</strong></Content>
+            <Content component="small" className="pf-v6-u-mb-sm"><strong>Alert scope</strong></Content>
             <Flex gap={{ default: 'gapMd' }}>
               {allGroups.map(grp => (
                 <FlexItem key={grp}>
@@ -2216,7 +2218,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           <StackItem>
             <Content component="small" className="pf-v6-u-mb-sm">
               <strong>
-                {groupFilter.length > 0 ? `Component (in: ${groupFilter.map(g => `Impact: ${g}`).join(', ')})` : 'Component'}
+                {groupFilter.length > 0 ? `Affected component (in: ${groupFilter.map(g => `Alert scope: ${g}`).join(', ')})` : 'Affected component'}
               </strong>
             </Content>
             <Select
@@ -2517,7 +2519,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   groupBy = 'none',
   onGroupByChange,
 }) => {
-  // Component metadata with impact groups
+  // Component metadata with alert scopes
   const componentMeta: Record<AlertComponent, { impactGroup: 'Cluster' | 'Namespace' }> = {
     'kube-apiserver': { impactGroup: 'Cluster' },
     'etcd': { impactGroup: 'Cluster' },
@@ -2605,7 +2607,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     setOpenActionMenuId(null);
   };
   
-  // Sorting state - default multi-sort: Severity (primary), Impact group (secondary), Component (tertiary)
+  // Sorting state - default multi-sort: Severity (primary), Alert scope (secondary), Component (tertiary)
   type SortDirection = 'asc' | 'desc';
   interface SortConfig {
     column: 'alertName' | 'severity' | 'clusters' | 'total' | 'group' | 'component';
@@ -2656,10 +2658,10 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     { key: 'severity', label: 'Severity', isVisible: true, isLocked: true, order: 1 },
     { key: 'total', label: 'Total', isVisible: true, isLocked: false, order: 2 },
     { key: 'state', label: 'State', isVisible: true, isLocked: false, order: 3 },
-    { key: 'group', label: 'Impact group', isVisible: true, isLocked: false, order: 4 },
-    { key: 'component', label: 'Component', isVisible: true, isLocked: false, order: 5 },
+    { key: 'group', label: 'Alert scope', isVisible: true, isLocked: false, order: 4 },
+    { key: 'component', label: 'Affected component', isVisible: true, isLocked: false, order: 5 },
     { key: 'source', label: 'Source', isVisible: true, isLocked: false, order: 6 },
-    { key: 'description', label: 'Description', isVisible: false, isLocked: false, order: 7 },
+    { key: 'description', label: 'Description (in: alert)', isVisible: false, isLocked: false, order: 7 },
     { key: 'startTime', label: 'Start (Firing time)', isVisible: false, isLocked: false, order: 8 },
   ]);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
@@ -2833,7 +2835,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
       if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase())) return false;
-      // Filter by impact group - only show components that match selected groups
+      // Filter by alert scope - only show components that match selected groups
       if (groupFilter && groupFilter.length > 0 && groupFilter.length < 2 && alert.component) {
         const componentImpactGroup = componentMeta[alert.component as AlertComponent]?.impactGroup;
         if (componentImpactGroup && !groupFilter.includes(componentImpactGroup)) return false;
@@ -3124,7 +3126,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               onClick={() => setIsGroupByOpen(!isGroupByOpen)}
                               isExpanded={isGroupByOpen}
                             >
-                              Group by: {groupBy === 'none' ? 'None' : groupBy === 'alertName' ? 'Alert name' : groupBy === 'impact' ? 'Impact group' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                              Group by: {groupBy === 'none' ? 'None' : groupBy === 'alertName' ? 'Alert name' : groupBy === 'impact' ? 'Alert scope' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </MenuToggle>
                           )}
                         >
@@ -3140,7 +3142,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                 }}
                               >
                                 <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                                  <FlexItem>{option === 'none' ? 'None' : option === 'alertName' ? 'Alert name' : option === 'impact' ? 'Impact group' : option.charAt(0).toUpperCase() + option.slice(1)}</FlexItem>
+                                  <FlexItem>{option === 'none' ? 'None' : option === 'alertName' ? 'Alert name' : option === 'impact' ? 'Alert scope' : option.charAt(0).toUpperCase() + option.slice(1)}</FlexItem>
                                   {groupBy === option && (
                                     <FlexItem>
                                       <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
@@ -3261,7 +3263,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     const aggregatedStatus: 'Critical' | 'Warning' | 'Info' = 
                       criticalCount > 0 ? 'Critical' : warningCount > 0 ? 'Warning' : 'Info';
                     
-                    // Get unique impact groups for this component
+                    // Get unique alert scopes for this component
                     const impactGroups = Array.from(new Set(group.alerts.map(a => a.group)));
                     
                     // Get unique clusters for this component
@@ -3358,9 +3360,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
                             </FlexItem>
                             
-                            {/* Impact Group - A component can only have 1 impact group */}
+                            {/* Alert Scope - A component can only have 1 alert scope */}
                             <FlexItem>
-                              <span>Impact: {impactGroups[0] || 'N/A'}</span>
+                              <span>Alert scope: {impactGroups[0] || 'N/A'}</span>
                             </FlexItem>
                             
                             {/* Cluster count (only when not in single cluster view) */}
@@ -3386,7 +3388,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                 <Th>Severity</Th>
                                 <Th>Total</Th>
                                 <Th>Clusters</Th>
-                                <Th>Impact group</Th>
+                                <Th>Alert scope</Th>
                               </Tr>
                             </Thead>
                             {group.alerts.map((agg, aggIdx) => {
@@ -3595,7 +3597,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               <Th>Severity</Th>
                               <Th>Total</Th>
                               <Th>Clusters</Th>
-                              <Th>Impact group</Th>
+                              <Th>Alert scope</Th>
                               <Th>Component</Th>
                             </Tr>
                           </Thead>
@@ -3756,7 +3758,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           onChange={toggleSelectAll}
                         />
                       </Th>
-                      {getVisibleColumns().map((col, colIdx) => {
+                      {getVisibleColumns().filter(col => col.key !== 'description').map((col, colIdx) => {
                         const columnKey = col.key as SortConfig['column'];
                         const canSort = ['alertName', 'severity', 'total', 'clusters', 'group', 'component'].includes(col.key);
                         const sortConfig = sortConfigs.find(c => c.column === columnKey);
@@ -3776,15 +3778,15 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         // Add info tooltips using PatternFly's info prop
                         if (col.key === 'group') {
                           thProps.info = {
-                            tooltip: "Categorize your alerts by a high-level domain, such as cluster or namespace, and then by the specific component like a database or web server. This organization helps you quickly identify, prioritize, and route alerts to the right team so you can reduce noise and improve response times.",
-                            ariaLabel: "More information about impact group"
+                            tooltip: "Indicates whether the alert affects the entire cluster or a specific namespace.",
+                            ariaLabel: "More information about alert scope"
                           };
                         }
                         
                         if (col.key === 'component') {
                           thProps.info = {
-                            tooltip: "The component is the specific OpenShift service or operator that is the subject of the alert.",
-                            ariaLabel: "More information about component"
+                            tooltip: "The specific services or operators that triggered this alert.",
+                            ariaLabel: "More information about affected component"
                           };
                         }
                         
@@ -3876,7 +3878,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                             onChange={() => toggleAlertSelection(alertKey)}
                           />
                         </Td>
-                        {getVisibleColumns().map(col => {
+                        {getVisibleColumns().filter(col => col.key !== 'description').map(col => {
                           const tdProps: any = {
                             key: col.key,
                             modifier: "nowrap" as const,
@@ -3893,7 +3895,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         })}
                       </Tr>
                       <Tr isExpanded={isExpanded}>
-                        <Td colSpan={getVisibleColumns().length + 2} noPadding>
+                        <Td colSpan={getVisibleColumns().filter(col => col.key !== 'description').length + 2} noPadding>
                           <ExpandableRowContent>
                             <Stack hasGutter>
                               <StackItem>
@@ -3911,6 +3913,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                       {!singleClusterView && <Th>Cluster</Th>}
                                       <Th>Namespace</Th>
                                       <Th>Resource</Th>
+                                      {columns.find(c => c.key === 'description')?.isVisible && <Th>Description</Th>}
                                     </Tr>
                                   </Thead>
                                   <Tbody>
@@ -3982,6 +3985,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                             </Flex>
                                           ) : '-'}
                                         </Td>
+                                        {columns.find(c => c.key === 'description')?.isVisible && (
+                                          <Td>{alertInstance?.description || '-'}</Td>
+                                        )}
                                         <Td>
                                           <Dropdown
                                             isOpen={openActionMenuId === `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`}
@@ -4060,7 +4066,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     <Th>Alert Name</Th>
                     <Th>Severity</Th>
                     <Th>Cluster</Th>
-                    <Th>Impact group</Th>
+                    <Th>Alert scope</Th>
                     <Th>Component</Th>
                     <Th>State</Th>
                     <Th>Last Fired</Th>
@@ -5739,6 +5745,21 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [importanceSizing, setImportanceSizing] = React.useState<ImportanceSizing>('nodeCount');
   const [userRole] = React.useState<UserRole>('admin');
   
+  // Available label keys from clusters (for typeahead selection)
+  const availableLabelKeys = React.useMemo(() => [
+    { value: 'env', content: 'env' },
+    { value: 'environment', content: 'environment' },
+    { value: 'team', content: 'team' },
+    { value: 'owner', content: 'owner' },
+    { value: 'region', content: 'region' },
+    { value: 'zone', content: 'zone' },
+    { value: 'app', content: 'app' },
+    { value: 'component', content: 'component' },
+    { value: 'tier', content: 'tier' },
+    { value: 'project', content: 'project' },
+    { value: 'stage', content: 'stage' },
+  ], []);
+
   // Environment grouping settings
   const [environmentCategories, setEnvironmentCategories] = React.useState<EnvironmentCategory[]>([
     { id: 'production', label: 'Production', color: 'red', patterns: ['prod-', 'prd-', 'live-'] },
@@ -5825,7 +5846,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     { key: 'total', label: 'Total', isVisible: true, isDisabled: false, order: 2 },
     { key: 'state', label: 'State', isVisible: true, isDisabled: false, order: 3 },
     { key: 'group', label: 'Group', isVisible: true, isDisabled: false, order: 4 },
-    { key: 'component', label: 'Component', isVisible: true, isDisabled: false, order: 5 },
+    { key: 'component', label: 'Affected component', isVisible: true, isDisabled: false, order: 5 },
     { key: 'source', label: 'Source', isVisible: true, isDisabled: false, order: 6 },
     { key: 'description', label: 'Description', isVisible: false, isDisabled: false, order: 7 },
     { key: 'namespace', label: 'Namespace', isVisible: false, isDisabled: false, order: 8 },
@@ -6402,7 +6423,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
                                   </DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
-                                  <DescriptionListTerm>Component</DescriptionListTerm>
+                                  <DescriptionListTerm>Affected component</DescriptionListTerm>
                                   <DescriptionListDescription>
                                     <Label isCompact variant="outline">{selectedAlertDetail.component}</Label>
                                   </DescriptionListDescription>
@@ -6702,7 +6723,7 @@ spec:
                             {/* Component - Dropdown based on selected group */}
                             <StackItem>
                               <Content component="small" className="pf-v6-u-mb-sm">
-                                <strong>{drillDownGroupFilter.length > 0 ? `Component (in: ${drillDownGroupFilter.map(g => `Impact: ${g}`).join(', ')})` : 'Component'}</strong>
+                                <strong>{drillDownGroupFilter.length > 0 ? `Affected component (in: ${drillDownGroupFilter.map(g => `Alert scope: ${g}`).join(', ')})` : 'Affected component'}</strong>
                               </Content>
                               <Select
                                 role="menu"
@@ -7114,7 +7135,7 @@ spec:
                                     <Th>Alert Name</Th>
                                     {isAggregated && columns.find(c => c.key === 'total')?.isVisible && <Th>Total</Th>}
                                     {columns.find(c => c.key === 'state')?.isVisible && <Th>State</Th>}
-                                    {columns.find(c => c.key === 'group')?.isVisible && <Th>Impact group</Th>}
+                                    {columns.find(c => c.key === 'group')?.isVisible && <Th>Alert scope</Th>}
                                     {columns.find(c => c.key === 'component')?.isVisible && <Th>Component</Th>}
                                     {columns.find(c => c.key === 'source')?.isVisible && <Th>Source</Th>}
                                     <Th screenReaderText="Actions" />
@@ -7828,9 +7849,9 @@ spec:
             `}</style>
             <FlexItem>
               <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                {/* Group filters by category with neutral styling */}
+                {/* Alert scope filters by category with neutral styling */}
                 {groupFilter.length > 0 && (
-                  <LabelGroup categoryName="Group">
+                  <LabelGroup categoryName="Alert scope">
                     {groupFilter.map(g => (
                       <Label key={g} variant="outline" onClose={() => setGroupFilter(groupFilter.filter(x => x !== g))}>{g}</Label>
                     ))}
@@ -7847,8 +7868,8 @@ spec:
                 {componentFilter.length > 0 && (
                   <LabelGroup categoryName={
                     groupFilter.length > 0 && groupFilter.length < 2
-                      ? `Component (in: Impact: ${groupFilter.join(', Impact: ')})`
-                      : "Component"
+                      ? `Affected component (in: Alert scope: ${groupFilter.join(', Alert scope: ')})`
+                      : "Affected component"
                   }>
                     {componentFilter.map(c => (
                       <Label key={c} variant="outline" onClose={() => setComponentFilter(componentFilter.filter(x => x !== c))}>{c}</Label>
@@ -8297,7 +8318,7 @@ spec:
                                     onClick={() => { if (viewMode !== 'summary') { setIsSizeByOpen(!isSizeByOpen); } }} 
                                     isExpanded={isSizeByOpen} 
                                     isDisabled={viewMode === 'summary'}
-                                    style={{ width: '160px' }}
+                                    style={{ width: '200px' }}
                                   >
                                     {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Number of Nodes'}
                                   </MenuToggle>
@@ -8475,7 +8496,7 @@ spec:
                           );
                         })()}
                         
-                        {/* Impact Groups - Cluster and Namespace */}
+                        {/* Alert Scopes - Cluster and Namespace */}
                         <Grid hasGutter>
                           {/* Cluster Components */}
                           <GridItem span={6}>
@@ -8485,7 +8506,7 @@ spec:
                                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                                     <FlexItem><Icon status="info"><CubesIcon /></Icon></FlexItem>
                                     <FlexItem>
-                                      <span>Impact: Cluster</span>
+                                      <span>Alert scope: Cluster</span>
                                     </FlexItem>
                                   </Flex>
                                 </CardTitle>
@@ -8574,7 +8595,7 @@ spec:
                                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                                     <FlexItem><Icon status="info"><CubeIcon /></Icon></FlexItem>
                                     <FlexItem>
-                                      <span>Impact: Namespace</span>
+                                      <span>Alert scope: Namespace</span>
                                     </FlexItem>
                                   </Flex>
                                 </CardTitle>
@@ -9264,9 +9285,9 @@ spec:
                               </Flex>
                             </StackItem>
                             <Divider />
-                            {/* Impact Group - Checkboxes */}
+                            {/* Alert Scope - Checkboxes */}
                             <StackItem>
-                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Impact group</strong></Content>
+                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Alert scope</strong></Content>
                               <Stack hasGutter>
                                 {(['Cluster', 'Namespace'] as AlertGroup[]).map(grp => (
                                   <StackItem key={grp}>
@@ -9286,7 +9307,7 @@ spec:
                             <Divider />
                             {/* Component - Dropdown */}
                             <StackItem>
-                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Component</strong></Content>
+                              <Content component="small" className="pf-v6-u-mb-sm"><strong>Affected component</strong></Content>
                               <Select
                                 role="menu"
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
@@ -9500,71 +9521,41 @@ spec:
                         <Tr>
                           <Th screenReaderText="Select" />
                           <Th>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                              <FlexItem>Alert rule Name</FlexItem>
-                              <FlexItem><SortAmountDownIcon /></FlexItem>
-                              <FlexItem>
-                                <Tooltip content="Name of the alert rule">
-                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
-                                </Tooltip>
-                              </FlexItem>
-                            </Flex>
+                            Alert rule Name
                           </Th>
-                          <Th>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                              <FlexItem>State</FlexItem>
-                              <FlexItem><SortAmountDownIcon /></FlexItem>
-                            </Flex>
+                          <Th>State</Th>
+                          <Th>Severity</Th>
+                          <Th
+                            info={{
+                              tooltip: "Number of clusters this rule applies to",
+                              ariaLabel: "More information about target clusters"
+                            }}
+                          >
+                            Target clusters
                           </Th>
-                          <Th>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                              <FlexItem>Severity</FlexItem>
-                              <FlexItem><SortAmountDownIcon /></FlexItem>
-                            </Flex>
+                          <Th
+                            info={{
+                              tooltip: "Indicates whether the alert affects the entire cluster or a specific namespace",
+                              ariaLabel: "More information about alert scope"
+                            }}
+                          >
+                            Alert scope
                           </Th>
-                          <Th>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                              <FlexItem>Target clusters</FlexItem>
-                              <FlexItem><SortAmountDownIcon /></FlexItem>
-                              <FlexItem>
-                                <Tooltip content="Number of clusters this rule applies to">
-                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
-                                </Tooltip>
-                              </FlexItem>
-                            </Flex>
+                          <Th
+                            info={{
+                              tooltip: "The specific services or operators that triggered this alert.",
+                              ariaLabel: "More information about affected component"
+                            }}
+                          >
+                            Affected component
                           </Th>
-                          <Th>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                              <FlexItem>Group</FlexItem>
-                              <FlexItem><SortAmountDownIcon /></FlexItem>
-                              <FlexItem>
-                                <Tooltip content="Group categorization for the alert">
-                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
-                                </Tooltip>
-                              </FlexItem>
-                            </Flex>
-                          </Th>
-                          <Th>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                              <FlexItem>Component</FlexItem>
-                              <FlexItem><SortAmountDownIcon /></FlexItem>
-                              <FlexItem>
-                                <Tooltip content="Component that the alert relates to">
-                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
-                                </Tooltip>
-                              </FlexItem>
-                            </Flex>
-                          </Th>
-                          <Th>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                              <FlexItem>Source</FlexItem>
-                              <FlexItem><SortAmountDownIcon /></FlexItem>
-                              <FlexItem>
-                                <Tooltip content="Origin of the alert rule (User or Platform)">
-                                  <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
-                                </Tooltip>
-                              </FlexItem>
-                            </Flex>
+                          <Th
+                            info={{
+                              tooltip: "Origin of the alert rule (User or Platform)",
+                              ariaLabel: "More information about source"
+                            }}
+                          >
+                            Source
                           </Th>
                           <Th screenReaderText="Enabled" />
                           <Th screenReaderText="Actions" />
@@ -10293,15 +10284,15 @@ spec:
                         <Content component="p">{selectedAlertDetail.description || `${selectedAlertDetail.component} usage on a ${selectedAlertDetail.group} component is critically high.`}</Content>
                       </StackItem>
                       
-                      {/* Group */}
+                      {/* Alert scope */}
                       <StackItem>
-                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Group</Content>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Alert scope</Content>
                         <Content component="p">{selectedAlertDetail.group}</Content>
                       </StackItem>
                       
-                      {/* Component */}
+                      {/* Affected component */}
                       <StackItem>
-                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Component</Content>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontWeight: 600 }}>Affected component</Content>
                         <Content component="p">{selectedAlertDetail.component}</Content>
                       </StackItem>
                       
@@ -10605,11 +10596,11 @@ spec:
                               <DescriptionListDescription>{selectedAlertRule.source}</DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
-                              <DescriptionListTerm>Group</DescriptionListTerm>
+                              <DescriptionListTerm>Alert scope</DescriptionListTerm>
                               <DescriptionListDescription>{selectedAlertRule.group}</DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
-                              <DescriptionListTerm>Component</DescriptionListTerm>
+                              <DescriptionListTerm>Affected component</DescriptionListTerm>
                               <DescriptionListDescription>{selectedAlertRule.component}</DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
@@ -11217,45 +11208,23 @@ spec:
                       <StackItem>
                         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                           <FlexItem flex={{ default: 'flex_1' }}>
-                            <TextInput
-                              value={newPatternInputs[category.id] || ''}
-                              onChange={(_, value) => {
-                                setNewPatternInputs({ ...newPatternInputs, [category.id]: value });
-                              }}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter' && newPatternInputs[category.id]?.trim()) {
+                            <TypeaheadSelect
+                              initialOptions={availableLabelKeys}
+                              placeholder="Select or enter label key"
+                              onSelect={(_, selection) => {
+                                if (selection && typeof selection === 'string') {
                                   const updated = [...tempEnvironmentCategories];
                                   updated[categoryIdx] = {
                                     ...updated[categoryIdx],
-                                    patterns: [...updated[categoryIdx].patterns, newPatternInputs[category.id].trim()],
+                                    patterns: [...updated[categoryIdx].patterns, selection],
                                   };
                                   setTempEnvironmentCategories(updated);
                                   setNewPatternInputs({ ...newPatternInputs, [category.id]: '' });
                                 }
                               }}
-                              placeholder="Enter pattern (e.g., prod-)"
-                              aria-label="New pattern"
+                              isCreatable
+                              createOptionMessage={(newValue) => `Add label key: ${newValue}`}
                             />
-                          </FlexItem>
-                          <FlexItem>
-                            <Button
-                              variant="link"
-                              icon={<PlusCircleIcon />}
-                              onClick={() => {
-                                if (newPatternInputs[category.id]?.trim()) {
-                                  const updated = [...tempEnvironmentCategories];
-                                  updated[categoryIdx] = {
-                                    ...updated[categoryIdx],
-                                    patterns: [...updated[categoryIdx].patterns, newPatternInputs[category.id].trim()],
-                                  };
-                                  setTempEnvironmentCategories(updated);
-                                  setNewPatternInputs({ ...newPatternInputs, [category.id]: '' });
-                                }
-                              }}
-                              isDisabled={!newPatternInputs[category.id]?.trim()}
-                            >
-                              Add pattern
-                            </Button>
                           </FlexItem>
                         </Flex>
                       </StackItem>
@@ -11390,45 +11359,23 @@ spec:
                       <StackItem>
                         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                           <FlexItem flex={{ default: 'flex_1' }}>
-                            <TextInput
-                              value={newTeamPatternInputs[category.id] || ''}
-                              onChange={(_, value) => {
-                                setNewTeamPatternInputs({ ...newTeamPatternInputs, [category.id]: value });
-                              }}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter' && newTeamPatternInputs[category.id]?.trim()) {
+                            <TypeaheadSelect
+                              initialOptions={availableLabelKeys}
+                              placeholder="Select or enter label key"
+                              onSelect={(_, selection) => {
+                                if (selection && typeof selection === 'string') {
                                   const updated = [...tempTeamCategories];
                                   updated[categoryIdx] = {
                                     ...updated[categoryIdx],
-                                    patterns: [...updated[categoryIdx].patterns, newTeamPatternInputs[category.id].trim()],
+                                    patterns: [...updated[categoryIdx].patterns, selection],
                                   };
                                   setTempTeamCategories(updated);
                                   setNewTeamPatternInputs({ ...newTeamPatternInputs, [category.id]: '' });
                                 }
                               }}
-                              placeholder="Enter pattern (e.g., platform-)"
-                              aria-label="New pattern"
+                              isCreatable
+                              createOptionMessage={(newValue) => `Add label key: ${newValue}`}
                             />
-                          </FlexItem>
-                          <FlexItem>
-                            <Button
-                              variant="link"
-                              icon={<PlusCircleIcon />}
-                              onClick={() => {
-                                if (newTeamPatternInputs[category.id]?.trim()) {
-                                  const updated = [...tempTeamCategories];
-                                  updated[categoryIdx] = {
-                                    ...updated[categoryIdx],
-                                    patterns: [...updated[categoryIdx].patterns, newTeamPatternInputs[category.id].trim()],
-                                  };
-                                  setTempTeamCategories(updated);
-                                  setNewTeamPatternInputs({ ...newTeamPatternInputs, [category.id]: '' });
-                                }
-                              }}
-                              isDisabled={!newTeamPatternInputs[category.id]?.trim()}
-                            >
-                              Add pattern
-                            </Button>
                           </FlexItem>
                         </Flex>
                       </StackItem>
