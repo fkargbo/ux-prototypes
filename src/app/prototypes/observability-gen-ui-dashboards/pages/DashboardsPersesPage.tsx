@@ -1278,33 +1278,41 @@ export const DashboardsPersesPage: React.FC = () => {
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
-        extraContent: (
-          <div style={{ marginTop: '16px', marginBottom: '16px' }}>
-            <Alert variant="danger" isInline title="KubeCPUOvercommit Analysis">
-              <Content style={{ marginTop: '8px' }}>
-                I've analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.
-              </Content>
-            </Alert>
-            <div style={{ marginTop: '12px' }}>
-              <Flex wrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
-                <Button className="chatbot-suggestion-chip" variant="secondary" isSmall onClick={() => handleStage2()}>
-                  Analyze Root Cause
-                </Button>
-                <Button
-                  className="chatbot-suggestion-chip"
-                  variant="secondary"
-                  isSmall
-                  onClick={() => {
-                    console.log('Check Node Capacity clicked');
-                    // Will implement in next step
+        extraContent: {
+          afterMainContent: (
+            <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <Alert variant="danger" isInline title="KubeCPUOvercommit Analysis">
+                <Content style={{ marginTop: '8px' }}>
+                  I've analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.
+                </Content>
+              </Alert>
+              <div style={{ marginTop: '12px' }}>
+                <Flex
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 'var(--pf-t--global--spacer--sm)',
+                    alignItems: 'center'
                   }}
                 >
-                  Check Node Capacity
-                </Button>
-              </Flex>
+                  <Button className="chatbot-suggestion-chip" variant="secondary" onClick={() => handleStage2()}>
+                    Analyze Root Cause
+                  </Button>
+                  <Button
+                    className="chatbot-suggestion-chip"
+                    variant="secondary"
+                    onClick={() => {
+                      console.log('Check Node Capacity clicked');
+                      // Will implement in next step
+                    }}
+                  >
+                    Check Node Capacity
+                  </Button>
+                </Flex>
+              </div>
             </div>
-          </div>
-        ) as any
+          )
+        }
       };
       
       setMessages((prev) => {
