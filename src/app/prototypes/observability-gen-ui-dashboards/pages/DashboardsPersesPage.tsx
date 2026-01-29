@@ -1024,6 +1024,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedQuickResponse, setSelectedQuickResponse] = useState<{ containerId: string; content: string } | null>(null);
   const [selectedModel, setSelectedModel] = useState('Granite 7B');
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
@@ -1270,6 +1271,7 @@ export const DashboardsPersesPage: React.FC = () => {
     
     // Simulate AI analysis and show Stage 1 response
     setTimeout(() => {
+      const stage1QuickResponsesId = `qr-stage1-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
       const stage1Message: MessageProps = {
         id: generateId(),
         role: 'bot',
@@ -1278,16 +1280,21 @@ export const DashboardsPersesPage: React.FC = () => {
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
+        quickResponseContainerProps: { id: stage1QuickResponsesId } as any,
         quickResponses: [
           {
             id: 'analyze-root-cause',
             content: 'Analyze Root Cause',
-            onClick: () => handleStage2()
+            onClick: () => {
+              setSelectedQuickResponse({ containerId: stage1QuickResponsesId, content: 'Analyze Root Cause' });
+              handleStage2();
+            }
           },
           {
             id: 'check-node-capacity',
             content: 'Check Node Capacity',
             onClick: () => {
+              setSelectedQuickResponse({ containerId: stage1QuickResponsesId, content: 'Check Node Capacity' });
               console.log('Check Node Capacity clicked');
               // Will implement in next step
             }
@@ -1328,6 +1335,7 @@ export const DashboardsPersesPage: React.FC = () => {
     
     // Simulate AI root cause analysis
     setTimeout(() => {
+      const stage2QuickResponsesId = `qr-stage2-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
       // Mock data for top 3 CPU-consuming namespaces
       const cpuData = [
         { x: 'marketing-prod', y: 45 },
@@ -1422,16 +1430,21 @@ export const DashboardsPersesPage: React.FC = () => {
             </div>
           )
         },
+        quickResponseContainerProps: { id: stage2QuickResponsesId } as any,
         quickResponses: [
           {
             id: 'generate-dashboard',
             content: 'Generate Troubleshooting Dashboard',
-            onClick: () => handleStage3()
+            onClick: () => {
+              setSelectedQuickResponse({ containerId: stage2QuickResponsesId, content: 'Generate Troubleshooting Dashboard' });
+              handleStage3();
+            }
           },
           {
             id: 'scale-down-replicas',
             content: 'Scale Down Replicas',
             onClick: () => {
+              setSelectedQuickResponse({ containerId: stage2QuickResponsesId, content: 'Scale Down Replicas' });
               console.log('Scale Down Replicas clicked');
               // Will implement in next step
             }
@@ -1473,6 +1486,7 @@ export const DashboardsPersesPage: React.FC = () => {
     
     // Simulate dashboard generation
     setTimeout(() => {
+      const stage3QuickResponsesId = `qr-stage3-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
       const stage3Message: MessageProps = {
         id: generateId(),
         role: 'bot',
@@ -1481,11 +1495,13 @@ export const DashboardsPersesPage: React.FC = () => {
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
+        quickResponseContainerProps: { id: stage3QuickResponsesId } as any,
         quickResponses: [
           {
             id: 'save-dashboard',
             content: 'Save Dashboard',
             onClick: () => {
+              setSelectedQuickResponse({ containerId: stage3QuickResponsesId, content: 'Save Dashboard' });
               console.log('Save Dashboard clicked');
               // Will implement in next step
             }
@@ -1494,6 +1510,7 @@ export const DashboardsPersesPage: React.FC = () => {
             id: 'execute-scale-down',
             content: 'Execute Scale Down',
             onClick: () => {
+              setSelectedQuickResponse({ containerId: stage3QuickResponsesId, content: 'Execute Scale Down' });
               console.log('Execute Scale Down clicked');
               // Will implement in next step
             }
@@ -1552,43 +1569,28 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
-  // Make quick response "chips" show a persistent clicked state
+  // Make quick response "chips" show a persistent clicked state (survives re-renders)
   useEffect(() => {
-    if (!isDrawerOpen) return;
+    if (!isDrawerOpen || !selectedQuickResponse) return;
 
-    const wrapper = document.querySelector<HTMLDivElement>('.ai-assistant-drawer-wrapper');
+    const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
     if (!wrapper) return;
 
-    const onClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target) return;
+    const container = wrapper.querySelector<HTMLElement>(`#${selectedQuickResponse.containerId}`);
+    if (!container) return;
 
-      // Quick responses are clickable PatternFly Labels. Depending on markup, the click can land on:
-      // - `.pf-v6-c-label` (wrapper)
-      // - `.pf-v6-c-label__content` (inner <button>)
-      const clickedLabel =
-        (target.closest('.pf-v6-c-label') as HTMLElement | null) ||
-        ((target.closest('.pf-v6-c-label__content') as HTMLElement | null)?.closest('.pf-v6-c-label') as HTMLElement | null);
-      if (!clickedLabel) return;
+    const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
+    allLabels.forEach((label) => {
+      label.classList.remove('pf-m-clicked');
+      label.setAttribute('aria-pressed', 'false');
+    });
 
-      const labelGroup =
-        (clickedLabel.closest('.pf-v6-c-label-group') as HTMLElement | null) ||
-        (clickedLabel.closest('[class*="label-group"]') as HTMLElement | null);
-      if (!labelGroup) return;
-
-      const allLabels = Array.from(labelGroup.querySelectorAll('.pf-v6-c-label')) as HTMLElement[];
-      allLabels.forEach((label) => {
-        label.classList.remove('pf-m-clicked');
-        label.setAttribute('aria-pressed', 'false');
-      });
-
-      clickedLabel.classList.add('pf-m-clicked');
-      clickedLabel.setAttribute('aria-pressed', 'true');
-    };
-
-    wrapper.addEventListener('click', onClick);
-    return () => wrapper.removeEventListener('click', onClick);
-  }, [isDrawerOpen]);
+    const selectedLabel = allLabels.find((label) => (label.textContent || '').trim() === selectedQuickResponse.content);
+    if (selectedLabel) {
+      selectedLabel.classList.add('pf-m-clicked');
+      selectedLabel.setAttribute('aria-pressed', 'true');
+    }
+  }, [isDrawerOpen, selectedQuickResponse, messages]);
 
   // Attach click handler to masthead bell icon - toggle drawer open/close
   useEffect(() => {
