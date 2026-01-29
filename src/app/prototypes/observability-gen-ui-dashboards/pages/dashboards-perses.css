@@ -454,8 +454,9 @@ button[aria-label="View task details"] {
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] {
-  background-color: var(--pf-t--global--color--brand--default) !important;
-  border-color: var(--pf-t--global--color--brand--default) !important;
+  /* Interactive blue filled selected state */
+  background-color: var(--pf-t--global--color--interactive--default, #0066cc) !important;
+  border-color: var(--pf-t--global--color--interactive--default, #0066cc) !important;
   color: var(--pf-t--global--text--color--on-brand--default, #fff) !important;
 }
 
@@ -474,6 +475,14 @@ button[aria-label="View task details"] {
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active:hover,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected:hover,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"]:hover {
-  background-color: var(--pf-t--global--color--brand--hover, var(--pf-t--global--color--brand--default)) !important;
-  border-color: var(--pf-t--global--color--brand--hover, var(--pf-t--global--color--brand--default)) !important;
+  background-color: var(--pf-t--global--color--interactive--hover, var(--pf-t--global--color--interactive--default, #0066cc)) !important;
+  border-color: var(--pf-t--global--color--interactive--hover, var(--pf-t--global--color--interactive--default, #0066cc)) !important;
+}
+
+/* Ensure the check icon inherits the selected (white) color */
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__icon,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__icon,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__icon,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__icon {
+  color: var(--pf-t--global--text--color--on-brand--default, #fff) !important;
 }

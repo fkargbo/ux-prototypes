@@ -69,6 +69,7 @@ import {
   BellIcon,
   ExclamationTriangleIcon,
   ExclamationCircleIcon,
+  CheckIcon,
   ExternalLinkAltIcon,
   AngleRightIcon,
   CubesIcon,
@@ -1032,6 +1033,25 @@ export const DashboardsPersesPage: React.FC = () => {
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLButtonElement>(null);
 
+  const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
+    setSelectedQuickResponse({ containerId, content });
+    setMessages((prev) =>
+      prev.map((m: any) => {
+        if (m?.quickResponseContainerProps?.id !== containerId || !Array.isArray(m?.quickResponses)) return m;
+        return {
+          ...m,
+          quickResponses: m.quickResponses.map((qr: any) => ({
+            ...qr,
+            // Show a checkmark on the selected chip
+            icon: qr?.content === content ? <CheckIcon /> : undefined,
+            // If the component supports selection state, set it too (harmless if ignored)
+            isSelected: qr?.content === content
+          }))
+        };
+      })
+    );
+  }, []);
+
   // Table state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isNameFilterOpen, setIsNameFilterOpen] = useState(false);
@@ -1286,7 +1306,7 @@ export const DashboardsPersesPage: React.FC = () => {
             id: 'analyze-root-cause',
             content: 'Analyze Root Cause',
             onClick: () => {
-              setSelectedQuickResponse({ containerId: stage1QuickResponsesId, content: 'Analyze Root Cause' });
+              markQuickResponseSelected(stage1QuickResponsesId, 'Analyze Root Cause');
               handleStage2();
             }
           },
@@ -1294,7 +1314,7 @@ export const DashboardsPersesPage: React.FC = () => {
             id: 'check-node-capacity',
             content: 'Check Node Capacity',
             onClick: () => {
-              setSelectedQuickResponse({ containerId: stage1QuickResponsesId, content: 'Check Node Capacity' });
+              markQuickResponseSelected(stage1QuickResponsesId, 'Check Node Capacity');
               console.log('Check Node Capacity clicked');
               // Will implement in next step
             }
@@ -1436,7 +1456,7 @@ export const DashboardsPersesPage: React.FC = () => {
             id: 'generate-dashboard',
             content: 'Generate Troubleshooting Dashboard',
             onClick: () => {
-              setSelectedQuickResponse({ containerId: stage2QuickResponsesId, content: 'Generate Troubleshooting Dashboard' });
+              markQuickResponseSelected(stage2QuickResponsesId, 'Generate Troubleshooting Dashboard');
               handleStage3();
             }
           },
@@ -1444,7 +1464,7 @@ export const DashboardsPersesPage: React.FC = () => {
             id: 'scale-down-replicas',
             content: 'Scale Down Replicas',
             onClick: () => {
-              setSelectedQuickResponse({ containerId: stage2QuickResponsesId, content: 'Scale Down Replicas' });
+              markQuickResponseSelected(stage2QuickResponsesId, 'Scale Down Replicas');
               console.log('Scale Down Replicas clicked');
               // Will implement in next step
             }
@@ -1501,7 +1521,7 @@ export const DashboardsPersesPage: React.FC = () => {
             id: 'save-dashboard',
             content: 'Save Dashboard',
             onClick: () => {
-              setSelectedQuickResponse({ containerId: stage3QuickResponsesId, content: 'Save Dashboard' });
+              markQuickResponseSelected(stage3QuickResponsesId, 'Save Dashboard');
               console.log('Save Dashboard clicked');
               // Will implement in next step
             }
@@ -1510,7 +1530,7 @@ export const DashboardsPersesPage: React.FC = () => {
             id: 'execute-scale-down',
             content: 'Execute Scale Down',
             onClick: () => {
-              setSelectedQuickResponse({ containerId: stage3QuickResponsesId, content: 'Execute Scale Down' });
+              markQuickResponseSelected(stage3QuickResponsesId, 'Execute Scale Down');
               console.log('Execute Scale Down clicked');
               // Will implement in next step
             }
