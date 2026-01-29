@@ -1571,79 +1571,83 @@ export const DashboardsPersesPage: React.FC = () => {
         extraContent: {
           afterMainContent: (
             <div style={{ marginTop: '16px', marginBottom: '16px' }}>
-              <Title headingLevel="h4" size="md" style={{ marginBottom: '12px' }}>
-                Top 3 CPU-Consuming Namespaces
-              </Title>
-              <div style={{ height: '200px', width: '100%' }}>
-                <Charts
-                  height={200}
-                  option={{
-                    tooltip: {
-                      trigger: 'axis',
-                      axisPointer: {
-                        type: 'shadow'
-                      },
-                      formatter: (params: any) => {
-                        const param = params[0];
-                        return `${param.name}<br/>CPU Usage: ${param.value}%`;
-                      }
-                    },
-                    grid: {
-                      left: '60px',
-                      right: '20px',
-                      bottom: '110px',
-                      top: '20px',
-                      containLabel: false
-                    },
-                    xAxis: {
-                      type: 'category',
-                      data: cpuData.map(d => d.x),
-                      name: 'Namespace',
-                      nameLocation: 'middle',
-                      nameGap: 80,
-                      nameTextStyle: {
-                        color: 'var(--pf-t--global--text--color--default)'
-                      },
-                      axisLabel: {
-                        color: 'var(--pf-t--global--text--color--default)',
-                        formatter: (value: string) => {
-                          return value.length > 12 ? `${value.substring(0, 12)}...` : value;
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top 3 CPU-Consuming Namespaces</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <div style={{ height: '200px', width: '100%' }}>
+                    <Charts
+                      height={200}
+                      option={{
+                        tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                            type: 'shadow'
+                          },
+                          formatter: (params: any) => {
+                            const param = params[0];
+                            return `${param.name}<br/>CPU Usage: ${param.value}%`;
+                          }
                         },
-                        rotate: 45
-                      }
-                    },
-                    yAxis: {
-                      type: 'value',
-                      name: 'CPU Usage (%)',
-                      nameLocation: 'middle',
-                      nameGap: 50,
-                      nameTextStyle: {
-                        color: 'var(--pf-t--global--text--color--default)'
-                      },
-                      axisLabel: {
-                        color: 'var(--pf-t--global--text--color--default)',
-                        formatter: '{value}%'
-                      }
-                    },
-                    series: [
-                      {
-                        name: 'CPU Usage',
-                        type: 'bar',
-                        data: cpuData.map(d => d.y),
-                        label: {
-                          show: true,
-                          position: 'top',
-                          formatter: '{c}%',
-                          color: 'var(--pf-t--global--text--color--default)'
+                        grid: {
+                          left: '60px',
+                          right: '20px',
+                          bottom: '110px',
+                          top: '20px',
+                          containLabel: false
                         },
-                        itemStyle: {
-                          color: '#0066cc'
-                        }
-                      }
-                    ]
-                  }}
-                />
-              </div>
+                        xAxis: {
+                          type: 'category',
+                          data: cpuData.map(d => d.x),
+                          name: 'Namespace',
+                          nameLocation: 'middle',
+                          nameGap: 80,
+                          nameTextStyle: {
+                            color: 'var(--pf-t--global--text--color--default)'
+                          },
+                          axisLabel: {
+                            color: 'var(--pf-t--global--text--color--default)',
+                            formatter: (value: string) => {
+                              return value.length > 12 ? `${value.substring(0, 12)}...` : value;
+                            },
+                            rotate: 45
+                          }
+                        },
+                        yAxis: {
+                          type: 'value',
+                          name: 'CPU Usage (%)',
+                          nameLocation: 'middle',
+                          nameGap: 50,
+                          nameTextStyle: {
+                            color: 'var(--pf-t--global--text--color--default)'
+                          },
+                          axisLabel: {
+                            color: 'var(--pf-t--global--text--color--default)',
+                            formatter: '{value}%'
+                          }
+                        },
+                        series: [
+                          {
+                            name: 'CPU Usage',
+                            type: 'bar',
+                            data: cpuData.map(d => d.y),
+                            label: {
+                              show: true,
+                              position: 'top',
+                              formatter: '{c}%',
+                              color: 'var(--pf-t--global--text--color--default)'
+                            },
+                            itemStyle: {
+                              color: '#0066cc'
+                            }
+                          }
+                        ]
+                      }}
+                    />
+                  </div>
+                </CardBody>
+              </Card>
             </div>
           )
         },
