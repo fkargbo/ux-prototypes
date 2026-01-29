@@ -2516,12 +2516,11 @@ export const DashboardsPersesPage: React.FC = () => {
           ref={chatbotToggleRef}
           className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
         >
-          <Tooltip content="AI assistant" position="left">
-            <ChatbotToggle
-              onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-              aria-label="AI assistant"
-            />
-          </Tooltip>
+          <ChatbotToggle
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            aria-label="AI assistant"
+            tooltipLabel="AI assistant"
+          />
         </div>
       </div>,
       chatbotTogglePortalTarget || document.body
