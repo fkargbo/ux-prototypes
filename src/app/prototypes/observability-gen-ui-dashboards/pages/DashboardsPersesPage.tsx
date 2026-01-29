@@ -1590,7 +1590,7 @@ export const DashboardsPersesPage: React.FC = () => {
                     grid: {
                       left: '60px',
                       right: '20px',
-                      bottom: '60px',
+                      bottom: '84px',
                       top: '20px',
                       containLabel: false
                     },
@@ -1599,7 +1599,7 @@ export const DashboardsPersesPage: React.FC = () => {
                       data: cpuData.map(d => d.x),
                       name: 'Namespace',
                       nameLocation: 'middle',
-                      nameGap: 30,
+                      nameGap: 54,
                       nameTextStyle: {
                         color: 'var(--pf-t--global--text--color--default)'
                       },
