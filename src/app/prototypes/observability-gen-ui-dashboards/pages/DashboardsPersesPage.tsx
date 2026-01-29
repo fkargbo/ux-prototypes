@@ -1136,6 +1136,8 @@ export const DashboardsPersesPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLButtonElement>(null);
+  const messagesRef = useRef<MessageProps[]>([]);
+  const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
 
   const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
     setSelectedQuickResponse({ containerId, content });
@@ -1155,6 +1157,10 @@ export const DashboardsPersesPage: React.FC = () => {
       })
     );
   }, []);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Table state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -1176,6 +1182,69 @@ export const DashboardsPersesPage: React.FC = () => {
   const [workflowStage, setWorkflowStage] = useState<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
   const [showTroubleshootingDashboard, setShowTroubleshootingDashboard] = useState(false);
   const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
+
+  useEffect(() => {
+    workflowStageRef.current = workflowStage;
+  }, [workflowStage]);
+
+  const triggerQuickResponseByContent = useCallback(
+    (desiredContent: string) => {
+      const list = messagesRef.current as any[];
+      for (let i = list.length - 1; i >= 0; i--) {
+        const m = list[i];
+        const qrs = m?.quickResponses;
+        if (m?.role === 'bot' && Array.isArray(qrs)) {
+          const qr = qrs.find((x: any) => String(x?.content || '').toLowerCase() === desiredContent.toLowerCase());
+          if (qr) {
+            const containerId = m?.quickResponseContainerProps?.id;
+            if (containerId) {
+              markQuickResponseSelected(containerId, String(qr.content));
+            }
+            if (typeof qr.onClick === 'function') {
+              qr.onClick();
+            }
+            return true;
+          }
+        }
+      }
+      return false;
+    },
+    [markQuickResponseSelected]
+  );
+
+  const getWorkflowIntentQuickResponse = (text: string) => {
+    const normalized = text.toLowerCase().replace(/[^\w\s-]/g, ' ').replace(/\s+/g, ' ').trim();
+    const stage = workflowStageRef.current;
+
+    if (stage === 'stage1') {
+      if (normalized.includes('root cause') || (normalized.includes('analyze') && normalized.includes('root'))) {
+        return 'Analyze root cause';
+      }
+      if (normalized.includes('node capacity') || (normalized.includes('check') && normalized.includes('node'))) {
+        return 'Check node capacity';
+      }
+    }
+
+    if (stage === 'stage2') {
+      if (normalized.includes('troubleshooting dashboard') || (normalized.includes('generate') && normalized.includes('dashboard'))) {
+        return 'Generate troubleshooting dashboard';
+      }
+      if (normalized.includes('scale down') || normalized.includes('replica')) {
+        return 'Scale down replicas';
+      }
+    }
+
+    if (stage === 'stage3') {
+      if (normalized.includes('save') && normalized.includes('dashboard')) {
+        return 'Save dashboard';
+      }
+      if (normalized.includes('execute') && normalized.includes('scale')) {
+        return 'Execute scale down';
+      }
+    }
+
+    return null;
+  };
 
   // Mock notifications data
   const criticalAlerts: Array<{ id: string; name: string; severity: string; duration: string; description?: string }> = [
@@ -1286,6 +1355,29 @@ export const DashboardsPersesPage: React.FC = () => {
   const handleSendMessage = useCallback((message: string | number) => {
     const messageText = String(message);
     if (!messageText.trim()) return;
+
+    // Conversational shortcut: let typed responses trigger the existing quick response chips.
+    const intent = getWorkflowIntentQuickResponse(messageText);
+    if (intent) {
+      const date = new Date();
+      const userMessage: MessageProps = {
+        id: generateId(),
+        role: 'user',
+        content: messageText,
+        name: 'User',
+        avatar: userAvatarSrc,
+        timestamp: date.toLocaleString(),
+        avatarProps: { isBordered: true }
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setAnnouncement(`Message from User: ${messageText}.`);
+
+      setTimeout(() => {
+        triggerQuickResponseByContent(intent);
+      }, 0);
+      return;
+    }
 
     setIsSendButtonDisabled(true);
     const date = new Date();
@@ -1399,7 +1491,7 @@ export const DashboardsPersesPage: React.FC = () => {
       const stage1Message: MessageProps = {
         id: generateId(),
         role: 'bot',
-        content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU.',
+        content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU. Would you like me to analyze the root cause or check the node capacity?',
         name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
@@ -1408,17 +1500,17 @@ export const DashboardsPersesPage: React.FC = () => {
         quickResponses: [
           {
             id: 'analyze-root-cause',
-            content: 'Analyze Root Cause',
+            content: 'Analyze root cause',
             onClick: () => {
-              markQuickResponseSelected(stage1QuickResponsesId, 'Analyze Root Cause');
+              markQuickResponseSelected(stage1QuickResponsesId, 'Analyze root cause');
               handleStage2();
             }
           },
           {
             id: 'check-node-capacity',
-            content: 'Check Node Capacity',
+            content: 'Check node capacity',
             onClick: () => {
-              markQuickResponseSelected(stage1QuickResponsesId, 'Check Node Capacity');
+              markQuickResponseSelected(stage1QuickResponsesId, 'Check node capacity');
               console.log('Check Node Capacity clicked');
               // Will implement in next step
             }
@@ -1470,7 +1562,7 @@ export const DashboardsPersesPage: React.FC = () => {
       const stage2Message: MessageProps = {
         id: generateId(),
         role: 'bot',
-        content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota.',
+        content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota. Would you like me to generate a troubleshooting dashboard or scale down replicas?',
         name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
@@ -1558,17 +1650,17 @@ export const DashboardsPersesPage: React.FC = () => {
         quickResponses: [
           {
             id: 'generate-dashboard',
-            content: 'Generate Troubleshooting Dashboard',
+            content: 'Generate troubleshooting dashboard',
             onClick: () => {
-              markQuickResponseSelected(stage2QuickResponsesId, 'Generate Troubleshooting Dashboard');
+              markQuickResponseSelected(stage2QuickResponsesId, 'Generate troubleshooting dashboard');
               handleStage3();
             }
           },
           {
             id: 'scale-down-replicas',
-            content: 'Scale Down Replicas',
+            content: 'Scale down replicas',
             onClick: () => {
-              markQuickResponseSelected(stage2QuickResponsesId, 'Scale Down Replicas');
+              markQuickResponseSelected(stage2QuickResponsesId, 'Scale down replicas');
               console.log('Scale Down Replicas clicked');
               // Will implement in next step
             }
@@ -1614,7 +1706,7 @@ export const DashboardsPersesPage: React.FC = () => {
       const stage3Message: MessageProps = {
         id: generateId(),
         role: 'bot',
-        content: 'I have generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. You can save this to your Perses projects library or proceed with the fix.',
+        content: 'I have generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like me to save the dashboard or execute the scale down?',
         name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
@@ -1623,18 +1715,18 @@ export const DashboardsPersesPage: React.FC = () => {
         quickResponses: [
           {
             id: 'save-dashboard',
-            content: 'Save Dashboard',
+            content: 'Save dashboard',
             onClick: () => {
-              markQuickResponseSelected(stage3QuickResponsesId, 'Save Dashboard');
+              markQuickResponseSelected(stage3QuickResponsesId, 'Save dashboard');
               console.log('Save Dashboard clicked');
               // Will implement in next step
             }
           },
           {
             id: 'execute-scale-down',
-            content: 'Execute Scale Down',
+            content: 'Execute scale down',
             onClick: () => {
-              markQuickResponseSelected(stage3QuickResponsesId, 'Execute Scale Down');
+              markQuickResponseSelected(stage3QuickResponsesId, 'Execute scale down');
               console.log('Execute Scale Down clicked');
               // Will implement in next step
             }
