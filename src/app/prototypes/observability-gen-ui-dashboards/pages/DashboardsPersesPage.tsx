@@ -116,7 +116,7 @@ import ChatbotHeader, {
   ChatbotHeaderTitle,
   ChatbotHeaderActions,
   ChatbotHeaderSelectorDropdown
-} from '@patternfly/chatbot/dist/dynamic/ChatbotHeader';
+} from '@patternfly/chatbot/dist/esm/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
 
