@@ -1575,7 +1575,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 <CardHeader>
                   <CardTitle>Top 3 CPU-Consuming Namespaces</CardTitle>
                 </CardHeader>
-                <CardBody>
+                <CardBody className="pf-v6-u-pb-0">
                   <div style={{ height: '200px', width: '100%' }}>
                     <Charts
                       height={200}
