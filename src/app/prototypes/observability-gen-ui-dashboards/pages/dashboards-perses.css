@@ -338,27 +338,14 @@ button[aria-label="View task details"] {
 }
 
 .chatbot-toggle-button.drawer-open {
-  right: calc(33.333% + 24px) !important;
+  /* Match drawer sizing: width + min/max constraints */
+  right: calc(clamp(400px, 33.333vw, 600px) + 24px) !important;
 }
 
 @media (min-width: 992px) {
-  /* On larger screens, drawer is 25% width */
+  /* On larger screens, drawer targets 25% width (still clamped) */
   .chatbot-toggle-button.drawer-open {
-    right: calc(25% + 24px) !important;
-  }
-}
-
-@media (max-width: 1200px) {
-  /* On smaller screens, drawer has min-width 400px */
-  .chatbot-toggle-button.drawer-open {
-    right: calc(400px + 24px) !important;
-  }
-}
-
-@media (min-width: 2400px) {
-  /* On very large screens, drawer has max-width 600px */
-  .chatbot-toggle-button.drawer-open {
-    right: calc(600px + 24px) !important;
+    right: calc(clamp(400px, 25vw, 600px) + 24px) !important;
   }
 }
 
