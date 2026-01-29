@@ -1593,7 +1593,7 @@ export const DashboardsPersesPage: React.FC = () => {
                         grid: {
                           left: '60px',
                           right: '20px',
-                          bottom: '86px',
+                          bottom: '100px',
                           top: '20px',
                           containLabel: false
                         },
