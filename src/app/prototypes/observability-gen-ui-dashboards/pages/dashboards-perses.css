@@ -418,7 +418,10 @@ button[aria-label="View task details"] {
 .perses-edit-mode-label {
   color: #151515 !important;
   font-size: 14px !important;
-  font-weight: 400 !important;
+  /* Match PatternFly label weight (semi-bold) */
+  font-weight: var(--pf-v6-global--FontWeight--semi-bold, 600) !important;
+  display: block;
+  margin-bottom: 4px;
 }
 
 /* Chatbot suggestion chips (quick responses) - brand interactive blue */
