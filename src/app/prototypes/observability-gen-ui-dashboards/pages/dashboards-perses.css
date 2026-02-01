@@ -78,58 +78,55 @@ button[aria-label="View task details"] {
 /* Adjust page container width when drawer is open to allow responsive flexing */
 /* The drawer is fixed, so we need to reduce the actual width of the container */
 .pf-v6-c-page__main-container.chatbot-drawer-open {
-  /* Reserve space for the fixed drawer without clipping the page */
-  box-sizing: border-box !important;
-  padding-right: clamp(400px, 33.333vw, 600px) !important;
-  transition: padding-right 0.2s ease-in-out;
+  width: calc(100% - 33.333%);
+  transition: width 0.2s ease-in-out;
 }
 
 @media (min-width: 992px) {
   .pf-v6-c-page__main-container.chatbot-drawer-open {
-    padding-right: clamp(400px, 25vw, 600px) !important;
+    width: calc(100% - 25%);
   }
 }
 
 /* For very small screens, account for drawer min-width (400px) */
 @media (max-width: 1200px) {
   .pf-v6-c-page__main-container.chatbot-drawer-open {
-    padding-right: 400px !important;
+    width: calc(100% - 400px);
   }
 }
 
 /* For larger screens, account for drawer max-width (600px) */
 @media (min-width: 2400px) {
   .pf-v6-c-page__main-container.chatbot-drawer-open {
-    padding-right: 600px !important;
+    width: calc(100% - 600px);
   }
 }
 
 /* Adjust masthead toolbar items to slide left when chatbot drawer is open */
 .pf-v6-c-masthead__content.chatbot-drawer-open,
 .pf-v6-c-page.chatbot-drawer-open .pf-v6-c-masthead__content {
-  box-sizing: border-box !important;
-  padding-right: clamp(400px, 33.333vw, 600px) !important;
-  transition: padding-right 0.2s ease-in-out;
+  width: calc(100% - 33.333%);
+  transition: width 0.2s ease-in-out;
 }
 
 @media (min-width: 992px) {
   .pf-v6-c-masthead__content.chatbot-drawer-open,
   .pf-v6-c-page.chatbot-drawer-open .pf-v6-c-masthead__content {
-    padding-right: clamp(400px, 25vw, 600px) !important;
+    width: calc(100% - 25%);
   }
 }
 
 @media (max-width: 1200px) {
   .pf-v6-c-masthead__content.chatbot-drawer-open,
   .pf-v6-c-page.chatbot-drawer-open .pf-v6-c-masthead__content {
-    padding-right: 400px !important;
+    width: calc(100% - 400px);
   }
 }
 
 @media (min-width: 2400px) {
   .pf-v6-c-masthead__content.chatbot-drawer-open,
   .pf-v6-c-page.chatbot-drawer-open .pf-v6-c-masthead__content {
-    padding-right: 600px !important;
+    width: calc(100% - 600px);
   }
 }
 
