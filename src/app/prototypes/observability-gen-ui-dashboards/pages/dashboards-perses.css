@@ -421,7 +421,7 @@ button[aria-label="View task details"] {
   /* Match PatternFly label weight (semi-bold) */
   font-weight: var(--pf-v6-global--FontWeight--semi-bold, 600) !important;
   display: block;
-  margin-bottom: 4px;
+  margin: 0 0 4px 0 !important;
 }
 
 /* Chatbot suggestion chips (quick responses) - brand interactive blue */
