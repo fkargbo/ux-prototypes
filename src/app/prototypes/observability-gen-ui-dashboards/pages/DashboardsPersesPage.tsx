@@ -839,75 +839,86 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
         {/* Edit mode actions */}
         <StackItem>
           <div className="perses-edit-mode-bar" aria-label="Dashboard edit mode actions">
-            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapLg' }}>
-              <FlexItem flex={{ default: 'flex_1' }}>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapLg' }}>
-                  <FlexItem>
-                    <div>
-                      <Content component="small" className="pf-v6-u-color-200">
-                        Select dashboard
-                      </Content>
-                      <Dropdown
-                        isOpen={isDashboardSelectOpen}
-                        onOpenChange={setIsDashboardSelectOpen}
-                        onSelect={(_event, value) => {
-                          if (typeof value === 'string') {
-                            setSelectedDashboardName(value);
-                          }
-                          setIsDashboardSelectOpen(false);
-                        }}
-                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                          <MenuToggle
-                            ref={toggleRef}
-                            onClick={() => setIsDashboardSelectOpen((prev) => !prev)}
-                            isExpanded={isDashboardSelectOpen}
-                          >
-                            {selectedDashboardName}
-                          </MenuToggle>
-                        )}
+            <Flex
+              justifyContent={{ default: 'justifyContentSpaceBetween' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+              flexWrap={{ default: 'wrap' }}
+              gap={{ default: 'gapLg' }}
+            >
+              {/* Left: dashboard selector */}
+              <FlexItem>
+                <div>
+                  <Content component="small" className="pf-v6-u-color-200">
+                    Select dashboard
+                  </Content>
+                  <Dropdown
+                    isOpen={isDashboardSelectOpen}
+                    onOpenChange={setIsDashboardSelectOpen}
+                    onSelect={(_event, value) => {
+                      if (typeof value === 'string') {
+                        setSelectedDashboardName(value);
+                      }
+                      setIsDashboardSelectOpen(false);
+                    }}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsDashboardSelectOpen((prev) => !prev)}
+                        isExpanded={isDashboardSelectOpen}
                       >
-                        <DropdownList>
-                          <DropdownItem value="Dashboard 1" key="dashboard-1">
-                            Dashboard 1
-                          </DropdownItem>
-                          <DropdownItem value="Dashboard 2" key="dashboard-2">
-                            Dashboard 2
-                          </DropdownItem>
-                        </DropdownList>
-                      </Dropdown>
-                    </div>
-                  </FlexItem>
-
-                  <FlexItem>
-                    <Button variant="link" isInline icon={<PlusIcon />} iconPosition="end">
-                      Panel
-                    </Button>
-                  </FlexItem>
-                  <FlexItem>
-                    <Button variant="link" isInline icon={<PlusIcon />} iconPosition="end">
-                      Panel group
-                    </Button>
-                  </FlexItem>
-                  <FlexItem>
-                    <Button variant="link" isInline icon={<PencilAltIcon />} iconPosition="end">
-                      Variables
-                    </Button>
-                  </FlexItem>
-                  <FlexItem>
-                    <Button variant="link" isInline icon={<PencilAltIcon />} iconPosition="end">
-                      Datasources
-                    </Button>
-                  </FlexItem>
-                </Flex>
+                        {selectedDashboardName}
+                      </MenuToggle>
+                    )}
+                  >
+                    <DropdownList>
+                      <DropdownItem value="Dashboard 1" key="dashboard-1">
+                        Dashboard 1
+                      </DropdownItem>
+                      <DropdownItem value="Dashboard 2" key="dashboard-2">
+                        Dashboard 2
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </div>
               </FlexItem>
 
+              {/* Right: actions + save/cancel */}
               <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                  <FlexItem>
-                    <Button variant="primary">Save</Button>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
+                  <FlexItem className="perses-edit-mode-links">
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapLg' }}>
+                      <FlexItem>
+                        <Button variant="link" isInline icon={<PlusIcon />} iconPosition="end">
+                          Panel
+                        </Button>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button variant="link" isInline icon={<PlusIcon />} iconPosition="end">
+                          Panel group
+                        </Button>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button variant="link" isInline icon={<PencilAltIcon />} iconPosition="end">
+                          Variables
+                        </Button>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button variant="link" isInline icon={<PencilAltIcon />} iconPosition="end">
+                          Datasources
+                        </Button>
+                      </FlexItem>
+                    </Flex>
                   </FlexItem>
+
                   <FlexItem>
-                    <Button variant="secondary">Cancel</Button>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                      <FlexItem>
+                        <Button variant="primary">Save</Button>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button variant="secondary">Cancel</Button>
+                      </FlexItem>
+                    </Flex>
                   </FlexItem>
                 </Flex>
               </FlexItem>

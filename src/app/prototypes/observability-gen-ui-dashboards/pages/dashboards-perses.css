@@ -401,9 +401,16 @@ button[aria-label="View task details"] {
 
 /* Perses "edit mode" action bar (blue background section) */
 .perses-edit-mode-bar {
-  background-color: var(--pf-v6-global--palette--blue-50);
-  padding: var(--pf-v6-global--spacer--md);
-  border-radius: var(--pf-v6-global--BorderRadius--md);
+  /* Use the exact PF palette token with a safe fallback */
+  background-color: var(--pf-v6-global--palette--blue-50, #E7F1FA);
+  padding: 16px 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Exact spacing requirement: 28px gap between links and Save */
+.perses-edit-mode-links {
+  margin-right: 28px;
 }
 
 /* Chatbot suggestion chips (quick responses) - brand interactive blue */
