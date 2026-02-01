@@ -406,11 +406,19 @@ button[aria-label="View task details"] {
   padding: 16px 24px;
   width: 100%;
   box-sizing: border-box;
+  border-radius: 16px;
 }
 
 /* Exact spacing requirement: 28px gap between links and Save */
 .perses-edit-mode-links {
   margin-right: 28px;
+}
+
+/* Edit bar label: regular text, 14px, #151515 */
+.perses-edit-mode-label {
+  color: #151515 !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
 }
 
 /* Chatbot suggestion chips (quick responses) - brand interactive blue */

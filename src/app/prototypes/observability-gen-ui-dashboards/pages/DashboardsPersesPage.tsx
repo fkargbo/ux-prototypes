@@ -848,7 +848,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
               {/* Left: dashboard selector */}
               <FlexItem>
                 <div>
-                  <Content component="small" className="pf-v6-u-color-200">
+                  <Content component="small" className="perses-edit-mode-label">
                     Select dashboard
                   </Content>
                   <Dropdown
