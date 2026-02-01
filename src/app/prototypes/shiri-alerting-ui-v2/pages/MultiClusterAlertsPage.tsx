@@ -3785,7 +3785,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         
                         if (col.key === 'component') {
                           thProps.info = {
-                            tooltip: "The specific services or operators that triggered this alert.",
+                            tooltip: "The specific services, operators, or nodes affected by this alert.",
                             ariaLabel: "More information about affected component"
                           };
                         }
@@ -9543,7 +9543,7 @@ spec:
                           </Th>
                           <Th
                             info={{
-                              tooltip: "The specific services or operators that triggered this alert.",
+                              tooltip: "The specific services, operators, or nodes affected by this alert.",
                               ariaLabel: "More information about affected component"
                             }}
                           >
