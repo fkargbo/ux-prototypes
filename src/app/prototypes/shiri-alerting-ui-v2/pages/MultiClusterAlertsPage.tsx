@@ -1779,6 +1779,7 @@ interface FilterPanelProps {
   setComponentFilter: (v: AlertComponent[]) => void;
   regions: string[];
   clusterNames: string[];
+  clusters: ClusterData[]; // For cascading region-cluster filter
   namespaces: string[];
   availableLabels: string[];
   onClose: () => void;
@@ -1814,7 +1815,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   severityFilter, setSeverityFilter,
   groupFilter, setGroupFilter,
   componentFilter, setComponentFilter,
-  regions, clusterNames, namespaces, availableLabels,
+  regions, clusterNames, clusters, namespaces, availableLabels,
   onClose,
   savedFilters, onApplySavedFilter, onSaveFilter, onDeleteSavedFilter,
   regionCounts = {}, clusterCounts = {}, namespaceCounts = {},
@@ -1859,6 +1860,41 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
     labelFilter.length > 0 || severityFilter.length > 0 || (groupFilter.length > 0 && groupFilter.length < 2) || componentFilter.length > 0;
 
+  // Auto-clear cluster selections when their regions are deselected
+  React.useEffect(() => {
+    if (regionFilter.length > 0 && clusterFilter.length > 0) {
+      const validClusterNames = clusters
+        .filter(cluster => regionFilter.includes(cluster.region))
+        .map(cluster => cluster.name);
+      
+      const updatedClusterFilter = clusterFilter.filter(clusterName => 
+        validClusterNames.includes(clusterName)
+      );
+      
+      if (updatedClusterFilter.length !== clusterFilter.length) {
+        setClusterFilter(updatedClusterFilter);
+      }
+    }
+  }, [regionFilter, clusters]); // Only watch regionFilter changes
+
+  // Auto-clear namespace selections when their clusters are deselected
+  React.useEffect(() => {
+    if (clusterFilter.length > 0 && namespaceFilter.length > 0) {
+      const validNamespaces = clusters
+        .filter(cluster => clusterFilter.includes(cluster.name))
+        .flatMap(cluster => cluster.namespaces);
+      const uniqueValidNamespaces = Array.from(new Set(validNamespaces));
+      
+      const updatedNamespaceFilter = namespaceFilter.filter(namespaceName => 
+        uniqueValidNamespaces.includes(namespaceName)
+      );
+      
+      if (updatedNamespaceFilter.length !== namespaceFilter.length) {
+        setNamespaceFilter(updatedNamespaceFilter);
+      }
+    }
+  }, [clusterFilter, clusters]); // Only watch clusterFilter changes
+
   const clearAllFilters = () => {
     setRegionFilter([]);
     setClusterFilter([]);
@@ -1888,10 +1924,42 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
 
   const availableComponents = getAvailableComponents();
 
-  // Filtered options based on search
+  // Filtered options based on search and cascading filters
   const filteredRegions = regions.filter(r => r.toLowerCase().includes(regionSearchValue.toLowerCase()));
-  const filteredClusters = clusterNames.filter(c => c.toLowerCase().includes(clusterSearchValue.toLowerCase()));
-  const filteredNamespaces = namespaces.filter(n => n.toLowerCase().includes(namespaceSearchValue.toLowerCase()));
+  
+  // Cascade filter: If regions are selected, only show clusters from those regions
+  const filteredClusters = React.useMemo(() => {
+    let availableClusters = clusterNames;
+    
+    // If regions are selected, filter clusters to only those in selected regions
+    if (regionFilter.length > 0) {
+      const clusterNamesInSelectedRegions = clusters
+        .filter(cluster => regionFilter.includes(cluster.region))
+        .map(cluster => cluster.name);
+      availableClusters = clusterNames.filter(name => clusterNamesInSelectedRegions.includes(name));
+    }
+    
+    // Apply search filter
+    return availableClusters.filter(c => c.toLowerCase().includes(clusterSearchValue.toLowerCase()));
+  }, [clusterNames, clusters, regionFilter, clusterSearchValue]);
+  
+  // Cascade filter: If clusters are selected, only show namespaces from those clusters
+  const filteredNamespaces = React.useMemo(() => {
+    let availableNamespaces = namespaces;
+    
+    // If clusters are selected, filter namespaces to only those in selected clusters
+    if (clusterFilter.length > 0) {
+      const namespacesInSelectedClusters = clusters
+        .filter(cluster => clusterFilter.includes(cluster.name))
+        .flatMap(cluster => cluster.namespaces);
+      const uniqueNamespaces = Array.from(new Set(namespacesInSelectedClusters));
+      availableNamespaces = namespaces.filter(name => uniqueNamespaces.includes(name));
+    }
+    
+    // Apply search filter
+    return availableNamespaces.filter(n => n.toLowerCase().includes(namespaceSearchValue.toLowerCase()));
+  }, [namespaces, clusters, clusterFilter, namespaceSearchValue]);
+  
   const filteredLabels = availableLabels.filter(l => l.toLowerCase().includes(labelSearchValue.toLowerCase()));
   const filteredComponents = availableComponents.filter(c => c.toLowerCase().includes(componentSearchValue.toLowerCase()));
 
@@ -1956,15 +2024,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 )}
               </SelectList>
             </Select>
-            {regionFilter.length > 0 && (
-              <LabelGroup style={{ marginTop: '8px' }}>
-                {regionFilter.map(r => (
-                  <Label key={r} color="teal" onClose={() => setRegionFilter(regionFilter.filter(x => x !== r))} icon={<MapMarkerAltIcon />}>
-                    {r}
-                  </Label>
-                ))}
-              </LabelGroup>
-            )}
           </StackItem>
 
           <Divider />
@@ -2016,15 +2075,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 )}
               </SelectList>
             </Select>
-            {clusterFilter.length > 0 && (
-              <LabelGroup style={{ marginTop: '8px' }}>
-                {clusterFilter.map(c => (
-                  <Label key={c} color="purple" onClose={() => setClusterFilter(clusterFilter.filter(x => x !== c))} icon={<ClusterIcon />}>
-                    {c}
-                  </Label>
-                ))}
-              </LabelGroup>
-            )}
+            <div style={{ 
+              fontSize: '12px', 
+              color: 'var(--pf-t--global--text--color--subtle)', 
+              marginTop: '4px',
+              fontStyle: 'italic'
+            }}>
+              {regionFilter.length > 0 ? 'Filtered by region' : 'Showing all clusters'}
+            </div>
           </StackItem>
 
           <Divider />
@@ -2076,15 +2134,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 )}
               </SelectList>
             </Select>
-            {namespaceFilter.length > 0 && (
-              <LabelGroup style={{ marginTop: '8px' }}>
-                {namespaceFilter.map(n => (
-                  <Label key={n} color="blue" onClose={() => setNamespaceFilter(namespaceFilter.filter(x => x !== n))} icon={<CubesIcon />}>
-                    {n}
-                  </Label>
-                ))}
-              </LabelGroup>
-            )}
+            <div style={{ 
+              fontSize: '12px', 
+              color: 'var(--pf-t--global--text--color--subtle)', 
+              marginTop: '4px',
+              fontStyle: 'italic'
+            }}>
+              {clusterFilter.length > 0 ? 'Filtered by cluster' : 'Showing all namespaces'}
+            </div>
           </StackItem>
 
           <Divider />
@@ -2136,15 +2193,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 )}
               </SelectList>
             </Select>
-            {labelFilter.length > 0 && (
-              <LabelGroup style={{ marginTop: '8px' }}>
-                {labelFilter.map(l => (
-                  <Label key={l} color="yellow" onClose={() => setLabelFilter(labelFilter.filter(x => x !== l))} icon={<FilterIcon />}>
-                    {l}
-                  </Label>
-                ))}
-              </LabelGroup>
-            )}
           </StackItem>
 
           <Divider />
@@ -2265,15 +2313,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 )}
               </SelectList>
             </Select>
-            {componentFilter.length > 0 && (
-              <LabelGroup style={{ marginTop: '8px' }}>
-                {componentFilter.map(c => (
-                  <Label key={c} color="green" onClose={() => setComponentFilter(componentFilter.filter(x => x !== c))} icon={<CogIcon />}>
-                    {c}
-                  </Label>
-                ))}
-              </LabelGroup>
-            )}
           </StackItem>
 
           {/* Alert-specific filters (shown when in firing alerts scope) */}
@@ -2326,19 +2365,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                     ))}
                   </SelectList>
                 </Select>
-                {stateFilter.length > 0 && (
-                  <LabelGroup style={{ marginTop: '8px' }}>
-                    {stateFilter.map(s => (
-                      <Label 
-                        key={s} 
-                        color="blue" 
-                        onClose={() => setStateFilter && setStateFilter(stateFilter.filter(x => x !== s))}
-                      >
-                        {s.charAt(0).toUpperCase() + s.slice(1)}
-                      </Label>
-                    ))}
-                  </LabelGroup>
-                )}
               </StackItem>
 
               {/* Source Filter */}
@@ -2381,19 +2407,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                     ))}
                   </SelectList>
                 </Select>
-                {sourceFilter.length > 0 && (
-                  <LabelGroup style={{ marginTop: '8px' }}>
-                    {sourceFilter.map(s => (
-                      <Label 
-                        key={s} 
-                        color="purple" 
-                        onClose={() => setSourceFilter && setSourceFilter(sourceFilter.filter(x => x !== s))}
-                      >
-                        {s}
-                      </Label>
-                    ))}
-                  </LabelGroup>
-                )}
               </StackItem>
 
               {/* Triggered Time Range Filters */}
@@ -8073,6 +8086,7 @@ spec:
               setComponentFilter={setComponentFilter}
               regions={regions}
               clusterNames={clusterNames}
+              clusters={mockClusters}
               namespaces={namespaces}
               availableLabels={availableLabels}
               regionCounts={regionCounts}
@@ -8982,6 +8996,7 @@ spec:
                 setComponentFilter={setComponentFilter}
                 regions={regions}
                 clusterNames={clusterNames}
+                clusters={mockClusters}
                 namespaces={namespaces}
                 availableLabels={availableLabels}
                 regionCounts={regionCounts}
