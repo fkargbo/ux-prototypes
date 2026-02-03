@@ -648,7 +648,7 @@ const generateMockClusters = (): ClusterData[] => {
     const alerts: AlertData[] = [];
 
     for (let j = 0; j < alertCount; j++) {
-      const severity: AlertSeverity = Math.random() < 0.2 ? 'Critical' : Math.random() < 0.5 ? 'Warning' : 'Info';
+      const severity: AlertSeverity = Math.random() < 0.1 ? 'Critical' : Math.random() < 0.5 ? 'Warning' : 'Info';
       const status: AlertStatus = Math.random() < 0.7 ? 'firing' : Math.random() < 0.9 ? 'acknowledged' : 'resolved';
       const alertName = alertNames[Math.floor(Math.random() * alertNames.length)];
       
@@ -964,6 +964,15 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
     }
 
     const groups: Record<string, ClusterData[]> = {};
+    
+    // Pre-initialize severity groups to ensure all show up
+    if (groupBy === 'severity') {
+      groups['Critical'] = [];
+      groups['Warning'] = [];
+      groups['Info'] = [];
+      groups['Healthy'] = [];
+    }
+    
     filteredClusters.forEach(cluster => {
       let key: string;
       if (groupBy === 'severity') {
@@ -994,8 +1003,9 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
     });
 
     // Sort groups by severity order (Critical first), then sort clusters within each group
+    // For severity grouping, keep empty groups to show all severity levels
     const sortedGroupEntries = Object.entries(groups)
-      .filter(([_, groupClusters]) => groupClusters.length > 0)
+      .filter(([_, groupClusters]) => groupBy === 'severity' || groupClusters.length > 0)
       .sort((a, b) => {
         // Sort groups by severity order if grouped by severity
         if (groupBy === 'severity') {
@@ -1005,7 +1015,16 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         return a[0].localeCompare(b[0]);
       });
 
-    // Calculate group value sum for proper group ordering
+    // Calculate total value and group-level values for proper sizing
+    const allGroupValues = sortedGroupEntries.map(([_, groupClusters]) => {
+      return groupClusters.reduce((sum, c) => {
+        // Use base value without severity multiplier for fair comparison
+        return sum + getTileValue(c, importanceSizing, severityFilter);
+      }, 0);
+    });
+    const totalBaseValue = allGroupValues.reduce((sum, v) => sum + v, 0);
+    const avgGroupBaseValue = allGroupValues.length > 0 ? totalBaseValue / allGroupValues.length : 1000;
+    
     return sortedGroupEntries.map(([groupName, groupClusters], groupIndex) => {
       // Sort clusters within group
       const sortedChildren = groupClusters
@@ -1025,15 +1044,77 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           cluster,
         }));
       
+      // For empty groups (severity grouping), create a visible placeholder
+      if (sortedChildren.length === 0) {
+        const colorMap = { 
+          Critical: pfColors.critical, 
+          Warning: pfColors.warning, 
+          Info: pfColors.info, 
+          Healthy: pfColors.healthy 
+        };
+        const groupColor = colorMap[groupName as keyof typeof colorMap] || '#d2d2d2';
+        // Use 40% of average group base value (without severity multipliers) for empty groups to make them more visible
+        const emptyGroupValue = Math.max(avgGroupBaseValue * 0.4, 2000);
+        
+        return {
+          name: groupName,
+          value: emptyGroupValue,
+          itemStyle: {
+            color: groupColor,
+          },
+          children: [{
+            name: `(0 clusters)`,
+            value: emptyGroupValue,
+            itemStyle: { 
+              color: groupColor,
+              opacity: 0.4,
+              borderColor: '#ffffff',
+              borderWidth: 2,
+            },
+            label: {
+              show: true,
+              color: '#ffffff',
+              fontSize: 11,
+              fontWeight: 500,
+            },
+          }],
+        };
+      }
+      
       // For groups, give priority to earlier groups (Critical comes first)
-      // Use a very large multiplier to ensure group ordering
-      const groupMultiplier = Math.pow(10, 6 - groupIndex);
+      // Use a moderate multiplier to ensure group ordering while keeping tile sizes reasonable
+      const groupMultiplier = Math.pow(1.5, sortedGroupEntries.length - groupIndex);
       const childrenSum = sortedChildren.reduce((sum, c) => sum + c.value, 0);
+      
+      // Cap the group value to prevent tiles from becoming too large
+      const maxGroupValue = childrenSum * 3; // Limit to 3x the sum of children
+      const groupValue = Math.min(childrenSum * groupMultiplier, maxGroupValue);
+      
+      // Determine group color based on grouping type
+      let groupItemStyle: any;
+      if (groupBy === 'severity') {
+        // For severity grouping, use severity colors
+        const colorMap = { 
+          Critical: pfColors.critical, 
+          Warning: pfColors.warning, 
+          Info: pfColors.info, 
+          Healthy: pfColors.healthy 
+        };
+        groupItemStyle = { 
+          color: colorMap[groupName as keyof typeof colorMap] || '#8a8d90'
+        };
+      } else {
+        // For other grouping types (environment, team, region, etc.), use neutral gray
+        groupItemStyle = { 
+          color: '#d2d2d2'
+        };
+      }
       
       return {
         name: groupName,
-        value: childrenSum * groupMultiplier,
+        value: groupValue,
         children: sortedChildren,
+        itemStyle: groupItemStyle,
       };
     });
   };
@@ -1043,11 +1124,23 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       confine: true,
       formatter: (info: any) => {
         if (!info.data?.cluster) {
+          // Group header or empty placeholder tooltip
+          // Check if this is an empty group placeholder
+          if (info.name === '(0 clusters)') {
+            return `
+              <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+                <div style="font-size: 12px; color: #6a6e73;">No clusters in this severity</div>
+              </div>
+            `;
+          }
           // Group header tooltip
+          const children = info.data?.children || [];
+          const isEmptyGroup = children.length === 1 && children[0].name === '(0 clusters)';
+          const childCount = isEmptyGroup ? 0 : children.length;
           return `
             <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
               <div style="font-size: 14px; font-weight: 600; color: #151515; margin-bottom: 4px;">${info.name}</div>
-              <div style="font-size: 12px; color: #6a6e73;">${info.data?.children?.length || 0} clusters</div>
+              <div style="font-size: 12px; color: #6a6e73;">${childCount} cluster${childCount !== 1 ? 's' : ''}</div>
             </div>
           `;
         }
@@ -1189,8 +1282,11 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         borderRadius: [6, 6, 0, 0],
         padding: [6, 12],
         formatter: (params: any) => {
-          const childCount = params.data?.children?.length || 0;
-          return childCount > 0 ? `${params.name} (${childCount})` : params.name;
+          const children = params.data?.children || [];
+          // Check if this is an empty group placeholder (has 1 child with "0 clusters" in name)
+          const isEmptyGroup = children.length === 1 && children[0].name?.includes('(0 clusters)');
+          const childCount = isEmptyGroup ? 0 : children.length;
+          return `${params.name} (${childCount})`;
         },
       },
       itemStyle: { 
@@ -1210,6 +1306,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       },
       levels: [
         { 
+          // Level 0: Group containers
           itemStyle: { 
             borderColor: '#ffffff', 
             borderWidth: 4, 
@@ -1226,6 +1323,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           },
         },
         { 
+          // Level 1: Individual cluster tiles - always use their severity colors
           itemStyle: { 
             borderColor: '#ffffff', 
             borderWidth: 3, 
@@ -1249,7 +1347,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Treemap container - responsive height */}
-      <div style={{ width: '100%', height: '400px', minHeight: '300px' }}>
+      <div style={{ width: '100%', height: groupBy !== 'none' ? '600px' : '400px', minHeight: '300px' }}>
         <ReactECharts 
           option={option} 
           style={{ height: '100%', width: '100%' }} 
@@ -1858,7 +1956,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const [componentSearchValue, setComponentSearchValue] = React.useState('');
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
-    labelFilter.length > 0 || severityFilter.length > 0 || (groupFilter.length > 0 && groupFilter.length < 2) || componentFilter.length > 0;
+    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0;
 
   // Auto-clear cluster selections when their regions are deselected
   React.useEffect(() => {
@@ -2511,6 +2609,16 @@ interface AllAlertsCardProps {
   triggeredFromTime?: string;
   triggeredToDate?: string;
   triggeredToTime?: string;
+  showMetrics?: boolean;
+  totalAlerts?: number;
+  criticalAlerts?: number;
+  warningAlerts?: number;
+  infoAlerts?: number;
+  healthyAlerts?: number;
+  affectedClusters?: number;
+  onCriticalClick?: () => void;
+  onWarningClick?: () => void;
+  onInfoClick?: () => void;
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
@@ -2531,6 +2639,16 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   singleClusterView = false,
   groupBy = 'none',
   onGroupByChange,
+  showMetrics = false,
+  totalAlerts = 0,
+  criticalAlerts = 0,
+  warningAlerts = 0,
+  infoAlerts = 0,
+  healthyAlerts = 0,
+  affectedClusters = 0,
+  onCriticalClick,
+  onWarningClick,
+  onInfoClick,
 }) => {
   // Component metadata with alert scopes
   const componentMeta: Record<AlertComponent, { impactGroup: 'Cluster' | 'Namespace' }> = {
@@ -2675,7 +2793,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     { key: 'component', label: 'Affected component', isVisible: true, isLocked: false, order: 5 },
     { key: 'source', label: 'Source', isVisible: true, isLocked: false, order: 6 },
     { key: 'description', label: 'Description (in: alert)', isVisible: false, isLocked: false, order: 7 },
-    { key: 'startTime', label: 'Start (Firing time)', isVisible: false, isLocked: false, order: 8 },
+    { key: 'startTime', label: 'Firing since', isVisible: false, isLocked: false, order: 8 },
   ]);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
   const [tempColumns, setTempColumns] = React.useState<ColumnConfig[]>([]);
@@ -3124,6 +3242,80 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
           </FlexItem>
         </Flex>
       </CardHeader>
+      {showMetrics && (
+        <>
+          <Divider />
+          {/* Alerts Summary Metrics */}
+          <div style={{ 
+            padding: '12px 16px'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '24px',
+              flexWrap: 'wrap'
+            }}>
+              <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                  <Icon><BellIcon /></Icon>
+                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Total Firing</span>
+                  <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
+                </div>
+              </Tooltip>
+              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+              <Tooltip content={`Critical: ${criticalAlerts} - Click to filter`}>
+                <div 
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                  onClick={onCriticalClick}
+                >
+                  <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
+                  <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
+                </div>
+              </Tooltip>
+              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+              <Tooltip content={`Warning: ${warningAlerts} - Click to filter`}>
+                <div 
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                  onClick={onWarningClick}
+                >
+                  <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
+                  <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
+                </div>
+              </Tooltip>
+              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+              <Tooltip content={`Info: ${infoAlerts} - Click to filter`}>
+                <div 
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                  onClick={onInfoClick}
+                >
+                  <Icon status="info"><InfoCircleIcon /></Icon>
+                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Info</span>
+                  <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--info--default)' }}>{infoAlerts}</strong>
+                </div>
+              </Tooltip>
+              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+              <Tooltip content={`Healthy: ${healthyAlerts} clusters with no alerts`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                  <Icon status="success"><CheckCircleIcon /></Icon>
+                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Healthy</span>
+                  <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--success--default)' }}>{healthyAlerts}</strong>
+                </div>
+              </Tooltip>
+              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+              <Tooltip content={`Affected Clusters: ${affectedClusters} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                  <Icon><ClusterIcon /></Icon>
+                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Affected Clusters</span>
+                  <strong style={{ fontSize: '16px' }}>{affectedClusters}</strong>
+                </div>
+              </Tooltip>
+            </div>
+          </div>
+          <Divider />
+        </>
+      )}
       <CardBody>
               <Stack hasGutter>
                 <StackItem>
@@ -3170,7 +3362,16 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                       {/* Expand/Collapse all buttons - shown when grouping is active */}
                       {groupBy !== 'none' && groupedAlerts && groupedAlerts.length > 0 && (
                         <ToolbarItem>
-                          <Flex gap={{ default: 'gapSm' }}>
+                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                            <FlexItem>
+                              <span style={{ 
+                                fontSize: '14px', 
+                                color: 'var(--pf-t--global--text--color--regular)', 
+                                fontWeight: 500 
+                              }}>
+                                {groupedAlerts.length} {groupedAlerts.length === 1 ? 'group' : 'groups'} (by {groupBy === 'alertName' ? 'alert name' : groupBy === 'impact' ? 'alert scope' : groupBy})
+                              </span>
+                            </FlexItem>
                             <FlexItem>
                               <Button 
                                 variant="link" 
@@ -5785,9 +5986,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   
   // Team grouping settings
   const [teamCategories, setTeamCategories] = React.useState<TeamCategory[]>([
-    { id: 'platform', label: 'Platform', color: 'blue', patterns: ['platform-', 'infra-', 'core-'] },
-    { id: 'applications', label: 'Applications', color: 'green', patterns: ['app-', 'service-'] },
-    { id: 'data', label: 'Data', color: 'purple', patterns: ['data-', 'db-', 'analytics-'] },
+    { id: 'platform', label: 'Platform', color: 'blue', patterns: ['prod-aws', 'prod-gcp'] },
+    { id: 'data', label: 'Data', color: 'purple', patterns: ['prod-azure', 'staging-aws'] },
+    { id: 'development', label: 'Development', color: 'green', patterns: ['dev-', 'staging-gcp', 'staging-azure'] },
   ]);
   const [isTeamSettingsOpen, setIsTeamSettingsOpen] = React.useState(false);
   const [tempTeamCategories, setTempTeamCategories] = React.useState<TeamCategory[]>([]);
@@ -6112,6 +6313,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const totalAlerts = filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.status === 'firing').length, 0);
   const criticalAlerts = filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Critical' && a.status === 'firing').length, 0);
   const warningAlerts = filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Warning' && a.status === 'firing').length, 0);
+  const infoAlerts = filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0);
   const healthyClusters = filteredClusters.filter(c => c.alerts.filter(a => a.status === 'firing').length === 0).length;
 
   // Drill-down filtered alerts
@@ -6350,7 +6552,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   };
 
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
-    labelFilter.length > 0 || severityFilter.length > 0 || (groupFilter.length > 0 && groupFilter.length < 2) || componentFilter.length > 0 || searchValue.length > 0 ||
+    labelFilter.length > 0 || severityFilter.length > 0 || groupFilter.length > 0 || componentFilter.length > 0 || searchValue.length > 0 ||
     selectedClusterInCard !== null || selectedClusterForAlerts !== null || mainComponentFilter !== null || mainAlertNameFilter !== null ||
     triggeredFromDate.length > 0 || triggeredFromTime.length > 0 || triggeredToDate.length > 0 || triggeredToTime.length > 0;
 
@@ -8115,91 +8317,8 @@ spec:
         {/* Main Content Area - Scrollable */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
             <Stack hasGutter style={{ gap: '16px' }}>
-              {/* Horizontal Metric Bar */}
-              <StackItem style={{ marginTop: '16px', marginBottom: '16px' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '24px',
-                  padding: '12px 16px',
-                  backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-                  borderRadius: '6px',
-                  border: '1px solid var(--pf-t--global--border--color--default)',
-                  flexWrap: 'wrap'
-                }}>
-                  <Tooltip content={`Clusters: ${filteredClusters.length} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                      <Icon><CubesIcon /></Icon>
-                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Clusters</span>
-                      <strong style={{ fontSize: '16px' }}>{filteredClusters.length}</strong>
-                    </div>
-                  </Tooltip>
-                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                  <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                      <Icon><BellIcon /></Icon>
-                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Firing</span>
-                      <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
-                    </div>
-                  </Tooltip>
-                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                  <Tooltip content={`Critical: ${criticalAlerts} - Click to filter`}>
-                    <div 
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                      onClick={() => {
-                        if (!severityFilter.includes('Critical')) {
-                          setSeverityFilter([...severityFilter, 'Critical']);
-                        }
-                      }}
-                    >
-                      <Icon status="danger"><ExclamationCircleIcon /></Icon>
-                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
-                      <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
-                    </div>
-                  </Tooltip>
-                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                  <Tooltip content={`Warning: ${warningAlerts} - Click to filter`}>
-                    <div 
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                      onClick={() => {
-                        if (!severityFilter.includes('Warning')) {
-                          setSeverityFilter([...severityFilter, 'Warning']);
-                        }
-                      }}
-                    >
-                      <Icon status="warning"><ExclamationTriangleIcon /></Icon>
-                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
-                      <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
-                    </div>
-                  </Tooltip>
-                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                  <Tooltip content={`Info: ${filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)} - Click to filter`}>
-                    <div 
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                      onClick={() => {
-                        if (!severityFilter.includes('Info')) {
-                          setSeverityFilter([...severityFilter, 'Info']);
-                        }
-                      }}
-                    >
-                      <Icon status="info"><InfoCircleIcon /></Icon>
-                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Info</span>
-                      <strong style={{ fontSize: '16px' }}>{filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Info' && a.status === 'firing').length, 0)}</strong>
-                    </div>
-                  </Tooltip>
-                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                  <Tooltip content={`Healthy: ${healthyClusters} - ${Math.floor(Math.random() * 5) + 1}% more from last day`}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                      <Icon status="success"><CheckCircleIcon /></Icon>
-                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Healthy</span>
-                      <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--success--default)' }}>{healthyClusters}</strong>
-                    </div>
-                  </Tooltip>
-                </div>
-              </StackItem>
-
               {/* Cluster Overview Card */}
-              <StackItem>
+              <StackItem style={{ marginTop: '16px' }}>
                 <div ref={clusterCardRef}>
                 <Card>
                   <CardHeader>
@@ -8415,6 +8534,88 @@ spec:
                       )}
                     </Flex>
                   </CardHeader>
+                  <Divider />
+                  {/* Fleet Health Summary Metrics */}
+                  <div style={{ 
+                    padding: '12px 16px'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '24px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <Tooltip content={`Clusters: ${filteredClusters.length} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                          <Icon><CubesIcon /></Icon>
+                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Clusters</span>
+                          <strong style={{ fontSize: '16px' }}>{filteredClusters.length}</strong>
+                        </div>
+                      </Tooltip>
+                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                      <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                          <Icon><BellIcon /></Icon>
+                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Firing</span>
+                          <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
+                        </div>
+                      </Tooltip>
+                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                      <Tooltip content={`Critical: ${criticalAlerts} - Click to filter`}>
+                        <div 
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                          onClick={() => {
+                            if (!severityFilter.includes('Critical')) {
+                              setSeverityFilter([...severityFilter, 'Critical']);
+                            }
+                          }}
+                        >
+                          <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
+                          <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
+                        </div>
+                      </Tooltip>
+                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                      <Tooltip content={`Warning: ${warningAlerts} - Click to filter`}>
+                        <div 
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                          onClick={() => {
+                            if (!severityFilter.includes('Warning')) {
+                              setSeverityFilter([...severityFilter, 'Warning']);
+                            }
+                          }}
+                        >
+                          <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
+                          <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
+                        </div>
+                      </Tooltip>
+                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                      <Tooltip content={`Info: ${infoAlerts} - Click to filter`}>
+                        <div 
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                          onClick={() => {
+                            if (!severityFilter.includes('Info')) {
+                              setSeverityFilter([...severityFilter, 'Info']);
+                            }
+                          }}
+                        >
+                          <Icon status="info"><InfoCircleIcon /></Icon>
+                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Info</span>
+                          <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--info--default)' }}>{infoAlerts}</strong>
+                        </div>
+                      </Tooltip>
+                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                      <Tooltip content={`Healthy: ${healthyClusters} - ${Math.floor(Math.random() * 5) + 1}% more from last day`}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+                          <Icon status="success"><CheckCircleIcon /></Icon>
+                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Healthy</span>
+                          <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--success--default)' }}>{healthyClusters}</strong>
+                        </div>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  <Divider />
                   <CardBody>
                     {clusterCardView === 'single-cluster-components' && selectedClusterInCard ? (
                       /* Single Cluster Components View */
@@ -9038,72 +9239,32 @@ spec:
           {/* Main Content Area - Firing Alerts */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
             <Stack hasGutter style={{ gap: '16px' }}>
-              {/* Horizontal Metric Bar - Hidden when viewing single cluster */}
-              {firingAlertsCardView === 'all-clusters' && (
-                <StackItem style={{ marginTop: '16px', marginBottom: '16px' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '24px',
-                    padding: '12px 16px',
-                    backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-                    borderRadius: '6px',
-                    border: '1px solid var(--pf-t--global--border--color--default)',
-                    flexWrap: 'wrap'
-                  }}>
-                    <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                        <Icon><BellIcon /></Icon>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Total Firing</span>
-                        <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
-                      </div>
-                    </Tooltip>
-                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                    <Tooltip content={`Critical: ${criticalAlerts} - Click to filter`}>
-                      <div 
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                        onClick={() => {
-                          if (!severityFilter.includes('Critical')) {
-                            setSeverityFilter([...severityFilter, 'Critical']);
-                          }
-                        }}
-                      >
-                        <Icon status="danger"><ExclamationCircleIcon /></Icon>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
-                        <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
-                      </div>
-                    </Tooltip>
-                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                    <Tooltip content={`Warning: ${warningAlerts} - Click to filter`}>
-                      <div 
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                        onClick={() => {
-                          if (!severityFilter.includes('Warning')) {
-                            setSeverityFilter([...severityFilter, 'Warning']);
-                          }
-                        }}
-                      >
-                        <Icon status="warning"><ExclamationTriangleIcon /></Icon>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
-                        <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
-                      </div>
-                    </Tooltip>
-                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                    <Tooltip content={`Affected Clusters: ${filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                        <Icon><ClusterIcon /></Icon>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Affected Clusters</span>
-                        <strong style={{ fontSize: '16px' }}>{filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length}</strong>
-                      </div>
-                    </Tooltip>
-                  </div>
-                </StackItem>
-              )}
-
               {/* Alerts Card */}
-              <StackItem>
+              <StackItem style={{ marginTop: '16px' }}>
                 {/* Header with back button when viewing single cluster */}
                 <AllAlertsCard
+                  showMetrics={firingAlertsCardView === 'all-clusters'}
+                  totalAlerts={totalAlerts}
+                  criticalAlerts={criticalAlerts}
+                  warningAlerts={warningAlerts}
+                  infoAlerts={infoAlerts}
+                  healthyAlerts={healthyClusters}
+                  affectedClusters={filteredClusters.filter(c => c.alerts.some(a => a.status === 'firing')).length}
+                  onCriticalClick={() => {
+                    if (!severityFilter.includes('Critical')) {
+                      setSeverityFilter([...severityFilter, 'Critical']);
+                    }
+                  }}
+                  onWarningClick={() => {
+                    if (!severityFilter.includes('Warning')) {
+                      setSeverityFilter([...severityFilter, 'Warning']);
+                    }
+                  }}
+                  onInfoClick={() => {
+                    if (!severityFilter.includes('Info')) {
+                      setSeverityFilter([...severityFilter, 'Info']);
+                    }
+                  }}
                   clusters={firingAlertsCardView === 'single-cluster' && selectedClusterForAlerts 
                     ? [selectedClusterForAlerts] 
                     : filteredClusters}
