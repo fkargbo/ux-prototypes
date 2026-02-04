@@ -475,18 +475,31 @@ button[aria-label="View task details"] {
   outline-offset: 2px !important;
 }
 
-/* Persisted clicked/selected state (when PF sets pf-m-clicked or aria-pressed).
-   Include .pf-m-filled so completed state overrides PF filled variant (first pill). */
+/* Persisted clicked/selected state: both pills solid blue after click.
+   Override both outline (first pill) and filled (second pill) so they match. */
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"],
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-filled.pf-m-clicked,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-filled[aria-pressed="true"] {
-  /* Activated chip background (matches chatbot-style selection) */
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-filled[aria-pressed="true"],
+/* Explicitly override outline variant (Analyze root cause) so it’s solid blue like the other pill */
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-outline.pf-m-clickable.pf-m-clicked,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-outline.pf-m-clickable[aria-pressed="true"],
+/* Fallback: any quick-response label we mark as pressed gets solid blue */
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] {
   background-color: #9FCCF7 !important;
   border-color: #9FCCF7 !important;
   color: var(--pf-t--global--text--color--default, #151515) !important;
+}
+
+/* Override PF outline CSS variables so outline pill (first pill) uses solid blue, not white */
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-outline[aria-pressed="true"],
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-outline.pf-m-clicked {
+  --pf-v6-c-label--BackgroundColor: #9FCCF7 !important;
+  --pf-v6-c-label--BorderColor: #9FCCF7 !important;
+  --pf-v6-c-label--Color: #151515 !important;
+  --pf-v6-c-label__icon--Color: #151515 !important;
 }
 
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__content,
@@ -496,14 +509,17 @@ button[aria-label="View task details"] {
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__text,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__text,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__text,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__text {
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__text,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] .pf-v6-c-label__content,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] .pf-v6-c-label__text {
   color: var(--pf-t--global--text--color--default, #151515) !important;
 }
 
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked:hover,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active:hover,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"]:hover {
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"]:hover,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"]:hover {
   background-color: #9FCCF7 !important;
   border-color: #9FCCF7 !important;
 }
@@ -512,6 +528,7 @@ button[aria-label="View task details"] {
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__icon,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__icon,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__icon,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__icon {
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__icon,
+.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] .pf-v6-c-label__icon {
   color: var(--pf-t--global--text--color--default, #151515) !important;
 }

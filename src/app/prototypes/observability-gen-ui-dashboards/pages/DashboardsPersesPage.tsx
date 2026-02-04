@@ -2063,7 +2063,7 @@ export const DashboardsPersesPage: React.FC = () => {
 
         const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
         allLabels.forEach((label) => {
-          const text = (label.textContent || '').trim();
+          const text = (label.textContent || '').replace(/\s+/g, ' ').trim();
           const selected = selectedContents.has(text);
           if (selected) {
             label.classList.add('pf-m-clicked');
