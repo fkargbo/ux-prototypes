@@ -2042,8 +2042,11 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, []);
 
-  // Make quick response "chips" show a persistent clicked state (survives re-renders); support multiple selected pills per container.
-  // Run DOM updates in rAF so they apply after PF has painted Labels (fixes first pill staying white).
+  // Completed pill styling: solid blue (#9FCCF7) for both pills. Use inline styles so they override PF's outline/filled CSS.
+  const PILL_COMPLETED_BG = '#9FCCF7';
+  const PILL_COMPLETED_TEXT = '#151515';
+
+  // Make quick response "chips" show a persistent clicked state; apply inline styles so both pills are solid blue.
   useEffect(() => {
     if (!isDrawerOpen) return;
 
@@ -2063,14 +2066,27 @@ export const DashboardsPersesPage: React.FC = () => {
 
         const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
         allLabels.forEach((label) => {
-          const text = (label.textContent || '').replace(/\s+/g, ' ').trim();
+          const textEl = label.querySelector('.pf-v6-c-label__text');
+          const text = ((textEl?.textContent ?? label.textContent) || '').replace(/\s+/g, ' ').trim();
           const selected = selectedContents.has(text);
+          if (selected) label.classList.add('pf-m-clicked');
+          else label.classList.remove('pf-m-clicked');
+          label.setAttribute('aria-pressed', selected ? 'true' : 'false');
+          const style = label.style;
           if (selected) {
-            label.classList.add('pf-m-clicked');
-            label.setAttribute('aria-pressed', 'true');
+            style.setProperty('background-color', PILL_COMPLETED_BG, 'important');
+            style.setProperty('border-color', PILL_COMPLETED_BG, 'important');
+            style.setProperty('color', PILL_COMPLETED_TEXT, 'important');
+            label.querySelectorAll<HTMLElement>('.pf-v6-c-label__content, .pf-v6-c-label__text, .pf-v6-c-label__icon').forEach((el) => {
+              el.style.setProperty('color', PILL_COMPLETED_TEXT, 'important');
+            });
           } else {
-            label.classList.remove('pf-m-clicked');
-            label.setAttribute('aria-pressed', 'false');
+            style.removeProperty('background-color');
+            style.removeProperty('border-color');
+            style.removeProperty('color');
+            label.querySelectorAll<HTMLElement>('.pf-v6-c-label__content, .pf-v6-c-label__text, .pf-v6-c-label__icon').forEach((el) => {
+              el.style.removeProperty('color');
+            });
           }
         });
       }
@@ -2080,7 +2096,11 @@ export const DashboardsPersesPage: React.FC = () => {
       apply();
       window.requestAnimationFrame(apply);
     });
-    return () => window.cancelAnimationFrame(rafId);
+    const timeoutId = window.setTimeout(apply, 150);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
+    };
   }, [isDrawerOpen, selectedQuickResponses, messages]);
 
   // Prevent re-click on already-selected pills from reaching PF so PF state (and DOM) don't change and colors stay correct.
@@ -2103,7 +2123,8 @@ export const DashboardsPersesPage: React.FC = () => {
       if (!container?.id) return;
       const selectedContents = byContainer.get(container.id);
       if (!selectedContents) return;
-      const text = (label.textContent || '').trim();
+      const textEl = label.querySelector('.pf-v6-c-label__text');
+      const text = ((textEl?.textContent ?? label.textContent) || '').replace(/\s+/g, ' ').trim();
       if (selectedContents.has(text)) {
         e.preventDefault();
         e.stopPropagation();
