@@ -475,11 +475,14 @@ button[aria-label="View task details"] {
   outline-offset: 2px !important;
 }
 
-/* Persisted clicked/selected state (when PF sets pf-m-clicked or aria-pressed). */
+/* Persisted clicked/selected state (when PF sets pf-m-clicked or aria-pressed).
+   Include .pf-m-filled so completed state overrides PF filled variant (first pill). */
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] {
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"],
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-filled.pf-m-clicked,
+.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-filled[aria-pressed="true"] {
   /* Activated chip background (matches chatbot-style selection) */
   background-color: #9FCCF7 !important;
   border-color: #9FCCF7 !important;
@@ -505,7 +508,7 @@ button[aria-label="View task details"] {
   border-color: #9FCCF7 !important;
 }
 
-/* Ensure the check icon inherits the selected (white) color */
+/* Ensure the check icon inherits the selected (dark) color */
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__icon,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__icon,
 .ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__icon,

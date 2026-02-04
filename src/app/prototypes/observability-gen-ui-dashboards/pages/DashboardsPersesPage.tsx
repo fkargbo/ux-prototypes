@@ -2042,7 +2042,8 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, []);
 
-  // Make quick response "chips" show a persistent clicked state (survives re-renders); support multiple selected pills per container
+  // Make quick response "chips" show a persistent clicked state (survives re-renders); support multiple selected pills per container.
+  // Run DOM updates in rAF so they apply after PF has painted Labels (fixes first pill staying white).
   useEffect(() => {
     if (!isDrawerOpen) return;
 
@@ -2055,24 +2056,63 @@ export const DashboardsPersesPage: React.FC = () => {
       byContainer.get(containerId)!.add(content);
     }
 
-    for (const [containerId, selectedContents] of byContainer) {
-      const container = wrapper.querySelector<HTMLElement>(`#${containerId}`);
-      if (!container) continue;
+    const apply = () => {
+      for (const [containerId, selectedContents] of byContainer) {
+        const container = wrapper.querySelector<HTMLElement>(`#${containerId}`);
+        if (!container) continue;
 
-      const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
-      allLabels.forEach((label) => {
-        const text = (label.textContent || '').trim();
-        const selected = selectedContents.has(text);
-        if (selected) {
-          label.classList.add('pf-m-clicked');
-          label.setAttribute('aria-pressed', 'true');
-        } else {
-          label.classList.remove('pf-m-clicked');
-          label.setAttribute('aria-pressed', 'false');
-        }
-      });
-    }
+        const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
+        allLabels.forEach((label) => {
+          const text = (label.textContent || '').trim();
+          const selected = selectedContents.has(text);
+          if (selected) {
+            label.classList.add('pf-m-clicked');
+            label.setAttribute('aria-pressed', 'true');
+          } else {
+            label.classList.remove('pf-m-clicked');
+            label.setAttribute('aria-pressed', 'false');
+          }
+        });
+      }
+    };
+
+    const rafId = window.requestAnimationFrame(() => {
+      apply();
+      window.requestAnimationFrame(apply);
+    });
+    return () => window.cancelAnimationFrame(rafId);
   }, [isDrawerOpen, selectedQuickResponses, messages]);
+
+  // Prevent re-click on already-selected pills from reaching PF so PF state (and DOM) don't change and colors stay correct.
+  useEffect(() => {
+    if (!isDrawerOpen) return;
+
+    const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
+    if (!wrapper) return;
+
+    const byContainer = new Map<string, Set<string>>();
+    for (const { containerId, content } of selectedQuickResponses) {
+      if (!byContainer.has(containerId)) byContainer.set(containerId, new Set());
+      byContainer.get(containerId)!.add(content);
+    }
+
+    const handleClickCapture = (e: MouseEvent) => {
+      const label = (e.target as HTMLElement).closest?.('.pf-v6-c-label');
+      if (!label) return;
+      const container = label.closest?.('[id]') as HTMLElement | null;
+      if (!container?.id) return;
+      const selectedContents = byContainer.get(container.id);
+      if (!selectedContents) return;
+      const text = (label.textContent || '').trim();
+      if (selectedContents.has(text)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    wrapper.addEventListener('click', handleClickCapture, true);
+    return () => wrapper.removeEventListener('click', handleClickCapture, true);
+  }, [isDrawerOpen, selectedQuickResponses]);
 
   // Attach click handler to masthead bell icon - toggle drawer open/close
   useEffect(() => {
