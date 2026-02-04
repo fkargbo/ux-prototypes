@@ -1756,7 +1756,7 @@ export const DashboardsPersesPage: React.FC = () => {
     }, 2000);
   }, []);
 
-  // Build bot message for "See scaling steps": disclaimer + CodeBlock (user follows manual steps).
+  // Build bot message for "See scaling steps" pill: natural-language flow (no disclaimer Alert).
   const buildScalingStepsMessage = useCallback((): MessageProps => ({
     id: generateId(),
     role: 'bot',
@@ -1766,12 +1766,7 @@ export const DashboardsPersesPage: React.FC = () => {
     isLoading: false,
     timestamp: new Date().toLocaleString(),
     extraContent: {
-      afterMainContent: (
-        <>
-          <ChatbotDisclaimerAlert />
-          <ScalingStepsCodeBlock />
-        </>
-      )
+      afterMainContent: <ScalingStepsCodeBlock />
     }
   }), []);
 
