@@ -213,6 +213,59 @@ const ScalingStepsCodeBlock: React.FC = () => {
   );
 };
 
+const PILL_COMPLETED_BG = '#9FCCF7';
+const PILL_COMPLETED_TEXT = '#151515';
+
+/** Custom pill buttons we control so both show solid blue when selected (avoids PF QuickResponse styling issues). */
+const CustomQuickResponsePills: React.FC<{
+  containerId: string;
+  pills: Array<{ id: string; content: string; onClick: () => void }>;
+  selectedQuickResponses: Array<{ containerId: string; content: string }>;
+}> = ({ containerId, pills, selectedQuickResponses }) => {
+  const selectedSet = useMemo(
+    () => new Set(selectedQuickResponses.filter((p) => p.containerId === containerId).map((p) => p.content)),
+    [containerId, selectedQuickResponses]
+  );
+  return (
+    <LabelGroup className="pf-chatbot__message-quick-response" style={{ marginTop: 8 }}>
+      {pills.map(({ id, content, onClick }) => {
+        const selected = selectedSet.has(content);
+        return (
+          <Label
+            key={id}
+            color="blue"
+            variant="outline"
+            isClickable={!selected}
+            onClick={selected ? undefined : onClick}
+            icon={selected ? <CheckIcon /> : undefined}
+            style={
+              selected
+                ? {
+                    backgroundColor: PILL_COMPLETED_BG,
+                    borderColor: PILL_COMPLETED_BG,
+                    color: PILL_COMPLETED_TEXT,
+                    cursor: 'default'
+                  }
+                : undefined
+            }
+            className={selected ? 'pf-chatbot__message-quick-response--selected' : ''}
+          >
+            {content}
+          </Label>
+        );
+      })}
+    </LabelGroup>
+  );
+};
+
+/** Message with optional custom pills (we render pills ourselves for consistent completed state). */
+type MessageWithCustomPills = MessageProps & {
+  customPillsConfig?: {
+    containerId: string;
+    pills: Array<{ id: string; content: string; onClick: () => void }>;
+  };
+};
+
 /**
  * Dashboard interface
  */
@@ -1319,20 +1372,27 @@ export const DashboardsPersesPage: React.FC = () => {
 
   const triggerQuickResponseByContent = useCallback(
     (desiredContent: string) => {
-      const list = messagesRef.current as any[];
+      const list = messagesRef.current as MessageWithCustomPills[];
       for (let i = list.length - 1; i >= 0; i--) {
         const m = list[i];
+        if (m?.role !== 'bot') continue;
+        const custom = m?.customPillsConfig;
+        if (custom) {
+          const pill = custom.pills.find((x) => String(x?.content || '').toLowerCase() === desiredContent.toLowerCase());
+          if (pill) {
+            markQuickResponseSelected(custom.containerId, String(pill.content));
+            if (typeof pill.onClick === 'function') pill.onClick();
+            return true;
+          }
+          continue;
+        }
         const qrs = m?.quickResponses;
-        if (m?.role === 'bot' && Array.isArray(qrs)) {
+        if (Array.isArray(qrs)) {
           const qr = qrs.find((x: any) => String(x?.content || '').toLowerCase() === desiredContent.toLowerCase());
           if (qr) {
             const containerId = m?.quickResponseContainerProps?.id;
-            if (containerId) {
-              markQuickResponseSelected(containerId, String(qr.content));
-            }
-            if (typeof qr.onClick === 'function') {
-              qr.onClick();
-            }
+            if (containerId) markQuickResponseSelected(containerId, String(qr.content));
+            if (typeof qr.onClick === 'function') qr.onClick();
             return true;
           }
         }
@@ -1718,10 +1778,10 @@ export const DashboardsPersesPage: React.FC = () => {
     
     setMessages([userMessage, loadingBotMessage]);
     
-    // Simulate AI analysis and show Stage 1 response
+    // Simulate AI analysis and show Stage 1 response (custom pills so both show solid blue when selected)
     setTimeout(() => {
       const stage1QuickResponsesId = `qr-stage1-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-      const stage1Message: MessageProps = {
+      const stage1Message: MessageWithCustomPills = {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU. Would you like to analyze the root cause or check the node capacity?',
@@ -1729,26 +1789,27 @@ export const DashboardsPersesPage: React.FC = () => {
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
-        quickResponseContainerProps: { id: stage1QuickResponsesId } as any,
-        quickResponses: [
-          {
-            id: 'analyze-root-cause',
-            content: 'Analyze root cause',
-            onClick: () => {
-              markQuickResponseSelected(stage1QuickResponsesId, 'Analyze root cause');
-              handleStage2();
+        customPillsConfig: {
+          containerId: stage1QuickResponsesId,
+          pills: [
+            {
+              id: 'analyze-root-cause',
+              content: 'Analyze root cause',
+              onClick: () => {
+                markQuickResponseSelected(stage1QuickResponsesId, 'Analyze root cause');
+                handleStage2();
+              }
+            },
+            {
+              id: 'check-node-capacity',
+              content: 'Check node capacity',
+              onClick: () => {
+                markQuickResponseSelected(stage1QuickResponsesId, 'Check node capacity');
+                // Will implement in next step
+              }
             }
-          },
-          {
-            id: 'check-node-capacity',
-            content: 'Check node capacity',
-            onClick: () => {
-              markQuickResponseSelected(stage1QuickResponsesId, 'Check node capacity');
-              console.log('Check Node Capacity clicked');
-              // Will implement in next step
-            }
-          }
-        ]
+          ]
+        }
       };
       
       setMessages((prev) => {
@@ -2042,11 +2103,7 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, []);
 
-  // Completed pill styling: solid blue (#9FCCF7) for both pills. Use inline styles so they override PF's outline/filled CSS.
-  const PILL_COMPLETED_BG = '#9FCCF7';
-  const PILL_COMPLETED_TEXT = '#151515';
-
-  // Make quick response "chips" show a persistent clicked state; apply inline styles so both pills are solid blue.
+  // Make quick response "chips" (stage2/stage3 PF pills) show persistent clicked state via DOM; stage1 uses CustomQuickResponsePills.
   // Match pills by index (DOM order = quickResponses order) so the left pill is always identified correctly.
   useEffect(() => {
     if (!isDrawerOpen) return;
@@ -2252,15 +2309,36 @@ export const DashboardsPersesPage: React.FC = () => {
                 />
               )}
               {messages.map((message, index) => {
+                const msg = message as MessageWithCustomPills;
+                const messageProps = msg.customPillsConfig
+                  ? {
+                      ...msg,
+                      quickResponses: undefined,
+                      quickResponseContainerProps: undefined,
+                      extraContent: {
+                        ...msg.extraContent,
+                        afterMainContent: (
+                          <>
+                            {msg.extraContent?.afterMainContent}
+                            <CustomQuickResponsePills
+                              containerId={msg.customPillsConfig.containerId}
+                              pills={msg.customPillsConfig.pills}
+                              selectedQuickResponses={selectedQuickResponses}
+                            />
+                          </>
+                        )
+                      }
+                    }
+                  : message;
                 if (index === messages.length - 1) {
                   return (
                     <React.Fragment key={message.id}>
                       <div ref={messagesEndRef}></div>
-                      <Message {...message} />
+                      <Message {...messageProps} />
                     </React.Fragment>
                   );
                 }
-                return <Message key={message.id} {...message} />;
+                return <Message key={message.id} {...messageProps} />;
               })}
             </MessageBox>
           </ChatbotContent>
@@ -2818,15 +2896,36 @@ export const DashboardsPersesPage: React.FC = () => {
                     />
                   )}
                   {messages.map((message, index) => {
+                    const msg = message as MessageWithCustomPills;
+                    const messageProps = msg.customPillsConfig
+                      ? {
+                          ...msg,
+                          quickResponses: undefined,
+                          quickResponseContainerProps: undefined,
+                          extraContent: {
+                            ...msg.extraContent,
+                            afterMainContent: (
+                              <>
+                                {msg.extraContent?.afterMainContent}
+                                <CustomQuickResponsePills
+                                  containerId={msg.customPillsConfig.containerId}
+                                  pills={msg.customPillsConfig.pills}
+                                  selectedQuickResponses={selectedQuickResponses}
+                                />
+                              </>
+                            )
+                          }
+                        }
+                      : message;
                     if (index === messages.length - 1) {
                       return (
                         <React.Fragment key={message.id}>
                           <div ref={messagesEndRef}></div>
-                          <Message {...message} />
+                          <Message {...messageProps} />
                         </React.Fragment>
                       );
                     }
-                    return <Message key={message.id} {...message} />;
+                    return <Message key={message.id} {...messageProps} />;
                   })}
                 </MessageBox>
               </ChatbotContent>
