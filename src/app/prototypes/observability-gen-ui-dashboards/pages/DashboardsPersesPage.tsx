@@ -1248,7 +1248,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedQuickResponse, setSelectedQuickResponse] = useState<{ containerId: string; content: string } | null>(null);
+  const [selectedQuickResponses, setSelectedQuickResponses] = useState<Array<{ containerId: string; content: string }>>([]);
   const [selectedModel, setSelectedModel] = useState('Granite 7B');
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
@@ -1260,23 +1260,34 @@ export const DashboardsPersesPage: React.FC = () => {
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
 
   const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
-    setSelectedQuickResponse({ containerId, content });
+    setSelectedQuickResponses((prev) => {
+      if (prev.some((p) => p.containerId === containerId && p.content === content)) return prev;
+      return [...prev, { containerId, content }];
+    });
     setMessages((prev) =>
       prev.map((m: any) => {
         if (m?.quickResponseContainerProps?.id !== containerId || !Array.isArray(m?.quickResponses)) return m;
+        const selectedContents = new Set(
+          selectedQuickResponses
+            .filter((p) => p.containerId === containerId)
+            .map((p) => p.content)
+        );
+        selectedContents.add(content);
         return {
           ...m,
-          // Mark selected and disable all pills in this container so they can't be clicked again
-          quickResponses: m.quickResponses.map((qr: any) => ({
-            ...qr,
-            icon: qr?.content === content ? <CheckIcon /> : undefined,
-            isSelected: qr?.content === content,
-            onClick: () => {} // no-op: pill is active only once
-          }))
+          quickResponses: m.quickResponses.map((qr: any) => {
+            const selected = selectedContents.has(qr?.content);
+            return {
+              ...qr,
+              icon: selected ? <CheckIcon /> : undefined,
+              isSelected: selected,
+              onClick: selected ? () => {} : qr?.onClick
+            };
+          })
         };
       })
     );
-  }, []);
+  }, [selectedQuickResponses]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -2032,28 +2043,37 @@ export const DashboardsPersesPage: React.FC = () => {
     };
   }, []);
 
-  // Make quick response "chips" show a persistent clicked state (survives re-renders)
+  // Make quick response "chips" show a persistent clicked state (survives re-renders); support multiple selected pills per container
   useEffect(() => {
-    if (!isDrawerOpen || !selectedQuickResponse) return;
+    if (!isDrawerOpen) return;
 
     const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
     if (!wrapper) return;
 
-    const container = wrapper.querySelector<HTMLElement>(`#${selectedQuickResponse.containerId}`);
-    if (!container) return;
-
-    const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
-    allLabels.forEach((label) => {
-      label.classList.remove('pf-m-clicked');
-      label.setAttribute('aria-pressed', 'false');
-    });
-
-    const selectedLabel = allLabels.find((label) => (label.textContent || '').trim() === selectedQuickResponse.content);
-    if (selectedLabel) {
-      selectedLabel.classList.add('pf-m-clicked');
-      selectedLabel.setAttribute('aria-pressed', 'true');
+    const byContainer = new Map<string, Set<string>>();
+    for (const { containerId, content } of selectedQuickResponses) {
+      if (!byContainer.has(containerId)) byContainer.set(containerId, new Set());
+      byContainer.get(containerId)!.add(content);
     }
-  }, [isDrawerOpen, selectedQuickResponse, messages]);
+
+    for (const [containerId, selectedContents] of byContainer) {
+      const container = wrapper.querySelector<HTMLElement>(`#${containerId}`);
+      if (!container) continue;
+
+      const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
+      allLabels.forEach((label) => {
+        const text = (label.textContent || '').trim();
+        const selected = selectedContents.has(text);
+        if (selected) {
+          label.classList.add('pf-m-clicked');
+          label.setAttribute('aria-pressed', 'true');
+        } else {
+          label.classList.remove('pf-m-clicked');
+          label.setAttribute('aria-pressed', 'false');
+        }
+      });
+    }
+  }, [isDrawerOpen, selectedQuickResponses, messages]);
 
   // Attach click handler to masthead bell icon - toggle drawer open/close
   useEffect(() => {
