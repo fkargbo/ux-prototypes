@@ -55,6 +55,10 @@ import {
   GridItem,
   Icon,
   Spinner,
+  CodeBlock,
+  CodeBlockCode,
+  CodeBlockAction,
+  ClipboardCopyButton,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -161,6 +165,105 @@ const footnoteProps = {
       }
     }
   }
+};
+
+/** Reusable disclaimer shown before manual instructions (info Alert). */
+const DISCLAIMER_TEXT = 'I cannot carry out direct actions on a cluster. Here are instructions on how you can proceed.';
+
+/** Disclaimer Alert component for chatbot manual-instruction responses. */
+const ChatbotDisclaimerAlert: React.FC = () => (
+  <Alert variant="info" title={DISCLAIMER_TEXT} style={{ marginTop: '12px', marginBottom: '12px' }} />
+);
+
+/** CLI command for scaling web-head in marketing-prod (for copy/paste). */
+const SCALE_COMMAND = `kubectl scale deployment web-head -n marketing-prod --replicas=2`;
+
+/** CodeBlock with copy button for scaling CLI (used in chatbot manual-instruction messages). */
+const ScalingStepsCodeBlock: React.FC = () => {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div style={{ marginTop: '12px' }}>
+      <Content>
+        <p>The recommended path is to scale the <strong>web-head</strong> deployment in <strong>marketing-prod</strong>. Copy and run the command below in your terminal:</p>
+      </Content>
+      <CodeBlock
+        actions={
+          <CodeBlockAction>
+            <ClipboardCopyButton
+              id="scaling-cmd-copy"
+              textId="scaling-cmd-content"
+              aria-label="Copy scaling command"
+              onClick={(e: React.MouseEvent) => {
+                navigator.clipboard.writeText(SCALE_COMMAND);
+                setCopied(true);
+              }}
+              exitDelay={copied ? 1500 : 600}
+              maxWidth="110px"
+              variant="plain"
+              onTooltipHidden={() => setCopied(false)}
+            >
+              {copied ? 'Copied!' : 'Copy to clipboard'}
+            </ClipboardCopyButton>
+          </CodeBlockAction>
+        }
+      >
+        <CodeBlockCode id="scaling-cmd-content">{SCALE_COMMAND}</CodeBlockCode>
+      </CodeBlock>
+    </div>
+  );
+};
+
+const PILL_COMPLETED_BG = '#9FCCF7';
+const PILL_COMPLETED_TEXT = '#151515';
+
+/** Custom pill buttons we control so both show solid blue when selected (avoids PF QuickResponse styling issues). */
+const CustomQuickResponsePills: React.FC<{
+  containerId: string;
+  pills: Array<{ id: string; content: string; onClick: () => void }>;
+  selectedQuickResponses: Array<{ containerId: string; content: string }>;
+}> = ({ containerId, pills, selectedQuickResponses }) => {
+  const selectedSet = useMemo(
+    () => new Set(selectedQuickResponses.filter((p) => p.containerId === containerId).map((p) => p.content)),
+    [containerId, selectedQuickResponses]
+  );
+  return (
+    <LabelGroup className="pf-chatbot__message-quick-response" style={{ marginTop: 8 }}>
+      {pills.map(({ id, content, onClick }) => {
+        const selected = selectedSet.has(content);
+        return (
+          <Label
+            key={id}
+            color="blue"
+            variant="outline"
+            isClickable={!selected}
+            onClick={selected ? undefined : onClick}
+            icon={selected ? <CheckIcon /> : undefined}
+            style={
+              selected
+                ? {
+                    backgroundColor: PILL_COMPLETED_BG,
+                    borderColor: PILL_COMPLETED_BG,
+                    color: PILL_COMPLETED_TEXT,
+                    cursor: 'default'
+                  }
+                : undefined
+            }
+            className={selected ? 'pf-chatbot__message-quick-response--selected' : ''}
+          >
+            {content}
+          </Label>
+        );
+      })}
+    </LabelGroup>
+  );
+};
+
+/** Message with optional custom pills (we render pills ourselves for consistent completed state). */
+type MessageWithCustomPills = MessageProps & {
+  customPillsConfig?: {
+    containerId: string;
+    pills: Array<{ id: string; content: string; onClick: () => void }>;
+  };
 };
 
 /**
@@ -1198,7 +1301,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedQuickResponse, setSelectedQuickResponse] = useState<{ containerId: string; content: string } | null>(null);
+  const [selectedQuickResponses, setSelectedQuickResponses] = useState<Array<{ containerId: string; content: string }>>([]);
   const [selectedModel, setSelectedModel] = useState('Granite 7B');
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
@@ -1210,19 +1313,29 @@ export const DashboardsPersesPage: React.FC = () => {
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
 
   const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
-    setSelectedQuickResponse({ containerId, content });
+    setSelectedQuickResponses((prev) => {
+      if (prev.some((p) => p.containerId === containerId && p.content === content)) return prev;
+      return [...prev, { containerId, content }];
+    });
     setMessages((prev) =>
       prev.map((m: any) => {
         if (m?.quickResponseContainerProps?.id !== containerId || !Array.isArray(m?.quickResponses)) return m;
+        // Derive from previous message state so we don't rely on stale closure (second pill's onClick was created with old selectedQuickResponses)
+        const selectedContents = new Set(
+          m.quickResponses.filter((qr: any) => qr?.isSelected).map((qr: any) => qr?.content)
+        );
+        selectedContents.add(content);
         return {
           ...m,
-          quickResponses: m.quickResponses.map((qr: any) => ({
-            ...qr,
-            // Show a checkmark on the selected chip
-            icon: qr?.content === content ? <CheckIcon /> : undefined,
-            // If the component supports selection state, set it too (harmless if ignored)
-            isSelected: qr?.content === content
-          }))
+          quickResponses: m.quickResponses.map((qr: any) => {
+            const selected = selectedContents.has(qr?.content);
+            return {
+              ...qr,
+              icon: selected ? <CheckIcon /> : undefined,
+              isSelected: selected,
+              onClick: selected ? () => {} : qr?.onClick
+            };
+          })
         };
       })
     );
@@ -1259,20 +1372,27 @@ export const DashboardsPersesPage: React.FC = () => {
 
   const triggerQuickResponseByContent = useCallback(
     (desiredContent: string) => {
-      const list = messagesRef.current as any[];
+      const list = messagesRef.current as MessageWithCustomPills[];
       for (let i = list.length - 1; i >= 0; i--) {
         const m = list[i];
+        if (m?.role !== 'bot') continue;
+        const custom = m?.customPillsConfig;
+        if (custom) {
+          const pill = custom.pills.find((x) => String(x?.content || '').toLowerCase() === desiredContent.toLowerCase());
+          if (pill) {
+            markQuickResponseSelected(custom.containerId, String(pill.content));
+            if (typeof pill.onClick === 'function') pill.onClick();
+            return true;
+          }
+          continue;
+        }
         const qrs = m?.quickResponses;
-        if (m?.role === 'bot' && Array.isArray(qrs)) {
+        if (Array.isArray(qrs)) {
           const qr = qrs.find((x: any) => String(x?.content || '').toLowerCase() === desiredContent.toLowerCase());
           if (qr) {
             const containerId = m?.quickResponseContainerProps?.id;
-            if (containerId) {
-              markQuickResponseSelected(containerId, String(qr.content));
-            }
-            if (typeof qr.onClick === 'function') {
-              qr.onClick();
-            }
+            if (containerId) markQuickResponseSelected(containerId, String(qr.content));
+            if (typeof qr.onClick === 'function') qr.onClick();
             return true;
           }
         }
@@ -1296,20 +1416,17 @@ export const DashboardsPersesPage: React.FC = () => {
     }
 
     if (stage === 'stage2') {
-      if (normalized.includes('troubleshooting dashboard') || (normalized.includes('generate') && normalized.includes('dashboard'))) {
-        return 'Generate troubleshooting dashboard';
+      if (normalized.includes('troubleshooting dashboard') || normalized.includes('see troubleshooting') || (normalized.includes('generate') && normalized.includes('dashboard'))) {
+        return 'See troubleshooting dashboard';
       }
-      if (normalized.includes('scale down') || normalized.includes('replica')) {
-        return 'Scale down replicas';
+      if (normalized.includes('scaling steps') || normalized.includes('scale down') || normalized.includes('replica')) {
+        return 'See scaling steps';
       }
     }
 
     if (stage === 'stage3') {
       if (normalized.includes('save') && normalized.includes('dashboard')) {
-        return 'Save dashboard';
-      }
-      if (normalized.includes('execute') && normalized.includes('scale')) {
-        return 'Execute scale down';
+        return 'Save this dashboard';
       }
     }
 
@@ -1421,10 +1538,60 @@ export const DashboardsPersesPage: React.FC = () => {
     return id.toString();
   };
 
+  // Rejection trigger: "Fix it", "Scale it", "Apply this" → disclaimer + steps (no direct actions).
+  const isRejectionTrigger = useCallback((text: string) => {
+    const normalized = text.toLowerCase().trim().replace(/\s+/g, ' ');
+    return (
+      normalized.includes('fix it') ||
+      normalized === 'fix it' ||
+      normalized.includes('scale it') ||
+      normalized === 'scale it' ||
+      normalized.includes('apply this') ||
+      normalized === 'apply this'
+    );
+  }, []);
+
   // Handle sending messages
   const handleSendMessage = useCallback((message: string | number) => {
     const messageText = String(message);
     if (!messageText.trim()) return;
+
+    // Rejection trigger: respond with disclaimer + manual steps (CodeBlock).
+    if (isRejectionTrigger(messageText)) {
+      const date = new Date();
+      const userMessage: MessageProps = {
+        id: generateId(),
+        role: 'user',
+        content: messageText,
+        name: 'User',
+        avatar: userAvatarSrc,
+        timestamp: date.toLocaleString(),
+        avatarProps: { isBordered: true }
+      };
+      const botMessage: MessageProps = {
+        id: generateId(),
+        role: 'bot',
+        content: DISCLAIMER_TEXT,
+        name: 'Aladdin',
+        avatar: botAvatarSrc,
+        isLoading: false,
+        timestamp: date.toLocaleString(),
+        extraContent: {
+          afterMainContent: (
+            <>
+              <ChatbotDisclaimerAlert />
+              <Content style={{ marginTop: '12px' }}>
+                <p>The recommended path is to scale the <strong>web-head</strong> deployment in <strong>marketing-prod</strong>. You can resolve this by copying and running the command below in your terminal:</p>
+              </Content>
+              <ScalingStepsCodeBlock />
+            </>
+          )
+        }
+      };
+      setMessages((prev) => [...prev, userMessage, botMessage]);
+      setAnnouncement(`Message from Aladdin: ${DISCLAIMER_TEXT}`);
+      return;
+    }
 
     // Conversational shortcut: let typed responses trigger the existing quick response chips.
     const intent = getWorkflowIntentQuickResponse(messageText);
@@ -1450,6 +1617,62 @@ export const DashboardsPersesPage: React.FC = () => {
     }
 
     setIsSendButtonDisabled(true);
+    const date = new Date();
+
+    // Add user message
+    const userMessage: MessageProps = {
+      id: generateId(),
+      role: 'user',
+      content: messageText,
+      name: 'User',
+      avatar: userAvatarSrc,
+      timestamp: date.toLocaleString(),
+      avatarProps: { isBordered: true }
+    };
+
+    // Add loading bot message
+    const loadingBotMessage: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: 'Thinking...',
+      name: 'Aladdin',
+      avatar: botAvatarSrc,
+      isLoading: true,
+      timestamp: date.toLocaleString()
+    };
+
+    setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
+    setAnnouncement(`Message from User: ${messageText}. Message from Aladdin is loading.`);
+
+    // Simulate AI response (replace with actual API call)
+    setTimeout(() => {
+      const botMessage: MessageProps = {
+        id: generateId(),
+        role: 'bot',
+        content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
+        name: 'Aladdin',
+        avatar: botAvatarSrc,
+        isLoading: false,
+        timestamp: date.toLocaleString(),
+        actions: {
+          positive: { onClick: () => console.log('Good response') },
+          negative: { onClick: () => console.log('Bad response') },
+          copy: { onClick: () => console.log('Copy') },
+          download: { onClick: () => console.log('Download') },
+          listen: { onClick: () => console.log('Listen') }
+        }
+      };
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        if (loadingIndex !== -1) {
+          newMessages[loadingIndex] = botMessage;
+        }
+        return newMessages;
+      });
+      setAnnouncement(`Message from Aladdin: ${botMessage.content}`);
+      setIsSendButtonDisabled(false);
+    }, 2000);
     const date = new Date();
 
     // Add user message
@@ -1555,37 +1778,38 @@ export const DashboardsPersesPage: React.FC = () => {
     
     setMessages([userMessage, loadingBotMessage]);
     
-    // Simulate AI analysis and show Stage 1 response
+    // Simulate AI analysis and show Stage 1 response (custom pills so both show solid blue when selected)
     setTimeout(() => {
       const stage1QuickResponsesId = `qr-stage1-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-      const stage1Message: MessageProps = {
+      const stage1Message: MessageWithCustomPills = {
         id: generateId(),
         role: 'bot',
-        content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU. Would you like me to analyze the root cause or check the node capacity?',
+        content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU. Would you like to analyze the root cause or check the node capacity?',
         name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
-        quickResponseContainerProps: { id: stage1QuickResponsesId } as any,
-        quickResponses: [
-          {
-            id: 'analyze-root-cause',
-            content: 'Analyze root cause',
-            onClick: () => {
-              markQuickResponseSelected(stage1QuickResponsesId, 'Analyze root cause');
-              handleStage2();
+        customPillsConfig: {
+          containerId: stage1QuickResponsesId,
+          pills: [
+            {
+              id: 'analyze-root-cause',
+              content: 'Analyze root cause',
+              onClick: () => {
+                markQuickResponseSelected(stage1QuickResponsesId, 'Analyze root cause');
+                handleStage2();
+              }
+            },
+            {
+              id: 'check-node-capacity',
+              content: 'Check node capacity',
+              onClick: () => {
+                markQuickResponseSelected(stage1QuickResponsesId, 'Check node capacity');
+                // Will implement in next step
+              }
             }
-          },
-          {
-            id: 'check-node-capacity',
-            content: 'Check node capacity',
-            onClick: () => {
-              markQuickResponseSelected(stage1QuickResponsesId, 'Check node capacity');
-              console.log('Check Node Capacity clicked');
-              // Will implement in next step
-            }
-          }
-        ]
+          ]
+        }
       };
       
       setMessages((prev) => {
@@ -1599,6 +1823,20 @@ export const DashboardsPersesPage: React.FC = () => {
       setAnnouncement('AI analysis complete. Review the alert details and select an action.');
     }, 2000);
   }, []);
+
+  // Build bot message for "See scaling steps" pill: natural-language flow (no disclaimer Alert).
+  const buildScalingStepsMessage = useCallback((): MessageProps => ({
+    id: generateId(),
+    role: 'bot',
+    content: 'I recommend scaling down the **web-head** deployment in **marketing-prod**. You can resolve this by following the steps below.',
+    name: 'Aladdin',
+    avatar: botAvatarSrc,
+    isLoading: false,
+    timestamp: new Date().toLocaleString(),
+    extraContent: {
+      afterMainContent: <ScalingStepsCodeBlock />
+    }
+  }), []);
 
   // Handle Stage 2: Root Cause Analysis
   const handleStage2 = useCallback(() => {
@@ -1629,10 +1867,10 @@ export const DashboardsPersesPage: React.FC = () => {
         { x: 'support-prod', y: 23 }
       ];
       
-      const stage2Message: MessageProps = {
+      const stage2Message: MessageWithCustomPills = {
         id: generateId(),
         role: 'bot',
-        content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota. Would you like me to generate a troubleshooting dashboard or scale down replicas?',
+        content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota. Would you like to see a troubleshooting dashboard or see scaling steps?',
         name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
@@ -1720,26 +1958,27 @@ export const DashboardsPersesPage: React.FC = () => {
             </div>
           )
         },
-        quickResponseContainerProps: { id: stage2QuickResponsesId } as any,
-        quickResponses: [
-          {
-            id: 'generate-dashboard',
-            content: 'Generate troubleshooting dashboard',
-            onClick: () => {
-              markQuickResponseSelected(stage2QuickResponsesId, 'Generate troubleshooting dashboard');
-              handleStage3();
+        customPillsConfig: {
+          containerId: stage2QuickResponsesId,
+          pills: [
+            {
+              id: 'generate-dashboard',
+              content: 'See troubleshooting dashboard',
+              onClick: () => {
+                markQuickResponseSelected(stage2QuickResponsesId, 'See troubleshooting dashboard');
+                handleStage3();
+              }
+            },
+            {
+              id: 'scale-down-replicas',
+              content: 'See scaling steps',
+              onClick: () => {
+                markQuickResponseSelected(stage2QuickResponsesId, 'See scaling steps');
+                setMessages((prev) => [...prev, buildScalingStepsMessage()]);
+              }
             }
-          },
-          {
-            id: 'scale-down-replicas',
-            content: 'Scale down replicas',
-            onClick: () => {
-              markQuickResponseSelected(stage2QuickResponsesId, 'Scale down replicas');
-              console.log('Scale Down Replicas clicked');
-              // Will implement in next step
-            }
-          }
-        ]
+          ]
+        }
       };
       
       setMessages((prev) => {
@@ -1752,7 +1991,7 @@ export const DashboardsPersesPage: React.FC = () => {
       });
       setAnnouncement('Root cause analysis complete. The web-head deployment in marketing-prod is the culprit.');
     }, 2000);
-  }, [generateId, setWorkflowStage, setMessages, setAnnouncement]);
+  }, [generateId, setWorkflowStage, setMessages, setAnnouncement, buildScalingStepsMessage]);
 
   // Handle Stage 3: Dashboard Generation
   const handleStage3 = useCallback(() => {
@@ -1777,35 +2016,27 @@ export const DashboardsPersesPage: React.FC = () => {
     // Simulate dashboard generation
     setTimeout(() => {
       const stage3QuickResponsesId = `qr-stage3-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-      const stage3Message: MessageProps = {
+      const stage3Message: MessageWithCustomPills = {
         id: generateId(),
         role: 'bot',
-        content: 'I have generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like me to save the dashboard or execute the scale down?',
+        content: 'I\'ve generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like to save this dashboard?',
         name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
-        quickResponseContainerProps: { id: stage3QuickResponsesId } as any,
-        quickResponses: [
-          {
-            id: 'save-dashboard',
-            content: 'Save dashboard',
-            onClick: () => {
-              markQuickResponseSelected(stage3QuickResponsesId, 'Save dashboard');
-              console.log('Save Dashboard clicked');
-              // Will implement in next step
+        customPillsConfig: {
+          containerId: stage3QuickResponsesId,
+          pills: [
+            {
+              id: 'save-dashboard',
+              content: 'Save this dashboard',
+              onClick: () => {
+                markQuickResponseSelected(stage3QuickResponsesId, 'Save this dashboard');
+                // Placeholder: in a real flow would open save dialog
+              }
             }
-          },
-          {
-            id: 'execute-scale-down',
-            content: 'Execute scale down',
-            onClick: () => {
-              markQuickResponseSelected(stage3QuickResponsesId, 'Execute scale down');
-              console.log('Execute Scale Down clicked');
-              // Will implement in next step
-            }
-          }
-        ]
+          ]
+        }
       };
       
       setMessages((prev) => {
@@ -1875,29 +2106,6 @@ export const DashboardsPersesPage: React.FC = () => {
       window.removeEventListener('resize', updateTarget);
     };
   }, []);
-
-  // Make quick response "chips" show a persistent clicked state (survives re-renders)
-  useEffect(() => {
-    if (!isDrawerOpen || !selectedQuickResponse) return;
-
-    const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
-    if (!wrapper) return;
-
-    const container = wrapper.querySelector<HTMLElement>(`#${selectedQuickResponse.containerId}`);
-    if (!container) return;
-
-    const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
-    allLabels.forEach((label) => {
-      label.classList.remove('pf-m-clicked');
-      label.setAttribute('aria-pressed', 'false');
-    });
-
-    const selectedLabel = allLabels.find((label) => (label.textContent || '').trim() === selectedQuickResponse.content);
-    if (selectedLabel) {
-      selectedLabel.classList.add('pf-m-clicked');
-      selectedLabel.setAttribute('aria-pressed', 'true');
-    }
-  }, [isDrawerOpen, selectedQuickResponse, messages]);
 
   // Attach click handler to masthead bell icon - toggle drawer open/close
   useEffect(() => {
@@ -1989,15 +2197,36 @@ export const DashboardsPersesPage: React.FC = () => {
                 />
               )}
               {messages.map((message, index) => {
+                const msg = message as MessageWithCustomPills;
+                const messageProps = msg.customPillsConfig
+                  ? {
+                      ...msg,
+                      quickResponses: undefined,
+                      quickResponseContainerProps: undefined,
+                      extraContent: {
+                        ...msg.extraContent,
+                        afterMainContent: (
+                          <>
+                            {msg.extraContent?.afterMainContent}
+                            <CustomQuickResponsePills
+                              containerId={msg.customPillsConfig.containerId}
+                              pills={msg.customPillsConfig.pills}
+                              selectedQuickResponses={selectedQuickResponses}
+                            />
+                          </>
+                        )
+                      }
+                    }
+                  : message;
                 if (index === messages.length - 1) {
                   return (
                     <React.Fragment key={message.id}>
                       <div ref={messagesEndRef}></div>
-                      <Message {...message} />
+                      <Message {...messageProps} />
                     </React.Fragment>
                   );
                 }
-                return <Message key={message.id} {...message} />;
+                return <Message key={message.id} {...messageProps} />;
               })}
             </MessageBox>
           </ChatbotContent>
@@ -2555,15 +2784,36 @@ export const DashboardsPersesPage: React.FC = () => {
                     />
                   )}
                   {messages.map((message, index) => {
+                    const msg = message as MessageWithCustomPills;
+                    const messageProps = msg.customPillsConfig
+                      ? {
+                          ...msg,
+                          quickResponses: undefined,
+                          quickResponseContainerProps: undefined,
+                          extraContent: {
+                            ...msg.extraContent,
+                            afterMainContent: (
+                              <>
+                                {msg.extraContent?.afterMainContent}
+                                <CustomQuickResponsePills
+                                  containerId={msg.customPillsConfig.containerId}
+                                  pills={msg.customPillsConfig.pills}
+                                  selectedQuickResponses={selectedQuickResponses}
+                                />
+                              </>
+                            )
+                          }
+                        }
+                      : message;
                     if (index === messages.length - 1) {
                       return (
                         <React.Fragment key={message.id}>
                           <div ref={messagesEndRef}></div>
-                          <Message {...message} />
+                          <Message {...messageProps} />
                         </React.Fragment>
                       );
                     }
-                    return <Message key={message.id} {...message} />;
+                    return <Message key={message.id} {...messageProps} />;
                   })}
                 </MessageBox>
               </ChatbotContent>
