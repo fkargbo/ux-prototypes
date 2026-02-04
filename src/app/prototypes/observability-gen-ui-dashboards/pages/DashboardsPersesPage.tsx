@@ -1267,10 +1267,9 @@ export const DashboardsPersesPage: React.FC = () => {
     setMessages((prev) =>
       prev.map((m: any) => {
         if (m?.quickResponseContainerProps?.id !== containerId || !Array.isArray(m?.quickResponses)) return m;
+        // Derive from previous message state so we don't rely on stale closure (second pill's onClick was created with old selectedQuickResponses)
         const selectedContents = new Set(
-          selectedQuickResponses
-            .filter((p) => p.containerId === containerId)
-            .map((p) => p.content)
+          m.quickResponses.filter((qr: any) => qr?.isSelected).map((qr: any) => qr?.content)
         );
         selectedContents.add(content);
         return {
@@ -1287,7 +1286,7 @@ export const DashboardsPersesPage: React.FC = () => {
         };
       })
     );
-  }, [selectedQuickResponses]);
+  }, []);
 
   useEffect(() => {
     messagesRef.current = messages;
