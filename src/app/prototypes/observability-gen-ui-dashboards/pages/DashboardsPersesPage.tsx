@@ -1266,12 +1266,12 @@ export const DashboardsPersesPage: React.FC = () => {
         if (m?.quickResponseContainerProps?.id !== containerId || !Array.isArray(m?.quickResponses)) return m;
         return {
           ...m,
+          // Mark selected and disable all pills in this container so they can't be clicked again
           quickResponses: m.quickResponses.map((qr: any) => ({
             ...qr,
-            // Show a checkmark on the selected chip
             icon: qr?.content === content ? <CheckIcon /> : undefined,
-            // If the component supports selection state, set it too (harmless if ignored)
-            isSelected: qr?.content === content
+            isSelected: qr?.content === content,
+            onClick: () => {} // no-op: pill is active only once
           }))
         };
       })
@@ -1357,9 +1357,6 @@ export const DashboardsPersesPage: React.FC = () => {
     if (stage === 'stage3') {
       if (normalized.includes('save') && normalized.includes('dashboard')) {
         return 'Save this dashboard';
-      }
-      if (normalized.includes('scaling steps') || normalized.includes('execute') || normalized.includes('scale')) {
-        return 'See scaling steps';
       }
     }
 
@@ -1949,7 +1946,7 @@ export const DashboardsPersesPage: React.FC = () => {
       const stage3Message: MessageProps = {
         id: generateId(),
         role: 'bot',
-        content: 'I\'ve generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like to save this dashboard or see scaling steps?',
+        content: 'I\'ve generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like to save this dashboard?',
         name: 'Aladdin',
         avatar: botAvatarSrc,
         isLoading: false,
@@ -1962,14 +1959,6 @@ export const DashboardsPersesPage: React.FC = () => {
             onClick: () => {
               markQuickResponseSelected(stage3QuickResponsesId, 'Save this dashboard');
               // Placeholder: in a real flow would open save dialog
-            }
-          },
-          {
-            id: 'execute-scale-down',
-            content: 'See scaling steps',
-            onClick: () => {
-              markQuickResponseSelected(stage3QuickResponsesId, 'See scaling steps');
-              setMessages((prev) => [...prev, buildScalingStepsMessage()]);
             }
           }
         ]
@@ -1989,7 +1978,7 @@ export const DashboardsPersesPage: React.FC = () => {
       setShowTroubleshootingDashboard(true);
       setIsGeneratingDashboard(false);
     }, 3000);
-  }, [generateId, setWorkflowStage, setMessages, setAnnouncement, setShowTroubleshootingDashboard, buildScalingStepsMessage]);
+  }, [generateId, setWorkflowStage, setMessages, setAnnouncement, setShowTroubleshootingDashboard]);
 
   // Welcome prompts for ChatbotWelcomePrompt
   const welcomePrompts = [
