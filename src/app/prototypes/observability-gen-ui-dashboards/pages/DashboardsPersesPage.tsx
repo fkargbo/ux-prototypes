@@ -2072,19 +2072,37 @@ export const DashboardsPersesPage: React.FC = () => {
           if (selected) label.classList.add('pf-m-clicked');
           else label.classList.remove('pf-m-clicked');
           label.setAttribute('aria-pressed', selected ? 'true' : 'false');
-          const style = label.style;
+          const contentEl = label.querySelector<HTMLElement>('.pf-v6-c-label__content');
           if (selected) {
-            style.setProperty('background-color', PILL_COMPLETED_BG, 'important');
-            style.setProperty('border-color', PILL_COMPLETED_BG, 'important');
-            style.setProperty('color', PILL_COMPLETED_TEXT, 'important');
-            label.querySelectorAll<HTMLElement>('.pf-v6-c-label__content, .pf-v6-c-label__text, .pf-v6-c-label__icon').forEach((el) => {
+            label.style.setProperty('--pf-v6-c-label--BackgroundColor', PILL_COMPLETED_BG, 'important');
+            label.style.setProperty('--pf-v6-c-label--BorderColor', PILL_COMPLETED_BG, 'important');
+            label.style.setProperty('--pf-v6-c-label--Color', PILL_COMPLETED_TEXT, 'important');
+            label.style.setProperty('--pf-v6-c-label__icon--Color', PILL_COMPLETED_TEXT, 'important');
+            label.style.setProperty('background-color', PILL_COMPLETED_BG, 'important');
+            label.style.setProperty('border-color', PILL_COMPLETED_BG, 'important');
+            label.style.setProperty('color', PILL_COMPLETED_TEXT, 'important');
+            if (contentEl) {
+              contentEl.style.setProperty('background-color', PILL_COMPLETED_BG, 'important');
+              contentEl.style.setProperty('border-color', PILL_COMPLETED_BG, 'important');
+              contentEl.style.setProperty('color', PILL_COMPLETED_TEXT, 'important');
+            }
+            label.querySelectorAll<HTMLElement>('.pf-v6-c-label__text, .pf-v6-c-label__icon').forEach((el) => {
               el.style.setProperty('color', PILL_COMPLETED_TEXT, 'important');
             });
           } else {
-            style.removeProperty('background-color');
-            style.removeProperty('border-color');
-            style.removeProperty('color');
-            label.querySelectorAll<HTMLElement>('.pf-v6-c-label__content, .pf-v6-c-label__text, .pf-v6-c-label__icon').forEach((el) => {
+            label.style.removeProperty('--pf-v6-c-label--BackgroundColor');
+            label.style.removeProperty('--pf-v6-c-label--BorderColor');
+            label.style.removeProperty('--pf-v6-c-label--Color');
+            label.style.removeProperty('--pf-v6-c-label__icon--Color');
+            label.style.removeProperty('background-color');
+            label.style.removeProperty('border-color');
+            label.style.removeProperty('color');
+            if (contentEl) {
+              contentEl.style.removeProperty('background-color');
+              contentEl.style.removeProperty('border-color');
+              contentEl.style.removeProperty('color');
+            }
+            label.querySelectorAll<HTMLElement>('.pf-v6-c-label__text, .pf-v6-c-label__icon').forEach((el) => {
               el.style.removeProperty('color');
             });
           }
