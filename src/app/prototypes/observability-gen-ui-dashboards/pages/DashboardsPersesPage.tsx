@@ -1867,7 +1867,7 @@ export const DashboardsPersesPage: React.FC = () => {
         { x: 'support-prod', y: 23 }
       ];
       
-      const stage2Message: MessageProps = {
+      const stage2Message: MessageWithCustomPills = {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota. Would you like to see a troubleshooting dashboard or see scaling steps?',
@@ -1958,25 +1958,27 @@ export const DashboardsPersesPage: React.FC = () => {
             </div>
           )
         },
-        quickResponseContainerProps: { id: stage2QuickResponsesId } as any,
-        quickResponses: [
-          {
-            id: 'generate-dashboard',
-            content: 'See troubleshooting dashboard',
-            onClick: () => {
-              markQuickResponseSelected(stage2QuickResponsesId, 'See troubleshooting dashboard');
-              handleStage3();
+        customPillsConfig: {
+          containerId: stage2QuickResponsesId,
+          pills: [
+            {
+              id: 'generate-dashboard',
+              content: 'See troubleshooting dashboard',
+              onClick: () => {
+                markQuickResponseSelected(stage2QuickResponsesId, 'See troubleshooting dashboard');
+                handleStage3();
+              }
+            },
+            {
+              id: 'scale-down-replicas',
+              content: 'See scaling steps',
+              onClick: () => {
+                markQuickResponseSelected(stage2QuickResponsesId, 'See scaling steps');
+                setMessages((prev) => [...prev, buildScalingStepsMessage()]);
+              }
             }
-          },
-          {
-            id: 'scale-down-replicas',
-            content: 'See scaling steps',
-            onClick: () => {
-              markQuickResponseSelected(stage2QuickResponsesId, 'See scaling steps');
-              setMessages((prev) => [...prev, buildScalingStepsMessage()]);
-            }
-          }
-        ]
+          ]
+        }
       };
       
       setMessages((prev) => {
@@ -2014,7 +2016,7 @@ export const DashboardsPersesPage: React.FC = () => {
     // Simulate dashboard generation
     setTimeout(() => {
       const stage3QuickResponsesId = `qr-stage3-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-      const stage3Message: MessageProps = {
+      const stage3Message: MessageWithCustomPills = {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like to save this dashboard?',
@@ -2022,17 +2024,19 @@ export const DashboardsPersesPage: React.FC = () => {
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
-        quickResponseContainerProps: { id: stage3QuickResponsesId } as any,
-        quickResponses: [
-          {
-            id: 'save-dashboard',
-            content: 'Save this dashboard',
-            onClick: () => {
-              markQuickResponseSelected(stage3QuickResponsesId, 'Save this dashboard');
-              // Placeholder: in a real flow would open save dialog
+        customPillsConfig: {
+          containerId: stage3QuickResponsesId,
+          pills: [
+            {
+              id: 'save-dashboard',
+              content: 'Save this dashboard',
+              onClick: () => {
+                markQuickResponseSelected(stage3QuickResponsesId, 'Save this dashboard');
+                // Placeholder: in a real flow would open save dialog
+              }
             }
-          }
-        ]
+          ]
+        }
       };
       
       setMessages((prev) => {
@@ -2102,122 +2106,6 @@ export const DashboardsPersesPage: React.FC = () => {
       window.removeEventListener('resize', updateTarget);
     };
   }, []);
-
-  // Make quick response "chips" (stage2/stage3 PF pills) show persistent clicked state via DOM; stage1 uses CustomQuickResponsePills.
-  // Match pills by index (DOM order = quickResponses order) so the left pill is always identified correctly.
-  useEffect(() => {
-    if (!isDrawerOpen) return;
-
-    const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
-    if (!wrapper) return;
-
-    const byContainer = new Map<string, Set<string>>();
-    for (const { containerId, content } of selectedQuickResponses) {
-      if (!byContainer.has(containerId)) byContainer.set(containerId, new Set());
-      byContainer.get(containerId)!.add(content);
-    }
-
-    const apply = () => {
-      for (const [containerId, selectedContents] of byContainer) {
-        const container = wrapper.querySelector<HTMLElement>(`#${containerId}`);
-        if (!container) continue;
-
-        const message = messages.find((m: any) => m?.quickResponseContainerProps?.id === containerId);
-        const orderedContents: string[] = Array.isArray(message?.quickResponses)
-          ? message.quickResponses.map((qr: any) => String(qr?.content ?? ''))
-          : [];
-
-        const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
-        allLabels.forEach((label, index) => {
-          const contentForThisPill = orderedContents[index];
-          const selected = contentForThisPill !== undefined && selectedContents.has(contentForThisPill);
-          if (selected) label.classList.add('pf-m-clicked');
-          else label.classList.remove('pf-m-clicked');
-          label.setAttribute('aria-pressed', selected ? 'true' : 'false');
-          const contentEl = label.querySelector<HTMLElement>('.pf-v6-c-label__content');
-          if (selected) {
-            label.style.setProperty('--pf-v6-c-label--BackgroundColor', PILL_COMPLETED_BG, 'important');
-            label.style.setProperty('--pf-v6-c-label--BorderColor', PILL_COMPLETED_BG, 'important');
-            label.style.setProperty('--pf-v6-c-label--Color', PILL_COMPLETED_TEXT, 'important');
-            label.style.setProperty('--pf-v6-c-label__icon--Color', PILL_COMPLETED_TEXT, 'important');
-            label.style.setProperty('background-color', PILL_COMPLETED_BG, 'important');
-            label.style.setProperty('border-color', PILL_COMPLETED_BG, 'important');
-            label.style.setProperty('color', PILL_COMPLETED_TEXT, 'important');
-            if (contentEl) {
-              contentEl.style.setProperty('background-color', PILL_COMPLETED_BG, 'important');
-              contentEl.style.setProperty('border-color', PILL_COMPLETED_BG, 'important');
-              contentEl.style.setProperty('color', PILL_COMPLETED_TEXT, 'important');
-            }
-            label.querySelectorAll<HTMLElement>('.pf-v6-c-label__text, .pf-v6-c-label__icon').forEach((el) => {
-              el.style.setProperty('color', PILL_COMPLETED_TEXT, 'important');
-            });
-          } else {
-            label.style.removeProperty('--pf-v6-c-label--BackgroundColor');
-            label.style.removeProperty('--pf-v6-c-label--BorderColor');
-            label.style.removeProperty('--pf-v6-c-label--Color');
-            label.style.removeProperty('--pf-v6-c-label__icon--Color');
-            label.style.removeProperty('background-color');
-            label.style.removeProperty('border-color');
-            label.style.removeProperty('color');
-            if (contentEl) {
-              contentEl.style.removeProperty('background-color');
-              contentEl.style.removeProperty('border-color');
-              contentEl.style.removeProperty('color');
-            }
-            label.querySelectorAll<HTMLElement>('.pf-v6-c-label__text, .pf-v6-c-label__icon').forEach((el) => {
-              el.style.removeProperty('color');
-            });
-          }
-        });
-      }
-    };
-
-    const rafId = window.requestAnimationFrame(() => {
-      apply();
-      window.requestAnimationFrame(apply);
-    });
-    const t1 = window.setTimeout(apply, 100);
-    const t2 = window.setTimeout(apply, 350);
-    const t3 = window.setTimeout(apply, 600);
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.clearTimeout(t3);
-    };
-  }, [isDrawerOpen, selectedQuickResponses, messages]);
-
-  // Prevent re-click on already-selected pills from reaching PF so PF state (and DOM) don't change and colors stay correct.
-  useEffect(() => {
-    if (!isDrawerOpen) return;
-
-    const wrapper = document.querySelector<HTMLElement>('.ai-assistant-drawer-wrapper');
-    if (!wrapper) return;
-
-    const byContainer = new Map<string, Set<string>>();
-    for (const { containerId, content } of selectedQuickResponses) {
-      if (!byContainer.has(containerId)) byContainer.set(containerId, new Set());
-      byContainer.get(containerId)!.add(content);
-    }
-
-    const handleClickCapture = (e: MouseEvent) => {
-      const label = (e.target as HTMLElement).closest?.('.pf-v6-c-label');
-      if (!label) return;
-      const container = label.closest?.('[id]') as HTMLElement | null;
-      if (!container?.id) return;
-      const selectedContents = byContainer.get(container.id);
-      if (!selectedContents) return;
-      const textEl = label.querySelector('.pf-v6-c-label__text');
-      const text = ((textEl?.textContent ?? label.textContent) || '').replace(/\s+/g, ' ').trim();
-      if (selectedContents.has(text)) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-
-    wrapper.addEventListener('click', handleClickCapture, true);
-    return () => wrapper.removeEventListener('click', handleClickCapture, true);
-  }, [isDrawerOpen, selectedQuickResponses]);
 
   // Attach click handler to masthead bell icon - toggle drawer open/close
   useEffect(() => {
