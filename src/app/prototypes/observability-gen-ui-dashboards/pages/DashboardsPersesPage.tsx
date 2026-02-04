@@ -2047,6 +2047,7 @@ export const DashboardsPersesPage: React.FC = () => {
   const PILL_COMPLETED_TEXT = '#151515';
 
   // Make quick response "chips" show a persistent clicked state; apply inline styles so both pills are solid blue.
+  // Match pills by index (DOM order = quickResponses order) so the left pill is always identified correctly.
   useEffect(() => {
     if (!isDrawerOpen) return;
 
@@ -2064,11 +2065,15 @@ export const DashboardsPersesPage: React.FC = () => {
         const container = wrapper.querySelector<HTMLElement>(`#${containerId}`);
         if (!container) continue;
 
+        const message = messages.find((m: any) => m?.quickResponseContainerProps?.id === containerId);
+        const orderedContents: string[] = Array.isArray(message?.quickResponses)
+          ? message.quickResponses.map((qr: any) => String(qr?.content ?? ''))
+          : [];
+
         const allLabels = Array.from(container.querySelectorAll<HTMLElement>('.pf-v6-c-label'));
-        allLabels.forEach((label) => {
-          const textEl = label.querySelector('.pf-v6-c-label__text');
-          const text = ((textEl?.textContent ?? label.textContent) || '').replace(/\s+/g, ' ').trim();
-          const selected = selectedContents.has(text);
+        allLabels.forEach((label, index) => {
+          const contentForThisPill = orderedContents[index];
+          const selected = contentForThisPill !== undefined && selectedContents.has(contentForThisPill);
           if (selected) label.classList.add('pf-m-clicked');
           else label.classList.remove('pf-m-clicked');
           label.setAttribute('aria-pressed', selected ? 'true' : 'false');
@@ -2114,10 +2119,14 @@ export const DashboardsPersesPage: React.FC = () => {
       apply();
       window.requestAnimationFrame(apply);
     });
-    const timeoutId = window.setTimeout(apply, 150);
+    const t1 = window.setTimeout(apply, 100);
+    const t2 = window.setTimeout(apply, 350);
+    const t3 = window.setTimeout(apply, 600);
     return () => {
       window.cancelAnimationFrame(rafId);
-      window.clearTimeout(timeoutId);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
     };
   }, [isDrawerOpen, selectedQuickResponses, messages]);
 
