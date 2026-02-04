@@ -1595,35 +1595,17 @@ export const DashboardsPersesPage: React.FC = () => {
           listen: { onClick: () => console.log('Listen') }
         }
       };
-      setMessages((prev) => [...prev, userMessage, botMessage]);
-      setAnnouncement(`Message from Aladdin: ${DISCLAIMER_TEXT}`);
-      return;
-    }
-
-    // Conversational shortcut: let typed responses trigger the existing quick response chips.
-    const intent = getWorkflowIntentQuickResponse(messageText);
-    if (intent) {
-      const date = new Date();
-      const userMessage: MessageProps = {
-        id: generateId(),
-        role: 'user',
-        content: messageText,
-        name: 'User',
-        avatar: userAvatarSrc,
-        timestamp: date.toLocaleString(),
-        avatarProps: { isBordered: true }
-      };
-
-      setMessages((prev) => [...prev, userMessage]);
-      setAnnouncement(`Message from User: ${messageText}.`);
-
-      setTimeout(() => {
-        triggerQuickResponseByContent(intent);
-      }, 0);
-      return;
-    }
-
-    setIsSendButtonDisabled(true);
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        if (loadingIndex !== -1) {
+          newMessages[loadingIndex] = botMessage;
+        }
+        return newMessages;
+      });
+      setAnnouncement(`Message from Aladdin: ${botMessage.content}`);
+      setIsSendButtonDisabled(false);
+    }, 2000);
     const date = new Date();
 
     // Add user message
