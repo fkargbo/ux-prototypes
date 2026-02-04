@@ -1673,64 +1673,6 @@ export const DashboardsPersesPage: React.FC = () => {
       setAnnouncement(`Message from Aladdin: ${botMessage.content}`);
       setIsSendButtonDisabled(false);
     }, 2000);
-    const date = new Date();
-
-    // Add user message
-    const userMessage: MessageProps = {
-      id: generateId(),
-      role: 'user',
-      content: messageText,
-      name: 'User',
-      avatar: userAvatarSrc,
-      timestamp: date.toLocaleString(),
-      avatarProps: { isBordered: true }
-    };
-
-    // Add loading bot message
-    const loadingBotMessage: MessageProps = {
-      id: generateId(),
-      role: 'bot',
-      content: 'Thinking...',
-      name: 'Aladdin',
-      avatar: botAvatarSrc,
-      isLoading: true,
-      timestamp: date.toLocaleString()
-    };
-
-    setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
-    setAnnouncement(`Message from User: ${messageText}. Message from Aladdin is loading.`);
-
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
-      const botMessage: MessageProps = {
-        id: generateId(),
-        role: 'bot',
-        content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
-        name: 'Aladdin',
-        avatar: botAvatarSrc,
-        isLoading: false,
-        timestamp: date.toLocaleString(),
-        actions: {
-          positive: { onClick: () => console.log('Good response') },
-          negative: { onClick: () => console.log('Bad response') },
-          copy: { onClick: () => console.log('Copy') },
-          download: { onClick: () => console.log('Download') },
-          listen: { onClick: () => console.log('Listen') }
-        }
-      };
-      
-      setMessages((prev) => {
-        const newMessages = [...prev];
-        // Replace the loading message with the actual response
-        const loadingIndex = newMessages.findIndex(m => m.isLoading);
-        if (loadingIndex !== -1) {
-          newMessages[loadingIndex] = botMessage;
-        }
-        return newMessages;
-      });
-      setAnnouncement(`Message from Aladdin: ${botMessage.content}`);
-      setIsSendButtonDisabled(false);
-    }, 2000);
   }, []);
 
   // Handle model selection
