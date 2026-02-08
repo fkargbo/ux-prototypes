@@ -4211,9 +4211,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           onChange={toggleSelectAll}
                         />
                       </Th>
-                      {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters').map((col, colIdx) => {
+                      {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime').map((col, colIdx) => {
                         const columnKey = col.key as SortConfig['column'];
-                        const canSort = ['alertName', 'severity', 'total', 'group', 'component', 'startTime'].includes(col.key);
+                        const canSort = ['alertName', 'severity', 'total', 'group', 'component'].includes(col.key);
                         const sortConfig = sortConfigs.find(c => c.column === columnKey);
                         
                         const thProps: any = {
@@ -4331,7 +4331,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                             onChange={() => toggleAlertSelection(alertKey)}
                           />
                         </Td>
-                        {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters').map(col => {
+                        {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime').map(col => {
                           const tdProps: any = {
                             key: col.key,
                             modifier: "nowrap" as const,
@@ -4348,15 +4348,10 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         })}
                       </Tr>
                       <Tr isExpanded={isExpanded}>
-                        <Td colSpan={getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters').length + 2} noPadding>
+                        <Td colSpan={getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime').length + 2} noPadding>
                           <ExpandableRowContent>
-                            <Stack hasGutter>
-                              <StackItem>
-                                <Content component="small" className="pf-v6-u-mb-sm">
-                                </Content>
-                              </StackItem>
-                              <StackItem>
-                                <Table aria-label={singleClusterView ? "Alert instances" : "Clusters with alert"} variant="compact">
+                            <div style={{ padding: '8px 16px' }}>
+                              <Table aria-label={singleClusterView ? "Alert instances" : "Clusters with alert"} variant="compact">
                                   <Thead>
                                     <Tr>
                                       <Th screenReaderText="Select" />
@@ -4501,8 +4496,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                     })}
                                   </Tbody>
                                 </Table>
-                              </StackItem>
-                            </Stack>
+                              </div>
                           </ExpandableRowContent>
                         </Td>
                       </Tr>
@@ -4514,7 +4508,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
             ) : !isAggregated && groupBy !== 'none' && groupedIndividualAlerts ? (
               /* Grouped Individual Alerts View (non-aggregated) */
               <Accordion asDefinitionList={false} displaySize="lg">
-                {groupedIndividualAlerts.map(group => {
+                {groupedIndividualAlerts!.map(group => {
                   const isGroupExpanded = expandedGroups.has(group.groupName);
                   const groupSeverityColor = groupBy === 'severity' 
                     ? (group.groupName === 'Critical' ? 'red' : group.groupName === 'Warning' ? 'orange' : 'blue')
