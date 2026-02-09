@@ -493,7 +493,7 @@ button[aria-label="View task details"] {
   letter-spacing: 0.02em;
 }
 
-/* Copy button in header: icon white, transparent background (explicit copy button with CopyIcon). */
+/* Copy button in header: native button + inline SVG icon (always visible). */
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button,
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button,
 .ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button {
@@ -501,24 +501,32 @@ button[aria-label="View task details"] {
   background: transparent !important;
   border: none !important;
   margin: 0 !important;
+  padding: 6px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-/* Icon as child: ensure SVG is visible (size + fill) whether PF wraps in __icon or not. */
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button .pf-v6-c-button__icon,
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button svg,
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button .pf-v6-c-button__icon svg {
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button svg {
   color: #fff !important;
   fill: #fff !important;
   width: 1em !important;
   height: 1em !important;
-  display: inline-block !important;
+  display: block !important;
   flex-shrink: 0 !important;
 }
 
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button:hover {
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button:hover,
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button:hover {
   color: rgba(255, 255, 255, 0.9) !important;
   background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button:hover svg {
+  color: rgba(255, 255, 255, 0.9) !important;
+  fill: rgba(255, 255, 255, 0.9) !important;
 }
 
 /* Force copy icon visible on dark header: override PF icon color, ensure icon displays, SVG fill. */

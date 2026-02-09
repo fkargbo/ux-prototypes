@@ -81,7 +81,6 @@ import {
   CpuIcon,
   ClockIcon,
   PencilAltIcon,
-  CopyIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -182,6 +181,50 @@ const SCALE_COMMAND = `kubectl scale deployment web-head -n marketing-prod --rep
 const CPU_NAMESPACE_PROMQL =
   'topk(5, sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate) by (namespace))';
 
+/** Inline copy icon SVG (same path as PF CopyIcon) so it is always visible regardless of theme/PF overrides. */
+const CopyIconSvg: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    viewBox="0 0 448 512"
+    width="1em"
+    height="1em"
+    fill="currentColor"
+    role="img"
+    aria-hidden
+    {...props}
+  >
+    <path d="M320 448v40c0 13.255-10.745 24-24 24H24c-13.255 0-24-10.745-24-24V120c0-13.255 10.745-24 24-24h72v296c0 30.879 25.121 56 56 56h168zm0-344V0H152c-13.255 0-24 10.745-24 24v368c0 13.255 10.745 24 24 24h272c13.255 0 24-10.745 24-24V128H344c-13.2 0-24-10.8-24-24zm120.971-31.029L375.029 7.029A24 24 0 0 0 358.059 0H352v96h96v-6.059a24 24 0 0 0-7.029-16.97z" />
+  </svg>
+);
+
+/** Copy button for CodeBlock header: inline SVG icon (always visible) + Tooltip. */
+const CodeBlockCopyButton: React.FC<{
+  id: string;
+  ariaLabel: string;
+  textToCopy: string;
+  copied: boolean;
+  onCopy: () => void;
+  onTooltipHidden: () => void;
+}> = ({ id, ariaLabel, textToCopy, copied, onCopy, onTooltipHidden }) => (
+  <Tooltip
+    content={copied ? 'Copied!' : 'Copy to clipboard'}
+    exitDelay={copied ? 1500 : 600}
+    onTooltipHidden={onTooltipHidden}
+  >
+    <button
+      type="button"
+      id={id}
+      className="pf-chatbot__code-block-copy-button"
+      aria-label={ariaLabel}
+      onClick={() => {
+        navigator.clipboard.writeText(textToCopy);
+        onCopy();
+      }}
+    >
+      <CopyIconSvg />
+    </button>
+  </Tooltip>
+);
+
 /** CodeBlock with copy button for the CPU chart PromQL query (query disclosure below the chart).
  *  Wrapper constrains width so the block does not extend the chat bubble; long lines wrap (standard PF behavior). */
 const CpuChartQueryCodeBlock: React.FC = () => {
@@ -196,24 +239,14 @@ const CpuChartQueryCodeBlock: React.FC = () => {
               <span className="pf-chatbot__code-block-language">PROMQL</span>
             </CodeBlockAction>
             <CodeBlockAction className="pf-chatbot__code-block-copy-action">
-              <Tooltip
-                content={copied ? 'Copied!' : 'Copy to clipboard'}
-                exitDelay={copied ? 1500 : 600}
+              <CodeBlockCopyButton
+                id="cpu-promql-copy"
+                ariaLabel="Copy PromQL query"
+                textToCopy={CPU_NAMESPACE_PROMQL}
+                copied={copied}
+                onCopy={() => setCopied(true)}
                 onTooltipHidden={() => setCopied(false)}
-              >
-                <Button
-                  id="cpu-promql-copy"
-                  variant="plain"
-                  aria-label="Copy PromQL query"
-                  onClick={() => {
-                    navigator.clipboard.writeText(CPU_NAMESPACE_PROMQL);
-                    setCopied(true);
-                  }}
-                  className="pf-chatbot__code-block-copy-button"
-                >
-                  <CopyIcon />
-                </Button>
-              </Tooltip>
+              />
             </CodeBlockAction>
           </>
         }
@@ -240,24 +273,14 @@ const ScalingStepsCodeBlock: React.FC = () => {
               <span className="pf-chatbot__code-block-language">BASH</span>
             </CodeBlockAction>
             <CodeBlockAction className="pf-chatbot__code-block-copy-action">
-              <Tooltip
-                content={copied ? 'Copied!' : 'Copy to clipboard'}
-                exitDelay={copied ? 1500 : 600}
+              <CodeBlockCopyButton
+                id="scaling-cmd-copy"
+                ariaLabel="Copy scaling command"
+                textToCopy={SCALE_COMMAND}
+                copied={copied}
+                onCopy={() => setCopied(true)}
                 onTooltipHidden={() => setCopied(false)}
-              >
-                <Button
-                  id="scaling-cmd-copy"
-                  variant="plain"
-                  aria-label="Copy scaling command"
-                  onClick={() => {
-                    navigator.clipboard.writeText(SCALE_COMMAND);
-                    setCopied(true);
-                  }}
-                  className="pf-chatbot__code-block-copy-button"
-                >
-                  <CopyIcon />
-                </Button>
-              </Tooltip>
+              />
             </CodeBlockAction>
           </>
         }
