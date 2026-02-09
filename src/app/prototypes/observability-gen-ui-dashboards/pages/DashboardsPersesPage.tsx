@@ -191,23 +191,28 @@ const CpuChartQueryCodeBlock: React.FC = () => {
       <CodeBlock
         className="pf-chatbot__message-code-block"
         actions={
-          <CodeBlockAction>
-            <ClipboardCopyButton
-              id="cpu-promql-copy"
-              textId="cpu-promql-content"
-              aria-label="Copy PromQL query"
-              onClick={() => {
-                navigator.clipboard.writeText(CPU_NAMESPACE_PROMQL);
-                setCopied(true);
-              }}
-              exitDelay={copied ? 1500 : 600}
-              maxWidth="110px"
-              variant="plain"
-              onTooltipHidden={() => setCopied(false)}
-            >
-              {copied ? 'Copied!' : 'Copy to clipboard'}
-            </ClipboardCopyButton>
-          </CodeBlockAction>
+          <>
+            <CodeBlockAction>
+              <span className="pf-chatbot__code-block-language">PromQL</span>
+            </CodeBlockAction>
+            <CodeBlockAction>
+              <ClipboardCopyButton
+                id="cpu-promql-copy"
+                textId="cpu-promql-content"
+                aria-label="Copy PromQL query"
+                onClick={() => {
+                  navigator.clipboard.writeText(CPU_NAMESPACE_PROMQL);
+                  setCopied(true);
+                }}
+                exitDelay={copied ? 1500 : 600}
+                maxWidth="110px"
+                variant="plain"
+                onTooltipHidden={() => setCopied(false)}
+              >
+                {copied ? 'Copied!' : 'Copy to clipboard'}
+              </ClipboardCopyButton>
+            </CodeBlockAction>
+          </>
         }
       >
         <CodeBlockCode id="cpu-promql-content">{CPU_NAMESPACE_PROMQL}</CodeBlockCode>
@@ -225,24 +230,30 @@ const ScalingStepsCodeBlock: React.FC = () => {
         <p>The recommended path is to scale the <strong>web-head</strong> deployment in <strong>marketing-prod</strong>. Copy and run the command below in your terminal:</p>
       </Content>
       <CodeBlock
+        className="pf-chatbot__message-code-block"
         actions={
-          <CodeBlockAction>
-            <ClipboardCopyButton
-              id="scaling-cmd-copy"
-              textId="scaling-cmd-content"
-              aria-label="Copy scaling command"
-              onClick={(e: React.MouseEvent) => {
-                navigator.clipboard.writeText(SCALE_COMMAND);
-                setCopied(true);
-              }}
-              exitDelay={copied ? 1500 : 600}
-              maxWidth="110px"
-              variant="plain"
-              onTooltipHidden={() => setCopied(false)}
-            >
-              {copied ? 'Copied!' : 'Copy to clipboard'}
-            </ClipboardCopyButton>
-          </CodeBlockAction>
+          <>
+            <CodeBlockAction>
+              <span className="pf-chatbot__code-block-language">Bash</span>
+            </CodeBlockAction>
+            <CodeBlockAction>
+              <ClipboardCopyButton
+                id="scaling-cmd-copy"
+                textId="scaling-cmd-content"
+                aria-label="Copy scaling command"
+                onClick={(e: React.MouseEvent) => {
+                  navigator.clipboard.writeText(SCALE_COMMAND);
+                  setCopied(true);
+                }}
+                exitDelay={copied ? 1500 : 600}
+                maxWidth="110px"
+                variant="plain"
+                onTooltipHidden={() => setCopied(false)}
+              >
+                {copied ? 'Copied!' : 'Copy to clipboard'}
+              </ClipboardCopyButton>
+            </CodeBlockAction>
+          </>
         }
       >
         <CodeBlockCode id="scaling-cmd-content">{SCALE_COMMAND}</CodeBlockCode>

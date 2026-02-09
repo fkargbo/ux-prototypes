@@ -432,6 +432,29 @@ button[aria-label="View task details"] {
   box-sizing: border-box;
 }
 
+/* CodeBlock header: language label left, copy action right; align items vertically. */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-inline-start: 0;
+  gap: var(--pf-t--global--spacer--sm, 8px);
+}
+
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-language {
+  font-size: var(--pf-t--global--font--size--xs, 12px);
+  font-family: var(--pf-t--global--font--family--mono, monospace);
+  color: var(--pf-t--global--text--color--secondary--default, #6a6e73);
+  font-weight: 500;
+}
+
 /* Chatbot suggestion chips (quick responses) - brand interactive blue */
 .ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses .pf-v6-c-button,
 .ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses button,
