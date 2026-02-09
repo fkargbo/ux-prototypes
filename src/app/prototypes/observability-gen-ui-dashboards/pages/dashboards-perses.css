@@ -463,7 +463,7 @@ button[aria-label="View task details"] {
   flex: 0 0 auto;
 }
 
-/* Copy action: right-aligned (push to the end of the row). */
+/* Copy action: right-aligned (push to the end of the row). Keep min size so icon is visible. */
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions .pf-v6-c-code-block__actions-item:last-child,
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions .pf-chatbot__code-block-copy-action {
   flex: 0 0 auto;
@@ -472,6 +472,16 @@ button[aria-label="View task details"] {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  min-width: 32px;
+}
+
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-action .pf-v6-c-tooltip {
+  display: inline-flex;
+}
+
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-action .pf-v6-c-tooltip > * {
+  min-width: 32px;
+  min-height: 32px;
 }
 
 /* Language label: PF-recommended weight for CodeBlock headers (semi-bold), white, uppercase format. */
@@ -493,10 +503,16 @@ button[aria-label="View task details"] {
   margin: 0 !important;
 }
 
+/* Icon as child: ensure SVG is visible (size + fill) whether PF wraps in __icon or not. */
 .ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button .pf-v6-c-button__icon,
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button svg {
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button svg,
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button .pf-v6-c-button__icon svg {
   color: #fff !important;
   fill: #fff !important;
+  width: 1em !important;
+  height: 1em !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
 }
 
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button:hover,

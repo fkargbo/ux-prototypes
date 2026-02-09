@@ -209,9 +209,10 @@ const CpuChartQueryCodeBlock: React.FC = () => {
                     navigator.clipboard.writeText(CPU_NAMESPACE_PROMQL);
                     setCopied(true);
                   }}
-                  icon={<CopyIcon />}
                   className="pf-chatbot__code-block-copy-button"
-                />
+                >
+                  <CopyIcon />
+                </Button>
               </Tooltip>
             </CodeBlockAction>
           </>
@@ -252,9 +253,10 @@ const ScalingStepsCodeBlock: React.FC = () => {
                     navigator.clipboard.writeText(SCALE_COMMAND);
                     setCopied(true);
                   }}
-                  icon={<CopyIcon />}
                   className="pf-chatbot__code-block-copy-button"
-                />
+                >
+                  <CopyIcon />
+                </Button>
               </Tooltip>
             </CodeBlockAction>
           </>
