@@ -498,9 +498,21 @@ button[aria-label="View task details"] {
   background: rgba(255, 255, 255, 0.08) !important;
 }
 
+/* Force copy icon visible on dark header: override PF icon color, ensure icon displays, SVG fill. */
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button .pf-v6-c-button__icon,
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button .pf-v6-c-button__icon {
-  color: inherit !important;
+  display: inline-flex !important;
+  color: #fff !important;
+  --pf-v6-c-button__icon--Color: #fff !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button .pf-v6-c-button__icon svg,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button .pf-v6-c-button__icon svg,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button svg,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button svg {
+  fill: #fff !important;
+  width: 1em !important;
+  height: 1em !important;
 }
 
 /* Chatbot suggestion chips (quick responses) - brand interactive blue */
