@@ -193,7 +193,7 @@ const CpuChartQueryCodeBlock: React.FC = () => {
         actions={
           <>
             <CodeBlockAction>
-              <span className="pf-chatbot__code-block-language">PromQL</span>
+              <span className="pf-chatbot__code-block-language">PROMQL</span>
             </CodeBlockAction>
             <CodeBlockAction>
               <ClipboardCopyButton
@@ -234,7 +234,7 @@ const ScalingStepsCodeBlock: React.FC = () => {
         actions={
           <>
             <CodeBlockAction>
-              <span className="pf-chatbot__code-block-language">Bash</span>
+              <span className="pf-chatbot__code-block-language">BASH</span>
             </CodeBlockAction>
             <CodeBlockAction>
               <ClipboardCopyButton

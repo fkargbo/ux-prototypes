@@ -456,13 +456,17 @@ button[aria-label="View task details"] {
   gap: var(--pf-t--global--spacer--sm, 8px);
 }
 
-/* Language label: uppercase white, left-aligned. */
+/* Copy action (second item): right-aligned. */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions .pf-v6-c-code-block__actions-item:last-child {
+  margin-inline-start: auto;
+}
+
+/* Language label: PF-recommended weight for CodeBlock headers (semi-bold), white, uppercase format. */
 .ai-assistant-drawer-wrapper .pf-chatbot__code-block-language {
   font-size: var(--pf-t--global--font--size--xs, 12px);
   font-family: var(--pf-t--global--font--family--mono, monospace);
-  font-weight: 500;
+  font-weight: var(--pf-t--global--font--weight--body--bold, 600);
   color: #fff;
-  text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
