@@ -463,25 +463,12 @@ button[aria-label="View task details"] {
   flex: 0 0 auto;
 }
 
-/* Copy action: right-aligned (push to the end of the row). Keep min size so icon is visible. */
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions .pf-v6-c-code-block__actions-item:last-child,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions .pf-chatbot__code-block-copy-action {
-  flex: 0 0 auto;
-  margin-inline-start: auto;
-  margin-inline-end: 0;
+/* Code block header: single actions item with language + copy (match chatbot CodeBlockMessage layout). */
+.ai-assistant-drawer-wrapper .pf-chatbot__message-code-block .pf-v6-c-code-block__actions-item {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  min-width: 32px;
-}
-
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-action .pf-v6-c-tooltip {
-  display: inline-flex;
-}
-
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-action .pf-v6-c-tooltip > * {
-  min-width: 32px;
-  min-height: 32px;
+  justify-content: space-between;
+  width: 100%;
 }
 
 /* Language label: PF-recommended weight for CodeBlock headers (semi-bold), white, uppercase format. */
@@ -493,9 +480,10 @@ button[aria-label="View task details"] {
   letter-spacing: 0.02em;
 }
 
-/* Copy button in header: native button + inline SVG icon (always visible). */
+/* Copy button in header: native button + inline SVG (class matches chatbot .pf-chatbot__button--copy). */
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button,
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-chatbot__button--copy,
 .ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button {
   color: #fff !important;
   background: transparent !important;
@@ -508,6 +496,7 @@ button[aria-label="View task details"] {
   justify-content: center !important;
 }
 
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-chatbot__button--copy svg,
 .ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button svg {
   color: #fff !important;
   fill: #fff !important;
