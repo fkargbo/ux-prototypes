@@ -178,6 +178,42 @@ const ChatbotDisclaimerAlert: React.FC = () => (
 /** CLI command for scaling web-head in marketing-prod (for copy/paste). */
 const SCALE_COMMAND = `kubectl scale deployment web-head -n marketing-prod --replicas=2`;
 
+/** PromQL query used for the Top 3 CPU-Consuming Namespaces chart (query disclosure). */
+const CPU_NAMESPACE_PROMQL =
+  'topk(5, sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate) by (namespace))';
+
+/** CodeBlock with copy button for the CPU chart PromQL query (query disclosure below the chart). */
+const CpuChartQueryCodeBlock: React.FC = () => {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div style={{ marginTop: '12px' }}>
+      <CodeBlock
+        actions={
+          <CodeBlockAction>
+            <ClipboardCopyButton
+              id="cpu-promql-copy"
+              textId="cpu-promql-content"
+              aria-label="Copy PromQL query"
+              onClick={() => {
+                navigator.clipboard.writeText(CPU_NAMESPACE_PROMQL);
+                setCopied(true);
+              }}
+              exitDelay={copied ? 1500 : 600}
+              maxWidth="110px"
+              variant="plain"
+              onTooltipHidden={() => setCopied(false)}
+            >
+              {copied ? 'Copied!' : 'Copy to clipboard'}
+            </ClipboardCopyButton>
+          </CodeBlockAction>
+        }
+      >
+        <CodeBlockCode id="cpu-promql-content">{CPU_NAMESPACE_PROMQL}</CodeBlockCode>
+      </CodeBlock>
+    </div>
+  );
+};
+
 /** CodeBlock with copy button for scaling CLI (used in chatbot manual-instruction messages). */
 const ScalingStepsCodeBlock: React.FC = () => {
   const [copied, setCopied] = useState(false);
@@ -1897,6 +1933,7 @@ export const DashboardsPersesPage: React.FC = () => {
                   </div>
                 </CardBody>
               </Card>
+              <CpuChartQueryCodeBlock />
             </div>
           )
         },
