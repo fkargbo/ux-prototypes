@@ -424,6 +424,14 @@ button[aria-label="View task details"] {
   margin: 0 0 4px 0 !important;
 }
 
+/* Chatbot code blocks: standard PF CodeBlock (header, copy, wrap). Constrain width so they do not extend the chat bubble. */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block,
+.ai-assistant-drawer-wrapper .pf-chatbot__message-code-block {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 /* Chatbot suggestion chips (quick responses) - brand interactive blue */
 .ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses .pf-v6-c-button,
 .ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses button,

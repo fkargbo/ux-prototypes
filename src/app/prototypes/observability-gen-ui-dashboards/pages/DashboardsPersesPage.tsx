@@ -182,12 +182,14 @@ const SCALE_COMMAND = `kubectl scale deployment web-head -n marketing-prod --rep
 const CPU_NAMESPACE_PROMQL =
   'topk(5, sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate) by (namespace))';
 
-/** CodeBlock with copy button for the CPU chart PromQL query (query disclosure below the chart). */
+/** CodeBlock with copy button for the CPU chart PromQL query (query disclosure below the chart).
+ *  Wrapper constrains width so the block does not extend the chat bubble; long lines wrap (standard PF behavior). */
 const CpuChartQueryCodeBlock: React.FC = () => {
   const [copied, setCopied] = useState(false);
   return (
-    <div style={{ marginTop: '12px' }}>
+    <div style={{ marginTop: '12px', maxWidth: '100%', minWidth: 0 }}>
       <CodeBlock
+        className="pf-chatbot__message-code-block"
         actions={
           <CodeBlockAction>
             <ClipboardCopyButton
@@ -218,7 +220,7 @@ const CpuChartQueryCodeBlock: React.FC = () => {
 const ScalingStepsCodeBlock: React.FC = () => {
   const [copied, setCopied] = useState(false);
   return (
-    <div style={{ marginTop: '12px' }}>
+    <div style={{ marginTop: '12px', maxWidth: '100%', minWidth: 0 }}>
       <Content>
         <p>The recommended path is to scale the <strong>web-head</strong> deployment in <strong>marketing-prod</strong>. Copy and run the command below in your terminal:</p>
       </Content>
