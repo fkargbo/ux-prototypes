@@ -483,13 +483,20 @@ button[aria-label="View task details"] {
   letter-spacing: 0.02em;
 }
 
-/* Copy button in header: icon and text white, transparent background, no margin so it stays right-aligned. */
+/* Copy button in header: icon white, transparent background (explicit copy button with CopyIcon). */
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button {
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button,
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button {
   color: #fff !important;
   background: transparent !important;
   border: none !important;
   margin: 0 !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button .pf-v6-c-button__icon,
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button svg {
+  color: #fff !important;
+  fill: #fff !important;
 }
 
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button:hover,

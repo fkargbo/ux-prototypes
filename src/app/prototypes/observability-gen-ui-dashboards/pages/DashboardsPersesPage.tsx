@@ -58,7 +58,6 @@ import {
   CodeBlock,
   CodeBlockCode,
   CodeBlockAction,
-  ClipboardCopyButton,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -82,6 +81,7 @@ import {
   CpuIcon,
   ClockIcon,
   PencilAltIcon,
+  CopyIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -196,21 +196,23 @@ const CpuChartQueryCodeBlock: React.FC = () => {
               <span className="pf-chatbot__code-block-language">PROMQL</span>
             </CodeBlockAction>
             <CodeBlockAction className="pf-chatbot__code-block-copy-action">
-              <ClipboardCopyButton
-                id="cpu-promql-copy"
-                textId="cpu-promql-content"
-                aria-label="Copy PromQL query"
-                onClick={() => {
-                  navigator.clipboard.writeText(CPU_NAMESPACE_PROMQL);
-                  setCopied(true);
-                }}
+              <Tooltip
+                content={copied ? 'Copied!' : 'Copy to clipboard'}
                 exitDelay={copied ? 1500 : 600}
-                maxWidth="110px"
-                variant="plain"
                 onTooltipHidden={() => setCopied(false)}
               >
-                {copied ? 'Copied!' : 'Copy to clipboard'}
-              </ClipboardCopyButton>
+                <Button
+                  id="cpu-promql-copy"
+                  variant="plain"
+                  aria-label="Copy PromQL query"
+                  onClick={() => {
+                    navigator.clipboard.writeText(CPU_NAMESPACE_PROMQL);
+                    setCopied(true);
+                  }}
+                  icon={<CopyIcon />}
+                  className="pf-chatbot__code-block-copy-button"
+                />
+              </Tooltip>
             </CodeBlockAction>
           </>
         }
@@ -237,21 +239,23 @@ const ScalingStepsCodeBlock: React.FC = () => {
               <span className="pf-chatbot__code-block-language">BASH</span>
             </CodeBlockAction>
             <CodeBlockAction className="pf-chatbot__code-block-copy-action">
-              <ClipboardCopyButton
-                id="scaling-cmd-copy"
-                textId="scaling-cmd-content"
-                aria-label="Copy scaling command"
-                onClick={(e: React.MouseEvent) => {
-                  navigator.clipboard.writeText(SCALE_COMMAND);
-                  setCopied(true);
-                }}
+              <Tooltip
+                content={copied ? 'Copied!' : 'Copy to clipboard'}
                 exitDelay={copied ? 1500 : 600}
-                maxWidth="110px"
-                variant="plain"
                 onTooltipHidden={() => setCopied(false)}
               >
-                {copied ? 'Copied!' : 'Copy to clipboard'}
-              </ClipboardCopyButton>
+                <Button
+                  id="scaling-cmd-copy"
+                  variant="plain"
+                  aria-label="Copy scaling command"
+                  onClick={() => {
+                    navigator.clipboard.writeText(SCALE_COMMAND);
+                    setCopied(true);
+                  }}
+                  icon={<CopyIcon />}
+                  className="pf-chatbot__code-block-copy-button"
+                />
+              </Tooltip>
             </CodeBlockAction>
           </>
         }
