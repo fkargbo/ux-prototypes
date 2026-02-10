@@ -424,6 +424,117 @@ button[aria-label="View task details"] {
   margin: 0 0 4px 0 !important;
 }
 
+/* Chatbot code blocks: match reference (dark header, rounded top, language left, copy icon right). */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block,
+.ai-assistant-drawer-wrapper .pf-chatbot__message-code-block {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: var(--pf-t--global--border--radius--medium, 8px);
+  overflow: hidden;
+}
+
+/* Header: dark bar (#2F3134), rounded top corners, white label and icon. Full width so actions can align. */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline-start: var(--pf-t--global--spacer--md, 16px);
+  padding-inline-end: var(--pf-t--global--spacer--md, 16px);
+  padding-block-start: var(--pf-t--global--spacer--sm, 8px);
+  padding-block-end: var(--pf-t--global--spacer--sm, 8px);
+  background-color: #2F3134;
+  border-block-end: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Actions row: take full width so copy can sit at the end. */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  margin-inline-start: 0;
+}
+
+/* Language label: left, no grow/shrink. */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions .pf-v6-c-code-block__actions-item:first-child {
+  flex: 0 0 auto;
+}
+
+/* Code block header: single actions item with language + copy (match chatbot CodeBlockMessage layout). */
+.ai-assistant-drawer-wrapper .pf-chatbot__message-code-block .pf-v6-c-code-block__actions-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Language label: PF-recommended weight for CodeBlock headers (semi-bold), white, uppercase format. */
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-language {
+  font-size: var(--pf-t--global--font--size--xs, 12px);
+  font-family: var(--pf-t--global--font--family--mono, monospace);
+  font-weight: var(--pf-t--global--font--weight--body--bold, 600);
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+/* Copy button in header: native button + inline SVG (class matches chatbot .pf-chatbot__button--copy). */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-chatbot__button--copy,
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button {
+  color: #fff !important;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 6px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-chatbot__button--copy svg,
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button svg {
+  color: #fff !important;
+  fill: #fff !important;
+  width: 1em !important;
+  height: 1em !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button:hover,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button:hover,
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button:hover {
+  color: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button:hover svg {
+  color: rgba(255, 255, 255, 0.9) !important;
+  fill: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Force copy icon visible on dark header: override PF icon color, ensure icon displays, SVG fill. */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button .pf-v6-c-button__icon,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button .pf-v6-c-button__icon {
+  display: inline-flex !important;
+  color: #fff !important;
+  --pf-v6-c-button__icon--Color: #fff !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button .pf-v6-c-button__icon svg,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button .pf-v6-c-button__icon svg,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button svg,
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button svg {
+  fill: #fff !important;
+  width: 1em !important;
+  height: 1em !important;
+}
+
 /* Chatbot suggestion chips (quick responses) - brand interactive blue */
 .ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses .pf-v6-c-button,
 .ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses button,

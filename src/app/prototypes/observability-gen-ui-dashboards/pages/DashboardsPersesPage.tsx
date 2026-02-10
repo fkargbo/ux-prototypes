@@ -58,7 +58,6 @@ import {
   CodeBlock,
   CodeBlockCode,
   CodeBlockAction,
-  ClipboardCopyButton,
 } from '@patternfly/react-core';
 import {
   UserIcon,
@@ -75,9 +74,9 @@ import {
   ExclamationTriangleIcon,
   ExclamationCircleIcon,
   CheckIcon,
+  CheckCircleIcon,
   ExternalLinkAltIcon,
   AngleRightIcon,
-  CubesIcon,
   ServerIcon,
   CpuIcon,
   ClockIcon,
@@ -178,32 +177,108 @@ const ChatbotDisclaimerAlert: React.FC = () => (
 /** CLI command for scaling web-head in marketing-prod (for copy/paste). */
 const SCALE_COMMAND = `kubectl scale deployment web-head -n marketing-prod --replicas=2`;
 
+/** PromQL query used for the Top 3 CPU-Consuming Namespaces chart (query disclosure). */
+const CPU_NAMESPACE_PROMQL =
+  'topk(5, sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate) by (namespace))';
+
+/** Inline copy icon SVG (same path as PF CopyIcon) so it is always visible regardless of theme/PF overrides. */
+const CopyIconSvg: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    viewBox="0 0 448 512"
+    width="1em"
+    height="1em"
+    fill="currentColor"
+    role="img"
+    aria-hidden
+    {...props}
+  >
+    <path d="M320 448v40c0 13.255-10.745 24-24 24H24c-13.255 0-24-10.745-24-24V120c0-13.255 10.745-24 24-24h72v296c0 30.879 25.121 56 56 56h168zm0-344V0H152c-13.255 0-24 10.745-24 24v368c0 13.255 10.745 24 24 24h272c13.255 0 24-10.745 24-24V128H344c-13.2 0-24-10.8-24-24zm120.971-31.029L375.029 7.029A24 24 0 0 0 358.059 0H352v96h96v-6.059a24 24 0 0 0-7.029-16.97z" />
+  </svg>
+);
+
+/** Copy button for CodeBlock header: inline SVG + Tooltip (triggerRef keeps button visible). */
+const CodeBlockCopyButton: React.FC<{
+  id: string;
+  ariaLabel: string;
+  textToCopy: string;
+  copied: boolean;
+  onCopy: () => void;
+  onTooltipHidden: () => void;
+}> = ({ id, ariaLabel, textToCopy, copied, onCopy, onTooltipHidden }) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  return (
+    <Tooltip
+      content={copied ? 'Copied!' : 'Copy to clipboard'}
+      triggerRef={buttonRef}
+      exitDelay={copied ? 1500 : 600}
+      onTooltipHidden={onTooltipHidden}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        id={id}
+        className="pf-chatbot__button--copy pf-chatbot__code-block-copy-button"
+        aria-label={ariaLabel}
+        onClick={() => {
+          navigator.clipboard.writeText(textToCopy);
+          onCopy();
+        }}
+      >
+        <CopyIconSvg />
+      </button>
+    </Tooltip>
+  );
+};
+
+/** CodeBlock with copy button for the CPU chart PromQL query (query disclosure below the chart).
+ *  Wrapper constrains width so the block does not extend the chat bubble; long lines wrap (standard PF behavior). */
+const CpuChartQueryCodeBlock: React.FC = () => {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div style={{ marginTop: '12px', maxWidth: '100%', minWidth: 0 }}>
+      <CodeBlock
+        className="pf-chatbot__message-code-block"
+        actions={
+          <CodeBlockAction>
+            <span className="pf-chatbot__code-block-language pf-chatbot__message-code-block-language">PROMQL</span>
+            <CodeBlockCopyButton
+              id="cpu-promql-copy"
+              ariaLabel="Copy PromQL query"
+              textToCopy={CPU_NAMESPACE_PROMQL}
+              copied={copied}
+              onCopy={() => setCopied(true)}
+              onTooltipHidden={() => setCopied(false)}
+            />
+          </CodeBlockAction>
+        }
+      >
+        <CodeBlockCode id="cpu-promql-content">{CPU_NAMESPACE_PROMQL}</CodeBlockCode>
+      </CodeBlock>
+    </div>
+  );
+};
+
 /** CodeBlock with copy button for scaling CLI (used in chatbot manual-instruction messages). */
 const ScalingStepsCodeBlock: React.FC = () => {
   const [copied, setCopied] = useState(false);
   return (
-    <div style={{ marginTop: '12px' }}>
+    <div style={{ marginTop: '12px', maxWidth: '100%', minWidth: 0 }}>
       <Content>
         <p>The recommended path is to scale the <strong>web-head</strong> deployment in <strong>marketing-prod</strong>. Copy and run the command below in your terminal:</p>
       </Content>
       <CodeBlock
+        className="pf-chatbot__message-code-block"
         actions={
           <CodeBlockAction>
-            <ClipboardCopyButton
+            <span className="pf-chatbot__code-block-language pf-chatbot__message-code-block-language">BASH</span>
+            <CodeBlockCopyButton
               id="scaling-cmd-copy"
-              textId="scaling-cmd-content"
-              aria-label="Copy scaling command"
-              onClick={(e: React.MouseEvent) => {
-                navigator.clipboard.writeText(SCALE_COMMAND);
-                setCopied(true);
-              }}
-              exitDelay={copied ? 1500 : 600}
-              maxWidth="110px"
-              variant="plain"
+              ariaLabel="Copy scaling command"
+              textToCopy={SCALE_COMMAND}
+              copied={copied}
+              onCopy={() => setCopied(true)}
               onTooltipHidden={() => setCopied(false)}
-            >
-              {copied ? 'Copied!' : 'Copy to clipboard'}
-            </ClipboardCopyButton>
+            />
           </CodeBlockAction>
         }
       >
@@ -1079,7 +1154,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
                     </FlexItem>
                     <FlexItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <Icon><CubesIcon /></Icon>
+                        <Icon status="success"><CheckCircleIcon /></Icon>
                         <Title headingLevel="h2" size="3xl">{inventoryData.runningPods}</Title>
                       </Flex>
                     </FlexItem>
@@ -1897,6 +1972,7 @@ export const DashboardsPersesPage: React.FC = () => {
                   </div>
                 </CardBody>
               </Card>
+              <CpuChartQueryCodeBlock />
             </div>
           )
         },
