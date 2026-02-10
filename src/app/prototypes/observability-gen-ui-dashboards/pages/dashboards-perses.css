@@ -436,13 +436,16 @@ button[aria-label="View task details"] {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* Explicit background so content area matches local in built/deployed (GitHub) envs. */
+  background-color: var(--pf-t--color--gray--80, #393f44);
 }
 
-/* Code block content (bottom half): ensure visible and not collapsed by flex parents. */
+/* Code block content (bottom half): explicit background so it shows in built/deployed envs. */
 .ai-assistant-drawer-wrapper .pf-v6-c-code-block__content {
   display: block !important;
   min-height: 0;
   flex-shrink: 0;
+  background-color: var(--pf-t--color--gray--80, #393f44);
 }
 
 /* Header: dark bar (#2F3134), rounded top corners, white label and icon. Full width so actions can align. */
