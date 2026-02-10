@@ -432,6 +432,17 @@ button[aria-label="View task details"] {
   box-sizing: border-box;
   border-radius: var(--pf-t--global--border--radius--medium, 8px);
   overflow: hidden;
+  /* Ensure full block renders: header + content (avoid bottom half clipped in built/deployed envs). */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Code block content (bottom half): ensure visible and not collapsed by flex parents. */
+.ai-assistant-drawer-wrapper .pf-v6-c-code-block__content {
+  display: block !important;
+  min-height: 0;
+  flex-shrink: 0;
 }
 
 /* Header: dark bar (#2F3134), rounded top corners, white label and icon. Full width so actions can align. */
