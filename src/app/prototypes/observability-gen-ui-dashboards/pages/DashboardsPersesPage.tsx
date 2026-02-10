@@ -76,7 +76,6 @@ import {
   CheckIcon,
   ExternalLinkAltIcon,
   AngleRightIcon,
-  CubesIcon,
   ServerIcon,
   CpuIcon,
   ClockIcon,
@@ -1154,7 +1153,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
                     </FlexItem>
                     <FlexItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <Icon><CubesIcon /></Icon>
+                        <Icon status="success"><CheckIcon /></Icon>
                         <Title headingLevel="h2" size="3xl">{inventoryData.runningPods}</Title>
                       </Flex>
                     </FlexItem>
