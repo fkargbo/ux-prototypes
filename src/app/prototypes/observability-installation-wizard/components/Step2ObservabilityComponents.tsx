@@ -20,18 +20,14 @@ import {
   Switch,
   Badge,
   Label,
-  LabelGroup,
   HelperText,
   HelperTextItem,
   Spinner,
-  Button,
 } from '@patternfly/react-core';
 import {
   UserIcon,
   ChartLineIcon,
   CodeIcon,
-  AngleDownIcon,
-  AngleUpIcon,
 } from '@patternfly/react-icons';
 
 export interface Persona {
@@ -333,7 +329,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
     data.selectedUIPlugins || ['monitoring-ui']
   );
   const [isPreselectionAlertDismissed, setIsPreselectionAlertDismissed] = useState(false);
-  const [isPreviewExpanded, setIsPreviewExpanded] = useState(true);
   
   // Track manually unchecked items that were required by goals
   const [uncheckedRequiredItems, setUncheckedRequiredItems] = useState<Set<string>>(new Set());
@@ -1605,151 +1600,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
           </Card>
         </StackItem>
       </Stack>
-
-      {/* Floating Installation Preview Bar */}
-      <Card
-        isCompact
-        style={{
-          position: 'fixed',
-          bottom: '80px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: isPreviewExpanded ? '960px' : '200px',
-          height: isPreviewExpanded ? '80px' : '40px',
-          zIndex: 1000,
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          transition: 'all 0.3s ease-in-out',
-          borderRadius: 'var(--pf-v5-global--BorderRadius--sm)',
-        }}
-      >
-        <CardBody style={{ padding: isPreviewExpanded ? '16px' : '8px' }}>
-          {isPreviewExpanded ? (
-            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-              <FlexItem>
-                <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  {/* Strategy Labels */}
-                  {activeGoals.length > 0 && (
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '600', marginRight: '8px' }}>
-                          Strategy:
-                        </span>
-                        <LabelGroup>
-                          {activeGoals.map((goalId) => {
-                            const goal = goals.find(g => g.id === goalId);
-                            return goal ? (
-                              <Label key={goalId} className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ color: '#92c5f9' }}>
-                                {goal.name}
-                              </Label>
-                            ) : null;
-                          })}
-                        </LabelGroup>
-                      </Flex>
-                    </FlexItem>
-                  )}
-
-                  {/* Capabilities LabelGroup */}
-                  {selectedCapabilities.length > 0 && (
-                    <>
-                      <Divider orientation={{ default: 'vertical' }} />
-                      <FlexItem>
-                        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <span style={{ fontSize: '14px', fontWeight: '600', marginRight: '8px' }}>
-                            Capabilities:
-                          </span>
-                          <LabelGroup>
-                            {selectedCapabilities.map((capabilityId) => {
-                              const capability = capabilities.find(c => c.id === capabilityId);
-                              return capability ? (
-                                <Label key={capabilityId} isCompact>
-                                  {capability.name}
-                                </Label>
-                              ) : null;
-                            })}
-                          </LabelGroup>
-                        </Flex>
-                      </FlexItem>
-                    </>
-                  )}
-
-                  {/* Storage Label */}
-                  {storage.filter(s => s.isSelected).length > 0 && (
-                    <>
-                      <Divider orientation={{ default: 'vertical' }} />
-                      <FlexItem>
-                        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <span style={{ fontSize: '14px', fontWeight: '600', marginRight: '8px' }}>
-                            Storage:
-                          </span>
-                          {storage.filter(s => s.isSelected).map((storageItem) => {
-                            const storageId = storageItem.id;
-                            const storageNameMap: { [key: string]: string } = {
-                              'odf': 'OpenShift Data Foundation (ODF)',
-                              'lvm': 'Logical Volume Manager (LVM)',
-                            };
-                            return (
-                              <Label key={storageId} style={{ backgroundColor: '#a2d9d9', color: '#003d33', borderColor: '#a2d9d9' }}>
-                                {storageNameMap[storageId] || storageId}
-                              </Label>
-                            );
-                          })}
-                        </Flex>
-                      </FlexItem>
-                    </>
-                  )}
-
-                  {/* UI Plugins LabelGroup */}
-                  {selectedUIPlugins.length > 0 && (
-                    <>
-                      <Divider orientation={{ default: 'vertical' }} />
-                      <FlexItem>
-                        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          <span style={{ fontSize: '14px', fontWeight: '600', marginRight: '8px' }}>
-                            UI Plugins:
-                          </span>
-                          <LabelGroup>
-                            {selectedUIPlugins.map((pluginId) => {
-                              const plugin = uiPlugins.find(p => p.id === pluginId);
-                              return plugin ? (
-                                <Label key={pluginId} variant="outline" isCompact>
-                                  {plugin.name}
-                                </Label>
-                              ) : null;
-                            })}
-                          </LabelGroup>
-                        </Flex>
-                      </FlexItem>
-                    </>
-                  )}
-                </Flex>
-              </FlexItem>
-              <FlexItem>
-                <Button
-                  variant="plain"
-                  onClick={() => setIsPreviewExpanded(false)}
-                  aria-label="Collapse installation preview"
-                >
-                  <AngleDownIcon />
-                </Button>
-              </FlexItem>
-            </Flex>
-          ) : (
-            <Flex justifyContent={{ default: 'justifyContentCenter' }} alignItems={{ default: 'alignItemsCenter' }}>
-              <Button
-                variant="plain"
-                onClick={() => setIsPreviewExpanded(true)}
-                aria-label="Expand installation preview"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <span style={{ fontSize: '14px' }}>
-                  Installation preview
-                </span>
-                <AngleUpIcon />
-              </Button>
-            </Flex>
-          )}
-        </CardBody>
-      </Card>
     </div>
   );
 };
