@@ -1188,15 +1188,15 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
 
         {/* Observability Services (left) and Console experience (right) */}
         <StackItem>
+          <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
+            Observability Services
+          </Title>
+          <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
+            Select operators and storage for your observability stack, and UI plugins to enhance your console experience.
+          </Content>
+
           <Grid hasGutter>
             <GridItem md={6}>
-              <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
-                Observability Services
-              </Title>
-              <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-                Select operators and storage for your observability stack, and UI plugins to enhance your console experience.
-              </Content>
-
               <Card>
                 <CardBody>
                   <Stack hasGutter>
