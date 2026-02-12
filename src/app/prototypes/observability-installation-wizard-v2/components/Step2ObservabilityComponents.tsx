@@ -90,9 +90,9 @@ export interface Goal {
 type GoalID = 'platform-governance' | 'incident-response' | 'app-performance';
 
 const STRATEGY_CARD_COLORS: Record<GoalID, string> = {
-  'platform-governance': 'var(--pf-v6-chart-color-purple-100)',
-  'incident-response': 'var(--pf-v6-chart-color-teal-100)',
-  'app-performance': 'var(--pf-v6-chart-color-orange-100)',
+  'platform-governance': '#cbc1ff', // --pf-v6-chart-color-purple-100 fallback
+  'incident-response': '#7ccdd4',  // --pf-v6-chart-color-teal-100 fallback
+  'app-performance': '#f4b678',    // --pf-v6-chart-color-orange-100 fallback
 };
 
 const goals: Goal[] = [
@@ -1138,27 +1138,17 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
           <Grid hasGutter>
             {goals.map((goal) => (
               <GridItem key={goal.id} span={4}>
-                <Card
-                  isPlain
+                <div
                   style={{
-                    height: '100%',
+                    minHeight: '120px',
                     border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
+                    borderLeft: `8px solid ${STRATEGY_CARD_COLORS[goal.id as GoalID]}`,
                     borderRadius: '16px',
-                    position: 'relative',
-                    overflow: 'hidden',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)',
                   }}
                 >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: '8px',
-                      backgroundColor: STRATEGY_CARD_COLORS[goal.id as GoalID],
-                    }}
-                  />
-                  <CardBody style={{ paddingLeft: '24px' }}>
+                  <div style={{ padding: '24px', paddingLeft: '28px' }}>
                     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                       <FlexItem>
                         <Checkbox
@@ -1181,8 +1171,8 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                         </FlexItem>
                       )}
                     </Flex>
-                  </CardBody>
-                </Card>
+                  </div>
+                </div>
               </GridItem>
             ))}
           </Grid>
