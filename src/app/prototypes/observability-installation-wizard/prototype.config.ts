@@ -24,8 +24,10 @@ export const config: PrototypeConfig = {
     email: 'fkargbo@redhat.com'
   },
   
-  // Version (always start at 1.0.0 for new prototypes)
-  version: '1.0.0',
+  // Version group - links related versions together in the dropdown
+  versionGroup: 'observability-installation-wizard',
+  version: 'v1.0',
+  versionLabel: 'Current',
   
   // Status: 'draft' | 'in-progress' | 'done' | 'paused' | 'archived'
   status: 'in-progress',
