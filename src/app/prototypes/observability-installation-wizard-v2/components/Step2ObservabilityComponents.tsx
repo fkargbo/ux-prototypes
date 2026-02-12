@@ -1252,13 +1252,21 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 {operator.appliedBy.length > 0 && (
                                   <FlexItem>
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-                                      {goalNames.map((goalName, index) => (
-                                        <FlexItem key={index}>
-                                          <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontWeight: 'normal', fontSize: '14px', color: '#92c5f9' }}>
-                                            {goalName}
-                                          </Label>
-                                        </FlexItem>
-                                      ))}
+                                      {operator.appliedBy.map((goalId, index) => {
+                                        const goal = goals.find(g => g.id === goalId);
+                                        const goalName = goal?.name || goalId;
+                                        const labelColor = STRATEGY_CARD_COLORS[goalId as GoalID];
+                                        return (
+                                          <FlexItem key={index}>
+                                            <Label
+                                              className="pf-v6-c-label pf-m-outline"
+                                              style={{ fontWeight: 'normal', fontSize: '14px', color: labelColor, borderColor: labelColor }}
+                                            >
+                                              {goalName}
+                                            </Label>
+                                          </FlexItem>
+                                        );
+                                      })}
                                     </Flex>
                                   </FlexItem>
                                 )}
@@ -1425,13 +1433,21 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 {storageItem.appliedBy.length > 0 && (
                                   <FlexItem>
                                     <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-                                      {goalNames.map((goalName, index) => (
-                                        <FlexItem key={index}>
-                                          <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontWeight: 'normal', fontSize: '14px', color: '#92c5f9' }}>
-                                            {goalName}
-                                          </Label>
-                                        </FlexItem>
-                                      ))}
+                                      {storageItem.appliedBy.map((goalId, index) => {
+                                        const goal = goals.find(g => g.id === goalId);
+                                        const goalName = goal?.name || goalId;
+                                        const labelColor = STRATEGY_CARD_COLORS[goalId as GoalID];
+                                        return (
+                                          <FlexItem key={index}>
+                                            <Label
+                                              className="pf-v6-c-label pf-m-outline"
+                                              style={{ fontWeight: 'normal', fontSize: '14px', color: labelColor, borderColor: labelColor }}
+                                            >
+                                              {goalName}
+                                            </Label>
+                                          </FlexItem>
+                                        );
+                                      })}
                                     </Flex>
                                   </FlexItem>
                                 )}
@@ -1583,13 +1599,21 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                         {goalNames.length > 0 && (
                           <FlexItem>
                             <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-                              {goalNames.map((goalName, index) => (
-                                <FlexItem key={index}>
-                                  <Label className="pf-v6-c-label pf-m-blue pf-m-outline" style={{ fontWeight: 'normal', fontSize: '14px', color: '#92c5f9' }}>
-                                    {goalName}
-                                  </Label>
-                                </FlexItem>
-                              ))}
+                              {uniqueGoalIds.map((goalId, index) => {
+                                const goal = goals.find(g => g.id === goalId);
+                                const goalName = goal?.name || goalId;
+                                const labelColor = STRATEGY_CARD_COLORS[goalId as GoalID];
+                                return (
+                                  <FlexItem key={index}>
+                                    <Label
+                                      className="pf-v6-c-label pf-m-outline"
+                                      style={{ fontWeight: 'normal', fontSize: '14px', color: labelColor, borderColor: labelColor }}
+                                    >
+                                      {goalName}
+                                    </Label>
+                                  </FlexItem>
+                                );
+                              })}
                             </Flex>
                           </FlexItem>
                         )}
