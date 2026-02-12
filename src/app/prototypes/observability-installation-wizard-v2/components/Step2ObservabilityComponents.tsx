@@ -20,6 +20,7 @@ import {
   FlexItem,
   Switch,
   Badge,
+  Label,
   HelperText,
   HelperTextItem,
   Spinner,
@@ -92,6 +93,13 @@ const STRATEGY_CARD_COLORS: Record<GoalID, string> = {
   'platform-governance': '#cbc1ff', // --pf-v6-chart-color-purple-100 fallback
   'incident-response': '#7ccdd4',  // --pf-v6-chart-color-teal-100 fallback
   'app-performance': '#f4b678',    // --pf-v6-chart-color-orange-100 fallback
+};
+
+/** PatternFly Label color per strategy (purple / teal / orange align with strategy cards) */
+const STRATEGY_LABEL_COLOR: Record<GoalID, 'purple' | 'teal' | 'orange'> = {
+  'platform-governance': 'purple',
+  'incident-response': 'teal',
+  'app-performance': 'orange',
 };
 
 const goals: Goal[] = [
@@ -1254,24 +1262,11 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                       {operator.appliedBy.map((goalId, index) => {
                                         const goal = goals.find(g => g.id === goalId);
                                         const goalName = goal?.name || goalId;
-                                        const labelColor = STRATEGY_CARD_COLORS[goalId as GoalID];
                                         return (
                                           <FlexItem key={index}>
-                                            <span
-                                              style={{
-                                                display: 'inline-block',
-                                                padding: '4px 12px',
-                                                fontSize: '14px',
-                                                fontWeight: 'normal',
-                                                color: labelColor,
-                                                border: '1px solid',
-                                                borderColor: labelColor,
-                                                borderRadius: '9999px',
-                                                backgroundColor: 'transparent',
-                                              }}
-                                            >
+                                            <Label color={STRATEGY_LABEL_COLOR[goalId as GoalID]} variant="outline">
                                               {goalName}
-                                            </span>
+                                            </Label>
                                           </FlexItem>
                                         );
                                       })}
@@ -1444,24 +1439,11 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                       {storageItem.appliedBy.map((goalId, index) => {
                                         const goal = goals.find(g => g.id === goalId);
                                         const goalName = goal?.name || goalId;
-                                        const labelColor = STRATEGY_CARD_COLORS[goalId as GoalID];
                                         return (
                                           <FlexItem key={index}>
-                                            <span
-                                              style={{
-                                                display: 'inline-block',
-                                                padding: '4px 12px',
-                                                fontSize: '14px',
-                                                fontWeight: 'normal',
-                                                color: labelColor,
-                                                border: '1px solid',
-                                                borderColor: labelColor,
-                                                borderRadius: '9999px',
-                                                backgroundColor: 'transparent',
-                                              }}
-                                            >
+                                            <Label color={STRATEGY_LABEL_COLOR[goalId as GoalID]} variant="outline">
                                               {goalName}
-                                            </span>
+                                            </Label>
                                           </FlexItem>
                                         );
                                       })}
@@ -1619,24 +1601,11 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                               {uniqueGoalIds.map((goalId, index) => {
                                 const goal = goals.find(g => g.id === goalId);
                                 const goalName = goal?.name || goalId;
-                                const labelColor = STRATEGY_CARD_COLORS[goalId as GoalID];
                                 return (
                                   <FlexItem key={index}>
-                                    <span
-                                      style={{
-                                        display: 'inline-block',
-                                        padding: '4px 12px',
-                                        fontSize: '14px',
-                                        fontWeight: 'normal',
-                                        color: labelColor,
-                                        border: '1px solid',
-                                        borderColor: labelColor,
-                                        borderRadius: '9999px',
-                                        backgroundColor: 'transparent',
-                                      }}
-                                    >
+                                    <Label color={STRATEGY_LABEL_COLOR[goalId as GoalID]} variant="outline">
                                       {goalName}
-                                    </span>
+                                    </Label>
                                   </FlexItem>
                                 );
                               })}
