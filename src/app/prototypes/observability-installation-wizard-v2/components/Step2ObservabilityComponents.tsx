@@ -89,6 +89,12 @@ export interface Goal {
 
 type GoalID = 'platform-governance' | 'incident-response' | 'app-performance';
 
+const STRATEGY_CARD_COLORS: Record<GoalID, string> = {
+  'platform-governance': 'var(--pf-v6-chart-color-purple-100)',
+  'incident-response': 'var(--pf-v6-chart-color-teal-100)',
+  'app-performance': 'var(--pf-v6-chart-color-orange-100)',
+};
+
 const goals: Goal[] = [
   {
     id: 'platform-governance',
@@ -1132,39 +1138,52 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
           <Grid hasGutter>
             {goals.map((goal) => (
               <GridItem key={goal.id} span={4}>
-                <Card
-                  isPlain
-                  style={{
-                    height: '100%',
-                    border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
-                    borderRadius: '16px',
-                  }}
-                >
-                  <CardBody>
-                    <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                      <FlexItem>
-                        <Checkbox
-                          id={`goal-${goal.id}`}
-                          label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{goal.name}</span>}
-                          isChecked={activeGoals.includes(goal.id)}
-                          onChange={(_, checked) => handleGoalChange(goal.id, checked)}
-                        />
-                      </FlexItem>
-                      <FlexItem>
-                        <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
-                          {goal.description}
-                        </Content>
-                      </FlexItem>
-                      {overriddenGoals.has(goal.id) && !activeGoals.includes(goal.id) && (
+                <Flex direction={{ default: 'row' }} alignItems={{ default: 'alignItemsStretch' }} style={{ height: '100%' }}>
+                  <div
+                    style={{
+                      width: '8px',
+                      flexShrink: 0,
+                      backgroundColor: STRATEGY_CARD_COLORS[goal.id as GoalID],
+                      borderRadius: '16px 0 0 16px',
+                    }}
+                  />
+                  <Card
+                    isPlain
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      height: '100%',
+                      border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
+                      borderLeft: 'none',
+                      borderRadius: '0 16px 16px 0',
+                    }}
+                  >
+                    <CardBody>
+                      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                         <FlexItem>
-                          <Content style={{ fontSize: '12px', color: '#c9190b', fontStyle: 'italic', marginTop: '4px' }}>
-                            Selection modified: Configuration is now custom.
+                          <Checkbox
+                            id={`goal-${goal.id}`}
+                            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{goal.name}</span>}
+                            isChecked={activeGoals.includes(goal.id)}
+                            onChange={(_, checked) => handleGoalChange(goal.id, checked)}
+                          />
+                        </FlexItem>
+                        <FlexItem>
+                          <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
+                            {goal.description}
                           </Content>
                         </FlexItem>
-                      )}
-                    </Flex>
-                  </CardBody>
-                </Card>
+                        {overriddenGoals.has(goal.id) && !activeGoals.includes(goal.id) && (
+                          <FlexItem>
+                            <Content style={{ fontSize: '12px', color: '#c9190b', fontStyle: 'italic', marginTop: '4px' }}>
+                              Selection modified: Configuration is now custom.
+                            </Content>
+                          </FlexItem>
+                        )}
+                      </Flex>
+                    </CardBody>
+                  </Card>
+                </Flex>
               </GridItem>
             ))}
           </Grid>
