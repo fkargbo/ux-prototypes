@@ -1141,7 +1141,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                 <div
                   style={{
                     minHeight: '120px',
-                    border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
+                    borderTop: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
+                    borderRight: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
+                    borderBottom: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
                     borderLeft: `8px solid ${STRATEGY_CARD_COLORS[goal.id as GoalID]}`,
                     borderRadius: '16px',
                     boxSizing: 'border-box',
