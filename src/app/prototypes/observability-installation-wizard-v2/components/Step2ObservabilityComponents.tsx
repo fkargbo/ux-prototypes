@@ -4,6 +4,7 @@ import {
   Content,
   Card,
   CardBody,
+  CardHeader,
   CardTitle,
   Radio,
   Grid,
@@ -1488,29 +1489,28 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
             </GridItem>
 
             <GridItem md={6}>
-              <Title headingLevel="h2" size="lg" style={{ marginTop: 'var(--pf-t--global--spacer--md)', marginBottom: '8px' }}>
-                Console experience (UI Plugins and components)
-              </Title>
-              <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-                Select UI plugins to enhance your console experience.
-              </Content>
-
               <Card>
-            <CardBody>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
-                <FlexItem>
-                  <Switch
-                    id="advanced-mode"
-                    label="Advanced Mode"
-                    isChecked={advancedMode}
-                    onChange={(_, checked) => handleAdvancedModeChange(checked)}
-                  />
-                </FlexItem>
-              </Flex>
-
-              <Divider style={{ marginBottom: '16px' }} />
-
-              <Stack hasGutter>
+                <CardHeader
+                  actions={{
+                    actions: (
+                      <Switch
+                        id="advanced-mode"
+                        label="Advanced Mode"
+                        isChecked={advancedMode}
+                        onChange={(_, checked) => handleAdvancedModeChange(checked)}
+                      />
+                    ),
+                    hasNoOffset: false,
+                  }}
+                >
+                  <CardTitle>Console experience (UI Plugins and components)</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <Content style={{ marginBottom: '16px', color: '#6a6e73' }}>
+                    Select UI plugins to enhance your console experience.
+                  </Content>
+                  <Divider style={{ marginBottom: '16px' }} />
+                  <Stack hasGutter>
                 {availablePlugins.map((plugin) => {
                   const isChecked = selectedUIPlugins.includes(plugin.id);
                   
@@ -1596,9 +1596,9 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                     </StackItem>
                   );
                 })}
-              </Stack>
-            </CardBody>
-          </Card>
+                  </Stack>
+                </CardBody>
+              </Card>
             </GridItem>
           </Grid>
         </StackItem>
