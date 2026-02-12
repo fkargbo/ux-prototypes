@@ -20,7 +20,6 @@ import {
   FlexItem,
   Switch,
   Badge,
-  Label,
   HelperText,
   HelperTextItem,
   Spinner,
@@ -1258,12 +1257,21 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                         const labelColor = STRATEGY_CARD_COLORS[goalId as GoalID];
                                         return (
                                           <FlexItem key={index}>
-                                            <Label
-                                              className="pf-v6-c-label pf-m-outline"
-                                              style={{ fontWeight: 'normal', fontSize: '14px', color: labelColor, borderColor: labelColor }}
+                                            <span
+                                              style={{
+                                                display: 'inline-block',
+                                                padding: '4px 12px',
+                                                fontSize: '14px',
+                                                fontWeight: 'normal',
+                                                color: labelColor,
+                                                border: '1px solid',
+                                                borderColor: labelColor,
+                                                borderRadius: '9999px',
+                                                backgroundColor: 'transparent',
+                                              }}
                                             >
                                               {goalName}
-                                            </Label>
+                                            </span>
                                           </FlexItem>
                                         );
                                       })}
@@ -1439,12 +1447,21 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                         const labelColor = STRATEGY_CARD_COLORS[goalId as GoalID];
                                         return (
                                           <FlexItem key={index}>
-                                            <Label
-                                              className="pf-v6-c-label pf-m-outline"
-                                              style={{ fontWeight: 'normal', fontSize: '14px', color: labelColor, borderColor: labelColor }}
+                                            <span
+                                              style={{
+                                                display: 'inline-block',
+                                                padding: '4px 12px',
+                                                fontSize: '14px',
+                                                fontWeight: 'normal',
+                                                color: labelColor,
+                                                border: '1px solid',
+                                                borderColor: labelColor,
+                                                borderRadius: '9999px',
+                                                backgroundColor: 'transparent',
+                                              }}
                                             >
                                               {goalName}
-                                            </Label>
+                                            </span>
                                           </FlexItem>
                                         );
                                       })}
@@ -1605,12 +1622,21 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                                 const labelColor = STRATEGY_CARD_COLORS[goalId as GoalID];
                                 return (
                                   <FlexItem key={index}>
-                                    <Label
-                                      className="pf-v6-c-label pf-m-outline"
-                                      style={{ fontWeight: 'normal', fontSize: '14px', color: labelColor, borderColor: labelColor }}
+                                    <span
+                                      style={{
+                                        display: 'inline-block',
+                                        padding: '4px 12px',
+                                        fontSize: '14px',
+                                        fontWeight: 'normal',
+                                        color: labelColor,
+                                        border: '1px solid',
+                                        borderColor: labelColor,
+                                        borderRadius: '9999px',
+                                        backgroundColor: 'transparent',
+                                      }}
                                     >
                                       {goalName}
-                                    </Label>
+                                    </span>
                                   </FlexItem>
                                 );
                               })}
