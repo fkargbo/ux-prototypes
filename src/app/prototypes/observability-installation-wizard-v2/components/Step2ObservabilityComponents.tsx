@@ -1148,16 +1148,28 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                 <div
                   style={{
                     minHeight: '120px',
-                    borderTop: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
-                    borderRight: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
-                    borderBottom: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
-                    borderLeft: `8px solid ${STRATEGY_CARD_COLORS[goal.id as GoalID]}`,
+                    border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
                     borderRadius: '16px',
                     boxSizing: 'border-box',
                     backgroundColor: 'var(--pf-v5-global--BackgroundColor--100)',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
-                  <div style={{ padding: '24px', paddingLeft: '28px' }}>
+                  {/* 8px vertical bar inside card, so it sits inside the selection border when selected */}
+                  <div
+                    role="presentation"
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 8,
+                      backgroundColor: STRATEGY_CARD_COLORS[goal.id as GoalID],
+                      pointerEvents: 'none',
+                    }}
+                  />
+                  <div style={{ position: 'relative', padding: '24px', paddingLeft: '32px' }}>
                     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                       <FlexItem>
                         <Checkbox
