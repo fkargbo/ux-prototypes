@@ -1194,9 +1194,7 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                 Observability Services
               </Title>
               <Content style={{ marginBottom: '24px', color: '#6a6e73' }}>
-                {activeGoals.length > 0 
-                  ? 'The following operators and storage are required by your selected goals. You can customize these selections below.'
-                  : 'Select operators and storage for your observability stack. You can also choose an observability strategy above to pre-configure recommended options.'}
+                Select operators and storage for your observability stack, and UI plugins to enhance your console experience.
               </Content>
 
               <Card>
@@ -1506,10 +1504,6 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
                   <CardTitle>Console experience (UI Plugins and components)</CardTitle>
                 </CardHeader>
                 <CardBody>
-                  <Content style={{ marginBottom: '16px', color: '#6a6e73' }}>
-                    Select UI plugins to enhance your console experience.
-                  </Content>
-                  <Divider style={{ marginBottom: '16px' }} />
                   <Stack hasGutter>
                 {availablePlugins.map((plugin) => {
                   const isChecked = selectedUIPlugins.includes(plugin.id);
