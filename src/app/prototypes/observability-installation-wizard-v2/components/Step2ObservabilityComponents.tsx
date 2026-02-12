@@ -1138,52 +1138,51 @@ export const Step2ObservabilityComponents: React.FC<Step2ObservabilityComponents
           <Grid hasGutter>
             {goals.map((goal) => (
               <GridItem key={goal.id} span={4}>
-                <Flex direction={{ default: 'row' }} alignItems={{ default: 'alignItemsStretch' }} style={{ height: '100%' }}>
+                <Card
+                  isPlain
+                  style={{
+                    height: '100%',
+                    border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
+                    borderRadius: '16px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
                   <div
                     style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
                       width: '8px',
-                      flexShrink: 0,
                       backgroundColor: STRATEGY_CARD_COLORS[goal.id as GoalID],
-                      borderRadius: '16px 0 0 16px',
                     }}
                   />
-                  <Card
-                    isPlain
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      height: '100%',
-                      border: activeGoals.includes(goal.id) ? '2px solid #0066cc' : '1px solid #d2d2d2',
-                      borderLeft: 'none',
-                      borderRadius: '0 16px 16px 0',
-                    }}
-                  >
-                    <CardBody>
-                      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                  <CardBody style={{ paddingLeft: '24px' }}>
+                    <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                      <FlexItem>
+                        <Checkbox
+                          id={`goal-${goal.id}`}
+                          label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{goal.name}</span>}
+                          isChecked={activeGoals.includes(goal.id)}
+                          onChange={(_, checked) => handleGoalChange(goal.id, checked)}
+                        />
+                      </FlexItem>
+                      <FlexItem>
+                        <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
+                          {goal.description}
+                        </Content>
+                      </FlexItem>
+                      {overriddenGoals.has(goal.id) && !activeGoals.includes(goal.id) && (
                         <FlexItem>
-                          <Checkbox
-                            id={`goal-${goal.id}`}
-                            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>{goal.name}</span>}
-                            isChecked={activeGoals.includes(goal.id)}
-                            onChange={(_, checked) => handleGoalChange(goal.id, checked)}
-                          />
-                        </FlexItem>
-                        <FlexItem>
-                          <Content style={{ fontSize: '14px', color: '#6a6e73' }}>
-                            {goal.description}
+                          <Content style={{ fontSize: '12px', color: '#c9190b', fontStyle: 'italic', marginTop: '4px' }}>
+                            Selection modified: Configuration is now custom.
                           </Content>
                         </FlexItem>
-                        {overriddenGoals.has(goal.id) && !activeGoals.includes(goal.id) && (
-                          <FlexItem>
-                            <Content style={{ fontSize: '12px', color: '#c9190b', fontStyle: 'italic', marginTop: '4px' }}>
-                              Selection modified: Configuration is now custom.
-                            </Content>
-                          </FlexItem>
-                        )}
-                      </Flex>
-                    </CardBody>
-                  </Card>
-                </Flex>
+                      )}
+                    </Flex>
+                  </CardBody>
+                </Card>
               </GridItem>
             ))}
           </Grid>
