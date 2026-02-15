@@ -1000,7 +1000,7 @@ input[type="checkbox"] {
 
 /* Multi-cluster Alerting Page - Standard page padding */
 .alerting-page-container {
-  padding: 24px !important;
+  padding: 0px !important;
   background-color: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
   min-height: 100%;
   width: 100%;

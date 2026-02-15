@@ -854,6 +854,419 @@ interface TeamCategory {
   patterns: string[];
 }
 
+// ========================================
+// FLAPPING RATE MICRO CHART
+// ========================================
+
+interface FlappingEvent {
+  timestamp: Date;
+  duration: number; // minutes
+  wasFiring: boolean;
+}
+
+interface FlappingRateChartProps {
+  alertName: string;
+  severity: string;
+  events: FlappingEvent[];
+  totalFlaps: number;
+  onClick?: () => void;
+}
+
+const FlappingRateChart: React.FC<FlappingRateChartProps> = ({ alertName, severity, events, totalFlaps, onClick }) => {
+  const chartWidth = 120;
+  const chartHeight = 24;
+  const barWidth = 2;
+  const barGap = 1;
+  
+  // Calculate max bars that can fit
+  const maxBars = Math.floor(chartWidth / (barWidth + barGap));
+  const displayEvents = events.slice(-maxBars);
+  
+  // Calculate time range (last 4 hours)
+  const now = new Date();
+  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  
+  const getBarHeight = (event: FlappingEvent) => {
+    // Height based on duration (longer duration = taller bar)
+    const minHeight = 6;
+    const maxHeight = chartHeight;
+    const normalized = Math.min(event.duration / 60, 1); // Normalize to 0-1 (60 min = full height)
+    return minHeight + (maxHeight - minHeight) * normalized;
+  };
+  
+  const getBarColor = (event: FlappingEvent) => {
+    return event.wasFiring 
+      ? 'var(--pf-t--global--color--status--danger--default)' 
+      : 'var(--pf-t--global--color--status--warning--default)';
+  };
+  
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+  
+  return (
+    <Tooltip
+      content={
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+            {totalFlaps} status transitions
+          </div>
+          <div style={{ fontSize: '12px', marginBottom: '4px' }}>
+            Total number of status transitions (Firing ↔ Resolved) in the last 24 hours.
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+            High counts indicate "flapping." Click to view full timeline.
+          </div>
+        </div>
+      }
+    >
+      <div 
+        onClick={onClick}
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          cursor: 'pointer',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          transition: 'background-color 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'var(--pf-t--global--background--color--secondary--hover)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }}
+      >
+        <div style={{ 
+          fontSize: '13px', 
+          fontWeight: 500,
+          color: 'var(--pf-t--global--text--color--regular)',
+          minWidth: '20px'
+        }}>
+          {totalFlaps}
+        </div>
+        <svg width={chartWidth} height={chartHeight} style={{ display: 'block' }}>
+          <line 
+            x1="0" 
+            y1={chartHeight} 
+            x2={chartWidth} 
+            y2={chartHeight} 
+            stroke="var(--pf-t--global--border--color--default)" 
+            strokeWidth="1"
+          />
+          {displayEvents.map((event, idx) => {
+            const barHeight = getBarHeight(event);
+            const x = idx * (barWidth + barGap);
+            const y = chartHeight - barHeight;
+            
+            return (
+              <rect
+                key={idx}
+                x={x}
+                y={y}
+                width={barWidth}
+                height={barHeight}
+                fill={getBarColor(event)}
+                rx="1"
+              />
+            );
+          })}
+        </svg>
+      </div>
+    </Tooltip>
+  );
+};
+
+// Generate mock flapping events for an alert
+const generateFlappingEvents = (alertName: string, severity: string): { events: FlappingEvent[], totalFlaps: number } => {
+  const now = new Date();
+  const events: FlappingEvent[] = [];
+  
+  // Generate random flapping pattern based on severity
+  const baseFlaps = severity === 'Critical' ? 8 : severity === 'Warning' ? 12 : 5;
+  const variance = Math.floor(Math.random() * 5);
+  const totalFlaps = baseFlaps + variance;
+  
+  for (let i = 0; i < totalFlaps; i++) {
+    const hoursAgo = Math.random() * 4; // Last 4 hours
+    const timestamp = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+    const duration = Math.floor(Math.random() * 45) + 5; // 5-50 minutes
+    const wasFiring = Math.random() > 0.5;
+    
+    events.push({ timestamp, duration, wasFiring });
+  }
+  
+  // Sort by timestamp
+  events.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  
+  return { events, totalFlaps };
+};
+
+// ========================================
+// ALERT TIMELINE VISUALIZATION
+// ========================================
+
+type AlertDetailTimeRange = '5m' | '30m' | '1h' | '6h' | '24h';
+
+interface AlertTimelineVisualizationProps {
+  alertName: string;
+  severity: string;
+}
+
+const AlertTimelineVisualization: React.FC<AlertTimelineVisualizationProps> = ({ alertName, severity }) => {
+  const [timeRange, setTimeRange] = React.useState<AlertDetailTimeRange>('24h');
+  
+  // Generate timeline data based on time range
+  const generateTimelineData = (range: AlertDetailTimeRange) => {
+    const now = new Date();
+    let startTime: Date;
+    let intervalMinutes: number;
+    let dataPoints: number;
+    
+    switch (range) {
+      case '5m':
+        startTime = new Date(now.getTime() - 5 * 60 * 1000);
+        intervalMinutes = 0.5; // 30 seconds
+        dataPoints = 10;
+        break;
+      case '30m':
+        startTime = new Date(now.getTime() - 30 * 60 * 1000);
+        intervalMinutes = 2;
+        dataPoints = 15;
+        break;
+      case '1h':
+        startTime = new Date(now.getTime() - 60 * 60 * 1000);
+        intervalMinutes = 4;
+        dataPoints = 15;
+        break;
+      case '6h':
+        startTime = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+        intervalMinutes = 24;
+        dataPoints = 15;
+        break;
+      case '24h':
+      default:
+        startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        intervalMinutes = 96; // ~1.5 hours
+        dataPoints = 15;
+        break;
+    }
+    
+    const events: Array<{ timestamp: Date; isFiring: boolean; duration: number }> = [];
+    
+    // Generate realistic flapping pattern
+    let currentTime = startTime.getTime();
+    let currentState = Math.random() > 0.5; // Start randomly firing or resolved
+    
+    for (let i = 0; i < dataPoints; i++) {
+      const timestamp = new Date(currentTime);
+      const duration = intervalMinutes + Math.random() * intervalMinutes * 0.5;
+      
+      // Create some flapping: change state occasionally
+      if (Math.random() > 0.7) {
+        currentState = !currentState;
+      }
+      
+      events.push({
+        timestamp,
+        isFiring: currentState,
+        duration
+      });
+      
+      currentTime += duration * 60 * 1000;
+    }
+    
+    return events;
+  };
+  
+  const timelineData = React.useMemo(() => generateTimelineData(timeRange), [timeRange]);
+  
+  const formatTime = (date: Date) => {
+    if (timeRange === '5m' || timeRange === '30m') {
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } else if (timeRange === '1h' || timeRange === '6h') {
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    } else {
+      return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+  };
+  
+  const chartHeight = 300;
+  const chartWidth = 700;
+  const chartBarWidth = Math.max(20, Math.min(50, (chartWidth - 100) / timelineData.length - 8));
+  const chartBarGap = 8;
+  
+  return (
+    <Stack hasGutter>
+      <StackItem>
+        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            <Content component="h3" style={{ margin: 0 }}>Status Timeline</Content>
+          </FlexItem>
+          <FlexItem>
+            <ToggleGroup aria-label="Time range selection">
+              <ToggleGroupItem
+                text="5 min"
+                buttonId="5m"
+                isSelected={timeRange === '5m'}
+                onChange={() => setTimeRange('5m')}
+              />
+              <ToggleGroupItem
+                text="30 min"
+                buttonId="30m"
+                isSelected={timeRange === '30m'}
+                onChange={() => setTimeRange('30m')}
+              />
+              <ToggleGroupItem
+                text="1 hour"
+                buttonId="1h"
+                isSelected={timeRange === '1h'}
+                onChange={() => setTimeRange('1h')}
+              />
+              <ToggleGroupItem
+                text="6 hours"
+                buttonId="6h"
+                isSelected={timeRange === '6h'}
+                onChange={() => setTimeRange('6h')}
+              />
+              <ToggleGroupItem
+                text="24 hours"
+                buttonId="24h"
+                isSelected={timeRange === '24h'}
+                onChange={() => setTimeRange('24h')}
+              />
+            </ToggleGroup>
+          </FlexItem>
+        </Flex>
+      </StackItem>
+      <StackItem>
+        <div style={{ 
+          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+          border: '1px solid var(--pf-t--global--border--color--default)',
+          borderRadius: '4px',
+          padding: '16px'
+        }}>
+          <svg width={chartWidth} height={chartHeight} style={{ display: 'block' }}>
+            {/* Y-axis labels */}
+            <text x="10" y="35" fontSize="12" fontWeight="600" fill="#151515">
+              Firing
+            </text>
+            <text x="10" y={chartHeight - 50} fontSize="12" fontWeight="600" fill="#151515">
+              Resolved
+            </text>
+            
+            {/* Timeline bars */}
+            <g transform="translate(80, 20)">
+              {timelineData.map((event, idx) => {
+                const x = idx * (chartBarWidth + chartBarGap);
+                const barHeightValue = event.isFiring ? chartHeight - 100 : 50; // Tall for firing, short for resolved
+                const y = chartHeight - 80 - barHeightValue;
+                const color = event.isFiring 
+                  ? '#C9190B' // Red for firing
+                  : '#3E8635'; // Green for resolved
+                
+                return (
+                  <g key={idx}>
+                    <title>
+                      {event.isFiring ? 'Firing' : 'Resolved'} - {formatTime(event.timestamp)} - Duration: ~{Math.round(event.duration)} min
+                    </title>
+                    <rect
+                      x={x}
+                      y={y}
+                      width={chartBarWidth}
+                      height={barHeightValue}
+                      fill={color}
+                      opacity={event.isFiring ? 0.9 : 0.5}
+                      rx="3"
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </g>
+                );
+              })}
+              
+              {/* X-axis */}
+              <line 
+                x1="0" 
+                y1={chartHeight - 80} 
+                x2={timelineData.length * (chartBarWidth + chartBarGap) - chartBarGap} 
+                y2={chartHeight - 80} 
+                stroke="#D2D2D2" 
+                strokeWidth="2"
+              />
+            </g>
+            
+            {/* Time labels */}
+            <g transform="translate(80, 20)">
+              {[0, Math.floor(timelineData.length / 2), timelineData.length - 1].map(idx => {
+                if (idx >= 0 && idx < timelineData.length) {
+                  const event = timelineData[idx];
+                  const x = idx * (chartBarWidth + chartBarGap);
+                  return (
+                    <text 
+                      key={idx}
+                      x={x + chartBarWidth / 2} 
+                      y={chartHeight - 55} 
+                      fontSize="11" 
+                      fill="#6A6E73"
+                      textAnchor="middle"
+                    >
+                      {formatTime(event.timestamp)}
+                    </text>
+                  );
+                }
+                return null;
+              })}
+            </g>
+          </svg>
+        </div>
+      </StackItem>
+      <StackItem>
+        <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <div style={{ 
+                width: '16px', 
+                height: '16px', 
+                backgroundColor: 'var(--pf-t--global--color--status--danger--default)',
+                borderRadius: '2px',
+                opacity: 0.9
+              }} />
+              <span style={{ fontSize: '13px' }}>Firing</span>
+            </Flex>
+          </FlexItem>
+          <FlexItem>
+            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <div style={{ 
+                width: '16px', 
+                height: '16px', 
+                backgroundColor: 'var(--pf-t--global--color--status--success--default)',
+                borderRadius: '2px',
+                opacity: 0.4
+              }} />
+              <span style={{ fontSize: '13px' }}>Resolved</span>
+            </Flex>
+          </FlexItem>
+        </Flex>
+      </StackItem>
+      <StackItem>
+        <Content component="p" style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+          This visualization shows the alert status over time. Tall red bars indicate "Firing" periods, 
+          while short light bars indicate "Resolved" periods. A sawtooth pattern indicates "flapping" behavior, 
+          where the alert rapidly transitions between states.
+        </Content>
+      </StackItem>
+    </Stack>
+  );
+};
+
+// ========================================
+// TREEMAP HEATMAP
+// ========================================
+
 interface TreemapHeatmapProps {
   clusters: ClusterData[];
   groupBy: GroupByOption;
@@ -941,11 +1354,11 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       const baseValue = getTileValue(cluster, importanceSizing, severityFilter);
       const severityPriority = getClusterSeverityOrder(cluster);
       
-      // When sizing is 'none', add a tiny offset for ordering without visible size difference
-      // Critical=1004, Warning=1003, Info=1002, Healthy=1001 (visually equal but sortable)
+      // When sizing is 'none', use microscopic differences for sorting without visible size change
+      // Values like 1000.004, 1000.003, 1000.002, 1000.001 maintain order but appear equal
       if (importanceSizing === 'none') {
-        const orderingOffset = 4 - severityPriority; // Critical gets +4, Warning +3, Info +2, Healthy +1
-        return baseValue + orderingOffset; // 1000 + offset for ordering
+        const microOffset = (4 - severityPriority) * 0.001; // Critical=0.004, Warning=0.003, Info=0.002, Healthy=0.001
+        return 1000 + microOffset;
       }
       
       // When grouping by severity, use a much smaller multiplier to keep groups balanced
@@ -1650,7 +2063,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
     }}>
       {/* Breadcrumb Navigation */}
       <div style={{ 
-        padding: '16px 24px', 
+        padding: '16px 8px', 
         borderBottom: '1px solid var(--pf-t--global--border--color--default)',
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
         flexShrink: 0,
@@ -1666,7 +2079,7 @@ const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = ({
       </div>
 
       {/* Main Content - Scrollable */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px' }}>
         <Stack hasGutter>
           {/* Cluster Health Status Card */}
           <StackItem>
@@ -2593,6 +3006,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredFromDate && setTriggeredFromDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
+                          appendTo={() => document.body}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -2602,6 +3016,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           placeholder="HH:MM"
                           is24Hour
                           style={{ width: '100%' }}
+                          appendTo={() => document.body}
                         />
                       </FlexItem>
                     </Flex>
@@ -2615,6 +3030,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredToDate && setTriggeredToDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
+                          appendTo={() => document.body}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -2624,6 +3040,67 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           placeholder="HH:MM"
                           is24Hour
                           style={{ width: '100%' }}
+                          appendTo={() => document.body}
+                        />
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                </Stack>
+              </StackItem>
+            </>
+          )}
+
+          {/* Triggered Time Range Filters - Available for Clusters Health too */}
+          {!showAlertFilters && (
+            <>
+              <Divider />
+              <StackItem>
+                <Content component="small" className="pf-v6-u-mb-sm"><strong>Triggered</strong></Content>
+                <Stack hasGutter>
+                  <StackItem>
+                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
+                    <Flex gap={{ default: 'gapSm' }}>
+                      <FlexItem flex={{ default: 'flex_1' }}>
+                        <DatePicker
+                          value={triggeredFromDate || ''}
+                          onChange={(_, str) => setTriggeredFromDate && setTriggeredFromDate(str)}
+                          placeholder="YYYY-MM-DD"
+                          style={{ width: '100%' }}
+                          appendTo={() => document.body}
+                        />
+                      </FlexItem>
+                      <FlexItem style={{ width: '90px' }}>
+                        <TimePicker
+                          time={triggeredFromTime || ''}
+                          onChange={(_, time) => setTriggeredFromTime && setTriggeredFromTime(time)}
+                          placeholder="HH:MM"
+                          is24Hour
+                          style={{ width: '100%' }}
+                          appendTo={() => document.body}
+                        />
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                  <StackItem>
+                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
+                    <Flex gap={{ default: 'gapSm' }}>
+                      <FlexItem flex={{ default: 'flex_1' }}>
+                        <DatePicker
+                          value={triggeredToDate || ''}
+                          onChange={(_, str) => setTriggeredToDate && setTriggeredToDate(str)}
+                          placeholder="YYYY-MM-DD"
+                          style={{ width: '100%' }}
+                          appendTo={() => document.body}
+                        />
+                      </FlexItem>
+                      <FlexItem style={{ width: '90px' }}>
+                        <TimePicker
+                          time={triggeredToTime || ''}
+                          onChange={(_, time) => setTriggeredToTime && setTriggeredToTime(time)}
+                          placeholder="HH:MM"
+                          is24Hour
+                          style={{ width: '100%' }}
+                          appendTo={() => document.body}
                         />
                       </FlexItem>
                     </Flex>
@@ -2672,7 +3149,7 @@ interface AllAlertsCardProps {
   onClearAlertNameFilter: () => void;
   onClearComponentFilter: () => void;
   onClusterClick: (cluster: ClusterData) => void;
-  onAlertClick: (alert: AlertData) => void;
+  onAlertClick: (alert: AlertData, initialTab?: number) => void;
   onAlertRuleClick: (alertName: string) => void;
   onComponentClick: (componentName: string) => void;
   singleClusterView?: boolean;
@@ -2869,6 +3346,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     { key: 'source', label: 'Source', isVisible: true, isLocked: false, order: 7 },
     { key: 'description', label: 'Description (in: alert)', isVisible: false, isLocked: false, order: 8 },
     { key: 'startTime', label: 'Firing since', isVisible: false, isLocked: false, order: 9 },
+    { key: 'flappingRate', label: 'Flapping rate', isVisible: true, isLocked: false, order: 10 },
   ]);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
   const [tempColumns, setTempColumns] = React.useState<ColumnConfig[]>([]);
@@ -3040,7 +3518,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       if (alertNameFilter && alert.alertName !== alertNameFilter) return false;
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
-      if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase())) return false;
+      if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase()) && 
+          !alert.component.toLowerCase().includes(searchValue.toLowerCase())) return false;
       // Filter by alert scope - only show components that match selected groups
       if (groupFilter && groupFilter.length > 0 && groupFilter.length < 2 && alert.component) {
         const componentImpactGroup = componentMeta[alert.component as AlertComponent]?.impactGroup;
@@ -3148,7 +3627,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
       if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase()) && 
-          !alert.clusterName.toLowerCase().includes(searchValue.toLowerCase())) return false;
+          !alert.clusterName.toLowerCase().includes(searchValue.toLowerCase()) &&
+          !alert.component.toLowerCase().includes(searchValue.toLowerCase())) return false;
       return true;
     });
 
@@ -4211,7 +4691,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           onChange={toggleSelectAll}
                         />
                       </Th>
-                      {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime').map((col, colIdx) => {
+                      {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime' && col.key !== 'flappingRate').map((col, colIdx) => {
                         const columnKey = col.key as SortConfig['column'];
                         const canSort = ['alertName', 'severity', 'total', 'group', 'component'].includes(col.key);
                         const sortConfig = sortConfigs.find(c => c.column === columnKey);
@@ -4305,6 +4785,23 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         return firstAlert?.description || '-';
                       case 'startTime':
                         return firstAlertInfo?.lastFired || '-';
+                      case 'flappingRate':
+                        const flappingData = generateFlappingEvents(agg.alertName, agg.severity);
+                        return (
+                          <FlappingRateChart
+                            alertName={agg.alertName}
+                            severity={agg.severity}
+                            events={flappingData.events}
+                            totalFlaps={flappingData.totalFlaps}
+                            onClick={() => {
+                              // Open alert details for a specific alert instance (not aggregated)
+                              // Get the first alert instance from the first cluster
+                              if (firstAlert) {
+                                onAlertClick(firstAlert, 1); // Open to timeline tab (eventKey=1)
+                              }
+                            }}
+                          />
+                        );
                       default:
                         return '-';
                     }
@@ -4312,7 +4809,16 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                   
                   return (
                     <Tbody key={alertKey} isExpanded={isExpanded}>
-                      <Tr>
+                      <Tr 
+                        style={{ cursor: 'pointer' }}
+                        onClick={(e) => {
+                          // Don't toggle if clicking on checkbox or a button/link
+                          const target = e.target as HTMLElement;
+                          if (target.tagName !== 'INPUT' && target.tagName !== 'BUTTON' && target.tagName !== 'A' && !target.closest('button') && !target.closest('a')) {
+                            toggleExpanded(alertKey);
+                          }
+                        }}
+                      >
                         <Td
                           expand={{
                             rowIndex: idx,
@@ -4323,7 +4829,13 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           stickyMinWidth="45px"
                           modifier="nowrap"
                         />
-                        <Td isStickyColumn stickyMinWidth="45px" stickyLeftOffset="45px" modifier="nowrap">
+                        <Td 
+                          isStickyColumn 
+                          stickyMinWidth="45px" 
+                          stickyLeftOffset="45px" 
+                          modifier="nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Checkbox 
                             id={`checkbox-${alertKey}`}
                             aria-label={`Select ${agg.alertName}`}
@@ -4331,7 +4843,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                             onChange={() => toggleAlertSelection(alertKey)}
                           />
                         </Td>
-                        {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime').map(col => {
+                        {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime' && col.key !== 'flappingRate').map(col => {
                           const tdProps: any = {
                             key: col.key,
                             modifier: "nowrap" as const,
@@ -4348,7 +4860,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         })}
                       </Tr>
                       <Tr isExpanded={isExpanded}>
-                        <Td colSpan={getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime').length + 2} noPadding>
+                        <Td colSpan={getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime' && col.key !== 'flappingRate').length + 2} noPadding>
                           <ExpandableRowContent>
                             <div style={{ padding: '8px 16px' }}>
                               <Table aria-label={singleClusterView ? "Alert instances" : "Clusters with alert"} variant="compact">
@@ -4361,6 +4873,14 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                       {!singleClusterView && <Th>Cluster</Th>}
                                       <Th>Namespace</Th>
                                       <Th>Resource</Th>
+                                      <Th 
+                                        info={{
+                                          tooltip: "Total number of status transitions (Firing ↔ Resolved) in the last 24 hours. High counts indicate \"flapping.\"",
+                                          ariaLabel: "More information about flapping rate"
+                                        }}
+                                      >
+                                        Flapping rate
+                                      </Th>
                                       {columns.find(c => c.key === 'description')?.isVisible && <Th>Description</Th>}
                                     </Tr>
                                   </Thead>
@@ -4417,12 +4937,32 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                           </Flex>
                                         </Td>
                                         {!singleClusterView && (
-                                          <Td>{clusterInfo.name}</Td>
+                                          <Td>
+                                            <Button 
+                                              variant="link" 
+                                              isInline 
+                                              onClick={() => {
+                                                setClusterFilter([clusterInfo.name]);
+                                              }}
+                                            >
+                                              {clusterInfo.name}
+                                            </Button>
+                                          </Td>
                                         )}
                                         <Td>
                                           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                                             <FlexItem><Label color="blue" isCompact>NS</Label></FlexItem>
-                                            <FlexItem>{alertInstance?.namespace || 'default'}</FlexItem>
+                                            <FlexItem>
+                                              <Button 
+                                                variant="link" 
+                                                isInline 
+                                                onClick={() => {
+                                                  setNamespaceFilter([alertInstance?.namespace || 'default']);
+                                                }}
+                                              >
+                                                {alertInstance?.namespace || 'default'}
+                                              </Button>
+                                            </FlexItem>
                                           </Flex>
                                         </Td>
                                         <Td>
@@ -4432,6 +4972,24 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                               <FlexItem>{alertInstance.resource}</FlexItem>
                                             </Flex>
                                           ) : '-'}
+                                        </Td>
+                                        <Td>
+                                          {(() => {
+                                            const flappingData = generateFlappingEvents(agg.alertName, agg.severity);
+                                            return (
+                                              <FlappingRateChart
+                                                alertName={agg.alertName}
+                                                severity={agg.severity}
+                                                events={flappingData.events}
+                                                totalFlaps={flappingData.totalFlaps}
+                                                onClick={() => {
+                                                  if (alertInstance) {
+                                                    onAlertClick(alertInstance, 1); // Open to timeline tab
+                                                  }
+                                                }}
+                                              />
+                                            );
+                                          })()}
                                         </Td>
                                         {columns.find(c => c.key === 'description')?.isVisible && (
                                           <Td>{alertInstance?.description || '-'}</Td>
@@ -4678,6 +5236,17 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                       return alert.source || '-';
                                     case 'description':
                                       return alert.description || '-';
+                                    case 'flappingRate':
+                                      const flappingData = generateFlappingEvents(alert.alertName, alert.severity);
+                                      return (
+                                        <FlappingRateChart
+                                          alertName={alert.alertName}
+                                          severity={alert.severity}
+                                          events={flappingData.events}
+                                          totalFlaps={flappingData.totalFlaps}
+                                          onClick={() => onAlertClick(alert, 1)} // Open to timeline tab
+                                        />
+                                      );
                                     default:
                                       return '-';
                                   }
@@ -4785,6 +5354,17 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                             return alert.source || '-';
                           case 'description':
                             return alert.description || '-';
+                          case 'flappingRate':
+                            const flappingData = generateFlappingEvents(alert.alertName, alert.severity);
+                            return (
+                              <FlappingRateChart
+                                alertName={alert.alertName}
+                                severity={alert.severity}
+                                events={flappingData.events}
+                                totalFlaps={flappingData.totalFlaps}
+                                onClick={() => onAlertClick(alert, 1)} // Open to timeline tab
+                              />
+                            );
                           default:
                             return '-';
                         }
@@ -6485,9 +7065,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
 
   // View and grouping
   const [viewMode, setViewMode] = React.useState<ViewMode>('treemap');
-  const [groupBy, setGroupBy] = React.useState<GroupByOption>('none');
+  const [groupBy, setGroupBy] = React.useState<GroupByOption>('severity');
   const [sortBy, setSortBy] = React.useState<SortByOption>('severity');
-  const [importanceSizing, setImportanceSizing] = React.useState<ImportanceSizing>('nodeCount');
+  const [importanceSizing, setImportanceSizing] = React.useState<ImportanceSizing>('none');
   const [userRole] = React.useState<UserRole>('admin');
   
   // All available components
@@ -6611,6 +7191,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Drawer state
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
   const [selectedAlertDetail, setSelectedAlertDetail] = React.useState<AlertData | null>(null);
+  const [alertDetailDrawerTab, setAlertDetailDrawerTab] = React.useState<number>(0);
   
   // Alert Rule Drawer state
   const [isAlertRuleDrawerOpen, setIsAlertRuleDrawerOpen] = React.useState(false);
@@ -7159,7 +7740,11 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
                         </FlexItem>
                         <FlexItem>
                           <DrawerActions>
-                            <DrawerCloseButton onClick={() => { setIsDrawerExpanded(false); setSelectedAlertDetail(null); }} />
+                            <DrawerCloseButton onClick={() => { 
+                              setIsDrawerExpanded(false); 
+                              setSelectedAlertDetail(null);
+                              setAlertDetailDrawerTab(0); // Reset to Details tab
+                            }} />
                           </DrawerActions>
                         </FlexItem>
                       </Flex>
@@ -7606,6 +8191,7 @@ spec:
                                         placeholder="YYYY-MM-DD"
                                         aria-label="Start date"
                                         style={{ width: '100%' }}
+                                        appendTo={() => document.body}
                                       />
                                     </FlexItem>
                                     <FlexItem>
@@ -7624,6 +8210,7 @@ spec:
                                         aria-label="Start time"
                                         is24Hour
                                         style={{ width: '100%' }}
+                                        appendTo={() => document.body}
                                       />
                                     </FlexItem>
                                   </Flex>
@@ -7645,6 +8232,7 @@ spec:
                                         placeholder="YYYY-MM-DD"
                                         aria-label="End date"
                                         style={{ width: '100%' }}
+                                        appendTo={() => document.body}
                                       />
                                     </FlexItem>
                                     <FlexItem>
@@ -7663,6 +8251,7 @@ spec:
                                         aria-label="End time"
                                         is24Hour
                                         style={{ width: '100%' }}
+                                        appendTo={() => document.body}
                                       />
                                     </FlexItem>
                                   </Flex>
@@ -8358,7 +8947,7 @@ spec:
   // MAIN VIEW (Multi-cluster Alerting Page)
   // ========================================
   return (
-    <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 76px)', overflow: 'hidden', position: 'relative' }}>
+    <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 76px)', overflow: 'hidden', position: 'relative', padding: '0px' }}>
       {/* Header + Toolbar Section - Only show in fleet-overview mode */}
       {navigationView === 'fleet-overview' && (
       <div style={{ 
@@ -8370,7 +8959,7 @@ spec:
       }}>
         {/* Page Header */}
         <div>
-          <div className="alerting-page-header" style={{ padding: '16px 24px 0' }}>
+          <div className="alerting-page-header" style={{ padding: '16px 8px 0 8px' }}>
             {/* Compact Header Row - Title + Refresh on same line */}
             <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '4px' }}>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -8502,11 +9091,10 @@ spec:
         {/* Toolbar section - Under tabs, with visual separation */}
         {mainPageTab === 'alerts' && (
           <div style={{ 
-            padding: '16px 24px', 
+            padding: '16px 8px', 
             backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-            borderBottom: '1px solid var(--pf-t--global--border--color--default)',
           }}>
-            <Toolbar className="pf-m-align-items-center" style={{ backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0 }}>
+            <Toolbar className="pf-m-align-items-center" style={{ backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0, paddingBottom: 0 }}>
               <ToolbarContent className="pf-m-align-items-center">
                 {/* Saved Filters Dropdown - First */}
             <ToolbarItem>
@@ -8588,7 +9176,7 @@ spec:
             {/* Search Input - Third - Changes scope based on tab */}
             <ToolbarItem>
               <SearchInput
-                placeholder={alertsSubTab === 'firing-alerts' ? 'Search alerts...' : 'Search clusters...'}
+                placeholder={alertsSubTab === 'firing-alerts' ? 'Search alert name, or affected components' : 'Search clusters...'}
                 value={searchValue}
                 onChange={(_, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
@@ -8846,8 +9434,8 @@ spec:
             height: '100%',
             overflowY: 'auto',
             overflowX: 'hidden',
+            padding: '4px',
             borderRight: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
-            backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
           }}>
             <FilterPanel
               regionFilter={regionFilter}
@@ -8894,10 +9482,10 @@ spec:
         )}
 
         {/* Main Content Area - Scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
             <Stack hasGutter style={{ gap: '16px' }}>
               {/* Cluster Overview Card */}
-              <StackItem style={{ marginTop: '16px' }}>
+              <StackItem>
                 <div ref={clusterCardRef}>
                 <Card>
                   <CardHeader>
@@ -9756,8 +10344,8 @@ spec:
               height: '100%',
               overflowY: 'auto',
               overflowX: 'hidden',
+              padding: '4px',
               borderRight: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
-              backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
             }}>
               <FilterPanel
                 regionFilter={regionFilter}
@@ -9817,10 +10405,10 @@ spec:
           )}
 
           {/* Main Content Area - Firing Alerts */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
             <Stack hasGutter style={{ gap: '16px' }}>
               {/* Alerts Card */}
-              <StackItem style={{ marginTop: '16px' }}>
+              <StackItem>
                 {/* Header with back button when viewing single cluster */}
                 <AllAlertsCard
                   showMetrics={firingAlertsCardView === 'all-clusters'}
@@ -9854,9 +10442,10 @@ spec:
                   onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
                   onClearComponentFilter={() => setMainComponentFilter(null)}
                   onClusterClick={handleClusterClickInAlerts}
-                  onAlertClick={(alert) => {
+                  onAlertClick={(alert, initialTab) => {
                     setSelectedAlertDetail(alert);
                     setIsDrawerExpanded(true);
+                    setAlertDetailDrawerTab(initialTab !== undefined ? initialTab : 0);
                   }}
                   onAlertRuleClick={(alertName) => {
                     setMainPageTab('management');
@@ -9903,7 +10492,7 @@ spec:
         }}>
           {/* V2: Breadcrumb Navigation */}
           <div style={{ 
-            padding: '16px 24px', 
+            padding: '16px 8px', 
             borderBottom: '1px solid var(--pf-t--global--border--color--default)',
             backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
             flexShrink: 0,
@@ -9926,7 +10515,7 @@ spec:
           </div>
 
           {/* Cluster Sub-Header - Fixed at top */}
-          <div style={{ padding: '24px 24px 16px 24px', flexShrink: 0 }}>
+          <div style={{ padding: '8px 8px 16px 8px', flexShrink: 0 }}>
             <Content component="p" style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)', margin: '0 0 4px 0' }}>
               {selectedComponent ? `${selectedComponent} alerts` : 'Cluster alerts'}
             </Content>
@@ -11024,7 +11613,7 @@ spec:
             </div>
             {/* Drawer Body - Scrollable */}
             <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-              <Tabs defaultActiveKey={0}>
+              <Tabs activeKey={alertDetailDrawerTab} onSelect={(_, tabKey) => setAlertDetailDrawerTab(tabKey as number)}>
                 <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>}>
                   <div style={{ padding: '16px 0' }}>
                     <Stack hasGutter>
@@ -11196,9 +11785,12 @@ spec:
                 </Tab>
                 <Tab eventKey={1} title={<TabTitleText>Alert timeline</TabTitleText>}>
                   <div style={{ padding: '16px 0' }}>
-                    <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Alert timeline visualization would appear here.
-                    </Content>
+                    {selectedAlertDetail && (
+                      <AlertTimelineVisualization 
+                        alertName={selectedAlertDetail.alertName}
+                        severity={selectedAlertDetail.severity}
+                      />
+                    )}
                   </div>
                 </Tab>
                 <Tab eventKey={2} title={<TabTitleText>YAML</TabTitleText>}>
