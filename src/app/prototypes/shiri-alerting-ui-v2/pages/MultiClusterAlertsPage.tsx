@@ -1436,16 +1436,21 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
 
     // Sort groups by severity order (Critical first), then sort clusters within each group
     // For severity grouping, keep empty groups to show all severity levels
-    const sortedGroupEntries = Object.entries(groups)
-      .filter(([_, groupClusters]) => groupBy === 'severity' || groupClusters.length > 0)
-      .sort((a, b) => {
-        // Sort groups by severity order if grouped by severity
-        if (groupBy === 'severity') {
-          return (severityOrder[a[0]] ?? 4) - (severityOrder[b[0]] ?? 4);
-        }
-        // Otherwise alphabetical
-        return a[0].localeCompare(b[0]);
-      });
+    // IMPORTANT: Use explicit ordering to ensure consistent left-to-right display
+    let sortedGroupEntries: [string, ClusterData[]][];
+    
+    if (groupBy === 'severity') {
+      // Explicit severity order: always Critical, Warning, Info, Healthy (left to right)
+      const severityOrderedKeys = ['Critical', 'Warning', 'Info', 'Healthy'];
+      sortedGroupEntries = severityOrderedKeys
+        .map(key => [key, groups[key] || []] as [string, ClusterData[]])
+        .filter(([_, groupClusters]) => groupBy === 'severity' || groupClusters.length > 0);
+    } else {
+      // For other groupings, sort alphabetically
+      sortedGroupEntries = Object.entries(groups)
+        .filter(([_, groupClusters]) => groupClusters.length > 0)
+        .sort((a, b) => a[0].localeCompare(b[0]));
+    }
 
     // Calculate total value and group-level values for proper sizing
     const allGroupValues = sortedGroupEntries.map(([_, groupClusters]) => {
@@ -1523,18 +1528,18 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       // For other groupings, use a moderate multiplier to show importance
       let groupValue: number;
       if (groupBy === 'severity') {
-        // Use very strong multipliers to force ECharts to display groups in severity order
-        // The multiplier creates exponential differences: Critical >> Warning >> Info >> Healthy
-        // This overcomes the treemap's space optimization which tries to rearrange for efficiency
-        const positionFromEnd = sortedGroupEntries.length - groupIndex - 1;
-        const severityMultiplier = Math.pow(4, positionFromEnd); // 4^3=64, 4^2=16, 4^1=4, 4^0=1
-        groupValue = childrenSum * severityMultiplier;
+        // Use explicit position-based multipliers to guarantee ordering
+        // Critical (index 0) gets highest multiplier, Healthy (index 3) gets lowest
+        // This creates a deterministic value hierarchy that ECharts must respect
+        const severityMultipliers = [10000, 1000, 100, 10]; // Critical, Warning, Info, Healthy
+        const severityMultiplier = severityMultipliers[groupIndex] || 1;
+        groupValue = Math.max(childrenSum, 1000) * severityMultiplier;
         
-        // Ensure a minimum value for visibility - at least 12% of the largest group
+        // Ensure a minimum value for visibility - at least 15% of the largest group
         const maxChildrenSum = Math.max(...sortedGroupEntries.map(([_, gc]) => 
           gc.reduce((sum, c) => sum + getAdjustedValue(c), 0)
         ));
-        const minValue = maxChildrenSum * 0.12;
+        const minValue = maxChildrenSum * 0.15;
         groupValue = Math.max(groupValue, minValue);
       } else {
         // For other groupings, use the original moderate multiplier
@@ -3006,7 +3011,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredFromDate && setTriggeredFromDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
-                          appendTo={() => document.body}
+                          menuAppendTo={() => document.body}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -3016,7 +3021,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           placeholder="HH:MM"
                           is24Hour
                           style={{ width: '100%' }}
-                          appendTo={() => document.body}
+                          menuAppendTo={() => document.body}
                         />
                       </FlexItem>
                     </Flex>
@@ -3030,7 +3035,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredToDate && setTriggeredToDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
-                          appendTo={() => document.body}
+                          menuAppendTo={() => document.body}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -3040,7 +3045,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           placeholder="HH:MM"
                           is24Hour
                           style={{ width: '100%' }}
-                          appendTo={() => document.body}
+                          menuAppendTo={() => document.body}
                         />
                       </FlexItem>
                     </Flex>
@@ -3066,7 +3071,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredFromDate && setTriggeredFromDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
-                          appendTo={() => document.body}
+                          menuAppendTo={() => document.body}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -3076,7 +3081,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           placeholder="HH:MM"
                           is24Hour
                           style={{ width: '100%' }}
-                          appendTo={() => document.body}
+                          menuAppendTo={() => document.body}
                         />
                       </FlexItem>
                     </Flex>
@@ -3090,7 +3095,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredToDate && setTriggeredToDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
-                          appendTo={() => document.body}
+                          menuAppendTo={() => document.body}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -3100,7 +3105,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           placeholder="HH:MM"
                           is24Hour
                           style={{ width: '100%' }}
-                          appendTo={() => document.body}
+                          menuAppendTo={() => document.body}
                         />
                       </FlexItem>
                     </Flex>
@@ -3169,6 +3174,8 @@ interface AllAlertsCardProps {
   onCriticalClick?: () => void;
   onWarningClick?: () => void;
   onInfoClick?: () => void;
+  onClusterFilterChange?: (clusters: string[]) => void;
+  onNamespaceFilterChange?: (namespaces: string[]) => void;
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
@@ -3199,6 +3206,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   onCriticalClick,
   onWarningClick,
   onInfoClick,
+  onClusterFilterChange,
+  onNamespaceFilterChange,
 }) => {
   // Component metadata with alert scopes
   const componentMeta: Record<AlertComponent, { impactGroup: 'Cluster' | 'Namespace' }> = {
@@ -4942,7 +4951,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                               variant="link" 
                                               isInline 
                                               onClick={() => {
-                                                setClusterFilter([clusterInfo.name]);
+                                                onClusterFilterChange && onClusterFilterChange([clusterInfo.name]);
                                               }}
                                             >
                                               {clusterInfo.name}
@@ -4957,7 +4966,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                                 variant="link" 
                                                 isInline 
                                                 onClick={() => {
-                                                  setNamespaceFilter([alertInstance?.namespace || 'default']);
+                                                  onNamespaceFilterChange && onNamespaceFilterChange([alertInstance?.namespace || 'default']);
                                                 }}
                                               >
                                                 {alertInstance?.namespace || 'default'}
@@ -8191,7 +8200,7 @@ spec:
                                         placeholder="YYYY-MM-DD"
                                         aria-label="Start date"
                                         style={{ width: '100%' }}
-                                        appendTo={() => document.body}
+                                        menuAppendTo={() => document.body}
                                       />
                                     </FlexItem>
                                     <FlexItem>
@@ -8210,7 +8219,7 @@ spec:
                                         aria-label="Start time"
                                         is24Hour
                                         style={{ width: '100%' }}
-                                        appendTo={() => document.body}
+                                        menuAppendTo={() => document.body}
                                       />
                                     </FlexItem>
                                   </Flex>
@@ -8232,7 +8241,7 @@ spec:
                                         placeholder="YYYY-MM-DD"
                                         aria-label="End date"
                                         style={{ width: '100%' }}
-                                        appendTo={() => document.body}
+                                        menuAppendTo={() => document.body}
                                       />
                                     </FlexItem>
                                     <FlexItem>
@@ -8251,7 +8260,7 @@ spec:
                                         aria-label="End time"
                                         is24Hour
                                         style={{ width: '100%' }}
-                                        appendTo={() => document.body}
+                                        menuAppendTo={() => document.body}
                                       />
                                     </FlexItem>
                                   </Flex>
@@ -10460,6 +10469,8 @@ spec:
                   triggeredFromDate={triggeredFromDate}
                   triggeredFromTime={triggeredFromTime}
                   triggeredToDate={triggeredToDate}
+                  onClusterFilterChange={setClusterFilter}
+                  onNamespaceFilterChange={setNamespaceFilter}
                   triggeredToTime={triggeredToTime}
                 />
               </StackItem>
