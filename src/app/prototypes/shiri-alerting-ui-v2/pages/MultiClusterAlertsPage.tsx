@@ -3011,7 +3011,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredFromDate && setTriggeredFromDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
-                          menuAppendTo={() => document.body}
+                          popoverProps={{ appendTo: () => document.body }}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -3035,7 +3035,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredToDate && setTriggeredToDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
-                          menuAppendTo={() => document.body}
+                          popoverProps={{ appendTo: () => document.body }}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -3071,7 +3071,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredFromDate && setTriggeredFromDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
-                          menuAppendTo={() => document.body}
+                          popoverProps={{ appendTo: () => document.body }}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -3095,7 +3095,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           onChange={(_, str) => setTriggeredToDate && setTriggeredToDate(str)}
                           placeholder="YYYY-MM-DD"
                           style={{ width: '100%' }}
-                          menuAppendTo={() => document.body}
+                          popoverProps={{ appendTo: () => document.body }}
                         />
                       </FlexItem>
                       <FlexItem style={{ width: '90px' }}>
@@ -8200,7 +8200,7 @@ spec:
                                         placeholder="YYYY-MM-DD"
                                         aria-label="Start date"
                                         style={{ width: '100%' }}
-                                        menuAppendTo={() => document.body}
+                                        popoverProps={{ appendTo: () => document.body }}
                                       />
                                     </FlexItem>
                                     <FlexItem>
@@ -8241,7 +8241,7 @@ spec:
                                         placeholder="YYYY-MM-DD"
                                         aria-label="End date"
                                         style={{ width: '100%' }}
-                                        menuAppendTo={() => document.body}
+                                        popoverProps={{ appendTo: () => document.body }}
                                       />
                                     </FlexItem>
                                     <FlexItem>
