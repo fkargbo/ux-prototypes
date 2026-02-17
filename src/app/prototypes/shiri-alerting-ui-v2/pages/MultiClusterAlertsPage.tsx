@@ -7144,6 +7144,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [editingFilterName, setEditingFilterName] = React.useState('');
   const [isSaveFilterModalOpen, setIsSaveFilterModalOpen] = React.useState(false);
   const [newFilterName, setNewFilterName] = React.useState('');
+  const [saveGroupingSorting, setSaveGroupingSorting] = React.useState(true);
+  const [saveSearchInput, setSaveSearchInput] = React.useState(true);
 
   // Drill-down states
   const [drillDownSeverityFilter, setDrillDownSeverityFilter] = React.useState<AlertSeverity[]>([]);
@@ -11292,9 +11294,13 @@ spec:
 
       {/* Save Filter Modal */}
       <Modal
-        variant="small"
+        variant="medium"
         isOpen={isSaveFilterModalOpen}
-        onClose={() => setIsSaveFilterModalOpen(false)}
+        onClose={() => {
+          setIsSaveFilterModalOpen(false);
+          setSaveGroupingSorting(true);
+          setSaveSearchInput(true);
+        }}
       >
         <ModalHeader title="Save filter" />
         <ModalBody>
@@ -11340,40 +11346,54 @@ spec:
                           isDisabled
                         />
                       </FlexItem>
-                      {/* Show active filter counts as compact labels */}
+                      {/* Show active filter counts as compact labels with tooltips */}
                       {severityFilter.length > 0 && (
                         <FlexItem>
-                          <Label isCompact color="grey">{severityFilter.length} severity</Label>
+                          <Tooltip content={`Severity: ${severityFilter.join(', ')}`}>
+                            <Label isCompact color="grey">{severityFilter.length} severity</Label>
+                          </Tooltip>
                         </FlexItem>
                       )}
                       {groupFilter.length > 0 && (
                         <FlexItem>
-                          <Label isCompact color="grey">{groupFilter.length} group</Label>
+                          <Tooltip content={`Group: ${groupFilter.join(', ')}`}>
+                            <Label isCompact color="grey">{groupFilter.length} group</Label>
+                          </Tooltip>
                         </FlexItem>
                       )}
                       {componentFilter.length > 0 && (
                         <FlexItem>
-                          <Label isCompact color="grey">{componentFilter.length} component</Label>
+                          <Tooltip content={`Component: ${componentFilter.join(', ')}`}>
+                            <Label isCompact color="grey">{componentFilter.length} component</Label>
+                          </Tooltip>
                         </FlexItem>
                       )}
                       {regionFilter.length > 0 && (
                         <FlexItem>
-                          <Label isCompact color="grey">{regionFilter.length} region</Label>
+                          <Tooltip content={`Region: ${regionFilter.join(', ')}`}>
+                            <Label isCompact color="grey">{regionFilter.length} region</Label>
+                          </Tooltip>
                         </FlexItem>
                       )}
                       {clusterFilter.length > 0 && (
                         <FlexItem>
-                          <Label isCompact color="grey">{clusterFilter.length} cluster</Label>
+                          <Tooltip content={`Cluster: ${clusterFilter.join(', ')}`}>
+                            <Label isCompact color="grey">{clusterFilter.length} cluster</Label>
+                          </Tooltip>
                         </FlexItem>
                       )}
                       {namespaceFilter.length > 0 && (
                         <FlexItem>
-                          <Label isCompact color="grey">{namespaceFilter.length} namespace</Label>
+                          <Tooltip content={`Namespace: ${namespaceFilter.join(', ')}`}>
+                            <Label isCompact color="grey">{namespaceFilter.length} namespace</Label>
+                          </Tooltip>
                         </FlexItem>
                       )}
                       {labelFilter.length > 0 && (
                         <FlexItem>
-                          <Label isCompact color="grey">{labelFilter.length} label</Label>
+                          <Tooltip content={`Label: ${labelFilter.join(', ')}`}>
+                            <Label isCompact color="grey">{labelFilter.length} label</Label>
+                          </Tooltip>
                         </FlexItem>
                       )}
                     </Flex>
@@ -11384,13 +11404,16 @@ spec:
                         <Checkbox 
                           id="save-search-input" 
                           label="Input in search field" 
-                          isChecked={!!searchValue}
+                          isChecked={saveSearchInput && !!searchValue}
                           isDisabled={!searchValue}
+                          onChange={(_, checked) => setSaveSearchInput(checked)}
                         />
                       </FlexItem>
                       {searchValue && (
                         <FlexItem>
-                          <Label isCompact color="grey">{searchValue}</Label>
+                          <Tooltip content={`Search value: "${searchValue}"`}>
+                            <Label isCompact color="grey">{searchValue}</Label>
+                          </Tooltip>
                         </FlexItem>
                       )}
                     </Flex>
@@ -11403,18 +11426,25 @@ spec:
                             <Checkbox 
                               id="save-grouping-sorting" 
                               label="Grouping and sorting view" 
-                              isChecked={true}
+                              isChecked={saveGroupingSorting}
+                              onChange={(_, checked) => setSaveGroupingSorting(checked)}
                             />
                           </FlexItem>
                           {/* Show current grouping/sorting settings */}
                           <FlexItem>
-                            <Label isCompact color="grey">Group by: {groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}</Label>
+                            <Tooltip content={`Current group by setting: ${groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}`}>
+                              <Label isCompact color="grey">Group by: {groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}</Label>
+                            </Tooltip>
                           </FlexItem>
                           <FlexItem>
-                            <Label isCompact color="grey">Size by: {importanceSizing === 'none' ? 'None (Equal size)' : importanceSizing === 'alert-count' ? 'Alert count' : 'Importance'}</Label>
+                            <Tooltip content={`Current size by setting: ${importanceSizing === 'none' ? 'None (Equal size)' : importanceSizing === 'alert-count' ? 'Alert count' : 'Importance'}`}>
+                              <Label isCompact color="grey">Size by: {importanceSizing === 'none' ? 'None (Equal size)' : importanceSizing === 'alert-count' ? 'Alert count' : 'Importance'}</Label>
+                            </Tooltip>
                           </FlexItem>
                           <FlexItem>
-                            <Label isCompact color="grey">Sort by: {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}</Label>
+                            <Tooltip content={`Current sort by setting: ${sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}`}>
+                              <Label isCompact color="grey">Sort by: {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}</Label>
+                            </Tooltip>
                           </FlexItem>
                         </Flex>
                       </StackItem>
@@ -11448,7 +11478,7 @@ spec:
                     group: groupFilter, 
                     component: componentFilter, 
                     source: [], 
-                    searchValue,
+                    searchValue: saveSearchInput ? searchValue : '',
                     region: regionFilter,
                     cluster: clusterFilter,
                     namespace: namespaceFilter,
@@ -11459,6 +11489,8 @@ spec:
                 setSelectedSavedFilter(newFilter);
                 setIsSaveFilterModalOpen(false);
                 setNewFilterName('');
+                setSaveGroupingSorting(true);
+                setSaveSearchInput(true);
                 addToast('Filter saved successfully', 'success');
               }
             }}
@@ -11466,7 +11498,12 @@ spec:
           >
             Save filter
           </Button>
-          <Button variant="link" onClick={() => setIsSaveFilterModalOpen(false)}>
+          <Button variant="link" onClick={() => {
+            setIsSaveFilterModalOpen(false);
+            setNewFilterName('');
+            setSaveGroupingSorting(true);
+            setSaveSearchInput(true);
+          }}>
             Cancel
           </Button>
         </ModalFooter>
