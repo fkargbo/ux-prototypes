@@ -181,6 +181,7 @@ import {
   SearchMinusIcon,
   UndoIcon,
   QuestionCircleIcon,
+  OutlinedQuestionCircleIcon,
   PauseCircleIcon,
   ExportIcon,
   EditAltIcon,
@@ -9203,7 +9204,7 @@ spec:
         {hasActiveFilters && (
         <div style={{ 
           marginTop: '16px', 
-          marginBottom: '16px',
+          marginBottom: '0px',
         }}>
             <Flex 
               gap={{ default: 'gapSm' }} 
@@ -11295,20 +11296,66 @@ spec:
         isOpen={isSaveFilterModalOpen}
         onClose={() => setIsSaveFilterModalOpen(false)}
       >
-        <ModalHeader title="Save current filters" />
+        <ModalHeader title="Save filter" />
         <ModalBody>
           <Stack hasGutter>
             <StackItem>
-              <Content component="p">Save the current filter configuration for quick access later.</Content>
+              <Content component="p">Filters will be saved for future use on your account.</Content>
             </StackItem>
             <StackItem>
-              <TextInputGroup>
-                <TextInputGroupMain
-                  placeholder="Enter filter name..."
-                  value={newFilterName}
-                  onChange={(_, value) => setNewFilterName(value)}
-                />
-              </TextInputGroup>
+              <FormGroup label="Filter name" isRequired>
+                <TextInputGroup>
+                  <TextInputGroupMain
+                    placeholder="Enter filter name..."
+                    value={newFilterName}
+                    onChange={(_, value) => setNewFilterName(value)}
+                  />
+                </TextInputGroup>
+              </FormGroup>
+            </StackItem>
+            <StackItem>
+              <FormGroup 
+                label={
+                  <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>Saved filter items</FlexItem>
+                    <FlexItem>
+                      <Tooltip content="Choose which filter settings to include when saving this filter">
+                        <Button variant="plain" style={{ padding: 0, minWidth: 'auto' }}>
+                          <OutlinedQuestionCircleIcon />
+                        </Button>
+                      </Tooltip>
+                    </FlexItem>
+                  </Flex>
+                }
+                isRequired
+              >
+                <Stack hasGutter>
+                  <StackItem>
+                    <Checkbox 
+                      id="save-selected-filters" 
+                      label="Selected filters only" 
+                      isChecked={true}
+                      isDisabled
+                    />
+                  </StackItem>
+                  <StackItem>
+                    <Checkbox 
+                      id="save-search-input" 
+                      label="Input in search field" 
+                      isChecked={!!searchValue}
+                      isDisabled={!searchValue}
+                    />
+                  </StackItem>
+                  <StackItem>
+                    <Checkbox 
+                      id="save-grouping-sorting" 
+                      label="Grouping and sorting view" 
+                      isChecked={true}
+                      isDisabled
+                    />
+                  </StackItem>
+                </Stack>
+              </FormGroup>
             </StackItem>
             <StackItem>
               <Content component="small" className="pf-v6-u-color-200">
@@ -11346,7 +11393,7 @@ spec:
             }}
             isDisabled={!newFilterName.trim()}
           >
-            Save
+            Save filter
           </Button>
           <Button variant="link" onClick={() => setIsSaveFilterModalOpen(false)}>
             Cancel
