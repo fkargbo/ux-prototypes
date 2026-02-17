@@ -11331,27 +11331,99 @@ spec:
               >
                 <Stack hasGutter>
                   <StackItem>
-                    <Checkbox 
-                      id="save-selected-filters" 
-                      label="Selected filters." 
-                      isChecked={true}
-                      isDisabled
-                    />
+                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
+                      <FlexItem>
+                        <Checkbox 
+                          id="save-selected-filters" 
+                          label="Selected filters" 
+                          isChecked={true}
+                          isDisabled
+                        />
+                      </FlexItem>
+                      {/* Show active filter counts as compact labels */}
+                      {severityFilter.length > 0 && (
+                        <FlexItem>
+                          <Label isCompact color="grey">{severityFilter.length} severity</Label>
+                        </FlexItem>
+                      )}
+                      {groupFilter.length > 0 && (
+                        <FlexItem>
+                          <Label isCompact color="grey">{groupFilter.length} group</Label>
+                        </FlexItem>
+                      )}
+                      {componentFilter.length > 0 && (
+                        <FlexItem>
+                          <Label isCompact color="grey">{componentFilter.length} component</Label>
+                        </FlexItem>
+                      )}
+                      {regionFilter.length > 0 && (
+                        <FlexItem>
+                          <Label isCompact color="grey">{regionFilter.length} region</Label>
+                        </FlexItem>
+                      )}
+                      {clusterFilter.length > 0 && (
+                        <FlexItem>
+                          <Label isCompact color="grey">{clusterFilter.length} cluster</Label>
+                        </FlexItem>
+                      )}
+                      {namespaceFilter.length > 0 && (
+                        <FlexItem>
+                          <Label isCompact color="grey">{namespaceFilter.length} namespace</Label>
+                        </FlexItem>
+                      )}
+                      {labelFilter.length > 0 && (
+                        <FlexItem>
+                          <Label isCompact color="grey">{labelFilter.length} label</Label>
+                        </FlexItem>
+                      )}
+                    </Flex>
                   </StackItem>
                   <StackItem>
-                    <Checkbox 
-                      id="save-search-input" 
-                      label="Input in search field" 
-                      isChecked={!!searchValue}
-                      isDisabled={!searchValue}
-                    />
+                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
+                      <FlexItem>
+                        <Checkbox 
+                          id="save-search-input" 
+                          label="Input in search field" 
+                          isChecked={!!searchValue}
+                          isDisabled={!searchValue}
+                        />
+                      </FlexItem>
+                      {searchValue && (
+                        <FlexItem>
+                          <Label isCompact color="grey">{searchValue}</Label>
+                        </FlexItem>
+                      )}
+                    </Flex>
                   </StackItem>
                   <StackItem>
-                    <Checkbox 
-                      id="save-grouping-sorting" 
-                      label="Grouping and sorting view" 
-                      isChecked={true}
-                    />
+                    <Stack hasGutter>
+                      <StackItem>
+                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
+                          <FlexItem>
+                            <Checkbox 
+                              id="save-grouping-sorting" 
+                              label="Grouping and sorting view" 
+                              isChecked={true}
+                            />
+                          </FlexItem>
+                          {/* Show current grouping/sorting settings */}
+                          <FlexItem>
+                            <Label isCompact color="grey">Group by: {groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}</Label>
+                          </FlexItem>
+                          <FlexItem>
+                            <Label isCompact color="grey">Size by: {importanceSizing === 'none' ? 'None (Equal size)' : importanceSizing === 'alert-count' ? 'Alert count' : 'Importance'}</Label>
+                          </FlexItem>
+                          <FlexItem>
+                            <Label isCompact color="grey">Sort by: {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}</Label>
+                          </FlexItem>
+                        </Flex>
+                      </StackItem>
+                      <StackItem>
+                        <Content component="small" className="pf-v6-u-color-200">
+                          Note: Some saved items apply only to specific views.
+                        </Content>
+                      </StackItem>
+                    </Stack>
                   </StackItem>
                 </Stack>
               </FormGroup>
