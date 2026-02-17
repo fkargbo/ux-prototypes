@@ -11456,8 +11456,14 @@ spec:
                             </Tooltip>
                           </FlexItem>
                           <FlexItem>
-                            <Tooltip content={`Current size by setting: ${importanceSizing === 'none' ? 'None (Equal size)' : importanceSizing === 'alert-count' ? 'Alert count' : 'Importance'}`}>
-                              <Label isCompact color="grey">Size by: {importanceSizing === 'none' ? 'None (Equal size)' : importanceSizing === 'alert-count' ? 'Alert count' : 'Importance'}</Label>
+                            <Tooltip content={`Current size by setting: ${
+                              importanceSizing === 'none' ? 'None (Equal size)' : 
+                              sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
+                            }`}>
+                              <Label isCompact color="grey">Size by: {
+                                importanceSizing === 'none' ? 'None (Equal size)' : 
+                                sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
+                              }</Label>
                             </Tooltip>
                           </FlexItem>
                           <FlexItem>
