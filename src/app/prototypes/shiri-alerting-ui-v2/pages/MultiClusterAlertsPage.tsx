@@ -292,6 +292,11 @@ interface SavedFilter {
     namespace?: string[];
     label?: string[];
   };
+  viewSettings?: {
+    groupBy?: GroupByOption;
+    sortBy?: SortByOption;
+    importanceSizing?: ImportanceSizing;
+  };
   hidden?: boolean;
 }
 
@@ -9135,6 +9140,20 @@ spec:
                           setNamespaceFilter(filter.filters.namespace || []);
                           setLabelFilter(filter.filters.label || []);
                           setSearchValue(filter.filters.searchValue || '');
+                          
+                          // Apply view settings if they exist
+                          if (filter.viewSettings) {
+                            if (filter.viewSettings.groupBy !== undefined) {
+                              setGroupBy(filter.viewSettings.groupBy);
+                            }
+                            if (filter.viewSettings.sortBy !== undefined) {
+                              setSortBy(filter.viewSettings.sortBy);
+                            }
+                            if (filter.viewSettings.importanceSizing !== undefined) {
+                              setImportanceSizing(filter.viewSettings.importanceSizing);
+                            }
+                          }
+                          
                           setIsSavedFiltersDropdownOpen(false);
                         }}
                       >
@@ -11484,6 +11503,13 @@ spec:
                     namespace: namespaceFilter,
                     label: labelFilter,
                   },
+                  ...(saveGroupingSorting && {
+                    viewSettings: {
+                      groupBy,
+                      sortBy,
+                      importanceSizing,
+                    }
+                  }),
                 };
                 setSavedFilters([...savedFilters, newFilter]);
                 setSelectedSavedFilter(newFilter);
