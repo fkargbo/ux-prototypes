@@ -11333,7 +11333,7 @@ spec:
                   <StackItem>
                     <Checkbox 
                       id="save-selected-filters" 
-                      label="Selected filters only" 
+                      label="Selected filters." 
                       isChecked={true}
                       isDisabled
                     />
@@ -11351,7 +11351,6 @@ spec:
                       id="save-grouping-sorting" 
                       label="Grouping and sorting view" 
                       isChecked={true}
-                      isDisabled
                     />
                   </StackItem>
                 </Stack>
