@@ -6530,6 +6530,7 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
       {selectedAnomaly && (() => {
         const anomalyData = trendData[selectedAnomaly.index];
         const topAlerts = anomalyData?.topAlerts || [];
+        const totalAlerts = anomalyData ? anomalyData.critical + anomalyData.warning + anomalyData.info : 0;
         
         return (
           <div
@@ -6567,7 +6568,7 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
                 <Stack hasGutter>
                   <StackItem>
                     <Content component="p">
-                      This spike represents an unusual increase in alert volume.
+                      <strong>Anomaly detected:</strong> {totalAlerts} alerts exceeds the historical baseline for this time period.
                     </Content>
                   </StackItem>
                   {topAlerts.length > 0 && (
