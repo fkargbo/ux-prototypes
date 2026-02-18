@@ -4817,23 +4817,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         return firstAlert?.description || '-';
                       case 'startTime':
                         return firstAlertInfo?.lastFired || '-';
-                      case 'flappingRate':
-                        const flappingData = generateFlappingEvents(agg.alertName, agg.severity);
-                        return (
-                          <FlappingRateChart
-                            alertName={agg.alertName}
-                            severity={agg.severity}
-                            events={flappingData.events}
-                            totalFlaps={flappingData.totalFlaps}
-                            onClick={() => {
-                              // Open alert details for a specific alert instance (not aggregated)
-                              // Get the first alert instance from the first cluster
-                              if (firstAlert) {
-                                onAlertClick(firstAlert, 1); // Open to timeline tab (eventKey=1)
-                              }
-                            }}
-                          />
-                        );
                       default:
                         return '-';
                     }
@@ -5260,17 +5243,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                       return alert.source || '-';
                                     case 'description':
                                       return alert.description || '-';
-                                    case 'flappingRate':
-                                      const flappingData = generateFlappingEvents(alert.alertName, alert.severity);
-                                      return (
-                                        <FlappingRateChart
-                                          alertName={alert.alertName}
-                                          severity={alert.severity}
-                                          events={flappingData.events}
-                                          totalFlaps={flappingData.totalFlaps}
-                                          onClick={() => onAlertClick(alert, 1)} // Open to timeline tab
-                                        />
-                                      );
                                     default:
                                       return '-';
                                   }
@@ -5378,17 +5350,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                             return alert.source || '-';
                           case 'description':
                             return alert.description || '-';
-                          case 'flappingRate':
-                            const flappingData = generateFlappingEvents(alert.alertName, alert.severity);
-                            return (
-                              <FlappingRateChart
-                                alertName={alert.alertName}
-                                severity={alert.severity}
-                                events={flappingData.events}
-                                totalFlaps={flappingData.totalFlaps}
-                                onClick={() => onAlertClick(alert, 1)} // Open to timeline tab
-                              />
-                            );
                           default:
                             return '-';
                         }
