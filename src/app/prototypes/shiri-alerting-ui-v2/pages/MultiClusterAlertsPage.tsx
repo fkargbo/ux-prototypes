@@ -205,9 +205,17 @@ type SortByOption = 'severity' | 'alertCount' | 'clusterName' | 'lastFired';
 type ViewMode = 'treemap' | 'summary';
 type ImportanceSizing = 'none' | 'nodeCount' | 'cpuCores' | 'totalMemory' | 'podCount' | 'vmCount' | 'totalAlerts' | 'cpuRequests' | 'memoryRequests';
 type UserRole = 'admin' | 'namespaceOwner';
+type SortDirection = 'asc' | 'desc';
 
 // V2: Three-tier navigation view states
 type NavigationView = 'fleet-overview' | 'cluster-components' | 'component-alerts';
+
+// Sorting configuration
+interface SortConfig {
+  column: 'alertName' | 'severity' | 'clusters' | 'total' | 'group' | 'component' | 'startTime';
+  direction: SortDirection;
+  priority: number; // Lower number = higher priority in multi-sort
+}
 
 // V2: Component health data structure
 interface ComponentHealthData {
@@ -3300,12 +3308,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   };
   
   // Sorting state - default multi-sort: Severity (primary), Alert scope (secondary), Component (tertiary)
-  type SortDirection = 'asc' | 'desc';
-  interface SortConfig {
-    column: 'alertName' | 'severity' | 'clusters' | 'total' | 'group' | 'component' | 'startTime';
-    direction: SortDirection;
-    priority: number; // Lower number = higher priority in multi-sort
-  }
   const [sortConfigs, setSortConfigs] = React.useState<SortConfig[]>([
     { column: 'severity', direction: 'asc', priority: 1 },
     { column: 'group', direction: 'asc', priority: 2 },

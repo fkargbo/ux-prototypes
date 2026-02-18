@@ -944,9 +944,9 @@ export const OverviewPage: React.FC = () => {
                                 <FlexItem flex={{ default: 'flex_1' }}>
                                   <Stack>
                                     <StackItem>
-                                      <Content component="strong" style={{ color: 'var(--pf-t--global--text--color--status--danger--default)' }}>
+                                      <strong style={{ color: 'var(--pf-t--global--text--color--status--danger--default)' }}>
                                         Anomaly detected 2 days ago
-                                      </Content>
+                                      </strong>
                                     </StackItem>
                                     <StackItem>
                                       <Content component="small" style={{ color: 'var(--pf-t--global--text--color--status--danger--default)' }}>
