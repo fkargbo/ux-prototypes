@@ -558,11 +558,20 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   </Select>
                 </FormGroup>
                 
-                {/* Alert group and Component */}
+                {/* Alert scope and Affected component */}
                 <Flex gap={{ default: 'gapMd' }}>
                   <FlexItem flex={{ default: 'flex_1' }}>
                     <FormGroup
-                      label="Alert group"
+                      label={
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <FlexItem>Alert scope</FlexItem>
+                          <FlexItem>
+                            <Tooltip content="Indicates whether the alert affects the entire cluster or a specific namespace.">
+                              <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                            </Tooltip>
+                          </FlexItem>
+                        </Flex>
+                      }
                       fieldId="alert-rule-group"
                     >
                       <Select
@@ -585,7 +594,16 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   </FlexItem>
                   <FlexItem flex={{ default: 'flex_1' }}>
                     <FormGroup
-                      label="Component"
+                      label={
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <FlexItem>Affected component</FlexItem>
+                          <FlexItem>
+                            <Tooltip content="The specific services, operators, or nodes affected by this alert.">
+                              <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                            </Tooltip>
+                          </FlexItem>
+                        </Flex>
+                      }
                       fieldId="alert-rule-component"
                     >
                       {/* Typeahead with creatable */}
@@ -643,11 +661,6 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     </FormGroup>
                   </FlexItem>
                 </Flex>
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem>The high-level impact group and component area the alert relates to</HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
                 
                 {/* Append to */}
                 <FormGroup
@@ -1218,11 +1231,11 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Group</DescriptionListTerm>
+                    <DescriptionListTerm>Alert scope</DescriptionListTerm>
                     <DescriptionListDescription>{alertRuleGroup}</DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Component</DescriptionListTerm>
+                    <DescriptionListTerm>Affected component</DescriptionListTerm>
                     <DescriptionListDescription>{alertRuleComponent || 'etcd'}</DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
