@@ -276,6 +276,7 @@ interface TrendData {
   critical: number;
   warning: number;
   info: number;
+  topAlerts?: string[];
 }
 
 interface ColumnConfig {
@@ -631,7 +632,7 @@ const mockTrendData: TrendData[] = [
   { timestamp: '5h ago', critical: 4, warning: 15, info: 10 },
   { timestamp: '4h ago', critical: 7, warning: 11, info: 6 },
   { timestamp: '3h ago', critical: 3, warning: 18, info: 9 },
-  { timestamp: '2h ago', critical: 28, warning: 45, info: 23 }, // Anomaly spike - 96 total (300% increase from baseline)
+  { timestamp: '2h ago', critical: 28, warning: 45, info: 23, topAlerts: ['EtcdMembersDown', 'KubeAPILatencyHigh', 'NodeMemoryPressure'] }, // Anomaly spike - 96 total (300% increase from baseline)
   { timestamp: '1h ago', critical: 4, warning: 10, info: 5 },
   { timestamp: 'Now', critical: 5, warning: 8, info: 4 },
 ];
@@ -6223,6 +6224,24 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
       borderColor: '#d2d2d2',
       borderWidth: 1,
       textStyle: { color: '#151515', fontFamily: 'RedHatText, sans-serif' },
+      formatter: (params: any) => {
+        const dataIndex = params[0].dataIndex;
+        const dataPoint = trendData[dataIndex];
+        let content = `<strong>${dataPoint.timestamp}</strong><br/>`;
+        params.forEach((param: any) => {
+          if (param.seriesName !== 'Anomaly') {
+            content += `${param.marker} ${param.seriesName}: ${param.value}<br/>`;
+          }
+        });
+        if (dataPoint.topAlerts && dataPoint.topAlerts.length > 0) {
+          content += `<br/><strong style="color: #c9190b;">⚠️ Anomaly detected</strong><br/>`;
+          content += `<strong>Top contributing alerts:</strong><br/>`;
+          dataPoint.topAlerts.forEach((alert, idx) => {
+            content += `${idx + 1}. ${alert}<br/>`;
+          });
+        }
+        return content;
+      }
     },
     legend: {
       data: ['Critical', 'Warning', 'Info'],
@@ -6352,12 +6371,45 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
       </CardHeader>
       <CardBody>
         <Stack hasGutter>
-          {hasAnomaly && (
+          {hasAnomaly && mostSignificantAnomaly && (
             <StackItem>
-              <PfAlert variant="warning" isInline title="Anomaly detected" style={{ marginBottom: '16px' }}>
-                <Content component="p">
-                  Unusual spike detected in alert volume. Click on the highlighted point in the chart to investigate.
-                </Content>
+              <PfAlert 
+                variant="warning" 
+                isInline 
+                title={`Anomaly detected at ${mostSignificantAnomaly.timestamp}`}
+              >
+                <Stack hasGutter>
+                  <StackItem>
+                    <Content component="p">
+                      Unusual spike detected in alert volume. Click on the highlighted point in the chart to investigate.
+                    </Content>
+                  </StackItem>
+                  {trendData[mostSignificantAnomaly.index]?.topAlerts && (
+                    <StackItem>
+                      <Content component="p">
+                        <strong>Top contributing alerts:</strong>
+                      </Content>
+                      <Flex gap={{ default: 'gapSm' }} style={{ marginTop: '8px' }}>
+                        {trendData[mostSignificantAnomaly.index].topAlerts!.map((alert, idx) => (
+                          <FlexItem key={idx}>
+                            <Label 
+                              color="red" 
+                              isCompact
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => {
+                                // Navigate to alerts page with filter
+                                const anomaly = trendData[mostSignificantAnomaly.index];
+                                setSelectedAnomaly({ timestamp: anomaly.timestamp, index: mostSignificantAnomaly.index });
+                              }}
+                            >
+                              {idx + 1}. {alert}
+                            </Label>
+                          </FlexItem>
+                        ))}
+                      </Flex>
+                    </StackItem>
+                  )}
+                </Stack>
               </PfAlert>
             </StackItem>
           )}
@@ -6371,15 +6423,6 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
               />
             </div>
           </StackItem>
-          {mostSignificantAnomaly && (
-            <StackItem>
-              <PfAlert variant="info" isInline title="Trends Insights">
-                <Content component="p">
-                  Volume increased {mostSignificantAnomaly.increase}% at {mostSignificantAnomaly.timestamp}. Major clusters Prod-01 and Stage-02 report Disk Pressure.
-                </Content>
-              </PfAlert>
-            </StackItem>
-          )}
         </Stack>
       </CardBody>
       
