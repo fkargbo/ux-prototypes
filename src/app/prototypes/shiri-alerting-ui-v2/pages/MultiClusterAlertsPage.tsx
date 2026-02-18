@@ -3320,21 +3320,32 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     setSortConfigs(prevConfigs => {
       const existingConfig = prevConfigs.find(c => c.column === column);
       if (existingConfig) {
-        // Toggle direction continuously: asc → desc → asc
-        if (existingConfig.direction === 'asc') {
-          return prevConfigs.map(c => 
-            c.column === column ? { ...c, direction: 'desc' as SortDirection } : c
-          );
+        // If clicking the current primary sort (priority 1), toggle direction
+        if (existingConfig.priority === 1) {
+          if (existingConfig.direction === 'asc') {
+            return prevConfigs.map(c => 
+              c.column === column ? { ...c, direction: 'desc' as SortDirection } : c
+            );
+          } else {
+            return prevConfigs.map(c => 
+              c.column === column ? { ...c, direction: 'asc' as SortDirection } : c
+            );
+          }
         } else {
-          // Cycle back to asc instead of removing
-          return prevConfigs.map(c => 
-            c.column === column ? { ...c, direction: 'asc' as SortDirection } : c
-          );
+          // Make this column the primary sort (priority 1), shift others down
+          return [
+            { column, direction: existingConfig.direction, priority: 1 },
+            ...prevConfigs
+              .filter(c => c.column !== column)
+              .map(c => ({ ...c, priority: c.priority + 1 }))
+          ];
         }
       } else {
-        // Add new column with lowest priority
-        const maxPriority = prevConfigs.length > 0 ? Math.max(...prevConfigs.map(c => c.priority)) : 0;
-        return [...prevConfigs, { column, direction: 'asc' as SortDirection, priority: maxPriority + 1 }];
+        // Add new column as primary sort (priority 1), shift others down
+        return [
+          { column, direction: 'asc' as SortDirection, priority: 1 },
+          ...prevConfigs.map(c => ({ ...c, priority: c.priority + 1 }))
+        ];
       }
     });
     setPage(1);
