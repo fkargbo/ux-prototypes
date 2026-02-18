@@ -3357,7 +3357,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     { key: 'source', label: 'Source', isVisible: true, isLocked: false, order: 7 },
     { key: 'description', label: 'Description (in: alert)', isVisible: false, isLocked: false, order: 8 },
     { key: 'startTime', label: 'Firing since', isVisible: false, isLocked: false, order: 9 },
-    { key: 'flappingRate', label: 'Flapping rate', isVisible: true, isLocked: false, order: 10 },
   ]);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
   const [tempColumns, setTempColumns] = React.useState<ColumnConfig[]>([]);
@@ -7183,6 +7182,30 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [drillDownPage, setDrillDownPage] = React.useState(1);
   const [drillDownPerPage, setDrillDownPerPage] = React.useState(20);
 
+  // Drill-down sort configuration
+  const [drillDownSortConfigs, setDrillDownSortConfigs] = React.useState<SortConfig[]>([]);
+
+  const handleDrillDownSort = (column: SortConfig['column']) => {
+    setDrillDownSortConfigs(prevConfigs => {
+      const existingConfig = prevConfigs.find(c => c.column === column);
+      if (existingConfig) {
+        if (existingConfig.direction === 'asc') {
+          return prevConfigs.map(c => 
+            c.column === column ? { ...c, direction: 'desc' as SortDirection } : c
+          );
+        } else {
+          return prevConfigs.map(c => 
+            c.column === column ? { ...c, direction: 'asc' as SortDirection } : c
+          );
+        }
+      } else {
+        const maxPriority = prevConfigs.length > 0 ? Math.max(...prevConfigs.map(c => c.priority)) : 0;
+        return [...prevConfigs, { column, direction: 'asc' as SortDirection, priority: maxPriority + 1 }];
+      }
+    });
+    setDrillDownPage(1);
+  };
+
   // Column management
   const defaultColumns: ColumnConfig[] = [
     { key: 'alertName', label: 'Alert Name', isVisible: true, isDisabled: true, order: 0 },
@@ -7491,14 +7514,43 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       grouped[key].alerts.push(alert);
       grouped[key].count++;
     });
-    return Object.entries(grouped).map(([key, data]) => ({
+    let result = Object.entries(grouped).map(([key, data]) => ({
       key,
       alertName: data.alerts[0].alertName,
       severity: data.severity,
       count: data.count,
       alerts: data.alerts,
     }));
-  }, [drillDownFilteredAlerts]);
+
+    // Apply sorting
+    if (drillDownSortConfigs.length > 0) {
+      result = [...result].sort((a, b) => {
+        for (const config of drillDownSortConfigs.sort((c1, c2) => c1.priority - c2.priority)) {
+          let comparison = 0;
+          
+          switch (config.column) {
+            case 'total':
+              comparison = a.count - b.count;
+              break;
+            case 'severity':
+              const severityOrder = { 'Critical': 3, 'Warning': 2, 'Info': 1 };
+              comparison = (severityOrder[a.severity] || 0) - (severityOrder[b.severity] || 0);
+              break;
+            case 'alertName':
+              comparison = a.alertName.localeCompare(b.alertName);
+              break;
+          }
+          
+          if (comparison !== 0) {
+            return config.direction === 'asc' ? comparison : -comparison;
+          }
+        }
+        return 0;
+      });
+    }
+
+    return result;
+  }, [drillDownFilteredAlerts, drillDownSortConfigs]);
 
   // Handlers
   // V2: Click on cluster in treemap/table - navigate directly to firing alerts filtered by cluster
@@ -8499,7 +8551,20 @@ spec:
                                     {isAggregated && <Th screenReaderText="Expand" />}
                                     <Th>Severity</Th>
                                     <Th>Alert Name</Th>
-                                    {isAggregated && columns.find(c => c.key === 'total')?.isVisible && <Th>Total</Th>}
+                                    {isAggregated && columns.find(c => c.key === 'total')?.isVisible && (
+                                      <Th
+                                        sort={{
+                                          sortBy: {
+                                            index: drillDownSortConfigs.findIndex(c => c.column === 'total'),
+                                            direction: drillDownSortConfigs.find(c => c.column === 'total')?.direction || 'asc'
+                                          },
+                                          onSort: () => handleDrillDownSort('total'),
+                                          columnIndex: 3
+                                        }}
+                                      >
+                                        Total
+                                      </Th>
+                                    )}
                                     {columns.find(c => c.key === 'state')?.isVisible && <Th>State</Th>}
                                     {columns.find(c => c.key === 'group')?.isVisible && <Th>Alert scope</Th>}
                                     {columns.find(c => c.key === 'component')?.isVisible && <Th>Component</Th>}

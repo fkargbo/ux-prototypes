@@ -111,6 +111,11 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
   // Step 1: Alert rules definition
   const [alertRuleName, setAlertRuleName] = React.useState('');
   const [alertRuleExpression, setAlertRuleExpression] = React.useState('');
+  const [isQueryValidating, setIsQueryValidating] = React.useState(false);
+  const [queryValidationResult, setQueryValidationResult] = React.useState<{
+    status: 'success' | 'error' | null;
+    message: string;
+  }>({ status: null, message: '' });
   const [alertRuleFireImmediately, setAlertRuleFireImmediately] = React.useState(false);
   const [alertRuleForDuration, setAlertRuleForDuration] = React.useState(1);
   const [alertRuleForUnit, setAlertRuleForUnit] = React.useState<'Seconds' | 'Minutes' | 'Hours'>('Seconds');
@@ -309,14 +314,93 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   isRequired
                   fieldId="alert-rule-expression"
                 >
-                  <TextArea
-                    id="alert-rule-expression"
-                    value={alertRuleExpression}
-                    onChange={(_, value) => setAlertRuleExpression(value)}
-                    placeholder="sum(etcd_server_has_leader) by (cluster) < count(etcd_server_has_leader) | | by (cluster)"
-                    rows={4}
-                    style={{ fontFamily: 'monospace' }}
-                  />
+                  <Stack hasGutter>
+                    <StackItem>
+                      <TextArea
+                        id="alert-rule-expression"
+                        value={alertRuleExpression}
+                        onChange={(_, value) => {
+                          setAlertRuleExpression(value);
+                          // Clear validation when user types
+                          if (queryValidationResult.status) {
+                            setQueryValidationResult({ status: null, message: '' });
+                          }
+                        }}
+                        placeholder="sum(etcd_server_has_leader) by (cluster) < count(etcd_server_has_leader) || by (cluster)"
+                        rows={4}
+                        style={{ fontFamily: 'monospace' }}
+                        validated={queryValidationResult.status === 'error' ? 'error' : queryValidationResult.status === 'success' ? 'success' : 'default'}
+                      />
+                    </StackItem>
+                    <StackItem>
+                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <FlexItem>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            isDisabled={!alertRuleExpression.trim() || isQueryValidating}
+                            isLoading={isQueryValidating}
+                            onClick={() => {
+                              setIsQueryValidating(true);
+                              // Simulate query validation
+                              setTimeout(() => {
+                                // Simple validation: check for common syntax issues
+                                const expr = alertRuleExpression.trim();
+                                if (expr.includes('|||') || expr.match(/\(\s*\)/)) {
+                                  setQueryValidationResult({
+                                    status: 'error',
+                                    message: 'Invalid PromQL syntax detected'
+                                  });
+                                } else if (!expr) {
+                                  setQueryValidationResult({
+                                    status: 'error',
+                                    message: 'Expression cannot be empty'
+                                  });
+                                } else {
+                                  setQueryValidationResult({
+                                    status: 'success',
+                                    message: 'Query syntax is valid'
+                                  });
+                                }
+                                setIsQueryValidating(false);
+                              }, 800);
+                            }}
+                          >
+                            {isQueryValidating ? 'Validating...' : 'Run query'}
+                          </Button>
+                        </FlexItem>
+                        {queryValidationResult.status && (
+                          <FlexItem>
+                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              {queryValidationResult.status === 'success' ? (
+                                <>
+                                  <FlexItem>
+                                    <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+                                  </FlexItem>
+                                  <FlexItem>
+                                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--status--success--default)' }}>
+                                      {queryValidationResult.message}
+                                    </Content>
+                                  </FlexItem>
+                                </>
+                              ) : (
+                                <>
+                                  <FlexItem>
+                                    <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--danger--default)' }} />
+                                  </FlexItem>
+                                  <FlexItem>
+                                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--status--danger--default)' }}>
+                                      {queryValidationResult.message}
+                                    </Content>
+                                  </FlexItem>
+                                </>
+                              )}
+                            </Flex>
+                          </FlexItem>
+                        )}
+                      </Flex>
+                    </StackItem>
+                  </Stack>
                 </FormGroup>
                 
                 {/* Fire alert options */}
