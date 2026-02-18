@@ -1725,20 +1725,21 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
             const status = getStatusText(cluster);
             
             // Determine icon and text style based on severity
+            // Icons match PatternFly icon usage: ExclamationCircleIcon, ExclamationTriangleIcon, InfoCircleIcon, CheckCircleIcon
             let icon = '';
             let stylePrefix = '';
             
             if (status === 'Critical') {
-              icon = '⚠'; // Warning triangle for Critical
+              icon = '!'; // Exclamation mark for Critical (matches ExclamationCircleIcon)
               stylePrefix = 'critical';
             } else if (status === 'Warning') {
-              icon = '⚠'; // Warning triangle for Warning
+              icon = '⚠'; // Warning triangle for Warning (matches ExclamationTriangleIcon)
               stylePrefix = 'warning';
             } else if (status === 'Info') {
-              icon = 'ℹ'; // Info circle for Info
+              icon = 'ℹ'; // Info symbol for Info (matches InfoCircleIcon)
               stylePrefix = 'info';
             } else {
-              icon = '✓'; // Checkmark for Healthy
+              icon = '✓'; // Checkmark for Healthy (matches CheckCircleIcon)
               stylePrefix = 'healthy';
             }
             
@@ -11628,7 +11629,7 @@ spec:
                           <FlexItem>
                             <Checkbox 
                               id="save-grouping-sorting" 
-                              label="Grouping and sorting view" 
+                              label="Include layout settings" 
                               isChecked={saveGroupingSorting}
                               onChange={(_, checked) => setSaveGroupingSorting(checked)}
                             />
