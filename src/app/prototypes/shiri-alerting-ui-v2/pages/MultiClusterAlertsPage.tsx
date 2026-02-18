@@ -6527,74 +6527,113 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
       </CardBody>
       
       {/* Popover-style floating card for anomaly details */}
-      {selectedAnomaly && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 9999,
-            maxWidth: '400px',
-            backgroundColor: 'var(--pf-t--global--background--color--primary--default, #fff)',
-            border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
-            borderRadius: 'var(--pf-t--global--border--radius--medium, 8px)',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-          }}
-        >
-          <Card isPlain>
-            <CardHeader>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem>
-                  <CardTitle>Anomaly at {selectedAnomaly.timestamp}</CardTitle>
-                </FlexItem>
-                <FlexItem>
-                  <Button 
-                    variant="plain" 
-                    aria-label="Close"
-                    onClick={() => setSelectedAnomaly(null)}
-                  >
-                    <TimesIcon />
-                  </Button>
-                </FlexItem>
-              </Flex>
-            </CardHeader>
-            <CardBody>
-              <Stack hasGutter>
-                <StackItem>
-                  <Content component="p">
-                    This spike represents an unusual increase in alert volume.
-                  </Content>
-                </StackItem>
-                <StackItem>
-                  <Button 
-                    variant="link" 
-                    isInline
-                    onClick={() => {
-                      setSelectedAnomaly(null);
-                      // Navigate to alert details
-                    }}
-                  >
-                    View alert details →
-                  </Button>
-                </StackItem>
-                <StackItem>
-                  <Button 
-                    variant="link" 
-                    isInline
-                    onClick={() => {
-                      setSelectedAnomaly(null);
-                      // Navigate to incidents tab
-                    }}
-                  >
-                    Review in Incidents tab →
-                  </Button>
-                </StackItem>
-              </Stack>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+      {selectedAnomaly && (() => {
+        const anomalyData = trendData[selectedAnomaly.index];
+        const topAlerts = anomalyData?.topAlerts || [];
+        
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 9999,
+              maxWidth: '400px',
+              backgroundColor: 'var(--pf-t--global--background--color--primary--default, #fff)',
+              border: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
+              borderRadius: 'var(--pf-t--global--border--radius--medium, 8px)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+            }}
+          >
+            <Card isPlain>
+              <CardHeader>
+                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                  <FlexItem>
+                    <CardTitle>Anomaly at {selectedAnomaly.timestamp}</CardTitle>
+                  </FlexItem>
+                  <FlexItem>
+                    <Button 
+                      variant="plain" 
+                      aria-label="Close"
+                      onClick={() => setSelectedAnomaly(null)}
+                    >
+                      <TimesIcon />
+                    </Button>
+                  </FlexItem>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <Stack hasGutter>
+                  <StackItem>
+                    <Content component="p">
+                      This spike represents an unusual increase in alert volume.
+                    </Content>
+                  </StackItem>
+                  {topAlerts.length > 0 && (
+                    <StackItem>
+                      <Stack hasGutter>
+                        <StackItem>
+                          <Content component="p">
+                            <strong>Top contributing alerts:</strong>
+                          </Content>
+                        </StackItem>
+                        <StackItem>
+                          <Stack hasGutter>
+                            {topAlerts.map((alertName, idx) => (
+                              <StackItem key={idx}>
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <FlexItem>
+                                    <Label color="red" isCompact>
+                                      {idx + 1}
+                                    </Label>
+                                  </FlexItem>
+                                  <FlexItem>
+                                    <Content component="p" style={{ fontWeight: 500 }}>
+                                      {alertName}
+                                    </Content>
+                                  </FlexItem>
+                                </Flex>
+                              </StackItem>
+                            ))}
+                          </Stack>
+                        </StackItem>
+                      </Stack>
+                    </StackItem>
+                  )}
+                  <StackItem>
+                    <Button 
+                      variant="link" 
+                      isInline
+                      onClick={() => {
+                        setSelectedAnomaly(null);
+                        // Navigate to alert details - could filter by these specific alerts
+                      }}
+                    >
+                      {topAlerts.length > 0 
+                        ? `View ${topAlerts.length} contributing alert${topAlerts.length > 1 ? 's' : ''} →`
+                        : 'View alert details →'
+                      }
+                    </Button>
+                  </StackItem>
+                  <StackItem>
+                    <Button 
+                      variant="link" 
+                      isInline
+                      onClick={() => {
+                        setSelectedAnomaly(null);
+                        // Navigate to incidents tab
+                      }}
+                    >
+                      Review in Incidents tab →
+                    </Button>
+                  </StackItem>
+                </Stack>
+              </CardBody>
+            </Card>
+          </div>
+        );
+      })()}
       
       {/* Backdrop overlay when popover is open */}
       {selectedAnomaly && (
