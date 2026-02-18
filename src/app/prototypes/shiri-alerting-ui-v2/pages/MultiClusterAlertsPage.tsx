@@ -4329,7 +4329,18 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                 <Th screenReaderText="Expand" />
                                 <Th>Alert name</Th>
                                 <Th>Severity</Th>
-                                <Th>Total</Th>
+                                <Th
+                                  sort={{
+                                    sortBy: {
+                                      index: sortConfigs.findIndex(c => c.column === 'total'),
+                                      direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
+                                    },
+                                    onSort: () => handleSort('total'),
+                                    columnIndex: 3
+                                  }}
+                                >
+                                  Total
+                                </Th>
                                 <Th>Clusters</Th>
                                 <Th>Alert scope</Th>
                               </Tr>
@@ -4538,7 +4549,18 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               <Th screenReaderText="Expand" />
                               <Th>Alert name</Th>
                               <Th>Severity</Th>
-                              <Th>Total</Th>
+                              <Th
+                                sort={{
+                                  sortBy: {
+                                    index: sortConfigs.findIndex(c => c.column === 'total'),
+                                    direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
+                                  },
+                                  onSort: () => handleSort('total'),
+                                  columnIndex: 3
+                                }}
+                              >
+                                Total
+                              </Th>
                               <Th>Clusters</Th>
                               <Th>Alert scope</Th>
                               <Th>Component</Th>
@@ -4883,14 +4905,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                       {!singleClusterView && <Th>Cluster</Th>}
                                       <Th>Namespace</Th>
                                       <Th>Resource</Th>
-                                      <Th 
-                                        info={{
-                                          tooltip: "Total number of status transitions (Firing ↔ Resolved) in the last 24 hours. High counts indicate \"flapping.\"",
-                                          ariaLabel: "More information about flapping rate"
-                                        }}
-                                      >
-                                        Flapping rate
-                                      </Th>
                                       {columns.find(c => c.key === 'description')?.isVisible && <Th>Description</Th>}
                                     </Tr>
                                   </Thead>

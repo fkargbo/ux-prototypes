@@ -243,21 +243,25 @@ export const OverviewPage: React.FC = () => {
       .slice(0, 5);
   }, [allFiringAlerts, severityTabFilter]);
 
-  // Alerts timeline data (last 7 days)
+  // Alerts timeline data (last 7 days) - with anomaly spike
   const alertsTimelineData = React.useMemo(() => {
     const days = 7;
-    const data: { date: string; critical: number; warning: number; info: number }[] = [];
+    const data: { date: string; critical: number; warning: number; info: number; isAnomaly?: boolean; topAlerts?: string[] }[] = [];
     
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       
-      // Simulate historical data
+      // Add anomaly spike at 2 days ago (index 5)
+      const isAnomalyDay = i === 2;
+      
       data.push({
         date: dateStr,
-        critical: Math.floor(Math.random() * 8) + (i === 0 ? criticalAlerts : 0),
-        warning: Math.floor(Math.random() * 12) + (i === 0 ? warningAlerts : 0),
-        info: Math.floor(Math.random() * 15) + (i === 0 ? infoAlerts : 0),
+        critical: isAnomalyDay ? 28 : Math.floor(Math.random() * 8) + (i === 0 ? criticalAlerts : 0),
+        warning: isAnomalyDay ? 45 : Math.floor(Math.random() * 12) + (i === 0 ? warningAlerts : 0),
+        info: isAnomalyDay ? 32 : Math.floor(Math.random() * 15) + (i === 0 ? infoAlerts : 0),
+        isAnomaly: isAnomalyDay,
+        topAlerts: isAnomalyDay ? ['EtcdMembersDown', 'KubeAPILatencyHigh', 'NodeMemoryPressure'] : undefined,
       });
     }
     
@@ -326,9 +330,27 @@ export const OverviewPage: React.FC = () => {
     }],
   });
 
-  // Alerts timeline chart
+  // Alerts timeline chart with anomaly detection
   const alertsTimelineOption = {
-    tooltip: { trigger: 'axis' },
+    tooltip: { 
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const dataIndex = params[0].dataIndex;
+        const dataPoint = alertsTimelineData[dataIndex];
+        let content = `<strong>${dataPoint.date}</strong><br/>`;
+        params.forEach((param: any) => {
+          content += `${param.marker} ${param.seriesName}: ${param.value}<br/>`;
+        });
+        if (dataPoint.isAnomaly && dataPoint.topAlerts) {
+          content += `<br/><strong style="color: var(--pf-t--global--color--status--danger--default);">⚠️ Anomaly detected</strong><br/>`;
+          content += `<strong>Top contributing alerts:</strong><br/>`;
+          dataPoint.topAlerts.forEach((alert, idx) => {
+            content += `${idx + 1}. ${alert}<br/>`;
+          });
+        }
+        return content;
+      }
+    },
     legend: { 
       data: ['Critical', 'Warning', 'Info'],
       right: 0,
@@ -347,11 +369,65 @@ export const OverviewPage: React.FC = () => {
       axisLine: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
       axisLabel: { color: 'var(--pf-t--global--text--color--subtle)' },
       splitLine: { lineStyle: { color: 'var(--pf-t--global--border--color--default)', type: 'dashed' } },
+      // Add marker line for anomaly threshold
+      markLine: alertsTimelineData.some(d => d.isAnomaly) ? {
+        silent: true,
+        lineStyle: { type: 'dashed', color: 'var(--pf-t--global--color--status--danger--default)', width: 1 },
+        data: [{ yAxis: 50, label: { show: false } }],
+      } : undefined,
     },
     series: [
-      { name: 'Critical', type: 'line', stack: 'Total', areaStyle: {}, emphasis: { focus: 'series' }, data: alertsTimelineData.map(d => d.critical), itemStyle: { color: 'var(--pf-t--global--color--status--danger--default)' } },
-      { name: 'Warning', type: 'line', stack: 'Total', areaStyle: {}, emphasis: { focus: 'series' }, data: alertsTimelineData.map(d => d.warning), itemStyle: { color: 'var(--pf-t--global--color--status--warning--default)' } },
-      { name: 'Info', type: 'line', stack: 'Total', areaStyle: {}, emphasis: { focus: 'series' }, data: alertsTimelineData.map(d => d.info), itemStyle: { color: 'var(--pf-t--global--color--status--info--default)' } },
+      { 
+        name: 'Critical', 
+        type: 'line', 
+        stack: 'Total', 
+        areaStyle: {}, 
+        emphasis: { focus: 'series' }, 
+        data: alertsTimelineData.map((d, idx) => ({
+          value: d.critical,
+          itemStyle: d.isAnomaly ? { 
+            borderWidth: 3,
+            borderColor: 'var(--pf-t--global--color--status--danger--default)',
+            shadowBlur: 10,
+            shadowColor: 'var(--pf-t--global--color--status--danger--default)'
+          } : {}
+        })), 
+        itemStyle: { color: 'var(--pf-t--global--color--status--danger--default)' },
+      },
+      { 
+        name: 'Warning', 
+        type: 'line', 
+        stack: 'Total', 
+        areaStyle: {}, 
+        emphasis: { focus: 'series' }, 
+        data: alertsTimelineData.map((d, idx) => ({
+          value: d.warning,
+          itemStyle: d.isAnomaly ? { 
+            borderWidth: 3,
+            borderColor: 'var(--pf-t--global--color--status--warning--default)',
+            shadowBlur: 10,
+            shadowColor: 'var(--pf-t--global--color--status--warning--default)'
+          } : {}
+        })), 
+        itemStyle: { color: 'var(--pf-t--global--color--status--warning--default)' },
+      },
+      { 
+        name: 'Info', 
+        type: 'line', 
+        stack: 'Total', 
+        areaStyle: {}, 
+        emphasis: { focus: 'series' }, 
+        data: alertsTimelineData.map((d, idx) => ({
+          value: d.info,
+          itemStyle: d.isAnomaly ? { 
+            borderWidth: 3,
+            borderColor: 'var(--pf-t--global--color--status--info--default)',
+            shadowBlur: 10,
+            shadowColor: 'var(--pf-t--global--color--status--info--default)'
+          } : {}
+        })), 
+        itemStyle: { color: 'var(--pf-t--global--color--status--info--default)' },
+      },
     ],
   };
 
@@ -821,30 +897,92 @@ export const OverviewPage: React.FC = () => {
                       </Grid>
                     </GridItem>
 
-                    {/* Alerts timeline */}
+                    {/* Alert velocity & trends */}
                     <GridItem md={7}>
                       <Card isPlain style={{ border: '1px solid var(--pf-t--global--border--color--default)', borderRadius: '8px', padding: '16px' }}>
-                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '8px' }}>
-                          <Content component="p"><strong>Alerts timeline</strong></Content>
-                          <Dropdown
-                            isOpen={isTimeRangeOpen}
-                            onOpenChange={setIsTimeRangeOpen}
-                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                              <MenuToggle ref={toggleRef} onClick={() => setIsTimeRangeOpen(!isTimeRangeOpen)} isExpanded={isTimeRangeOpen}>
-                                {alertsTimeRange}
-                              </MenuToggle>
-                            )}
-                          >
-                            <DropdownList>
-                              {['Last 24 hours', 'Last 7 days', 'Last 30 days'].map(range => (
-                                <DropdownItem key={range} onClick={() => { setAlertsTimeRange(range); setIsTimeRangeOpen(false); }}>
-                                  {range}
-                                </DropdownItem>
-                              ))}
-                            </DropdownList>
-                          </Dropdown>
-                        </Flex>
-                        <ReactECharts option={alertsTimelineOption} style={{ height: '200px' }} />
+                        <Stack hasGutter>
+                          <StackItem>
+                            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+                              <Content component="p"><strong>Alert velocity & trends</strong></Content>
+                              <Dropdown
+                                isOpen={isTimeRangeOpen}
+                                onOpenChange={setIsTimeRangeOpen}
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle ref={toggleRef} onClick={() => setIsTimeRangeOpen(!isTimeRangeOpen)} isExpanded={isTimeRangeOpen}>
+                                    {alertsTimeRange}
+                                  </MenuToggle>
+                                )}
+                              >
+                                <DropdownList>
+                                  {['Last 24 hours', 'Last 7 days', 'Last 30 days'].map(range => (
+                                    <DropdownItem key={range} onClick={() => { setAlertsTimeRange(range); setIsTimeRangeOpen(false); }}>
+                                      {range}
+                                    </DropdownItem>
+                                  ))}
+                                </DropdownList>
+                              </Dropdown>
+                            </Flex>
+                          </StackItem>
+                          <StackItem>
+                            <ReactECharts option={alertsTimelineOption} style={{ height: '200px' }} />
+                          </StackItem>
+                          {alertsTimelineData.some(d => d.isAnomaly) && (
+                            <StackItem>
+                              <Flex 
+                                gap={{ default: 'gapSm' }} 
+                                alignItems={{ default: 'alignItemsCenter' }}
+                                style={{ 
+                                  padding: '12px',
+                                  backgroundColor: 'var(--pf-t--global--background--color--status--danger--default)',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--pf-t--global--border--color--status--danger--default)'
+                                }}
+                              >
+                                <FlexItem>
+                                  <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--icon--color--status--danger--default)' }} />
+                                </FlexItem>
+                                <FlexItem flex={{ default: 'flex_1' }}>
+                                  <Stack>
+                                    <StackItem>
+                                      <Content component="strong" style={{ color: 'var(--pf-t--global--text--color--status--danger--default)' }}>
+                                        Anomaly detected 2 days ago
+                                      </Content>
+                                    </StackItem>
+                                    <StackItem>
+                                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--status--danger--default)' }}>
+                                        Top contributing alerts:
+                                      </Content>
+                                      <Flex gap={{ default: 'gapSm' }} style={{ marginTop: '4px' }}>
+                                        {alertsTimelineData.find(d => d.isAnomaly)?.topAlerts?.map((alert, idx) => (
+                                          <FlexItem key={idx}>
+                                            <Label 
+                                              color="red" 
+                                              isCompact
+                                              onClick={() => navigateToAlerts({})}
+                                              style={{ cursor: 'pointer' }}
+                                            >
+                                              {idx + 1}. {alert}
+                                            </Label>
+                                          </FlexItem>
+                                        ))}
+                                      </Flex>
+                                    </StackItem>
+                                  </Stack>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button 
+                                    variant="link" 
+                                    isDanger 
+                                    isInline 
+                                    onClick={() => navigateToAlerts({})}
+                                  >
+                                    View details
+                                  </Button>
+                                </FlexItem>
+                              </Flex>
+                            </StackItem>
+                          )}
+                        </Stack>
                       </Card>
                     </GridItem>
                   </Grid>
