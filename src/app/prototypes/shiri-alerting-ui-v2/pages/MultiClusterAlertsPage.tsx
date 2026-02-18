@@ -4983,24 +4983,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                             </Flex>
                                           ) : '-'}
                                         </Td>
-                                        <Td>
-                                          {(() => {
-                                            const flappingData = generateFlappingEvents(agg.alertName, agg.severity);
-                                            return (
-                                              <FlappingRateChart
-                                                alertName={agg.alertName}
-                                                severity={agg.severity}
-                                                events={flappingData.events}
-                                                totalFlaps={flappingData.totalFlaps}
-                                                onClick={() => {
-                                                  if (alertInstance) {
-                                                    onAlertClick(alertInstance, 1); // Open to timeline tab
-                                                  }
-                                                }}
-                                              />
-                                            );
-                                          })()}
-                                        </Td>
                                         {columns.find(c => c.key === 'description')?.isVisible && (
                                           <Td>{alertInstance?.description || '-'}</Td>
                                         )}
