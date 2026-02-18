@@ -130,6 +130,8 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
   const [customComponents, setCustomComponents] = React.useState<string[]>([]);
   const [alertRuleAppendTo, setAlertRuleAppendTo] = React.useState('');
   const [isAlertRuleAppendToOpen, setIsAlertRuleAppendToOpen] = React.useState(false);
+  const [alertRuleSource, setAlertRuleSource] = React.useState<'Platform' | 'User'>('User');
+  const [isAlertRuleSourceOpen, setIsAlertRuleSourceOpen] = React.useState(false);
   
   // Step 2: Metadata and notifications
   const [alertRuleSummary, setAlertRuleSummary] = React.useState('');
@@ -473,6 +475,42 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   )}
                 </FormGroup>
                 
+                {/* Source */}
+                <FormGroup
+                  label="Source"
+                  isRequired
+                  fieldId="alert-rule-source"
+                >
+                  <Select
+                    isOpen={isAlertRuleSourceOpen}
+                    onOpenChange={setIsAlertRuleSourceOpen}
+                    onSelect={(_, value) => { 
+                      setAlertRuleSource(value as 'Platform' | 'User'); 
+                      setIsAlertRuleSourceOpen(false);
+                      // Reset append to when source changes
+                      setAlertRuleAppendTo('');
+                    }}
+                    selected={alertRuleSource}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle ref={toggleRef} onClick={() => setIsAlertRuleSourceOpen(!isAlertRuleSourceOpen)} isExpanded={isAlertRuleSourceOpen} style={{ width: '100%' }}>
+                        {alertRuleSource}
+                      </MenuToggle>
+                    )}
+                  >
+                    <SelectList>
+                      <SelectOption value="Platform">Platform</SelectOption>
+                      <SelectOption value="User">User</SelectOption>
+                    </SelectList>
+                  </Select>
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Platform alerts are managed in openshift-monitoring namespace as AlertingRules. User alerts are custom PrometheusRules.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
+                
                 {/* Severity */}
                 <FormGroup
                   label="Severity"
@@ -617,7 +655,10 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                       <FlexItem>Append to</FlexItem>
                       <FlexItem>
-                        <Tooltip content="Select which Kubernetes PrometheusRule Custom Resource will contain this alert definition.">
+                        <Tooltip content={alertRuleSource === 'Platform' 
+                          ? "Select which AlertingRule Custom Resource will contain this alert definition."
+                          : "Select which PrometheusRule Custom Resource will contain this alert definition."
+                        }>
                           <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
                         </Tooltip>
                       </FlexItem>
@@ -632,19 +673,31 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     selected={alertRuleAppendTo || undefined}
                     toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                       <MenuToggle ref={toggleRef} onClick={() => setIsAlertRuleAppendToOpen(!isAlertRuleAppendToOpen)} isExpanded={isAlertRuleAppendToOpen} style={{ width: '100%' }}>
-                        {alertRuleAppendTo || 'Select a PrometheusRule CR'}
+                        {alertRuleAppendTo || (alertRuleSource === 'Platform' ? 'Select an AlertingRule CR' : 'Select a PrometheusRule CR')}
                       </MenuToggle>
                     )}
                   >
                     <SelectList>
-                      <SelectOption value="PrometheusRule-default">PrometheusRule-default (namespace: openshift-monitoring)</SelectOption>
-                      <SelectOption value="PrometheusRule-custom">PrometheusRule-custom (namespace: openshift-monitoring)</SelectOption>
-                      <SelectOption value="PrometheusRule-cluster">PrometheusRule-cluster (namespace: openshift-monitoring)</SelectOption>
+                      {alertRuleSource === 'Platform' ? (
+                        <>
+                          <SelectOption value="AlertingRule-platform">AlertingRule-platform (namespace: openshift-monitoring)</SelectOption>
+                          <SelectOption value="AlertingRule-cluster">AlertingRule-cluster (namespace: openshift-monitoring)</SelectOption>
+                          <SelectOption value="AlertingRule-default">AlertingRule-default (namespace: openshift-monitoring)</SelectOption>
+                        </>
+                      ) : (
+                        <>
+                          <SelectOption value="PrometheusRule-default">PrometheusRule-default (namespace: openshift-monitoring)</SelectOption>
+                          <SelectOption value="PrometheusRule-custom">PrometheusRule-custom (namespace: openshift-monitoring)</SelectOption>
+                          <SelectOption value="PrometheusRule-cluster">PrometheusRule-cluster (namespace: openshift-monitoring)</SelectOption>
+                        </>
+                      )}
                     </SelectList>
                   </Select>
                   <FormHelperText>
                     <HelperText>
-                      <HelperTextItem>This selection determines which Kubernetes PrometheusRule Custom Resource will contain this alert definition.</HelperTextItem>
+                      <HelperTextItem>
+                        This selection determines which Kubernetes {alertRuleSource === 'Platform' ? 'AlertingRule' : 'PrometheusRule'} Custom Resource will contain this alert definition.
+                      </HelperTextItem>
                       <HelperTextItem>The location cannot be changed later without recreating the alert.</HelperTextItem>
                     </HelperText>
                   </FormHelperText>
@@ -1173,8 +1226,14 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     <DescriptionListDescription>{alertRuleComponent || 'etcd'}</DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
-                    <DescriptionListTerm>PrometheusRule</DescriptionListTerm>
-                    <DescriptionListDescription>{alertRuleAppendTo || 'PrometheusRule-default'} (namespace: openshift-monitoring)</DescriptionListDescription>
+                    <DescriptionListTerm>Source</DescriptionListTerm>
+                    <DescriptionListDescription>{alertRuleSource}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>{alertRuleSource === 'Platform' ? 'AlertingRule' : 'PrometheusRule'}</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {alertRuleAppendTo || (alertRuleSource === 'Platform' ? 'AlertingRule-platform' : 'PrometheusRule-default')} (namespace: openshift-monitoring)
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
               </div>
