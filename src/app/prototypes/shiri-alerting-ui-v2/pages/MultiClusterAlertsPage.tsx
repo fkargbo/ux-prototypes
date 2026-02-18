@@ -1369,10 +1369,12 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       const baseValue = getTileValue(cluster, importanceSizing, severityFilter);
       const severityPriority = getClusterSeverityOrder(cluster);
       
-      // When sizing is 'none', use microscopic differences for sorting without visible size change
-      // Values like 1000.004, 1000.003, 1000.002, 1000.001 maintain order but appear equal
+      // When sizing is 'none', all tiles should be equal size
+      // Use microscopic differences ONLY for sorting order without visible size change
       if (importanceSizing === 'none') {
-        const microOffset = (4 - severityPriority) * 0.001; // Critical=0.004, Warning=0.003, Info=0.002, Healthy=0.001
+        // Use tiny offsets to maintain sort order: Critical=0.000004, Warning=0.000003, Info=0.000002, Healthy=0.000001
+        // This ensures proper ordering while appearing visually equal in size
+        const microOffset = (4 - severityPriority) * 0.000001;
         return 1000 + microOffset;
       }
       
@@ -1720,12 +1722,44 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           if (cluster) {
             const firingAlerts = cluster.alerts.filter((a: AlertData) => a.status === 'firing');
             const alertCount = firingAlerts.length;
-            return alertCount > 0 ? `{name|${params.name}}\n{count|${alertCount} alerts}` : `{name|${params.name}}`;
+            const status = getStatusText(cluster);
+            
+            // Determine icon and text style based on severity
+            let icon = '';
+            let stylePrefix = '';
+            
+            if (status === 'Critical') {
+              icon = '⚠'; // Warning triangle for Critical
+              stylePrefix = 'critical';
+            } else if (status === 'Warning') {
+              icon = '⚠'; // Warning triangle for Warning
+              stylePrefix = 'warning';
+            } else if (status === 'Info') {
+              icon = 'ℹ'; // Info circle for Info
+              stylePrefix = 'info';
+            } else {
+              icon = '✓'; // Checkmark for Healthy
+              stylePrefix = 'healthy';
+            }
+            
+            return alertCount > 0 
+              ? `{icon_${stylePrefix}|${icon}} {name_${stylePrefix}|${params.name}}\n{count_${stylePrefix}|${alertCount} alerts}` 
+              : `{icon_${stylePrefix}|${icon}} {name_${stylePrefix}|${params.name}}`;
           }
           return `{name|${params.name}}`;
         },
         rich: {
-          name: {
+          // Critical styles (white text on red)
+          icon_critical: {
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#ffffff',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            textShadowColor: 'rgba(0, 0, 0, 0.5)',
+            textShadowBlur: 3,
+            padding: [0, 4, 0, 0],
+          },
+          name_critical: {
             fontSize: 11,
             fontWeight: 600,
             color: '#ffffff',
@@ -1733,9 +1767,81 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
             textShadowColor: 'rgba(0, 0, 0, 0.3)',
             textShadowBlur: 2,
           },
-          count: {
+          count_critical: {
             fontSize: 10,
             color: 'rgba(255, 255, 255, 0.9)',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            textShadowColor: 'rgba(0, 0, 0, 0.3)',
+            textShadowBlur: 2,
+          },
+          // Warning styles (black text on orange for contrast)
+          icon_warning: {
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#151515',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            padding: [0, 4, 0, 0],
+          },
+          name_warning: {
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#151515',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+          },
+          count_warning: {
+            fontSize: 10,
+            color: '#151515',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+          },
+          // Info styles (black text on purple for contrast)
+          icon_info: {
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#151515',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            padding: [0, 4, 0, 0],
+          },
+          name_info: {
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#151515',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+          },
+          count_info: {
+            fontSize: 10,
+            color: '#151515',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+          },
+          // Healthy styles (white text on green)
+          icon_healthy: {
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#ffffff',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            textShadowColor: 'rgba(0, 0, 0, 0.5)',
+            textShadowBlur: 3,
+            padding: [0, 4, 0, 0],
+          },
+          name_healthy: {
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#ffffff',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            textShadowColor: 'rgba(0, 0, 0, 0.3)',
+            textShadowBlur: 2,
+          },
+          count_healthy: {
+            fontSize: 10,
+            color: 'rgba(255, 255, 255, 0.9)',
+            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            textShadowColor: 'rgba(0, 0, 0, 0.3)',
+            textShadowBlur: 2,
+          },
+          // Default fallback
+          name: {
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#ffffff',
             fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
             textShadowColor: 'rgba(0, 0, 0, 0.3)',
             textShadowBlur: 2,
