@@ -9151,16 +9151,16 @@ spec:
                     minWidth="360px"
                     maxWidth="360px"
                     bodyContent={
-                      <Stack hasGutter style={{ width: '360px' }}>
+                      <Stack hasGutter>
                         <StackItem>
                           <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
-                          <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+                          <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
                             <FlexItem>
                               <DatePicker
                                 value={triggeredFromDate || ''}
                                 onChange={(_, str) => setTriggeredFromDate(str)}
                                 placeholder="YYYY-MM-DD"
-                                style={{ width: '200px' }}
+                                style={{ width: '170px' }}
                               />
                             </FlexItem>
                             <FlexItem>
@@ -9170,7 +9170,7 @@ spec:
                                 placeholder="HH:MM"
                                 aria-label="From time"
                                 is24Hour
-                                style={{ width: '120px' }}
+                                style={{ width: '100px' }}
                                 menuAppendTo={() => document.body}
                               />
                             </FlexItem>
@@ -9178,13 +9178,13 @@ spec:
                         </StackItem>
                         <StackItem>
                           <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
-                          <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+                          <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
                             <FlexItem>
                               <DatePicker
                                 value={triggeredToDate || ''}
                                 onChange={(_, str) => setTriggeredToDate(str)}
                                 placeholder="YYYY-MM-DD"
-                                style={{ width: '200px' }}
+                                style={{ width: '170px' }}
                               />
                             </FlexItem>
                             <FlexItem>
@@ -9194,7 +9194,7 @@ spec:
                                 placeholder="HH:MM"
                                 aria-label="To time"
                                 is24Hour
-                                style={{ width: '120px' }}
+                                style={{ width: '100px' }}
                                 menuAppendTo={() => document.body}
                               />
                             </FlexItem>
