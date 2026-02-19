@@ -9141,7 +9141,7 @@ spec:
                 </FlexItem>
               </Flex>
               {/* Refresh with interval dropdown - moved to header */}
-              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <Flex gap={{ default: 'gapSm' }}>
                 {/* Time Range Selector */}
                 <FlexItem>
                   <Popover
