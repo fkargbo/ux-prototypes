@@ -9149,26 +9149,26 @@ spec:
                     shouldClose={() => setIsCustomTimeRangePopoverOpen(false)}
                     headerContent="Custom time range"
                     bodyContent={
-                      <Stack hasGutter style={{ padding: '8px' }}>
+                      <Stack hasGutter>
                         <StackItem>
                           <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
                           <Flex gap={{ default: 'gapSm' }}>
-                            <FlexItem flex={{ default: 'flex_1' }}>
+                            <FlexItem>
                               <DatePicker
                                 value={triggeredFromDate || ''}
                                 onChange={(_, str) => setTriggeredFromDate(str)}
                                 placeholder="YYYY-MM-DD"
-                                style={{ width: '100%' }}
+                                style={{ width: '155px' }}
                               />
                             </FlexItem>
-                            <FlexItem style={{ width: '90px' }}>
+                            <FlexItem>
                               <TimePicker
                                 time={triggeredFromTime || ''}
                                 onChange={(_, time) => setTriggeredFromTime(time)}
                                 placeholder="HH:MM"
                                 aria-label="From time"
                                 is24Hour
-                                style={{ width: '100%' }}
+                                style={{ width: '90px' }}
                                 menuAppendTo={() => document.body}
                               />
                             </FlexItem>
@@ -9177,29 +9177,29 @@ spec:
                         <StackItem>
                           <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
                           <Flex gap={{ default: 'gapSm' }}>
-                            <FlexItem flex={{ default: 'flex_1' }}>
+                            <FlexItem>
                               <DatePicker
                                 value={triggeredToDate || ''}
                                 onChange={(_, str) => setTriggeredToDate(str)}
                                 placeholder="YYYY-MM-DD"
-                                style={{ width: '100%' }}
+                                style={{ width: '155px' }}
                               />
                             </FlexItem>
-                            <FlexItem style={{ width: '90px' }}>
+                            <FlexItem>
                               <TimePicker
                                 time={triggeredToTime || ''}
                                 onChange={(_, time) => setTriggeredToTime(time)}
                                 placeholder="HH:MM"
                                 aria-label="To time"
                                 is24Hour
-                                style={{ width: '100%' }}
+                                style={{ width: '90px' }}
                                 menuAppendTo={() => document.body}
                               />
                             </FlexItem>
                           </Flex>
                         </StackItem>
                         <StackItem>
-                          <Button variant="primary" isBlock onClick={() => setIsCustomTimeRangePopoverOpen(false)}>
+                          <Button variant="primary" onClick={() => setIsCustomTimeRangePopoverOpen(false)} style={{ width: '100%' }}>
                             Apply
                           </Button>
                         </StackItem>
