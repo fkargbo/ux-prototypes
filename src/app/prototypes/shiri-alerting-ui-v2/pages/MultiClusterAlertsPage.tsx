@@ -3127,117 +3127,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                   </SelectList>
                 </Select>
               </StackItem>
-
-              {/* Triggered Time Range Filters */}
-              <StackItem>
-                <Content component="small" className="pf-v6-u-mb-sm"><strong>Triggered</strong></Content>
-                <Stack hasGutter>
-                  <StackItem>
-                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
-                    <Flex gap={{ default: 'gapSm' }}>
-                      <FlexItem flex={{ default: 'flex_1' }}>
-                        <DatePicker
-                          value={triggeredFromDate || ''}
-                          onChange={(_, str) => setTriggeredFromDate && setTriggeredFromDate(str)}
-                          placeholder="YYYY-MM-DD"
-                          style={{ width: '100%' }}
-                        />
-                      </FlexItem>
-                      <FlexItem style={{ width: '90px' }}>
-                        <TimePicker
-                          time={triggeredFromTime || ''}
-                          onChange={(_, time) => setTriggeredFromTime && setTriggeredFromTime(time)}
-                          placeholder="HH:MM"
-                          is24Hour
-                          style={{ width: '100%' }}
-                          menuAppendTo={() => document.body}
-                        />
-                      </FlexItem>
-                    </Flex>
-                  </StackItem>
-                  <StackItem>
-                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
-                    <Flex gap={{ default: 'gapSm' }}>
-                      <FlexItem flex={{ default: 'flex_1' }}>
-                        <DatePicker
-                          value={triggeredToDate || ''}
-                          onChange={(_, str) => setTriggeredToDate && setTriggeredToDate(str)}
-                          placeholder="YYYY-MM-DD"
-                          style={{ width: '100%' }}
-                        />
-                      </FlexItem>
-                      <FlexItem style={{ width: '90px' }}>
-                        <TimePicker
-                          time={triggeredToTime || ''}
-                          onChange={(_, time) => setTriggeredToTime && setTriggeredToTime(time)}
-                          placeholder="HH:MM"
-                          is24Hour
-                          style={{ width: '100%' }}
-                          menuAppendTo={() => document.body}
-                        />
-                      </FlexItem>
-                    </Flex>
-                  </StackItem>
-                </Stack>
-              </StackItem>
-            </>
-          )}
-
-          {/* Triggered Time Range Filters - Available for Clusters Health too */}
-          {!showAlertFilters && (
-            <>
-              <Divider />
-              <StackItem>
-                <Content component="small" className="pf-v6-u-mb-sm"><strong>Triggered</strong></Content>
-                <Stack hasGutter>
-                  <StackItem>
-                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
-                    <Flex gap={{ default: 'gapSm' }}>
-                      <FlexItem flex={{ default: 'flex_1' }}>
-                        <DatePicker
-                          value={triggeredFromDate || ''}
-                          onChange={(_, str) => setTriggeredFromDate && setTriggeredFromDate(str)}
-                          placeholder="YYYY-MM-DD"
-                          style={{ width: '100%' }}
-                        />
-                      </FlexItem>
-                      <FlexItem style={{ width: '90px' }}>
-                        <TimePicker
-                          time={triggeredFromTime || ''}
-                          onChange={(_, time) => setTriggeredFromTime && setTriggeredFromTime(time)}
-                          placeholder="HH:MM"
-                          is24Hour
-                          style={{ width: '100%' }}
-                          menuAppendTo={() => document.body}
-                        />
-                      </FlexItem>
-                    </Flex>
-                  </StackItem>
-                  <StackItem>
-                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
-                    <Flex gap={{ default: 'gapSm' }}>
-                      <FlexItem flex={{ default: 'flex_1' }}>
-                        <DatePicker
-                          value={triggeredToDate || ''}
-                          onChange={(_, str) => setTriggeredToDate && setTriggeredToDate(str)}
-                          placeholder="YYYY-MM-DD"
-                          style={{ width: '100%' }}
-                        />
-                      </FlexItem>
-                      <FlexItem style={{ width: '90px' }}>
-                        <TimePicker
-                          time={triggeredToTime || ''}
-                          onChange={(_, time) => setTriggeredToTime && setTriggeredToTime(time)}
-                          placeholder="HH:MM"
-                          is24Hour
-                          style={{ width: '100%' }}
-                          menuAppendTo={() => document.body}
-                        />
-                      </FlexItem>
-                    </Flex>
-                  </StackItem>
-                </Stack>
-              </StackItem>
             </>
           )}
 
@@ -7916,8 +7805,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   
   const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || 
     labelFilter.length > 0 || severityFilter.length > 0 || hasGroupFilterChanges || componentFilter.length > 0 || searchValue.length > 0 ||
-    selectedClusterInCard !== null || selectedClusterForAlerts !== null || mainComponentFilter !== null || mainAlertNameFilter !== null ||
-    triggeredFromDate.length > 0 || triggeredFromTime.length > 0 || triggeredToDate.length > 0 || triggeredToTime.length > 0;
+    selectedClusterInCard !== null || selectedClusterForAlerts !== null || mainComponentFilter !== null || mainAlertNameFilter !== null;
 
   const hasDrillDownActiveFilters = drillDownSeverityFilter.length > 0 || drillDownGroupFilter.length > 0 || 
     drillDownComponentFilter.length > 0 || drillDownSourceFilter.length > 0 || drillDownStateFilter.length > 0 ||
@@ -9166,6 +9054,42 @@ spec:
   const [refreshInterval, setRefreshInterval] = React.useState<number | null>(null);
   const [isRefreshIntervalOpen, setIsRefreshIntervalOpen] = React.useState(false);
   
+  // Quick time range state
+  type QuickTimeRange = 'last-5m' | 'last-15m' | 'last-30m' | 'last-1h' | 'last-4h' | 'last-6h' | 'last-12h' | 'last-24h' | 'last-2d' | 'last-7d' | 'custom';
+  const [quickTimeRange, setQuickTimeRange] = React.useState<QuickTimeRange>('last-6h');
+  const [isQuickTimeRangeOpen, setIsQuickTimeRangeOpen] = React.useState(false);
+  const [isCustomTimeRangePopoverOpen, setIsCustomTimeRangePopoverOpen] = React.useState(false);
+  
+  const quickTimeRangeOptions = [
+    { value: 'last-5m' as QuickTimeRange, label: 'Last 5 minutes', minutes: 5 },
+    { value: 'last-15m' as QuickTimeRange, label: 'Last 15 minutes', minutes: 15 },
+    { value: 'last-30m' as QuickTimeRange, label: 'Last 30 minutes', minutes: 30 },
+    { value: 'last-1h' as QuickTimeRange, label: 'Last 1 hour', minutes: 60 },
+    { value: 'last-4h' as QuickTimeRange, label: 'Last 4 hours', minutes: 240 },
+    { value: 'last-6h' as QuickTimeRange, label: 'Last 6 hours', minutes: 360 },
+    { value: 'last-12h' as QuickTimeRange, label: 'Last 12 hours', minutes: 720 },
+    { value: 'last-24h' as QuickTimeRange, label: 'Last 24 hours', minutes: 1440 },
+    { value: 'last-2d' as QuickTimeRange, label: 'Last 2 days', minutes: 2880 },
+    { value: 'last-7d' as QuickTimeRange, label: 'Last 7 days', minutes: 10080 },
+    { value: 'custom' as QuickTimeRange, label: 'Custom time range', minutes: null },
+  ];
+  
+  // Calculate from/to dates based on quick time range
+  React.useEffect(() => {
+    if (quickTimeRange !== 'custom') {
+      const option = quickTimeRangeOptions.find(opt => opt.value === quickTimeRange);
+      if (option && option.minutes) {
+        const now = new Date();
+        const fromDate = new Date(now.getTime() - option.minutes * 60 * 1000);
+        
+        setTriggeredFromDate(fromDate.toISOString().split('T')[0]);
+        setTriggeredFromTime(fromDate.toTimeString().slice(0, 5));
+        setTriggeredToDate(now.toISOString().split('T')[0]);
+        setTriggeredToTime(now.toTimeString().slice(0, 5));
+      }
+    }
+  }, [quickTimeRange]);
+  
   // Auto-refresh effect
   React.useEffect(() => {
     if (refreshInterval && refreshInterval > 0) {
@@ -9218,6 +9142,117 @@ spec:
               </Flex>
               {/* Refresh with interval dropdown - moved to header */}
               <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                {/* Time Range Selector */}
+                <FlexItem>
+                  <Popover
+                    isVisible={isCustomTimeRangePopoverOpen}
+                    shouldClose={() => setIsCustomTimeRangePopoverOpen(false)}
+                    headerContent="Custom time range"
+                    bodyContent={
+                      <Stack hasGutter style={{ padding: '8px', minWidth: '300px' }}>
+                        <StackItem>
+                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
+                          <Flex gap={{ default: 'gapSm' }}>
+                            <FlexItem flex={{ default: 'flex_1' }}>
+                              <DatePicker
+                                value={triggeredFromDate || ''}
+                                onChange={(_, str) => setTriggeredFromDate(str)}
+                                placeholder="YYYY-MM-DD"
+                                style={{ width: '100%' }}
+                              />
+                            </FlexItem>
+                            <FlexItem style={{ width: '90px' }}>
+                              <TimePicker
+                                time={triggeredFromTime || ''}
+                                onChange={(_, time) => setTriggeredFromTime(time)}
+                                placeholder="HH:MM"
+                                aria-label="From time"
+                                is24Hour
+                                style={{ width: '100%' }}
+                                menuAppendTo={() => document.body}
+                              />
+                            </FlexItem>
+                          </Flex>
+                        </StackItem>
+                        <StackItem>
+                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
+                          <Flex gap={{ default: 'gapSm' }}>
+                            <FlexItem flex={{ default: 'flex_1' }}>
+                              <DatePicker
+                                value={triggeredToDate || ''}
+                                onChange={(_, str) => setTriggeredToDate(str)}
+                                placeholder="YYYY-MM-DD"
+                                style={{ width: '100%' }}
+                              />
+                            </FlexItem>
+                            <FlexItem style={{ width: '90px' }}>
+                              <TimePicker
+                                time={triggeredToTime || ''}
+                                onChange={(_, time) => setTriggeredToTime(time)}
+                                placeholder="HH:MM"
+                                aria-label="To time"
+                                is24Hour
+                                style={{ width: '100%' }}
+                                menuAppendTo={() => document.body}
+                              />
+                            </FlexItem>
+                          </Flex>
+                        </StackItem>
+                        <StackItem>
+                          <Button variant="primary" isBlock onClick={() => setIsCustomTimeRangePopoverOpen(false)}>
+                            Apply
+                          </Button>
+                        </StackItem>
+                      </Stack>
+                    }
+                    position="bottom-start"
+                  >
+                    <Dropdown
+                      isOpen={isQuickTimeRangeOpen}
+                      onOpenChange={setIsQuickTimeRangeOpen}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle 
+                          ref={toggleRef} 
+                          variant="secondary"
+                          onClick={() => setIsQuickTimeRangeOpen(!isQuickTimeRangeOpen)}
+                          isExpanded={isQuickTimeRangeOpen}
+                          icon={<ClockIcon />}
+                          style={{ minWidth: '170px' }}
+                        >
+                          {quickTimeRangeOptions.find(o => o.value === quickTimeRange)?.label}
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        {quickTimeRangeOptions.map(opt => (
+                          <DropdownItem 
+                            key={opt.value}
+                            onClick={() => {
+                              if (opt.value === 'custom') {
+                                setQuickTimeRange('custom');
+                                setIsQuickTimeRangeOpen(false);
+                                setIsCustomTimeRangePopoverOpen(true);
+                              } else {
+                                setQuickTimeRange(opt.value);
+                                setIsQuickTimeRangeOpen(false);
+                              }
+                            }}
+                          >
+                            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                              <FlexItem>{opt.label}</FlexItem>
+                              {quickTimeRange === opt.value && (
+                                <FlexItem>
+                                  <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                                </FlexItem>
+                              )}
+                            </Flex>
+                          </DropdownItem>
+                        ))}
+                      </DropdownList>
+                    </Dropdown>
+                  </Popover>
+                </FlexItem>
+                
                 <FlexItem>
                   <Content component="small" className="pf-v6-u-color-200">
                     <ClockIcon /> {lastRefresh.toLocaleTimeString()}
@@ -9425,9 +9460,7 @@ spec:
                   clusterFilter.length + 
                   severityFilter.length + 
                   (hasGroupFilterChanges ? groupFilter.length : 0) + 
-                  componentFilter.length + 
-                  (triggeredFromDate || triggeredFromTime ? 1 : 0) + 
-                  (triggeredToDate || triggeredToTime ? 1 : 0)
+                  componentFilter.length
                 }</Badge>}
               </Button>
             </ToolbarItem>
@@ -9548,34 +9581,6 @@ spec:
                     {labelFilter.map(l => (
                       <Label key={l} variant="outline" onClose={() => setLabelFilter(labelFilter.filter(x => x !== l))}>{l}</Label>
                     ))}
-                  </LabelGroup>
-                )}
-                {(triggeredFromDate || triggeredFromTime || triggeredToDate || triggeredToTime) && (
-                  <LabelGroup categoryName="Triggered">
-                    {(triggeredFromDate || triggeredFromTime) && (
-                      <Label 
-                        key="from" 
-                        variant="outline" 
-                        onClose={() => {
-                          setTriggeredFromDate('');
-                          setTriggeredFromTime('');
-                        }}
-                      >
-                        From: {triggeredFromDate || 'today'} {triggeredFromTime || '00:00'}
-                      </Label>
-                    )}
-                    {(triggeredToDate || triggeredToTime) && (
-                      <Label 
-                        key="to" 
-                        variant="outline" 
-                        onClose={() => {
-                          setTriggeredToDate('');
-                          setTriggeredToTime('');
-                        }}
-                      >
-                        To: {triggeredToDate || 'today'} {triggeredToTime || '23:59'}
-                      </Label>
-                    )}
                   </LabelGroup>
                 )}
                 {mainComponentFilter && (
