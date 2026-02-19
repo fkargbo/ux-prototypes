@@ -1545,19 +1545,27 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       // For other groupings, use a moderate multiplier to show importance
       let groupValue: number;
       if (groupBy === 'severity') {
-        // Use explicit position-based multipliers to guarantee ordering
-        // Critical (index 0) gets highest multiplier, Healthy (index 3) gets lowest
-        // This creates a deterministic value hierarchy that ECharts must respect
-        const severityMultipliers = [10000, 1000, 100, 10]; // Critical, Warning, Info, Healthy
-        const severityMultiplier = severityMultipliers[groupIndex] || 1;
-        groupValue = Math.max(childrenSum, 1000) * severityMultiplier;
-        
-        // Ensure a minimum value for visibility - at least 15% of the largest group
-        const maxChildrenSum = Math.max(...sortedGroupEntries.map(([_, gc]) => 
-          gc.reduce((sum, c) => sum + getAdjustedValue(c), 0)
-        ));
-        const minValue = maxChildrenSum * 0.15;
-        groupValue = Math.max(groupValue, minValue);
+        // When "Size by: None (Equal size)" is selected, groups should also be equal size
+        if (importanceSizing === 'none') {
+          // Use equal base value with microscopic offsets for ordering only
+          // Critical gets highest offset, Healthy gets lowest
+          const microOffset = (3 - groupIndex) * 0.000001; // Critical=0.000003, Warning=0.000002, Info=0.000001, Healthy=0
+          groupValue = 1000 + microOffset;
+        } else {
+          // Use explicit position-based multipliers to guarantee ordering
+          // Critical (index 0) gets highest multiplier, Healthy (index 3) gets lowest
+          // This creates a deterministic value hierarchy that ECharts must respect
+          const severityMultipliers = [10000, 1000, 100, 10]; // Critical, Warning, Info, Healthy
+          const severityMultiplier = severityMultipliers[groupIndex] || 1;
+          groupValue = Math.max(childrenSum, 1000) * severityMultiplier;
+          
+          // Ensure a minimum value for visibility - at least 15% of the largest group
+          const maxChildrenSum = Math.max(...sortedGroupEntries.map(([_, gc]) => 
+            gc.reduce((sum, c) => sum + getAdjustedValue(c), 0)
+          ));
+          const minValue = maxChildrenSum * 0.15;
+          groupValue = Math.max(groupValue, minValue);
+        }
       } else {
         // For other groupings, use the original moderate multiplier
         const groupMultiplier = Math.pow(1.5, sortedGroupEntries.length - groupIndex);
