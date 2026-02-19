@@ -9149,7 +9149,7 @@ spec:
                     shouldClose={() => setIsCustomTimeRangePopoverOpen(false)}
                     headerContent="Custom time range"
                     bodyContent={
-                      <Stack hasGutter style={{ padding: '8px', minWidth: '300px' }}>
+                      <Stack hasGutter style={{ padding: '8px' }}>
                         <StackItem>
                           <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
                           <Flex gap={{ default: 'gapSm' }}>
