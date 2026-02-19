@@ -9254,60 +9254,72 @@ spec:
                 </FlexItem>
                 
                 <FlexItem>
-                  <Content component="small" className="pf-v6-u-color-200">
-                    <ClockIcon /> {lastRefresh.toLocaleTimeString()}
-                  </Content>
-                </FlexItem>
-                <FlexItem>
-                  <Dropdown
-                    isOpen={isRefreshIntervalOpen}
-                    onOpenChange={setIsRefreshIntervalOpen}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle 
-                        ref={toggleRef} 
-                        variant="secondary"
-                        onClick={() => setIsRefreshIntervalOpen(!isRefreshIntervalOpen)}
-                        isExpanded={isRefreshIntervalOpen}
-                        icon={<SyncIcon />}
-                        style={{ minWidth: '140px' }}
+                  <Stack hasGutter={false}>
+                    <StackItem>
+                      <Dropdown
+                        isOpen={isRefreshIntervalOpen}
+                        onOpenChange={setIsRefreshIntervalOpen}
+                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                          <MenuToggle 
+                            ref={toggleRef} 
+                            variant="secondary"
+                            onClick={() => setIsRefreshIntervalOpen(!isRefreshIntervalOpen)}
+                            isExpanded={isRefreshIntervalOpen}
+                            icon={<SyncIcon />}
+                            style={{ minWidth: '140px' }}
+                          >
+                            {refreshInterval ? `Every ${refreshIntervalOptions.find(o => o.value === refreshInterval)?.label}` : 'Refresh'}
+                          </MenuToggle>
+                        )}
                       >
-                        {refreshInterval ? `Every ${refreshIntervalOptions.find(o => o.value === refreshInterval)?.label}` : 'Refresh'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      {refreshIntervalOptions.map(opt => (
-                        <DropdownItem 
-                          key={String(opt.value)}
-                          onClick={() => {
-                            setRefreshInterval(opt.value);
-                            setIsRefreshIntervalOpen(false);
-                            if (opt.value !== null) {
+                        <DropdownList>
+                          {refreshIntervalOptions.map(opt => (
+                            <DropdownItem 
+                              key={String(opt.value)}
+                              onClick={() => {
+                                setRefreshInterval(opt.value);
+                                setIsRefreshIntervalOpen(false);
+                                if (opt.value !== null) {
+                                  setLastRefresh(new Date());
+                                }
+                              }}
+                            >
+                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                <FlexItem>{opt.label}</FlexItem>
+                                {refreshInterval === opt.value && (
+                                  <FlexItem>
+                                    <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                                  </FlexItem>
+                                )}
+                              </Flex>
+                            </DropdownItem>
+                          ))}
+                          <Divider />
+                          <DropdownItem 
+                            onClick={() => {
                               setLastRefresh(new Date());
-                            }
-                          }}
-                        >
-                          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                            <FlexItem>{opt.label}</FlexItem>
-                            {refreshInterval === opt.value && (
-                              <FlexItem>
-                                <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
-                              </FlexItem>
-                            )}
-                          </Flex>
-                        </DropdownItem>
-                      ))}
-                      <Divider />
-                      <DropdownItem 
-                        onClick={() => {
-                          setLastRefresh(new Date());
-                          setIsRefreshIntervalOpen(false);
+                              setIsRefreshIntervalOpen(false);
+                            }}
+                          >
+                            <SyncIcon /> Refresh now
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </StackItem>
+                    <StackItem>
+                      <Content 
+                        component="small" 
+                        style={{ 
+                          color: 'var(--pf-t--global--text--color--subtle)', 
+                          fontSize: 'var(--pf-t--global--font--size--sm)',
+                          display: 'block',
+                          marginTop: '4px'
                         }}
                       >
-                        <SyncIcon /> Refresh now
-                      </DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
+                        Last refresh: {lastRefresh.toLocaleTimeString()}
+                      </Content>
+                    </StackItem>
+                  </Stack>
                 </FlexItem>
               </Flex>
             </Flex>
