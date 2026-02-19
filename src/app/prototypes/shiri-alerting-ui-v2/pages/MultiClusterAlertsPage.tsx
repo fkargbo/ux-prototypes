@@ -9148,6 +9148,8 @@ spec:
                     isVisible={isCustomTimeRangePopoverOpen}
                     shouldClose={() => setIsCustomTimeRangePopoverOpen(false)}
                     headerContent="Custom time range"
+                    minWidth="360px"
+                    maxWidth="360px"
                     bodyContent={
                       <Stack hasGutter style={{ width: '360px' }}>
                         <StackItem>
@@ -9205,7 +9207,7 @@ spec:
                         </StackItem>
                       </Stack>
                     }
-                    position="bottom-start"
+                    position="bottom-end"
                   >
                     <Dropdown
                       isOpen={isQuickTimeRangeOpen}
