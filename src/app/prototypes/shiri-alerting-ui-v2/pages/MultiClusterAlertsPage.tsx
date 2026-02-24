@@ -6191,10 +6191,7 @@ interface AlertsTimelineCardProps {
   trendData: TrendData[];
 }
 
-type TimeRange = '1h' | '6h' | '24h' | '7d' | 'custom';
-
 const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) => {
-  const [timeRange, setTimeRange] = React.useState<TimeRange>('6h');
   const [selectedAnomaly, setSelectedAnomaly] = React.useState<{ timestamp: string; index: number } | null>(null);
 
   // Detect anomalies (simple threshold-based detection)
@@ -6331,40 +6328,7 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
   return (
     <Card>
       <CardHeader>
-        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem>
-            <CardTitle>Alert velocity & trends</CardTitle>
-          </FlexItem>
-          <FlexItem>
-            <ToggleGroup aria-label="Time range selector">
-              <ToggleGroupItem
-                text="1h"
-                isSelected={timeRange === '1h'}
-                onChange={() => setTimeRange('1h')}
-              />
-              <ToggleGroupItem
-                text="6h"
-                isSelected={timeRange === '6h'}
-                onChange={() => setTimeRange('6h')}
-              />
-              <ToggleGroupItem
-                text="24h"
-                isSelected={timeRange === '24h'}
-                onChange={() => setTimeRange('24h')}
-              />
-              <ToggleGroupItem
-                text="7d"
-                isSelected={timeRange === '7d'}
-                onChange={() => setTimeRange('7d')}
-              />
-              <ToggleGroupItem
-                text="Custom"
-                isSelected={timeRange === 'custom'}
-                onChange={() => setTimeRange('custom')}
-              />
-            </ToggleGroup>
-          </FlexItem>
-        </Flex>
+        <CardTitle>Alert velocity & trends</CardTitle>
       </CardHeader>
       <CardBody>
         <Stack hasGutter>
