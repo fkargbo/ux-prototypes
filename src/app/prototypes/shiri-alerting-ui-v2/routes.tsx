@@ -55,6 +55,12 @@ export const routes: RouteConfig[] = [
       order: 1
     }
   },
+  // Redirect /core/observe/alerting to /observe/alerting (sidebar may use core path)
+  {
+    path: '/core/observe/alerting',
+    element: <Navigate to="/observe/alerting" replace />,
+    title: 'Redirect',
+  },
   
   // V2: Cluster Components Health view
   // Note: The actual navigation is handled via state management in the component

@@ -176,11 +176,15 @@ const PrototypeLauncher: React.FC = () => {
       }
     });
     
-    // Sort versions within each group
-    versionGroups.forEach((versions) => {
+    // Sort versions within each group (newest first for multi-cluster-alerting, else default)
+    versionGroups.forEach((versions, groupName) => {
       versions.sort((a, b) => {
         if (a.config.version === 'final') return 1;
         if (b.config.version === 'final') return -1;
+        // For multi-cluster-alerting, prefer v2 as default (newest first)
+        if (groupName === 'multi-cluster-alerting') {
+          return b.config.version.localeCompare(a.config.version);
+        }
         return a.config.version.localeCompare(b.config.version);
       });
     });
@@ -207,7 +211,7 @@ const PrototypeLauncher: React.FC = () => {
   
   // Add version groups (as single cards)
   versionGroups.forEach((versions, groupName) => {
-    // Use the first version as representative for metadata
+    // Use the first version as representative (already sorted - v2 first for multi-cluster-alerting)
     cardsToDisplay.push({
       type: 'versionGroup',
       representative: versions[0],
@@ -316,14 +320,17 @@ const PrototypeLauncher: React.FC = () => {
   };
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      boxSizing: 'border-box',
-      backgroundColor: '#f5f5f5',
-      overflow: 'auto'
-    }}>
+    <main
+      role="main"
+      style={{ 
+        height: '100vh', 
+        boxSizing: 'border-box',
+        backgroundColor: '#f5f5f5',
+        overflow: 'auto'
+      }}
+    >
       {/* Header, Filters, and Tabs - All White Background */}
-      <div style={{ 
+      <header style={{ 
         padding: '24px',
         paddingBottom: '0',
         backgroundColor: '#ffffff'
@@ -344,6 +351,7 @@ const PrototypeLauncher: React.FC = () => {
             <ToolbarContent>
               <ToolbarItem style={{ flexGrow: 1, maxWidth: '400px' }}>
                 <SearchInput
+                  aria-label="Search prototypes by name, owner, or persona"
                   placeholder="Search by name, owner, or persona..."
                   value={searchValue}
                   onChange={(_event, value) => setSearchValue(value)}
@@ -410,12 +418,10 @@ const PrototypeLauncher: React.FC = () => {
             />
           </Tabs>
         </div>
-      </div>
+      </header>
 
-              {/* Prototype Grid/Table */}
-              <div style={{ 
-                padding: '24px'
-              }}>
+      {/* Prototype Grid/Table */}
+      <section aria-label="Prototype list" style={{ padding: '24px' }}>
                 <div style={{ 
                   minHeight: '400px'
                 }}>
@@ -1239,8 +1245,8 @@ const PrototypeLauncher: React.FC = () => {
             </Grid>
           )}
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

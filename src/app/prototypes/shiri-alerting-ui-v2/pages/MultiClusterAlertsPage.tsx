@@ -1461,7 +1461,13 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       const severityOrderedKeys = ['Critical', 'Warning', 'Info', 'Healthy'];
       sortedGroupEntries = severityOrderedKeys
         .map(key => [key, groups[key] || []] as [string, ClusterData[]])
-        .filter(([_, groupClusters]) => groupBy === 'severity' || groupClusters.length > 0);
+        .filter(([groupName, groupClusters]) => {
+          // When legend filters are active, only show groups that are in the filter
+          if (activeLegendFilters.length > 0 && !activeLegendFilters.includes(groupName as 'Critical' | 'Warning' | 'Info' | 'Healthy')) {
+            return false;
+          }
+          return groupBy === 'severity' || groupClusters.length > 0;
+        });
     } else {
       // For other groupings, sort alphabetically
       sortedGroupEntries = Object.entries(groups)
@@ -1513,6 +1519,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           ? Math.max(maxGroupBaseValue * 0.25, 3000)
           : Math.max(avgGroupBaseValue * 0.4, 2000);
         
+        const emptyLabel = '(0 groups)'; // We're in grouped view, so use "groups"
         return {
           name: groupName,
           value: emptyGroupValue,
@@ -1520,7 +1527,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
             color: groupColor,
           },
           children: [{
-            name: `(0 clusters)`,
+            name: emptyLabel,
             value: emptyGroupValue,
             itemStyle: { 
               color: groupColor,
@@ -1609,21 +1616,22 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         if (!info.data?.cluster) {
           // Group header or empty placeholder tooltip
           // Check if this is an empty group placeholder
-          if (info.name === '(0 clusters)') {
+          if (info.name === '(0 clusters)' || info.name === '(0 groups)') {
             return `
               <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-                <div style="font-size: 12px; color: #6a6e73;">No clusters in this severity</div>
+                <div style="font-size: 12px; color: #6a6e73;">No ${groupBy !== 'none' ? 'groups' : 'clusters'} in this ${groupBy === 'severity' ? 'severity' : 'category'}</div>
               </div>
             `;
           }
           // Group header tooltip
           const children = info.data?.children || [];
-          const isEmptyGroup = children.length === 1 && children[0].name === '(0 clusters)';
+          const isEmptyGroup = children.length === 1 && (children[0].name === '(0 clusters)' || children[0].name === '(0 groups)');
           const childCount = isEmptyGroup ? 0 : children.length;
+          const itemLabel = 'group'; // Group header tooltip - we're always in grouped view here
           return `
             <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
               <div style="font-size: 14px; font-weight: 600; color: #151515; margin-bottom: 4px;">${info.name}</div>
-              <div style="font-size: 12px; color: #6a6e73;">${childCount} cluster${childCount !== 1 ? 's' : ''}</div>
+              <div style="font-size: 12px; color: #6a6e73;">${childCount} ${itemLabel}${childCount !== 1 ? 's' : ''}</div>
             </div>
           `;
         }
@@ -1873,7 +1881,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         formatter: (params: any) => {
           const children = params.data?.children || [];
           // Check if this is an empty group placeholder (has 1 child with "0 clusters" in name)
-          const isEmptyGroup = children.length === 1 && children[0].name?.includes('(0 clusters)');
+          const isEmptyGroup = children.length === 1 && (children[0].name?.includes('(0 clusters)') || children[0].name?.includes('(0 groups)'));
           const childCount = isEmptyGroup ? 0 : children.length;
           return `${params.name} (${childCount})`;
         },
@@ -2494,8 +2502,8 @@ interface FilterPanelProps {
   setTriggeredToDate?: (v: string) => void;
   triggeredToTime?: string;
   setTriggeredToTime?: (v: string) => void;
-  // Current alerts sub-tab for dynamic title
-  alertsSubTab?: 'clusters-health' | 'firing-alerts';
+  // Filter context for dynamic title (fleet vs alerts)
+  filterContext?: 'fleet' | 'alerts';
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
@@ -2523,7 +2531,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   setTriggeredToDate,
   triggeredToTime,
   setTriggeredToTime,
-  alertsSubTab = 'clusters-health',
+  filterContext = 'fleet',
 }) => {
   const allSeverities: AlertSeverity[] = ['Critical', 'Warning', 'Info'];
   const allGroups: AlertGroup[] = ['Cluster', 'Namespace'];
@@ -2659,7 +2667,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const filteredLabels = availableLabels.filter(l => l.toLowerCase().includes(labelSearchValue.toLowerCase()));
   const filteredComponents = availableComponents.filter(c => c.toLowerCase().includes(componentSearchValue.toLowerCase()));
 
-  const filterTitle = alertsSubTab === 'firing-alerts' ? 'Filter Fleet Alerts' : 'Filter Fleet';
+  const filterTitle = filterContext === 'alerts' ? 'Filter Fleet Alerts' : 'Filter Fleet';
 
   return (
     <Card>
@@ -6998,15 +7006,21 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Main page tabs - initialize from URL params
+  // Main page tabs - Fleet overview | Alerts | Incidents | Management
   const [mainPageTab, setMainPageTab] = React.useState<string | number>(() => {
     const tab = searchParams.get('tab');
-    return tab === 'management' ? 'management' : tab === 'incidents' ? 'incidents' : 'alerts';
+    if (tab === 'management') return 'management';
+    if (tab === 'incidents') return 'incidents';
+    if (tab === 'alerts' || tab === 'firing-alerts') return 'alerts';
+    return 'fleet-overview';
   });
   const [managementSubTab, setManagementSubTab] = React.useState<string | number>(() => {
     const subtab = searchParams.get('subtab');
     return subtab === 'silence-rules' ? 'silence-rules' : 'alert-rules';
   });
+  
+  // Track when user navigated from Fleet overview to Alerts (e.g. via cluster click) - for Back button
+  const [cameFromFleetOverview, setCameFromFleetOverview] = React.useState(false);
   
   // Handle URL parameter changes for tab navigation
   React.useEffect(() => {
@@ -7014,33 +7028,59 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     const subtab = searchParams.get('subtab');
     if (tab === 'management') {
       setMainPageTab('management');
+      setCameFromFleetOverview(false);
       if (subtab === 'silence-rules') {
         setManagementSubTab('silence-rules');
       } else {
         setManagementSubTab('alert-rules');
       }
+    } else if (tab === 'incidents') {
+      setMainPageTab('incidents');
+      setCameFromFleetOverview(false);
+    } else if (tab === 'alerts' || tab === 'firing-alerts') {
+      setMainPageTab('alerts');
+    } else {
+      setMainPageTab('fleet-overview');
+      setCameFromFleetOverview(false);
     }
   }, [searchParams]);
   
-  // V2: Alerts sub-tabs - derive initial state from URL params for back button support
-  const getInitialSubTab = (): 'clusters-health' | 'firing-alerts' => {
-    const tab = searchParams.get('tab');
-    return tab === 'firing-alerts' ? 'firing-alerts' : 'clusters-health';
-  };
-  const [alertsSubTab, setAlertsSubTabState] = React.useState<'clusters-health' | 'firing-alerts'>(getInitialSubTab);
-  
-  // Wrapper to update URL when changing tabs (enables back button)
-  const setAlertsSubTab = React.useCallback((tab: 'clusters-health' | 'firing-alerts') => {
-    setAlertsSubTabState(tab);
+  // Handle main tab change with URL sync
+  const handleMainTabChange = React.useCallback((key: string | number) => {
+    setMainPageTab(key);
     const newParams = new URLSearchParams(searchParams);
-    if (tab === 'firing-alerts') {
-      newParams.set('tab', 'firing-alerts');
+    if (key === 'management') {
+      newParams.set('tab', 'management');
+      setCameFromFleetOverview(false);
+    } else if (key === 'incidents') {
+      newParams.set('tab', 'incidents');
+      setCameFromFleetOverview(false);
+    } else if (key === 'alerts') {
+      newParams.set('tab', 'alerts');
     } else {
       newParams.delete('tab');
-      // Clear cluster filter from URL when going back to clusters health
       newParams.delete('cluster');
       newParams.delete('component');
+      newParams.delete('alertName');
+      setCameFromFleetOverview(false);
     }
+    navigate(`?${newParams.toString()}`, { replace: false });
+  }, [navigate, searchParams]);
+  
+  // Back from Alerts to Fleet overview (when navigated via cluster click)
+  const handleBackToFleetOverview = React.useCallback(() => {
+    setMainPageTab('fleet-overview');
+    setCameFromFleetOverview(false);
+    setClusterFilter([]);
+    setMainComponentFilter(null);
+    setMainAlertNameFilter(null);
+    setSelectedClusterForAlerts(null);
+    setFiringAlertsCardView('all-clusters');
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('tab');
+    newParams.delete('cluster');
+    newParams.delete('component');
+    newParams.delete('alertName');
     navigate(`?${newParams.toString()}`, { replace: false });
   }, [navigate, searchParams]);
   
@@ -7322,20 +7362,17 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     const urlCluster = searchParams.get('cluster');
     const urlComponent = searchParams.get('component');
     
-    // Sync tab state with URL
-    if (urlTab === 'firing-alerts' && alertsSubTab !== 'firing-alerts') {
-      setAlertsSubTabState('firing-alerts');
-    } else if (urlTab !== 'firing-alerts' && alertsSubTab === 'firing-alerts') {
-      setAlertsSubTabState('clusters-health');
-      // When going back to clusters-health, also reset the filter state
+    // Sync tab state with URL - when going back to fleet-overview, reset filter state
+    if (urlTab !== 'alerts' && urlTab !== 'firing-alerts' && urlTab !== 'management' && urlTab !== 'incidents') {
       setClusterFilter([]);
       setMainComponentFilter(null);
       setSelectedClusterForAlerts(null);
       setFiringAlertsCardView('all-clusters');
+      setCameFromFleetOverview(false);
     }
     
     // Sync cluster filter with URL
-    if (urlCluster && urlTab === 'firing-alerts') {
+    if (urlCluster && (urlTab === 'alerts' || urlTab === 'firing-alerts')) {
       const cluster = mockClusters.find(c => c.name === urlCluster);
       if (cluster && clusterFilter[0] !== urlCluster) {
         setClusterFilter([urlCluster]);
@@ -7491,6 +7528,22 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     return sorted;
   }, [filteredClusters, sortBy, activeSortIndex, activeSortDirection]);
 
+  // Clusters for display - apply treemap legend filters so table and treemap stay in sync
+  const clustersForDisplay = React.useMemo(() => {
+    if (treemapLegendFilters.length === 0) return sortedClusters;
+    return sortedClusters.filter(cluster => {
+      const status = getClusterAlertStatus(cluster);
+      const statusCapitalized = status.charAt(0).toUpperCase() + status.slice(1);
+      return treemapLegendFilters.includes(statusCapitalized as 'Critical' | 'Warning' | 'Info' | 'Healthy');
+    });
+  }, [sortedClusters, treemapLegendFilters]);
+
+  // Reset table page when legend filter reduces result set below current page
+  React.useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(clustersForDisplay.length / perPage));
+    if (page > maxPage) setPage(maxPage);
+  }, [clustersForDisplay.length, perPage, page]);
+
   // Metrics
   const totalAlerts = filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.status === 'firing').length, 0);
   const criticalAlerts = filteredClusters.reduce((sum, c) => sum + c.alerts.filter(a => a.severity === 'Critical' && a.status === 'firing').length, 0);
@@ -7583,10 +7636,11 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setClusterFilter([cluster.name]);
     // Update URL with tab and cluster params (enables browser back button)
     const newParams = new URLSearchParams(searchParams);
-    newParams.set('tab', 'firing-alerts');
+    newParams.set('tab', 'alerts');
     newParams.set('cluster', cluster.name);
     navigate(`?${newParams.toString()}`, { replace: false });
-    setAlertsSubTabState('firing-alerts');
+    setMainPageTab('alerts');
+    setCameFromFleetOverview(true);
     // Trigger animation to highlight the filtered view
     setShowFilterAnimation(true);
     setTimeout(() => setShowFilterAnimation(false), 1500);
@@ -7599,11 +7653,12 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setMainComponentFilter(component);
     // Update URL with tab, cluster and component params (enables browser back button)
     const newParams = new URLSearchParams(searchParams);
-    newParams.set('tab', 'firing-alerts');
+    newParams.set('tab', 'alerts');
     newParams.set('cluster', cluster.name);
     newParams.set('component', component);
     navigate(`?${newParams.toString()}`, { replace: false });
-    setAlertsSubTabState('firing-alerts');
+    setMainPageTab('alerts');
+    setCameFromFleetOverview(true);
     // Sync with filter panel - replace cluster filter
     setClusterFilter([cluster.name]);
     // Trigger animation to highlight the filtered view
@@ -9080,8 +9135,8 @@ spec:
   // ========================================
   return (
     <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 76px)', overflow: 'hidden', position: 'relative', padding: '0px' }}>
-      {/* Header + Toolbar Section - Only show in fleet-overview mode */}
-      {navigationView === 'fleet-overview' && (
+      {/* Header + Toolbar Section - Show for main tab views */}
+      {(navigationView === 'fleet-overview' || mainPageTab === 'incidents' || mainPageTab === 'management') && (
       <div style={{ 
         flexShrink: 0,
         backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
@@ -9101,9 +9156,33 @@ spec:
                   </Icon>
                 </FlexItem>
                 <FlexItem>
-                  <Title headingLevel="h1" size="lg">Multi-cluster alerting</Title>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <Title headingLevel="h1" size="lg">Multi-cluster alerting</Title>
+                    <Badge>v2</Badge>
+                  </Flex>
                 </FlexItem>
               </Flex>
+              {/* Breadcrumbs - PatternFly without home link */}
+              <div style={{ marginTop: '8px', marginBottom: '4px' }}>
+                <Breadcrumb aria-label="Breadcrumb">
+                  <BreadcrumbItem component="button" onClick={() => handleMainTabChange('fleet-overview')}>
+                    Multi-cluster alerting
+                  </BreadcrumbItem>
+                  {mainPageTab === 'fleet-overview' && <BreadcrumbItem isActive>Fleet overview</BreadcrumbItem>}
+                  {mainPageTab === 'alerts' && (
+                    <>
+                      {cameFromFleetOverview && (
+                        <BreadcrumbItem component="button" onClick={handleBackToFleetOverview}>
+                          Fleet overview
+                        </BreadcrumbItem>
+                      )}
+                      <BreadcrumbItem isActive>Alerts</BreadcrumbItem>
+                    </>
+                  )}
+                  {mainPageTab === 'incidents' && <BreadcrumbItem isActive>Incidents</BreadcrumbItem>}
+                  {mainPageTab === 'management' && <BreadcrumbItem isActive>Management</BreadcrumbItem>}
+                </Breadcrumb>
+              </div>
               {/* Refresh with interval dropdown - moved to header */}
               <Flex gap={{ default: 'gapSm' }}>
                 {/* Time Range Selector */}
@@ -9290,29 +9369,17 @@ spec:
               </Flex>
             </Flex>
 
-            {/* Main Page Tabs */}
+            {/* Main Page Tabs: Fleet overview | Alerts | Incidents | Management */}
             <Tabs 
               activeKey={mainPageTab} 
-              onSelect={(_, key) => setMainPageTab(key)} 
+              onSelect={(_, key) => handleMainTabChange(key)} 
               aria-label="Main alerting tabs"
             >
+              <Tab eventKey="fleet-overview" title={<TabTitleText>Fleet overview</TabTitleText>} />
               <Tab eventKey="alerts" title={<TabTitleText><BellIcon /> Alerts</TabTitleText>} />
               <Tab eventKey="incidents" title={<TabTitleText><PortIcon /> Incidents</TabTitleText>} />
               <Tab eventKey="management" title={<TabTitleText><CogIcon /> Management</TabTitleText>} />
             </Tabs>
-
-            {/* V2: Alerts Sub-tabs - Subtab styling per PatternFly v6 guidelines */}
-            {mainPageTab === 'alerts' && (
-              <Tabs 
-                activeKey={alertsSubTab} 
-                onSelect={(_, key) => setAlertsSubTab(key as 'clusters-health' | 'firing-alerts')} 
-                aria-label="Alerts sub-tabs" 
-                isSubtab
-              >
-                <Tab eventKey="clusters-health" title={<TabTitleText>Clusters health</TabTitleText>} />
-                <Tab eventKey="firing-alerts" title={<TabTitleText>Firing alerts</TabTitleText>} />
-              </Tabs>
-            )}
 
             {/* Management Sub-tabs - Subtab styling per PatternFly v6 guidelines */}
             {mainPageTab === 'management' && (
@@ -9346,7 +9413,7 @@ spec:
         </div>
 
         {/* Toolbar section - Under tabs, with visual separation */}
-        {mainPageTab === 'alerts' && (
+        {(mainPageTab === 'fleet-overview' || mainPageTab === 'alerts') && (
           <div style={{ 
             padding: '16px 8px', 
             backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
@@ -9445,7 +9512,7 @@ spec:
             {/* Search Input - Third - Changes scope based on tab */}
             <ToolbarItem>
               <SearchInput
-                placeholder={alertsSubTab === 'firing-alerts' ? 'Search alert name, or affected components' : 'Search clusters...'}
+                placeholder={mainPageTab === 'alerts' ? 'Search alert name, or affected components' : 'Search clusters...'}
                 value={searchValue}
                 onChange={(_, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
@@ -9664,7 +9731,7 @@ spec:
       {/* End Sticky Header Section */}
 
       {/* Scrollable Content Area - Fleet Overview - Clusters Health Sub-tab */}
-      {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'clusters-health' && (
+      {mainPageTab === 'fleet-overview' && navigationView === 'fleet-overview' && (
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
         {/* Filter Side Panel - Sticky */}
         {isFilterPanelOpen && (
@@ -9717,7 +9784,7 @@ spec:
                 setSavedFilters([...savedFilters, newFilter]);
               }}
               onDeleteSavedFilter={(id) => setSavedFilters(savedFilters.filter(f => f.id !== id))}
-              alertsSubTab="clusters-health"
+              filterContext="fleet"
             />
           </div>
         )}
@@ -10339,7 +10406,7 @@ spec:
                                 columnIndex: 0
                               }}
                             >
-                              Cluster Status
+                              Status
                             </Th>
                             <Th 
                               sort={{
@@ -10392,78 +10459,29 @@ spec:
                           </Tr>
                         </Thead>
                         <Tbody>
-                          {sortedClusters.slice((page - 1) * perPage, page * perPage).map(cluster => {
+                          {clustersForDisplay.slice((page - 1) * perPage, page * perPage).map(cluster => {
                             const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
                             const criticalCount = firingAlerts.filter(a => a.severity === 'Critical').length;
                             const warningCount = firingAlerts.filter(a => a.severity === 'Warning').length;
                             const infoCount = firingAlerts.filter(a => a.severity === 'Info').length;
-                            // ACM Cluster Status configuration with colors and icons
-                            const acmStatusConfig: Record<ACMClusterStatus, { 
-                              color: 'green' | 'red' | 'orange' | 'blue' | 'grey'; 
-                              icon: React.ReactNode; 
-                              description: string 
-                            }> = {
-                              'Ready': { 
-                                color: 'green', 
-                                icon: <CheckCircleIcon />, 
-                                description: 'The cluster is online, agents are reporting, and the hub can manage it.' 
-                              },
-                              'Offline': { 
-                                color: 'red', 
-                                icon: <ExclamationCircleIcon />, 
-                                description: 'The hub cannot reach the managed cluster. This is critical for connectivity.' 
-                              },
-                              'Failed': { 
-                                color: 'red', 
-                                icon: <ExclamationCircleIcon />, 
-                                description: 'An operation (creation, import, or destroy) failed to complete.' 
-                              },
-                              'Pending Import': { 
-                                color: 'blue', 
-                                icon: <ClockIcon />, 
-                                description: 'The cluster definition exists, but the import command hasn\'t been applied yet.' 
-                              },
-                              'Installing': { 
-                                color: 'blue', 
-                                icon: <SyncIcon />, 
-                                description: 'The cluster is currently being provisioned by the Hive operator.' 
-                              },
-                              'Degraded': { 
-                                color: 'orange', 
-                                icon: <ExclamationTriangleIcon />, 
-                                description: 'The cluster is reachable, but some core operators or services are failing.' 
-                              },
-                              'Hibernating': { 
-                                color: 'grey', 
-                                icon: <PauseCircleIcon />, 
-                                description: 'The cluster is powered off (stopped) to save costs on cloud providers.' 
-                              },
-                              'Unknown': { 
-                                color: 'grey', 
-                                icon: <QuestionCircleIcon />, 
-                                description: 'The status cannot be determined, often during an agent update or hub restart.' 
-                              },
-                              'Detaching': { 
-                                color: 'orange', 
-                                icon: <SyncIcon />, 
-                                description: 'The cluster is in the process of being removed from ACM management.' 
-                              },
-                            };
-                            
-                            const statusConfig = acmStatusConfig[cluster.acmStatus] || acmStatusConfig['Unknown'];
+                            const alertStatus = getClusterAlertStatus(cluster);
+                            const statusConfig = {
+                              critical: { color: 'red' as const, icon: <ExclamationCircleIcon /> },
+                              warning: { color: 'orange' as const, icon: <ExclamationTriangleIcon /> },
+                              info: { color: 'purple' as const, icon: <InfoCircleIcon /> },
+                              healthy: { color: 'green' as const, icon: <CheckCircleIcon /> },
+                            }[alertStatus];
                             
                             return (
                               <Tr key={cluster.id} isClickable onRowClick={() => handleDrillDown(cluster)}>
                                 <Td>
-                                  <Tooltip content={statusConfig.description}>
-                                    <Label 
-                                      color={statusConfig.color}
-                                      icon={statusConfig.icon}
-                                      isCompact
-                                    >
-                                      {cluster.acmStatus}
-                                    </Label>
-                                  </Tooltip>
+                                  <Label 
+                                    color={statusConfig.color}
+                                    icon={statusConfig.icon}
+                                    isCompact
+                                  >
+                                    {alertStatus.charAt(0).toUpperCase() + alertStatus.slice(1)}
+                                  </Label>
                                 </Td>
                                 <Td>
                                   <strong>{cluster.name}</strong>
@@ -10490,7 +10508,7 @@ spec:
                   {viewMode === 'summary' && (
                     <CardFooter>
                       <Pagination
-                        itemCount={sortedClusters.length}
+                        itemCount={clustersForDisplay.length}
                         perPage={perPage}
                         page={page}
                         onSetPage={(_, p) => setPage(p)}
@@ -10508,25 +10526,23 @@ spec:
                 clusters={filteredClusters}
                 onAlertRuleClick={(alertName) => {
                   setMainAlertNameFilter(alertName);
-                  setAlertsSubTabState('firing-alerts');
-                  // Update URL with tab and alert name params
+                  setMainPageTab('alerts');
+                  setCameFromFleetOverview(true);
                   const newParams = new URLSearchParams(searchParams);
-                  newParams.set('tab', 'firing-alerts');
+                  newParams.set('tab', 'alerts');
                   newParams.set('alertName', alertName);
                   navigate(`?${newParams.toString()}`, { replace: false });
-                  // Trigger animation to highlight the filtered view
                   setShowFilterAnimation(true);
                   setTimeout(() => setShowFilterAnimation(false), 1500);
                 }}
                 onComponentClick={(componentName) => {
                   setMainComponentFilter(componentName);
-                  setAlertsSubTabState('firing-alerts');
-                  // Update URL with tab and component params
+                  setMainPageTab('alerts');
+                  setCameFromFleetOverview(true);
                   const newParams = new URLSearchParams(searchParams);
-                  newParams.set('tab', 'firing-alerts');
+                  newParams.set('tab', 'alerts');
                   newParams.set('component', componentName);
                   navigate(`?${newParams.toString()}`, { replace: false });
-                  // Trigger animation to highlight the filtered view
                   setShowFilterAnimation(true);
                   setTimeout(() => setShowFilterAnimation(false), 1500);
                 }}
@@ -10542,7 +10558,7 @@ spec:
       )}
 
       {/* V2: Scrollable Content Area - Fleet Overview - Firing Alerts Sub-tab */}
-      {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && alertsSubTab === 'firing-alerts' && (
+      {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && (
         <Drawer isExpanded={isDrawerExpanded} position="end" style={{ flex: 1, minHeight: 0 }}>
           {/* Animation overlay for filtered view transition */}
           {showFilterAnimation && (
@@ -10575,6 +10591,14 @@ spec:
           `}</style>
           <DrawerContent panelContent={null}>
             <DrawerContentBody style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Back button when navigated from Fleet overview */}
+        {cameFromFleetOverview && (
+          <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--pf-t--global--border--color--default)', flexShrink: 0 }}>
+            <Button variant="link" isInline icon={<ArrowLeftIcon />} onClick={handleBackToFleetOverview}>
+              Back to Fleet overview
+            </Button>
+          </div>
+        )}
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
           {/* Filter Side Panel - Sticky */}
           {isFilterPanelOpen && (
@@ -10640,7 +10664,7 @@ spec:
                 setTriggeredToDate={setTriggeredToDate}
                 triggeredToTime={triggeredToTime}
                 setTriggeredToTime={setTriggeredToTime}
-                alertsSubTab="firing-alerts"
+                filterContext="alerts"
               />
             </div>
           )}
