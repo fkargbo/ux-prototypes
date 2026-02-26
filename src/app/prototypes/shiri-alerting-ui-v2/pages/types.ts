@@ -74,6 +74,15 @@ export interface ClusterData {
   acmStatus: ACMClusterStatus;
 }
 
+export interface AggregatedAlert {
+  alertName: string;
+  severity: AlertSeverity;
+  totalCount: number;
+  clusters: { name: string; cluster: ClusterData; count: number; lastFired: string; lastFiredTimestamp: Date }[];
+  component: AlertComponent;
+  group: AlertGroup;
+}
+
 export interface TrendData {
   timestamp: string;
   critical: number;

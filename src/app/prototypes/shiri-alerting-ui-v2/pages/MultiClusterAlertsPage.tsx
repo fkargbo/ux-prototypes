@@ -215,8 +215,11 @@ import { CrossClusterInsightsCards } from './CrossClusterInsightsCards';
 import { TreemapHeatmap } from './TreemapHeatmap';
 import { ManagementTab } from './ManagementTab';
 import { SettingsModals } from './SettingsModals';
+import { SavedFiltersModals } from './SavedFiltersModals';
 import { DrillDownContent } from './DrillDownContent';
 import { FleetOverviewTab } from './FleetOverviewTab';
+import { FleetOverviewToolbar } from './FleetOverviewToolbar';
+import { AlertsTabFleetOverviewContent } from './AlertsTabFleetOverviewContent';
 import { mockAlertRules, mockTrendData, mockClusters } from './mockData';
 
 
@@ -1386,416 +1389,65 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
 
         {/* Toolbar section - Under tabs, only for Fleet overview (Alerts tab has filters inside card) */}
         {mainPageTab === 'fleet-overview' && (
-          <div style={{ 
-            padding: '16px 8px', 
-            backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-          }}>
-            <Toolbar className="pf-m-align-items-center" style={{ backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0, paddingBottom: 0 }}>
-              <ToolbarContent className="pf-m-align-items-center">
-                {/* Filters Button - First */}
-                <ToolbarItem>
-                  <Button 
-                    variant={isFilterPanelOpen ? 'secondary' : 'control'} 
-                    icon={<FilterIcon />}
-                    onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                  >
-                    Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{
-                      regionFilter.length + 
-                      clusterFilter.length + 
-                      severityFilter.length + 
-                      (hasGroupFilterChanges ? groupFilter.length : 0) + 
-                      componentFilter.length
-                    }</Badge>}
-                  </Button>
-                </ToolbarItem>
-                <ToolbarItem>
-                  <Dropdown
-                    isOpen={isSavedFiltersDropdownOpen}
-                    onOpenChange={setIsSavedFiltersDropdownOpen}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle 
-                        ref={toggleRef} 
-                        onClick={() => setIsSavedFiltersDropdownOpen(!isSavedFiltersDropdownOpen)}
-                        isExpanded={isSavedFiltersDropdownOpen}
-                        icon={<BookmarkIcon />}
-                      >
-                        {selectedSavedFilter ? selectedSavedFilter.name : 'My saved filters'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      {savedFilters.length === 0 ? (
-                        <DropdownItem isDisabled>No saved filters</DropdownItem>
-                      ) : (
-                        savedFilters.map(filter => (
-                          <DropdownItem 
-                            key={filter.id}
-                            onClick={() => {
-                              setSelectedSavedFilter(filter);
-                              setSeverityFilter(filter.filters.severity as AlertSeverity[]);
-                              setGroupFilter(filter.filters.group as AlertGroup[]);
-                              setComponentFilter(filter.filters.component as AlertComponent[]);
-                              setRegionFilter(filter.filters.region || []);
-                              setClusterFilter(filter.filters.cluster || []);
-                              setNamespaceFilter(filter.filters.namespace || []);
-                              setLabelFilter(filter.filters.label || []);
-                              setSearchValue(filter.filters.searchValue || '');
-                              
-                              if (filter.viewSettings) {
-                                if (filter.viewSettings.groupBy !== undefined) {
-                                  setGroupBy(filter.viewSettings.groupBy);
-                                }
-                                if (filter.viewSettings.sortBy !== undefined) {
-                                  setSortBy(filter.viewSettings.sortBy);
-                                }
-                                if (filter.viewSettings.importanceSizing !== undefined) {
-                                  setImportanceSizing(filter.viewSettings.importanceSizing);
-                                }
-                              }
-                              
-                              setIsSavedFiltersDropdownOpen(false);
-                            }}
-                          >
-                            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                              <FlexItem>{filter.name}</FlexItem>
-                              {selectedSavedFilter?.id === filter.id && (
-                                <FlexItem>
-                                  <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
-                                </FlexItem>
-                              )}
-                            </Flex>
-                          </DropdownItem>
-                        ))
-                      )}
-                      <Divider />
-                      <DropdownItem 
-                        onClick={() => {
-                          setIsManageSavedFiltersModalOpen(true);
-                          setIsSavedFiltersDropdownOpen(false);
-                        }}
-                      >
-                        <CogIcon /> Manage saved filters
-                      </DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
-                </ToolbarItem>
-                {/* Search Input - Third, flex grow to fill available space */}
-                <ToolbarItem style={{ flex: 1 }}>
-                  <SearchInput
-                    placeholder="Search clusters"
-                    value={searchValue}
-                    onChange={(_, value) => setSearchValue(value)}
-                    onClear={() => setSearchValue('')}
-                    style={{ width: '100%' }}
-                  />
-                </ToolbarItem>
-            {/* Time Range Selector - Compact, right-aligned */}
-            <ToolbarItem align={{ default: 'alignEnd' }}>
-              <Popover
-                isVisible={isCustomTimeRangePopoverOpen}
-                shouldClose={() => setIsCustomTimeRangePopoverOpen(false)}
-                headerContent="Custom time range"
-                minWidth="360px"
-                maxWidth="360px"
-                bodyContent={
-                  <Stack hasGutter>
-                    <StackItem>
-                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
-                      <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                        <FlexItem>
-                          <DatePicker
-                            value={triggeredFromDate || ''}
-                            onChange={(_, str) => setTriggeredFromDate(str)}
-                            placeholder="YYYY-MM-DD"
-                            style={{ width: '170px' }}
-                          />
-                        </FlexItem>
-                        <FlexItem>
-                          <TimePicker
-                            time={triggeredFromTime || ''}
-                            onChange={(_, time) => setTriggeredFromTime(time)}
-                            placeholder="HH:MM"
-                            aria-label="From time"
-                            is24Hour
-                            style={{ width: '100px' }}
-                            menuAppendTo={() => document.body}
-                          />
-                        </FlexItem>
-                      </Flex>
-                    </StackItem>
-                    <StackItem>
-                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
-                      <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                        <FlexItem>
-                          <DatePicker
-                            value={triggeredToDate || ''}
-                            onChange={(_, str) => setTriggeredToDate(str)}
-                            placeholder="YYYY-MM-DD"
-                            style={{ width: '170px' }}
-                          />
-                        </FlexItem>
-                        <FlexItem>
-                          <TimePicker
-                            time={triggeredToTime || ''}
-                            onChange={(_, time) => setTriggeredToTime(time)}
-                            placeholder="HH:MM"
-                            aria-label="To time"
-                            is24Hour
-                            style={{ width: '100px' }}
-                            menuAppendTo={() => document.body}
-                          />
-                        </FlexItem>
-                      </Flex>
-                    </StackItem>
-                    <StackItem>
-                      <Button variant="primary" onClick={() => setIsCustomTimeRangePopoverOpen(false)} style={{ width: '100%' }}>
-                        Apply
-                      </Button>
-                    </StackItem>
-                  </Stack>
-                }
-                position="bottom-end"
-              >
-                <Dropdown
-                  isOpen={isQuickTimeRangeOpen}
-                  onOpenChange={setIsQuickTimeRangeOpen}
-                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                    <MenuToggle
-                      ref={toggleRef}
-                      variant="plainText"
-                      onClick={() => setIsQuickTimeRangeOpen(!isQuickTimeRangeOpen)}
-                      isExpanded={isQuickTimeRangeOpen}
-                      icon={<ClockIcon />}
-                      style={{ minWidth: '140px', padding: '4px 8px' }}
-                    >
-                      {quickTimeRangeOptions.find(o => o.value === quickTimeRange)?.label}
-                    </MenuToggle>
-                  )}
-                >
-                  <DropdownList>
-                    {quickTimeRangeOptions.map(opt => (
-                      <DropdownItem
-                        key={opt.value}
-                        onClick={() => {
-                          if (opt.value === 'custom') {
-                            setQuickTimeRange('custom');
-                            setIsQuickTimeRangeOpen(false);
-                            setIsCustomTimeRangePopoverOpen(true);
-                          } else {
-                            setQuickTimeRange(opt.value);
-                            setIsQuickTimeRangeOpen(false);
-                          }
-                        }}
-                      >
-                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                          <FlexItem>{opt.label}</FlexItem>
-                          {quickTimeRange === opt.value && (
-                            <FlexItem>
-                              <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
-                            </FlexItem>
-                          )}
-                        </Flex>
-                      </DropdownItem>
-                    ))}
-                  </DropdownList>
-                </Dropdown>
-              </Popover>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
-        {/* Active Filter Chips */}
-        {hasActiveFilters && (
-        <div style={{ 
-          marginTop: '16px', 
-          marginBottom: '0px',
-        }}>
-            <Flex 
-              gap={{ default: 'gapSm' }} 
-              alignItems={{ default: 'alignItemsCenter' }} 
-              style={{ 
-                padding: showFilterAnimation ? '8px 12px' : undefined,
-                borderRadius: showFilterAnimation ? '6px' : undefined,
-                backgroundColor: showFilterAnimation ? 'var(--pf-t--global--color--brand--default)' : undefined,
-                animation: showFilterAnimation ? 'filterChipsHighlight 1.5s ease-out' : undefined,
-              }}
-            >
-              <style>{`
-                @keyframes filterChipsHighlight {
-                  0% { background-color: rgba(0, 102, 204, 0.25); }
-                  100% { background-color: transparent; }
-                }
-              `}</style>
-              <FlexItem>
-                <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  {/* Alert scope filters - only show when not "All" (Global View) */}
-                  {hasGroupFilterChanges && (
-                    <LabelGroup categoryName="Alert scope">
-                      {groupFilter.map(g => (
-                        <Label key={g} variant="outline" onClose={() => {
-                          // When removing a scope, switch to the other one
-                          if (g === 'Cluster') {
-                            setGroupFilter(['Namespace']);
-                          } else {
-                            setGroupFilter(['Cluster']);
-                          }
-                        }}>{g}</Label>
-                      ))}
-                    </LabelGroup>
-                  )}
-                {/* Severity filters keep their colors */}
-                {severityFilter.length > 0 && (
-                  <LabelGroup categoryName="Severity">
-                    {severityFilter.map(s => (
-                      <Label key={s} color={getSeverityLabelColor(s)} onClose={() => setSeverityFilter(severityFilter.filter(x => x !== s))}>{s}</Label>
-                    ))}
-                  </LabelGroup>
-                )}
-                {componentFilter.length > 0 && (
-                  <LabelGroup categoryName={
-                    groupFilter.length > 0 && groupFilter.length < 2
-                      ? `Affected component (in: Alert scope: ${groupFilter.join(', Alert scope: ')})`
-                      : "Affected component"
-                  }>
-                    {componentFilter.map(c => (
-                      <Label key={c} variant="outline" onClose={() => setComponentFilter(componentFilter.filter(x => x !== c))}>{c}</Label>
-                    ))}
-                  </LabelGroup>
-                )}
-                {regionFilter.length > 0 && (
-                  <LabelGroup categoryName="Region">
-                    {regionFilter.map(r => (
-                      <Label key={r} variant="outline" onClose={() => setRegionFilter(regionFilter.filter(x => x !== r))}>{r}</Label>
-                    ))}
-                  </LabelGroup>
-                )}
-                {clusterFilter.length > 0 && (
-                  <LabelGroup categoryName="Cluster">
-                    {clusterFilter.map(c => (
-                      <Label key={c} variant="outline" onClose={() => {
-                        const newFilter = clusterFilter.filter(x => x !== c);
-                        setClusterFilter(newFilter);
-                        // Also clear the in-card view states if this was the selected cluster
-                        if (newFilter.length === 0) {
-                          setSelectedClusterInCard(null);
-                          setClusterCardView('all-clusters');
-                          setSelectedClusterForAlerts(null);
-                          setFiringAlertsCardView('all-clusters');
-                        }
-                      }}>{c}</Label>
-                    ))}
-                  </LabelGroup>
-                )}
-                {namespaceFilter.length > 0 && (
-                  <LabelGroup categoryName="Namespace">
-                    {namespaceFilter.map(n => (
-                      <Label key={n} variant="outline" onClose={() => setNamespaceFilter(namespaceFilter.filter(x => x !== n))}>{n}</Label>
-                    ))}
-                  </LabelGroup>
-                )}
-                {labelFilter.length > 0 && (
-                  <LabelGroup categoryName="Label">
-                    {labelFilter.map(l => (
-                      <Label key={l} variant="outline" onClose={() => setLabelFilter(labelFilter.filter(x => x !== l))}>{l}</Label>
-                    ))}
-                  </LabelGroup>
-                )}
-                {mainComponentFilter && (
-                  <LabelGroup categoryName="Component">
-                    <Label variant="outline" onClose={() => setMainComponentFilter(null)}>{mainComponentFilter}</Label>
-                  </LabelGroup>
-                )}
-                {mainAlertNameFilter && (
-                  <LabelGroup categoryName="Alert">
-                    <Label variant="outline" onClose={() => setMainAlertNameFilter(null)}>{mainAlertNameFilter}</Label>
-                  </LabelGroup>
-                )}
-              </Flex>
-            </FlexItem>
-            {hasActiveFilters && (
-            <FlexItem>
-              <Flex gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  <Button variant="link" onClick={() => {
-                    clearFilters();
-                    setSelectedSavedFilter(null);
-                  }}>
-                    Clear filters
-                  </Button>
-                </FlexItem>
-                <FlexItem>
-                  <Button variant="link" onClick={() => setIsFilterPanelOpen(true)}>
-                    Edit filters
-                  </Button>
-                </FlexItem>
-                {selectedSavedFilter && (() => {
-                  // Check if current filters differ from saved filter
-                  const savedSeverity = selectedSavedFilter.filters.severity || [];
-                  const savedGroup = selectedSavedFilter.filters.group || [];
-                  const savedComponent = selectedSavedFilter.filters.component || [];
-                  const savedSearchValue = selectedSavedFilter.filters.searchValue || '';
-                  const savedRegion = selectedSavedFilter.filters.region || [];
-                  const savedCluster = selectedSavedFilter.filters.cluster || [];
-                  const savedNamespace = selectedSavedFilter.filters.namespace || [];
-                  const savedLabel = selectedSavedFilter.filters.label || [];
-                  
-                  const hasChanges = 
-                    JSON.stringify([...severityFilter].sort()) !== JSON.stringify([...savedSeverity].sort()) ||
-                    JSON.stringify([...groupFilter].sort()) !== JSON.stringify([...savedGroup].sort()) ||
-                    JSON.stringify([...componentFilter].sort()) !== JSON.stringify([...savedComponent].sort()) ||
-                    JSON.stringify([...regionFilter].sort()) !== JSON.stringify([...savedRegion].sort()) ||
-                    JSON.stringify([...clusterFilter].sort()) !== JSON.stringify([...savedCluster].sort()) ||
-                    JSON.stringify([...namespaceFilter].sort()) !== JSON.stringify([...savedNamespace].sort()) ||
-                    JSON.stringify([...labelFilter].sort()) !== JSON.stringify([...savedLabel].sort()) ||
-                    searchValue !== savedSearchValue;
-                  
-                  return hasChanges ? (
-                    <FlexItem>
-                      <Button variant="link" onClick={() => {
-                        // Update the existing saved filter with current filter values
-                        const updatedFilters = { 
-                          severity: severityFilter, 
-                          group: groupFilter, 
-                          component: componentFilter, 
-                          source: [] as string[], 
-                          searchValue,
-                          region: regionFilter,
-                          cluster: clusterFilter,
-                          namespace: namespaceFilter,
-                          label: labelFilter,
-                        };
-                        setSavedFilters(savedFilters.map(f => 
-                          f.id === selectedSavedFilter.id 
-                            ? { ...f, filters: updatedFilters } 
-                            : f
-                        ));
-                        // Update the selected filter reference
-                        setSelectedSavedFilter({
-                          ...selectedSavedFilter,
-                          filters: updatedFilters
-                        });
-                        addToast(`Filter "${selectedSavedFilter.name}" updated`, 'success');
-                      }}>
-                        Update saved filter
-                      </Button>
-                    </FlexItem>
-                  ) : null;
-                })()}
-                <FlexItem>
-                  <Button variant="link" onClick={() => {
-                    setNewFilterName('');
-                    setIsSaveFilterModalOpen(true);
-                  }}>
-                    Add to saved filters
-                  </Button>
-                </FlexItem>
-              </Flex>
-            </FlexItem>
-            )}
-            </Flex>
-        </div>
-        )}
-          </div>
+          <FleetOverviewToolbar
+            isFilterPanelOpen={isFilterPanelOpen}
+            setIsFilterPanelOpen={setIsFilterPanelOpen}
+            hasActiveFilters={hasActiveFilters}
+            regionFilter={regionFilter}
+            clusterFilter={clusterFilter}
+            severityFilter={severityFilter}
+            hasGroupFilterChanges={hasGroupFilterChanges}
+            groupFilter={groupFilter}
+            componentFilter={componentFilter}
+            setRegionFilter={setRegionFilter}
+            setClusterFilter={setClusterFilter}
+            setNamespaceFilter={setNamespaceFilter}
+            setLabelFilter={setLabelFilter}
+            setSeverityFilter={setSeverityFilter}
+            setGroupFilter={setGroupFilter}
+            setComponentFilter={setComponentFilter}
+            namespaceFilter={namespaceFilter}
+            labelFilter={labelFilter}
+            searchValue={searchValue}
+            setSearchValue={setSearchValue}
+            isSavedFiltersDropdownOpen={isSavedFiltersDropdownOpen}
+            setIsSavedFiltersDropdownOpen={setIsSavedFiltersDropdownOpen}
+            selectedSavedFilter={selectedSavedFilter}
+            setSelectedSavedFilter={setSelectedSavedFilter}
+            savedFilters={savedFilters}
+            setSavedFilters={setSavedFilters}
+            setGroupBy={setGroupBy}
+            setSortBy={setSortBy}
+            setImportanceSizing={setImportanceSizing}
+            setIsManageSavedFiltersModalOpen={setIsManageSavedFiltersModalOpen}
+            triggeredFromDate={triggeredFromDate}
+            setTriggeredFromDate={setTriggeredFromDate}
+            triggeredFromTime={triggeredFromTime}
+            setTriggeredFromTime={setTriggeredFromTime}
+            triggeredToDate={triggeredToDate}
+            setTriggeredToDate={setTriggeredToDate}
+            triggeredToTime={triggeredToTime}
+            setTriggeredToTime={setTriggeredToTime}
+            quickTimeRange={quickTimeRange}
+            setQuickTimeRange={setQuickTimeRange}
+            isQuickTimeRangeOpen={isQuickTimeRangeOpen}
+            setIsQuickTimeRangeOpen={setIsQuickTimeRangeOpen}
+            isCustomTimeRangePopoverOpen={isCustomTimeRangePopoverOpen}
+            setIsCustomTimeRangePopoverOpen={setIsCustomTimeRangePopoverOpen}
+            showFilterAnimation={showFilterAnimation}
+            mainComponentFilter={mainComponentFilter}
+            setMainComponentFilter={setMainComponentFilter}
+            mainAlertNameFilter={mainAlertNameFilter}
+            setMainAlertNameFilter={setMainAlertNameFilter}
+            clearFilters={clearFilters}
+            setNewFilterName={setNewFilterName}
+            setIsSaveFilterModalOpen={setIsSaveFilterModalOpen}
+            addToast={addToast}
+            setSelectedClusterInCard={setSelectedClusterInCard}
+            setClusterCardView={setClusterCardView}
+            setSelectedClusterForAlerts={setSelectedClusterForAlerts}
+            setFiringAlertsCardView={setFiringAlertsCardView}
+          />
         )}
 
       </div>
@@ -1906,428 +1558,90 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
 
       {/* V2: Scrollable Content Area - Fleet Overview - Firing Alerts Sub-tab */}
       {mainPageTab === 'alerts' && navigationView === 'fleet-overview' && (
-        <Drawer isExpanded={isDrawerExpanded} position="end" style={{ flex: 1, minHeight: 0 }}>
-          {/* Animation overlay for filtered view transition */}
-          {showFilterAnimation && (
-            <div 
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'var(--pf-t--global--color--brand--default)',
-                opacity: 0,
-                pointerEvents: 'none',
-                zIndex: 100,
-                animation: 'filterFlash 1.5s ease-out',
-              }}
-            />
-          )}
-          <style>{`
-            @keyframes filterFlash {
-              0% { opacity: 0.15; }
-              20% { opacity: 0.08; }
-              100% { opacity: 0; }
-            }
-            @keyframes pulseHighlight {
-              0% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0.4); }
-              50% { box-shadow: 0 0 0 8px rgba(0, 102, 204, 0); }
-              100% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0); }
-            }
-          `}</style>
-          <DrawerContent panelContent={null}>
-            <DrawerContentBody style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Back button when navigated from Fleet overview */}
-        {cameFromFleetOverview && (
-          <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--pf-t--global--border--color--default)', flexShrink: 0 }}>
-            <Button variant="link" isInline icon={<ArrowLeftIcon />} onClick={handleBackToFleetOverview}>
-              Back to Fleet overview
-            </Button>
-          </div>
-        )}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
-          {/* Filter Side Panel - Sticky */}
-          {alertsTabIsFilterPanelOpen && (
-            <div style={{ 
-              width: window.innerWidth < 1080 ? '320px' : '280px', 
-              minWidth: window.innerWidth < 1080 ? '320px' : '280px', 
-              flexShrink: 0, 
-              height: '100%',
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              padding: '4px',
-              borderRight: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
-            }}>
-              <FilterPanel
-                regionFilter={alertsTabRegionFilter}
-                setRegionFilter={setAlertsTabRegionFilter}
-                clusterFilter={alertsTabClusterFilter}
-                setClusterFilter={setAlertsTabClusterFilter}
-                namespaceFilter={alertsTabNamespaceFilter}
-                setNamespaceFilter={setAlertsTabNamespaceFilter}
-                labelFilter={alertsTabLabelFilter}
-                setLabelFilter={setAlertsTabLabelFilter}
-                severityFilter={alertsTabSeverityFilter}
-                setSeverityFilter={setAlertsTabSeverityFilter}
-                groupFilter={alertsTabGroupFilter}
-                setGroupFilter={setAlertsTabGroupFilter}
-                componentFilter={alertsTabComponentFilter}
-                setComponentFilter={setAlertsTabComponentFilter}
-                regions={regions}
-                clusterNames={clusterNames}
-                clusters={mockClusters}
-                namespaces={namespaces}
-                availableLabels={availableLabels}
-                regionCounts={regionCounts}
-                clusterCounts={clusterCounts}
-                namespaceCounts={namespaceCounts}
-                onClose={() => setAlertsTabIsFilterPanelOpen(false)}
-                savedFilters={savedFilters}
-                onApplySavedFilter={(filter) => {
-                  setAlertsTabSeverityFilter(filter.filters.severity);
-                  setAlertsTabGroupFilter(filter.filters.group);
-                  setAlertsTabComponentFilter(filter.filters.component);
-                }}
-                onSaveFilter={(name) => {
-                  const newFilter: SavedFilter = {
-                    id: `sf-${Date.now()}`,
-                    name,
-                    filters: { severity: alertsTabSeverityFilter, group: alertsTabGroupFilter, component: alertsTabComponentFilter, source: [], searchValue: alertsTabSearchValue },
-                  };
-                  setSavedFilters([...savedFilters, newFilter]);
-                }}
-                onDeleteSavedFilter={(id) => setSavedFilters(savedFilters.filter(f => f.id !== id))}
-                showAlertFilters={true}
-                stateFilter={alertStateFilter}
-                setStateFilter={setAlertStateFilter}
-                sourceFilter={alertSourceFilter}
-                setSourceFilter={setAlertSourceFilter}
-                triggeredFromDate={alertsTabTriggeredFromDate}
-                setTriggeredFromDate={setAlertsTabTriggeredFromDate}
-                triggeredFromTime={alertsTabTriggeredFromTime}
-                setTriggeredFromTime={setAlertsTabTriggeredFromTime}
-                triggeredToDate={alertsTabTriggeredToDate}
-                setTriggeredToDate={setAlertsTabTriggeredToDate}
-                triggeredToTime={alertsTabTriggeredToTime}
-                setTriggeredToTime={setAlertsTabTriggeredToTime}
-                filterContext="alerts"
-              />
-            </div>
-          )}
-
-          {/* Main Content Area - Firing Alerts */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
-            <Stack hasGutter style={{ gap: '16px' }}>
-              {/* Alerts Card */}
-              <StackItem>
-                {/* Header with back button when viewing single cluster */}
-                <AllAlertsCard
-                  showMetrics={firingAlertsCardView === 'all-clusters'}
-                  totalAlerts={totalAlerts}
-                  criticalAlerts={criticalAlerts}
-                  warningAlerts={warningAlerts}
-                  infoAlerts={infoAlerts}
-                  healthyAlerts={healthyClusters}
-                  affectedClusters={filteredClustersForAlerts.filter(c => c.alerts.some(a => a.status === 'firing')).length}
-                  onCriticalClick={() => {
-                    if (!alertsTabSeverityFilter.includes('Critical')) {
-                      setAlertsTabSeverityFilter([...alertsTabSeverityFilter, 'Critical']);
-                    }
-                  }}
-                  onWarningClick={() => {
-                    if (!alertsTabSeverityFilter.includes('Warning')) {
-                      setAlertsTabSeverityFilter([...alertsTabSeverityFilter, 'Warning']);
-                    }
-                  }}
-                  onInfoClick={() => {
-                    if (!alertsTabSeverityFilter.includes('Info')) {
-                      setAlertsTabSeverityFilter([...alertsTabSeverityFilter, 'Info']);
-                    }
-                  }}
-                  clusters={firingAlertsCardView === 'single-cluster' && selectedClusterForAlerts 
-                    ? [selectedClusterForAlerts] 
-                    : filteredClustersForAlerts}
-                  alertNameFilter={mainAlertNameFilter}
-                  componentFilter={mainComponentFilter}
-                  groupFilter={alertsTabGroupFilter}
-                  onClearAlertNameFilter={() => setMainAlertNameFilter(null)}
-                  onClearComponentFilter={() => setMainComponentFilter(null)}
-                  onClusterClick={handleClusterClickInAlerts}
-                  onAlertClick={(alert, initialTab) => {
-                    setSelectedAlertDetail(alert);
-                    setIsDrawerExpanded(true);
-                    setAlertDetailDrawerTab(initialTab !== undefined ? initialTab : 0);
-                  }}
-                  onAlertRuleClick={(alertName) => {
-                    setMainPageTab('management');
-                    setManagementSubTab('alert-rules');
-                  }}
-                  onComponentClick={(componentName) => {
-                    setMainComponentFilter(componentName);
-                  }}
-                  singleClusterView={firingAlertsCardView === 'single-cluster'}
-                  groupBy={alertsGroupBy}
-                  onGroupByChange={setAlertsGroupBy}
-                  triggeredFromDate={alertsTabTriggeredFromDate}
-                  triggeredFromTime={alertsTabTriggeredFromTime}
-                  triggeredToDate={alertsTabTriggeredToDate}
-                  onClusterFilterChange={setAlertsTabClusterFilter}
-                  onNamespaceFilterChange={setAlertsTabNamespaceFilter}
-                  triggeredToTime={alertsTabTriggeredToTime}
-                  filterToolbar={
-                    <>
-                      <Toolbar className="pf-m-align-items-center" style={{ backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0, paddingTop: 0, paddingBottom: 0 }}>
-                        <ToolbarContent className="pf-m-align-items-center">
-                          <ToolbarItem>
-                            <Button 
-                              variant={alertsTabIsFilterPanelOpen ? 'secondary' : 'control'} 
-                              icon={<FilterIcon />}
-                              onClick={() => setAlertsTabIsFilterPanelOpen(!alertsTabIsFilterPanelOpen)}
-                            >
-                              Filters {hasAlertsTabActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{
-                                alertsTabRegionFilter.length + 
-                                alertsTabClusterFilter.length + 
-                                alertsTabSeverityFilter.length + 
-                                (hasAlertsTabGroupFilterChanges ? alertsTabGroupFilter.length : 0) + 
-                                alertsTabComponentFilter.length
-                              }</Badge>}
-                            </Button>
-                          </ToolbarItem>
-                          <ToolbarItem>
-                            <Dropdown
-                              isOpen={isSavedFiltersDropdownOpen}
-                              onOpenChange={setIsSavedFiltersDropdownOpen}
-                              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                <MenuToggle 
-                                  ref={toggleRef} 
-                                  onClick={() => setIsSavedFiltersDropdownOpen(!isSavedFiltersDropdownOpen)}
-                                  isExpanded={isSavedFiltersDropdownOpen}
-                                  icon={<BookmarkIcon />}
-                                >
-                                  {selectedSavedFilter ? selectedSavedFilter.name : 'My saved filters'}
-                                </MenuToggle>
-                              )}
-                            >
-                              <DropdownList>
-                                {savedFilters.length === 0 ? (
-                                  <DropdownItem isDisabled>No saved filters</DropdownItem>
-                                ) : (
-                                  savedFilters.map(filter => (
-                                    <DropdownItem 
-                                      key={filter.id}
-                                      onClick={() => {
-                                        setSelectedSavedFilter(filter);
-                                        setAlertsTabSeverityFilter(filter.filters.severity as AlertSeverity[]);
-                                        setAlertsTabGroupFilter(filter.filters.group as AlertGroup[]);
-                                        setAlertsTabComponentFilter(filter.filters.component as AlertComponent[]);
-                                        setAlertsTabRegionFilter(filter.filters.region || []);
-                                        setAlertsTabClusterFilter(filter.filters.cluster || []);
-                                        setAlertsTabNamespaceFilter(filter.filters.namespace || []);
-                                        setAlertsTabLabelFilter(filter.filters.label || []);
-                                        setAlertsTabSearchValue(filter.filters.searchValue || '');
-                                        setIsSavedFiltersDropdownOpen(false);
-                                      }}
-                                    >
-                                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                                        <FlexItem>{filter.name}</FlexItem>
-                                        {selectedSavedFilter?.id === filter.id && (
-                                          <FlexItem>
-                                            <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
-                                          </FlexItem>
-                                        )}
-                                      </Flex>
-                                    </DropdownItem>
-                                  ))
-                                )}
-                                <Divider />
-                                <DropdownItem 
-                                  onClick={() => {
-                                    setIsManageSavedFiltersModalOpen(true);
-                                    setIsSavedFiltersDropdownOpen(false);
-                                  }}
-                                >
-                                  <CogIcon /> Manage saved filters
-                                </DropdownItem>
-                              </DropdownList>
-                            </Dropdown>
-                          </ToolbarItem>
-                          <ToolbarItem style={{ flex: 1 }}>
-                            <SearchInput
-                              placeholder="Search alert name"
-                              value={alertsTabSearchValue}
-                              onChange={(_, value) => setAlertsTabSearchValue(value)}
-                              onClear={() => setAlertsTabSearchValue('')}
-                              style={{ width: '100%' }}
-                            />
-                          </ToolbarItem>
-                          <ToolbarItem align={{ default: 'alignEnd' }}>
-                            <Popover
-                              isVisible={alertsTabIsCustomTimeRangePopoverOpen}
-                              shouldClose={() => setAlertsTabIsCustomTimeRangePopoverOpen(false)}
-                              headerContent="Custom time range"
-                              minWidth="360px"
-                              maxWidth="360px"
-                              bodyContent={
-                                <Stack hasGutter>
-                                  <StackItem>
-                                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
-                                    <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                                      <FlexItem>
-                                        <DatePicker value={alertsTabTriggeredFromDate || ''} onChange={(_, str) => setAlertsTabTriggeredFromDate(str)} placeholder="YYYY-MM-DD" style={{ width: '170px' }} />
-                                      </FlexItem>
-                                      <FlexItem>
-                                        <TimePicker time={alertsTabTriggeredFromTime || ''} onChange={(_, time) => setAlertsTabTriggeredFromTime(time)} placeholder="HH:MM" aria-label="From time" is24Hour style={{ width: '100px' }} menuAppendTo={() => document.body} />
-                                      </FlexItem>
-                                    </Flex>
-                                  </StackItem>
-                                  <StackItem>
-                                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
-                                    <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                                      <FlexItem>
-                                        <DatePicker value={alertsTabTriggeredToDate || ''} onChange={(_, str) => setAlertsTabTriggeredToDate(str)} placeholder="YYYY-MM-DD" style={{ width: '170px' }} />
-                                      </FlexItem>
-                                      <FlexItem>
-                                        <TimePicker time={alertsTabTriggeredToTime || ''} onChange={(_, time) => setAlertsTabTriggeredToTime(time)} placeholder="HH:MM" aria-label="To time" is24Hour style={{ width: '100px' }} menuAppendTo={() => document.body} />
-                                      </FlexItem>
-                                    </Flex>
-                                  </StackItem>
-                                  <StackItem>
-                                    <Button variant="primary" onClick={() => setAlertsTabIsCustomTimeRangePopoverOpen(false)} style={{ width: '100%' }}>Apply</Button>
-                                  </StackItem>
-                                </Stack>
-                              }
-                              position="bottom-end"
-                            >
-                              <Dropdown
-                                isOpen={alertsTabIsQuickTimeRangeOpen}
-                                onOpenChange={setAlertsTabIsQuickTimeRangeOpen}
-                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                  <MenuToggle ref={toggleRef} variant="plainText" onClick={() => setAlertsTabIsQuickTimeRangeOpen(!alertsTabIsQuickTimeRangeOpen)} isExpanded={alertsTabIsQuickTimeRangeOpen} icon={<ClockIcon />} style={{ minWidth: '140px', padding: '4px 8px' }}>
-                                    {quickTimeRangeOptions.find(o => o.value === alertsTabQuickTimeRange)?.label}
-                                  </MenuToggle>
-                                )}
-                              >
-                                <DropdownList>
-                                  {quickTimeRangeOptions.map(opt => (
-                                    <DropdownItem key={opt.value} onClick={() => {
-                                      if (opt.value === 'custom') {
-                                        setAlertsTabQuickTimeRange('custom');
-                                        setAlertsTabIsQuickTimeRangeOpen(false);
-                                        setAlertsTabIsCustomTimeRangePopoverOpen(true);
-                                      } else {
-                                        setAlertsTabQuickTimeRange(opt.value);
-                                        setAlertsTabIsQuickTimeRangeOpen(false);
-                                      }
-                                    }}>
-                                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                                        <FlexItem>{opt.label}</FlexItem>
-                                        {alertsTabQuickTimeRange === opt.value && (
-                                          <FlexItem><CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} /></FlexItem>
-                                        )}
-                                      </Flex>
-                                    </DropdownItem>
-                                  ))}
-                                </DropdownList>
-                              </Dropdown>
-                            </Popover>
-                          </ToolbarItem>
-                        </ToolbarContent>
-                      </Toolbar>
-                      {(alertsTabSeverityFilter.length > 0 || hasAlertsTabGroupFilterChanges || alertsTabComponentFilter.length > 0 || alertsTabRegionFilter.length > 0 || alertsTabClusterFilter.length > 0 || alertsTabNamespaceFilter.length > 0 || alertsTabLabelFilter.length > 0 || mainComponentFilter !== null || mainAlertNameFilter !== null) && (
-                        <div style={{ marginTop: '8px' }}>
-                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                            <FlexItem>
-                              <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                {hasAlertsTabGroupFilterChanges && (
-                                  <LabelGroup categoryName="Alert scope">
-                                    {alertsTabGroupFilter.map(g => (
-                                      <Label key={g} variant="outline" onClose={() => {
-                                        if (g === 'Cluster') { setAlertsTabGroupFilter(['Namespace']); } else { setAlertsTabGroupFilter(['Cluster']); }
-                                      }}>{g}</Label>
-                                    ))}
-                                  </LabelGroup>
-                                )}
-                                {alertsTabSeverityFilter.length > 0 && (
-                                  <LabelGroup categoryName="Severity">
-                                    {alertsTabSeverityFilter.map(s => (
-                                      <Label key={s} color={getSeverityLabelColor(s)} onClose={() => setAlertsTabSeverityFilter(alertsTabSeverityFilter.filter(x => x !== s))}>{s}</Label>
-                                    ))}
-                                  </LabelGroup>
-                                )}
-                                {alertsTabComponentFilter.length > 0 && (
-                                  <LabelGroup categoryName="Affected component">
-                                    {alertsTabComponentFilter.map(c => (
-                                      <Label key={c} variant="outline" onClose={() => setAlertsTabComponentFilter(alertsTabComponentFilter.filter(x => x !== c))}>{c}</Label>
-                                    ))}
-                                  </LabelGroup>
-                                )}
-                                {alertsTabRegionFilter.length > 0 && (
-                                  <LabelGroup categoryName="Region">
-                                    {alertsTabRegionFilter.map(r => (
-                                      <Label key={r} variant="outline" onClose={() => setAlertsTabRegionFilter(alertsTabRegionFilter.filter(x => x !== r))}>{r}</Label>
-                                    ))}
-                                  </LabelGroup>
-                                )}
-                                {alertsTabClusterFilter.length > 0 && (
-                                  <LabelGroup categoryName="Cluster">
-                                    {alertsTabClusterFilter.map(c => (
-                                      <Label key={c} variant="outline" onClose={() => setAlertsTabClusterFilter(alertsTabClusterFilter.filter(x => x !== c))}>{c}</Label>
-                                    ))}
-                                  </LabelGroup>
-                                )}
-                                {alertsTabNamespaceFilter.length > 0 && (
-                                  <LabelGroup categoryName="Namespace">
-                                    {alertsTabNamespaceFilter.map(n => (
-                                      <Label key={n} variant="outline" onClose={() => setAlertsTabNamespaceFilter(alertsTabNamespaceFilter.filter(x => x !== n))}>{n}</Label>
-                                    ))}
-                                  </LabelGroup>
-                                )}
-                                {alertsTabLabelFilter.length > 0 && (
-                                  <LabelGroup categoryName="Label">
-                                    {alertsTabLabelFilter.map(l => (
-                                      <Label key={l} variant="outline" onClose={() => setAlertsTabLabelFilter(alertsTabLabelFilter.filter(x => x !== l))}>{l}</Label>
-                                    ))}
-                                  </LabelGroup>
-                                )}
-                                {mainComponentFilter && (
-                                  <LabelGroup categoryName="Component">
-                                    <Label variant="outline" onClose={() => setMainComponentFilter(null)}>{mainComponentFilter}</Label>
-                                  </LabelGroup>
-                                )}
-                                {mainAlertNameFilter && (
-                                  <LabelGroup categoryName="Alert">
-                                    <Label variant="outline" onClose={() => setMainAlertNameFilter(null)}>{mainAlertNameFilter}</Label>
-                                  </LabelGroup>
-                                )}
-                              </Flex>
-                            </FlexItem>
-                            <FlexItem>
-                              <Flex gap={{ default: 'gapSm' }}>
-                                <FlexItem>
-                                  <Button variant="link" onClick={() => { clearAlertsTabFilters(); setSelectedSavedFilter(null); }}>Clear filters</Button>
-                                </FlexItem>
-                                <FlexItem>
-                                  <Button variant="link" onClick={() => setAlertsTabIsFilterPanelOpen(true)}>Edit filters</Button>
-                                </FlexItem>
-                                <FlexItem>
-                                  <Button variant="link" onClick={() => { setNewFilterName(''); setIsSaveFilterModalOpen(true); }}>Add to saved filters</Button>
-                                </FlexItem>
-                              </Flex>
-                            </FlexItem>
-                          </Flex>
-                        </div>
-                      )}
-                    </>
-                  }
-                />
-              </StackItem>
-            </Stack>
-          </div>
-        </div>
-            </DrawerContentBody>
-          </DrawerContent>
-        </Drawer>
+        <AlertsTabFleetOverviewContent
+          showFilterAnimation={showFilterAnimation}
+          isDrawerExpanded={isDrawerExpanded}
+          cameFromFleetOverview={cameFromFleetOverview}
+          onBackToFleetOverview={handleBackToFleetOverview}
+          alertsTabIsFilterPanelOpen={alertsTabIsFilterPanelOpen}
+          setAlertsTabIsFilterPanelOpen={setAlertsTabIsFilterPanelOpen}
+          alertsTabRegionFilter={alertsTabRegionFilter}
+          setAlertsTabRegionFilter={setAlertsTabRegionFilter}
+          alertsTabClusterFilter={alertsTabClusterFilter}
+          setAlertsTabClusterFilter={setAlertsTabClusterFilter}
+          alertsTabNamespaceFilter={alertsTabNamespaceFilter}
+          setAlertsTabNamespaceFilter={setAlertsTabNamespaceFilter}
+          alertsTabLabelFilter={alertsTabLabelFilter}
+          setAlertsTabLabelFilter={setAlertsTabLabelFilter}
+          alertsTabSeverityFilter={alertsTabSeverityFilter}
+          setAlertsTabSeverityFilter={setAlertsTabSeverityFilter}
+          alertsTabGroupFilter={alertsTabGroupFilter}
+          setAlertsTabGroupFilter={setAlertsTabGroupFilter}
+          alertsTabComponentFilter={alertsTabComponentFilter}
+          setAlertsTabComponentFilter={setAlertsTabComponentFilter}
+          alertsTabSearchValue={alertsTabSearchValue}
+          setAlertsTabSearchValue={setAlertsTabSearchValue}
+          alertsTabTriggeredFromDate={alertsTabTriggeredFromDate}
+          setAlertsTabTriggeredFromDate={setAlertsTabTriggeredFromDate}
+          alertsTabTriggeredFromTime={alertsTabTriggeredFromTime}
+          setAlertsTabTriggeredFromTime={setAlertsTabTriggeredFromTime}
+          alertsTabTriggeredToDate={alertsTabTriggeredToDate}
+          setAlertsTabTriggeredToDate={setAlertsTabTriggeredToDate}
+          alertsTabTriggeredToTime={alertsTabTriggeredToTime}
+          setAlertsTabTriggeredToTime={setAlertsTabTriggeredToTime}
+          alertsTabQuickTimeRange={alertsTabQuickTimeRange}
+          setAlertsTabQuickTimeRange={setAlertsTabQuickTimeRange}
+          alertsTabIsQuickTimeRangeOpen={alertsTabIsQuickTimeRangeOpen}
+          setAlertsTabIsQuickTimeRangeOpen={setAlertsTabIsQuickTimeRangeOpen}
+          alertsTabIsCustomTimeRangePopoverOpen={alertsTabIsCustomTimeRangePopoverOpen}
+          setAlertsTabIsCustomTimeRangePopoverOpen={setAlertsTabIsCustomTimeRangePopoverOpen}
+          alertStateFilter={alertStateFilter}
+          setAlertStateFilter={setAlertStateFilter}
+          alertSourceFilter={alertSourceFilter}
+          setAlertSourceFilter={setAlertSourceFilter}
+          regions={regions}
+          clusterNames={clusterNames}
+          clusters={mockClusters}
+          namespaces={namespaces}
+          availableLabels={availableLabels}
+          regionCounts={regionCounts}
+          clusterCounts={clusterCounts}
+          namespaceCounts={namespaceCounts}
+          savedFilters={savedFilters}
+          setSavedFilters={setSavedFilters}
+          selectedSavedFilter={selectedSavedFilter}
+          setSelectedSavedFilter={setSelectedSavedFilter}
+          isSavedFiltersDropdownOpen={isSavedFiltersDropdownOpen}
+          setIsSavedFiltersDropdownOpen={setIsSavedFiltersDropdownOpen}
+          setIsManageSavedFiltersModalOpen={setIsManageSavedFiltersModalOpen}
+          setNewFilterName={setNewFilterName}
+          setIsSaveFilterModalOpen={setIsSaveFilterModalOpen}
+          firingAlertsCardView={firingAlertsCardView}
+          selectedClusterForAlerts={selectedClusterForAlerts}
+          filteredClustersForAlerts={filteredClustersForAlerts}
+          totalAlerts={totalAlerts}
+          criticalAlerts={criticalAlerts}
+          warningAlerts={warningAlerts}
+          infoAlerts={infoAlerts}
+          healthyClusters={healthyClusters}
+          mainAlertNameFilter={mainAlertNameFilter}
+          mainComponentFilter={mainComponentFilter}
+          setMainAlertNameFilter={setMainAlertNameFilter}
+          setMainComponentFilter={setMainComponentFilter}
+          alertsGroupBy={alertsGroupBy}
+          setAlertsGroupBy={setAlertsGroupBy}
+          onClusterClick={handleClusterClickInAlerts}
+          onAlertClick={(alert, initialTab) => {
+            setSelectedAlertDetail(alert);
+            setIsDrawerExpanded(true);
+            setAlertDetailDrawerTab(initialTab !== undefined ? initialTab : 0);
+          }}
+          setMainPageTab={setMainPageTab}
+          setManagementSubTab={setManagementSubTab}
+          clearAlertsTabFilters={clearAlertsTabFilters}
+          hasAlertsTabActiveFilters={hasAlertsTabActiveFilters}
+          hasAlertsTabGroupFilterChanges={hasAlertsTabGroupFilterChanges}
+        />
       )}
 
       {/* V2: Alerts Tab - Cluster Components Health View (View B - Pivot Point) */}
@@ -2548,452 +1862,49 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         />
       )}
 
-      {/* Save Filter Modal */}
-      <Modal
-        variant="medium"
-        isOpen={isSaveFilterModalOpen}
-        onClose={() => {
-          setIsSaveFilterModalOpen(false);
-          setSaveGroupingSorting(true);
-          setSaveSearchInput(true);
-        }}
-      >
-        <ModalHeader title="Save filter" />
-        <ModalBody>
-          <Stack hasGutter>
-            <StackItem>
-              <Content component="p">Filters will be saved for future use on your account.</Content>
-            </StackItem>
-            <StackItem>
-              <FormGroup label="Filter name" isRequired>
-                <TextInputGroup>
-                  <TextInputGroupMain
-                    placeholder="Enter filter name..."
-                    value={newFilterName}
-                    onChange={(_, value) => setNewFilterName(value)}
-                  />
-                </TextInputGroup>
-              </FormGroup>
-            </StackItem>
-            <StackItem>
-              <FormGroup 
-                label={
-                  <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>Saved filter items</FlexItem>
-                    <FlexItem>
-                      <Tooltip content="Choose which filter settings to include when saving this filter">
-                        <Button variant="plain" style={{ padding: 0, minWidth: 'auto' }}>
-                          <OutlinedQuestionCircleIcon />
-                        </Button>
-                      </Tooltip>
-                    </FlexItem>
-                  </Flex>
-                }
-                isRequired
-              >
-                <Stack hasGutter>
-                  <StackItem>
-                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                      <FlexItem>
-                        <Checkbox 
-                          id="save-selected-filters" 
-                          label="Selected filters" 
-                          isChecked={true}
-                          isDisabled
-                        />
-                      </FlexItem>
-                      {/* Show active filter counts as compact labels with tooltips */}
-                      {(() => {
-                        const sf = mainPageTab === 'alerts' ? alertsTabSeverityFilter : severityFilter;
-                        const gf = mainPageTab === 'alerts' ? alertsTabGroupFilter : groupFilter;
-                        const cf = mainPageTab === 'alerts' ? alertsTabComponentFilter : componentFilter;
-                        const rf = mainPageTab === 'alerts' ? alertsTabRegionFilter : regionFilter;
-                        const clf = mainPageTab === 'alerts' ? alertsTabClusterFilter : clusterFilter;
-                        const nf = mainPageTab === 'alerts' ? alertsTabNamespaceFilter : namespaceFilter;
-                        const lf = mainPageTab === 'alerts' ? alertsTabLabelFilter : labelFilter;
-                        return (
-                          <>
-                            {sf.length > 0 && (
-                              <FlexItem>
-                                <Tooltip content={`Severity: ${sf.join(', ')}`}>
-                                  <Label isCompact color="grey">{sf.length} severity</Label>
-                                </Tooltip>
-                              </FlexItem>
-                            )}
-                            {gf.length > 0 && (
-                              <FlexItem>
-                                <Tooltip content={`Group: ${gf.join(', ')}`}>
-                                  <Label isCompact color="grey">{gf.length} group</Label>
-                                </Tooltip>
-                              </FlexItem>
-                            )}
-                            {cf.length > 0 && (
-                              <FlexItem>
-                                <Tooltip content={`Component: ${cf.join(', ')}`}>
-                                  <Label isCompact color="grey">{cf.length} component</Label>
-                                </Tooltip>
-                              </FlexItem>
-                            )}
-                            {rf.length > 0 && (
-                              <FlexItem>
-                                <Tooltip content={`Region: ${rf.join(', ')}`}>
-                                  <Label isCompact color="grey">{rf.length} region</Label>
-                                </Tooltip>
-                              </FlexItem>
-                            )}
-                            {clf.length > 0 && (
-                              <FlexItem>
-                                <Tooltip content={`Cluster: ${clf.join(', ')}`}>
-                                  <Label isCompact color="grey">{clf.length} cluster</Label>
-                                </Tooltip>
-                              </FlexItem>
-                            )}
-                            {nf.length > 0 && (
-                              <FlexItem>
-                                <Tooltip content={`Namespace: ${nf.join(', ')}`}>
-                                  <Label isCompact color="grey">{nf.length} namespace</Label>
-                                </Tooltip>
-                              </FlexItem>
-                            )}
-                            {lf.length > 0 && (
-                              <FlexItem>
-                                <Tooltip content={`Label: ${lf.join(', ')}`}>
-                                  <Label isCompact color="grey">{lf.length} label</Label>
-                                </Tooltip>
-                              </FlexItem>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </Flex>
-                  </StackItem>
-                  <StackItem>
-                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                      <FlexItem>
-                        <Checkbox 
-                          id="save-search-input" 
-                          label="Input in search field" 
-                          isChecked={saveSearchInput && !!(mainPageTab === 'alerts' ? alertsTabSearchValue : searchValue)}
-                          isDisabled={!(mainPageTab === 'alerts' ? alertsTabSearchValue : searchValue)}
-                          onChange={(_, checked) => setSaveSearchInput(checked)}
-                        />
-                      </FlexItem>
-                      {(mainPageTab === 'alerts' ? alertsTabSearchValue : searchValue) && (
-                        <FlexItem>
-                          <Tooltip content={`Search value: "${mainPageTab === 'alerts' ? alertsTabSearchValue : searchValue}"`}>
-                            <Label isCompact color="grey">{mainPageTab === 'alerts' ? alertsTabSearchValue : searchValue}</Label>
-                          </Tooltip>
-                        </FlexItem>
-                      )}
-                    </Flex>
-                  </StackItem>
-                  <StackItem>
-                    <Stack hasGutter>
-                      <StackItem>
-                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                          <FlexItem>
-                            <Checkbox 
-                              id="save-grouping-sorting" 
-                              label="Include layout settings" 
-                              isChecked={saveGroupingSorting}
-                              onChange={(_, checked) => setSaveGroupingSorting(checked)}
-                            />
-                          </FlexItem>
-                          {/* Show current layout settings - context-dependent */}
-                          {mainPageTab === 'fleet-overview' ? (
-                            <>
-                              <FlexItem>
-                                <Tooltip content={`Current group by setting: ${groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}`}>
-                                  <Label isCompact color="grey">Group by: {groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}</Label>
-                                </Tooltip>
-                              </FlexItem>
-                              <FlexItem>
-                                <Tooltip content={`Current size by setting: ${
-                                  importanceSizing === 'none' ? 'None (Equal size)' : 
-                                  sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
-                                }`}>
-                                  <Label isCompact color="grey">Size by: {
-                                    importanceSizing === 'none' ? 'None (Equal size)' : 
-                                    sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
-                                  }</Label>
-                                </Tooltip>
-                              </FlexItem>
-                              <FlexItem>
-                                <Tooltip content={`Current sort by setting: ${sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}`}>
-                                  <Label isCompact color="grey">Sort by: {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}</Label>
-                                </Tooltip>
-                              </FlexItem>
-                            </>
-                          ) : (
-                            <>
-                              <FlexItem>
-                                <Tooltip content={`Current group by setting: ${alertsGroupBy === 'none' ? 'None' : alertsGroupBy === 'alertName' ? 'Alert name' : alertsGroupBy === 'impact' ? 'Alert scope' : alertsGroupBy.charAt(0).toUpperCase() + alertsGroupBy.slice(1)}`}>
-                                  <Label isCompact color="grey">Group by: {alertsGroupBy === 'none' ? 'None' : alertsGroupBy === 'alertName' ? 'Alert name' : alertsGroupBy === 'impact' ? 'Alert scope' : alertsGroupBy.charAt(0).toUpperCase() + alertsGroupBy.slice(1)}</Label>
-                                </Tooltip>
-                              </FlexItem>
-                              <FlexItem>
-                                <Label isCompact color="grey">Aggregate by name: On</Label>
-                              </FlexItem>
-                            </>
-                          )}
-                        </Flex>
-                      </StackItem>
-                      <StackItem>
-                        <Content component="small" className="pf-v6-u-color-200">
-                          Note: Some saved items apply only to specific views.
-                        </Content>
-                      </StackItem>
-                    </Stack>
-                  </StackItem>
-                </Stack>
-              </FormGroup>
-            </StackItem>
-            <StackItem>
-              <Content component="small" className="pf-v6-u-color-200">
-                <InfoCircleIcon /> Your saved filters are specific to your account and won't be visible to other users.
-              </Content>
-            </StackItem>
-          </Stack>
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            variant="primary"
-            onClick={() => {
-              if (newFilterName.trim()) {
-                const isAlerts = mainPageTab === 'alerts';
-                const newFilter: SavedFilter = {
-                  id: `sf-${Date.now()}`,
-                  name: newFilterName.trim(),
-                  filters: { 
-                    severity: isAlerts ? alertsTabSeverityFilter : severityFilter, 
-                    group: isAlerts ? alertsTabGroupFilter : groupFilter, 
-                    component: isAlerts ? alertsTabComponentFilter : componentFilter, 
-                    source: [], 
-                    searchValue: saveSearchInput ? (isAlerts ? alertsTabSearchValue : searchValue) : '',
-                    region: isAlerts ? alertsTabRegionFilter : regionFilter,
-                    cluster: isAlerts ? alertsTabClusterFilter : clusterFilter,
-                    namespace: isAlerts ? alertsTabNamespaceFilter : namespaceFilter,
-                    label: isAlerts ? alertsTabLabelFilter : labelFilter,
-                  },
-                  ...(saveGroupingSorting && {
-                    viewSettings: {
-                      groupBy,
-                      sortBy,
-                      importanceSizing,
-                    }
-                  }),
-                };
-                setSavedFilters([...savedFilters, newFilter]);
-                setSelectedSavedFilter(newFilter);
-                setIsSaveFilterModalOpen(false);
-                setNewFilterName('');
-                setSaveGroupingSorting(true);
-                setSaveSearchInput(true);
-                addToast('Filter saved successfully', 'success');
-              }
-            }}
-            isDisabled={!newFilterName.trim()}
-          >
-            Save filter
-          </Button>
-          <Button variant="link" onClick={() => {
-            setIsSaveFilterModalOpen(false);
-            setNewFilterName('');
-            setSaveGroupingSorting(true);
-            setSaveSearchInput(true);
-          }}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Manage Saved Filters Modal */}
-      <Modal
-        variant="medium"
-        isOpen={isManageSavedFiltersModalOpen}
-        onClose={() => {
-          setIsManageSavedFiltersModalOpen(false);
-          setEditingFilterId(null);
-          setEditingFilterName('');
-        }}
-      >
-        <ModalHeader title="Manage saved filters" />
-        <ModalBody>
-        <Stack hasGutter>
-          <StackItem>
-            <Content component="small" className="pf-v6-u-color-200">
-              <InfoCircleIcon /> Your saved filters are specific to your account and won't be visible to other users.
-            </Content>
-          </StackItem>
-          <StackItem>
-            {savedFilters.length === 0 ? (
-              <EmptyState titleText="No saved filters" icon={BookmarkIcon}>
-                <EmptyStateBody>You haven't saved any filters yet. Apply filters and click "Add to saved filters" to save them.</EmptyStateBody>
-              </EmptyState>
-            ) : (
-              <DataList aria-label="Saved filters list" isCompact>
-                {savedFilters.map((filter, index) => (
-                  <DataListItem key={filter.id} aria-labelledby={`filter-${filter.id}`}>
-                    <DataListItemRow>
-                      <DataListControl>
-                        <Tooltip content="Drag to reorder">
-                          <span style={{ cursor: 'grab', display: 'flex', alignItems: 'center', padding: '8px' }}>
-                            <GripVerticalIcon />
-                          </span>
-                        </Tooltip>
-                      </DataListControl>
-                      <DataListItemCells
-                        dataListCells={[
-                          <DataListCell key="name" width={3}>
-                            {editingFilterId === filter.id ? (
-                              <TextInputGroup>
-                                <TextInputGroupMain
-                                  value={editingFilterName}
-                                  onChange={(_, value) => setEditingFilterName(value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && editingFilterName.trim()) {
-                                      setSavedFilters(savedFilters.map(f => 
-                                        f.id === filter.id ? { ...f, name: editingFilterName.trim() } : f
-                                      ));
-                                      setEditingFilterId(null);
-                                      setEditingFilterName('');
-                                    } else if (e.key === 'Escape') {
-                                      setEditingFilterId(null);
-                                      setEditingFilterName('');
-                                    }
-                                  }}
-                                  autoFocus
-                                />
-                                <TextInputGroupUtilities>
-                                  <Button
-                                    variant="plain"
-                                    size="sm"
-                                    onClick={() => {
-                                      if (editingFilterName.trim()) {
-                                        setSavedFilters(savedFilters.map(f => 
-                                          f.id === filter.id ? { ...f, name: editingFilterName.trim() } : f
-                                        ));
-                                      }
-                                      setEditingFilterId(null);
-                                      setEditingFilterName('');
-                                    }}
-                                  >
-                                    <CheckIcon />
-                                  </Button>
-                                  <Button
-                                    variant="plain"
-                                    size="sm"
-                                    onClick={() => {
-                                      setEditingFilterId(null);
-                                      setEditingFilterName('');
-                                    }}
-                                  >
-                                    <TimesIcon />
-                                  </Button>
-                                </TextInputGroupUtilities>
-                              </TextInputGroup>
-                            ) : (
-                              <span id={`filter-${filter.id}`}>
-                                <BookmarkIcon /> {filter.name}
-                              </span>
-                            )}
-                          </DataListCell>,
-                          <DataListCell key="filters" width={2}>
-                            <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
-                              {filter.filters.severity.length > 0 && (
-                                <FlexItem>
-                                  <Tooltip content={`Severity: ${filter.filters.severity.join(', ')}`}>
-                                    <Label isCompact color="grey">{filter.filters.severity.length} severity</Label>
-                                  </Tooltip>
-                                </FlexItem>
-                              )}
-                              {filter.filters.group.length > 0 && (
-                                <FlexItem>
-                                  <Tooltip content={`Group: ${filter.filters.group.join(', ')}`}>
-                                    <Label isCompact color="grey">{filter.filters.group.length} group</Label>
-                                  </Tooltip>
-                                </FlexItem>
-                              )}
-                              {filter.filters.component.length > 0 && (
-                                <FlexItem>
-                                  <Tooltip content={`Component: ${filter.filters.component.join(', ')}`}>
-                                    <Label isCompact color="grey">{filter.filters.component.length} component</Label>
-                                  </Tooltip>
-                                </FlexItem>
-                              )}
-                              {filter.filters.source && filter.filters.source.length > 0 && (
-                                <FlexItem>
-                                  <Tooltip content={`Source: ${filter.filters.source.join(', ')}`}>
-                                    <Label isCompact color="grey">{filter.filters.source.length} source</Label>
-                                  </Tooltip>
-                                </FlexItem>
-                              )}
-                              {filter.filters.searchValue && (
-                                <FlexItem>
-                                  <Tooltip content={`Search: "${filter.filters.searchValue}"`}>
-                                    <Label isCompact color="grey">search</Label>
-                                  </Tooltip>
-                                </FlexItem>
-                              )}
-                            </Flex>
-                          </DataListCell>,
-                          <DataListCell key="actions" width={1} alignRight>
-                            <Flex gap={{ default: 'gapSm' }}>
-                              <FlexItem>
-                                <Tooltip content="Edit filter name">
-                                  <Button
-                                    variant="plain"
-                                    size="sm"
-                                    onClick={() => {
-                                      setEditingFilterId(filter.id);
-                                      setEditingFilterName(filter.name);
-                                    }}
-                                    aria-label="Edit filter name"
-                                  >
-                                    <EditIcon />
-                                  </Button>
-                                </Tooltip>
-                              </FlexItem>
-                              <FlexItem>
-                                <Tooltip content="Delete filter">
-                                  <Button
-                                    variant="plain"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSavedFilters(savedFilters.filter(f => f.id !== filter.id));
-                                      if (selectedSavedFilter?.id === filter.id) {
-                                        setSelectedSavedFilter(null);
-                                      }
-                                      addToast('Filter deleted', 'success');
-                                    }}
-                                    aria-label="Delete filter"
-                                  >
-                                    <TrashIcon />
-                                  </Button>
-                                </Tooltip>
-                              </FlexItem>
-                            </Flex>
-                          </DataListCell>,
-                        ]}
-                      />
-                    </DataListItemRow>
-                  </DataListItem>
-                ))}
-              </DataList>
-            )}
-          </StackItem>
-        </Stack>
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="primary" onClick={() => {
-            setIsManageSavedFiltersModalOpen(false);
-            setEditingFilterId(null);
-            setEditingFilterName('');
-          }}>
-            Done
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <SavedFiltersModals
+        isSaveFilterModalOpen={isSaveFilterModalOpen}
+        setIsSaveFilterModalOpen={setIsSaveFilterModalOpen}
+        newFilterName={newFilterName}
+        setNewFilterName={setNewFilterName}
+        saveGroupingSorting={saveGroupingSorting}
+        setSaveGroupingSorting={setSaveGroupingSorting}
+        saveSearchInput={saveSearchInput}
+        setSaveSearchInput={setSaveSearchInput}
+        mainPageTab={mainPageTab}
+        alertsTabSeverityFilter={alertsTabSeverityFilter}
+        severityFilter={severityFilter}
+        alertsTabGroupFilter={alertsTabGroupFilter}
+        groupFilter={groupFilter}
+        alertsTabComponentFilter={alertsTabComponentFilter}
+        componentFilter={componentFilter}
+        alertsTabRegionFilter={alertsTabRegionFilter}
+        regionFilter={regionFilter}
+        alertsTabClusterFilter={alertsTabClusterFilter}
+        clusterFilter={clusterFilter}
+        alertsTabNamespaceFilter={alertsTabNamespaceFilter}
+        namespaceFilter={namespaceFilter}
+        alertsTabLabelFilter={alertsTabLabelFilter}
+        labelFilter={labelFilter}
+        alertsTabSearchValue={alertsTabSearchValue}
+        searchValue={searchValue}
+        groupBy={groupBy}
+        sortBy={sortBy}
+        importanceSizing={importanceSizing}
+        sizeByOptions={sizeByOptions}
+        alertsGroupBy={alertsGroupBy}
+        savedFilters={savedFilters}
+        setSavedFilters={setSavedFilters}
+        setSelectedSavedFilter={setSelectedSavedFilter}
+        addToast={addToast}
+        isManageSavedFiltersModalOpen={isManageSavedFiltersModalOpen}
+        setIsManageSavedFiltersModalOpen={setIsManageSavedFiltersModalOpen}
+        editingFilterId={editingFilterId}
+        setEditingFilterId={setEditingFilterId}
+        editingFilterName={editingFilterName}
+        setEditingFilterName={setEditingFilterName}
+        selectedSavedFilter={selectedSavedFilter}
+      />
 
       <AlertDetailDrawer
         isExpanded={isDrawerExpanded}
