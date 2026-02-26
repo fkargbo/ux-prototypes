@@ -50,7 +50,6 @@ import {
   Tabs,
   Tab,
   TabTitleText,
-  TabTitleIcon,
   Switch,
   Checkbox,
   Dropdown,
@@ -1466,7 +1465,11 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           if (activeLegendFilters.length > 0 && !activeLegendFilters.includes(groupName as 'Critical' | 'Warning' | 'Info' | 'Healthy')) {
             return false;
           }
-          return groupBy === 'severity' || groupClusters.length > 0;
+          // When severity filter is active, hide empty groups so filtered-out severities don't take up space
+          if (severityFilter.length > 0 && groupClusters.length === 0) {
+            return false;
+          }
+          return true;
         });
     } else {
       // For other groupings, sort alphabetically
@@ -1519,7 +1522,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           ? Math.max(maxGroupBaseValue * 0.25, 3000)
           : Math.max(avgGroupBaseValue * 0.4, 2000);
         
-        const emptyLabel = '(0 groups)'; // We're in grouped view, so use "groups"
+        const emptyLabel = '(0 clusters)';
         return {
           name: groupName,
           value: emptyGroupValue,
@@ -1623,11 +1626,12 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
               </div>
             `;
           }
-          // Group header tooltip
+          // Distinguish root level (children are groups) from group headers (children are clusters)
           const children = info.data?.children || [];
           const isEmptyGroup = children.length === 1 && (children[0].name === '(0 clusters)' || children[0].name === '(0 groups)');
           const childCount = isEmptyGroup ? 0 : children.length;
-          const itemLabel = 'group'; // Group header tooltip - we're always in grouped view here
+          const depth = info.treePathInfo?.length || 1;
+          const itemLabel = depth <= 1 ? 'group' : 'cluster';
           return `
             <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
               <div style="font-size: 14px; font-weight: 600; color: #151515; margin-bottom: 4px;">${info.name}</div>
@@ -1736,31 +1740,43 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         formatter: (params: any) => {
           const cluster = params.data?.cluster;
           if (cluster) {
-            const firingAlerts = cluster.alerts.filter((a: AlertData) => a.status === 'firing');
-            const alertCount = firingAlerts.length;
             const status = getStatusText(cluster);
+            // Show the value that box sizing is defined by (so user understands the tile size)
+            const getSizingDisplayValue = (c: ClusterData): string => {
+              switch (importanceSizing) {
+                case 'none': return '';
+                case 'nodeCount': return `${c.nodeCount} nodes`;
+                case 'cpuCores': return `${c.cpuCores} cores`;
+                case 'totalMemory': return `${c.totalMemory} GB`;
+                case 'podCount': return `${c.podCount} pods`;
+                case 'vmCount': return `${c.vmCount || 0} VMs`;
+                case 'totalAlerts': return `${c.alerts.filter((a: AlertData) => a.status === 'firing').length} alerts`;
+                case 'cpuRequests': return `${c.cpuRequests} CPU req`;
+                case 'memoryRequests': return `${c.memoryRequests} mem req`;
+                default: return '';
+              }
+            };
+            const sizingValue = getSizingDisplayValue(cluster);
             
             // Determine icon and text style based on severity
-            // Icons match PatternFly icon usage: ExclamationCircleIcon, ExclamationTriangleIcon, InfoCircleIcon, CheckCircleIcon
             let icon = '';
             let stylePrefix = '';
-            
             if (status === 'Critical') {
-              icon = '!'; // Exclamation mark for Critical (matches ExclamationCircleIcon)
+              icon = '!';
               stylePrefix = 'critical';
             } else if (status === 'Warning') {
-              icon = '⚠'; // Warning triangle for Warning (matches ExclamationTriangleIcon)
+              icon = '⚠';
               stylePrefix = 'warning';
             } else if (status === 'Info') {
-              icon = 'ℹ'; // Info symbol for Info (matches InfoCircleIcon)
+              icon = 'ℹ';
               stylePrefix = 'info';
             } else {
-              icon = '✓'; // Checkmark for Healthy (matches CheckCircleIcon)
+              icon = '✓';
               stylePrefix = 'healthy';
             }
             
-            return alertCount > 0 
-              ? `{icon_${stylePrefix}|${icon}} {name_${stylePrefix}|${params.name}}\n{count_${stylePrefix}|${alertCount} alerts}` 
+            return sizingValue 
+              ? `{icon_${stylePrefix}|${icon}} {name_${stylePrefix}|${params.name}}\n{count_${stylePrefix}|${sizingValue}}` 
               : `{icon_${stylePrefix}|${icon}} {name_${stylePrefix}|${params.name}}`;
           }
           return `{name|${params.name}}`;
@@ -1943,8 +1959,8 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Treemap container - responsive height */}
-      <div style={{ width: '100%', height: groupBy !== 'none' ? '600px' : '400px', minHeight: '300px' }}>
+      {/* Treemap container - compact height to show more tiles without scrolling */}
+      <div style={{ width: '100%', height: groupBy !== 'none' ? '420px' : '280px', minHeight: '220px' }}>
         <ReactECharts 
           option={option} 
           style={{ height: '100%', width: '100%' }} 
@@ -3199,6 +3215,7 @@ interface AllAlertsCardProps {
   onInfoClick?: () => void;
   onClusterFilterChange?: (clusters: string[]) => void;
   onNamespaceFilterChange?: (namespaces: string[]) => void;
+  filterToolbar?: React.ReactNode;
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
@@ -3231,6 +3248,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   onInfoClick,
   onClusterFilterChange,
   onNamespaceFilterChange,
+  filterToolbar,
 }) => {
   // Component metadata with alert scopes
   const componentMeta: Record<AlertComponent, { impactGroup: 'Cluster' | 'Namespace' }> = {
@@ -3979,236 +3997,189 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
   return (
     <Card id="all-alerts-card">
-      <CardHeader style={{ gap: '0px' }}>
+      <CardHeader>
         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>
             <CardTitle>
               Alerts
             </CardTitle>
           </FlexItem>
-        </Flex>
-      </CardHeader>
-      {showMetrics && (
-        <>
-          <Divider />
-          {/* Alerts Summary Metrics */}
-          <div style={{ 
-            padding: '12px 16px'
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '24px',
-              flexWrap: 'wrap'
-            }}>
-              <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                  <Icon><BellIcon /></Icon>
-                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Total Firing</span>
-                  <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
-                </div>
-              </Tooltip>
-              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-              <Tooltip content={`Critical: ${criticalAlerts} - Click to filter`}>
-                <div 
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                  onClick={onCriticalClick}
-                >
+          {showMetrics && (
+          <FlexItem>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Firing alerts</span>
+              <strong>{totalAlerts}</strong>
+              <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Pending alerts</span>
+              <strong>{Math.floor(totalAlerts * 0.04)}</strong>
+              <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Acknowledged alerts</span>
+              <strong>{Math.floor(totalAlerts * 0.04)}</strong>
+              <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+              <Tooltip content={`Critical: ${criticalAlerts}`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={onCriticalClick}>
                   <Icon status="danger"><ExclamationCircleIcon /></Icon>
-                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
-                  <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
+                  <strong style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
                 </div>
               </Tooltip>
-              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-              <Tooltip content={`Warning: ${warningAlerts} - Click to filter`}>
-                <div 
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                  onClick={onWarningClick}
-                >
+              <Tooltip content={`Warning: ${warningAlerts}`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={onWarningClick}>
                   <Icon status="warning"><ExclamationTriangleIcon /></Icon>
-                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
-                  <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
+                  <strong style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
                 </div>
               </Tooltip>
-              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-              <Tooltip content={`Info: ${infoAlerts} - Click to filter`}>
-                <div 
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                  onClick={onInfoClick}
-                >
+              <Tooltip content={`Info: ${infoAlerts}`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={onInfoClick}>
                   <Icon status="info"><InfoCircleIcon /></Icon>
-                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Info</span>
-                  <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--info--default)' }}>{infoAlerts}</strong>
+                  <strong style={{ color: 'var(--pf-t--global--color--status--info--default)' }}>{infoAlerts}</strong>
                 </div>
               </Tooltip>
-              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-              <Tooltip content={`Healthy: ${healthyAlerts} clusters with no alerts`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
+              <Tooltip content={`Healthy: ${healthyAlerts}`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => {}}>
                   <Icon status="success"><CheckCircleIcon /></Icon>
-                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Healthy</span>
-                  <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--success--default)' }}>{healthyAlerts}</strong>
-                </div>
-              </Tooltip>
-              <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-              <Tooltip content={`Affected Clusters: ${affectedClusters} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                  <Icon><ClusterIcon /></Icon>
-                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Affected Clusters</span>
-                  <strong style={{ fontSize: '16px' }}>{affectedClusters}</strong>
+                  <strong style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>{healthyAlerts}</strong>
                 </div>
               </Tooltip>
             </div>
-          </div>
-          <Divider />
-        </>
+          </FlexItem>
+          )}
+        </Flex>
+      </CardHeader>
+      <Divider />
+      {filterToolbar && (
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
+          {filterToolbar}
+        </div>
       )}
       <CardBody>
               <Stack hasGutter>
                 <StackItem>
-                  <Toolbar>
-                    <ToolbarContent>
-                      <ToolbarItem>
-                        <Dropdown
-                          isOpen={isGroupByOpen}
-                          onOpenChange={setIsGroupByOpen}
-                          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                            <MenuToggle 
-                              ref={toggleRef} 
-                              onClick={() => setIsGroupByOpen(!isGroupByOpen)}
-                              isExpanded={isGroupByOpen}
+                  {/* Layout + actions + pagination - single row */}
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ padding: '8px 0', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
+                    <FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                        <FlexItem>
+                          <span style={{ fontWeight: 'bold', fontSize: '13px' }}>Layout</span>
+                        </FlexItem>
+                        <FlexItem>
+                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                            <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>Group by</span>
+                            <Dropdown
+                              isOpen={isGroupByOpen}
+                              onOpenChange={setIsGroupByOpen}
+                              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                <MenuToggle 
+                                  ref={toggleRef} 
+                                  variant="plainText"
+                                  onClick={() => setIsGroupByOpen(!isGroupByOpen)}
+                                  isExpanded={isGroupByOpen}
+                                  style={{ padding: '4px 8px' }}
+                                >
+                                  {groupBy === 'none' ? 'None' : groupBy === 'alertName' ? 'Alert name' : groupBy === 'impact' ? 'Alert scope' : groupBy === 'cluster' ? 'Cluster' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                                </MenuToggle>
+                              )}
                             >
-                              Group by: {groupBy === 'none' ? 'None' : groupBy === 'alertName' ? 'Alert name' : groupBy === 'impact' ? 'Alert scope' : groupBy === 'cluster' ? 'Cluster' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
-                            </MenuToggle>
-                          )}
-                        >
-                          <DropdownList>
-                            {(['none', 'time', 'severity', 'alertName', 'impact', 'component', 'cluster'] as AlertsGroupByOption[]).map(option => (
-                              <DropdownItem 
-                                key={option}
-                                onClick={() => {
-                                  if (onGroupByChange) onGroupByChange(option);
-                                  setIsGroupByOpen(false);
-                                  setExpandedGroups(new Set());
-                                  setPage(1);
-                                }}
-                              >
-                                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                                  <FlexItem>{option === 'none' ? 'None' : option === 'alertName' ? 'Alert name' : option === 'impact' ? 'Alert scope' : option === 'cluster' ? 'Cluster' : option.charAt(0).toUpperCase() + option.slice(1)}</FlexItem>
-                                  {groupBy === option && (
-                                    <FlexItem>
-                                      <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
-                                    </FlexItem>
-                                  )}
-                                </Flex>
-                              </DropdownItem>
-                            ))}
-                          </DropdownList>
-                        </Dropdown>
-                      </ToolbarItem>
-                      {/* Expand/Collapse all buttons - shown when grouping is active */}
-                      {groupBy !== 'none' && (
-                        (isAggregated && groupedAlerts && groupedAlerts.length > 0) ||
-                        (!isAggregated && groupedIndividualAlerts && groupedIndividualAlerts.length > 0)
-                      ) && (() => {
-                        // Determine which grouped data to use
-                        const activeGroups = isAggregated ? groupedAlerts : groupedIndividualAlerts;
-                        const groupCount = activeGroups?.length || 0;
-                        
-                        return (
-                          <ToolbarItem>
-                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <FlexItem>
-                                <span style={{ 
-                                  fontSize: '14px', 
-                                  color: 'var(--pf-t--global--text--color--regular)', 
-                                  fontWeight: 500 
-                                }}>
-                                  {groupCount} {groupCount === 1 ? 'group' : 'groups'} (by {groupBy === 'alertName' ? 'alert name' : groupBy === 'impact' ? 'alert scope' : groupBy === 'cluster' ? 'cluster' : groupBy})
-                                </span>
-                              </FlexItem>
-                              <FlexItem>
-                                <Button 
-                                  variant="link" 
-                                  isInline
-                                  onClick={() => {
+                              <DropdownList>
+                                {(['none', 'time', 'severity', 'alertName', 'impact', 'component', 'cluster'] as AlertsGroupByOption[]).map(option => (
+                                  <DropdownItem 
+                                    key={option}
+                                    onClick={() => {
+                                      if (onGroupByChange) onGroupByChange(option);
+                                      setIsGroupByOpen(false);
+                                      setExpandedGroups(new Set());
+                                      setPage(1);
+                                    }}
+                                  >
+                                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                      <FlexItem>{option === 'none' ? 'None' : option === 'alertName' ? 'Alert name' : option === 'impact' ? 'Alert scope' : option === 'cluster' ? 'Cluster' : option.charAt(0).toUpperCase() + option.slice(1)}</FlexItem>
+                                      {groupBy === option && (
+                                        <FlexItem>
+                                          <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                                        </FlexItem>
+                                      )}
+                                    </Flex>
+                                  </DropdownItem>
+                                ))}
+                              </DropdownList>
+                            </Dropdown>
+                          </Flex>
+                        </FlexItem>
+                        {groupBy !== 'none' && (
+                          (isAggregated && groupedAlerts && groupedAlerts.length > 0) ||
+                          (!isAggregated && groupedIndividualAlerts && groupedIndividualAlerts.length > 0)
+                        ) && (() => {
+                          const activeGroups = isAggregated ? groupedAlerts : groupedIndividualAlerts;
+                          const groupCount = activeGroups?.length || 0;
+                          return (
+                            <FlexItem>
+                              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                <FlexItem>
+                                  <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    {groupCount} {groupCount === 1 ? 'group' : 'groups'}
+                                  </span>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="link" isInline onClick={() => {
                                     const allGroupNames = activeGroups?.map(g => g.groupName) || [];
                                     setExpandedGroups(new Set(allGroupNames));
-                                  }}
-                                >
-                                  Expand all
-                                </Button>
-                              </FlexItem>
-                              <FlexItem>
-                                <Button 
-                                  variant="link" 
-                                  isInline
-                                  onClick={() => setExpandedGroups(new Set())}
-                                >
-                                  Collapse all
-                                </Button>
-                              </FlexItem>
-                            </Flex>
-                          </ToolbarItem>
-                        );
-                      })()}
-                      <ToolbarItem>
-                        <Switch
-                          id="aggregate-all-alerts-switch"
-                          label="Aggregate by name and severity"
-                          isChecked={isAggregated}
-                          onChange={(_, checked) => {
-                            setIsAggregated(checked);
-                            setPage(1);
-                            setExpandedAlerts([]);
-                          }}
-                        />
-                      </ToolbarItem>
-                      {/* Bulk action button - shown when alerts are selected */}
-                      {selectedAlertKeys.size > 0 && (
-                        <ToolbarItem>
-                          <Button 
-                            variant="secondary" 
-                            icon={<BellSlashIcon />}
-                            onClick={() => setIsSilenceModalOpen(true)}
-                          >
-                            Silence alerts ({selectedAlertKeys.size} selected)
-                          </Button>
-                        </ToolbarItem>
-                      )}
-                      {/* Manage columns and Export buttons */}
-                      <ToolbarItem>
-                        <Tooltip content="Manage columns">
-                          <Button 
-                            variant="plain" 
-                            icon={<ColumnsIcon />} 
-                            onClick={openManageColumnsModal} 
-                            aria-label="Manage columns" 
+                                  }}>Expand all</Button>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="link" isInline onClick={() => setExpandedGroups(new Set())}>Collapse all</Button>
+                                </FlexItem>
+                              </Flex>
+                            </FlexItem>
+                          );
+                        })()}
+                        <FlexItem>
+                          <Switch
+                            id="aggregate-all-alerts-switch"
+                            label="Aggregate by name"
+                            isChecked={isAggregated}
+                            onChange={(_, checked) => {
+                              setIsAggregated(checked);
+                              setPage(1);
+                              setExpandedAlerts([]);
+                            }}
                           />
-                        </Tooltip>
-                      </ToolbarItem>
-                      <ToolbarItem>
-                        <Tooltip content="Export to CSV">
-                          <Button 
-                            variant="plain" 
-                            icon={<ExportIcon />} 
-                            onClick={exportToCSV} 
-                            aria-label="Export to CSV" 
+                        </FlexItem>
+                      </Flex>
+                    </FlexItem>
+                    <FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                        {selectedAlertKeys.size > 0 && (
+                          <FlexItem>
+                            <Button 
+                              variant="secondary" 
+                              icon={<BellSlashIcon />}
+                              onClick={() => setIsSilenceModalOpen(true)}
+                              size="sm"
+                            >
+                              Silence ({selectedAlertKeys.size})
+                            </Button>
+                          </FlexItem>
+                        )}
+                        <FlexItem>
+                          <Tooltip content="Manage columns">
+                            <Button variant="plain" icon={<ColumnsIcon />} onClick={openManageColumnsModal} aria-label="Manage columns" />
+                          </Tooltip>
+                        </FlexItem>
+                        <FlexItem>
+                          <Tooltip content="Export to CSV">
+                            <Button variant="plain" icon={<ExportIcon />} onClick={exportToCSV} aria-label="Export to CSV" />
+                          </Tooltip>
+                        </FlexItem>
+                        <FlexItem>
+                          <Pagination
+                            itemCount={totalItems}
+                            perPage={perPage}
+                            page={page}
+                            onSetPage={(_, p) => setPage(p)}
+                            onPerPageSelect={(_, pp) => setPerPage(pp)}
+                            isCompact
                           />
-                        </Tooltip>
-                      </ToolbarItem>
-                      {/* Filter chips moved to main toolbar */}
-                      <ToolbarItem align={{ default: 'alignEnd' }}>
-                        <Pagination
-                          itemCount={totalItems}
-                          perPage={perPage}
-                          page={page}
-                          onSetPage={(_, p) => setPage(p)}
-                          onPerPageSelect={(_, pp) => setPerPage(pp)}
-                          isCompact
-                        />
-                      </ToolbarItem>
-                    </ToolbarContent>
-                  </Toolbar>
+                        </FlexItem>
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
                 </StackItem>
                 <StackItem>
             {totalItems === 0 ? (
@@ -7197,11 +7168,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [perPage, setPerPage] = React.useState(10);
 
   // Saved filters
-  const [savedFilters, setSavedFilters] = React.useState<SavedFilter[]>([
-    { id: 'sf1', name: 'Critical Only', filters: { severity: ['Critical'], group: [], component: [], source: [], searchValue: '' } },
-    { id: 'sf2', name: 'Production Issues', filters: { severity: ['Critical', 'Warning'], group: ['Cluster'], component: [], source: [], searchValue: '' } },
-    { id: 'sf3', name: 'Network Issues', filters: { severity: ['Critical', 'Warning'], group: [], component: ['Network'], source: [], searchValue: '' } },
-  ]);
+  const [savedFilters, setSavedFilters] = React.useState<SavedFilter[]>([]);
   const [isSavedFiltersDropdownOpen, setIsSavedFiltersDropdownOpen] = React.useState(false);
   const [selectedSavedFilter, setSelectedSavedFilter] = React.useState<SavedFilter | null>(null);
   const [isManageSavedFiltersModalOpen, setIsManageSavedFiltersModalOpen] = React.useState(false);
@@ -9140,14 +9107,30 @@ spec:
       <div style={{ 
         flexShrink: 0,
         backgroundColor: 'var(--pf-t--global--background--color--primary--default, #ffffff)',
-        borderBottom: '1px solid var(--pf-t--global--border--color--default, #d2d2d2)',
         zIndex: 100,
         paddingBottom: '0px',
       }}>
         {/* Page Header */}
         <div>
           <div className="alerting-page-header" style={{ padding: '16px 8px 0 8px' }}>
-            {/* Compact Header Row - Title + Refresh on same line */}
+            {/* Breadcrumbs - above page header (direct children required for separator arrows) */}
+            <div style={{ marginBottom: '8px' }}>
+              <Breadcrumb aria-label="Breadcrumb">
+                <BreadcrumbItem component="button" onClick={() => handleMainTabChange('fleet-overview')}>
+                  Multi-cluster alerting
+                </BreadcrumbItem>
+                {mainPageTab === 'fleet-overview' && <BreadcrumbItem isActive>Fleet overview</BreadcrumbItem>}
+                {mainPageTab === 'alerts' && cameFromFleetOverview && (
+                  <BreadcrumbItem component="button" onClick={handleBackToFleetOverview}>
+                    Fleet overview
+                  </BreadcrumbItem>
+                )}
+                {mainPageTab === 'alerts' && <BreadcrumbItem isActive>Alerts</BreadcrumbItem>}
+                {mainPageTab === 'incidents' && <BreadcrumbItem isActive>Incidents</BreadcrumbItem>}
+                {mainPageTab === 'management' && <BreadcrumbItem isActive>Management</BreadcrumbItem>}
+              </Breadcrumb>
+            </div>
+            {/* Header Row - Title + Refresh on same line */}
             <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '4px' }}>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                 <FlexItem>
@@ -9162,142 +9145,8 @@ spec:
                   </Flex>
                 </FlexItem>
               </Flex>
-              {/* Breadcrumbs - PatternFly without home link */}
-              <div style={{ marginTop: '8px', marginBottom: '4px' }}>
-                <Breadcrumb aria-label="Breadcrumb">
-                  <BreadcrumbItem component="button" onClick={() => handleMainTabChange('fleet-overview')}>
-                    Multi-cluster alerting
-                  </BreadcrumbItem>
-                  {mainPageTab === 'fleet-overview' && <BreadcrumbItem isActive>Fleet overview</BreadcrumbItem>}
-                  {mainPageTab === 'alerts' && (
-                    <>
-                      {cameFromFleetOverview && (
-                        <BreadcrumbItem component="button" onClick={handleBackToFleetOverview}>
-                          Fleet overview
-                        </BreadcrumbItem>
-                      )}
-                      <BreadcrumbItem isActive>Alerts</BreadcrumbItem>
-                    </>
-                  )}
-                  {mainPageTab === 'incidents' && <BreadcrumbItem isActive>Incidents</BreadcrumbItem>}
-                  {mainPageTab === 'management' && <BreadcrumbItem isActive>Management</BreadcrumbItem>}
-                </Breadcrumb>
-              </div>
               {/* Refresh with interval dropdown - moved to header */}
               <Flex gap={{ default: 'gapSm' }}>
-                {/* Time Range Selector */}
-                <FlexItem>
-                  <Popover
-                    isVisible={isCustomTimeRangePopoverOpen}
-                    shouldClose={() => setIsCustomTimeRangePopoverOpen(false)}
-                    headerContent="Custom time range"
-                    minWidth="360px"
-                    maxWidth="360px"
-                    bodyContent={
-                      <Stack hasGutter>
-                        <StackItem>
-                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
-                          <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                            <FlexItem>
-                              <DatePicker
-                                value={triggeredFromDate || ''}
-                                onChange={(_, str) => setTriggeredFromDate(str)}
-                                placeholder="YYYY-MM-DD"
-                                style={{ width: '170px' }}
-                              />
-                            </FlexItem>
-                            <FlexItem>
-                              <TimePicker
-                                time={triggeredFromTime || ''}
-                                onChange={(_, time) => setTriggeredFromTime(time)}
-                                placeholder="HH:MM"
-                                aria-label="From time"
-                                is24Hour
-                                style={{ width: '100px' }}
-                                menuAppendTo={() => document.body}
-                              />
-                            </FlexItem>
-                          </Flex>
-                        </StackItem>
-                        <StackItem>
-                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
-                          <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                            <FlexItem>
-                              <DatePicker
-                                value={triggeredToDate || ''}
-                                onChange={(_, str) => setTriggeredToDate(str)}
-                                placeholder="YYYY-MM-DD"
-                                style={{ width: '170px' }}
-                              />
-                            </FlexItem>
-                            <FlexItem>
-                              <TimePicker
-                                time={triggeredToTime || ''}
-                                onChange={(_, time) => setTriggeredToTime(time)}
-                                placeholder="HH:MM"
-                                aria-label="To time"
-                                is24Hour
-                                style={{ width: '100px' }}
-                                menuAppendTo={() => document.body}
-                              />
-                            </FlexItem>
-                          </Flex>
-                        </StackItem>
-                        <StackItem>
-                          <Button variant="primary" onClick={() => setIsCustomTimeRangePopoverOpen(false)} style={{ width: '100%' }}>
-                            Apply
-                          </Button>
-                        </StackItem>
-                      </Stack>
-                    }
-                    position="bottom-end"
-                  >
-                    <Dropdown
-                      isOpen={isQuickTimeRangeOpen}
-                      onOpenChange={setIsQuickTimeRangeOpen}
-                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                        <MenuToggle 
-                          ref={toggleRef} 
-                          variant="secondary"
-                          onClick={() => setIsQuickTimeRangeOpen(!isQuickTimeRangeOpen)}
-                          isExpanded={isQuickTimeRangeOpen}
-                          icon={<ClockIcon />}
-                          style={{ minWidth: '170px' }}
-                        >
-                          {quickTimeRangeOptions.find(o => o.value === quickTimeRange)?.label}
-                        </MenuToggle>
-                      )}
-                    >
-                      <DropdownList>
-                        {quickTimeRangeOptions.map(opt => (
-                          <DropdownItem 
-                            key={opt.value}
-                            onClick={() => {
-                              if (opt.value === 'custom') {
-                                setQuickTimeRange('custom');
-                                setIsQuickTimeRangeOpen(false);
-                                setIsCustomTimeRangePopoverOpen(true);
-                              } else {
-                                setQuickTimeRange(opt.value);
-                                setIsQuickTimeRangeOpen(false);
-                              }
-                            }}
-                          >
-                            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                              <FlexItem>{opt.label}</FlexItem>
-                              {quickTimeRange === opt.value && (
-                                <FlexItem>
-                                  <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
-                                </FlexItem>
-                              )}
-                            </Flex>
-                          </DropdownItem>
-                        ))}
-                      </DropdownList>
-                    </Dropdown>
-                  </Popover>
-                </FlexItem>
-                
                 <FlexItem>
                   <Stack hasGutter={false}>
                     <StackItem>
@@ -9374,8 +9223,9 @@ spec:
               activeKey={mainPageTab} 
               onSelect={(_, key) => handleMainTabChange(key)} 
               aria-label="Main alerting tabs"
+              style={{ marginBottom: 0 }}
             >
-              <Tab eventKey="fleet-overview" title={<TabTitleText>Fleet overview</TabTitleText>} />
+              <Tab eventKey="fleet-overview" title={<TabTitleText><TachometerAltIcon /> Fleet overview</TabTitleText>} />
               <Tab eventKey="alerts" title={<TabTitleText><BellIcon /> Alerts</TabTitleText>} />
               <Tab eventKey="incidents" title={<TabTitleText><PortIcon /> Incidents</TabTitleText>} />
               <Tab eventKey="management" title={<TabTitleText><CogIcon /> Management</TabTitleText>} />
@@ -9412,123 +9262,224 @@ spec:
           </div>
         </div>
 
-        {/* Toolbar section - Under tabs, with visual separation */}
-        {(mainPageTab === 'fleet-overview' || mainPageTab === 'alerts') && (
+        {/* Toolbar section - Under tabs, only for Fleet overview (Alerts tab has filters inside card) */}
+        {mainPageTab === 'fleet-overview' && (
           <div style={{ 
             padding: '16px 8px', 
             backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
           }}>
             <Toolbar className="pf-m-align-items-center" style={{ backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0, paddingBottom: 0 }}>
               <ToolbarContent className="pf-m-align-items-center">
-                {/* Saved Filters Dropdown - First */}
-            <ToolbarItem>
-              <Dropdown
-                isOpen={isSavedFiltersDropdownOpen}
-                onOpenChange={setIsSavedFiltersDropdownOpen}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle 
-                    ref={toggleRef} 
-                    onClick={() => setIsSavedFiltersDropdownOpen(!isSavedFiltersDropdownOpen)}
-                    isExpanded={isSavedFiltersDropdownOpen}
-                    icon={<BookmarkIcon />}
+                {/* Filters Button - First */}
+                <ToolbarItem>
+                  <Button 
+                    variant={isFilterPanelOpen ? 'secondary' : 'control'} 
+                    icon={<FilterIcon />}
+                    onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
                   >
-                    {selectedSavedFilter ? selectedSavedFilter.name : 'Saved filters'}
-                  </MenuToggle>
-                )}
-              >
-                <DropdownList>
-                  {savedFilters.length === 0 ? (
-                    <DropdownItem isDisabled>No saved filters</DropdownItem>
-                  ) : (
-                    savedFilters.map(filter => (
+                    Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{
+                      regionFilter.length + 
+                      clusterFilter.length + 
+                      severityFilter.length + 
+                      (hasGroupFilterChanges ? groupFilter.length : 0) + 
+                      componentFilter.length
+                    }</Badge>}
+                  </Button>
+                </ToolbarItem>
+                {/* Saved Filters Dropdown - Second */}
+                <ToolbarItem>
+                  <Dropdown
+                    isOpen={isSavedFiltersDropdownOpen}
+                    onOpenChange={setIsSavedFiltersDropdownOpen}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle 
+                        ref={toggleRef} 
+                        onClick={() => setIsSavedFiltersDropdownOpen(!isSavedFiltersDropdownOpen)}
+                        isExpanded={isSavedFiltersDropdownOpen}
+                        icon={<BookmarkIcon />}
+                      >
+                        {selectedSavedFilter ? selectedSavedFilter.name : 'My saved filters'}
+                      </MenuToggle>
+                    )}
+                  >
+                    <DropdownList>
+                      {savedFilters.length === 0 ? (
+                        <DropdownItem isDisabled>No saved filters</DropdownItem>
+                      ) : (
+                        savedFilters.map(filter => (
+                          <DropdownItem 
+                            key={filter.id}
+                            onClick={() => {
+                              setSelectedSavedFilter(filter);
+                              setSeverityFilter(filter.filters.severity as AlertSeverity[]);
+                              setGroupFilter(filter.filters.group as AlertGroup[]);
+                              setComponentFilter(filter.filters.component as AlertComponent[]);
+                              setRegionFilter(filter.filters.region || []);
+                              setClusterFilter(filter.filters.cluster || []);
+                              setNamespaceFilter(filter.filters.namespace || []);
+                              setLabelFilter(filter.filters.label || []);
+                              setSearchValue(filter.filters.searchValue || '');
+                              
+                              if (filter.viewSettings) {
+                                if (filter.viewSettings.groupBy !== undefined) {
+                                  setGroupBy(filter.viewSettings.groupBy);
+                                }
+                                if (filter.viewSettings.sortBy !== undefined) {
+                                  setSortBy(filter.viewSettings.sortBy);
+                                }
+                                if (filter.viewSettings.importanceSizing !== undefined) {
+                                  setImportanceSizing(filter.viewSettings.importanceSizing);
+                                }
+                              }
+                              
+                              setIsSavedFiltersDropdownOpen(false);
+                            }}
+                          >
+                            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                              <FlexItem>{filter.name}</FlexItem>
+                              {selectedSavedFilter?.id === filter.id && (
+                                <FlexItem>
+                                  <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                                </FlexItem>
+                              )}
+                            </Flex>
+                          </DropdownItem>
+                        ))
+                      )}
+                      <Divider />
                       <DropdownItem 
-                        key={filter.id}
                         onClick={() => {
-                          setSelectedSavedFilter(filter);
-                          setSeverityFilter(filter.filters.severity as AlertSeverity[]);
-                          setGroupFilter(filter.filters.group as AlertGroup[]);
-                          setComponentFilter(filter.filters.component as AlertComponent[]);
-                          setRegionFilter(filter.filters.region || []);
-                          setClusterFilter(filter.filters.cluster || []);
-                          setNamespaceFilter(filter.filters.namespace || []);
-                          setLabelFilter(filter.filters.label || []);
-                          setSearchValue(filter.filters.searchValue || '');
-                          
-                          // Apply view settings if they exist
-                          if (filter.viewSettings) {
-                            if (filter.viewSettings.groupBy !== undefined) {
-                              setGroupBy(filter.viewSettings.groupBy);
-                            }
-                            if (filter.viewSettings.sortBy !== undefined) {
-                              setSortBy(filter.viewSettings.sortBy);
-                            }
-                            if (filter.viewSettings.importanceSizing !== undefined) {
-                              setImportanceSizing(filter.viewSettings.importanceSizing);
-                            }
-                          }
-                          
+                          setIsManageSavedFiltersModalOpen(true);
                           setIsSavedFiltersDropdownOpen(false);
                         }}
                       >
+                        <CogIcon /> Manage saved filters
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </ToolbarItem>
+                {/* Search Input - Third, flex grow to fill available space */}
+                <ToolbarItem style={{ flex: 1 }}>
+                  <SearchInput
+                    placeholder="Search clusters"
+                    value={searchValue}
+                    onChange={(_, value) => setSearchValue(value)}
+                    onClear={() => setSearchValue('')}
+                    style={{ width: '100%' }}
+                  />
+                </ToolbarItem>
+            {/* Time Range Selector - Compact, right-aligned */}
+            <ToolbarItem align={{ default: 'alignEnd' }}>
+              <Popover
+                isVisible={isCustomTimeRangePopoverOpen}
+                shouldClose={() => setIsCustomTimeRangePopoverOpen(false)}
+                headerContent="Custom time range"
+                minWidth="360px"
+                maxWidth="360px"
+                bodyContent={
+                  <Stack hasGutter>
+                    <StackItem>
+                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
+                      <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                        <FlexItem>
+                          <DatePicker
+                            value={triggeredFromDate || ''}
+                            onChange={(_, str) => setTriggeredFromDate(str)}
+                            placeholder="YYYY-MM-DD"
+                            style={{ width: '170px' }}
+                          />
+                        </FlexItem>
+                        <FlexItem>
+                          <TimePicker
+                            time={triggeredFromTime || ''}
+                            onChange={(_, time) => setTriggeredFromTime(time)}
+                            placeholder="HH:MM"
+                            aria-label="From time"
+                            is24Hour
+                            style={{ width: '100px' }}
+                            menuAppendTo={() => document.body}
+                          />
+                        </FlexItem>
+                      </Flex>
+                    </StackItem>
+                    <StackItem>
+                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
+                      <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                        <FlexItem>
+                          <DatePicker
+                            value={triggeredToDate || ''}
+                            onChange={(_, str) => setTriggeredToDate(str)}
+                            placeholder="YYYY-MM-DD"
+                            style={{ width: '170px' }}
+                          />
+                        </FlexItem>
+                        <FlexItem>
+                          <TimePicker
+                            time={triggeredToTime || ''}
+                            onChange={(_, time) => setTriggeredToTime(time)}
+                            placeholder="HH:MM"
+                            aria-label="To time"
+                            is24Hour
+                            style={{ width: '100px' }}
+                            menuAppendTo={() => document.body}
+                          />
+                        </FlexItem>
+                      </Flex>
+                    </StackItem>
+                    <StackItem>
+                      <Button variant="primary" onClick={() => setIsCustomTimeRangePopoverOpen(false)} style={{ width: '100%' }}>
+                        Apply
+                      </Button>
+                    </StackItem>
+                  </Stack>
+                }
+                position="bottom-end"
+              >
+                <Dropdown
+                  isOpen={isQuickTimeRangeOpen}
+                  onOpenChange={setIsQuickTimeRangeOpen}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      variant="plainText"
+                      onClick={() => setIsQuickTimeRangeOpen(!isQuickTimeRangeOpen)}
+                      isExpanded={isQuickTimeRangeOpen}
+                      icon={<ClockIcon />}
+                      style={{ minWidth: '140px', padding: '4px 8px' }}
+                    >
+                      {quickTimeRangeOptions.find(o => o.value === quickTimeRange)?.label}
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    {quickTimeRangeOptions.map(opt => (
+                      <DropdownItem
+                        key={opt.value}
+                        onClick={() => {
+                          if (opt.value === 'custom') {
+                            setQuickTimeRange('custom');
+                            setIsQuickTimeRangeOpen(false);
+                            setIsCustomTimeRangePopoverOpen(true);
+                          } else {
+                            setQuickTimeRange(opt.value);
+                            setIsQuickTimeRangeOpen(false);
+                          }
+                        }}
+                      >
                         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                          <FlexItem>{filter.name}</FlexItem>
-                          {selectedSavedFilter?.id === filter.id && (
+                          <FlexItem>{opt.label}</FlexItem>
+                          {quickTimeRange === opt.value && (
                             <FlexItem>
                               <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
                             </FlexItem>
                           )}
                         </Flex>
                       </DropdownItem>
-                    ))
-                  )}
-                  <Divider />
-                  <DropdownItem 
-                    onClick={() => {
-                      setIsManageSavedFiltersModalOpen(true);
-                      setIsSavedFiltersDropdownOpen(false);
-                    }}
-                  >
-                    <CogIcon /> Manage saved filters
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
+                    ))}
+                  </DropdownList>
+                </Dropdown>
+              </Popover>
             </ToolbarItem>
-            {/* Filters Button - Second */}
-            <ToolbarItem>
-              <Button 
-                variant={isFilterPanelOpen ? 'secondary' : 'control'} 
-                icon={<FilterIcon />}
-                onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-              >
-                Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{
-                  regionFilter.length + 
-                  clusterFilter.length + 
-                  severityFilter.length + 
-                  (hasGroupFilterChanges ? groupFilter.length : 0) + 
-                  componentFilter.length
-                }</Badge>}
-              </Button>
-            </ToolbarItem>
-            {/* Search Input - Third - Changes scope based on tab */}
-            <ToolbarItem>
-              <SearchInput
-                placeholder={mainPageTab === 'alerts' ? 'Search alert name, or affected components' : 'Search clusters...'}
-                value={searchValue}
-                onChange={(_, value) => setSearchValue(value)}
-                onClear={() => setSearchValue('')}
-                style={{ width: '300px' }}
-              />
-            </ToolbarItem>
-            {/* Global Fleet View - Right aligned, only when no filters */}
-            {!hasActiveFilters && (
-              <ToolbarItem align={{ default: 'alignEnd' }}>
-                <Tooltip content="Global View: Showing all Clusters, Namespaces, regions, and alert scopes.">
-                  <Label color="blue" icon={<CubesIcon />} style={{ cursor: 'help' }}>
-                    Global Fleet View
-                  </Label>
-                </Tooltip>
-              </ToolbarItem>
-            )}
           </ToolbarContent>
         </Toolbar>
 
@@ -9821,276 +9772,233 @@ spec:
                       </FlexItem>
                       {clusterCardView === 'all-clusters' && (
                       <FlexItem>
-                        <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          {/* Group By - shown for both views, disabled for Table */}
-                          <FlexItem>
-                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <label style={{ 
-                                color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--regular)', 
-                                fontSize: 'var(--pf-t--global--font--size--sm)', 
-                                fontWeight: 'var(--pf-t--global--font--weight--body--default)',
-                                lineHeight: '36px',
-                                textAlign: 'center'
-                              }}>Group by</label>
-                              <Select
-                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                  <MenuToggle 
-                                    ref={toggleRef} 
-                                    onClick={() => viewMode !== 'summary' && setIsGroupByOpen(!isGroupByOpen)} 
-                                    isExpanded={isGroupByOpen} 
-                                    isDisabled={viewMode === 'summary'}
-                                    style={{ width: '140px' }}
-                                  >
-                                    {groupBy === 'none' ? 'None' : groupBy === 'cloudProvider' ? 'Provider' : groupBy === 'environment' ? 'Environment' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
-                                  </MenuToggle>
-                                )}
-                                onSelect={(_, value) => { 
-                                  if (value === 'environment-settings') {
-                                    setTempEnvironmentCategories([...environmentCategories]);
-                                    setNewPatternInputs({});
-                                    setIsEnvironmentSettingsOpen(true);
-                                    setIsGroupByOpen(false);
-                                  } else {
-                                    setGroupBy(value as GroupByOption); 
-                                    setIsGroupByOpen(false);
-                                  }
-                                }}
-                                isOpen={isGroupByOpen}
-                                onOpenChange={setIsGroupByOpen}
-                                selected={groupBy}
-                              >
-                                <SelectList>
-                                  <SelectOption value="none">None</SelectOption>
-                                  <SelectOption value="region">Region</SelectOption>
-                                  <SelectOption value="cloudProvider">Cloud Provider</SelectOption>
-                                  <SelectOption value="team">
-                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                      <FlexItem>Team</FlexItem>
-                                      <FlexItem>
-                                        <Button
-                                          variant="plain"
-                                          size="sm"
-                                          icon={<EditAltIcon />}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setTempTeamCategories([...teamCategories]);
-                                            setNewTeamPatternInputs({});
-                                            setIsTeamSettingsOpen(true);
-                                            setIsGroupByOpen(false);
-                                          }}
-                                          aria-label="Configure team settings"
-                                        />
-                                      </FlexItem>
-                                    </Flex>
-                                  </SelectOption>
-                                  <SelectOption value="severity">Severity</SelectOption>
-                                  <SelectOption value="environment">
-                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                      <FlexItem>Environment</FlexItem>
-                                      <FlexItem>
-                                        <Button
-                                          variant="plain"
-                                          size="sm"
-                                          icon={<EditAltIcon />}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setTempEnvironmentCategories([...environmentCategories]);
-                                            setNewPatternInputs({});
-                                            setIsEnvironmentSettingsOpen(true);
-                                            setIsGroupByOpen(false);
-                                          }}
-                                          aria-label="Configure environment settings"
-                                        />
-                                      </FlexItem>
-                                    </Flex>
-                                  </SelectOption>
-                                </SelectList>
-                              </Select>
-                            </Flex>
-                          </FlexItem>
-
-                          {/* Size By - shown for both views, disabled for Table */}
-                          <FlexItem>
-                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <label style={{ 
-                                color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--regular)', 
-                                fontSize: 'var(--pf-t--global--font--size--sm)', 
-                                fontWeight: 'var(--pf-t--global--font--weight--body--default)',
-                                lineHeight: '36px',
-                                textAlign: 'center'
-                              }}>Size by</label>
-                              <Select
-                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                  <MenuToggle 
-                                    ref={toggleRef} 
-                                    onClick={() => { if (viewMode !== 'summary') { setIsSizeByOpen(!isSizeByOpen); } }} 
-                                    isExpanded={isSizeByOpen} 
-                                    isDisabled={viewMode === 'summary'}
-                                    style={{ width: '200px' }}
-                                  >
-                                    {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Number of Nodes'}
-                                  </MenuToggle>
-                                )}
-                                onSelect={(_, value) => { 
-                                  if (value) {
-                                    setImportanceSizing(value as ImportanceSizing); 
-                                  }
-                                  setIsSizeByOpen(false); 
-                                }}
-                                isOpen={isSizeByOpen}
-                                onOpenChange={(isOpen) => setIsSizeByOpen(isOpen)}
-                                selected={importanceSizing}
-                              >
-                                <SelectList>
-                                  {sizeByOptions.map(opt => (
-                                    <SelectOption key={opt.value} value={opt.value}>{opt.label}</SelectOption>
-                                  ))}
-                                </SelectList>
-                              </Select>
-                            </Flex>
-                          </FlexItem>
-
-                          {/* Sort By - for both views */}
-                          <FlexItem>
-                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <label style={{ 
-                                color: 'var(--pf-t--global--text--color--regular)', 
-                                fontSize: 'var(--pf-t--global--font--size--sm)', 
-                                fontWeight: 'var(--pf-t--global--font--weight--body--default)',
-                                lineHeight: '36px',
-                                textAlign: 'center'
-                              }}>Sort by</label>
-                              <Select
-                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                  <MenuToggle ref={toggleRef} onClick={() => setIsSortByOpen(!isSortByOpen)} isExpanded={isSortByOpen} style={{ width: '140px' }}>
-                                    {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert Count' : 'Cluster Name'}
-                                  </MenuToggle>
-                                )}
-                                onSelect={(_, value) => { 
-                                  if (value) {
-                                    setSortBy(value as SortByOption); 
-                                  }
-                                  setIsSortByOpen(false); 
-                                }}
-                                isOpen={isSortByOpen}
-                                onOpenChange={(isOpen) => setIsSortByOpen(isOpen)}
-                                selected={sortBy}
-                              >
-                                <SelectList>
-                                  <SelectOption value="severity">Severity</SelectOption>
-                                  <SelectOption value="alertCount">Alert Count</SelectOption>
-                                  <SelectOption value="clusterName">Cluster Name</SelectOption>
-                                </SelectList>
-                              </Select>
-                            </Flex>
-                          </FlexItem>
-
-                          {/* View Toggle - moved to the end */}
-                          <FlexItem>
-                            <ToggleGroup>
-                              <ToggleGroupItem
-                                icon={<ThLargeIcon />}
-                                text="Treemap"
-                                aria-label="Treemap view"
-                                isSelected={viewMode === 'treemap'}
-                                onChange={() => setViewMode('treemap')}
-                              />
-                              <ToggleGroupItem
-                                icon={<ListIcon />}
-                                text="Table"
-                                aria-label="Table view"
-                                isSelected={viewMode === 'summary'}
-                                onChange={() => setViewMode('summary')}
-                              />
-                            </ToggleGroup>
-                          </FlexItem>
-                        </Flex>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Clusters</span>
+                          <strong>{filteredClusters.length}</strong>
+                          <Tooltip content={`${filteredClusters.filter(c => c.alerts.some(a => a.severity === 'Critical' && a.status === 'firing')).length} critical clusters`}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => { if (!severityFilter.includes('Critical')) { setSeverityFilter([...severityFilter, 'Critical']); } }}>
+                              <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                              <strong style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>{filteredClusters.filter(c => c.alerts.some(a => a.severity === 'Critical' && a.status === 'firing')).length}</strong>
+                              <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>critical clusters</span>
+                            </div>
+                          </Tooltip>
+                          <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
+                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Firing alerts</span>
+                          <strong>{totalAlerts}</strong>
+                          <Tooltip content={`Critical: ${criticalAlerts}`}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => { if (!severityFilter.includes('Critical')) { setSeverityFilter([...severityFilter, 'Critical']); } }}>
+                              <Icon status="danger"><ExclamationCircleIcon /></Icon>
+                              <strong style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
+                            </div>
+                          </Tooltip>
+                          <Tooltip content={`Warning: ${warningAlerts}`}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => { if (!severityFilter.includes('Warning')) { setSeverityFilter([...severityFilter, 'Warning']); } }}>
+                              <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+                              <strong style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
+                            </div>
+                          </Tooltip>
+                          <Tooltip content={`Info: ${infoAlerts}`}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => { if (!severityFilter.includes('Info')) { setSeverityFilter([...severityFilter, 'Info']); } }}>
+                              <Icon status="info"><InfoCircleIcon /></Icon>
+                              <strong style={{ color: 'var(--pf-t--global--color--status--info--default)' }}>{infoAlerts}</strong>
+                            </div>
+                          </Tooltip>
+                          <Tooltip content={`Healthy: ${healthyClusters} - Click to filter`}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => { setSeverityFilter([]); setGroupBy('severity'); }}>
+                              <Icon status="success"><CheckCircleIcon /></Icon>
+                              <strong style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>{healthyClusters}</strong>
+                            </div>
+                          </Tooltip>
+                        </div>
                       </FlexItem>
                       )}
                     </Flex>
                   </CardHeader>
                   <Divider />
-                  {/* Fleet Health Summary Metrics */}
-                  <div style={{ 
-                    padding: '12px 16px'
-                  }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '24px',
-                      flexWrap: 'wrap'
-                    }}>
-                      <Tooltip content={`Clusters: ${filteredClusters.length} - ${Math.floor(Math.random() * 10) + 1}% more from last day`}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                          <Icon><CubesIcon /></Icon>
-                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Clusters</span>
-                          <strong style={{ fontSize: '16px' }}>{filteredClusters.length}</strong>
-                        </div>
-                      </Tooltip>
-                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                      <Tooltip content={`Firing alerts: ${totalAlerts} - ${Math.floor(Math.random() * 20) - 10}% ${Math.floor(Math.random() * 20) - 10 > 0 ? 'more' : 'less'} from last day`}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                          <Icon><BellIcon /></Icon>
-                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Firing</span>
-                          <strong style={{ fontSize: '16px' }}>{totalAlerts}</strong>
-                        </div>
-                      </Tooltip>
-                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                      <Tooltip content={`Critical: ${criticalAlerts} - Click to filter`}>
-                        <div 
-                          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                          onClick={() => {
-                            if (!severityFilter.includes('Critical')) {
-                              setSeverityFilter([...severityFilter, 'Critical']);
-                            }
-                          }}
-                        >
-                          <Icon status="danger"><ExclamationCircleIcon /></Icon>
-                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Critical</span>
-                          <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--danger--default)' }}>{criticalAlerts}</strong>
-                        </div>
-                      </Tooltip>
-                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                      <Tooltip content={`Warning: ${warningAlerts} - Click to filter`}>
-                        <div 
-                          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                          onClick={() => {
-                            if (!severityFilter.includes('Warning')) {
-                              setSeverityFilter([...severityFilter, 'Warning']);
-                            }
-                          }}
-                        >
-                          <Icon status="warning"><ExclamationTriangleIcon /></Icon>
-                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Warning</span>
-                          <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--warning--default)' }}>{warningAlerts}</strong>
-                        </div>
-                      </Tooltip>
-                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                      <Tooltip content={`Info: ${infoAlerts} - Click to filter`}>
-                        <div 
-                          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                          onClick={() => {
-                            if (!severityFilter.includes('Info')) {
-                              setSeverityFilter([...severityFilter, 'Info']);
-                            }
-                          }}
-                        >
-                          <Icon status="info"><InfoCircleIcon /></Icon>
-                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Info</span>
-                          <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--info--default)' }}>{infoAlerts}</strong>
-                        </div>
-                      </Tooltip>
-                      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--pf-t--global--border--color--default)' }} />
-                      <Tooltip content={`Healthy: ${healthyClusters} - ${Math.floor(Math.random() * 5) + 1}% more from last day`}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'help' }}>
-                          <Icon status="success"><CheckCircleIcon /></Icon>
-                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '13px' }}>Healthy</span>
-                          <strong style={{ fontSize: '16px', color: 'var(--pf-t--global--color--status--success--default)' }}>{healthyClusters}</strong>
-                        </div>
-                      </Tooltip>
-                    </div>
+                  {/* Layout settings toolbar - under divider */}
+                  {clusterCardView === 'all-clusters' && (
+                  <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                      <FlexItem>
+                        <ToggleGroup isCompact>
+                          <ToggleGroupItem
+                            icon={<ThLargeIcon />}
+                            text="Treemap"
+                            aria-label="Treemap view"
+                            isSelected={viewMode === 'treemap'}
+                            onChange={() => setViewMode('treemap')}
+                          />
+                          <ToggleGroupItem
+                            icon={<ListIcon />}
+                            text="Table"
+                            aria-label="Table view"
+                            isSelected={viewMode === 'summary'}
+                            onChange={() => setViewMode('summary')}
+                          />
+                        </ToggleGroup>
+                      </FlexItem>
+                      <FlexItem>
+                        <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{viewMode === 'treemap' ? 'Treemap layout' : 'Table layout'}</span>
+                      </FlexItem>
+                      <FlexItem>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                          <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>Sort by</span>
+                          <Dropdown
+                            isOpen={isSortByOpen}
+                            onOpenChange={setIsSortByOpen}
+                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                variant="plainText"
+                                onClick={() => setIsSortByOpen(!isSortByOpen)}
+                                isExpanded={isSortByOpen}
+                                style={{ padding: '4px 8px' }}
+                              >
+                                {sortBy === 'severity' ? 'Severity (High-Low)' : sortBy === 'alertCount' ? 'Alert Count' : 'Cluster Name'}
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              {[
+                                { value: 'severity' as const, label: 'Severity (High-Low)' },
+                                { value: 'alertCount' as const, label: 'Alert Count' },
+                                { value: 'clusterName' as const, label: 'Cluster Name' },
+                              ].map(opt => (
+                                <DropdownItem key={opt.value} onClick={() => { setSortBy(opt.value); setIsSortByOpen(false); }}>
+                                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                    <FlexItem>{opt.label}</FlexItem>
+                                    {sortBy === opt.value && (
+                                      <FlexItem><CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} /></FlexItem>
+                                    )}
+                                  </Flex>
+                                </DropdownItem>
+                              ))}
+                            </DropdownList>
+                          </Dropdown>
+                        </Flex>
+                      </FlexItem>
+                      <FlexItem>
+                        <Tooltip content="Only available for Treemap view" trigger={viewMode === 'summary' ? 'mouseenter' : 'manual'}>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                          <span style={{ fontSize: '13px', color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--subtle)' }}>Group by</span>
+                          <Dropdown
+                            isOpen={isGroupByOpen}
+                            onOpenChange={setIsGroupByOpen}
+                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                variant="plainText"
+                                onClick={() => viewMode !== 'summary' && setIsGroupByOpen(!isGroupByOpen)}
+                                isExpanded={isGroupByOpen}
+                                isDisabled={viewMode === 'summary'}
+                                style={{ padding: '4px 8px' }}
+                              >
+                                {groupBy === 'none' ? 'None' : groupBy === 'cloudProvider' ? 'Provider' : groupBy === 'environment' ? 'Environment' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              {[
+                                { value: 'none' as const, label: 'None' },
+                                { value: 'region' as const, label: 'Region' },
+                                { value: 'cloudProvider' as const, label: 'Cloud Provider' },
+                                { value: 'severity' as const, label: 'Severity' },
+                              ].map(opt => (
+                                <DropdownItem key={opt.value} onClick={() => { setGroupBy(opt.value); setIsGroupByOpen(false); }}>
+                                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                    <FlexItem>{opt.label}</FlexItem>
+                                    {groupBy === opt.value && (
+                                      <FlexItem><CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} /></FlexItem>
+                                    )}
+                                  </Flex>
+                                </DropdownItem>
+                              ))}
+                              <DropdownItem onClick={() => { setGroupBy('team'); setIsGroupByOpen(false); }}>
+                                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                  <FlexItem>Team</FlexItem>
+                                  <FlexItem style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    {groupBy === 'team' && <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />}
+                                    <Button
+                                      variant="plain"
+                                      size="sm"
+                                      icon={<EditAltIcon />}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTempTeamCategories([...teamCategories]);
+                                        setNewTeamPatternInputs({});
+                                        setIsTeamSettingsOpen(true);
+                                        setIsGroupByOpen(false);
+                                      }}
+                                      aria-label="Configure team settings"
+                                    />
+                                  </FlexItem>
+                                </Flex>
+                              </DropdownItem>
+                              <DropdownItem onClick={() => { setGroupBy('environment'); setIsGroupByOpen(false); }}>
+                                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                  <FlexItem>Environment</FlexItem>
+                                  <FlexItem style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    {groupBy === 'environment' && <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />}
+                                    <Button
+                                      variant="plain"
+                                      size="sm"
+                                      icon={<EditAltIcon />}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTempEnvironmentCategories([...environmentCategories]);
+                                        setNewPatternInputs({});
+                                        setIsEnvironmentSettingsOpen(true);
+                                        setIsGroupByOpen(false);
+                                      }}
+                                      aria-label="Configure environment settings"
+                                    />
+                                  </FlexItem>
+                                </Flex>
+                              </DropdownItem>
+                            </DropdownList>
+                          </Dropdown>
+                        </Flex>
+                        </Tooltip>
+                      </FlexItem>
+                      <FlexItem>
+                        <Tooltip content="Only available for Treemap view" trigger={viewMode === 'summary' ? 'mouseenter' : 'manual'}>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                          <span style={{ fontSize: '13px', color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--subtle)' }}>Box sizing</span>
+                          <Dropdown
+                            isOpen={isSizeByOpen}
+                            onOpenChange={setIsSizeByOpen}
+                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                variant="plainText"
+                                onClick={() => viewMode !== 'summary' && setIsSizeByOpen(!isSizeByOpen)}
+                                isExpanded={isSizeByOpen}
+                                isDisabled={viewMode === 'summary'}
+                                style={{ padding: '4px 8px' }}
+                              >
+                                {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Number of Nodes'}
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              {sizeByOptions.map(opt => (
+                                <DropdownItem key={opt.value} onClick={() => { setImportanceSizing(opt.value as ImportanceSizing); setIsSizeByOpen(false); }}>
+                                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                    <FlexItem>{opt.label}</FlexItem>
+                                    {importanceSizing === opt.value && (
+                                      <FlexItem><CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} /></FlexItem>
+                                    )}
+                                  </Flex>
+                                </DropdownItem>
+                              ))}
+                            </DropdownList>
+                          </Dropdown>
+                        </Flex>
+                        </Tooltip>
+                      </FlexItem>
+                    </Flex>
                   </div>
-                  <Divider />
+                  )}
                   <CardBody>
                     {clusterCardView === 'single-cluster-components' && selectedClusterInCard ? (
                       /* Single Cluster Components View */
@@ -10728,6 +10636,251 @@ spec:
                   onClusterFilterChange={setClusterFilter}
                   onNamespaceFilterChange={setNamespaceFilter}
                   triggeredToTime={triggeredToTime}
+                  filterToolbar={
+                    <>
+                      <Toolbar className="pf-m-align-items-center" style={{ backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0, paddingTop: 0, paddingBottom: 0 }}>
+                        <ToolbarContent className="pf-m-align-items-center">
+                          <ToolbarItem>
+                            <Button 
+                              variant={isFilterPanelOpen ? 'secondary' : 'control'} 
+                              icon={<FilterIcon />}
+                              onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                            >
+                              Filters {hasActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{
+                                regionFilter.length + 
+                                clusterFilter.length + 
+                                severityFilter.length + 
+                                (hasGroupFilterChanges ? groupFilter.length : 0) + 
+                                componentFilter.length
+                              }</Badge>}
+                            </Button>
+                          </ToolbarItem>
+                          <ToolbarItem>
+                            <Dropdown
+                              isOpen={isSavedFiltersDropdownOpen}
+                              onOpenChange={setIsSavedFiltersDropdownOpen}
+                              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                <MenuToggle 
+                                  ref={toggleRef} 
+                                  onClick={() => setIsSavedFiltersDropdownOpen(!isSavedFiltersDropdownOpen)}
+                                  isExpanded={isSavedFiltersDropdownOpen}
+                                  icon={<BookmarkIcon />}
+                                >
+                                  {selectedSavedFilter ? selectedSavedFilter.name : 'My saved filters'}
+                                </MenuToggle>
+                              )}
+                            >
+                              <DropdownList>
+                                {savedFilters.length === 0 ? (
+                                  <DropdownItem isDisabled>No saved filters</DropdownItem>
+                                ) : (
+                                  savedFilters.map(filter => (
+                                    <DropdownItem 
+                                      key={filter.id}
+                                      onClick={() => {
+                                        setSelectedSavedFilter(filter);
+                                        setSeverityFilter(filter.filters.severity as AlertSeverity[]);
+                                        setGroupFilter(filter.filters.group as AlertGroup[]);
+                                        setComponentFilter(filter.filters.component as AlertComponent[]);
+                                        setRegionFilter(filter.filters.region || []);
+                                        setClusterFilter(filter.filters.cluster || []);
+                                        setNamespaceFilter(filter.filters.namespace || []);
+                                        setLabelFilter(filter.filters.label || []);
+                                        setSearchValue(filter.filters.searchValue || '');
+                                        setIsSavedFiltersDropdownOpen(false);
+                                      }}
+                                    >
+                                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                        <FlexItem>{filter.name}</FlexItem>
+                                        {selectedSavedFilter?.id === filter.id && (
+                                          <FlexItem>
+                                            <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                                          </FlexItem>
+                                        )}
+                                      </Flex>
+                                    </DropdownItem>
+                                  ))
+                                )}
+                                <Divider />
+                                <DropdownItem 
+                                  onClick={() => {
+                                    setIsManageSavedFiltersModalOpen(true);
+                                    setIsSavedFiltersDropdownOpen(false);
+                                  }}
+                                >
+                                  <CogIcon /> Manage saved filters
+                                </DropdownItem>
+                              </DropdownList>
+                            </Dropdown>
+                          </ToolbarItem>
+                          <ToolbarItem style={{ flex: 1 }}>
+                            <SearchInput
+                              placeholder="Search alert name"
+                              value={searchValue}
+                              onChange={(_, value) => setSearchValue(value)}
+                              onClear={() => setSearchValue('')}
+                              style={{ width: '100%' }}
+                            />
+                          </ToolbarItem>
+                          <ToolbarItem align={{ default: 'alignEnd' }}>
+                            <Popover
+                              isVisible={isCustomTimeRangePopoverOpen}
+                              shouldClose={() => setIsCustomTimeRangePopoverOpen(false)}
+                              headerContent="Custom time range"
+                              minWidth="360px"
+                              maxWidth="360px"
+                              bodyContent={
+                                <Stack hasGutter>
+                                  <StackItem>
+                                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>From</Content>
+                                    <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                                      <FlexItem>
+                                        <DatePicker value={triggeredFromDate || ''} onChange={(_, str) => setTriggeredFromDate(str)} placeholder="YYYY-MM-DD" style={{ width: '170px' }} />
+                                      </FlexItem>
+                                      <FlexItem>
+                                        <TimePicker time={triggeredFromTime || ''} onChange={(_, time) => setTriggeredFromTime(time)} placeholder="HH:MM" aria-label="From time" is24Hour style={{ width: '100px' }} menuAppendTo={() => document.body} />
+                                      </FlexItem>
+                                    </Flex>
+                                  </StackItem>
+                                  <StackItem>
+                                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px', display: 'block' }}>To</Content>
+                                    <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                                      <FlexItem>
+                                        <DatePicker value={triggeredToDate || ''} onChange={(_, str) => setTriggeredToDate(str)} placeholder="YYYY-MM-DD" style={{ width: '170px' }} />
+                                      </FlexItem>
+                                      <FlexItem>
+                                        <TimePicker time={triggeredToTime || ''} onChange={(_, time) => setTriggeredToTime(time)} placeholder="HH:MM" aria-label="To time" is24Hour style={{ width: '100px' }} menuAppendTo={() => document.body} />
+                                      </FlexItem>
+                                    </Flex>
+                                  </StackItem>
+                                  <StackItem>
+                                    <Button variant="primary" onClick={() => setIsCustomTimeRangePopoverOpen(false)} style={{ width: '100%' }}>Apply</Button>
+                                  </StackItem>
+                                </Stack>
+                              }
+                              position="bottom-end"
+                            >
+                              <Dropdown
+                                isOpen={isQuickTimeRangeOpen}
+                                onOpenChange={setIsQuickTimeRangeOpen}
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle ref={toggleRef} variant="plainText" onClick={() => setIsQuickTimeRangeOpen(!isQuickTimeRangeOpen)} isExpanded={isQuickTimeRangeOpen} icon={<ClockIcon />} style={{ minWidth: '140px', padding: '4px 8px' }}>
+                                    {quickTimeRangeOptions.find(o => o.value === quickTimeRange)?.label}
+                                  </MenuToggle>
+                                )}
+                              >
+                                <DropdownList>
+                                  {quickTimeRangeOptions.map(opt => (
+                                    <DropdownItem key={opt.value} onClick={() => {
+                                      if (opt.value === 'custom') {
+                                        setQuickTimeRange('custom');
+                                        setIsQuickTimeRangeOpen(false);
+                                        setIsCustomTimeRangePopoverOpen(true);
+                                      } else {
+                                        setQuickTimeRange(opt.value);
+                                        setIsQuickTimeRangeOpen(false);
+                                      }
+                                    }}>
+                                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                        <FlexItem>{opt.label}</FlexItem>
+                                        {quickTimeRange === opt.value && (
+                                          <FlexItem><CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} /></FlexItem>
+                                        )}
+                                      </Flex>
+                                    </DropdownItem>
+                                  ))}
+                                </DropdownList>
+                              </Dropdown>
+                            </Popover>
+                          </ToolbarItem>
+                        </ToolbarContent>
+                      </Toolbar>
+                      {(severityFilter.length > 0 || hasGroupFilterChanges || componentFilter.length > 0 || regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 || labelFilter.length > 0 || mainComponentFilter !== null || mainAlertNameFilter !== null) && (
+                        <div style={{ marginTop: '8px' }}>
+                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                            <FlexItem>
+                              <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                                {hasGroupFilterChanges && (
+                                  <LabelGroup categoryName="Alert scope">
+                                    {groupFilter.map(g => (
+                                      <Label key={g} variant="outline" onClose={() => {
+                                        if (g === 'Cluster') { setGroupFilter(['Namespace']); } else { setGroupFilter(['Cluster']); }
+                                      }}>{g}</Label>
+                                    ))}
+                                  </LabelGroup>
+                                )}
+                                {severityFilter.length > 0 && (
+                                  <LabelGroup categoryName="Severity">
+                                    {severityFilter.map(s => (
+                                      <Label key={s} color={getSeverityLabelColor(s)} onClose={() => setSeverityFilter(severityFilter.filter(x => x !== s))}>{s}</Label>
+                                    ))}
+                                  </LabelGroup>
+                                )}
+                                {componentFilter.length > 0 && (
+                                  <LabelGroup categoryName="Affected component">
+                                    {componentFilter.map(c => (
+                                      <Label key={c} variant="outline" onClose={() => setComponentFilter(componentFilter.filter(x => x !== c))}>{c}</Label>
+                                    ))}
+                                  </LabelGroup>
+                                )}
+                                {regionFilter.length > 0 && (
+                                  <LabelGroup categoryName="Region">
+                                    {regionFilter.map(r => (
+                                      <Label key={r} variant="outline" onClose={() => setRegionFilter(regionFilter.filter(x => x !== r))}>{r}</Label>
+                                    ))}
+                                  </LabelGroup>
+                                )}
+                                {clusterFilter.length > 0 && (
+                                  <LabelGroup categoryName="Cluster">
+                                    {clusterFilter.map(c => (
+                                      <Label key={c} variant="outline" onClose={() => setClusterFilter(clusterFilter.filter(x => x !== c))}>{c}</Label>
+                                    ))}
+                                  </LabelGroup>
+                                )}
+                                {namespaceFilter.length > 0 && (
+                                  <LabelGroup categoryName="Namespace">
+                                    {namespaceFilter.map(n => (
+                                      <Label key={n} variant="outline" onClose={() => setNamespaceFilter(namespaceFilter.filter(x => x !== n))}>{n}</Label>
+                                    ))}
+                                  </LabelGroup>
+                                )}
+                                {labelFilter.length > 0 && (
+                                  <LabelGroup categoryName="Label">
+                                    {labelFilter.map(l => (
+                                      <Label key={l} variant="outline" onClose={() => setLabelFilter(labelFilter.filter(x => x !== l))}>{l}</Label>
+                                    ))}
+                                  </LabelGroup>
+                                )}
+                                {mainComponentFilter && (
+                                  <LabelGroup categoryName="Component">
+                                    <Label variant="outline" onClose={() => setMainComponentFilter(null)}>{mainComponentFilter}</Label>
+                                  </LabelGroup>
+                                )}
+                                {mainAlertNameFilter && (
+                                  <LabelGroup categoryName="Alert">
+                                    <Label variant="outline" onClose={() => setMainAlertNameFilter(null)}>{mainAlertNameFilter}</Label>
+                                  </LabelGroup>
+                                )}
+                              </Flex>
+                            </FlexItem>
+                            <FlexItem>
+                              <Flex gap={{ default: 'gapSm' }}>
+                                <FlexItem>
+                                  <Button variant="link" onClick={() => { clearFilters(); setSelectedSavedFilter(null); }}>Clear filters</Button>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="link" onClick={() => setIsFilterPanelOpen(true)}>Edit filters</Button>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Button variant="link" onClick={() => { setNewFilterName(''); setIsSaveFilterModalOpen(true); }}>Add to saved filters</Button>
+                                </FlexItem>
+                              </Flex>
+                            </FlexItem>
+                          </Flex>
+                        </div>
+                      )}
+                    </>
+                  }
                 />
               </StackItem>
             </Stack>
@@ -11689,28 +11842,43 @@ spec:
                               onChange={(_, checked) => setSaveGroupingSorting(checked)}
                             />
                           </FlexItem>
-                          {/* Show current grouping/sorting settings */}
-                          <FlexItem>
-                            <Tooltip content={`Current group by setting: ${groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}`}>
-                              <Label isCompact color="grey">Group by: {groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}</Label>
-                            </Tooltip>
-                          </FlexItem>
-                          <FlexItem>
-                            <Tooltip content={`Current size by setting: ${
-                              importanceSizing === 'none' ? 'None (Equal size)' : 
-                              sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
-                            }`}>
-                              <Label isCompact color="grey">Size by: {
-                                importanceSizing === 'none' ? 'None (Equal size)' : 
-                                sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
-                              }</Label>
-                            </Tooltip>
-                          </FlexItem>
-                          <FlexItem>
-                            <Tooltip content={`Current sort by setting: ${sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}`}>
-                              <Label isCompact color="grey">Sort by: {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}</Label>
-                            </Tooltip>
-                          </FlexItem>
+                          {/* Show current layout settings - context-dependent */}
+                          {mainPageTab === 'fleet-overview' ? (
+                            <>
+                              <FlexItem>
+                                <Tooltip content={`Current group by setting: ${groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}`}>
+                                  <Label isCompact color="grey">Group by: {groupBy === 'none' ? 'None' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}</Label>
+                                </Tooltip>
+                              </FlexItem>
+                              <FlexItem>
+                                <Tooltip content={`Current size by setting: ${
+                                  importanceSizing === 'none' ? 'None (Equal size)' : 
+                                  sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
+                                }`}>
+                                  <Label isCompact color="grey">Size by: {
+                                    importanceSizing === 'none' ? 'None (Equal size)' : 
+                                    sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
+                                  }</Label>
+                                </Tooltip>
+                              </FlexItem>
+                              <FlexItem>
+                                <Tooltip content={`Current sort by setting: ${sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}`}>
+                                  <Label isCompact color="grey">Sort by: {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}</Label>
+                                </Tooltip>
+                              </FlexItem>
+                            </>
+                          ) : (
+                            <>
+                              <FlexItem>
+                                <Tooltip content={`Current group by setting: ${alertsGroupBy === 'none' ? 'None' : alertsGroupBy === 'alertName' ? 'Alert name' : alertsGroupBy === 'impact' ? 'Alert scope' : alertsGroupBy.charAt(0).toUpperCase() + alertsGroupBy.slice(1)}`}>
+                                  <Label isCompact color="grey">Group by: {alertsGroupBy === 'none' ? 'None' : alertsGroupBy === 'alertName' ? 'Alert name' : alertsGroupBy === 'impact' ? 'Alert scope' : alertsGroupBy.charAt(0).toUpperCase() + alertsGroupBy.slice(1)}</Label>
+                                </Tooltip>
+                              </FlexItem>
+                              <FlexItem>
+                                <Label isCompact color="grey">Aggregate by name: On</Label>
+                              </FlexItem>
+                            </>
+                          )}
                         </Flex>
                       </StackItem>
                       <StackItem>
