@@ -951,7 +951,14 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       </CardHeader>
       <Divider />
       {filterToolbar && (
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
+        <div style={{
+          padding: '8px 16px',
+          borderBottom: '1px solid var(--pf-t--global--border--color--default)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        }}>
           {filterToolbar}
         </div>
       )}
@@ -959,7 +966,14 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
               <Stack hasGutter>
                 <StackItem>
                   {/* Layout + actions + pagination - single row */}
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ padding: '8px 0', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{
+                    padding: '8px 0',
+                    borderBottom: '1px solid var(--pf-t--global--border--color--default)',
+                    position: 'sticky',
+                    top: filterToolbar ? '52px' : '0px',
+                    zIndex: 99,
+                    backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+                  }}>
                     <FlexItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
                         <FlexItem>
