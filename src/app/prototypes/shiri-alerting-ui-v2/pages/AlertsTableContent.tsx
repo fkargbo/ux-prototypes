@@ -18,10 +18,6 @@ import {
   Divider,
   EmptyState,
   EmptyStateBody,
-  Accordion,
-  AccordionItem,
-  AccordionToggle,
-  AccordionContent,
   Checkbox,
 } from '@patternfly/react-core';
 import {
@@ -31,7 +27,6 @@ import {
   Tr,
   Th,
   Td,
-  ExpandableRowContent,
   InnerScrollContainer,
 } from '@patternfly/react-table';
 import {
@@ -41,6 +36,8 @@ import {
   InfoCircleIcon,
   CheckCircleIcon,
   EllipsisVIcon,
+  AngleRightIcon,
+  AngleDownIcon,
 } from '@patternfly/react-icons';
 import type {
   AlertSeverity,
@@ -105,6 +102,13 @@ export interface AlertsTableContentProps {
   onNamespaceFilterChange?: (namespaces: string[]) => void;
 }
 
+const LEVEL_1_BG = 'var(--pf-t--global--background--color--secondary--default)';
+const LEVEL_2_BG = '#f0f0f0';
+const LEVEL_INDENT_2 = 24;
+const LEVEL_INDENT_3 = 48;
+const ZEBRA_EVEN = 'var(--pf-t--global--background--color--primary--default)';
+const ZEBRA_ODD = '#fafafa';
+
 const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
   totalItems,
   isAggregated,
@@ -139,595 +143,363 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
   onClusterFilterChange,
   onNamespaceFilterChange,
 }) => {
-  return (
-    <>
-      {totalItems === 0 ? (
-        <EmptyState titleText="No alerts found" icon={CheckCircleIcon}>
-          <EmptyStateBody>No alerts match the current filters.</EmptyStateBody>
-        </EmptyState>
-      ) : isAggregated && groupBy !== 'none' && groupedAlerts ? (
-        groupBy === 'component' ? (
-          <Accordion asDefinitionList={false} displaySize="lg">
-            {groupedAlerts.map(group => {
-              const isGroupExpanded = expandedGroups.has(group.groupName);
-              const criticalCount = group.alerts.filter(a => a.severity === 'Critical').length;
-              const warningCount = group.alerts.filter(a => a.severity === 'Warning').length;
-              const infoCount = group.alerts.filter(a => a.severity === 'Info').length;
-              const aggregatedStatus: 'Critical' | 'Warning' | 'Info' =
-                criticalCount > 0 ? 'Critical' : warningCount > 0 ? 'Warning' : 'Info';
-              const impactGroups = Array.from(new Set(group.alerts.map(a => a.group)));
-              const clustersForComponent = Array.from(new Set(group.alerts.flatMap(a => a.clusters.map(c => c.name))));
 
+  const visibleCols = getVisibleColumns().filter(
+    col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime' && col.key !== 'flappingRate'
+  );
+
+  const renderAggCellContent = (col: ColumnConfig, agg: AggregatedAlert) => {
+    const firstAlertInfo = agg.clusters[0];
+    const firstAlert = firstAlertInfo?.cluster?.alerts?.find(
+      a => a.alertName === agg.alertName && a.severity === agg.severity
+    );
+    switch (col.key) {
+      case 'alertName':
+        return (
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
+            </FlexItem>
+            <FlexItem>{agg.alertName}</FlexItem>
+          </Flex>
+        );
+      case 'severity':
+        return <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>{agg.severity}</Label>;
+      case 'total':
+        return <Badge>{agg.totalCount}</Badge>;
+      case 'state':
+        return (
+          <Tooltip content={`${agg.totalCount} alerts firing since ${firstAlertInfo?.lastFired || 'N/A'}`}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ cursor: 'help' }}>
+              <Icon status="warning"><ExclamationTriangleIcon /></Icon>
+              <span>Firing</span>
+            </Flex>
+          </Tooltip>
+        );
+      case 'group':
+        return <Label isCompact>{agg.group}</Label>;
+      case 'component':
+        return <Label isCompact variant="outline">{agg.component}</Label>;
+      case 'source':
+        return firstAlert?.source || '-';
+      default:
+        return '-';
+    }
+  };
+
+  const renderGroupCellContent = (col: ColumnConfig, group: { groupName: string; alerts: AggregatedAlert[]; totalCount: number }) => {
+    const clustersInGroup = Array.from(new Set(group.alerts.flatMap(a => a.clusters.map(c => c.name))));
+    switch (col.key) {
+      case 'total':
+        return <Badge isRead>{group.totalCount}</Badge>;
+      case 'severity':
+        if (groupBy === 'severity') return null;
+        const criticalCount = group.alerts.filter(a => a.severity === 'Critical').length;
+        const warningCount = group.alerts.filter(a => a.severity === 'Warning').length;
+        const infoCount = group.alerts.filter(a => a.severity === 'Info').length;
+        return (
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            {criticalCount > 0 && <Label color="red" icon={<ExclamationCircleIcon />} isCompact>{criticalCount}</Label>}
+            {warningCount > 0 && <Label color="orange" icon={<ExclamationTriangleIcon />} isCompact>{warningCount}</Label>}
+            {infoCount > 0 && <Label color="blue" icon={<InfoCircleIcon />} isCompact>{infoCount}</Label>}
+          </Flex>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderInstanceActionMenu = (agg: AggregatedAlert, clusterInfo: AggregatedAlert['clusters'][0], instanceIdx: number) => {
+    const menuId = `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`;
+    return (
+      <Dropdown
+        isOpen={openActionMenuId === menuId}
+        onOpenChange={(isOpen) => setOpenActionMenuId(isOpen ? menuId : null)}
+        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+          <MenuToggle ref={toggleRef} variant="plain" aria-label="Alert actions"
+            onClick={() => setOpenActionMenuId(openActionMenuId === menuId ? null : menuId)}
+            isExpanded={openActionMenuId === menuId}>
+            <EllipsisVIcon />
+          </MenuToggle>
+        )}
+        popperProps={{ position: 'right' }}
+      >
+        <DropdownList>
+          <DropdownItem key="silence" onClick={() => openSilenceModal(agg.alertName, agg.severity, clusterInfo.name)}
+            description="Temporarily stop notifications for this alert.">Silence alert</DropdownItem>
+          <DropdownItem key="acknowledge" onClick={() => openAcknowledgeModal(agg.alertName, agg.severity, clusterInfo.name)}
+            description="Mark the alert as being addressed by your teammates.">Acknowledge</DropdownItem>
+          <Divider component="li" />
+          <DropdownItem key="rule" onClick={() => setOpenActionMenuId(null)}>View alert rule</DropdownItem>
+          <DropdownItem key="logs" onClick={() => setOpenActionMenuId(null)}>View logs</DropdownItem>
+          <DropdownItem key="metrics" onClick={() => setOpenActionMenuId(null)}>View metrics</DropdownItem>
+          <DropdownItem key="incident" onClick={() => setOpenActionMenuId(null)}>See related incident</DropdownItem>
+          <DropdownItem key="troubleshoot" onClick={() => setOpenActionMenuId(null)}>Troubleshoot</DropdownItem>
+        </DropdownList>
+      </Dropdown>
+    );
+  };
+
+  const renderInstanceRow = (
+    agg: AggregatedAlert,
+    clusterInfo: AggregatedAlert['clusters'][0],
+    instanceIdx: number,
+    alertKey: string,
+    leafIndex: number,
+    indent: number,
+  ) => {
+    const alertInstance = clusterInfo.cluster?.alerts?.find(
+      a => a.alertName === agg.alertName && a.severity === agg.severity
+    );
+    const zebraBg = leafIndex % 2 === 1 ? ZEBRA_ODD : ZEBRA_EVEN;
+    return (
+      <Tr key={`${alertKey}-${clusterInfo.name}-${instanceIdx}`} style={{ backgroundColor: zebraBg }}>
+        <Td style={{ paddingLeft: `${indent + 8}px`, width: '45px' }} />
+        <Td style={{ width: '45px' }}>
+          <Checkbox id={`checkbox-${alertKey}-${instanceIdx}`} aria-label="Select instance" />
+        </Td>
+        <Td modifier="nowrap">
+          <Button variant="link" isInline onClick={() => { if (alertInstance) onAlertClick(alertInstance); }}>
+            {agg.alertName}
+          </Button>
+        </Td>
+        <Td modifier="nowrap">
+          <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>{agg.severity}</Label>
+        </Td>
+        {visibleCols.filter(c => c.key !== 'alertName' && c.key !== 'severity').map(col => {
+          switch (col.key) {
+            case 'total':
+              return <Td key={col.key} modifier="nowrap">1</Td>;
+            case 'state':
               return (
-                <AccordionItem key={group.groupName} isExpanded={isGroupExpanded}>
-                  <AccordionToggle
-                    onClick={() => toggleGroupExpanded(group.groupName)}
-                    id={`group-toggle-${group.groupName}`}
-                  >
-                    <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }} style={{ fontSize: '14px', fontWeight: 400 }}>
-                      <FlexItem>
-                        <strong>{group.groupName}</strong>
-                      </FlexItem>
-                      <FlexItem>
-                        <Label
-                          color={aggregatedStatus === 'Critical' ? 'red' : aggregatedStatus === 'Warning' ? 'orange' : 'blue'}
-                          icon={aggregatedStatus === 'Critical' ? <ExclamationCircleIcon /> : aggregatedStatus === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                          isCompact
-                        >
-                          {aggregatedStatus}
-                        </Label>
-                      </FlexItem>
-                      <FlexItem>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                      </FlexItem>
-                      <FlexItem>
-                        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                          {criticalCount > 0 && (
-                            <Label
-                              color="red"
-                              isCompact
-                              onClick={() => {
-                                if (!severityFilter.includes('Critical')) {
-                                  setSeverityFilter([...severityFilter, 'Critical']);
-                                }
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              {criticalCount} critical
-                            </Label>
-                          )}
-                          {warningCount > 0 && (
-                            <Label
-                              color="orange"
-                              isCompact
-                              onClick={() => {
-                                if (!severityFilter.includes('Warning')) {
-                                  setSeverityFilter([...severityFilter, 'Warning']);
-                                }
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              {warningCount} warning
-                            </Label>
-                          )}
-                          {infoCount > 0 && (
-                            <Label
-                              color="blue"
-                              isCompact
-                              onClick={() => {
-                                if (!severityFilter.includes('Info')) {
-                                  setSeverityFilter([...severityFilter, 'Info']);
-                                }
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              {infoCount} info
-                            </Label>
-                          )}
-                        </Flex>
-                      </FlexItem>
-                      <FlexItem>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                      </FlexItem>
-                      <FlexItem>
-                        <span>{group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}</span>
-                      </FlexItem>
-                      <FlexItem>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                      </FlexItem>
-                      <FlexItem>
-                        <span>Alert scope: {impactGroups[0] || 'N/A'}</span>
-                      </FlexItem>
-                      {!singleClusterView && (
-                        <>
-                          <FlexItem>
-                            <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                          </FlexItem>
-                          <FlexItem>
-                            <span>{clustersForComponent.length} cluster{clustersForComponent.length !== 1 ? 's' : ''}</span>
-                          </FlexItem>
-                        </>
-                      )}
-                    </Flex>
-                  </AccordionToggle>
-                  <AccordionContent id={`group-content-${group.groupName}`} hidden={!isGroupExpanded}>
-                    <Table aria-label={`Alerts in ${group.groupName} component`} variant="compact" isExpandable>
-                      <Thead>
-                        <Tr>
-                          <Th screenReaderText="Expand" />
-                          <Th>Alert name</Th>
-                          <Th>Severity</Th>
-                          <Th
-                            sort={{
-                              sortBy: {
-                                index: sortConfigs.findIndex(c => c.column === 'total'),
-                                direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
-                              },
-                              onSort: () => handleSort('total'),
-                              columnIndex: 3
-                            }}
-                          >
-                            Total
-                          </Th>
-                          <Th>Clusters</Th>
-                          <Th>Alert scope</Th>
-                        </Tr>
-                      </Thead>
-                      {group.alerts.map((agg, aggIdx) => {
-                        const alertKey = `${group.groupName}-${agg.alertName}-${agg.severity}`;
-                        const isAlertExpanded = expandedAlerts.includes(alertKey);
-                        return (
-                          <Tbody key={alertKey} isExpanded={isAlertExpanded}>
-                            <Tr>
-                              <Td
-                                expand={{
-                                  rowIndex: aggIdx,
-                                  isExpanded: isAlertExpanded,
-                                  onToggle: () => toggleExpanded(alertKey),
-                                }}
-                              />
-                              <Td>
-                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                  <FlexItem>
-                                    <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
-                                  </FlexItem>
-                                  <FlexItem>{agg.alertName}</FlexItem>
-                                </Flex>
-                              </Td>
-                              <Td>
-                                <Label
-                                  color={getSeverityLabelColor(agg.severity)}
-                                  icon={getSeverityIcon(agg.severity)}
-                                  isCompact
-                                >
-                                  {agg.severity}
-                                </Label>
-                              </Td>
-                              <Td>{agg.totalCount}</Td>
-                              <Td>{agg.clusters.length}</Td>
-                              <Td>{agg.group}</Td>
-                            </Tr>
-                            {isAlertExpanded && (
-                              <Tr isExpanded>
-                                <Td colSpan={6}>
-                                  <div style={{ padding: '16px' }}>
-                                    <Table aria-label="Alert instances" variant="compact" borders={false}>
-                                      <Thead>
-                                        <Tr>
-                                          <Th>Alert Name</Th>
-                                          <Th>Severity</Th>
-                                          <Th>Cluster</Th>
-                                          <Th>Namespace</Th>
-                                          <Th>State</Th>
-                                          <Th>Last Fired</Th>
-                                        </Tr>
-                                      </Thead>
-                                      <Tbody>
-                                        {agg.clusters.map((clusterInfo, idx) => (
-                                          <Tr key={`${alertKey}-${clusterInfo.name}-${idx}`}>
-                                            <Td>
-                                              <Button
-                                                variant="link"
-                                                isInline
-                                                onClick={() => {
-                                                  const alertData = clusterInfo.cluster.alerts.find(a =>
-                                                    a.alertName === agg.alertName && a.severity === agg.severity
-                                                  );
-                                                  if (alertData) {
-                                                    onAlertClick(alertData);
-                                                  }
-                                                }}
-                                              >
-                                                {agg.alertName}
-                                              </Button>
-                                            </Td>
-                                            <Td>
-                                              <Label
-                                                color={getSeverityLabelColor(agg.severity)}
-                                                icon={getSeverityIcon(agg.severity)}
-                                                isCompact
-                                              >
-                                                {agg.severity}
-                                              </Label>
-                                            </Td>
-                                            <Td>{clusterInfo.name}</Td>
-                                            <Td>{clusterInfo.cluster.alerts.find(a => a.alertName === agg.alertName)?.namespace || 'N/A'}</Td>
-                                            <Td>
-                                              <Tooltip content={`${clusterInfo.cluster.alerts.filter(a => a.alertName === agg.alertName && a.status === 'firing').length} alerts firing since ${clusterInfo.lastFired}`}>
-                                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ cursor: 'help' }}>
-                                                  <Icon status="warning"><ExclamationTriangleIcon /></Icon>
-                                                  <span>Firing</span>
-                                                </Flex>
-                                              </Tooltip>
-                                            </Td>
-                                            <Td>{clusterInfo.lastFired}</Td>
-                                          </Tr>
-                                        ))}
-                                      </Tbody>
-                                    </Table>
-                                  </div>
-                                </Td>
-                              </Tr>
-                            )}
-                          </Tbody>
-                        );
-                      })}
-                    </Table>
-                  </AccordionContent>
-                </AccordionItem>
+                <Td key={col.key} modifier="nowrap">
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <Icon status="warning"><BellIcon /></Icon>
+                    <Stack>
+                      <StackItem>Firing</StackItem>
+                      <StackItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>{clusterInfo.lastFired}</Content>
+                      </StackItem>
+                    </Stack>
+                  </Flex>
+                </Td>
               );
-            })}
-          </Accordion>
-        ) : (
-          <Accordion asDefinitionList={false} displaySize="lg">
-            {groupedAlerts.map(group => {
+            case 'group':
+              return <Td key={col.key} modifier="nowrap"><Label isCompact>{agg.group}</Label></Td>;
+            case 'component':
+              return <Td key={col.key} modifier="nowrap"><Label isCompact variant="outline">{agg.component}</Label></Td>;
+            case 'source':
+              return <Td key={col.key} modifier="nowrap">{alertInstance?.source || '-'}</Td>;
+            default:
+              return (
+                <Td key={col.key} modifier="nowrap">
+                  {!singleClusterView ? (
+                    <Button variant="link" isInline onClick={() => onClusterFilterChange && onClusterFilterChange([clusterInfo.name])}>
+                      {clusterInfo.name}
+                    </Button>
+                  ) : (
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                      <Label color="blue" isCompact>NS</Label>
+                      <span>{alertInstance?.namespace || 'default'}</span>
+                    </Flex>
+                  )}
+                </Td>
+              );
+          }
+        })}
+        <Td modifier="nowrap">{renderInstanceActionMenu(agg, clusterInfo, instanceIdx)}</Td>
+      </Tr>
+    );
+  };
+
+  const renderTableHeader = (opts?: { withSelectAll?: boolean; stickyAlertName?: boolean }) => {
+    const { withSelectAll = false, stickyAlertName = false } = opts || {};
+    return (
+      <Thead style={{ position: 'sticky', top: 0, zIndex: 98, backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
+        <Tr>
+          <Th width={10} />
+          <Th width={10}>
+            {withSelectAll && (
+              <Checkbox
+                id="select-all-alerts"
+                aria-label="Select all alerts"
+                isChecked={paginatedAggregatedAlerts.length > 0 && paginatedAggregatedAlerts.every(agg => selectedAlertKeys.has(`${agg.alertName}-${agg.severity}`))}
+                onChange={toggleSelectAll}
+              />
+            )}
+          </Th>
+          {visibleCols.map((col, colIdx) => {
+            const columnKey = col.key as SortConfig['column'];
+            const canSort = ['alertName', 'severity', 'total', 'group', 'component'].includes(col.key);
+            const sortConfig = sortConfigs.find(c => c.column === columnKey);
+            const thProps: any = { key: col.key, modifier: 'nowrap' as const };
+            if (stickyAlertName && col.key === 'alertName') { thProps.isStickyColumn = true; thProps.stickyMinWidth = '200px'; thProps.stickyLeftOffset = '90px'; }
+            if (col.key === 'group') { thProps.info = { tooltip: 'Indicates whether the alert affects the entire cluster or a specific namespace.', ariaLabel: 'More information about alert scope' }; }
+            if (col.key === 'component') { thProps.info = { tooltip: 'The specific services, operators, or nodes affected by this alert.', ariaLabel: 'More information about affected component' }; }
+            if (canSort) {
+              thProps.sort = {
+                sortBy: { index: sortConfig ? sortConfig.priority - 1 : -1, direction: sortConfig?.direction || 'asc' },
+                onSort: () => handleSort(columnKey),
+                columnIndex: colIdx,
+              };
+            }
+            return <Th {...thProps}>{col.label}</Th>;
+          })}
+          <Th screenReaderText="Actions" />
+        </Tr>
+      </Thead>
+    );
+  };
+
+  // ========== EMPTY STATE ==========
+  if (totalItems === 0) {
+    return (
+      <EmptyState titleText="No alerts found" icon={CheckCircleIcon}>
+        <EmptyStateBody>No alerts match the current filters.</EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
+  // ========== GROUPED AGGREGATED: Hierarchical Tree Table ==========
+  if (isAggregated && groupBy !== 'none' && groupedAlerts) {
+    return (
+      <InnerScrollContainer>
+        <Table aria-label="Grouped alerts tree table" variant="compact" isTreeTable>
+          {renderTableHeader()}
+          <Tbody>
+            {groupedAlerts.map((group) => {
               const isGroupExpanded = expandedGroups.has(group.groupName);
               const groupSeverityColor = groupBy === 'severity'
                 ? (group.groupName === 'Critical' ? 'red' : group.groupName === 'Warning' ? 'orange' : 'blue')
                 : 'grey';
               const clustersInGroup = Array.from(new Set(group.alerts.flatMap(a => a.clusters.map(c => c.name))));
+              let leafCounter = 0;
 
               return (
-                <AccordionItem key={group.groupName} isExpanded={isGroupExpanded}>
-                  <AccordionToggle
+                <React.Fragment key={group.groupName}>
+                  {/* ===== LEVEL 1: Group Row — column-aligned ===== */}
+                  <Tr
+                    style={{ backgroundColor: LEVEL_1_BG, cursor: 'pointer', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}
                     onClick={() => toggleGroupExpanded(group.groupName)}
-                    id={`group-toggle-${group.groupName}`}
                   >
-                    <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }} style={{ fontSize: '14px', fontWeight: 400 }}>
-                      <FlexItem>
-                        {groupBy === 'severity' ? (
-                          <Label
-                            color={groupSeverityColor as 'red' | 'orange' | 'blue'}
-                            icon={group.groupName === 'Critical' ? <ExclamationCircleIcon /> : group.groupName === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                            isCompact
-                          >
-                            {group.groupName}
-                          </Label>
-                        ) : (
-                          <strong>{group.groupName}</strong>
-                        )}
-                      </FlexItem>
-                      <FlexItem>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                      </FlexItem>
-                      {groupBy !== 'severity' && (
-                        <>
-                          <FlexItem>
-                            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              {(() => {
-                                const criticalCount = group.alerts.filter(a => a.severity === 'Critical').length;
-                                const warningCount = group.alerts.filter(a => a.severity === 'Warning').length;
-                                const infoCount = group.alerts.filter(a => a.severity === 'Info').length;
-                                return (
-                                  <>
-                                    {criticalCount > 0 && <Label color="red" isCompact>{criticalCount} critical</Label>}
-                                    {warningCount > 0 && <Label color="orange" isCompact>{warningCount} warning</Label>}
-                                    {infoCount > 0 && <Label color="blue" isCompact>{infoCount} info</Label>}
-                                  </>
-                                );
-                              })()}
-                            </Flex>
-                          </FlexItem>
-                          <FlexItem>
-                            <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                          </FlexItem>
-                        </>
-                      )}
-                      <FlexItem>
-                        <span>{group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}</span>
-                      </FlexItem>
-                      <FlexItem>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                      </FlexItem>
-                      <FlexItem>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>{group.totalCount} instance{group.totalCount !== 1 ? 's' : ''}</span>
-                      </FlexItem>
-                      {!singleClusterView && (
-                        <>
-                          <FlexItem>
-                            <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                          </FlexItem>
-                          <FlexItem>
-                            <span>{clustersInGroup.length} cluster{clustersInGroup.length !== 1 ? 's' : ''}</span>
-                          </FlexItem>
-                        </>
-                      )}
-                    </Flex>
-                  </AccordionToggle>
-                  <AccordionContent id={`group-content-${group.groupName}`} hidden={!isGroupExpanded}>
-                    <Table aria-label={`Alerts in ${group.groupName} group`} variant="compact" isExpandable>
-                      <Thead>
-                        <Tr>
-                          <Th screenReaderText="Expand" />
-                          <Th>Alert name</Th>
-                          <Th>Severity</Th>
-                          <Th
-                            sort={{
-                              sortBy: {
-                                index: sortConfigs.findIndex(c => c.column === 'total'),
-                                direction: sortConfigs.find(c => c.column === 'total')?.direction || 'asc'
-                              },
-                              onSort: () => handleSort('total'),
-                              columnIndex: 3
-                            }}
-                          >
-                            Total
-                          </Th>
-                          <Th>Clusters</Th>
-                          <Th>Alert scope</Th>
-                          <Th>Component</Th>
-                        </Tr>
-                      </Thead>
-                      {group.alerts.map((agg, aggIdx) => {
-                        const alertKey = `${group.groupName}-${agg.alertName}-${agg.severity}`;
-                        const isAlertExpanded = expandedAlerts.includes(alertKey);
-                        return (
-                          <Tbody key={alertKey} isExpanded={isAlertExpanded}>
-                            <Tr>
-                              <Td
-                                expand={{
-                                  rowIndex: aggIdx,
-                                  isExpanded: isAlertExpanded,
-                                  onToggle: () => toggleExpanded(alertKey),
-                                }}
-                              />
-                              <Td>
-                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                  <FlexItem>
-                                    <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
-                                  </FlexItem>
-                                  <FlexItem>{agg.alertName}</FlexItem>
-                                </Flex>
-                              </Td>
-                              <Td>
-                                <Label
-                                  color={getSeverityLabelColor(agg.severity)}
-                                  icon={getSeverityIcon(agg.severity)}
-                                  isCompact
-                                >
-                                  {agg.severity}
-                                </Label>
-                              </Td>
-                              <Td>
-                                <Badge>{agg.totalCount}</Badge>
-                              </Td>
-                              <Td>
-                                <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>
-                              </Td>
-                              <Td>
-                                <Label isCompact>{agg.group}</Label>
-                              </Td>
-                              <Td>
-                                <Label variant="outline" isCompact>{agg.component}</Label>
-                              </Td>
-                            </Tr>
-                            <Tr isExpanded={isAlertExpanded}>
-                              <Td colSpan={7}>
-                                <ExpandableRowContent>
-                                  <Table aria-label={`Instances of ${agg.alertName}`} variant="compact">
-                                    <Thead>
-                                      <Tr>
-                                        <Th>Alert name</Th>
-                                        <Th>Severity</Th>
-                                        <Th>State</Th>
-                                        <Th>Cluster</Th>
-                                        <Th>Namespace</Th>
-                                        <Th>Resource</Th>
-                                      </Tr>
-                                    </Thead>
-                                    <Tbody>
-                                      {agg.clusters.map((clusterInfo, instanceIdx) => {
-                                        const alertInstance = clusterInfo.cluster?.alerts?.find(
-                                          a => a.alertName === agg.alertName && a.severity === agg.severity
-                                        );
-                                        return (
-                                          <Tr key={`${clusterInfo.name}-${instanceIdx}`}>
-                                            <Td>
-                                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                                <FlexItem>
-                                                  <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
-                                                </FlexItem>
-                                                <FlexItem>
-                                                  <Button
-                                                    variant="link"
-                                                    isInline
-                                                    onClick={() => {
-                                                      if (alertInstance) onAlertClick(alertInstance);
-                                                    }}
-                                                  >
-                                                    {agg.alertName}
-                                                  </Button>
-                                                </FlexItem>
-                                              </Flex>
-                                            </Td>
-                                            <Td>
-                                              <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>
-                                                {agg.severity}
-                                              </Label>
-                                            </Td>
-                                            <Td>
-                                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                                <FlexItem>
-                                                  <Icon status="warning"><BellIcon /></Icon>
-                                                </FlexItem>
-                                                <FlexItem>
-                                                  <Stack>
-                                                    <StackItem>Firing Since</StackItem>
-                                                    <StackItem>
-                                                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                                        {clusterInfo.lastFired}
-                                                      </Content>
-                                                    </StackItem>
-                                                  </Stack>
-                                                </FlexItem>
-                                              </Flex>
-                                            </Td>
-                                            <Td>{clusterInfo.name}</Td>
-                                            <Td>
-                                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                                <FlexItem><Label color="blue" isCompact>NS</Label></FlexItem>
-                                                <FlexItem>{alertInstance?.namespace || 'default'}</FlexItem>
-                                              </Flex>
-                                            </Td>
-                                            <Td>
-                                              {alertInstance?.resource ? (
-                                                <Button variant="link" isInline>{alertInstance.resource}</Button>
-                                              ) : (
-                                                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>-</Content>
-                                              )}
-                                            </Td>
-                                          </Tr>
-                                        );
-                                      })}
-                                    </Tbody>
-                                  </Table>
-                                </ExpandableRowContent>
-                              </Td>
-                            </Tr>
-                          </Tbody>
-                        );
-                      })}
-                    </Table>
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
-        )
-      ) : isAggregated ? (
-        <InnerScrollContainer>
-          <Table aria-label="Aggregated alerts table" variant="compact" isExpandable>
-            <Thead>
-              <Tr>
-                <Th screenReaderText="Expand" isStickyColumn stickyMinWidth="45px" modifier="nowrap" />
-                <Th isStickyColumn stickyMinWidth="45px" stickyLeftOffset="45px" modifier="nowrap">
-                  <Checkbox
-                    id="select-all-alerts"
-                    aria-label="Select all alerts"
-                    isChecked={paginatedAggregatedAlerts.length > 0 && paginatedAggregatedAlerts.every(agg => selectedAlertKeys.has(`${agg.alertName}-${agg.severity}`))}
-                    onChange={toggleSelectAll}
-                  />
-                </Th>
-                {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime' && col.key !== 'flappingRate').map((col, colIdx) => {
-                  const columnKey = col.key as SortConfig['column'];
-                  const canSort = ['alertName', 'severity', 'total', 'group', 'component'].includes(col.key);
-                  const sortConfig = sortConfigs.find(c => c.column === columnKey);
-
-                  const thProps: any = {
-                    key: col.key,
-                    modifier: "nowrap" as const,
-                  };
-
-                  if (col.key === 'alertName') {
-                    thProps.isStickyColumn = true;
-                    thProps.stickyMinWidth = "200px";
-                    thProps.stickyLeftOffset = "90px";
-                  }
-
-                  if (col.key === 'group') {
-                    thProps.info = {
-                      tooltip: "Indicates whether the alert affects the entire cluster or a specific namespace.",
-                      ariaLabel: "More information about alert scope"
-                    };
-                  }
-
-                  if (col.key === 'component') {
-                    thProps.info = {
-                      tooltip: "The specific services, operators, or nodes affected by this alert.",
-                      ariaLabel: "More information about affected component"
-                    };
-                  }
-
-                  if (canSort) {
-                    thProps.sort = {
-                      sortBy: {
-                        index: sortConfig ? sortConfig.priority - 1 : -1,
-                        direction: sortConfig?.direction || 'asc'
-                      },
-                      onSort: () => handleSort(columnKey),
-                      columnIndex: colIdx
-                    };
-                  }
-
-                  return <Th {...thProps}>{col.label}</Th>;
-                })}
-              </Tr>
-            </Thead>
-            {paginatedAggregatedAlerts.map((agg, idx) => {
-              const alertKey = `${agg.alertName}-${agg.severity}`;
-              const isExpanded = expandedAlerts.includes(alertKey);
-              const firstAlertInfo = agg.clusters[0];
-              const firstAlert = firstAlertInfo?.cluster?.alerts?.find(a => a.alertName === agg.alertName && a.severity === agg.severity);
-
-              const renderCellContent = (col: ColumnConfig) => {
-                switch (col.key) {
-                  case 'alertName':
-                    return (
+                    {/* Chevron cell */}
+                    <Td style={{ width: '45px', paddingLeft: '8px' }}>
+                      <Button variant="plain" aria-label="Toggle group" style={{ padding: '2px 4px' }}>
+                        {isGroupExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
+                      </Button>
+                    </Td>
+                    {/* Checkbox placeholder */}
+                    <Td style={{ width: '45px' }} />
+                    {/* Alert Name column — shows group label */}
+                    <Td modifier="nowrap">
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                         <FlexItem>
-                          <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
+                          {groupBy === 'severity' ? (
+                            <Label
+                              color={groupSeverityColor as 'red' | 'orange' | 'blue'}
+                              icon={group.groupName === 'Critical' ? <ExclamationCircleIcon /> : group.groupName === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                              isCompact
+                            >
+                              {group.groupName}
+                            </Label>
+                          ) : (
+                            <strong style={{ fontSize: '14px' }}>{group.groupName}</strong>
+                          )}
                         </FlexItem>
-                        <FlexItem>{agg.alertName}</FlexItem>
+                        <FlexItem>
+                          <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                            {group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}
+                          </span>
+                        </FlexItem>
+                        {!singleClusterView && (
+                          <FlexItem>
+                            <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                              · {clustersInGroup.length} cluster{clustersInGroup.length !== 1 ? 's' : ''}
+                            </span>
+                          </FlexItem>
+                        )}
                       </Flex>
-                    );
-                  case 'severity':
+                    </Td>
+                    {/* Remaining columns — show summary data aligned to grid */}
+                    {visibleCols.filter(c => c.key !== 'alertName').map(col => (
+                      <Td key={col.key} modifier="nowrap" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        {renderGroupCellContent(col, group)}
+                      </Td>
+                    ))}
+                    {/* Actions placeholder */}
+                    <Td />
+                  </Tr>
+
+                  {/* ===== LEVEL 2 + LEVEL 3 ===== */}
+                  {isGroupExpanded && group.alerts.map((agg, aggIdx) => {
+                    const alertKey = `${group.groupName}-${agg.alertName}-${agg.severity}`;
+                    const isAlertExpanded = expandedAlerts.includes(alertKey);
+
                     return (
-                      <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>
-                        {agg.severity}
-                      </Label>
+                      <React.Fragment key={alertKey}>
+                        {/* Level 2: Aggregated Alert Row */}
+                        <Tr
+                          style={{ cursor: 'pointer', backgroundColor: LEVEL_2_BG }}
+                          onClick={(e) => {
+                            const target = e.target as HTMLElement;
+                            if (target.tagName !== 'INPUT' && target.tagName !== 'BUTTON' && target.tagName !== 'A' && !target.closest('button') && !target.closest('a')) {
+                              toggleExpanded(alertKey);
+                            }
+                          }}
+                        >
+                          <Td style={{ paddingLeft: `${LEVEL_INDENT_2 + 8}px`, width: '45px' }}>
+                            <Button variant="plain" aria-label="Toggle alert" style={{ padding: '2px 4px' }}
+                              onClick={(e) => { e.stopPropagation(); toggleExpanded(alertKey); }}>
+                              {isAlertExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
+                            </Button>
+                          </Td>
+                          <Td style={{ width: '45px' }} onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              id={`checkbox-${alertKey}`}
+                              aria-label={`Select ${agg.alertName}`}
+                              isChecked={selectedAlertKeys.has(`${agg.alertName}-${agg.severity}`)}
+                              onChange={() => toggleAlertSelection(`${agg.alertName}-${agg.severity}`)}
+                            />
+                          </Td>
+                          {visibleCols.map(col => (
+                            <Td key={col.key} modifier="nowrap">{renderAggCellContent(col, agg)}</Td>
+                          ))}
+                          <Td modifier="nowrap" />
+                        </Tr>
+
+                        {/* Level 3: Individual Instances — zebra striped */}
+                        {isAlertExpanded && agg.clusters.map((clusterInfo, instanceIdx) => {
+                          const currentLeafIdx = leafCounter++;
+                          return renderInstanceRow(agg, clusterInfo, instanceIdx, alertKey, currentLeafIdx, LEVEL_INDENT_3);
+                        })}
+                      </React.Fragment>
                     );
-                  case 'total':
-                    return <Badge>{agg.totalCount}</Badge>;
-                  case 'clusters':
-                    return <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>;
-                  case 'state':
-                    return (
-                      <Tooltip content={`${agg.totalCount} alerts firing since ${firstAlertInfo?.lastFired || 'N/A'}`}>
-                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ cursor: 'help' }}>
-                          <Icon status="warning"><ExclamationTriangleIcon /></Icon>
-                          <span>Firing</span>
-                        </Flex>
-                      </Tooltip>
-                    );
-                  case 'group':
-                    return <Label isCompact>{agg.group}</Label>;
-                  case 'component':
-                    return <Label isCompact variant="outline">{agg.component}</Label>;
-                  case 'source':
-                    return firstAlert?.source || '-';
-                  case 'description':
-                    return firstAlert?.description || '-';
-                  case 'startTime':
-                    return firstAlertInfo?.lastFired || '-';
-                  default:
-                    return '-';
-                }
-              };
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </Tbody>
+        </Table>
+      </InnerScrollContainer>
+    );
+  }
+
+  // ========== UNGROUPED AGGREGATED ==========
+  if (isAggregated) {
+    return (
+      <InnerScrollContainer>
+        <Table aria-label="Aggregated alerts table" variant="compact" isTreeTable>
+          {renderTableHeader({ withSelectAll: true, stickyAlertName: true })}
+          <Tbody>
+            {paginatedAggregatedAlerts.map((agg) => {
+              const alertKey = `${agg.alertName}-${agg.severity}`;
+              const isExpanded = expandedAlerts.includes(alertKey);
+              let leafCounter = 0;
 
               return (
-                <Tbody key={alertKey} isExpanded={isExpanded}>
+                <React.Fragment key={alertKey}>
                   <Tr
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', backgroundColor: LEVEL_2_BG }}
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       if (target.tagName !== 'INPUT' && target.tagName !== 'BUTTON' && target.tagName !== 'A' && !target.closest('button') && !target.closest('a')) {
@@ -735,23 +507,13 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                       }
                     }}
                   >
-                    <Td
-                      expand={{
-                        rowIndex: idx,
-                        isExpanded,
-                        onToggle: () => toggleExpanded(alertKey),
-                      }}
-                      isStickyColumn
-                      stickyMinWidth="45px"
-                      modifier="nowrap"
-                    />
-                    <Td
-                      isStickyColumn
-                      stickyMinWidth="45px"
-                      stickyLeftOffset="45px"
-                      modifier="nowrap"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <Td style={{ width: '45px' }}>
+                      <Button variant="plain" aria-label="Toggle alert" style={{ padding: '2px 4px' }}
+                        onClick={(e) => { e.stopPropagation(); toggleExpanded(alertKey); }}>
+                        {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
+                      </Button>
+                    </Td>
+                    <Td style={{ width: '45px' }} onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         id={`checkbox-${alertKey}`}
                         aria-label={`Select ${agg.alertName}`}
@@ -759,502 +521,210 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                         onChange={() => toggleAlertSelection(alertKey)}
                       />
                     </Td>
-                    {getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime' && col.key !== 'flappingRate').map(col => {
-                      const tdProps: any = {
-                        key: col.key,
-                        modifier: "nowrap" as const,
-                      };
-
-                      if (col.key === 'alertName') {
-                        tdProps.isStickyColumn = true;
-                        tdProps.stickyMinWidth = "200px";
-                        tdProps.stickyLeftOffset = "90px";
-                      }
-
-                      return <Td {...tdProps}>{renderCellContent(col)}</Td>;
+                    {visibleCols.map(col => {
+                      const tdProps: any = { key: col.key, modifier: 'nowrap' as const };
+                      if (col.key === 'alertName') { tdProps.isStickyColumn = true; tdProps.stickyMinWidth = '200px'; tdProps.stickyLeftOffset = '90px'; }
+                      return <Td {...tdProps}>{renderAggCellContent(col, agg)}</Td>;
                     })}
+                    <Td modifier="nowrap" />
                   </Tr>
-                  <Tr isExpanded={isExpanded}>
-                    <Td colSpan={getVisibleColumns().filter(col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime' && col.key !== 'flappingRate').length + 2} noPadding>
-                      <ExpandableRowContent>
-                        <div style={{ padding: '8px 16px' }}>
-                          <Table aria-label={singleClusterView ? "Alert instances" : "Clusters with alert"} variant="compact">
-                            <Thead>
-                              <Tr>
-                                <Th screenReaderText="Select" />
-                                <Th sort={{ sortBy: { index: 0, direction: 'asc' }, columnIndex: 0 }}>Alert Name</Th>
-                                <Th sort={{ sortBy: { index: 1, direction: 'asc' }, columnIndex: 1 }}>Severity</Th>
-                                <Th sort={{ sortBy: { index: 2, direction: 'asc' }, columnIndex: 2 }}>State</Th>
-                                {!singleClusterView && <Th>Cluster</Th>}
-                                <Th>Namespace</Th>
-                                <Th>Resource</Th>
-                                {columns.find(c => c.key === 'description')?.isVisible && <Th>Description</Th>}
-                              </Tr>
-                            </Thead>
-                            <Tbody>
-                              {agg.clusters.map((clusterInfo, instanceIdx) => {
-                                const alertInstance = clusterInfo.cluster?.alerts?.find(
-                                  a => a.alertName === agg.alertName && a.severity === agg.severity
-                                );
-                                return (
-                                  <Tr key={singleClusterView ? `${clusterInfo.name}-${instanceIdx}` : clusterInfo.name}>
-                                    <Td>
-                                      <Checkbox id={`checkbox-${alertKey}-${instanceIdx}`} aria-label={`Select ${agg.alertName} instance`} />
-                                    </Td>
-                                    <Td>
-                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                        <FlexItem>
-                                          <Badge style={{ backgroundColor: 'var(--pf-t--global--color--nonstatus--purple--default)', color: 'white' }}>A</Badge>
-                                        </FlexItem>
-                                        <FlexItem>
-                                          <Button
-                                            variant="link"
-                                            isInline
-                                            onClick={() => {
-                                              if (alertInstance) {
-                                                onAlertClick(alertInstance);
-                                              }
-                                            }}
-                                          >
-                                            {agg.alertName}
-                                          </Button>
-                                        </FlexItem>
-                                      </Flex>
-                                    </Td>
-                                    <Td>
-                                      <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>
-                                        {agg.severity}
-                                      </Label>
-                                    </Td>
-                                    <Td>
-                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                        <FlexItem>
-                                          <Icon status="warning"><BellIcon /></Icon>
-                                        </FlexItem>
-                                        <FlexItem>
-                                          <Stack>
-                                            <StackItem>Firing Since</StackItem>
-                                            <StackItem>
-                                              <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                                {clusterInfo.lastFired}
-                                              </Content>
-                                            </StackItem>
-                                          </Stack>
-                                        </FlexItem>
-                                      </Flex>
-                                    </Td>
-                                    {!singleClusterView && (
-                                      <Td>
-                                        <Button
-                                          variant="link"
-                                          isInline
-                                          onClick={() => {
-                                            onClusterFilterChange && onClusterFilterChange([clusterInfo.name]);
-                                          }}
-                                        >
-                                          {clusterInfo.name}
-                                        </Button>
-                                      </Td>
-                                    )}
-                                    <Td>
-                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                        <FlexItem><Label color="blue" isCompact>NS</Label></FlexItem>
-                                        <FlexItem>
-                                          <Button
-                                            variant="link"
-                                            isInline
-                                            onClick={() => {
-                                              onNamespaceFilterChange && onNamespaceFilterChange([alertInstance?.namespace || 'default']);
-                                            }}
-                                          >
-                                            {alertInstance?.namespace || 'default'}
-                                          </Button>
-                                        </FlexItem>
-                                      </Flex>
-                                    </Td>
-                                    <Td>
-                                      {alertInstance?.resource ? (
-                                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                          <FlexItem><Label color="grey" isCompact>N</Label></FlexItem>
-                                          <FlexItem>{alertInstance.resource}</FlexItem>
-                                        </Flex>
-                                      ) : '-'}
-                                    </Td>
-                                    {columns.find(c => c.key === 'description')?.isVisible && (
-                                      <Td>{alertInstance?.description || '-'}</Td>
-                                    )}
-                                    <Td>
-                                      <Dropdown
-                                        isOpen={openActionMenuId === `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`}
-                                        onOpenChange={(isOpen) => setOpenActionMenuId(isOpen ? `${agg.alertName}-${clusterInfo.name}-${instanceIdx}` : null)}
-                                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                                          <MenuToggle
-                                            ref={toggleRef}
-                                            variant="plain"
-                                            aria-label="Alert actions"
-                                            onClick={() => setOpenActionMenuId(
-                                              openActionMenuId === `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`
-                                                ? null
-                                                : `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`
-                                            )}
-                                            isExpanded={openActionMenuId === `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`}
-                                          >
-                                            <EllipsisVIcon />
-                                          </MenuToggle>
-                                        )}
-                                        popperProps={{ position: 'right' }}
-                                      >
-                                        <DropdownList>
-                                          <DropdownItem
-                                            key="silence"
-                                            onClick={() => openSilenceModal(agg.alertName, agg.severity, clusterInfo.name)}
-                                            description="Temporarily stop notifications for this alert."
-                                          >
-                                            Silence alert
-                                          </DropdownItem>
-                                          <DropdownItem
-                                            key="acknowledge"
-                                            onClick={() => openAcknowledgeModal(agg.alertName, agg.severity, clusterInfo.name)}
-                                            description="Mark the alert as being addressed by your teammates."
-                                          >
-                                            Acknowledge
-                                          </DropdownItem>
-                                          <Divider component="li" />
-                                          <DropdownItem key="rule" onClick={() => setOpenActionMenuId(null)}>
-                                            View alert rule
-                                          </DropdownItem>
-                                          <DropdownItem key="logs" onClick={() => setOpenActionMenuId(null)}>
-                                            View logs
-                                          </DropdownItem>
-                                          <DropdownItem key="metrics" onClick={() => setOpenActionMenuId(null)}>
-                                            View metrics
-                                          </DropdownItem>
-                                          <DropdownItem key="incident" onClick={() => setOpenActionMenuId(null)}>
-                                            See related incident
-                                          </DropdownItem>
-                                          <DropdownItem key="troubleshoot" onClick={() => setOpenActionMenuId(null)}>
-                                            Troubleshoot
-                                          </DropdownItem>
-                                        </DropdownList>
-                                      </Dropdown>
-                                    </Td>
-                                  </Tr>
-                                );
-                              })}
-                            </Tbody>
-                          </Table>
-                        </div>
-                      </ExpandableRowContent>
-                    </Td>
-                  </Tr>
-                </Tbody>
+
+                  {isExpanded && agg.clusters.map((clusterInfo, instanceIdx) => {
+                    const currentLeafIdx = leafCounter++;
+                    return renderInstanceRow(agg, clusterInfo, instanceIdx, alertKey, currentLeafIdx, LEVEL_INDENT_3 - LEVEL_INDENT_2);
+                  })}
+                </React.Fragment>
               );
             })}
-          </Table>
-        </InnerScrollContainer>
-      ) : !isAggregated && groupBy !== 'none' && groupedIndividualAlerts ? (
-        <Accordion asDefinitionList={false} displaySize="lg">
-          {groupedIndividualAlerts!.map(group => {
-            const isGroupExpanded = expandedGroups.has(group.groupName);
-            const groupSeverityColor = groupBy === 'severity'
-              ? (group.groupName === 'Critical' ? 'red' : group.groupName === 'Warning' ? 'orange' : 'blue')
-              : 'grey';
-            const criticalCount = group.alerts.filter(a => a.severity === 'Critical').length;
-            const warningCount = group.alerts.filter(a => a.severity === 'Warning').length;
-            const infoCount = group.alerts.filter(a => a.severity === 'Info').length;
+          </Tbody>
+        </Table>
+      </InnerScrollContainer>
+    );
+  }
 
-            return (
-              <AccordionItem key={group.groupName} isExpanded={isGroupExpanded}>
-                <AccordionToggle
-                  onClick={() => toggleGroupExpanded(group.groupName)}
-                  id={`group-toggle-${group.groupName}`}
-                >
-                  <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }} style={{ fontSize: '14px', fontWeight: 400 }}>
-                    <FlexItem>
-                      {groupBy === 'severity' ? (
-                        <Label
-                          color={groupSeverityColor as 'red' | 'orange' | 'blue'}
-                          icon={group.groupName === 'Critical' ? <ExclamationCircleIcon /> : group.groupName === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                          isCompact
-                        >
-                          {group.groupName}
-                        </Label>
-                      ) : (
-                        <strong>{group.groupName}</strong>
-                      )}
-                    </FlexItem>
-                    <FlexItem>
-                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                    </FlexItem>
-                    {groupBy !== 'severity' && (
-                      <>
-                        <FlexItem>
-                          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                            {criticalCount > 0 && (
-                              <Label
-                                color="red"
-                                isCompact
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!severityFilter.includes('Critical')) {
-                                    setSeverityFilter([...severityFilter, 'Critical']);
-                                  }
-                                }}
-                                style={{ cursor: 'pointer' }}
-                              >
-                                {criticalCount} critical
-                              </Label>
-                            )}
-                            {warningCount > 0 && (
-                              <Label
-                                color="orange"
-                                isCompact
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!severityFilter.includes('Warning')) {
-                                    setSeverityFilter([...severityFilter, 'Warning']);
-                                  }
-                                }}
-                                style={{ cursor: 'pointer' }}
-                              >
-                                {warningCount} warning
-                              </Label>
-                            )}
-                            {infoCount > 0 && (
-                              <Label
-                                color="blue"
-                                isCompact
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!severityFilter.includes('Info')) {
-                                    setSeverityFilter([...severityFilter, 'Info']);
-                                  }
-                                }}
-                                style={{ cursor: 'pointer' }}
-                              >
-                                {infoCount} info
-                              </Label>
-                            )}
-                          </Flex>
-                        </FlexItem>
-                        <FlexItem>
-                          <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>|</span>
-                        </FlexItem>
-                      </>
-                    )}
-                    <FlexItem>
-                      <span>{group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}</span>
-                    </FlexItem>
-                  </Flex>
-                </AccordionToggle>
-                <AccordionContent id={`group-content-${group.groupName}`} hidden={!isGroupExpanded}>
-                  <div style={{ padding: '16px' }}>
-                    <Table aria-label={`${group.groupName} alerts`} variant="compact" borders={false}>
-                      <Thead>
-                        <Tr>
-                          {getVisibleColumns().filter(col => col.key !== 'total').map((col) => {
-                            const columnKey = col.key as SortConfig['column'];
-                            const canSort = ['alertName', 'severity', 'clusters', 'group', 'component', 'startTime'].includes(col.key);
+  // ========== GROUPED INDIVIDUAL (non-aggregated) ==========
+  if (!isAggregated && groupBy !== 'none' && groupedIndividualAlerts) {
+    const indivVisibleCols = getVisibleColumns().filter(col => col.key !== 'total');
+    return (
+      <InnerScrollContainer>
+        <Table aria-label="Grouped individual alerts tree table" variant="compact" isTreeTable>
+          <Thead style={{ position: 'sticky', top: 0, zIndex: 98, backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
+            <Tr>
+              <Th width={10} />
+              {indivVisibleCols.map((col) => {
+                const columnKey = col.key as SortConfig['column'];
+                const canSort = ['alertName', 'severity', 'clusters', 'group', 'component', 'startTime'].includes(col.key);
+                const thProps: any = { key: col.key, modifier: 'nowrap' as const };
+                if (col.key === 'group') { thProps.info = { tooltip: 'Indicates whether the alert affects the entire cluster or a specific namespace.', ariaLabel: 'More information about alert scope' }; }
+                if (col.key === 'component') { thProps.info = { tooltip: 'The specific services, operators, or nodes affected by this alert.', ariaLabel: 'More information about affected component' }; }
+                if (canSort) { thProps.sort = getSortParams(columnKey); }
+                return <Th {...thProps}>{col.label}</Th>;
+              })}
+            </Tr>
+          </Thead>
+          <Tbody>
+            {groupedIndividualAlerts.map((group) => {
+              const isGroupExpanded = expandedGroups.has(group.groupName);
+              const groupSeverityColor = groupBy === 'severity'
+                ? (group.groupName === 'Critical' ? 'red' : group.groupName === 'Warning' ? 'orange' : 'blue')
+                : 'grey';
+              let leafCounter = 0;
 
-                            const thProps: any = {
-                              key: col.key,
-                              modifier: "nowrap" as const,
-                            };
-
-                            if (col.key === 'group') {
-                              thProps.info = {
-                                tooltip: "Indicates whether the alert affects the entire cluster or a specific namespace.",
-                                ariaLabel: "More information about alert scope"
-                              };
-                            }
-
-                            if (col.key === 'component') {
-                              thProps.info = {
-                                tooltip: "The specific services, operators, or nodes affected by this alert.",
-                                ariaLabel: "More information about affected component"
-                              };
-                            }
-
-                            if (canSort) {
-                              thProps.sort = getSortParams(columnKey);
-                            }
-
-                            return <Th {...thProps}>{col.label}</Th>;
-                          })}
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {group.alerts.map((alert, idx) => {
-                          const renderCellContent = (col: ColumnConfig) => {
-                            switch (col.key) {
-                              case 'alertName':
-                                return (
-                                  <Button variant="link" isInline onClick={() => onAlertClick(alert)}>
-                                    {alert.alertName}
-                                  </Button>
-                                );
-                              case 'severity':
-                                return (
-                                  <Label color={getSeverityLabelColor(alert.severity)} icon={getSeverityIcon(alert.severity)} isCompact>
-                                    {alert.severity}
-                                  </Label>
-                                );
-                              case 'clusters':
-                                return (
-                                  <Button variant="link" isInline onClick={() => onClusterClick((alert as any).cluster)}>
-                                    {alert.clusterName}
-                                  </Button>
-                                );
-                              case 'group':
-                                return <Label isCompact>{alert.group}</Label>;
-                              case 'component':
-                                return <Label isCompact variant="outline">{alert.component}</Label>;
-                              case 'state':
-                                return <Label color={getStatusLabelColor(alert.status)} variant="outline" isCompact>{alert.status}</Label>;
-                              case 'startTime':
-                                return alert.lastFired;
-                              case 'source':
-                                return alert.source || '-';
-                              case 'description':
-                                return alert.description || '-';
-                              default:
-                                return '-';
-                            }
-                          };
-
-                          return (
-                            <Tr key={`${alert.id}-${idx}`}>
-                              {getVisibleColumns().filter(col => col.key !== 'total').map(col => (
-                                <Td key={col.key} modifier="nowrap">{renderCellContent(col)}</Td>
-                              ))}
-                            </Tr>
-                          );
-                        })}
-                      </Tbody>
-                    </Table>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
-      ) : (
-        <InnerScrollContainer>
-          <Table aria-label="All alerts table" variant="compact">
-            <Thead>
-              <Tr>
-                {getVisibleColumns().filter(col => col.key !== 'total').map((col, colIdx) => {
-                  const columnKey = col.key as SortConfig['column'];
-                  const canSort = ['alertName', 'severity', 'clusters', 'group', 'component', 'startTime'].includes(col.key);
-
-                  const thProps: any = {
-                    key: col.key,
-                    modifier: "nowrap" as const,
-                  };
-
-                  if (col.key === 'alertName') {
-                    thProps.isStickyColumn = true;
-                    thProps.stickyMinWidth = "200px";
-                    thProps.stickyLeftOffset = "0px";
-                  }
-
-                  if (col.key === 'severity') {
-                    thProps.isStickyColumn = true;
-                    thProps.stickyMinWidth = "120px";
-                    thProps.stickyLeftOffset = "200px";
-                  }
-
-                  if (col.key === 'group') {
-                    thProps.info = {
-                      tooltip: "Indicates whether the alert affects the entire cluster or a specific namespace.",
-                      ariaLabel: "More information about alert scope"
-                    };
-                  }
-
-                  if (col.key === 'component') {
-                    thProps.info = {
-                      tooltip: "The specific services, operators, or nodes affected by this alert.",
-                      ariaLabel: "More information about affected component"
-                    };
-                  }
-
-                  if (canSort) {
-                    thProps.sort = getSortParams(columnKey);
-                  }
-
-                  return <Th {...thProps}>{col.label}</Th>;
-                })}
-              </Tr>
-            </Thead>
-            <Tbody>
-              {paginatedAlerts.map((alert, idx) => {
-                const renderCellContent = (col: ColumnConfig) => {
-                  switch (col.key) {
-                    case 'alertName':
-                      return (
-                        <Button variant="link" isInline onClick={() => onAlertClick(alert)}>
-                          {alert.alertName}
-                        </Button>
-                      );
-                    case 'severity':
-                      return (
-                        <Label color={getSeverityLabelColor(alert.severity)} icon={getSeverityIcon(alert.severity)} isCompact>
-                          {alert.severity}
-                        </Label>
-                      );
-                    case 'clusters':
-                      return (
-                        <Button variant="link" isInline onClick={() => onClusterClick((alert as any).cluster)}>
-                          {alert.clusterName}
-                        </Button>
-                      );
-                    case 'group':
-                      return <Label isCompact>{alert.group}</Label>;
-                    case 'component':
-                      return <Label isCompact variant="outline">{alert.component}</Label>;
-                    case 'state':
-                      return <Label color={getStatusLabelColor(alert.status)} variant="outline" isCompact>{alert.status}</Label>;
-                    case 'startTime':
-                      return alert.lastFired;
-                    case 'source':
-                      return alert.source || '-';
-                    case 'description':
-                      return alert.description || '-';
-                    default:
-                      return '-';
-                  }
-                };
-
-                return (
-                  <Tr key={`${alert.id}-${idx}`}>
-                    {getVisibleColumns().filter(col => col.key !== 'total').map(col => {
-                      const tdProps: any = {
-                        key: col.key,
-                        modifier: "nowrap" as const,
-                      };
-
-                      if (col.key === 'alertName') {
-                        tdProps.isStickyColumn = true;
-                        tdProps.stickyMinWidth = "200px";
-                        tdProps.stickyLeftOffset = "0px";
+              return (
+                <React.Fragment key={group.groupName}>
+                  {/* Level 1: Group row — aligned to column grid */}
+                  <Tr
+                    style={{ backgroundColor: LEVEL_1_BG, cursor: 'pointer', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}
+                    onClick={() => toggleGroupExpanded(group.groupName)}
+                  >
+                    <Td style={{ width: '45px', paddingLeft: '8px' }}>
+                      <Button variant="plain" aria-label="Toggle group" style={{ padding: '2px 4px' }}>
+                        {isGroupExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
+                      </Button>
+                    </Td>
+                    <Td modifier="nowrap">
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        {groupBy === 'severity' ? (
+                          <Label color={groupSeverityColor as 'red' | 'orange' | 'blue'}
+                            icon={group.groupName === 'Critical' ? <ExclamationCircleIcon /> : group.groupName === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
+                            isCompact>{group.groupName}</Label>
+                        ) : (
+                          <strong style={{ fontSize: '14px' }}>{group.groupName}</strong>
+                        )}
+                        <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                          {group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}
+                        </span>
+                      </Flex>
+                    </Td>
+                    {/* Severity summary in the severity column */}
+                    {indivVisibleCols.filter(c => c.key !== 'alertName').map(col => {
+                      if (col.key === 'severity' && groupBy !== 'severity') {
+                        const crit = group.alerts.filter(a => a.severity === 'Critical').length;
+                        const warn = group.alerts.filter(a => a.severity === 'Warning').length;
+                        const info = group.alerts.filter(a => a.severity === 'Info').length;
+                        return (
+                          <Td key={col.key} modifier="nowrap">
+                            <Flex gap={{ default: 'gapSm' }}>
+                              {crit > 0 && <Label color="red" isCompact>{crit}</Label>}
+                              {warn > 0 && <Label color="orange" isCompact>{warn}</Label>}
+                              {info > 0 && <Label color="blue" isCompact>{info}</Label>}
+                            </Flex>
+                          </Td>
+                        );
                       }
-
-                      if (col.key === 'severity') {
-                        tdProps.isStickyColumn = true;
-                        tdProps.stickyMinWidth = "120px";
-                        tdProps.stickyLeftOffset = "200px";
-                      }
-
-                      return <Td {...tdProps}>{renderCellContent(col)}</Td>;
+                      return <Td key={col.key} modifier="nowrap" />;
                     })}
                   </Tr>
-                );
-              })}
-            </Tbody>
-          </Table>
-        </InnerScrollContainer>
-      )}
-    </>
+
+                  {/* Level 2 (leaf): Individual alert rows — zebra striped */}
+                  {isGroupExpanded && group.alerts.map((alert, idx) => {
+                    const currentLeafIdx = leafCounter++;
+                    const zebraBg = currentLeafIdx % 2 === 1 ? ZEBRA_ODD : ZEBRA_EVEN;
+
+                    const renderCellContent = (col: ColumnConfig) => {
+                      switch (col.key) {
+                        case 'alertName':
+                          return <Button variant="link" isInline onClick={() => onAlertClick(alert)}>{alert.alertName}</Button>;
+                        case 'severity':
+                          return <Label color={getSeverityLabelColor(alert.severity)} icon={getSeverityIcon(alert.severity)} isCompact>{alert.severity}</Label>;
+                        case 'clusters':
+                          return <Button variant="link" isInline onClick={() => onClusterClick((alert as any).cluster)}>{alert.clusterName}</Button>;
+                        case 'group':
+                          return <Label isCompact>{alert.group}</Label>;
+                        case 'component':
+                          return <Label isCompact variant="outline">{alert.component}</Label>;
+                        case 'state':
+                          return <Label color={getStatusLabelColor(alert.status)} variant="outline" isCompact>{alert.status}</Label>;
+                        case 'startTime':
+                          return alert.lastFired;
+                        case 'source':
+                          return alert.source || '-';
+                        case 'description':
+                          return alert.description || '-';
+                        default:
+                          return '-';
+                      }
+                    };
+
+                    return (
+                      <Tr key={`${alert.id}-${idx}`} style={{ backgroundColor: zebraBg }}>
+                        <Td style={{ paddingLeft: `${LEVEL_INDENT_2 + 8}px`, width: '45px' }} />
+                        {indivVisibleCols.map(col => (
+                          <Td key={col.key} modifier="nowrap">{renderCellContent(col)}</Td>
+                        ))}
+                      </Tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </Tbody>
+        </Table>
+      </InnerScrollContainer>
+    );
+  }
+
+  // ========== FLAT INDIVIDUAL (no grouping) ==========
+  const flatVisibleCols = getVisibleColumns().filter(col => col.key !== 'total');
+  return (
+    <InnerScrollContainer>
+      <Table aria-label="All alerts table" variant="compact">
+        <Thead style={{ position: 'sticky', top: 0, zIndex: 98, backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
+          <Tr>
+            {flatVisibleCols.map((col) => {
+              const columnKey = col.key as SortConfig['column'];
+              const canSort = ['alertName', 'severity', 'clusters', 'group', 'component', 'startTime'].includes(col.key);
+              const thProps: any = { key: col.key, modifier: 'nowrap' as const };
+              if (col.key === 'alertName') { thProps.isStickyColumn = true; thProps.stickyMinWidth = '200px'; thProps.stickyLeftOffset = '0px'; }
+              if (col.key === 'severity') { thProps.isStickyColumn = true; thProps.stickyMinWidth = '120px'; thProps.stickyLeftOffset = '200px'; }
+              if (col.key === 'group') { thProps.info = { tooltip: 'Indicates whether the alert affects the entire cluster or a specific namespace.', ariaLabel: 'More information about alert scope' }; }
+              if (col.key === 'component') { thProps.info = { tooltip: 'The specific services, operators, or nodes affected by this alert.', ariaLabel: 'More information about affected component' }; }
+              if (canSort) { thProps.sort = getSortParams(columnKey); }
+              return <Th {...thProps}>{col.label}</Th>;
+            })}
+          </Tr>
+        </Thead>
+        <Tbody>
+          {paginatedAlerts.map((alert, idx) => {
+            const renderCellContent = (col: ColumnConfig) => {
+              switch (col.key) {
+                case 'alertName':
+                  return <Button variant="link" isInline onClick={() => onAlertClick(alert)}>{alert.alertName}</Button>;
+                case 'severity':
+                  return <Label color={getSeverityLabelColor(alert.severity)} icon={getSeverityIcon(alert.severity)} isCompact>{alert.severity}</Label>;
+                case 'clusters':
+                  return <Button variant="link" isInline onClick={() => onClusterClick((alert as any).cluster)}>{alert.clusterName}</Button>;
+                case 'group':
+                  return <Label isCompact>{alert.group}</Label>;
+                case 'component':
+                  return <Label isCompact variant="outline">{alert.component}</Label>;
+                case 'state':
+                  return <Label color={getStatusLabelColor(alert.status)} variant="outline" isCompact>{alert.status}</Label>;
+                case 'startTime':
+                  return alert.lastFired;
+                case 'source':
+                  return alert.source || '-';
+                case 'description':
+                  return alert.description || '-';
+                default:
+                  return '-';
+              }
+            };
+
+            return (
+              <Tr key={`${alert.id}-${idx}`}>
+                {flatVisibleCols.map(col => {
+                  const tdProps: any = { key: col.key, modifier: 'nowrap' as const };
+                  if (col.key === 'alertName') { tdProps.isStickyColumn = true; tdProps.stickyMinWidth = '200px'; tdProps.stickyLeftOffset = '0px'; }
+                  if (col.key === 'severity') { tdProps.isStickyColumn = true; tdProps.stickyMinWidth = '120px'; tdProps.stickyLeftOffset = '200px'; }
+                  return <Td {...tdProps}>{renderCellContent(col)}</Td>;
+                })}
+              </Tr>
+            );
+          })}
+        </Tbody>
+      </Table>
+    </InnerScrollContainer>
   );
 };
 

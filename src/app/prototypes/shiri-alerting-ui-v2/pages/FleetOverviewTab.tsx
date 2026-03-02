@@ -452,7 +452,7 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                       <FlexItem>
                         <Tooltip content="Only available for Treemap view" trigger={viewMode === 'summary' ? 'mouseenter' : 'manual'}>
                           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                            <span style={{ fontSize: '13px', color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--subtle)' }}>Group by</span>
+                            <span style={{ fontSize: '13px', color: viewMode === 'summary' ? 'var(--pf-t--global--text--color--disabled)' : 'var(--pf-t--global--text--color--subtle)' }}>Group clusters by</span>
                             <Dropdown
                               isOpen={isGroupByOpen}
                               onOpenChange={setIsGroupByOpen}
