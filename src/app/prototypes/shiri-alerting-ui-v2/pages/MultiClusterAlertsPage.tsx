@@ -1565,8 +1565,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           setTimeout(() => setShowFilterAnimation(false), 1500);
         }}
         onViewAllFiringAlerts={() => {
-          setMainAlertNameFilter(undefined);
-          setMainComponentFilter(undefined);
+          const noFilter: string | null = null;
+          setMainAlertNameFilter(noFilter);
+          setMainComponentFilter(noFilter);
           setMainPageTab('alerts');
           setCameFromFleetOverview(true);
           const newParams = new URLSearchParams(searchParams);
