@@ -1553,6 +1553,36 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           setShowFilterAnimation(true);
           setTimeout(() => setShowFilterAnimation(false), 1500);
         }}
+        onClusterClick={(clusterName) => {
+          setAlertsTabClusterFilter([clusterName]);
+          setMainPageTab('alerts');
+          setCameFromFleetOverview(true);
+          const newParams = new URLSearchParams(searchParams);
+          newParams.set('tab', 'alerts');
+          newParams.set('cluster', clusterName);
+          navigate(`?${newParams.toString()}`, { replace: false });
+          setShowFilterAnimation(true);
+          setTimeout(() => setShowFilterAnimation(false), 1500);
+        }}
+        onViewAllFiringAlerts={() => {
+          setMainAlertNameFilter(undefined);
+          setMainComponentFilter(undefined);
+          setMainPageTab('alerts');
+          setCameFromFleetOverview(true);
+          const newParams = new URLSearchParams(searchParams);
+          newParams.set('tab', 'alerts');
+          newParams.delete('alertName');
+          newParams.delete('component');
+          navigate(`?${newParams.toString()}`, { replace: false });
+        }}
+        onViewAllClusters={() => {
+          setMainPageTab('alerts');
+          setCameFromFleetOverview(true);
+          const newParams = new URLSearchParams(searchParams);
+          newParams.set('tab', 'alerts');
+          newParams.delete('cluster');
+          navigate(`?${newParams.toString()}`, { replace: false });
+        }}
       />
       )}
 

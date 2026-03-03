@@ -171,6 +171,9 @@ export interface FleetOverviewTabProps {
   // CrossClusterInsightsCards callbacks
   onAlertRuleClick: (alertName: string) => void;
   onComponentClick: (componentName: string) => void;
+  onClusterClick?: (clusterName: string) => void;
+  onViewAllFiringAlerts?: () => void;
+  onViewAllClusters?: () => void;
 }
 
 export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = (props) => {
@@ -252,6 +255,9 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
     handleComponentClickInCard,
     onAlertRuleClick,
     onComponentClick,
+    onClusterClick,
+    onViewAllFiringAlerts,
+    onViewAllClusters,
   } = props;
 
   return (
@@ -996,6 +1002,9 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
             clusters={filteredClusters}
             onAlertRuleClick={onAlertRuleClick}
             onComponentClick={onComponentClick}
+            onClusterClick={onClusterClick}
+            onViewAllFiringAlerts={onViewAllFiringAlerts}
+            onViewAllClusters={onViewAllClusters}
           />
 
           {/* Alerts Timeline Card - Last */}
