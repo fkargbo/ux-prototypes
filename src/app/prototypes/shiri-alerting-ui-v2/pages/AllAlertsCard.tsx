@@ -901,6 +901,45 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       .slice(0, insightsItemCount);
   }, [clusters, insightsItemCount]);
 
+  const groupByOptionCounts = React.useMemo(() => {
+    const source = isAggregated ? filteredAggregatedAlerts : filteredAlerts;
+    const countDistinct = (keyFn: (item: any) => string) => {
+      const keys = new Set<string>();
+      source.forEach(item => keys.add(keyFn(item)));
+      return keys.size;
+    };
+    return {
+      none: 0,
+      time: (() => {
+        const keys = new Set<string>();
+        source.forEach(item => {
+          const ts = isAggregated
+            ? (item as AggregatedAlert).clusters.reduce((latest: Date | null, c: any) => (!latest || (c.lastFiredTimestamp && c.lastFiredTimestamp > latest)) ? c.lastFiredTimestamp : latest, null as Date | null)
+            : (item as any).lastFiredTimestamp;
+          if (!ts) { keys.add('Unknown'); return; }
+          const now = new Date();
+          const diffMs = now.getTime() - ts.getTime();
+          const diffH = diffMs / 3600000;
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+          if (diffH <= 1) keys.add('1 Hour');
+          else if (diffH <= 4) keys.add('4 Hours');
+          else if (ts >= todayStart) keys.add('Today');
+          else if (ts >= yesterdayStart) keys.add('Yesterday');
+          else if (diffMs / 86400000 <= 7) keys.add('Last 7 days');
+          else if (diffMs / 86400000 <= 30) keys.add('Last 30 days');
+          else keys.add('Older');
+        });
+        return keys.size;
+      })(),
+      severity: countDistinct(item => isAggregated ? (item as AggregatedAlert).severity : (item as any).severity),
+      alertName: countDistinct(item => isAggregated ? (item as AggregatedAlert).alertName : (item as any).alertName),
+      impact: countDistinct(item => isAggregated ? ((item as AggregatedAlert).group || 'Unknown') : ((item as any).group || 'Unknown')),
+      component: countDistinct(item => isAggregated ? ((item as AggregatedAlert).component || 'Unknown') : ((item as any).component || 'Unknown')),
+      cluster: countDistinct(item => isAggregated ? ((item as AggregatedAlert).clusters[0]?.name || 'Unknown') : ((item as any).clusterName || 'Unknown')),
+    } as Record<AlertsGroupByOption, number>;
+  }, [isAggregated, filteredAggregatedAlerts, filteredAlerts]);
+
   return (
     <Card id="all-alerts-card">
       <CardHeader>
@@ -998,26 +1037,30 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               )}
                             >
                               <DropdownList>
-                                {(['none', 'time', 'severity', 'alertName', 'impact', 'component', 'cluster'] as AlertsGroupByOption[]).map(option => (
-                                  <DropdownItem 
-                                    key={option}
-                                    onClick={() => {
-                                      if (onGroupByChange) onGroupByChange(option);
-                                      setIsGroupByOpen(false);
-                                      setExpandedGroups(new Set());
-                                      setPage(1);
-                                    }}
-                                  >
-                                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                                      <FlexItem>{option === 'none' ? 'None' : option === 'alertName' ? 'Alert name' : option === 'impact' ? 'Alert scope' : option === 'cluster' ? 'Cluster' : option.charAt(0).toUpperCase() + option.slice(1)}</FlexItem>
-                                      {groupBy === option && (
-                                        <FlexItem>
-                                          <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
-                                        </FlexItem>
-                                      )}
-                                    </Flex>
-                                  </DropdownItem>
-                                ))}
+                                {(['none', 'time', 'severity', 'alertName', 'impact', 'component', 'cluster'] as AlertsGroupByOption[]).map(option => {
+                                  const label = option === 'none' ? 'None' : option === 'alertName' ? 'Alert name' : option === 'impact' ? 'Alert scope' : option === 'cluster' ? 'Cluster' : option.charAt(0).toUpperCase() + option.slice(1);
+                                  const count = groupByOptionCounts[option];
+                                  return (
+                                    <DropdownItem 
+                                      key={option}
+                                      onClick={() => {
+                                        if (onGroupByChange) onGroupByChange(option);
+                                        setIsGroupByOpen(false);
+                                        setExpandedGroups(new Set());
+                                        setPage(1);
+                                      }}
+                                    >
+                                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                        <FlexItem>{option === 'none' ? label : `${label} (${count})`}</FlexItem>
+                                        {groupBy === option && (
+                                          <FlexItem>
+                                            <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                                          </FlexItem>
+                                        )}
+                                      </Flex>
+                                    </DropdownItem>
+                                  );
+                                })}
                               </DropdownList>
                             </Dropdown>
                           </Flex>
@@ -1027,15 +1070,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           (!isAggregated && groupedIndividualAlerts && groupedIndividualAlerts.length > 0)
                         ) && (() => {
                           const activeGroups = isAggregated ? groupedAlerts : groupedIndividualAlerts;
-                          const groupCount = activeGroups?.length || 0;
                           return (
                             <FlexItem>
                               <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                                <FlexItem>
-                                  <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                    {groupCount} {groupCount === 1 ? 'group' : 'groups'}
-                                  </span>
-                                </FlexItem>
                                 <FlexItem>
                                   <Button variant="link" isInline onClick={() => {
                                     const allGroupNames = activeGroups?.map(g => g.groupName) || [];
@@ -1050,16 +1087,25 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           );
                         })()}
                         <FlexItem>
-                          <Switch
-                            id="aggregate-all-alerts-switch"
-                            label="Aggregate by name"
-                            isChecked={isAggregated}
-                            onChange={(_, checked) => {
-                              setIsAggregated(checked);
-                              setPage(1);
-                              setExpandedAlerts([]);
-                            }}
-                          />
+                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                            <FlexItem>
+                              <Switch
+                                id="aggregate-all-alerts-switch"
+                                label="Aggregate identical alerts"
+                                isChecked={isAggregated}
+                                onChange={(_, checked) => {
+                                  setIsAggregated(checked);
+                                  setPage(1);
+                                  setExpandedAlerts([]);
+                                }}
+                              />
+                            </FlexItem>
+                            <FlexItem>
+                              <Tooltip content="Combine alerts with the same name and severity into a single row for a cleaner view.">
+                                <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)', cursor: 'help' }} />
+                              </Tooltip>
+                            </FlexItem>
+                          </Flex>
                         </FlexItem>
                       </Flex>
                     </FlexItem>

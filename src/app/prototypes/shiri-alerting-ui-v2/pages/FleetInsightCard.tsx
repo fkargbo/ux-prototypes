@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { MagicIcon } from '@patternfly/react-icons';
-import { FLEET_INSIGHT_CARD_STYLE, FLEET_INSIGHT_ICON_BOX_STYLE } from './fleetInsightsConfig';
+import { FLEET_INSIGHT_CARD_STYLE, FLEET_INSIGHT_ICON_BOX_STYLE, FLEET_INSIGHT_TEXT_WRAPPER_STYLE } from './fleetInsightsConfig';
 
 export const FleetInsightCard: React.FC = () => (
   <div style={FLEET_INSIGHT_CARD_STYLE} role="region" aria-label="Fleet insight">
     <div style={FLEET_INSIGHT_ICON_BOX_STYLE} aria-hidden="true">
       <MagicIcon style={{ width: 20, height: 20 }} />
     </div>
-    <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={FLEET_INSIGHT_TEXT_WRAPPER_STYLE}>
       <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--regular)' }}>
         Fleet Insight:
       </span>{' '}

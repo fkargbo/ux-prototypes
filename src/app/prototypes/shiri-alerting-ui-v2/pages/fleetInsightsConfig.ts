@@ -36,15 +36,72 @@ export const AI_INSIGHTS_BY_COMPONENT: Record<string, string> = {
 export function getAlertAiInsight(alertName: string): string {
   return (
     AI_INSIGHTS_BY_ALERT[alertName] ??
-    `Firing across multiple clusters; review severity and runbook for ${alertName}.`
+    `Firing across multiple clusters — may indicate a shared infrastructure issue.`
   );
 }
 
 export function getComponentAiInsight(componentName: string): string {
   return (
     AI_INSIGHTS_BY_COMPONENT[componentName] ??
-    `Component ${componentName} is impacted in several clusters; check related alerts.`
+    `Component ${componentName} is impacted in several clusters.`
   );
+}
+
+export interface ActionLink {
+  label: string;
+  onClick?: () => void;
+}
+
+const ALERT_ACTIONS: Record<string, ActionLink[]> = {
+  KubeNodeNotReady: [
+    { label: 'View Runbook' },
+    { label: 'Troubleshoot' },
+  ],
+  ContainerOOMKilled: [
+    { label: 'View Runbook' },
+    { label: 'Adjust Limits' },
+  ],
+  CertExpiringSoon: [
+    { label: 'View Runbook' },
+    { label: 'Rotate Certs' },
+  ],
+  NodeCPUHigh: [
+    { label: 'View Runbook' },
+    { label: 'Scale Nodes' },
+  ],
+  ImageRegistryPersistentVolumeFull: [
+    { label: 'View Runbook' },
+    { label: 'Cleanup Storage' },
+  ],
+  MDSCacheUsageHigh: [
+    { label: 'View Runbook' },
+    { label: 'Configure MDS' },
+  ],
+};
+
+const COMPONENT_ACTIONS: Record<string, ActionLink[]> = {
+  'kube-apiserver': [
+    { label: 'View Runbook' },
+    { label: 'Troubleshoot' },
+  ],
+  etcd: [
+    { label: 'View Runbook' },
+    { label: 'Check Health' },
+  ],
+  kubelet: [
+    { label: 'View Runbook' },
+    { label: 'Troubleshoot' },
+  ],
+};
+
+const DEFAULT_ACTIONS: ActionLink[] = [{ label: 'View Runbook' }];
+
+export function getAlertActions(alertName: string): ActionLink[] {
+  return ALERT_ACTIONS[alertName] ?? DEFAULT_ACTIONS;
+}
+
+export function getComponentActions(componentName: string): ActionLink[] {
+  return COMPONENT_ACTIONS[componentName] ?? DEFAULT_ACTIONS;
 }
 
 export const INSIGHTS_LIST_WRAPPER: React.CSSProperties = {
@@ -90,7 +147,7 @@ export const FLEET_INSIGHT_CARD_STYLE: React.CSSProperties = {
   padding: '12px 16px',
   marginBottom: 12,
   display: 'flex',
-  alignItems: 'flex-start',
+  alignItems: 'center',
   gap: 12,
   width: '100%',
   boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
@@ -106,4 +163,13 @@ export const FLEET_INSIGHT_ICON_BOX_STYLE: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
+};
+
+/** Wrapper for the text block next to the fleet insight icon so the first line aligns with the icon. */
+export const FLEET_INSIGHT_TEXT_WRAPPER_STYLE: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  minHeight: 36,
+  display: 'flex',
+  alignItems: 'center',
 };

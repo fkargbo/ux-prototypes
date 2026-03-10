@@ -411,16 +411,18 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           ? `<div style="font-size: 11px; color: #6a6e73; margin-top: 4px;">+${Object.keys(componentHealth).length - 5} more components</div>` 
           : '';
         
+        const totalAlerts = cluster.alerts.filter(a => a.status === 'firing').length;
+        
         return `
           <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif; min-width: 220px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};"></span>
-              <span style="font-size: 14px; font-weight: 600; color: #151515;">${cluster.name}</span>
+              <span style="font-size: 14px; font-weight: 600; color: #151515;">Cluster ${cluster.name}</span>
             </div>
             <div style="font-size: 12px; color: #6a6e73; margin-bottom: 12px;">${cluster.region} · ${cluster.cloudProvider}</div>
             ${Object.keys(componentHealth).length > 0 ? `
               <div style="margin-bottom: 8px;">
-                <div style="font-size: 11px; font-weight: 600; color: #6a6e73; text-transform: uppercase; margin-bottom: 6px;">Component Health</div>
+                <div style="font-size: 11px; font-weight: 600; color: #6a6e73; margin-bottom: 6px;">Components health</div>
                 ${componentHealthHtml}
                 ${moreComponents}
               </div>
@@ -430,11 +432,14 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
                 All components healthy
               </div>
             `}
-            <div style="font-size: 12px; color: #6a6e73; padding-top: 8px; border-top: 1px solid #d2d2d2;">
+            <div style="font-size: 12px; color: #6a6e73; padding-top: 8px; border-top: 1px solid #d2d2d2; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px;">
               <span>Nodes: <strong style="color: #151515;">${cluster.nodeCount}</strong></span>
-              <span style="margin-left: 12px;">Pods: <strong style="color: #151515;">${cluster.podCount}</strong></span>
+              <span>Pods: <strong style="color: #151515;">${cluster.podCount}</strong></span>
+              <span>Memory: <strong style="color: #151515;">${cluster.totalMemory} GB</strong></span>
+              <span>VMs: <strong style="color: #151515;">${cluster.vmCount || 0}</strong></span>
+              <span>Alerts: <strong style="color: ${totalAlerts > 0 ? statusColor : '#151515'};">${totalAlerts}</strong></span>
             </div>
-            <div style="font-size: 11px; color: #0066cc; margin-top: 8px;">Click to view alerts →</div>
+            <div style="font-size: 12px; font-weight: 600; color: #0066cc; margin-top: 10px;">View alerts for this cluster.</div>
           </div>
         `;
       },

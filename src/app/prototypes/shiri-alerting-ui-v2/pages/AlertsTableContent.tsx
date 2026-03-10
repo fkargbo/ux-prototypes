@@ -102,12 +102,21 @@ export interface AlertsTableContentProps {
   onNamespaceFilterChange?: (namespaces: string[]) => void;
 }
 
-const LEVEL_1_BG = 'var(--pf-t--global--background--color--secondary--default)';
-const LEVEL_2_BG = '#f0f0f0';
-const LEVEL_INDENT_2 = 24;
-const LEVEL_INDENT_3 = 48;
+const LEVEL_0_BG = 'var(--pf-t--global--background--color--secondary--default)';
+const LEVEL_1_BG = '#f0f0f0';
+const LEVEL_INDENT_1 = 16;
+const LEVEL_INDENT_2 = 32;
 const ZEBRA_EVEN = 'var(--pf-t--global--background--color--primary--default)';
 const ZEBRA_ODD = '#fafafa';
+
+const GROUP_BY_PREFIX: Record<string, string> = {
+  severity: 'SEVERITY',
+  alertName: 'ALERT',
+  impact: 'SCOPE',
+  component: 'COMPONENT',
+  cluster: 'CLUSTER',
+  time: 'TIME',
+};
 
 const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
   totalItems,
@@ -362,6 +371,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 
   // ========== GROUPED AGGREGATED: Hierarchical Tree Table ==========
   if (isAggregated && groupBy !== 'none' && groupedAlerts) {
+    const prefix = GROUP_BY_PREFIX[groupBy] || groupBy.toUpperCase();
     return (
       <InnerScrollContainer>
         <Table aria-label="Grouped alerts tree table" variant="compact" isTreeTable>
@@ -369,77 +379,56 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
           <Tbody>
             {groupedAlerts.map((group) => {
               const isGroupExpanded = expandedGroups.has(group.groupName);
-              const groupSeverityColor = groupBy === 'severity'
-                ? (group.groupName === 'Critical' ? 'red' : group.groupName === 'Warning' ? 'orange' : 'blue')
-                : 'grey';
               const clustersInGroup = Array.from(new Set(group.alerts.flatMap(a => a.clusters.map(c => c.name))));
               let leafCounter = 0;
 
               return (
                 <React.Fragment key={group.groupName}>
-                  {/* ===== LEVEL 1: Group Row — column-aligned ===== */}
+                  {/* ===== LEVEL 0: Group Row — column-aligned, sticky ===== */}
                   <Tr
-                    style={{ backgroundColor: LEVEL_1_BG, cursor: 'pointer', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}
+                    style={{
+                      backgroundColor: LEVEL_0_BG,
+                      cursor: 'pointer',
+                      borderBottom: '2px solid var(--pf-t--global--border--color--default)',
+                      position: 'sticky',
+                      top: '37px',
+                      zIndex: 97,
+                    }}
                     onClick={() => toggleGroupExpanded(group.groupName)}
                   >
-                    {/* Chevron cell */}
                     <Td style={{ width: '45px', paddingLeft: '8px' }}>
                       <Button variant="plain" aria-label="Toggle group" style={{ padding: '2px 4px' }}>
                         {isGroupExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
                       </Button>
                     </Td>
-                    {/* Checkbox placeholder */}
                     <Td style={{ width: '45px' }} />
-                    {/* Alert Name column — shows group label */}
                     <Td modifier="nowrap">
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                         <FlexItem>
-                          {groupBy === 'severity' ? (
-                            <Label
-                              color={groupSeverityColor as 'red' | 'orange' | 'blue'}
-                              icon={group.groupName === 'Critical' ? <ExclamationCircleIcon /> : group.groupName === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                              isCompact
-                            >
-                              {group.groupName}
-                            </Label>
-                          ) : (
-                            <strong style={{ fontSize: '14px' }}>{group.groupName}</strong>
-                          )}
+                          <strong style={{ fontSize: '14px' }}>
+                            {prefix}: {group.groupName} ({group.totalCount} alert{group.totalCount !== 1 ? 's' : ''})
+                          </strong>
                         </FlexItem>
-                        <FlexItem>
-                          <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                            {group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}
-                          </span>
-                        </FlexItem>
-                        {!singleClusterView && (
-                          <FlexItem>
-                            <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                              · {clustersInGroup.length} cluster{clustersInGroup.length !== 1 ? 's' : ''}
-                            </span>
-                          </FlexItem>
-                        )}
                       </Flex>
                     </Td>
-                    {/* Remaining columns — show summary data aligned to grid */}
                     {visibleCols.filter(c => c.key !== 'alertName').map(col => (
-                      <Td key={col.key} modifier="nowrap" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      <Td key={col.key} modifier="nowrap">
                         {renderGroupCellContent(col, group)}
                       </Td>
                     ))}
-                    {/* Actions placeholder */}
                     <Td />
                   </Tr>
 
-                  {/* ===== LEVEL 2 + LEVEL 3 ===== */}
-                  {isGroupExpanded && group.alerts.map((agg, aggIdx) => {
+                  {/* ===== LEVEL 1 + LEVEL 2 ===== */}
+                  {isGroupExpanded && group.alerts.map((agg) => {
                     const alertKey = `${group.groupName}-${agg.alertName}-${agg.severity}`;
                     const isAlertExpanded = expandedAlerts.includes(alertKey);
 
                     return (
                       <React.Fragment key={alertKey}>
-                        {/* Level 2: Aggregated Alert Row */}
+                        {/* Level 1: Aggregated Alert Row — indented 16px */}
                         <Tr
-                          style={{ cursor: 'pointer', backgroundColor: LEVEL_2_BG }}
+                          style={{ cursor: 'pointer', backgroundColor: LEVEL_1_BG }}
                           onClick={(e) => {
                             const target = e.target as HTMLElement;
                             if (target.tagName !== 'INPUT' && target.tagName !== 'BUTTON' && target.tagName !== 'A' && !target.closest('button') && !target.closest('a')) {
@@ -447,7 +436,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                             }
                           }}
                         >
-                          <Td style={{ paddingLeft: `${LEVEL_INDENT_2 + 8}px`, width: '45px' }}>
+                          <Td style={{ paddingLeft: `${LEVEL_INDENT_1 + 8}px`, width: '45px' }}>
                             <Button variant="plain" aria-label="Toggle alert" style={{ padding: '2px 4px' }}
                               onClick={(e) => { e.stopPropagation(); toggleExpanded(alertKey); }}>
                               {isAlertExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
@@ -467,10 +456,10 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                           <Td modifier="nowrap" />
                         </Tr>
 
-                        {/* Level 3: Individual Instances — zebra striped */}
+                        {/* Level 2: Individual Instances — indented 32px, zebra striped */}
                         {isAlertExpanded && agg.clusters.map((clusterInfo, instanceIdx) => {
                           const currentLeafIdx = leafCounter++;
-                          return renderInstanceRow(agg, clusterInfo, instanceIdx, alertKey, currentLeafIdx, LEVEL_INDENT_3);
+                          return renderInstanceRow(agg, clusterInfo, instanceIdx, alertKey, currentLeafIdx, LEVEL_INDENT_2);
                         })}
                       </React.Fragment>
                     );
@@ -499,7 +488,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
               return (
                 <React.Fragment key={alertKey}>
                   <Tr
-                    style={{ cursor: 'pointer', backgroundColor: LEVEL_2_BG }}
+                    style={{ cursor: 'pointer', backgroundColor: LEVEL_1_BG }}
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       if (target.tagName !== 'INPUT' && target.tagName !== 'BUTTON' && target.tagName !== 'A' && !target.closest('button') && !target.closest('a')) {
@@ -531,7 +520,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 
                   {isExpanded && agg.clusters.map((clusterInfo, instanceIdx) => {
                     const currentLeafIdx = leafCounter++;
-                    return renderInstanceRow(agg, clusterInfo, instanceIdx, alertKey, currentLeafIdx, LEVEL_INDENT_3 - LEVEL_INDENT_2);
+                    return renderInstanceRow(agg, clusterInfo, instanceIdx, alertKey, currentLeafIdx, LEVEL_INDENT_1);
                   })}
                 </React.Fragment>
               );
@@ -545,6 +534,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
   // ========== GROUPED INDIVIDUAL (non-aggregated) ==========
   if (!isAggregated && groupBy !== 'none' && groupedIndividualAlerts) {
     const indivVisibleCols = getVisibleColumns().filter(col => col.key !== 'total');
+    const prefix = GROUP_BY_PREFIX[groupBy] || groupBy.toUpperCase();
     return (
       <InnerScrollContainer>
         <Table aria-label="Grouped individual alerts tree table" variant="compact" isTreeTable>
@@ -565,16 +555,20 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
           <Tbody>
             {groupedIndividualAlerts.map((group) => {
               const isGroupExpanded = expandedGroups.has(group.groupName);
-              const groupSeverityColor = groupBy === 'severity'
-                ? (group.groupName === 'Critical' ? 'red' : group.groupName === 'Warning' ? 'orange' : 'blue')
-                : 'grey';
               let leafCounter = 0;
 
               return (
                 <React.Fragment key={group.groupName}>
-                  {/* Level 1: Group row — aligned to column grid */}
+                  {/* Level 0: Group row — column-aligned, sticky */}
                   <Tr
-                    style={{ backgroundColor: LEVEL_1_BG, cursor: 'pointer', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}
+                    style={{
+                      backgroundColor: LEVEL_0_BG,
+                      cursor: 'pointer',
+                      borderBottom: '2px solid var(--pf-t--global--border--color--default)',
+                      position: 'sticky',
+                      top: '37px',
+                      zIndex: 97,
+                    }}
                     onClick={() => toggleGroupExpanded(group.groupName)}
                   >
                     <Td style={{ width: '45px', paddingLeft: '8px' }}>
@@ -583,20 +577,10 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                       </Button>
                     </Td>
                     <Td modifier="nowrap">
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        {groupBy === 'severity' ? (
-                          <Label color={groupSeverityColor as 'red' | 'orange' | 'blue'}
-                            icon={group.groupName === 'Critical' ? <ExclamationCircleIcon /> : group.groupName === 'Warning' ? <ExclamationTriangleIcon /> : <InfoCircleIcon />}
-                            isCompact>{group.groupName}</Label>
-                        ) : (
-                          <strong style={{ fontSize: '14px' }}>{group.groupName}</strong>
-                        )}
-                        <span style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          {group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''}
-                        </span>
-                      </Flex>
+                      <strong style={{ fontSize: '14px' }}>
+                        {prefix}: {group.groupName} ({group.alerts.length} alert{group.alerts.length !== 1 ? 's' : ''})
+                      </strong>
                     </Td>
-                    {/* Severity summary in the severity column */}
                     {indivVisibleCols.filter(c => c.key !== 'alertName').map(col => {
                       if (col.key === 'severity' && groupBy !== 'severity') {
                         const crit = group.alerts.filter(a => a.severity === 'Critical').length;
@@ -605,9 +589,9 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                         return (
                           <Td key={col.key} modifier="nowrap">
                             <Flex gap={{ default: 'gapSm' }}>
-                              {crit > 0 && <Label color="red" isCompact>{crit}</Label>}
-                              {warn > 0 && <Label color="orange" isCompact>{warn}</Label>}
-                              {info > 0 && <Label color="blue" isCompact>{info}</Label>}
+                              {crit > 0 && <Label color="red" icon={<ExclamationCircleIcon />} isCompact>{crit}</Label>}
+                              {warn > 0 && <Label color="orange" icon={<ExclamationTriangleIcon />} isCompact>{warn}</Label>}
+                              {info > 0 && <Label color="blue" icon={<InfoCircleIcon />} isCompact>{info}</Label>}
                             </Flex>
                           </Td>
                         );
@@ -616,7 +600,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                     })}
                   </Tr>
 
-                  {/* Level 2 (leaf): Individual alert rows — zebra striped */}
+                  {/* Level 1 (leaf): Individual alert rows — indented 16px, zebra striped */}
                   {isGroupExpanded && group.alerts.map((alert, idx) => {
                     const currentLeafIdx = leafCounter++;
                     const zebraBg = currentLeafIdx % 2 === 1 ? ZEBRA_ODD : ZEBRA_EVEN;
@@ -648,7 +632,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 
                     return (
                       <Tr key={`${alert.id}-${idx}`} style={{ backgroundColor: zebraBg }}>
-                        <Td style={{ paddingLeft: `${LEVEL_INDENT_2 + 8}px`, width: '45px' }} />
+                        <Td style={{ paddingLeft: `${LEVEL_INDENT_1 + 8}px`, width: '45px' }} />
                         {indivVisibleCols.map(col => (
                           <Td key={col.key} modifier="nowrap">{renderCellContent(col)}</Td>
                         ))}

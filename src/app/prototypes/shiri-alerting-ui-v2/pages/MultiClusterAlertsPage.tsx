@@ -299,6 +299,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setMainPageTab('fleet-overview');
     setCameFromFleetOverview(false);
     setClusterFilter([]);
+    setAlertsTabClusterFilter([]);
     setMainComponentFilter(null);
     setMainAlertNameFilter(null);
     setSelectedClusterForAlerts(null);
@@ -614,6 +615,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       const cluster = mockClusters.find(c => c.name === urlCluster);
       if (cluster && clusterFilter[0] !== urlCluster) {
         setClusterFilter([urlCluster]);
+        setAlertsTabClusterFilter([urlCluster]);
         setSelectedClusterForAlerts(cluster);
         setFiringAlertsCardView('single-cluster');
       }
@@ -872,6 +874,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setFiringAlertsCardView('single-cluster');
     // Sync with filter panel - replace cluster filter with this cluster only
     setClusterFilter([cluster.name]);
+    setAlertsTabClusterFilter([cluster.name]);
     // Update URL with tab and cluster params (enables browser back button)
     const newParams = new URLSearchParams(searchParams);
     newParams.set('tab', 'alerts');
@@ -899,6 +902,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setCameFromFleetOverview(true);
     // Sync with filter panel - replace cluster filter
     setClusterFilter([cluster.name]);
+    setAlertsTabClusterFilter([cluster.name]);
     // Trigger animation to highlight the filtered view
     setShowFilterAnimation(true);
     setTimeout(() => setShowFilterAnimation(false), 1500);
@@ -920,6 +924,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setFiringAlertsCardView('single-cluster');
     // Sync with filter panel - replace cluster filter
     setClusterFilter([cluster.name]);
+    setAlertsTabClusterFilter([cluster.name]);
   };
 
   // V2: Back to all clusters alerts view
