@@ -83,12 +83,12 @@ import type {
   SortConfig,
   SortDirection,
   AggregatedAlert,
-} from './types';
+} from '../data/types';
 import {
   getSeverityLabelColor,
   getStatusLabelColor,
   getSeverityIcon,
-} from './utils';
+} from '../data/utils';
 import { AlertsTableContent } from './AlertsTableContent';
 
 interface AllAlertsCardProps {
@@ -2015,5 +2015,5 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
 export { AllAlertsCard };
 export type { AllAlertsCardProps };
-export type { AggregatedAlert } from './types';
+export type { AggregatedAlert } from '../data/types';
 

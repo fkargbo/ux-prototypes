@@ -27,8 +27,8 @@ import {
   Divider,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon, FilterIcon, BookmarkIcon, CheckIcon, ClockIcon, CogIcon } from '@patternfly/react-icons';
-import type { AlertSeverity, AlertGroup, AlertComponent, ClusterData, SavedFilter, AlertsGroupByOption } from './types';
-import { getSeverityLabelColor } from './utils';
+import type { AlertSeverity, AlertGroup, AlertComponent, ClusterData, SavedFilter, AlertsGroupByOption } from '../data/types';
+import { getSeverityLabelColor } from '../data/utils';
 import { FilterPanel } from './FilterPanel';
 import { AllAlertsCard } from './AllAlertsCard';
 
@@ -127,7 +127,7 @@ export interface AlertsTabFleetOverviewContentProps {
   alertsGroupBy: AlertsGroupByOption;
   setAlertsGroupBy: (v: AlertsGroupByOption) => void;
   onClusterClick: (cluster: ClusterData) => void;
-  onAlertClick: (alert: import('./types').AlertData, initialTab?: number) => void;
+  onAlertClick: (alert: import('../data/types').AlertData, initialTab?: number) => void;
   setMainPageTab: (v: string | number) => void;
   setManagementSubTab: (v: string | number) => void;
   clearAlertsTabFilters: () => void;

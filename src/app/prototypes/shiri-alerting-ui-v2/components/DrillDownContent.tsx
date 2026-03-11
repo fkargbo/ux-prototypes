@@ -119,12 +119,12 @@ import type {
   SavedFilter,
   ColumnConfig,
   SortConfig,
-} from './types';
+} from '../data/types';
 import {
   getSeverityLabelColor,
   getStatusLabelColor,
   getSeverityIcon,
-} from './utils';
+} from '../data/utils';
 
 const MAX_VISIBLE_COLUMNS = 8;
 

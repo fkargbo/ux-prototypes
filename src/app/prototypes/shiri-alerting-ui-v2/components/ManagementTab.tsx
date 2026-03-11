@@ -57,8 +57,8 @@ import type {
   AlertRuleState,
   AlertRuleSource,
   AlertRule,
-} from './types';
-import { getSeverityLabelColor, getSeverityIcon } from './utils';
+} from '../data/types';
+import { getSeverityLabelColor, getSeverityIcon } from '../data/utils';
 
 export interface ManagementTabProps {
   managementSubTab: string | number;

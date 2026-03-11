@@ -24,8 +24,8 @@ import {
   Divider,
 } from '@patternfly/react-core';
 import { FilterIcon, BookmarkIcon, CheckIcon, ClockIcon, CogIcon } from '@patternfly/react-icons';
-import type { AlertSeverity, AlertGroup, AlertComponent, SavedFilter, GroupByOption, SortByOption, ImportanceSizing, ClusterData } from './types';
-import { getSeverityLabelColor } from './utils';
+import type { AlertSeverity, AlertGroup, AlertComponent, SavedFilter, GroupByOption, SortByOption, ImportanceSizing, ClusterData } from '../data/types';
+import { getSeverityLabelColor } from '../data/utils';
 
 type QuickTimeRange = 'last-5m' | 'last-15m' | 'last-30m' | 'last-1h' | 'last-4h' | 'last-6h' | 'last-12h' | 'last-24h' | 'last-2d' | 'last-7d' | 'custom';
 

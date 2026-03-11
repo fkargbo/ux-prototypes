@@ -196,31 +196,29 @@ import type {
   ColumnConfig, SavedFilter, ToastNotification,
   AlertRuleState, AlertRuleSource, AlertRuleActiveAlert, AlertRuleModification, AlertRule,
   EnvironmentCategory, TeamCategory,
-} from './types';
+} from '../data/types';
 import {
   getClusterAlertStatus, getStatusBackgroundColor, getSeverityLabelColor,
   getStatusLabelColor, getSeverityIcon, getUniqueValues, getAllLabels,
   getAllNamespaces, getAllAlerts, getTileValue,
-} from './utils';
-import { AllAlertsCard } from './AllAlertsCard';
-import { FilterPanel } from './FilterPanel';
-import { AlertTimelineVisualization } from './AlertTimelineVisualization';
-import { AlertDetailDrawer } from './AlertDetailDrawer';
-import { AlertRuleDrawer } from './AlertRuleDrawer';
-import { ClusterComponentsHealth } from './ClusterComponentsHealth';
-import { AlertsTimelineCard } from './AlertsTimelineCard';
-import { CrossClusterInsightsCards } from './CrossClusterInsightsCards';
-
-
-import { TreemapHeatmap } from './TreemapHeatmap';
-import { ManagementTab } from './ManagementTab';
-import { SettingsModals } from './SettingsModals';
-import { SavedFiltersModals } from './SavedFiltersModals';
-import { DrillDownContent } from './DrillDownContent';
-import { FleetOverviewTab } from './FleetOverviewTab';
-import { FleetOverviewToolbar } from './FleetOverviewToolbar';
-import { AlertsTabFleetOverviewContent } from './AlertsTabFleetOverviewContent';
-import { mockAlertRules, mockTrendData, mockClusters } from './mockData';
+} from '../data/utils';
+import { AllAlertsCard } from '../components/AllAlertsCard';
+import { FilterPanel } from '../components/FilterPanel';
+import { AlertTimelineVisualization } from '../components/AlertTimelineVisualization';
+import { AlertDetailDrawer } from '../components/AlertDetailDrawer';
+import { AlertRuleDrawer } from '../components/AlertRuleDrawer';
+import { ClusterComponentsHealth } from '../components/ClusterComponentsHealth';
+import { AlertsTimelineCard } from '../components/AlertsTimelineCard';
+import { CrossClusterInsightsCards } from '../components/CrossClusterInsightsCards';
+import { TreemapHeatmap } from '../components/TreemapHeatmap';
+import { ManagementTab } from '../components/ManagementTab';
+import { SettingsModals } from '../components/SettingsModals';
+import { SavedFiltersModals } from '../components/SavedFiltersModals';
+import { DrillDownContent } from '../components/DrillDownContent';
+import { FleetOverviewTab } from '../components/FleetOverviewTab';
+import { FleetOverviewToolbar } from '../components/FleetOverviewToolbar';
+import { AlertsTabFleetOverviewContent } from '../components/AlertsTabFleetOverviewContent';
+import { mockAlertRules, mockTrendData, mockClusters } from '../data/mockData';
 
 
 // ========================================

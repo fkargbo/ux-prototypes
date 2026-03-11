@@ -27,7 +27,7 @@ import {
   PlusIcon,
 } from '@patternfly/react-icons';
 import { TypeaheadSelect } from '@patternfly/react-templates';
-import type { AlertRule, EnvironmentCategory, TeamCategory } from './types';
+import type { AlertRule, EnvironmentCategory, TeamCategory } from '../data/types';
 
 export interface SettingsModalsProps {
   // Disable Alert Rule Modal

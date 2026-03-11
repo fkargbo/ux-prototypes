@@ -8,8 +8,8 @@ import type {
   AlertData,
   EnvironmentCategory,
   TeamCategory,
-} from './types';
-import { getClusterAlertStatus, getTileValue } from './utils';
+} from '../data/types';
+import { getClusterAlertStatus, getTileValue } from '../data/utils';
 
 interface TreemapHeatmapProps {
   clusters: ClusterData[];

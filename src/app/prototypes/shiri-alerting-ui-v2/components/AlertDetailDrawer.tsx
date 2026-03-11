@@ -22,7 +22,7 @@ import {
   TimesIcon,
   ClockIcon,
 } from '@patternfly/react-icons';
-import type { AlertData } from './types';
+import type { AlertData } from '../data/types';
 import { AlertTimelineVisualization } from './AlertTimelineVisualization';
 
 export interface AlertDetailDrawerProps {

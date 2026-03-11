@@ -39,7 +39,7 @@ import {
   QuestionCircleIcon,
   ClusterIcon,
 } from '@patternfly/react-icons';
-import type { ClusterData, AlertComponent, AlertGroup, ComponentHealthData } from './types';
+import type { ClusterData, AlertComponent, AlertGroup, ComponentHealthData } from '../data/types';
 
 interface ClusterComponentsHealthProps {
   cluster: ClusterData;

@@ -16,7 +16,7 @@ import {
   FLEET_INSIGHT_CARD_STYLE,
   FLEET_INSIGHT_ICON_BOX_STYLE,
   FLEET_INSIGHT_TEXT_WRAPPER_STYLE,
-} from './fleetInsightsConfig';
+} from '../data/fleetInsightsConfig';
 
 type SeverityKey = 'Critical' | 'Warning' | 'Info';
 

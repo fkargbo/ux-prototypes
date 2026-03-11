@@ -16,7 +16,7 @@ import {
   Alert as PfAlert,
 } from '@patternfly/react-core';
 import { TimesIcon, ArrowRightIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
-import type { TrendData } from './types';
+import type { TrendData } from '../data/types';
 
 interface AlertsTimelineCardProps {
   trendData: TrendData[];

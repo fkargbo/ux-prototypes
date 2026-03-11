@@ -44,7 +44,7 @@ import type {
   GroupByOption,
   SortByOption,
   ImportanceSizing,
-} from './types';
+} from '../data/types';
 
 export interface SavedFiltersModalsProps {
   // Save Filter Modal

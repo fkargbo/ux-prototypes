@@ -31,8 +31,8 @@ import {
   CogIcon,
   HelpIcon,
 } from '@patternfly/react-icons';
-import type { AlertSeverity, AlertGroup, AlertComponent, ClusterData, SavedFilter } from './types';
-import { getSeverityLabelColor, getSeverityIcon } from './utils';
+import type { AlertSeverity, AlertGroup, AlertComponent, ClusterData, SavedFilter } from '../data/types';
+import { getSeverityLabelColor, getSeverityIcon } from '../data/utils';
 
 export interface FilterPanelProps {
   regionFilter: string[];

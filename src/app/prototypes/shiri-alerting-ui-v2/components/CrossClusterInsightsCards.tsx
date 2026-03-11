@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Card, CardBody, CardHeader, CardTitle, StackItem, Flex, FlexItem, Tooltip, ToggleGroup, ToggleGroupItem, Button } from '@patternfly/react-core';
 import { HelpIcon, InfoCircleIcon } from '@patternfly/react-icons';
-import type { ClusterData } from './types';
+import type { ClusterData } from '../data/types';
 import { FleetHealthInsightsView } from './FleetHealthInsightsView';
 import { FleetHealthChartView } from './FleetHealthChartView';
-import { useFleetHealthData } from './useFleetHealthData';
+import { useFleetHealthData } from '../data/useFleetHealthData';
 
 type ViewMode = 'chart' | 'table';
 const CARD_MIN_HEIGHT = 420;

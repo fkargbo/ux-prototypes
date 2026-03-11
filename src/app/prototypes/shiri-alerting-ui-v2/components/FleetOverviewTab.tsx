@@ -66,13 +66,13 @@ import type {
   EnvironmentCategory,
   TeamCategory,
   SavedFilter,
-} from './types';
-import { getClusterAlertStatus } from './utils';
+} from '../data/types';
+import { getClusterAlertStatus } from '../data/utils';
 import { FilterPanel } from './FilterPanel';
 import { TreemapHeatmap } from './TreemapHeatmap';
 import { AlertsTimelineCard } from './AlertsTimelineCard';
 import { CrossClusterInsightsCards } from './CrossClusterInsightsCards';
-import { mockTrendData, mockClusters } from './mockData';
+import { mockTrendData, mockClusters } from '../data/mockData';
 
 export interface FleetOverviewTabProps {
   // Filter panel

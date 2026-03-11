@@ -48,12 +48,12 @@ import type {
   AlertsGroupByOption,
   SortConfig,
   AggregatedAlert,
-} from './types';
+} from '../data/types';
 import {
   getSeverityLabelColor,
   getStatusLabelColor,
   getSeverityIcon,
-} from './utils';
+} from '../data/utils';
 
 export interface ColumnConfig {
   key: string;

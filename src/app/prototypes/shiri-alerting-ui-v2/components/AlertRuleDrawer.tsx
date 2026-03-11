@@ -48,7 +48,7 @@ import {
   ClockIcon,
   ExternalLinkAltIcon,
 } from '@patternfly/react-icons';
-import type { AlertRule } from './types';
+import type { AlertRule } from '../data/types';
 
 export interface AlertRuleDrawerProps {
   isOpen: boolean;
