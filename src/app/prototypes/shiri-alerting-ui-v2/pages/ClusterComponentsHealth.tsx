@@ -241,6 +241,7 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
         flexShrink: 0,
       }}>
         <Breadcrumb>
+          <BreadcrumbItem>Observe</BreadcrumbItem>
           <BreadcrumbItem>
             <Button variant="link" isInline onClick={onBackToFleet}>
               All Clusters (Treemap)

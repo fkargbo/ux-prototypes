@@ -231,9 +231,10 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
       {/* Page Header with Breadcrumb */}
       <div style={{ padding: '16px 24px', backgroundColor: 'var(--pf-t--global--background--color--primary--default)', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
         <Breadcrumb>
-          <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-          <BreadcrumbItem to="/observe/alerting">alerting</BreadcrumbItem>
-          <BreadcrumbItem isActive>Create new alert rules</BreadcrumbItem>
+          <BreadcrumbItem>Observe</BreadcrumbItem>
+          <BreadcrumbItem>Multi-cluster alerting</BreadcrumbItem>
+          <BreadcrumbItem component="button" onClick={() => navigate(-1)}>Management</BreadcrumbItem>
+          <BreadcrumbItem isActive>Create new alert rule</BreadcrumbItem>
         </Breadcrumb>
         
         <div style={{ marginTop: '16px' }}>

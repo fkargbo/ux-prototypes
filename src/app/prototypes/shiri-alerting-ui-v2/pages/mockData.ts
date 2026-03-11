@@ -277,11 +277,29 @@ export const mockAlertRules: AlertRule[] = [
 
 export const now = new Date();
 export const mockTrendData: TrendData[] = [
+  { timestamp: '24h ago', critical: 3, warning: 9, info: 5 },
+  { timestamp: '23h ago', critical: 4, warning: 10, info: 6 },
+  { timestamp: '22h ago', critical: 2, warning: 8, info: 4 },
+  { timestamp: '21h ago', critical: 5, warning: 11, info: 7 },
+  { timestamp: '20h ago', critical: 3, warning: 7, info: 5 },
+  { timestamp: '19h ago', critical: 4, warning: 12, info: 6 },
+  { timestamp: '18h ago', critical: 6, warning: 14, info: 8 },
+  { timestamp: '17h ago', critical: 5, warning: 10, info: 7 },
+  { timestamp: '16h ago', critical: 3, warning: 9, info: 5 },
+  { timestamp: '15h ago', critical: 4, warning: 11, info: 6 },
+  { timestamp: '14h ago', critical: 2, warning: 8, info: 4 },
+  { timestamp: '13h ago', critical: 5, warning: 13, info: 7 },
+  { timestamp: '12h ago', critical: 6, warning: 15, info: 9 },
+  { timestamp: '11h ago', critical: 4, warning: 10, info: 5 },
+  { timestamp: '10h ago', critical: 3, warning: 9, info: 6 },
+  { timestamp: '9h ago', critical: 5, warning: 12, info: 7 },
+  { timestamp: '8h ago', critical: 4, warning: 11, info: 6 },
+  { timestamp: '7h ago', critical: 3, warning: 10, info: 5 },
   { timestamp: '6h ago', critical: 5, warning: 12, info: 8 },
   { timestamp: '5h ago', critical: 4, warning: 15, info: 10 },
   { timestamp: '4h ago', critical: 7, warning: 11, info: 6 },
   { timestamp: '3h ago', critical: 3, warning: 18, info: 9 },
-  { timestamp: '2h ago', critical: 28, warning: 45, info: 23, topAlerts: ['EtcdMembersDown', 'KubeAPILatencyHigh', 'NodeMemoryPressure'] }, // Anomaly spike - 96 total (300% increase from baseline)
+  { timestamp: '2h ago', critical: 28, warning: 45, info: 23, topAlerts: ['ETCDHighLatency', 'HighMemoryUsage', 'NodeNotReady'] },
   { timestamp: '1h ago', critical: 4, warning: 10, info: 5 },
   { timestamp: 'Now', critical: 5, warning: 8, info: 4 },
 ];
@@ -316,31 +334,28 @@ export const generateMockClusters = (): ClusterData[] => {
       const status: AlertStatus = Math.random() < 0.7 ? 'firing' : Math.random() < 0.9 ? 'acknowledged' : 'resolved';
       const alertName = alertNames[Math.floor(Math.random() * alertNames.length)];
 
-      // Generate varied time ranges for different time buckets
-      // Distribute alerts across: 1 Hour, 4 Hours, Today, Yesterday, Last 7 days, Last 30 days, Older
+      // Generate varied time ranges — heavily weighted toward recent to ensure
+      // alerts are visible with the default "Last 6 hours" time filter
       const timeBucket = Math.random();
       let minutesAgo: number;
-      if (timeBucket < 0.15) {
-        // 1 Hour - within last 60 minutes
+      if (timeBucket < 0.35) {
+        // Within last hour
         minutesAgo = Math.floor(Math.random() * 55) + 5;
-      } else if (timeBucket < 0.30) {
-        // 4 Hours - 1-4 hours ago
-        minutesAgo = Math.floor(Math.random() * 180) + 61;
-      } else if (timeBucket < 0.45) {
-        // Today - 4-12 hours ago (still today)
-        minutesAgo = Math.floor(Math.random() * 480) + 241;
       } else if (timeBucket < 0.60) {
-        // Yesterday - 24-48 hours ago
-        minutesAgo = Math.floor(Math.random() * 1440) + 1440;
-      } else if (timeBucket < 0.75) {
-        // Last 7 days - 2-7 days ago
-        minutesAgo = Math.floor(Math.random() * 7200) + 2880;
+        // 1-4 hours ago
+        minutesAgo = Math.floor(Math.random() * 180) + 61;
+      } else if (timeBucket < 0.80) {
+        // 4-12 hours ago
+        minutesAgo = Math.floor(Math.random() * 480) + 241;
       } else if (timeBucket < 0.90) {
-        // Last 30 days - 7-30 days ago
-        minutesAgo = Math.floor(Math.random() * 33120) + 10080;
+        // 12-24 hours ago
+        minutesAgo = Math.floor(Math.random() * 720) + 721;
+      } else if (timeBucket < 0.95) {
+        // 1-7 days ago
+        minutesAgo = Math.floor(Math.random() * 8640) + 1440;
       } else {
-        // Older - 30-90 days ago
-        minutesAgo = Math.floor(Math.random() * 86400) + 43200;
+        // 7-30 days ago
+        minutesAgo = Math.floor(Math.random() * 33120) + 10080;
       }
 
       // Format the lastFired string based on time
@@ -372,6 +387,7 @@ export const generateMockClusters = (): ClusterData[] => {
         component: components[Math.floor(Math.random() * components.length)],
         description: `This alert indicates ${alertName.toLowerCase()} condition.`,
         resource: Math.random() < 0.3 ? `node-${Math.floor(Math.random() * 10) + 1}` : undefined,
+        runbookUrl: Math.random() < 0.7 ? `https://runbooks.example.com/alerts/${alertName}` : undefined,
       });
     }
 

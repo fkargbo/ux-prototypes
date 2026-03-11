@@ -572,6 +572,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Alert-specific filters for firing alerts view
   const [alertStateFilter, setAlertStateFilter] = React.useState<string[]>([]);
   const [alertSourceFilter, setAlertSourceFilter] = React.useState<string[]>([]);
+  const [contributingAlertsFilter, setContributingAlertsFilter] = React.useState<string[]>([]);
 
   // Last refresh
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
@@ -681,7 +682,25 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     return counts;
   }, []);
 
-  // Filter clusters
+  // Helper: check if an alert falls within a time range
+  const isAlertInTimeRange = React.useCallback((alert: typeof mockClusters[0]['alerts'][0], fromDate?: string, fromTime?: string, toDate?: string, toTime?: string) => {
+    if (!fromDate && !fromTime && !toDate && !toTime) return true;
+    const alertDate = alert.lastFiredTimestamp instanceof Date ? alert.lastFiredTimestamp : new Date(alert.lastFiredTimestamp);
+    if (isNaN(alertDate.getTime())) return true;
+    if (fromDate || fromTime) {
+      const fd = fromDate || new Date().toISOString().split('T')[0];
+      const ft = fromTime || '00:00';
+      if (alertDate < new Date(`${fd}T${ft}`)) return false;
+    }
+    if (toDate || toTime) {
+      const td = toDate || new Date().toISOString().split('T')[0];
+      const tt = toTime || '23:59';
+      if (alertDate > new Date(`${td}T${tt}`)) return false;
+    }
+    return true;
+  }, []);
+
+  // Filter clusters (current state — no time filtering, used by Treemap and cluster metrics)
   const filteredClusters = React.useMemo(() => {
     return mockClusters.filter(cluster => {
       if (regionFilter.length > 0 && !regionFilter.includes(cluster.region)) return false;
@@ -692,7 +711,6 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         const hasMatchingAlert = cluster.alerts.some(a => a.status === 'firing' && severityFilter.includes(a.severity));
         if (!hasMatchingAlert && cluster.alerts.filter(a => a.status === 'firing').length > 0) return false;
       }
-      // Component filter: if components are selected, only show clusters with alerts for those components
       if (componentFilter.length > 0) {
         const hasMatchingComponentAlert = cluster.alerts.some(a => 
           a.status === 'firing' && componentFilter.includes(a.component)
@@ -702,6 +720,17 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       return true;
     });
   }, [regionFilter, clusterFilter, namespaceFilter, searchValue, severityFilter, componentFilter]);
+
+  // Time-filtered clusters (alerts scoped to selected time window, used by Insights cards)
+  const timeFilteredClusters = React.useMemo(() => {
+    if (!triggeredFromDate && !triggeredFromTime && !triggeredToDate && !triggeredToTime) return filteredClusters;
+    return filteredClusters.map(cluster => ({
+      ...cluster,
+      alerts: cluster.alerts.filter(a =>
+        isAlertInTimeRange(a, triggeredFromDate, triggeredFromTime, triggeredToDate, triggeredToTime)
+      ),
+    }));
+  }, [filteredClusters, triggeredFromDate, triggeredFromTime, triggeredToDate, triggeredToTime, isAlertInTimeRange]);
 
   // Sort clusters - supports both legacy sortBy and table column sorting
   const sortedClusters = React.useMemo(() => {
@@ -1036,6 +1065,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setFiringAlertsCardView('all-clusters');
     setMainComponentFilter(null);
     setMainAlertNameFilter(null);
+    setAlertStateFilter([]);
+    setAlertSourceFilter([]);
+    setContributingAlertsFilter([]);
   };
 
   const handleRefresh = () => {
@@ -1093,7 +1125,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const hasAlertsTabGroupFilterChanges = !isAlertsTabGlobalView;
   const hasAlertsTabActiveFilters = alertsTabRegionFilter.length > 0 || alertsTabClusterFilter.length > 0 || alertsTabNamespaceFilter.length > 0 || 
     alertsTabLabelFilter.length > 0 || alertsTabSeverityFilter.length > 0 || hasAlertsTabGroupFilterChanges || alertsTabComponentFilter.length > 0 || alertsTabSearchValue.length > 0 ||
-    mainComponentFilter !== null || mainAlertNameFilter !== null;
+    mainComponentFilter !== null || mainAlertNameFilter !== null || alertStateFilter.length > 0 || alertSourceFilter.length > 0 || contributingAlertsFilter.length > 0;
 
   // Filtered clusters for Alerts tab (uses alerts-tab-specific filters)
   const filteredClustersForAlerts = React.useMemo(() => {
@@ -1246,9 +1278,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
             {/* Breadcrumbs - above page header (direct children required for separator arrows) */}
             <div style={{ marginBottom: '8px' }}>
               <Breadcrumb aria-label="Breadcrumb">
-                <BreadcrumbItem component="button" onClick={() => handleMainTabChange('fleet-overview')}>
-                  Multi-cluster alerting
-                </BreadcrumbItem>
+                <BreadcrumbItem>Observe</BreadcrumbItem>
+                <BreadcrumbItem>Multi-cluster alerting</BreadcrumbItem>
                 {mainPageTab === 'fleet-overview' && <BreadcrumbItem isActive>Fleet overview</BreadcrumbItem>}
                 {mainPageTab === 'alerts' && cameFromFleetOverview && (
                   <BreadcrumbItem component="button" onClick={handleBackToFleetOverview}>
@@ -1584,11 +1615,25 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         onViewAllClusters={() => {
           setMainPageTab('alerts');
           setCameFromFleetOverview(true);
+          setAlertsGroupBy('component');
           const newParams = new URLSearchParams(searchParams);
           newParams.set('tab', 'alerts');
           newParams.delete('cluster');
           navigate(`?${newParams.toString()}`, { replace: false });
         }}
+        onViewContributingAlerts={(alertNames) => {
+          setContributingAlertsFilter(alertNames);
+          setMainPageTab('alerts');
+          setCameFromFleetOverview(true);
+          const newParams = new URLSearchParams(searchParams);
+          newParams.set('tab', 'alerts');
+          navigate(`?${newParams.toString()}`, { replace: false });
+        }}
+        triggeredFromDate={triggeredFromDate}
+        triggeredFromTime={triggeredFromTime}
+        triggeredToDate={triggeredToDate}
+        triggeredToTime={triggeredToTime}
+        timeFilteredClusters={timeFilteredClusters}
       />
       )}
 
@@ -1635,6 +1680,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           setAlertStateFilter={setAlertStateFilter}
           alertSourceFilter={alertSourceFilter}
           setAlertSourceFilter={setAlertSourceFilter}
+          contributingAlertsFilter={contributingAlertsFilter}
+          setContributingAlertsFilter={setContributingAlertsFilter}
           regions={regions}
           clusterNames={clusterNames}
           clusters={mockClusters}
@@ -1707,6 +1754,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
             flexShrink: 0,
           }}>
             <Breadcrumb>
+              <BreadcrumbItem>Observe</BreadcrumbItem>
               <BreadcrumbItem>
                 <Button variant="link" isInline onClick={handleBackToFleet}>
                   All Clusters (Treemap)

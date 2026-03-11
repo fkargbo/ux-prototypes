@@ -90,6 +90,8 @@ export interface AlertsTabFleetOverviewContentProps {
   setAlertStateFilter: (v: string[]) => void;
   alertSourceFilter: string[];
   setAlertSourceFilter: (v: string[]) => void;
+  contributingAlertsFilter: string[];
+  setContributingAlertsFilter: (v: string[]) => void;
   // Filter panel data
   regions: string[];
   clusterNames: string[];
@@ -175,6 +177,8 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
     setAlertStateFilter,
     alertSourceFilter,
     setAlertSourceFilter,
+    contributingAlertsFilter,
+    setContributingAlertsFilter,
     regions,
     clusterNames,
     clusters,
@@ -375,6 +379,9 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                     onClusterFilterChange={setAlertsTabClusterFilter}
                     onNamespaceFilterChange={setAlertsTabNamespaceFilter}
                     triggeredToTime={alertsTabTriggeredToTime}
+                    stateFilter={alertStateFilter}
+                    sourceFilter={alertSourceFilter}
+                    alertNamesFilter={contributingAlertsFilter}
                     filterToolbar={
                       <>
                         <Toolbar className="pf-m-align-items-center" style={{ backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0, paddingTop: 0, paddingBottom: 0 }}>
@@ -390,7 +397,10 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                   alertsTabClusterFilter.length +
                                   alertsTabSeverityFilter.length +
                                   (hasAlertsTabGroupFilterChanges ? alertsTabGroupFilter.length : 0) +
-                                  alertsTabComponentFilter.length
+                                  alertsTabComponentFilter.length +
+                                  alertStateFilter.length +
+                                  alertSourceFilter.length +
+                                  contributingAlertsFilter.length
                                 }</Badge>}
                               </Button>
                             </ToolbarItem>
@@ -534,7 +544,7 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                             </ToolbarItem>
                           </ToolbarContent>
                         </Toolbar>
-                        {(alertsTabSeverityFilter.length > 0 || hasAlertsTabGroupFilterChanges || alertsTabComponentFilter.length > 0 || alertsTabRegionFilter.length > 0 || alertsTabClusterFilter.length > 0 || alertsTabNamespaceFilter.length > 0 || alertsTabLabelFilter.length > 0 || mainComponentFilter !== null || mainAlertNameFilter !== null) && (
+                        {(alertsTabSeverityFilter.length > 0 || hasAlertsTabGroupFilterChanges || alertsTabComponentFilter.length > 0 || alertsTabRegionFilter.length > 0 || alertsTabClusterFilter.length > 0 || alertsTabNamespaceFilter.length > 0 || alertsTabLabelFilter.length > 0 || mainComponentFilter !== null || mainAlertNameFilter !== null || alertStateFilter.length > 0 || alertSourceFilter.length > 0 || contributingAlertsFilter.length > 0) && (
                           <div style={{ marginTop: '8px' }}>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                               <FlexItem>
@@ -590,6 +600,20 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                       ))}
                                     </LabelGroup>
                                   )}
+                                  {alertStateFilter.length > 0 && (
+                                    <LabelGroup categoryName="State">
+                                      {alertStateFilter.map(s => (
+                                        <Label key={s} variant="outline" onClose={() => setAlertStateFilter(alertStateFilter.filter(x => x !== s))}>{s.charAt(0).toUpperCase() + s.slice(1)}</Label>
+                                      ))}
+                                    </LabelGroup>
+                                  )}
+                                  {alertSourceFilter.length > 0 && (
+                                    <LabelGroup categoryName="Source">
+                                      {alertSourceFilter.map(s => (
+                                        <Label key={s} variant="outline" onClose={() => setAlertSourceFilter(alertSourceFilter.filter(x => x !== s))}>{s}</Label>
+                                      ))}
+                                    </LabelGroup>
+                                  )}
                                   {mainComponentFilter && (
                                     <LabelGroup categoryName="Component">
                                       <Label variant="outline" onClose={() => setMainComponentFilter(null)}>{mainComponentFilter}</Label>
@@ -598,6 +622,13 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                   {mainAlertNameFilter && (
                                     <LabelGroup categoryName="Alert">
                                       <Label variant="outline" onClose={() => setMainAlertNameFilter(null)}>{mainAlertNameFilter}</Label>
+                                    </LabelGroup>
+                                  )}
+                                  {contributingAlertsFilter.length > 0 && (
+                                    <LabelGroup categoryName="Spike alerts">
+                                      {contributingAlertsFilter.map(a => (
+                                        <Label key={a} variant="outline" onClose={() => setContributingAlertsFilter(contributingAlertsFilter.filter(x => x !== a))}>{a}</Label>
+                                      ))}
                                     </LabelGroup>
                                   )}
                                 </Flex>

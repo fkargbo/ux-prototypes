@@ -174,6 +174,12 @@ export interface FleetOverviewTabProps {
   onClusterClick?: (clusterName: string) => void;
   onViewAllFiringAlerts?: () => void;
   onViewAllClusters?: () => void;
+  onViewContributingAlerts?: (alertNames: string[]) => void;
+  triggeredFromDate?: string;
+  triggeredFromTime?: string;
+  triggeredToDate?: string;
+  triggeredToTime?: string;
+  timeFilteredClusters?: ClusterData[];
 }
 
 export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = (props) => {
@@ -258,6 +264,12 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
     onClusterClick,
     onViewAllFiringAlerts,
     onViewAllClusters,
+    onViewContributingAlerts,
+    triggeredFromDate,
+    triggeredFromTime,
+    triggeredToDate,
+    triggeredToTime,
+    timeFilteredClusters,
   } = props;
 
   return (
@@ -999,7 +1011,7 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
 
           {/* Cross-Cluster Insights Cards */}
           <CrossClusterInsightsCards
-            clusters={filteredClusters}
+            clusters={timeFilteredClusters || filteredClusters}
             onAlertRuleClick={onAlertRuleClick}
             onComponentClick={onComponentClick}
             onClusterClick={onClusterClick}
@@ -1009,7 +1021,15 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
 
           {/* Alerts Timeline Card - Last */}
           <StackItem>
-            <AlertsTimelineCard trendData={mockTrendData} />
+            <AlertsTimelineCard
+              trendData={mockTrendData}
+              onAlertClick={onAlertRuleClick}
+              onViewContributingAlerts={onViewContributingAlerts}
+              triggeredFromDate={triggeredFromDate}
+              triggeredFromTime={triggeredFromTime}
+              triggeredToDate={triggeredToDate}
+              triggeredToTime={triggeredToTime}
+            />
           </StackItem>
         </Stack>
       </div>

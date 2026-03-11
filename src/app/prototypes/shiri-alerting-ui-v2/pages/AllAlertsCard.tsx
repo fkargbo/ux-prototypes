@@ -122,6 +122,9 @@ interface AllAlertsCardProps {
   onClusterFilterChange?: (clusters: string[]) => void;
   onNamespaceFilterChange?: (namespaces: string[]) => void;
   filterToolbar?: React.ReactNode;
+  stateFilter?: string[];
+  sourceFilter?: string[];
+  alertNamesFilter?: string[];
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
@@ -155,6 +158,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   onClusterFilterChange,
   onNamespaceFilterChange,
   filterToolbar,
+  stateFilter = [],
+  sourceFilter = [],
+  alertNamesFilter = [],
 }) => {
   // Component metadata with alert scopes
   const componentMeta: Record<AlertComponent, { impactGroup: 'Cluster' | 'Namespace' }> = {
@@ -291,8 +297,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   interface ColumnConfig {
     key: string;
     label: string;
+    modalLabel?: string;
     isVisible: boolean;
-    isLocked: boolean; // Cannot be hidden or reordered
+    isLocked: boolean;
     order: number;
   }
   const MAX_VISIBLE_COLUMNS = 10;
@@ -305,8 +312,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     { key: 'group', label: 'Alert scope', isVisible: true, isLocked: false, order: 5 },
     { key: 'component', label: 'Affected component', isVisible: true, isLocked: false, order: 6 },
     { key: 'source', label: 'Source', isVisible: true, isLocked: false, order: 7 },
-    { key: 'description', label: 'Description (in: alert)', isVisible: false, isLocked: false, order: 8 },
+    { key: 'description', label: 'Description', isVisible: false, isLocked: false, order: 8, modalLabel: 'Description (in: alert)' },
     { key: 'startTime', label: 'Firing since', isVisible: false, isLocked: false, order: 9 },
+    { key: 'runbookUrl', label: 'Runbook URL', isVisible: false, isLocked: false, order: 10, modalLabel: 'Runbook URL (in: alert)' },
   ]);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
   const [tempColumns, setTempColumns] = React.useState<ColumnConfig[]>([]);
@@ -350,6 +358,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
           case 'source': return agg.clusters[0]?.cluster?.alerts?.[0]?.source || '';
           case 'description': return `"${agg.clusters[0]?.cluster?.alerts?.find(a => a.alertName === agg.alertName)?.description || ''}"`;
           case 'startTime': return agg.clusters[0]?.lastFired || '';
+          case 'runbookUrl': return agg.clusters[0]?.cluster?.alerts?.find(a => a.alertName === agg.alertName)?.runbookUrl || '';
           default: return '';
         }
       }).join(',');
@@ -420,8 +429,13 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const allAlerts = React.useMemo(() => {
     return clusters.flatMap(cluster => 
       cluster.alerts.map(alert => ({ ...alert, clusterName: cluster.name, cluster }))
-    ).filter(a => a.status === 'firing');
-  }, [clusters]);
+    ).filter(a => {
+      if (a.status !== 'firing') return false;
+      if (stateFilter.length > 0 && !stateFilter.includes(a.status)) return false;
+      if (sourceFilter.length > 0 && !sourceFilter.includes(a.source)) return false;
+      return true;
+    });
+  }, [clusters, stateFilter, sourceFilter]);
 
   // Create aggregated alerts (grouped by alert name and severity)
   const aggregatedAlerts = React.useMemo(() => {
@@ -476,6 +490,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const filteredAggregatedAlerts = React.useMemo(() => {
     const filtered = aggregatedAlerts.filter(alert => {
       if (alertNameFilter && alert.alertName !== alertNameFilter) return false;
+      if (alertNamesFilter.length > 0 && !alertNamesFilter.includes(alert.alertName)) return false;
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
       if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase()) && 
@@ -486,14 +501,15 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
         if (componentImpactGroup && !groupFilter.includes(componentImpactGroup)) return false;
       }
       
-      // Filter by triggered date/time range
+      // Filter by triggered date/time range using lastFiredTimestamp
       if (triggeredFromDate || triggeredFromTime || triggeredToDate || triggeredToTime) {
-        // Get the first alert instance to check triggered time
         const firstCluster = alert.clusters[0];
-        if (firstCluster && firstCluster.lastFired) {
-          const alertDate = new Date(firstCluster.lastFired);
+        if (firstCluster && firstCluster.lastFiredTimestamp) {
+          const alertDate = firstCluster.lastFiredTimestamp instanceof Date
+            ? firstCluster.lastFiredTimestamp
+            : new Date(firstCluster.lastFiredTimestamp);
+          if (isNaN(alertDate.getTime())) return true;
           
-          // Parse from date/time
           if (triggeredFromDate || triggeredFromTime) {
             const fromDateStr = triggeredFromDate || new Date().toISOString().split('T')[0];
             const fromTimeStr = triggeredFromTime || '00:00';
@@ -501,7 +517,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
             if (alertDate < fromDateTime) return false;
           }
           
-          // Parse to date/time
           if (triggeredToDate || triggeredToTime) {
             const toDateStr = triggeredToDate || new Date().toISOString().split('T')[0];
             const toTimeStr = triggeredToTime || '23:59';
@@ -571,7 +586,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       }
       return 0;
     });
-  }, [aggregatedAlerts, alertNameFilter, componentFilter, severityFilter, searchValue, sortConfigs, groupFilter, triggeredFromDate, triggeredFromTime, triggeredToDate, triggeredToTime]);
+  }, [aggregatedAlerts, alertNameFilter, alertNamesFilter, componentFilter, severityFilter, searchValue, sortConfigs, groupFilter, triggeredFromDate, triggeredFromTime, triggeredToDate, triggeredToTime]);
 
   // Get selected alerts data for silence modal
   const selectedAlertsData = React.useMemo(() => {
@@ -584,11 +599,30 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const filteredAlerts = React.useMemo(() => {
     const filtered = allAlerts.filter(alert => {
       if (alertNameFilter && alert.alertName !== alertNameFilter) return false;
+      if (alertNamesFilter.length > 0 && !alertNamesFilter.includes(alert.alertName)) return false;
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
       if (searchValue && !alert.alertName.toLowerCase().includes(searchValue.toLowerCase()) && 
           !alert.clusterName.toLowerCase().includes(searchValue.toLowerCase()) &&
           !alert.component.toLowerCase().includes(searchValue.toLowerCase())) return false;
+      // Filter by triggered date/time range
+      if (triggeredFromDate || triggeredFromTime || triggeredToDate || triggeredToTime) {
+        const alertDate = alert.lastFiredTimestamp instanceof Date
+          ? alert.lastFiredTimestamp
+          : new Date(alert.lastFiredTimestamp);
+        if (!isNaN(alertDate.getTime())) {
+          if (triggeredFromDate || triggeredFromTime) {
+            const fromDateStr = triggeredFromDate || new Date().toISOString().split('T')[0];
+            const fromTimeStr = triggeredFromTime || '00:00';
+            if (alertDate < new Date(`${fromDateStr}T${fromTimeStr}`)) return false;
+          }
+          if (triggeredToDate || triggeredToTime) {
+            const toDateStr = triggeredToDate || new Date().toISOString().split('T')[0];
+            const toTimeStr = triggeredToTime || '23:59';
+            if (alertDate > new Date(`${toDateStr}T${toTimeStr}`)) return false;
+          }
+        }
+      }
       return true;
     });
 
@@ -639,7 +673,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     });
 
     return sorted;
-  }, [allAlerts, alertNameFilter, componentFilter, severityFilter, searchValue, sortConfigs]);
+  }, [allAlerts, alertNameFilter, alertNamesFilter, componentFilter, severityFilter, searchValue, sortConfigs, triggeredFromDate, triggeredFromTime, triggeredToDate, triggeredToTime]);
 
   const paginatedAggregatedAlerts = filteredAggregatedAlerts.slice((page - 1) * perPage, page * perPage);
   const paginatedAlerts = filteredAlerts.slice((page - 1) * perPage, page * perPage);
@@ -1032,13 +1066,13 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                   isExpanded={isGroupByOpen}
                                   style={{ padding: '4px 8px' }}
                                 >
-                                  {groupBy === 'none' ? 'None' : groupBy === 'alertName' ? 'Alert name' : groupBy === 'impact' ? 'Alert scope' : groupBy === 'cluster' ? 'Cluster' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+                                  {groupBy === 'none' ? 'None' : groupBy === 'impact' ? 'Alert scope' : groupBy === 'cluster' ? 'Cluster' : groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                                 </MenuToggle>
                               )}
                             >
                               <DropdownList>
-                                {(['none', 'time', 'severity', 'alertName', 'impact', 'component', 'cluster'] as AlertsGroupByOption[]).map(option => {
-                                  const label = option === 'none' ? 'None' : option === 'alertName' ? 'Alert name' : option === 'impact' ? 'Alert scope' : option === 'cluster' ? 'Cluster' : option.charAt(0).toUpperCase() + option.slice(1);
+                                {(['none', 'severity', 'impact', 'component', 'cluster'] as AlertsGroupByOption[]).map(option => {
+                                  const label = option === 'none' ? 'None' : option === 'impact' ? 'Alert scope' : option === 'cluster' ? 'Cluster' : option.charAt(0).toUpperCase() + option.slice(1);
                                   const count = groupByOptionCounts[option];
                                   return (
                                     <DropdownItem 
@@ -1498,7 +1532,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                           c.key === col.key ? { ...c, isVisible: checked } : c
                         ));
                       }}
-                      label={col.label}
+                      label={col.modalLabel || col.label}
                       style={{ 
                         color: col.isLocked ? 'var(--pf-t--global--text--color--subtle)' : undefined 
                       }}

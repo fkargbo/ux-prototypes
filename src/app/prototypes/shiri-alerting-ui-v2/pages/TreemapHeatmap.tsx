@@ -439,7 +439,7 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
               <span>VMs: <strong style="color: #151515;">${cluster.vmCount || 0}</strong></span>
               <span>Alerts: <strong style="color: ${totalAlerts > 0 ? statusColor : '#151515'};">${totalAlerts}</strong></span>
             </div>
-            <div style="font-size: 12px; font-weight: 600; color: #0066cc; margin-top: 10px;">View alerts for this cluster.</div>
+            <div style="font-size: 12px; color: #6a6e73; margin-top: 10px;">Select the cluster to view all alerts</div>
           </div>
         `;
       },

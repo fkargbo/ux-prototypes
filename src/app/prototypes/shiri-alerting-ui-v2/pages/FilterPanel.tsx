@@ -20,6 +20,7 @@ import {
   SearchInput,
   ToggleGroup,
   ToggleGroupItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   TimesIcon,
@@ -28,6 +29,7 @@ import {
   ClusterIcon,
   CubesIcon,
   CogIcon,
+  HelpIcon,
 } from '@patternfly/react-icons';
 import type { AlertSeverity, AlertGroup, AlertComponent, ClusterData, SavedFilter } from './types';
 import { getSeverityLabelColor, getSeverityIcon } from './utils';
@@ -112,7 +114,23 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const namespaceComponents: AlertComponent[] = ['Workload', 'Pod', 'Storage', 'Quota', 'Network'];
   const allComponents: AlertComponent[] = ['kube-apiserver', 'Storage', 'Network', 'etcd', 'Scheduler', 'Controller', 'Workload', 'Pod', 'Quota'];
   const allStates = ['firing', 'pending', 'acknowledged'];
+  const stateCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    allStates.forEach(s => { counts[s] = 0; });
+    clusters.forEach(c => c.alerts.forEach(a => {
+      if (counts[a.status] !== undefined) counts[a.status]++;
+    }));
+    return counts;
+  }, [clusters]);
   const allSources = ['Platform', 'User-defined'];
+  const sourceCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    allSources.forEach(s => { counts[s] = 0; });
+    clusters.forEach(c => c.alerts.forEach(a => {
+      if (counts[a.source] !== undefined) counts[a.source]++;
+    }));
+    return counts;
+  }, [clusters]);
 
   // Dropdown open states
   const [isRegionOpen, setIsRegionOpen] = React.useState(false);
@@ -514,7 +532,12 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
           {/* Alert Scope Toggle Group */}
           <StackItem>
-            <Content component="small" className="pf-v6-u-mb-sm"><strong>Alert scope</strong></Content>
+            <div className="pf-v6-u-mb-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', fontWeight: 700 }}>Alert scope</span>
+              <Tooltip content="Indicates whether the alert affects the entire cluster or a specific namespace.">
+                <HelpIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)', cursor: 'help', fontSize: '12px' }} />
+              </Tooltip>
+            </div>
             <ToggleGroup isCompact>
               <ToggleGroupItem
                 text="All"
@@ -556,11 +579,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
           {/* Component Dropdown (based on selected group) */}
           <StackItem>
-            <Content component="small" className="pf-v6-u-mb-sm">
-              <strong>
+            <div className="pf-v6-u-mb-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', fontWeight: 700 }}>
                 {groupFilter.length === 2 ? 'Affected component' : groupFilter.length > 0 ? `Affected component (in: ${groupFilter.map(g => `Alert scope: ${g}`).join(', ')})` : 'Affected component'}
-              </strong>
-            </Content>
+              </span>
+              <Tooltip content="The specific services, operators, or nodes affected by this alert.">
+                <HelpIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)', cursor: 'help', fontSize: '12px' }} />
+              </Tooltip>
+            </div>
             <Select
               role="menu"
               toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
@@ -660,7 +686,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                         hasCheckbox
                         isSelected={stateFilter.includes(state)}
                       >
-                        {state.charAt(0).toUpperCase() + state.slice(1)}
+                        {state.charAt(0).toUpperCase() + state.slice(1)} ({stateCounts[state] || 0})
                       </SelectOption>
                     ))}
                   </SelectList>
@@ -702,7 +728,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                         hasCheckbox
                         isSelected={sourceFilter.includes(source)}
                       >
-                        {source}
+                        {source} ({sourceCounts[source] || 0})
                       </SelectOption>
                     ))}
                   </SelectList>

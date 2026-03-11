@@ -51,6 +51,7 @@ export interface AlertData {
   component: AlertComponent;
   description?: string;
   resource?: string;
+  runbookUrl?: string;
 }
 
 export interface ClusterData {

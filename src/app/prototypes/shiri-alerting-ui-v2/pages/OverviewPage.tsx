@@ -462,7 +462,7 @@ export const OverviewPage: React.FC = () => {
           <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Breadcrumb>
-                <BreadcrumbItem to="/">Home</BreadcrumbItem>
+                <BreadcrumbItem>Observe</BreadcrumbItem>
                 <BreadcrumbItem isActive>Overview</BreadcrumbItem>
               </Breadcrumb>
             </FlexItem>

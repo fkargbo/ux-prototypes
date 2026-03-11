@@ -154,7 +154,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 }) => {
 
   const visibleCols = getVisibleColumns().filter(
-    col => col.key !== 'description' && col.key !== 'clusters' && col.key !== 'startTime' && col.key !== 'flappingRate'
+    col => col.key !== 'clusters' && col.key !== 'flappingRate'
   );
 
   const renderAggCellContent = (col: ColumnConfig, agg: AggregatedAlert) => {
@@ -191,6 +191,11 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
         return <Label isCompact variant="outline">{agg.component}</Label>;
       case 'source':
         return firstAlert?.source || '-';
+      case 'description':
+      case 'runbookUrl':
+        return '-';
+      case 'startTime':
+        return firstAlertInfo?.lastFired || '-';
       default:
         return '-';
     }
@@ -263,8 +268,8 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
     const zebraBg = leafIndex % 2 === 1 ? ZEBRA_ODD : ZEBRA_EVEN;
     return (
       <Tr key={`${alertKey}-${clusterInfo.name}-${instanceIdx}`} style={{ backgroundColor: zebraBg }}>
-        <Td style={{ paddingLeft: `${indent + 8}px`, width: '45px' }} />
-        <Td style={{ width: '45px' }}>
+        <Td style={{ paddingLeft: `${indent + 8}px`, width: '40px', padding: '8px 4px' }} />
+        <Td style={{ width: '40px', padding: '8px 4px' }}>
           <Checkbox id={`checkbox-${alertKey}-${instanceIdx}`} aria-label="Select instance" />
         </Td>
         <Td modifier="nowrap">
@@ -299,6 +304,16 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
               return <Td key={col.key} modifier="nowrap"><Label isCompact variant="outline">{agg.component}</Label></Td>;
             case 'source':
               return <Td key={col.key} modifier="nowrap">{alertInstance?.source || '-'}</Td>;
+            case 'description':
+              return <Td key={col.key} modifier="nowrap">{alertInstance?.description || '-'}</Td>;
+            case 'startTime':
+              return <Td key={col.key} modifier="nowrap">{clusterInfo.lastFired || '-'}</Td>;
+            case 'runbookUrl':
+              return <Td key={col.key} modifier="nowrap">
+                {alertInstance?.runbookUrl
+                  ? <Button variant="link" isInline component="a" href={alertInstance.runbookUrl} target="_blank" onClick={(e) => e.stopPropagation()}>View runbook</Button>
+                  : '-'}
+              </Td>;
             default:
               return (
                 <Td key={col.key} modifier="nowrap">
@@ -326,8 +341,8 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
     return (
       <Thead style={{ position: 'sticky', top: 0, zIndex: 98, backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
         <Tr>
-          <Th width={10} />
-          <Th width={10}>
+          <Th style={{ width: '40px', padding: '8px 4px' }} />
+          <Th style={{ width: '40px', padding: '8px 4px' }}>
             {withSelectAll && (
               <Checkbox
                 id="select-all-alerts"
@@ -342,9 +357,12 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
             const canSort = ['alertName', 'severity', 'total', 'group', 'component'].includes(col.key);
             const sortConfig = sortConfigs.find(c => c.column === columnKey);
             const thProps: any = { key: col.key, modifier: 'nowrap' as const };
-            if (stickyAlertName && col.key === 'alertName') { thProps.isStickyColumn = true; thProps.stickyMinWidth = '200px'; thProps.stickyLeftOffset = '90px'; }
+            if (stickyAlertName && col.key === 'alertName') { thProps.isStickyColumn = true; thProps.stickyMinWidth = '200px'; thProps.stickyLeftOffset = '80px'; }
+            if (col.key === 'severity') { thProps.info = { tooltip: 'The impact level of the alert, categorized as Critical, Warning, or Info.', ariaLabel: 'More information about severity' }; }
+            if (col.key === 'total') { thProps.info = { tooltip: 'The cumulative number of individual alert instances. In aggregated views, this represents the sum of all occurrences across your fleet.', ariaLabel: 'More information about total count' }; }
             if (col.key === 'group') { thProps.info = { tooltip: 'Indicates whether the alert affects the entire cluster or a specific namespace.', ariaLabel: 'More information about alert scope' }; }
             if (col.key === 'component') { thProps.info = { tooltip: 'The specific services, operators, or nodes affected by this alert.', ariaLabel: 'More information about affected component' }; }
+            if (col.key === 'source') { thProps.info = { tooltip: 'Defines how the alert rule is managed. Platform alerts are default rules managed in the openshift-monitoring namespace as AlertingRules. User alerts are custom PrometheusRules created by users to monitor specific workloads.', ariaLabel: 'More information about source' }; }
             if (canSort) {
               thProps.sort = {
                 sortBy: { index: sortConfig ? sortConfig.priority - 1 : -1, direction: sortConfig?.direction || 'asc' },
@@ -396,12 +414,12 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                     }}
                     onClick={() => toggleGroupExpanded(group.groupName)}
                   >
-                    <Td style={{ width: '45px', paddingLeft: '8px' }}>
+                    <Td style={{ width: '40px', padding: '8px 4px', paddingLeft: '8px' }}>
                       <Button variant="plain" aria-label="Toggle group" style={{ padding: '2px 4px' }}>
                         {isGroupExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
                       </Button>
                     </Td>
-                    <Td style={{ width: '45px' }} />
+                    <Td style={{ width: '40px', padding: '8px 4px' }} />
                     <Td modifier="nowrap">
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                         <FlexItem>
@@ -436,13 +454,13 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                             }
                           }}
                         >
-                          <Td style={{ paddingLeft: `${LEVEL_INDENT_1 + 8}px`, width: '45px' }}>
+                          <Td style={{ paddingLeft: `${LEVEL_INDENT_1 + 8}px`, width: '40px', padding: '8px 4px' }}>
                             <Button variant="plain" aria-label="Toggle alert" style={{ padding: '2px 4px' }}
                               onClick={(e) => { e.stopPropagation(); toggleExpanded(alertKey); }}>
                               {isAlertExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
                             </Button>
                           </Td>
-                          <Td style={{ width: '45px' }} onClick={(e) => e.stopPropagation()}>
+                          <Td style={{ width: '40px', padding: '8px 4px' }} onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               id={`checkbox-${alertKey}`}
                               aria-label={`Select ${agg.alertName}`}
@@ -496,13 +514,13 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                       }
                     }}
                   >
-                    <Td style={{ width: '45px' }}>
+                    <Td style={{ width: '40px', padding: '8px 4px' }}>
                       <Button variant="plain" aria-label="Toggle alert" style={{ padding: '2px 4px' }}
                         onClick={(e) => { e.stopPropagation(); toggleExpanded(alertKey); }}>
                         {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
                       </Button>
                     </Td>
-                    <Td style={{ width: '45px' }} onClick={(e) => e.stopPropagation()}>
+                    <Td style={{ width: '40px', padding: '8px 4px' }} onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         id={`checkbox-${alertKey}`}
                         aria-label={`Select ${agg.alertName}`}
@@ -512,7 +530,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                     </Td>
                     {visibleCols.map(col => {
                       const tdProps: any = { key: col.key, modifier: 'nowrap' as const };
-                      if (col.key === 'alertName') { tdProps.isStickyColumn = true; tdProps.stickyMinWidth = '200px'; tdProps.stickyLeftOffset = '90px'; }
+                      if (col.key === 'alertName') { tdProps.isStickyColumn = true; tdProps.stickyMinWidth = '200px'; tdProps.stickyLeftOffset = '80px'; }
                       return <Td {...tdProps}>{renderAggCellContent(col, agg)}</Td>;
                     })}
                     <Td modifier="nowrap" />
@@ -571,7 +589,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                     }}
                     onClick={() => toggleGroupExpanded(group.groupName)}
                   >
-                    <Td style={{ width: '45px', paddingLeft: '8px' }}>
+                    <Td style={{ width: '40px', padding: '8px 4px', paddingLeft: '8px' }}>
                       <Button variant="plain" aria-label="Toggle group" style={{ padding: '2px 4px' }}>
                         {isGroupExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
                       </Button>
@@ -625,6 +643,10 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                           return alert.source || '-';
                         case 'description':
                           return alert.description || '-';
+                        case 'runbookUrl':
+                          return alert.runbookUrl
+                            ? <Button variant="link" isInline component="a" href={alert.runbookUrl} target="_blank"  onClick={(e: React.MouseEvent) => e.stopPropagation()}>View runbook</Button>
+                            : '-';
                         default:
                           return '-';
                       }
@@ -632,7 +654,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 
                     return (
                       <Tr key={`${alert.id}-${idx}`} style={{ backgroundColor: zebraBg }}>
-                        <Td style={{ paddingLeft: `${LEVEL_INDENT_1 + 8}px`, width: '45px' }} />
+                        <Td style={{ paddingLeft: `${LEVEL_INDENT_1 + 8}px`, width: '40px', padding: '8px 4px' }} />
                         {indivVisibleCols.map(col => (
                           <Td key={col.key} modifier="nowrap">{renderCellContent(col)}</Td>
                         ))}
@@ -661,8 +683,11 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
               const thProps: any = { key: col.key, modifier: 'nowrap' as const };
               if (col.key === 'alertName') { thProps.isStickyColumn = true; thProps.stickyMinWidth = '200px'; thProps.stickyLeftOffset = '0px'; }
               if (col.key === 'severity') { thProps.isStickyColumn = true; thProps.stickyMinWidth = '120px'; thProps.stickyLeftOffset = '200px'; }
+              if (col.key === 'severity') { thProps.info = { tooltip: 'The impact level of the alert, categorized as Critical, Warning, or Info.', ariaLabel: 'More information about severity' }; }
+              if (col.key === 'total') { thProps.info = { tooltip: 'The cumulative number of individual alert instances. In aggregated views, this represents the sum of all occurrences across your fleet.', ariaLabel: 'More information about total count' }; }
               if (col.key === 'group') { thProps.info = { tooltip: 'Indicates whether the alert affects the entire cluster or a specific namespace.', ariaLabel: 'More information about alert scope' }; }
               if (col.key === 'component') { thProps.info = { tooltip: 'The specific services, operators, or nodes affected by this alert.', ariaLabel: 'More information about affected component' }; }
+              if (col.key === 'source') { thProps.info = { tooltip: 'Defines how the alert rule is managed. Platform alerts are default rules managed in the openshift-monitoring namespace as AlertingRules. User alerts are custom PrometheusRules created by users to monitor specific workloads.', ariaLabel: 'More information about source' }; }
               if (canSort) { thProps.sort = getSortParams(columnKey); }
               return <Th {...thProps}>{col.label}</Th>;
             })}
@@ -690,6 +715,10 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                   return alert.source || '-';
                 case 'description':
                   return alert.description || '-';
+                case 'runbookUrl':
+                  return alert.runbookUrl
+                    ? <Button variant="link" isInline component="a" href={alert.runbookUrl} target="_blank" onClick={(e: React.MouseEvent) => e.stopPropagation()}>View runbook</Button>
+                    : '-';
                 default:
                   return '-';
               }
