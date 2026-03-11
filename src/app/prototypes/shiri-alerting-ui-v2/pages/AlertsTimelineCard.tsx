@@ -276,10 +276,9 @@ export const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendDat
                 <PfAlert
                   variant="warning"
                   isInline
-                  isClickable
                   title={`Spike detected at ${spikeDisplayTime}`}
-                  onClick={() => setSelectedAnomaly({ timestamp: mostSignificantAnomaly.timestamp, index: mostSignificantAnomaly.index })}
                   style={{ cursor: 'pointer' }}
+                  onMouseDown={() => setSelectedAnomaly({ timestamp: mostSignificantAnomaly.timestamp, index: mostSignificantAnomaly.index })}
                 >
                   <Content component="p">
                     Alert volume exceeded the historical baseline by {mostSignificantAnomaly.excess} alert{mostSignificantAnomaly.excess !== 1 ? 's' : ''} during this window.
@@ -336,9 +335,9 @@ export const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendDat
                 <Content component="p" style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '10px' }}>
                   Exceeded baseline by <strong style={{ color: 'var(--pf-t--global--text--color--regular)' }}>{excess}</strong> alert{excess !== 1 ? 's' : ''} ({totalAlerts} total vs ~{Math.round(avgAlerts)} avg).
                 </Content>
-                <Flex gap={{ default: 'gapSm' }} wrap={{ default: 'wrap' }}>
+                <Flex gap={{ default: 'gapSm' }} style={{ flexWrap: 'wrap' }}>
                   <Label color="red" isCompact>{anomalyData.critical} Critical</Label>
-                  <Label color="gold" isCompact>{anomalyData.warning} Warning</Label>
+                  <Label color="orange" isCompact>{anomalyData.warning} Warning</Label>
                   <Label color="purple" isCompact>{anomalyData.info} Info</Label>
                 </Flex>
               </div>
