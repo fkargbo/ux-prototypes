@@ -3,7 +3,7 @@
 ## Overview
 This prototype is a dashboard for managing alerts across many different computer clusters (Fleet). It helps users see which clusters are "unhealthy" at a glance using a visual Treemap.
 
-## Key Features (from Prototype Video)
+## Key Features 
 1. **Fleet Overview (Treemap):** - Big squares show clusters. 
    - **Red** = Critical, **Yellow** = Warning, **Blue** = Info, **Green** = Healthy.
 2. **Fleet Health Insights:** - Includes a bar chart showing which components (like 'Storage' or 'Network') are failing most often.
