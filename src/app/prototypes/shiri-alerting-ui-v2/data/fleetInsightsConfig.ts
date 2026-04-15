@@ -54,43 +54,43 @@ export interface ActionLink {
 
 const ALERT_ACTIONS: Record<string, ActionLink[]> = {
   KubeNodeNotReady: [
-    { label: 'View Runbook' },
     { label: 'Troubleshoot' },
+    { label: 'View Runbook' },
   ],
   ContainerOOMKilled: [
-    { label: 'View Runbook' },
     { label: 'Adjust Limits' },
+    { label: 'View Runbook' },
   ],
   CertExpiringSoon: [
-    { label: 'View Runbook' },
     { label: 'Rotate Certs' },
+    { label: 'View Runbook' },
   ],
   NodeCPUHigh: [
-    { label: 'View Runbook' },
     { label: 'Scale Nodes' },
+    { label: 'View Runbook' },
   ],
   ImageRegistryPersistentVolumeFull: [
-    { label: 'View Runbook' },
     { label: 'Cleanup Storage' },
+    { label: 'View Runbook' },
   ],
   MDSCacheUsageHigh: [
-    { label: 'View Runbook' },
     { label: 'Configure MDS' },
+    { label: 'View Runbook' },
   ],
 };
 
 const COMPONENT_ACTIONS: Record<string, ActionLink[]> = {
   'kube-apiserver': [
-    { label: 'View Runbook' },
     { label: 'Troubleshoot' },
+    { label: 'View Runbook' },
   ],
   etcd: [
-    { label: 'View Runbook' },
     { label: 'Check Health' },
+    { label: 'View Runbook' },
   ],
   kubelet: [
-    { label: 'View Runbook' },
     { label: 'Troubleshoot' },
+    { label: 'View Runbook' },
   ],
 };
 

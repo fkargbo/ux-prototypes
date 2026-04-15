@@ -442,7 +442,7 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
             <div style="font-size: 12px; color: #6a6e73; margin-bottom: 12px;">${cluster.region} · ${cluster.cloudProvider}</div>
             ${Object.keys(componentHealth).length > 0 ? `
               <div style="margin-bottom: 8px;">
-                <div style="font-size: 11px; font-weight: 600; color: #6a6e73; margin-bottom: 6px;">Component's health</div>
+                <div style="font-size: 11px; font-weight: 600; color: #6a6e73; margin-bottom: 6px;">${Object.keys(componentHealth).length === 1 ? "Component's health" : "Components' health"}</div>
                 ${componentHealthHtml}
                 ${moreComponents}
               </div>

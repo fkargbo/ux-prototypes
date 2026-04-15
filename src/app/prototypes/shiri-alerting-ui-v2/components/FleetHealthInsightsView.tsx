@@ -117,15 +117,13 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
                   </Flex>
                 </FlexItem>
               </Flex>
-              <Tooltip content={getAlertAiInsight(rule.name)}>
-                <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }} style={{ marginTop: 6, width: '100%' }} role="note" aria-label="AI insight">
-                  <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true"><OptimizeIcon style={{ width: 14, height: 14 }} /></span>
-                  <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1 }}>
-                    <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
-                    <span style={AI_INSIGHT_TEXT_STYLE} title={getAlertAiInsight(rule.name)}>{getAlertAiInsight(rule.name)}</span>
-                  </span>
-                </Flex>
-              </Tooltip>
+              <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }} style={{ marginTop: 6, width: '100%' }} role="note" aria-label="AI insight">
+                <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true"><OptimizeIcon style={{ width: 14, height: 14 }} /></span>
+                <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1 }}>
+                  <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
+                  <span style={AI_INSIGHT_TEXT_STYLE}>{getAlertAiInsight(rule.name)}</span>
+                </span>
+              </Flex>
             </div>
           );
         })}
@@ -169,15 +167,13 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
                       </Flex>
                     </FlexItem>
                   </Flex>
-                  <Tooltip content={getComponentAiInsight(comp.name)}>
-                    <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }} style={{ marginTop: 6, width: '100%' }} role="note" aria-label="AI insight">
-                      <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true"><OptimizeIcon style={{ width: 14, height: 14 }} /></span>
-                      <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1 }}>
-                        <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
-                        <span style={AI_INSIGHT_TEXT_STYLE} title={getComponentAiInsight(comp.name)}>{getComponentAiInsight(comp.name)}</span>
-                      </span>
-                    </Flex>
-                  </Tooltip>
+                  <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }} style={{ marginTop: 6, width: '100%' }} role="note" aria-label="AI insight">
+                    <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true"><OptimizeIcon style={{ width: 14, height: 14 }} /></span>
+                    <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1 }}>
+                      <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
+                      <span style={AI_INSIGHT_TEXT_STYLE}>{getComponentAiInsight(comp.name)}</span>
+                    </span>
+                  </Flex>
                 </div>
               );
             })}
