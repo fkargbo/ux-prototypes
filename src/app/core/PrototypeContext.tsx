@@ -17,7 +17,8 @@ interface PrototypeProviderProps {
 export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }) => {
   const [currentPrototype, setCurrentPrototype] = useState<PrototypeModule | null>(null);
   const [availablePrototypes, setAvailablePrototypes] = useState<PrototypeModule[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  /** Start true so we do not flash the launcher while restoring session or initializing the registry */
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   /**
@@ -76,32 +77,36 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
   }, [currentPrototype]);
 
   /**
-   * Initialize registry and restore last active prototype on mount
+   * Initialize registry and restore last active prototype from session (same tab reload / dev refresh)
    */
   useEffect(() => {
     const initializeAndRestore = async () => {
       try {
         console.log('🚀 Initializing prototype system...');
         
-        // Initialize the registry to discover all prototypes
         await prototypeRegistry.initialize();
         
-        // Update available prototypes state
         const prototypes = prototypeRegistry.getAll();
         console.log(`📦 Loaded ${prototypes.length} prototypes`, prototypes.map(p => p.config.id));
         setAvailablePrototypes(prototypes);
         
-        // NOTE: Auto-restore disabled - always show launcher on page load
-        // Users must explicitly select a prototype from the launcher
-        console.log('✅ Ready - showing launcher');
+        const savedId = sessionStorage.getItem('activePrototypeId');
+        if (savedId && prototypeRegistry.get(savedId)) {
+          console.log(`♻️ Restoring prototype from session: ${savedId}`);
+          await loadPrototype(savedId);
+        } else {
+          setIsLoading(false);
+          console.log('✅ Ready — pick a prototype from the launcher');
+        }
       } catch (err) {
         console.error('❌ Failed to initialize prototype system:', err);
         setError(err as Error);
+        setIsLoading(false);
       }
     };
     
     initializeAndRestore();
-  }, [loadPrototype]); // Run once on mount
+  }, [loadPrototype]);
 
   const value: PrototypeContextType = {
     currentPrototype,

@@ -315,6 +315,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     { key: 'description', label: 'Description', isVisible: false, isLocked: false, order: 8, modalLabel: 'Description (in: alert)' },
     { key: 'startTime', label: 'Firing since', isVisible: false, isLocked: false, order: 9 },
     { key: 'runbookUrl', label: 'Runbook URL', isVisible: false, isLocked: false, order: 10, modalLabel: 'Runbook URL (in: alert)' },
+    { key: 'namespace', label: 'Namespace', isVisible: false, isLocked: false, order: 11, modalLabel: 'Namespace (in: alert)' },
+    { key: 'resource', label: 'Resource', isVisible: false, isLocked: false, order: 12, modalLabel: 'Resource (in: alert)' },
   ]);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
   const [tempColumns, setTempColumns] = React.useState<ColumnConfig[]>([]);
@@ -359,6 +361,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
           case 'description': return `"${agg.clusters[0]?.cluster?.alerts?.find(a => a.alertName === agg.alertName)?.description || ''}"`;
           case 'startTime': return agg.clusters[0]?.lastFired || '';
           case 'runbookUrl': return agg.clusters[0]?.cluster?.alerts?.find(a => a.alertName === agg.alertName)?.runbookUrl || '';
+          case 'clusters': return `"${agg.clusters.map(c => c.name).join(', ')}"`;
+          case 'namespace': return `"${agg.clusters.map(c => c.cluster?.alerts?.find(a => a.alertName === agg.alertName)?.namespace || '').filter(Boolean).join(', ')}"`;
+          case 'resource': return `"${agg.clusters.map(c => c.cluster?.alerts?.find(a => a.alertName === agg.alertName)?.resource || '').filter(Boolean).join(', ')}"`;
           default: return '';
         }
       }).join(',');
@@ -1135,7 +1140,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               />
                             </FlexItem>
                             <FlexItem>
-                              <Tooltip content="Combine alerts with the same name and severity into a single row for a cleaner view.">
+                              <Tooltip content="Combine alerts with the same name and severity into a single row to reduce noise and simplify your view.">
                                 <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)', cursor: 'help' }} />
                               </Tooltip>
                             </FlexItem>

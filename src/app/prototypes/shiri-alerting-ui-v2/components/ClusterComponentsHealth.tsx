@@ -322,7 +322,7 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
                       <FlexItem>
                         <Stack>
                           <StackItem>
-                            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total Alerts</Content>
+                            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total alerts</Content>
                           </StackItem>
                           <StackItem>
                             <Title headingLevel="h3" size="lg">

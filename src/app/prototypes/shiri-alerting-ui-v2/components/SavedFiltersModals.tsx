@@ -35,6 +35,10 @@ import {
   TimesIcon,
   EditIcon,
   TrashIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  StarIcon,
+  FilterIcon,
 } from '@patternfly/react-icons';
 import type {
   AlertSeverity,
@@ -91,9 +95,12 @@ export interface SavedFiltersModalsProps {
   editingFilterName: string;
   setEditingFilterName: (name: string) => void;
   selectedSavedFilter: SavedFilter | null;
+  onEditFilterSelection?: (filter: SavedFilter) => void;
 }
 
 export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps> = (props) => {
+  const [setAsDefault, setSetAsDefault] = React.useState(false);
+
   const {
     isSaveFilterModalOpen,
     setIsSaveFilterModalOpen,
@@ -136,6 +143,7 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
     editingFilterName,
     setEditingFilterName,
     selectedSavedFilter,
+    onEditFilterSelection,
   } = props;
 
   return (
@@ -148,6 +156,7 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
           setIsSaveFilterModalOpen(false);
           setSaveGroupingSorting(true);
           setSaveSearchInput(true);
+          setSetAsDefault(false);
         }}
       >
         <ModalHeader title="Save filter" />
@@ -299,11 +308,11 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
                               </FlexItem>
                               <FlexItem>
                                 <Tooltip content={`Current size by setting: ${
-                                  importanceSizing === 'none' ? 'None (Equal size)' :
+                                  importanceSizing === 'none' ? 'None (equal size)' :
                                   sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
                                 }`}>
                                   <Label isCompact color="grey">Size by: {
-                                    importanceSizing === 'none' ? 'None (Equal size)' :
+                                    importanceSizing === 'none' ? 'None (equal size)' :
                                     sizeByOptions.find(opt => opt.value === importanceSizing)?.label || 'Custom'
                                   }</Label>
                                 </Tooltip>
@@ -339,6 +348,25 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
               </FormGroup>
             </StackItem>
             <StackItem>
+              <Checkbox
+                id="set-as-default-filter"
+                label={
+                  <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>Set as default filter</FlexItem>
+                    <FlexItem>
+                      <Tooltip content="This filter will be automatically applied when you open this page. Only one filter can be set as default.">
+                        <Button variant="plain" style={{ padding: 0, minWidth: 'auto' }}>
+                          <OutlinedQuestionCircleIcon />
+                        </Button>
+                      </Tooltip>
+                    </FlexItem>
+                  </Flex>
+                }
+                isChecked={setAsDefault}
+                onChange={(_, checked) => setSetAsDefault(checked)}
+              />
+            </StackItem>
+            <StackItem>
               <Content component="small" className="pf-v6-u-color-200">
                 <InfoCircleIcon /> Your saved filters are specific to your account and won't be visible to other users.
               </Content>
@@ -372,13 +400,19 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
                       importanceSizing,
                     }
                   }),
+                  isDefault: setAsDefault,
                 };
-                setSavedFilters([...savedFilters, newFilter]);
+                if (setAsDefault) {
+                  setSavedFilters([...savedFilters.map(f => ({ ...f, isDefault: false })), newFilter]);
+                } else {
+                  setSavedFilters([...savedFilters, newFilter]);
+                }
                 setSelectedSavedFilter(newFilter);
                 setIsSaveFilterModalOpen(false);
                 setNewFilterName('');
                 setSaveGroupingSorting(true);
                 setSaveSearchInput(true);
+                setSetAsDefault(false);
                 addToast('Filter saved successfully', 'success');
               }
             }}
@@ -391,6 +425,7 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
             setNewFilterName('');
             setSaveGroupingSorting(true);
             setSaveSearchInput(true);
+            setSetAsDefault(false);
           }}>
             Cancel
           </Button>
@@ -483,9 +518,23 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
                                   </TextInputGroupUtilities>
                                 </TextInputGroup>
                               ) : (
-                                <span id={`filter-${filter.id}`}>
-                                  <BookmarkIcon /> {filter.name}
-                                </span>
+                                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                  <FlexItem>
+                                    <span id={`filter-${filter.id}`} style={{ opacity: filter.hidden ? 0.5 : 1 }}>
+                                      <BookmarkIcon /> {filter.name}
+                                    </span>
+                                  </FlexItem>
+                                  {filter.isDefault && (
+                                    <FlexItem>
+                                      <Label isCompact color="gold" icon={<StarIcon />}>Default</Label>
+                                    </FlexItem>
+                                  )}
+                                  {filter.hidden && (
+                                    <FlexItem>
+                                      <Label isCompact color="grey" icon={<EyeSlashIcon />}>Hidden</Label>
+                                    </FlexItem>
+                                  )}
+                                </Flex>
                               )}
                             </DataListCell>,
                             <DataListCell key="filters" width={2}>
@@ -527,8 +576,8 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
                                 )}
                               </Flex>
                             </DataListCell>,
-                            <DataListCell key="actions" width={1} alignRight>
-                              <Flex gap={{ default: 'gapSm' }}>
+                            <DataListCell key="actions" width={2} alignRight>
+                              <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
                                 <FlexItem>
                                   <Tooltip content="Edit filter name">
                                     <Button
@@ -541,6 +590,71 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
                                       aria-label="Edit filter name"
                                     >
                                       <EditIcon />
+                                    </Button>
+                                  </Tooltip>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Tooltip content={filter.hidden ? 'Show in menu' : 'Hide from menu'}>
+                                    <Button
+                                      variant="plain"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSavedFilters(savedFilters.map(f =>
+                                          f.id === filter.id ? { ...f, hidden: !f.hidden } : f
+                                        ));
+                                        addToast(
+                                          filter.hidden ? `"${filter.name}" is now visible in the menu` : `"${filter.name}" is now hidden from the menu`,
+                                          'info'
+                                        );
+                                      }}
+                                      aria-label={filter.hidden ? 'Show in menu' : 'Hide from menu'}
+                                    >
+                                      {filter.hidden ? <EyeSlashIcon /> : <EyeIcon />}
+                                    </Button>
+                                  </Tooltip>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Tooltip content={filter.isDefault ? 'Default filter (click to unset)' : 'Set as default filter'}>
+                                    <Button
+                                      variant="plain"
+                                      size="sm"
+                                      onClick={() => {
+                                        if (filter.isDefault) {
+                                          setSavedFilters(savedFilters.map(f =>
+                                            f.id === filter.id ? { ...f, isDefault: false } : f
+                                          ));
+                                          addToast(`"${filter.name}" is no longer the default filter`, 'info');
+                                        } else {
+                                          setSavedFilters(savedFilters.map(f => ({
+                                            ...f,
+                                            isDefault: f.id === filter.id,
+                                          })));
+                                          addToast(`"${filter.name}" set as default filter`, 'success');
+                                        }
+                                      }}
+                                      aria-label={filter.isDefault ? 'Unset default filter' : 'Set as default filter'}
+                                      style={filter.isDefault ? { color: 'var(--pf-t--global--icon--color--status--warning--default)' } : undefined}
+                                    >
+                                      <StarIcon />
+                                    </Button>
+                                  </Tooltip>
+                                </FlexItem>
+                                <FlexItem>
+                                  <Tooltip content="Edit filter selection">
+                                    <Button
+                                      variant="plain"
+                                      size="sm"
+                                      onClick={() => {
+                                        if (onEditFilterSelection) {
+                                          onEditFilterSelection(filter);
+                                          setIsManageSavedFiltersModalOpen(false);
+                                          setEditingFilterId(null);
+                                          setEditingFilterName('');
+                                        }
+                                      }}
+                                      aria-label="Edit filter selection"
+                                    >
+                                      <FilterIcon />
                                     </Button>
                                   </Tooltip>
                                 </FlexItem>

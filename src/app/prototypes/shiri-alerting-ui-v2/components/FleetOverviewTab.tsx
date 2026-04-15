@@ -341,7 +341,7 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                   <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
                     <FlexItem>
                       {clusterCardView === 'all-clusters' ? (
-                        <CardTitle>Clusters Fleet alerts overview</CardTitle>
+                        <CardTitle data-testid="fleet-alerts-card-title">Fleet alerts</CardTitle>
                       ) : (
                         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
                           <FlexItem>
@@ -355,7 +355,7 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                             </Button>
                           </FlexItem>
                           <FlexItem>
-                            <CardTitle>{selectedClusterInCard?.name} - Components Health</CardTitle>
+                            <CardTitle>{selectedClusterInCard?.name} - Component&apos;s health</CardTitle>
                           </FlexItem>
                         </Flex>
                       )}
@@ -444,15 +444,15 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                                 isExpanded={isSortByOpen}
                                 style={{ padding: '4px 8px' }}
                               >
-                                {sortBy === 'severity' ? 'Severity (High-Low)' : sortBy === 'alertCount' ? 'Alert Count' : 'Cluster Name'}
+                                {sortBy === 'severity' ? 'Severity (high-low)' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}
                               </MenuToggle>
                             )}
                           >
                             <DropdownList>
                               {[
-                                { value: 'severity' as const, label: 'Severity (High-Low)' },
-                                { value: 'alertCount' as const, label: 'Alert Count' },
-                                { value: 'clusterName' as const, label: 'Cluster Name' },
+                                { value: 'severity' as const, label: 'Severity (high-low)' },
+                                { value: 'alertCount' as const, label: 'Alert count' },
+                                { value: 'clusterName' as const, label: 'Cluster name' },
                               ].map(opt => (
                                 <DropdownItem key={opt.value} onClick={() => { setSortBy(opt.value); setIsSortByOpen(false); }}>
                                   <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
@@ -491,7 +491,7 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                                 {[
                                   { value: 'none' as const, label: 'None' },
                                   { value: 'region' as const, label: 'Region' },
-                                  { value: 'cloudProvider' as const, label: 'Cloud Provider' },
+                                  { value: 'cloudProvider' as const, label: 'Cloud provider' },
                                   { value: 'severity' as const, label: 'Severity' },
                                 ].map(opt => (
                                   <DropdownItem key={opt.value} onClick={() => { setGroupBy(opt.value); setIsGroupByOpen(false); }}>
@@ -566,7 +566,7 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                                   isDisabled={viewMode === 'summary'}
                                   style={{ padding: '4px 8px' }}
                                 >
-                                  {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Number of Nodes'}
+                                  {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'None (equal size)'}
                                 </MenuToggle>
                               )}
                             >
@@ -930,7 +930,7 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                               columnIndex: 3
                             }}
                           >
-                            Total Alerts
+                            Total alerts
                           </Th>
                           <Th
                             sort={{

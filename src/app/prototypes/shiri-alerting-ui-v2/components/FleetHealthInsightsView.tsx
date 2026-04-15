@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Flex, FlexItem, Title, Label, Button, Tooltip, Content } from '@patternfly/react-core';
-import { MagicIcon, ExclamationCircleIcon, ExclamationTriangleIcon, InfoCircleIcon, OptimizeIcon, HelpIcon } from '@patternfly/react-icons';
+import { MagicIcon, ExclamationCircleIcon, ExclamationTriangleIcon, InfoCircleIcon, OptimizeIcon, HelpIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import {
   INSIGHTS_LIST_SIZE,
   INSIGHTS_LINK,
@@ -90,7 +90,7 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
           </span>
         </div>
       </div>
-      <Title headingLevel="h3" size="lg" style={{ marginBottom: 6 }}>Top Alerts</Title>
+      <Title headingLevel="h3" size="lg" style={{ marginBottom: 6 }}>Top alerts</Title>
       <div style={{ ...INSIGHTS_LIST_WRAPPER, display: 'flex', flexDirection: 'column' }}>
         {alertRuleData.slice(0, INSIGHTS_LIST_SIZE).map((rule, index) => {
           const dominantSeverity: SeverityKey = rule.critical > 0 ? 'Critical' : rule.warning > 0 ? 'Warning' : 'Info';
@@ -109,7 +109,9 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
                 <FlexItem style={{ flexShrink: 0 }}>
                   <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
                     {getAlertActions(rule.name).map((action) => (
-                      <Button key={action.label} variant="link" isInline style={INSIGHTS_LINK} className="pf-v6-u-font-size-sm" onClick={action.onClick}>{action.label}</Button>
+                      <Button key={action.label} variant="link" isInline style={INSIGHTS_LINK} className="pf-v6-u-font-size-sm" onClick={action.onClick}
+                        {...(action.label.toLowerCase().includes('runbook') ? { icon: <ExternalLinkAltIcon />, iconPosition: 'end' as const } : {})}
+                      >{action.label}</Button>
                     ))}
                     <Button variant="link" isInline style={INSIGHTS_LINK} className="pf-v6-u-font-size-sm" onClick={() => onAlertRuleClick(rule.name)}>View alert</Button>
                   </Flex>
@@ -119,7 +121,7 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
                 <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }} style={{ marginTop: 6, width: '100%' }} role="note" aria-label="AI insight">
                   <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true"><OptimizeIcon style={{ width: 14, height: 14 }} /></span>
                   <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1 }}>
-                    <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI Insight: </span>
+                    <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
                     <span style={AI_INSIGHT_TEXT_STYLE} title={getAlertAiInsight(rule.name)}>{getAlertAiInsight(rule.name)}</span>
                   </span>
                 </Flex>
@@ -136,8 +138,8 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
       {componentInsightsTop5.length > 0 && (
         <>
           <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: 6 }}>
-            <Title headingLevel="h3" size="lg">Most Affected Components</Title>
-            <Tooltip content="Components are Kubernetes subsystems (e.g. kube-apiserver, etcd, kubelet) that are affected by firing alerts. This section highlights which components are most impacted across your fleet so you can prioritize investigation.">
+            <Title headingLevel="h3" size="lg">Most affected components</Title>
+            <Tooltip content="Kubernetes subsystems (such as kube-apiserver, etcd, kubelet) with active firing alerts.">
               <Button variant="plain" aria-label="More info about affected components" icon={<HelpIcon />} />
             </Tooltip>
           </Flex>
@@ -159,7 +161,9 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
                     <FlexItem style={{ flexShrink: 0 }}>
                       <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
                         {getComponentActions(comp.name).map((action) => (
-                          <Button key={action.label} variant="link" isInline style={INSIGHTS_LINK} className="pf-v6-u-font-size-sm" onClick={action.onClick}>{action.label}</Button>
+                          <Button key={action.label} variant="link" isInline style={INSIGHTS_LINK} className="pf-v6-u-font-size-sm" onClick={action.onClick}
+                            {...(action.label.toLowerCase().includes('runbook') ? { icon: <ExternalLinkAltIcon />, iconPosition: 'end' as const } : {})}
+                          >{action.label}</Button>
                         ))}
                         <Button variant="link" isInline style={INSIGHTS_LINK} className="pf-v6-u-font-size-sm" onClick={() => onComponentClick(comp.name)}>View alert</Button>
                       </Flex>
@@ -169,7 +173,7 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
                     <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }} style={{ marginTop: 6, width: '100%' }} role="note" aria-label="AI insight">
                       <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true"><OptimizeIcon style={{ width: 14, height: 14 }} /></span>
                       <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1 }}>
-                        <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI Insight: </span>
+                        <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
                         <span style={AI_INSIGHT_TEXT_STYLE} title={getComponentAiInsight(comp.name)}>{getComponentAiInsight(comp.name)}</span>
                       </span>
                     </Flex>

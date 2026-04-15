@@ -203,49 +203,52 @@ export const FleetOverviewToolbar: React.FunctionComponent<FleetOverviewToolbarP
               )}
             >
               <DropdownList>
-                {savedFilters.length === 0 ? (
-                  <DropdownItem isDisabled>No saved filters</DropdownItem>
-                ) : (
-                  savedFilters.map(filter => (
-                    <DropdownItem
-                      key={filter.id}
-                      onClick={() => {
-                        setSelectedSavedFilter(filter);
-                        setSeverityFilter(filter.filters.severity as AlertSeverity[]);
-                        setGroupFilter(filter.filters.group as AlertGroup[]);
-                        setComponentFilter(filter.filters.component as AlertComponent[]);
-                        setRegionFilter(filter.filters.region || []);
-                        setClusterFilter(filter.filters.cluster || []);
-                        setNamespaceFilter(filter.filters.namespace || []);
-                        setLabelFilter(filter.filters.label || []);
-                        setSearchValue(filter.filters.searchValue || '');
+                {(() => {
+                  const visibleFilters = savedFilters.filter(f => !f.hidden);
+                  return visibleFilters.length === 0 ? (
+                    <DropdownItem isDisabled>No saved filters</DropdownItem>
+                  ) : (
+                    visibleFilters.map(filter => (
+                      <DropdownItem
+                        key={filter.id}
+                        onClick={() => {
+                          setSelectedSavedFilter(filter);
+                          setSeverityFilter(filter.filters.severity as AlertSeverity[]);
+                          setGroupFilter(filter.filters.group as AlertGroup[]);
+                          setComponentFilter(filter.filters.component as AlertComponent[]);
+                          setRegionFilter(filter.filters.region || []);
+                          setClusterFilter(filter.filters.cluster || []);
+                          setNamespaceFilter(filter.filters.namespace || []);
+                          setLabelFilter(filter.filters.label || []);
+                          setSearchValue(filter.filters.searchValue || '');
 
-                        if (filter.viewSettings) {
-                          if (filter.viewSettings.groupBy !== undefined) {
-                            setGroupBy(filter.viewSettings.groupBy);
+                          if (filter.viewSettings) {
+                            if (filter.viewSettings.groupBy !== undefined) {
+                              setGroupBy(filter.viewSettings.groupBy);
+                            }
+                            if (filter.viewSettings.sortBy !== undefined) {
+                              setSortBy(filter.viewSettings.sortBy);
+                            }
+                            if (filter.viewSettings.importanceSizing !== undefined) {
+                              setImportanceSizing(filter.viewSettings.importanceSizing);
+                            }
                           }
-                          if (filter.viewSettings.sortBy !== undefined) {
-                            setSortBy(filter.viewSettings.sortBy);
-                          }
-                          if (filter.viewSettings.importanceSizing !== undefined) {
-                            setImportanceSizing(filter.viewSettings.importanceSizing);
-                          }
-                        }
 
-                        setIsSavedFiltersDropdownOpen(false);
-                      }}
-                    >
-                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                        <FlexItem>{filter.name}</FlexItem>
-                        {selectedSavedFilter?.id === filter.id && (
-                          <FlexItem>
-                            <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
-                          </FlexItem>
-                        )}
-                      </Flex>
-                    </DropdownItem>
-                  ))
-                )}
+                          setIsSavedFiltersDropdownOpen(false);
+                        }}
+                      >
+                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                          <FlexItem>{filter.name}{filter.isDefault ? ' ★' : ''}</FlexItem>
+                          {selectedSavedFilter?.id === filter.id && (
+                            <FlexItem>
+                              <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                            </FlexItem>
+                          )}
+                        </Flex>
+                      </DropdownItem>
+                    ))
+                  );
+                })()}
                 <Divider />
                 <DropdownItem
                   onClick={() => {

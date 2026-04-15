@@ -258,7 +258,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const filteredLabels = availableLabels.filter(l => l.toLowerCase().includes(labelSearchValue.toLowerCase()));
   const filteredComponents = availableComponents.filter(c => c.toLowerCase().includes(componentSearchValue.toLowerCase()));
 
-  const filterTitle = filterContext === 'alerts' ? 'Filter Fleet Alerts' : 'Filter Fleet';
+  const filterTitle = filterContext === 'alerts' ? 'Filter fleet alerts' : 'Filter fleet';
 
   return (
     <Card>

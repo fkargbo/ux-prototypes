@@ -258,7 +258,7 @@ export const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendDat
     <Card>
       <CardHeader>
         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem><CardTitle>Alert velocity & trends</CardTitle></FlexItem>
+          <FlexItem><CardTitle>Alert velocity and trends</CardTitle></FlexItem>
           <FlexItem>
             <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
               Click anomaly markers to inspect

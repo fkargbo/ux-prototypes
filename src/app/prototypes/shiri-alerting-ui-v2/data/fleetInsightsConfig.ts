@@ -36,7 +36,7 @@ export const AI_INSIGHTS_BY_COMPONENT: Record<string, string> = {
 export function getAlertAiInsight(alertName: string): string {
   return (
     AI_INSIGHTS_BY_ALERT[alertName] ??
-    `Firing across multiple clusters — may indicate a shared infrastructure issue.`
+    `Firing across multiple clusters — might indicate a shared infrastructure issue.`
   );
 }
 

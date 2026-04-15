@@ -81,7 +81,12 @@ const PrototypeLauncher: React.FC = () => {
     const lastUsed = versions.find(v => v.config.id === lastUsedId);
     if (lastUsed) return lastUsed;
     
-    // Default to first version
+    // Multi-cluster alerting: default to v2 (shiri-alerting-ui-v2) — active development target
+    if (cardId === 'multi-cluster-alerting') {
+      const v2 = versions.find(v => v.config.id === 'shiri-alerting-ui-v2');
+      if (v2) return v2;
+    }
+    // Default to first version in sort order
     return versions[0];
   };
   

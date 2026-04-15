@@ -285,7 +285,7 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       // For other groupings, use a moderate multiplier to show importance
       let groupValue: number;
       if (groupBy === 'severity') {
-        // When "Size by: None (Equal size)" is selected, groups should also be equal size
+        // When "Size by: None (equal size)" is selected, groups should also be equal size
         if (importanceSizing === 'none') {
           // Use equal base value with microscopic offsets for ordering only
           // Critical gets highest offset, Healthy gets lowest
@@ -342,9 +342,29 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
     });
   };
 
+  React.useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      const raw = e.target;
+      const el =
+        raw instanceof Element ? raw : (raw as Node).parentElement;
+      const link = el?.closest?.('[data-treemap-view-all]') as HTMLElement | null;
+      if (!link) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = link.getAttribute('data-treemap-view-all');
+      if (!id) return;
+      const cluster = clusters.find(c => c.id === id);
+      if (cluster) onDrillDown(cluster);
+    };
+    document.addEventListener('click', onDocClick, true);
+    return () => document.removeEventListener('click', onDocClick, true);
+  }, [clusters, onDrillDown]);
+
   const option = {
     tooltip: {
       confine: true,
+      enterable: true,
+      hideDelay: 200,
       formatter: (info: any) => {
         if (!info.data?.cluster) {
           // Group header or empty placeholder tooltip
@@ -422,7 +442,7 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
             <div style="font-size: 12px; color: #6a6e73; margin-bottom: 12px;">${cluster.region} · ${cluster.cloudProvider}</div>
             ${Object.keys(componentHealth).length > 0 ? `
               <div style="margin-bottom: 8px;">
-                <div style="font-size: 11px; font-weight: 600; color: #6a6e73; margin-bottom: 6px;">Components health</div>
+                <div style="font-size: 11px; font-weight: 600; color: #6a6e73; margin-bottom: 6px;">Component's health</div>
                 ${componentHealthHtml}
                 ${moreComponents}
               </div>
@@ -440,6 +460,9 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
               <span>Alerts: <strong style="color: ${totalAlerts > 0 ? statusColor : '#151515'};">${totalAlerts}</strong></span>
             </div>
             <div style="font-size: 12px; color: #6a6e73; margin-top: 10px;">Select the cluster to view all alerts</div>
+            <div style="margin-top: 8px;">
+              <a href="#" data-treemap-view-all="${cluster.id}" style="font-size: 12px; font-weight: 600; color: #0066cc; text-decoration: underline; cursor: pointer;">View all alerts</a>
+            </div>
           </div>
         `;
       },

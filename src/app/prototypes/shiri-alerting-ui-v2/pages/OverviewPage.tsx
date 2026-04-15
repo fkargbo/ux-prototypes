@@ -512,7 +512,7 @@ export const OverviewPage: React.FC = () => {
             <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>Fleet Details</Title>
             <Stack hasGutter>
               <StackItem>
-                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total Clusters</Content>
+                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total clusters</Content>
                 <Content component="p"><strong>{totalClusters}</strong></Content>
               </StackItem>
               <StackItem>
@@ -520,11 +520,11 @@ export const OverviewPage: React.FC = () => {
                 <Content component="p"><strong>{healthyClusters}</strong> / {totalClusters}</Content>
               </StackItem>
               <StackItem>
-                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total Nodes</Content>
+                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total nodes</Content>
                 <Content component="p"><strong>{totalNodes}</strong></Content>
               </StackItem>
               <StackItem>
-                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total Pods</Content>
+                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total pods</Content>
                 <Content component="p"><strong>{totalPods.toLocaleString()}</strong></Content>
               </StackItem>
               <StackItem>
@@ -897,13 +897,13 @@ export const OverviewPage: React.FC = () => {
                       </Grid>
                     </GridItem>
 
-                    {/* Alert velocity & trends */}
+                    {/* Alert velocity and trends */}
                     <GridItem md={7}>
                       <Card isPlain style={{ border: '1px solid var(--pf-t--global--border--color--default)', borderRadius: '8px', padding: '16px' }}>
                         <Stack hasGutter>
                           <StackItem>
                             <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-                              <Content component="p"><strong>Alert velocity & trends</strong></Content>
+                              <Content component="p"><strong>Alert velocity and trends</strong></Content>
                               <Dropdown
                                 isOpen={isTimeRangeOpen}
                                 onOpenChange={setIsTimeRangeOpen}

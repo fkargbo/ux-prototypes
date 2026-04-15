@@ -420,36 +420,39 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                 )}
                               >
                                 <DropdownList>
-                                  {savedFilters.length === 0 ? (
-                                    <DropdownItem isDisabled>No saved filters</DropdownItem>
-                                  ) : (
-                                    savedFilters.map(filter => (
-                                      <DropdownItem
-                                        key={filter.id}
-                                        onClick={() => {
-                                          setSelectedSavedFilter(filter);
-                                          setAlertsTabSeverityFilter(filter.filters.severity as AlertSeverity[]);
-                                          setAlertsTabGroupFilter(filter.filters.group as AlertGroup[]);
-                                          setAlertsTabComponentFilter(filter.filters.component as AlertComponent[]);
-                                          setAlertsTabRegionFilter(filter.filters.region || []);
-                                          setAlertsTabClusterFilter(filter.filters.cluster || []);
-                                          setAlertsTabNamespaceFilter(filter.filters.namespace || []);
-                                          setAlertsTabLabelFilter(filter.filters.label || []);
-                                          setAlertsTabSearchValue(filter.filters.searchValue || '');
-                                          setIsSavedFiltersDropdownOpen(false);
-                                        }}
-                                      >
-                                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                                          <FlexItem>{filter.name}</FlexItem>
-                                          {selectedSavedFilter?.id === filter.id && (
-                                            <FlexItem>
-                                              <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
-                                            </FlexItem>
-                                          )}
-                                        </Flex>
-                                      </DropdownItem>
-                                    ))
-                                  )}
+                                  {(() => {
+                                    const visibleFilters = savedFilters.filter(f => !f.hidden);
+                                    return visibleFilters.length === 0 ? (
+                                      <DropdownItem isDisabled>No saved filters</DropdownItem>
+                                    ) : (
+                                      visibleFilters.map(filter => (
+                                        <DropdownItem
+                                          key={filter.id}
+                                          onClick={() => {
+                                            setSelectedSavedFilter(filter);
+                                            setAlertsTabSeverityFilter(filter.filters.severity as AlertSeverity[]);
+                                            setAlertsTabGroupFilter(filter.filters.group as AlertGroup[]);
+                                            setAlertsTabComponentFilter(filter.filters.component as AlertComponent[]);
+                                            setAlertsTabRegionFilter(filter.filters.region || []);
+                                            setAlertsTabClusterFilter(filter.filters.cluster || []);
+                                            setAlertsTabNamespaceFilter(filter.filters.namespace || []);
+                                            setAlertsTabLabelFilter(filter.filters.label || []);
+                                            setAlertsTabSearchValue(filter.filters.searchValue || '');
+                                            setIsSavedFiltersDropdownOpen(false);
+                                          }}
+                                        >
+                                          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                                            <FlexItem>{filter.name}{filter.isDefault ? ' ★' : ''}</FlexItem>
+                                            {selectedSavedFilter?.id === filter.id && (
+                                              <FlexItem>
+                                                <CheckIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                                              </FlexItem>
+                                            )}
+                                          </Flex>
+                                        </DropdownItem>
+                                      ))
+                                    );
+                                  })()}
                                   <Divider />
                                   <DropdownItem
                                     onClick={() => {
@@ -641,8 +644,42 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                   <FlexItem>
                                     <Button variant="link" onClick={() => setAlertsTabIsFilterPanelOpen(true)}>Edit filters</Button>
                                   </FlexItem>
+                                  {selectedSavedFilter && (() => {
+                                    const saved = selectedSavedFilter.filters;
+                                    const hasChanges =
+                                      JSON.stringify([...alertsTabSeverityFilter].sort()) !== JSON.stringify([...(saved.severity || [])].sort()) ||
+                                      JSON.stringify([...alertsTabGroupFilter].sort()) !== JSON.stringify([...(saved.group || [])].sort()) ||
+                                      JSON.stringify([...alertsTabComponentFilter].sort()) !== JSON.stringify([...(saved.component || [])].sort()) ||
+                                      JSON.stringify([...alertSourceFilter].sort()) !== JSON.stringify([...(saved.source || [])].sort()) ||
+                                      JSON.stringify([...alertsTabRegionFilter].sort()) !== JSON.stringify([...(saved.region || [])].sort()) ||
+                                      JSON.stringify([...alertsTabClusterFilter].sort()) !== JSON.stringify([...(saved.cluster || [])].sort()) ||
+                                      JSON.stringify([...alertsTabNamespaceFilter].sort()) !== JSON.stringify([...(saved.namespace || [])].sort()) ||
+                                      JSON.stringify([...alertsTabLabelFilter].sort()) !== JSON.stringify([...(saved.label || [])].sort()) ||
+                                      alertsTabSearchValue !== (saved.searchValue || '');
+                                    return hasChanges ? (
+                                      <FlexItem>
+                                        <Button variant="link" onClick={() => {
+                                          const updatedFilters = {
+                                            severity: alertsTabSeverityFilter,
+                                            group: alertsTabGroupFilter,
+                                            component: alertsTabComponentFilter,
+                                            source: alertSourceFilter,
+                                            searchValue: alertsTabSearchValue,
+                                            region: alertsTabRegionFilter,
+                                            cluster: alertsTabClusterFilter,
+                                            namespace: alertsTabNamespaceFilter,
+                                            label: alertsTabLabelFilter,
+                                          };
+                                          setSavedFilters((prev: SavedFilter[]) => prev.map(f =>
+                                            f.id === selectedSavedFilter.id ? { ...f, filters: updatedFilters } : f
+                                          ));
+                                          setSelectedSavedFilter({ ...selectedSavedFilter, filters: updatedFilters });
+                                        }}>Update saved filter</Button>
+                                      </FlexItem>
+                                    ) : null;
+                                  })()}
                                   <FlexItem>
-                                    <Button variant="link" onClick={() => { setNewFilterName(''); setIsSaveFilterModalOpen(true); }}>Add to saved filters</Button>
+                                    <Button variant="link" onClick={() => { setNewFilterName(''); setIsSaveFilterModalOpen(true); }}>Save as new filter</Button>
                                   </FlexItem>
                                 </Flex>
                               </FlexItem>

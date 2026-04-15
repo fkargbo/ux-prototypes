@@ -1153,20 +1153,19 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Size by options based on role
   const sizeByOptions = userRole === 'admin' 
     ? [
-        { value: 'none', label: 'None (Equal size)' },
-        { value: 'nodeCount', label: 'Number of Nodes' },
-        { value: 'cpuCores', label: 'Total CPU Cores' },
-        { value: 'totalMemory', label: 'Total Memory' },
-        { value: 'podCount', label: 'Total Pods' },
-        { value: 'vmCount', label: 'Total VMs' },
-        { value: 'totalAlerts', label: 'Total Alerts' },
+        { value: 'none', label: 'None (equal size)' },
+        { value: 'nodeCount', label: 'Number of nodes' },
+        { value: 'cpuCores', label: 'Total CPU cores' },
+        { value: 'totalMemory', label: 'Total memory (GiB)' },
+        { value: 'podCount', label: 'Total pods' },
+        { value: 'totalAlerts', label: 'Total alerts' },
       ]
     : [
-        { value: 'none', label: 'None (Equal size)' },
-        { value: 'podCount', label: 'Total Pods' },
-        { value: 'cpuRequests', label: 'Total CPU Requests' },
-        { value: 'memoryRequests', label: 'Total Memory Requests' },
-        { value: 'totalAlerts', label: 'Total Alerts' },
+        { value: 'none', label: 'None (equal size)' },
+        { value: 'podCount', label: 'Total pods' },
+        { value: 'cpuRequests', label: 'Total CPU requests' },
+        { value: 'memoryRequests', label: 'Total memory requests' },
+        { value: 'totalAlerts', label: 'Total alerts' },
       ];
 
   // ========================================
@@ -1256,12 +1255,38 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     { value: 300, label: '5 minutes' },
   ];
 
+  const isDevBuild = process.env.NODE_ENV !== 'production';
+  const [showAlertingDevHint, setShowAlertingDevHint] = React.useState(
+    () => isDevBuild && typeof sessionStorage !== 'undefined' && sessionStorage.getItem('hideAlertingDevHint') !== '1'
+  );
 
   // ========================================
   // MAIN VIEW (Multi-cluster Alerting Page)
   // ========================================
   return (
     <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 76px)', overflow: 'hidden', position: 'relative', padding: '0px' }}>
+      {isDevBuild && showAlertingDevHint && (
+        <div style={{ padding: '8px 16px 0', flexShrink: 0 }}>
+          <PfAlert
+            variant="info"
+            isInline
+            title="Development server"
+            actionClose={
+              <AlertActionCloseButton
+                onClose={() => {
+                  setShowAlertingDevHint(false);
+                  sessionStorage.setItem('hideAlertingDevHint', '1');
+                }}
+              />
+            }
+          >
+            Open the <strong>Fleet overview</strong> tab: the cluster card title should be <strong>Fleet alerts</strong> (see also{' '}
+            <code data-testid="fleet-alerts-card-title-hint">data-testid=&quot;fleet-alerts-card-title&quot;</code>
+            ). If nothing ever changes, you are likely running <code>npm start</code> (serves old <code>dist/</code> on port 8080). Use{' '}
+            <code>npm run start:dev</code> or <code>npm run dev</code> on port 3000, save a file, then hard-refresh.
+          </PfAlert>
+        </div>
+      )}
       {/* Header + Toolbar Section - Show for main tab views */}
       {(navigationView === 'fleet-overview' || mainPageTab === 'incidents' || mainPageTab === 'management') && (
       <div style={{ 
@@ -1886,18 +1911,18 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           <Card>
             <CardBody>
               <EmptyState 
-                titleText="Automated Incident Detection" 
+                titleText="Automated visibility across your fleet" 
                 headingLevel="h4" 
                 icon={PortIcon}
                 variant="lg"
               >
                 <EmptyStateBody>
                   Gain better visibility into your cluster health with automated incident detection. 
-                  By installing the Red Hat OpenShift incident detection operator, you can use analytics 
+                  By installing the Red Hat OpenShift incident detection Operator, you can use analytics 
                   to quickly identify and troubleshoot potential problems before they affect your users.
                 </EmptyStateBody>
-                <EmptyStateActions>
-                  <Button variant="primary" icon={<PlusIcon />}>Install operator</Button>
+                <EmptyStateActions style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                  <Button variant="primary" icon={<PlusIcon />}>Install Operator</Button>
                 </EmptyStateActions>
               </EmptyState>
             </CardBody>
@@ -1986,6 +2011,30 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         editingFilterName={editingFilterName}
         setEditingFilterName={setEditingFilterName}
         selectedSavedFilter={selectedSavedFilter}
+        onEditFilterSelection={(filter) => {
+          setSelectedSavedFilter(filter);
+          if (mainPageTab === 'alerts') {
+            setAlertsTabSeverityFilter(filter.filters.severity as AlertSeverity[]);
+            setAlertsTabGroupFilter(filter.filters.group as AlertGroup[]);
+            setAlertsTabComponentFilter(filter.filters.component as AlertComponent[]);
+            setAlertsTabRegionFilter(filter.filters.region || []);
+            setAlertsTabClusterFilter(filter.filters.cluster || []);
+            setAlertsTabNamespaceFilter(filter.filters.namespace || []);
+            setAlertsTabLabelFilter(filter.filters.label || []);
+            setAlertsTabSearchValue(filter.filters.searchValue || '');
+            setAlertsTabIsFilterPanelOpen(true);
+          } else {
+            setSeverityFilter(filter.filters.severity as AlertSeverity[]);
+            setGroupFilter(filter.filters.group as AlertGroup[]);
+            setComponentFilter(filter.filters.component as AlertComponent[]);
+            setRegionFilter(filter.filters.region || []);
+            setClusterFilter(filter.filters.cluster || []);
+            setNamespaceFilter(filter.filters.namespace || []);
+            setLabelFilter(filter.filters.label || []);
+            setSearchValue(filter.filters.searchValue || '');
+            setIsFilterPanelOpen(true);
+          }
+        }}
       />
 
       <AlertDetailDrawer

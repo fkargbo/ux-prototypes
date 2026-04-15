@@ -37,7 +37,7 @@ export const CrossClusterInsightsCards: React.FC<CrossClusterInsightsCardsProps>
           <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>
               <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <CardTitle>Fleet Health Insights</CardTitle>
+                <CardTitle>Fleet-wide alert impact</CardTitle>
                 <Tooltip content="Unified view of top alerts and component impact. Use Insights or Chart view.">
                   <Button variant="plain" aria-label="More information" icon={<InfoCircleIcon />} />
                 </Tooltip>

@@ -21,6 +21,7 @@ import {
   InfoCircleIcon,
   TimesIcon,
   ClockIcon,
+  ExternalLinkAltIcon,
 } from '@patternfly/react-icons';
 import type { AlertData } from '../data/types';
 import { AlertTimelineVisualization } from './AlertTimelineVisualization';
@@ -370,7 +371,7 @@ export const AlertDetailDrawer: React.FC<AlertDetailDrawerProps> = ({
                       Runbook
                     </Content>
                     <Content component="p">
-                      <Button variant="link" isInline>
+                      <Button variant="link" isInline component="a" href="https://mygitrunbook.com" target="_blank" icon={<ExternalLinkAltIcon />} iconPosition="end">
                         https://mygitrunbook.com
                       </Button>
                     </Content>

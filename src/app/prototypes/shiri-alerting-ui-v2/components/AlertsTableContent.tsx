@@ -38,6 +38,7 @@ import {
   EllipsisVIcon,
   AngleRightIcon,
   AngleDownIcon,
+  ExternalLinkAltIcon,
 } from '@patternfly/react-icons';
 import type {
   AlertSeverity,
@@ -154,7 +155,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 }) => {
 
   const visibleCols = getVisibleColumns().filter(
-    col => col.key !== 'clusters' && col.key !== 'flappingRate'
+    col => col.key !== 'flappingRate'
   );
 
   const renderAggCellContent = (col: ColumnConfig, agg: AggregatedAlert) => {
@@ -191,6 +192,14 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
         return <Label isCompact variant="outline">{agg.component}</Label>;
       case 'source':
         return firstAlert?.source || '-';
+      case 'clusters':
+        return (
+          <Tooltip content={agg.clusters.map(c => c.name).join(', ')}>
+            <Badge isRead>{agg.clusters.length} cluster{agg.clusters.length !== 1 ? 's' : ''}</Badge>
+          </Tooltip>
+        );
+      case 'namespace':
+      case 'resource':
       case 'description':
       case 'runbookUrl':
         return '-';
@@ -311,24 +320,23 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
             case 'runbookUrl':
               return <Td key={col.key} modifier="nowrap">
                 {alertInstance?.runbookUrl
-                  ? <Button variant="link" isInline component="a" href={alertInstance.runbookUrl} target="_blank" onClick={(e) => e.stopPropagation()}>View runbook</Button>
+                  ? <Button variant="link" isInline component="a" href={alertInstance.runbookUrl} target="_blank" onClick={(e) => e.stopPropagation()} icon={<ExternalLinkAltIcon />} iconPosition="end">View runbook</Button>
                   : '-'}
               </Td>;
-            default:
+            case 'clusters':
               return (
                 <Td key={col.key} modifier="nowrap">
-                  {!singleClusterView ? (
-                    <Button variant="link" isInline onClick={() => onClusterFilterChange && onClusterFilterChange([clusterInfo.name])}>
-                      {clusterInfo.name}
-                    </Button>
-                  ) : (
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                      <Label color="blue" isCompact>NS</Label>
-                      <span>{alertInstance?.namespace || 'default'}</span>
-                    </Flex>
-                  )}
+                  <Button variant="link" isInline onClick={() => onClusterFilterChange && onClusterFilterChange([clusterInfo.name])}>
+                    {clusterInfo.name}
+                  </Button>
                 </Td>
               );
+            case 'namespace':
+              return <Td key={col.key} modifier="nowrap">{alertInstance?.namespace || '-'}</Td>;
+            case 'resource':
+              return <Td key={col.key} modifier="nowrap">{alertInstance?.resource || '-'}</Td>;
+            default:
+              return <Td key={col.key} modifier="nowrap">-</Td>;
           }
         })}
         <Td modifier="nowrap">{renderInstanceActionMenu(agg, clusterInfo, instanceIdx)}</Td>
@@ -363,6 +371,9 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
             if (col.key === 'group') { thProps.info = { tooltip: 'Indicates whether the alert affects the entire cluster or a specific namespace.', ariaLabel: 'More information about alert scope' }; }
             if (col.key === 'component') { thProps.info = { tooltip: 'The specific services, operators, or nodes affected by this alert.', ariaLabel: 'More information about affected component' }; }
             if (col.key === 'source') { thProps.info = { tooltip: 'Defines how the alert rule is managed. Platform alerts are default rules managed in the openshift-monitoring namespace as AlertingRules. User alerts are custom PrometheusRules created by users to monitor specific workloads.', ariaLabel: 'More information about source' }; }
+            if (col.key === 'clusters') { thProps.info = { tooltip: 'The managed cluster where this alert instance is firing.', ariaLabel: 'More information about cluster' }; }
+            if (col.key === 'namespace') { thProps.info = { tooltip: 'The Kubernetes namespace associated with this alert instance.', ariaLabel: 'More information about namespace' }; }
+            if (col.key === 'resource') { thProps.info = { tooltip: 'The specific Kubernetes resource (e.g. node, pod) related to this alert.', ariaLabel: 'More information about resource' }; }
             if (canSort) {
               thProps.sort = {
                 sortBy: { index: sortConfig ? sortConfig.priority - 1 : -1, direction: sortConfig?.direction || 'asc' },
@@ -565,6 +576,9 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                 const thProps: any = { key: col.key, modifier: 'nowrap' as const };
                 if (col.key === 'group') { thProps.info = { tooltip: 'Indicates whether the alert affects the entire cluster or a specific namespace.', ariaLabel: 'More information about alert scope' }; }
                 if (col.key === 'component') { thProps.info = { tooltip: 'The specific services, operators, or nodes affected by this alert.', ariaLabel: 'More information about affected component' }; }
+                if (col.key === 'clusters') { thProps.info = { tooltip: 'The managed cluster where this alert instance is firing.', ariaLabel: 'More information about cluster' }; }
+                if (col.key === 'namespace') { thProps.info = { tooltip: 'The Kubernetes namespace associated with this alert instance.', ariaLabel: 'More information about namespace' }; }
+                if (col.key === 'resource') { thProps.info = { tooltip: 'The specific Kubernetes resource (e.g. node, pod) related to this alert.', ariaLabel: 'More information about resource' }; }
                 if (canSort) { thProps.sort = getSortParams(columnKey); }
                 return <Th {...thProps}>{col.label}</Th>;
               })}
@@ -645,8 +659,12 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                           return alert.description || '-';
                         case 'runbookUrl':
                           return alert.runbookUrl
-                            ? <Button variant="link" isInline component="a" href={alert.runbookUrl} target="_blank"  onClick={(e: React.MouseEvent) => e.stopPropagation()}>View runbook</Button>
+                            ? <Button variant="link" isInline component="a" href={alert.runbookUrl} target="_blank" onClick={(e: React.MouseEvent) => e.stopPropagation()} icon={<ExternalLinkAltIcon />} iconPosition="end">View runbook</Button>
                             : '-';
+                        case 'namespace':
+                          return alert.namespace || '-';
+                        case 'resource':
+                          return alert.resource || '-';
                         default:
                           return '-';
                       }
@@ -688,6 +706,9 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
               if (col.key === 'group') { thProps.info = { tooltip: 'Indicates whether the alert affects the entire cluster or a specific namespace.', ariaLabel: 'More information about alert scope' }; }
               if (col.key === 'component') { thProps.info = { tooltip: 'The specific services, operators, or nodes affected by this alert.', ariaLabel: 'More information about affected component' }; }
               if (col.key === 'source') { thProps.info = { tooltip: 'Defines how the alert rule is managed. Platform alerts are default rules managed in the openshift-monitoring namespace as AlertingRules. User alerts are custom PrometheusRules created by users to monitor specific workloads.', ariaLabel: 'More information about source' }; }
+              if (col.key === 'clusters') { thProps.info = { tooltip: 'The managed cluster where this alert instance is firing.', ariaLabel: 'More information about cluster' }; }
+              if (col.key === 'namespace') { thProps.info = { tooltip: 'The Kubernetes namespace associated with this alert instance.', ariaLabel: 'More information about namespace' }; }
+              if (col.key === 'resource') { thProps.info = { tooltip: 'The specific Kubernetes resource (e.g. node, pod) related to this alert.', ariaLabel: 'More information about resource' }; }
               if (canSort) { thProps.sort = getSortParams(columnKey); }
               return <Th {...thProps}>{col.label}</Th>;
             })}
@@ -717,8 +738,12 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                   return alert.description || '-';
                 case 'runbookUrl':
                   return alert.runbookUrl
-                    ? <Button variant="link" isInline component="a" href={alert.runbookUrl} target="_blank" onClick={(e: React.MouseEvent) => e.stopPropagation()}>View runbook</Button>
+                    ? <Button variant="link" isInline component="a" href={alert.runbookUrl} target="_blank" onClick={(e: React.MouseEvent) => e.stopPropagation()} icon={<ExternalLinkAltIcon />} iconPosition="end">View runbook</Button>
                     : '-';
+                case 'namespace':
+                  return alert.namespace || '-';
+                case 'resource':
+                  return alert.resource || '-';
                 default:
                   return '-';
               }

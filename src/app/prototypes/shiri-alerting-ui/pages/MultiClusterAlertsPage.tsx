@@ -198,7 +198,7 @@ type AlertComponent = 'kube-apiserver' | 'Storage' | 'Network' | 'etcd' | 'Sched
 type GroupByOption = 'none' | 'region' | 'cloudProvider' | 'team' | 'severity';
 type SortByOption = 'severity' | 'alertCount' | 'clusterName' | 'lastFired';
 type ViewMode = 'treemap' | 'summary';
-type ImportanceSizing = 'nodeCount' | 'cpuCores' | 'totalMemory' | 'podCount' | 'vmCount' | 'totalAlerts' | 'cpuRequests' | 'memoryRequests';
+type ImportanceSizing = 'nodeCount' | 'cpuCores' | 'totalMemory' | 'podCount' | 'totalAlerts' | 'cpuRequests' | 'memoryRequests';
 type UserRole = 'admin' | 'namespaceOwner';
 
 interface AlertData {
@@ -766,7 +766,6 @@ const getTileValue = (cluster: ClusterData, sizing: ImportanceSizing, severityFi
     case 'cpuCores': return cluster.cpuCores;
     case 'totalMemory': return cluster.totalMemory;
     case 'podCount': return cluster.podCount;
-    case 'vmCount': return cluster.vmCount || 1;
     case 'cpuRequests': return cluster.cpuRequests;
     case 'memoryRequests': return cluster.memoryRequests;
     case 'totalAlerts':
@@ -816,14 +815,6 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
     if (firingAlerts.some(a => a.severity === 'Warning')) return pfColors.warning;
     if (firingAlerts.some(a => a.severity === 'Info')) return pfColors.info;
     return pfColors.healthy;
-  };
-
-  const getStatusText = (cluster: ClusterData): string => {
-    const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
-    if (firingAlerts.some(a => a.severity === 'Critical')) return 'Critical';
-    if (firingAlerts.some(a => a.severity === 'Warning')) return 'Warning';
-    if (firingAlerts.some(a => a.severity === 'Info')) return 'Info';
-    return 'Healthy';
   };
 
   const buildTreemapData = () => {
@@ -885,9 +876,29 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       }));
   };
 
+  React.useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      const raw = e.target;
+      const el =
+        raw instanceof Element ? raw : (raw as Node).parentElement;
+      const link = el?.closest?.('[data-treemap-view-all]') as HTMLElement | null;
+      if (!link) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = link.getAttribute('data-treemap-view-all');
+      if (!id) return;
+      const cluster = clusters.find(c => c.id === id);
+      if (cluster) onDrillDown(cluster);
+    };
+    document.addEventListener('click', onDocClick, true);
+    return () => document.removeEventListener('click', onDocClick, true);
+  }, [clusters, onDrillDown]);
+
   const option = {
     tooltip: {
       confine: true,
+      enterable: true,
+      hideDelay: 200,
       formatter: (info: any) => {
         if (!info.data?.cluster) {
           // Group header tooltip
@@ -900,7 +911,6 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         }
         const cluster = info.data.cluster as ClusterData;
         const firingAlerts = cluster.alerts.filter(a => a.status === 'firing');
-        const status = getStatusText(cluster);
         const statusColor = getClusterColor(cluster);
         
         // Calculate component health - get worst severity per component
@@ -940,16 +950,18 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           ? `<div style="font-size: 11px; color: #6a6e73; margin-top: 4px;">+${Object.keys(componentHealth).length - 5} more components</div>` 
           : '';
         
+        const totalAlerts = cluster.alerts.filter(a => a.status === 'firing').length;
+        
         return `
           <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif; min-width: 220px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};"></span>
-              <span style="font-size: 14px; font-weight: 600; color: #151515;">${cluster.name}</span>
+              <span style="font-size: 14px; font-weight: 600; color: #151515;">Cluster ${cluster.name}</span>
             </div>
             <div style="font-size: 12px; color: #6a6e73; margin-bottom: 12px;">${cluster.region} · ${cluster.cloudProvider}</div>
             ${Object.keys(componentHealth).length > 0 ? `
               <div style="margin-bottom: 8px;">
-                <div style="font-size: 11px; font-weight: 600; color: #6a6e73; text-transform: uppercase; margin-bottom: 6px;">Component Health</div>
+                <div style="font-size: 11px; font-weight: 600; color: #6a6e73; margin-bottom: 6px;">Component's health</div>
                 ${componentHealthHtml}
                 ${moreComponents}
               </div>
@@ -959,11 +971,17 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
                 All components healthy
               </div>
             `}
-            <div style="font-size: 12px; color: #6a6e73; padding-top: 8px; border-top: 1px solid #d2d2d2;">
+            <div style="font-size: 12px; color: #6a6e73; padding-top: 8px; border-top: 1px solid #d2d2d2; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px;">
               <span>Nodes: <strong style="color: #151515;">${cluster.nodeCount}</strong></span>
-              <span style="margin-left: 12px;">Pods: <strong style="color: #151515;">${cluster.podCount}</strong></span>
+              <span>Pods: <strong style="color: #151515;">${cluster.podCount}</strong></span>
+              <span>Memory: <strong style="color: #151515;">${cluster.totalMemory} GB</strong></span>
+              <span>VMs: <strong style="color: #151515;">${cluster.vmCount || 0}</strong></span>
+              <span>Alerts: <strong style="color: ${totalAlerts > 0 ? statusColor : '#151515'};">${totalAlerts}</strong></span>
             </div>
-            <div style="font-size: 11px; color: #0066cc; margin-top: 8px;">Click to view alerts →</div>
+            <div style="font-size: 12px; color: #6a6e73; margin-top: 10px;">Select the cluster to view all alerts</div>
+            <div style="margin-top: 8px;">
+              <a href="#" data-treemap-view-all="${cluster.id}" style="font-size: 12px; font-weight: 600; color: #0066cc; text-decoration: underline; cursor: pointer;">View all alerts</a>
+            </div>
           </div>
         `;
       },
@@ -1102,6 +1120,8 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           style={{ height: '100%', width: '100%' }} 
           onEvents={{ click: handleClick }}
           opts={{ renderer: 'svg' }}
+          notMerge={true}
+          lazyUpdate={false}
         />
       </div>
       {/* Legend - PatternFly aligned, clickable */}
@@ -1902,16 +1922,21 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         </Flex>
                       </ToolbarItem>
                       <ToolbarItem>
-                        <Switch
-                          id="aggregate-all-alerts-switch"
-                          label="Aggregate by rule"
-                          isChecked={isAggregated}
-                          onChange={(_, checked) => {
-                            setIsAggregated(checked);
-                            setPage(1);
-                            setExpandedAlerts([]);
-                          }}
-                        />
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                          <Switch
+                            id="aggregate-all-alerts-switch"
+                            label="Aggregate identical alerts"
+                            isChecked={isAggregated}
+                            onChange={(_, checked) => {
+                              setIsAggregated(checked);
+                              setPage(1);
+                              setExpandedAlerts([]);
+                            }}
+                          />
+                          <Tooltip content="Combine alerts with the same name and severity into a single row to reduce noise and simplify your view.">
+                            <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)', cursor: 'help' }} />
+                          </Tooltip>
+                        </Flex>
                       </ToolbarItem>
                       {alertNameFilter && (
                         <ToolbarItem>
@@ -2002,7 +2027,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                                 <Table aria-label="Clusters with alert" variant="compact">
                                   <Thead>
                                     <Tr>
-                                      <Th>Cluster Name</Th>
+                                      <Th>Cluster name</Th>
                                       <Th>Last Fired</Th>
                                       <Th>Actions</Th>
                                     </Tr>
@@ -2646,7 +2671,7 @@ const CrossClusterInsightsCards: React.FC<CrossClusterInsightsCardsProps> = ({
       <StackItem>
         <Card>
           <CardHeader>
-            <CardTitle>Top Firing Alerts</CardTitle>
+            <CardTitle>Top alerts</CardTitle>
           </CardHeader>
           <CardBody>
             <Table aria-label="Top firing alert rules" variant="compact">
@@ -2699,11 +2724,16 @@ const CrossClusterInsightsCards: React.FC<CrossClusterInsightsCardsProps> = ({
         </Card>
       </StackItem>
 
-      {/* Most Impacted Components Card */}
+      {/* Most affected components */}
       <StackItem>
         <Card>
           <CardHeader>
-            <CardTitle>Most Impacted Components</CardTitle>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <CardTitle>Most affected components</CardTitle>
+              <Tooltip content="Kubernetes subsystems (such as kube-apiserver, etcd, kubelet) with active firing alerts.">
+                <Button variant="plain" aria-label="More info about affected components" icon={<QuestionCircleIcon />} />
+              </Tooltip>
+            </Flex>
           </CardHeader>
           <CardBody>
             <Table aria-label="Most impacted components" variant="compact">
@@ -2839,7 +2869,7 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Alert Trend (Last 6 Hours)</CardTitle>
+        <CardTitle>Alert velocity and trends</CardTitle>
       </CardHeader>
       <CardBody>
         <div style={{ height: '300px', width: '100%' }}>
@@ -3548,18 +3578,17 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Size by options based on role
   const sizeByOptions = userRole === 'admin' 
     ? [
-        { value: 'nodeCount', label: 'Number of Nodes' },
-        { value: 'cpuCores', label: 'Total CPU Cores' },
-        { value: 'totalMemory', label: 'Total Memory' },
-        { value: 'podCount', label: 'Total Pods' },
-        { value: 'vmCount', label: 'Total VMs' },
-        { value: 'totalAlerts', label: 'Total Alerts' },
+        { value: 'nodeCount', label: 'Number of nodes' },
+        { value: 'cpuCores', label: 'Total CPU cores' },
+        { value: 'totalMemory', label: 'Total memory (GiB)' },
+        { value: 'podCount', label: 'Total pods' },
+        { value: 'totalAlerts', label: 'Total alerts' },
       ]
     : [
-        { value: 'podCount', label: 'Total Pods' },
-        { value: 'cpuRequests', label: 'Total CPU Requests' },
-        { value: 'memoryRequests', label: 'Total Memory Requests' },
-        { value: 'totalAlerts', label: 'Total Alerts' },
+        { value: 'podCount', label: 'Total pods' },
+        { value: 'cpuRequests', label: 'Total CPU requests' },
+        { value: 'memoryRequests', label: 'Total memory requests' },
+        { value: 'totalAlerts', label: 'Total alerts' },
       ];
 
   // ========================================
@@ -4319,12 +4348,17 @@ spec:
                                 </ToolbarItem>
                                 <ToolbarItem variant="separator" />
                                 <ToolbarItem style={{ display: 'flex', alignItems: 'center' }}>
-                                  <Switch
-                                    id="aggregate-switch"
-                                    label="Aggregate by name and severity"
-                                    isChecked={isAggregated}
-                                    onChange={(_, checked) => setIsAggregated(checked)}
-                                  />
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                                    <Switch
+                                      id="aggregate-switch"
+                                      label="Aggregate identical alerts"
+                                      isChecked={isAggregated}
+                                      onChange={(_, checked) => setIsAggregated(checked)}
+                                    />
+                                    <Tooltip content="Combine alerts with the same name and severity into a single row to reduce noise and simplify your view.">
+                                      <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)', cursor: 'help' }} />
+                                    </Tooltip>
+                                  </Flex>
                                 </ToolbarItem>
                                 <ToolbarItem variant="separator" />
                                 <ToolbarItem align={{ default: 'alignEnd' }}>
@@ -5338,7 +5372,7 @@ spec:
                   <CardHeader>
                     <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem>
-                        <CardTitle>Clusters Fleet alerts overview</CardTitle>
+                        <CardTitle>Fleet alerts</CardTitle>
                       </FlexItem>
                       <FlexItem>
                         <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -5372,7 +5406,7 @@ spec:
                                 <SelectList>
                                   <SelectOption value="none">None</SelectOption>
                                   <SelectOption value="region">Region</SelectOption>
-                                  <SelectOption value="cloudProvider">Cloud Provider</SelectOption>
+                                  <SelectOption value="cloudProvider">Cloud provider</SelectOption>
                                   <SelectOption value="team">Team</SelectOption>
                                   <SelectOption value="severity">Severity</SelectOption>
                                 </SelectList>
@@ -5399,7 +5433,7 @@ spec:
                                     isDisabled={viewMode === 'summary'}
                                     style={{ width: '140px' }}
                                   >
-                                    {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Nodes'}
+                                    {sizeByOptions.find(o => o.value === importanceSizing)?.label || 'Number of nodes'}
                                   </MenuToggle>
                                 )}
                                 onSelect={(_, value) => { setImportanceSizing(value as ImportanceSizing); setIsSizeByOpen(false); }}
@@ -5429,7 +5463,7 @@ spec:
                               <Select
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <MenuToggle ref={toggleRef} onClick={() => setIsSortByOpen(!isSortByOpen)} isExpanded={isSortByOpen} style={{ width: '140px' }}>
-                                    {sortBy === 'severity' ? 'Severity' : sortBy === 'alertCount' ? 'Alert Count' : 'Name'}
+                                    {sortBy === 'severity' ? 'Severity (high-low)' : sortBy === 'alertCount' ? 'Alert count' : 'Cluster name'}
                                   </MenuToggle>
                                 )}
                                 onSelect={(_, value) => { setSortBy(value as SortByOption); setIsSortByOpen(false); }}
@@ -5438,9 +5472,9 @@ spec:
                                 selected={sortBy}
                               >
                                 <SelectList>
-                                  <SelectOption value="severity">Severity</SelectOption>
-                                  <SelectOption value="alertCount">Alert Count</SelectOption>
-                                  <SelectOption value="clusterName">Cluster Name</SelectOption>
+                                  <SelectOption value="severity">Severity (high-low)</SelectOption>
+                                  <SelectOption value="alertCount">Alert count</SelectOption>
+                                  <SelectOption value="clusterName">Cluster name</SelectOption>
                                 </SelectList>
                               </Select>
                             </Flex>
@@ -5734,18 +5768,18 @@ spec:
           <Card>
             <CardBody>
               <EmptyState 
-                titleText="Automated Incident Detection" 
+                titleText="Automated visibility across your fleet" 
                 headingLevel="h4" 
                 icon={PortIcon}
                 variant="lg"
               >
                 <EmptyStateBody>
                   Gain better visibility into your cluster health with automated incident detection. 
-                  By installing the Red Hat OpenShift incident detection operator, you can use analytics 
+                  By installing the Red Hat OpenShift incident detection Operator, you can use analytics 
                   to quickly identify and troubleshoot potential problems before they affect your users.
                 </EmptyStateBody>
-                <EmptyStateActions>
-                  <Button variant="primary" icon={<PlusIcon />}>Install operator</Button>
+                <EmptyStateActions style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                  <Button variant="primary" icon={<PlusIcon />}>Install Operator</Button>
                 </EmptyStateActions>
               </EmptyState>
             </CardBody>

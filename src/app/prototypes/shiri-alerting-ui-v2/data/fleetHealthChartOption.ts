@@ -17,8 +17,8 @@ export function buildFleetHealthChartOption(
   const namespaceValues = fleetChartData.map(d => d.namespace);
   return {
     title: {
-      text: 'Fleet-wide Alert Impact & Scope',
-      subtext: `Ranked by total cluster count (${totalClusters} cluster${totalClusters !== 1 ? 's' : ''}).`,
+      text: 'Top alerts',
+      subtext: 'Ranked by number of affected clusters',
       left: 'center',
       textStyle: { fontSize: 14, fontWeight: 600 },
       subtextStyle: { fontSize: 11, color: '#6a6e73' },

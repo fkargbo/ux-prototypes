@@ -120,6 +120,7 @@ export interface SavedFilter {
     importanceSizing?: ImportanceSizing;
   };
   hidden?: boolean;
+  isDefault?: boolean;
 }
 
 export interface ToastNotification {
