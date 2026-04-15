@@ -526,7 +526,7 @@ export const SavedFiltersModals: React.FunctionComponent<SavedFiltersModalsProps
                                   </FlexItem>
                                   {filter.isDefault && (
                                     <FlexItem>
-                                      <Label isCompact color="gold" icon={<StarIcon />}>Default</Label>
+                                      <Label isCompact color="yellow" icon={<StarIcon />}>Default</Label>
                                     </FlexItem>
                                   )}
                                   {filter.hidden && (
