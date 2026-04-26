@@ -1245,8 +1245,9 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                         <Checkbox
                           id="select-all-clusters"
                           label="Select all in view"
-                          isChecked={allFilteredSelected}
-                          isIndeterminate={!allFilteredSelected && someFilteredSelected}
+                          isChecked={
+                            allFilteredSelected ? true : someFilteredSelected ? null : false
+                          }
                           onChange={(_, checked) => {
                             if (checked) {
                               const set = new Set(alertRuleSelectedClusters);
