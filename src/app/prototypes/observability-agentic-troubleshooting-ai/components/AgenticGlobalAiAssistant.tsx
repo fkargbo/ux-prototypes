@@ -1012,6 +1012,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     {createPortal(
       <div className={olsChromeDockClassName}>
         {isDrawerOpen && (
+        <>
         <div className="ols-prototype-ai-drawer">
           <div className="ols-prototype-ai-drawer-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#ffffff' }}>
             <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -1135,6 +1136,18 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
             </div>
           </div>
         </div>
+        <div
+          aria-hidden
+          className="ols-ai-chrome-launcher-gap"
+          style={{
+            flexShrink: 0,
+            height: OLS_CHAT_GAP_ABOVE_LAUNCHER_PX,
+            minHeight: OLS_CHAT_GAP_ABOVE_LAUNCHER_PX,
+            width: '100%',
+            pointerEvents: 'none',
+          }}
+        />
+        </>
         )}
         <div
           id="ols-floating-launcher-host"

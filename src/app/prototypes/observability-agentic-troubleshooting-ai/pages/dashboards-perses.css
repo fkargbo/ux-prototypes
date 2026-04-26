@@ -104,6 +104,13 @@ button[aria-label="View task details"] {
   max-width: 560px !important;
 }
 
+/* Fixed-height row between chat and launcher (see `ols-ai-chrome-launcher-gap` in AgenticGlobalAiAssistant). */
+.ols-ai-chrome-launcher-gap {
+  flex-shrink: 0 !important;
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+}
+
 .ols-ai-chrome-dock .chatbot-toggle-sticky-host {
   position: relative !important;
   align-self: flex-end !important;
@@ -118,11 +125,6 @@ button[aria-label="View task details"] {
   bottom: auto !important;
   left: auto !important;
   z-index: 2 !important;
-}
-
-/* 8px between chat card bottom and launcher (must win over `margin-top: 0` above). */
-.ols-ai-chrome-dock--chat-open .chatbot-toggle-sticky-host {
-  margin-top: var(--ols-ai-chrome-chat-launcher-gap, 8px) !important;
 }
 
 /* Launcher popper above the chat card (PF Tooltip portals to `body`). */
@@ -162,7 +164,7 @@ button[aria-label="View task details"] {
   transition:
     opacity 0.2s ease-in-out,
     transform 0.2s ease-in-out !important;
-  contain: layout style paint !important;
+  contain: layout style !important;
   box-sizing: border-box !important;
 }
 
@@ -177,14 +179,25 @@ button[aria-label="View task details"] {
   flex: 1 !important;
   min-height: 0 !important;
   max-height: 100% !important;
-  contain: layout style paint !important;
+  contain: layout style !important;
   box-sizing: border-box !important;
 }
 
-/* Drawer mode defaults to viewport-fixed; contain inside the portal card */
-.ols-prototype-ai-drawer .pf-chatbot.pf-chatbot--drawer {
+/*
+ * PF `.pf-chatbot` defaults to `position: fixed` + logical insets. Scope under `.ols-ai-chrome-dock` so it wins
+ * over `main.css` and the footer / MessageBar are not viewport-fixed.
+ */
+.ols-ai-chrome-dock .ols-prototype-ai-drawer .pf-chatbot.pf-chatbot--drawer {
   position: absolute !important;
   inset: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  inset-block-start: 0 !important;
+  inset-block-end: 0 !important;
+  inset-inline-start: 0 !important;
+  inset-inline-end: 0 !important;
   width: 100% !important;
   height: 100% !important;
   max-width: 100% !important;
@@ -267,7 +280,7 @@ button[aria-label="View task details"] {
   flex-direction: column !important;
   min-height: 0 !important;
   overflow: hidden !important;
-  contain: layout style paint !important;
+  contain: layout style !important;
   box-sizing: border-box !important;
 }
 
@@ -288,7 +301,7 @@ button[aria-label="View task details"] {
   max-height: 100% !important;
   width: 100% !important;
   max-width: 100% !important;
-  contain: layout style paint !important;
+  contain: layout style !important;
   box-sizing: border-box !important;
 }
 
@@ -314,6 +327,12 @@ button[aria-label="View task details"] {
   display: flex !important;
   visibility: visible !important;
   width: 100% !important;
+}
+
+.ols-ai-chrome-dock .pf-chatbot__footer,
+.ols-ai-chrome-dock .pf-chatbot__message-bar,
+.ols-ai-chrome-dock .pf-v6-c-message-bar {
+  position: relative !important;
 }
 
 /* Fix ChatbotWelcomePrompt alignment and visibility */
