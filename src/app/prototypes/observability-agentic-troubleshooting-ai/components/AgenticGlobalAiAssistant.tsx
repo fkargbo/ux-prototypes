@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Title,
@@ -119,6 +119,24 @@ import { persesAgenticBridge, agenticGlobalAiApi } from '../persesAgenticBridge'
 
 /** Viewport margin for the OLS floating launcher (`position: fixed` on `document.body`). */
 const OLS_LAUNCHER_VIEWPORT_MARGIN_PX = 24;
+
+/** Outer launcher size — must match `.chatbot-toggle-sticky-host .pf-chatbot__button` in dashboards-perses.css. */
+const OLS_LAUNCHER_OUTER_SIZE_PX = 48;
+
+/** Gap between the bottom of the AI chat card and the top of the floating launcher. */
+const OLS_CHAT_GAP_ABOVE_LAUNCHER_PX = 8;
+
+/** Reserve below the chat: launcher margin + launcher height + gap (viewport `bottom` for fixed panel). */
+const OLS_AI_CHAT_BOTTOM_RESERVE_PX =
+  OLS_LAUNCHER_VIEWPORT_MARGIN_PX + OLS_LAUNCHER_OUTER_SIZE_PX + OLS_CHAT_GAP_ABOVE_LAUNCHER_PX;
+
+const OLS_AI_CHAT_TOP_VAR = '--ols-ai-chat-top';
+const OLS_AI_CHAT_BOTTOM_VAR = '--ols-ai-chat-bottom';
+
+/** PatternFly `Masthead` root in AppLayout — `top` of the fixed chat aligns to this element’s bottom edge. */
+const OLS_PAGE_MASTHEAD_SELECTOR = '.pf-v6-c-masthead';
+/** If masthead markup differs, fall back to the page header region that wraps it. */
+const OLS_PAGE_HEADER_FALLBACK_SELECTOR = '.pf-v6-c-page__header';
 
 /**
  * PF chatbot CSS pins `.pf-chatbot__button` with `position: fixed` + logical insets, which ignores the host
@@ -394,6 +412,40 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  /** Fixed AI panel: `top` = masthead bottom; `bottom` = space for launcher + 8px gap (see dashboards-perses.css). */
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty(OLS_AI_CHAT_BOTTOM_VAR, `${OLS_AI_CHAT_BOTTOM_RESERVE_PX}px`);
+
+    const resolveMastheadEl = () =>
+      (document.querySelector(OLS_PAGE_MASTHEAD_SELECTOR) ??
+        document.querySelector(OLS_PAGE_HEADER_FALLBACK_SELECTOR)) as HTMLElement | null;
+
+    const syncTop = () => {
+      const el = resolveMastheadEl();
+      const topPx = el ? Math.max(0, Math.round(el.getBoundingClientRect().bottom)) : 0;
+      root.style.setProperty(OLS_AI_CHAT_TOP_VAR, `${topPx}px`);
+    };
+
+    syncTop();
+    window.addEventListener('resize', syncTop);
+    window.addEventListener('scroll', syncTop, true);
+
+    const observed = resolveMastheadEl();
+    const ro = observed ? new ResizeObserver(syncTop) : undefined;
+    if (observed && ro) {
+      ro.observe(observed);
+    }
+
+    return () => {
+      window.removeEventListener('resize', syncTop);
+      window.removeEventListener('scroll', syncTop, true);
+      ro?.disconnect();
+      root.style.removeProperty(OLS_AI_CHAT_TOP_VAR);
+      root.style.removeProperty(OLS_AI_CHAT_BOTTOM_VAR);
+    };
+  }, []);
 
   const triggerQuickResponseByContent = useCallback(
     (desiredContent: string) => {
