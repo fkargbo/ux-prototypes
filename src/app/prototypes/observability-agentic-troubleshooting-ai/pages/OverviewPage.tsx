@@ -7,9 +7,12 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiMount';
 
 export const OverviewPage: React.FC = () => {
   return (
+    <>
+    <EnsureGlobalAgenticAiMount />
     <div
       style={{
         height: '100vh',
@@ -44,5 +47,6 @@ export const OverviewPage: React.FC = () => {
         </StackItem>
       </Stack>
     </div>
+    </>
   );
 };

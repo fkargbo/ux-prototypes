@@ -2,6 +2,15 @@ import React from 'react';
 import { RouteConfig } from '@app/core/types';
 import { OverviewPage } from './pages/OverviewPage';
 import { ObserveOverviewPage } from './pages/ObserveOverviewPage';
+import { DashboardsPersesPage } from './pages/DashboardsPersesPage';
+import { PodDetailDashboardPage } from './pages/PodDetailDashboardPage';
+import { EnsureGlobalAgenticAiMount } from './components/ensureAgenticGlobalAiMount';
+
+const ObserveNavPlaceholder: React.FC = () => (
+  <>
+    <EnsureGlobalAgenticAiMount />
+  </>
+);
 
 /**
  * Note: Any navigation group represented here fully replaces the default shell group for this
@@ -30,7 +39,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/alerting',
-    element: <></>,
+    element: <ObserveNavPlaceholder />,
     label: 'Alerting',
     title: 'Alerting',
     navigation: {
@@ -40,7 +49,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/metrics',
-    element: <></>,
+    element: <ObserveNavPlaceholder />,
     label: 'Metrics',
     title: 'Metrics',
     navigation: {
@@ -50,7 +59,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/dashboards',
-    element: <></>,
+    element: <ObserveNavPlaceholder />,
     label: 'Dashboards',
     title: 'Dashboards',
     navigation: {
@@ -60,7 +69,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/targets',
-    element: <></>,
+    element: <ObserveNavPlaceholder />,
     label: 'Targets',
     title: 'Targets',
     navigation: {
@@ -70,7 +79,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/incidents',
-    element: <></>,
+    element: <ObserveNavPlaceholder />,
     label: 'Incidents',
     title: 'Incidents',
     navigation: {
@@ -80,12 +89,17 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/dashboards-perses',
-    element: <></>,
+    element: <DashboardsPersesPage />,
     label: 'Dashboards (Perses)',
     title: 'Dashboards (Perses)',
     navigation: {
       group: 'Observe',
       order: 7,
     },
+  },
+  {
+    path: '/core/observe/pod-detail',
+    element: <PodDetailDashboardPage />,
+    title: 'Pod detail',
   },
 ];
