@@ -18,11 +18,6 @@ import {
   ToolbarItem,
   Button,
   SearchInput,
-  Dropdown,
-  DropdownList,
-  DropdownItem,
-  MenuToggle,
-  MenuToggleElement,
   Badge,
   Label,
   LabelGroup,
@@ -62,8 +57,6 @@ import {
   RobotIcon,
   FilterIcon,
   StarIcon,
-  EllipsisVIcon,
-  CaretDownIcon,
   TimesIcon,
   MicrophoneIcon,
   PaperPlaneIcon,
@@ -79,6 +72,8 @@ import {
   CpuIcon,
   ClockIcon,
   PencilAltIcon,
+  TrashIcon,
+  MinusIcon,
 } from '@patternfly/react-icons';
 import {
   Table,
@@ -112,13 +107,7 @@ import ChatbotToggle from '@patternfly/chatbot/dist/dynamic/ChatbotToggle';
 import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
 import Message, { MessageProps } from '@patternfly/chatbot/dist/dynamic/Message';
-import ChatbotHeader, {
-  ChatbotHeaderMenu,
-  ChatbotHeaderMain,
-  ChatbotHeaderTitle,
-  ChatbotHeaderActions,
-  ChatbotHeaderSelectorDropdown
-} from '@patternfly/chatbot/dist/esm/ChatbotHeader';
+import ChatbotHeader, { ChatbotHeaderMain, ChatbotHeaderTitle, ChatbotHeaderActions } from '@patternfly/chatbot/dist/esm/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
 import '../pages/dashboards-perses.css';
 
@@ -150,20 +139,16 @@ const botAvatarSrc = botProfilePicUrl || createIconDataUrl(robotIconSvg);
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
-// Footnote props for ChatbotFootnote
-const footnoteProps = {
-  label: 'ChatBot uses AI. Check for mistakes.',
-  popover: {
-    title: 'Verify accuracy',
-    description: `While ChatBot strives for accuracy, there's always a possibility of errors. It's a good practice to verify critical information from reliable sources, especially if it's crucial for decision-making or actions.`,
-    cta: {
-      label: 'Got it',
-      onClick: () => {
-        // Handle footnote CTA
-      }
-    }
-  }
-};
+/** Display name for assistant messages (OpenShift Lightspeed–style shell). */
+const BOT_DISPLAY_NAME = 'OpenShift Lightspeed';
+
+/** Spark mark for the floating launcher (closed state), inspired by the console Lightspeed control. */
+const LightspeedToggleClosedIcon = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
+    <path fill="#ee0000" d="M13.2 2 6.5 14.2h4.4L10.8 22 17.5 9.8H13.1z" />
+    <path fill="#151515" d="M17.8 8.2 14 14.5h2.2L12.4 22l5.6-10.1h-2.1z" opacity={0.35} />
+  </svg>
+);
 
 /** Reusable disclaimer shown before manual instructions (info Alert). */
 const DISCLAIMER_TEXT = 'I cannot carry out direct actions on a cluster. Here are instructions on how you can proceed.';
@@ -348,13 +333,10 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedQuickResponses, setSelectedQuickResponses] = useState<Array<{ containerId: string; content: string }>>([]);
-  const [selectedModel, setSelectedModel] = useState('Granite 7B');
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
-  const [chatbotTogglePortalTarget, setChatbotTogglePortalTarget] = useState<HTMLElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
-  const historyRef = useRef<HTMLButtonElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
 
@@ -502,7 +484,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: DISCLAIMER_TEXT,
-        name: 'Aladdin',
+        name: BOT_DISPLAY_NAME,
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -519,7 +501,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         }
       };
       setMessages((prev) => [...prev, userMessage, botMessage]);
-      setAnnouncement(`Message from Aladdin: ${DISCLAIMER_TEXT}`);
+      setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: ${DISCLAIMER_TEXT}`);
       return;
     }
 
@@ -565,14 +547,14 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Thinking...',
-      name: 'Aladdin',
+      name: BOT_DISPLAY_NAME,
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
 
     setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
-    setAnnouncement(`Message from User: ${messageText}. Message from Aladdin is loading.`);
+    setAnnouncement(`Message from User: ${messageText}. Message from ${BOT_DISPLAY_NAME} is loading.`);
 
     // Simulate AI response (replace with actual API call)
     setTimeout(() => {
@@ -580,7 +562,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
-        name: 'Aladdin',
+        name: BOT_DISPLAY_NAME,
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -600,15 +582,10 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         }
         return newMessages;
       });
-      setAnnouncement(`Message from Aladdin: ${botMessage.content}`);
+      setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: ${botMessage.content}`);
       setIsSendButtonDisabled(false);
     }, 2000);
   }, []);
-
-  // Handle model selection
-  const onSelectModel = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
-    setSelectedModel(value as string);
-  };
 
   // Handle starting troubleshooting workflow from alert
   const handleStartTroubleshooting = useCallback((alertName: string) => {
@@ -638,7 +615,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Analyzing alert...',
-      name: 'Aladdin',
+      name: BOT_DISPLAY_NAME,
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -653,7 +630,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU. Would you like to analyze the root cause or check the node capacity?',
-        name: 'Aladdin',
+        name: BOT_DISPLAY_NAME,
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -697,7 +674,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     id: generateId(),
     role: 'bot',
     content: 'I recommend scaling down the **web-head** deployment in **marketing-prod**. You can resolve this by following the steps below.',
-    name: 'Aladdin',
+    name: BOT_DISPLAY_NAME,
     avatar: botAvatarSrc,
     isLoading: false,
     timestamp: new Date().toLocaleString(),
@@ -717,7 +694,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Analyzing root cause...',
-      name: 'Aladdin',
+      name: BOT_DISPLAY_NAME,
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -739,7 +716,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota. Would you like to see a troubleshooting dashboard or see scaling steps?',
-        name: 'Aladdin',
+        name: BOT_DISPLAY_NAME,
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -874,7 +851,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Building Perses Dashboard Definition...',
-      name: 'Aladdin',
+      name: BOT_DISPLAY_NAME,
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -889,7 +866,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like to save this dashboard?',
-        name: 'Aladdin',
+        name: BOT_DISPLAY_NAME,
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -926,53 +903,20 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   // Welcome prompts for ChatbotWelcomePrompt
   const welcomePrompts = [
     {
-      title: 'Set up account',
-      message: 'I\'d like to set up my account with the necessary settings and preferences.'
+      title: 'Observe cluster health',
+      message: 'Summarize current alerts and what I should check first in Observe.'
     },
     {
-      title: 'Troubleshoot issue',
-      message: 'I need help troubleshooting an issue with my dashboard.'
+      title: 'Troubleshoot workload',
+      message: 'Help me troubleshoot high CPU for a namespace shown on my dashboards.'
     }
   ];
 
-  // Apply class to page container and masthead when drawer is open to shift content
-  useEffect(() => {
-    const pageContainer = document.querySelector('.pf-v6-c-page__main-container');
-    const pageElement = document.querySelector('.pf-v6-c-page');
-    const mastheadContent = document.querySelector('.pf-v6-c-masthead__content');
-    
-    if (isDrawerOpen) {
-      pageContainer?.classList.add('chatbot-drawer-open');
-      pageElement?.classList.add('chatbot-drawer-open');
-      mastheadContent?.classList.add('chatbot-drawer-open');
-    } else {
-      pageContainer?.classList.remove('chatbot-drawer-open');
-      pageElement?.classList.remove('chatbot-drawer-open');
-      mastheadContent?.classList.remove('chatbot-drawer-open');
-    }
-    
-    return () => {
-      pageContainer?.classList.remove('chatbot-drawer-open');
-      pageElement?.classList.remove('chatbot-drawer-open');
-      mastheadContent?.classList.remove('chatbot-drawer-open');
-    };
-  }, [isDrawerOpen]);
-
-  // Render the floating toggle inside the page's scroll container so it moves with that viewport.
-  useEffect(() => {
-    const updateTarget = () => {
-      const target = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
-      setChatbotTogglePortalTarget(target);
-    };
-
-    updateTarget();
-    // The page shell can re-render; refresh after layout and on resize.
-    const raf = window.requestAnimationFrame(updateTarget);
-    window.addEventListener('resize', updateTarget);
-    return () => {
-      window.cancelAnimationFrame(raf);
-      window.removeEventListener('resize', updateTarget);
-    };
+  const handleClearChat = useCallback(() => {
+    setMessages([]);
+    setSelectedQuickResponses([]);
+    workflowStageRef.current = 'idle';
+    setAnnouncement(undefined);
   }, []);
 
   useEffect(() => {
@@ -984,45 +928,78 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
   return (
     <>
-    {/* AI Assistant Chatbot - rendered via portal outside main container */}
+    {/* OpenShift Lightspeed–style panel: portal to body, overlays shell (see dashboards-perses.css). */}
     {isDrawerOpen && createPortal(
         <div className="ai-assistant-drawer-wrapper">
-          <div className="ai-assistant-panel-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
+          <div className="ai-assistant-panel-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#ffffff' }}>
             <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <Chatbot displayMode={ChatbotDisplayMode.drawer}>
               <ChatbotHeader style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
-                <ChatbotHeaderMain>
-                  <ChatbotHeaderMenu
-                    ref={historyRef}
-                    aria-expanded={isDrawerOpen}
-                    onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)}
-                  />
-                  <ChatbotHeaderTitle>AI Assistant</ChatbotHeaderTitle>
+                <ChatbotHeaderMain className="lightspeed-header-main">
+                  <span className="lightspeed-header-mark" aria-hidden>
+                    <LightspeedToggleClosedIcon />
+                  </span>
+                  <ChatbotHeaderTitle className="lightspeed-header-title">Red Hat OpenShift Lightspeed</ChatbotHeaderTitle>
                 </ChatbotHeaderMain>
-                <ChatbotHeaderActions>
-                  <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
-                    <DropdownList>
-                      <DropdownItem value="Granite 7B" key="granite">
-                        Granite 7B
-                      </DropdownItem>
-                      <DropdownItem value="Llama 3.0" key="llama">
-                        Llama 3.0
-                      </DropdownItem>
-                      <DropdownItem value="Mistral 3B" key="mistral">
-                        Mistral 3B
-                      </DropdownItem>
-                    </DropdownList>
-                  </ChatbotHeaderSelectorDropdown>
+                <ChatbotHeaderActions className="lightspeed-header-actions">
+                  <Tooltip content="Clear chat history">
+                    <Button
+                      variant="plain"
+                      aria-label="Clear chat history"
+                      icon={<TrashIcon />}
+                      onClick={handleClearChat}
+                    />
+                  </Tooltip>
+                  <Tooltip content="Minimize">
+                    <Button
+                      variant="plain"
+                      aria-label="Minimize assistant"
+                      icon={<MinusIcon />}
+                      onClick={() => setIsDrawerOpen(false)}
+                    />
+                  </Tooltip>
+                  <Tooltip content="Open in console (prototype)">
+                    <Button
+                      variant="plain"
+                      aria-label="Expand or pop out assistant"
+                      icon={<ExternalLinkAltIcon />}
+                      onClick={() => {
+                        /* Prototype: no external console route */
+                      }}
+                    />
+                  </Tooltip>
                 </ChatbotHeaderActions>
               </ChatbotHeader>
               <ChatbotContent style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
                 <MessageBox announcement={announcement} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}>
                   {messages.length === 0 && (
-                    <ChatbotWelcomePrompt
-                      title="Hi, ChatBot User!"
-                      description="How can I help you today?"
-                      prompts={welcomePrompts}
-                    />
+                    <>
+                      <div className="lightspeed-empty-intro">
+                        <div className="lightspeed-empty-mark" aria-hidden>
+                          <LightspeedToggleClosedIcon />
+                        </div>
+                        <Content>
+                          <p>
+                            Ask questions about your cluster and observability data. This prototype mirrors the Red Hat
+                            OpenShift Lightspeed assistant layout from the console overview.
+                          </p>
+                        </Content>
+                        <Alert
+                          variant="info"
+                          isInline
+                          title="Important"
+                          className="lightspeed-important-alert"
+                        >
+                          This tool uses AI-generated responses. Avoid pasting secrets, credentials, or regulated data.
+                          Always review output before acting on it.
+                        </Alert>
+                      </div>
+                      <ChatbotWelcomePrompt
+                        title="How can I help?"
+                        description="Choose a starter prompt or type your own message below."
+                        prompts={welcomePrompts}
+                      />
+                    </>
                   )}
                   {messages.map((message, index) => {
                     const msg = message as MessageWithCustomPills;
@@ -1059,12 +1036,18 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                 </MessageBox>
               </ChatbotContent>
               <ChatbotFooter style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
-                <MessageBar 
-                  onSendMessage={handleSendMessage} 
-                  hasMicrophoneButton 
-                  isSendButtonDisabled={isSendButtonDisabled} 
+                <MessageBar
+                  displayMode={ChatbotDisplayMode.drawer}
+                  onSendMessage={handleSendMessage}
+                  hasAttachButton
+                  alwayShowSendButton
+                  placeholder="Send a message…"
+                  isSendButtonDisabled={isSendButtonDisabled}
                 />
-                <ChatbotFootnote {...footnoteProps} />
+                <ChatbotFootnote
+                  className="lightspeed-footnote"
+                  label="Always review AI-generated content prior to use."
+                />
               </ChatbotFooter>
             </Chatbot>
             </div>
@@ -1073,7 +1056,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         document.body
       )}
 
-    {/* Floating toggle button - positioned outside drawer, always visible */}
+    {/* Floating launcher: fixed to viewport bottom-right (OpenShift Lightspeed pattern). */}
     {createPortal(
       <div className="chatbot-toggle-sticky-host">
         <div
@@ -1081,13 +1064,15 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
           className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
         >
           <ChatbotToggle
-            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-            aria-label="AI assistant"
-            tooltipLabel="AI assistant"
+            isChatbotVisible={isDrawerOpen}
+            onToggleChatbot={() => setIsDrawerOpen(!isDrawerOpen)}
+            closedToggleIcon={LightspeedToggleClosedIcon}
+            toggleButtonLabel="Red Hat OpenShift Lightspeed"
+            tooltipLabel="Red Hat OpenShift Lightspeed"
           />
         </div>
       </div>,
-      chatbotTogglePortalTarget || document.body
+      document.body
     )}
   </>
   );
