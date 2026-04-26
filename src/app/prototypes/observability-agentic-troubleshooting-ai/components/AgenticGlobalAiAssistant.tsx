@@ -1101,7 +1101,9 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
           <ChatbotToggle
             className="ols-launcher-floating-toggle"
             style={OLS_LAUNCHER_TOGGLE_BUTTON_STYLE}
-            isChatbotVisible={isDrawerOpen}
+            /* OLS launcher: always show the logo; PF swaps to chevron when `isChatbotVisible` is true. */
+            isChatbotVisible={false}
+            aria-expanded={isDrawerOpen}
             onToggleChatbot={() => setIsDrawerOpen(!isDrawerOpen)}
             isRound={false}
             closedToggleIcon={OlsFloatingLauncherLogo}

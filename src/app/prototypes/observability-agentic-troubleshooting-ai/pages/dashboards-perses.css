@@ -376,6 +376,30 @@ button[aria-label="View task details"] {
   line-height: 0 !important;
 }
 
+/*
+ * ChatbotToggle passes `Icon isInline` → `.pf-v6-c-icon.pf-m-inline` is only 1em × 1em, which shrinks the OLS
+ * PNG inside the 48px launcher. Stretch the Icon shell and its content box to the full button face.
+ */
+.chatbot-toggle-sticky-host .pf-chatbot__button .pf-v6-c-button__icon > .pf-v6-c-icon {
+  --pf-v6-c-icon--Width: 100% !important;
+  --pf-v6-c-icon--Height: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+}
+
+.chatbot-toggle-sticky-host .pf-chatbot__button .pf-v6-c-button__icon > .pf-v6-c-icon > .pf-v6-c-icon__content {
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  width: 100% !important;
+  height: 100% !important;
+  font-size: unset !important;
+}
+
 .chatbot-toggle-sticky-host .pf-chatbot__button.pf-chatbot__button--active {
   background-color: #f5f5f5 !important;
 }
@@ -394,8 +418,9 @@ button[aria-label="View task details"] {
   margin: 0 !important;
   padding: 0 !important;
   flex: 1 1 auto !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
+  flex-shrink: 0 !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
   object-fit: cover !important;
   object-position: center !important;
   display: block !important;
