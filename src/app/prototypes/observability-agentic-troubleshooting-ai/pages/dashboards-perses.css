@@ -302,8 +302,8 @@ button[aria-label="View task details"] {
 }
 
 /*
- * Launcher host: position + inset + z-index are set inline in AgenticGlobalAiAssistant (fixed to viewport,
- * insets from `.pf-v6-c-page` via getBoundingClientRect). Keep only non-layout rules here.
+ * Launcher host: `position: fixed`, `right`/`bottom`, and `z-index` are set inline in AgenticGlobalAiAssistant
+ * (viewport margins, not shell div borders). Keep only non-layout rules here.
  */
 .chatbot-toggle-sticky-host {
   margin: 0;
@@ -318,13 +318,21 @@ button[aria-label="View task details"] {
   transform: none;
 }
 
-/* Floating launcher: 48×48 outer box, 12px radius; 2px border (~#D9D9D9 → PF default border token). */
-.chatbot-toggle-sticky-host .pf-chatbot__button {
+/*
+ * Floating launcher: 48×48 outer box, 12px radius, 2px border.
+ * Border: `--pf-t--color--gray--20` (#e0e0e0) — closest PF palette token to #E4E4E4 (see @patternfly/react-tokens).
+ */
+/*
+ * PF chatbot sets `.pf-v6-c-button.pf-chatbot__button { position: fixed; inset-inline-end: … }` which ignores
+ * the wrapper’s `right: 24px` and adds extra viewport offset. Clear fixed + logical insets so only the host positions.
+ */
+.chatbot-toggle-sticky-host .pf-v6-c-button.pf-chatbot__button {
   box-sizing: border-box !important;
   width: 48px !important;
   height: 48px !important;
   min-width: 48px !important;
   min-height: 48px !important;
+  margin: 0 !important;
   padding: 0 !important;
   border-radius: 12px !important;
   overflow: hidden !important;
@@ -333,12 +341,27 @@ button[aria-label="View task details"] {
   box-shadow:
     0 4px 12px rgba(3, 3, 3, 0.16),
     0 1px 3px rgba(3, 3, 3, 0.08) !important;
-  border: 2px solid var(--pf-t--global--border--color--default, #d9d9d9) !important;
+  border: 2px solid var(--pf-t--color--gray--20) !important;
   display: inline-flex !important;
   align-items: stretch !important;
   justify-content: stretch !important;
   position: relative !important;
-  inset: unset !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  inset: auto !important;
+  inset-block-start: auto !important;
+  inset-block-end: auto !important;
+  inset-inline-start: auto !important;
+  inset-inline-end: auto !important;
+  /* Remove PF plain-button inset so the graphic is truly edge-to-edge inside the border. */
+  --pf-v6-c-button--PaddingBlockStart: 0 !important;
+  --pf-v6-c-button--PaddingBlockEnd: 0 !important;
+  --pf-v6-c-button--PaddingInlineStart: 0 !important;
+  --pf-v6-c-button--PaddingInlineEnd: 0 !important;
+  --pf-v6-c-button--Gap: 0 !important;
+  --pf-v6-c-button--MinWidth: 0 !important;
 }
 
 /* PF uses `display: contents` on the icon slot — override so the logo can size to the inner box. */
@@ -346,6 +369,8 @@ button[aria-label="View task details"] {
   display: flex !important;
   width: 100% !important;
   height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
   align-items: stretch !important;
   justify-content: stretch !important;
   line-height: 0 !important;
@@ -359,16 +384,19 @@ button[aria-label="View task details"] {
   background-color: #fafafa !important;
 }
 
-/* Logo fills the padding box inside the 2px border (object-fit keeps aspect; no bleed past inner edge). */
+/* Logo fills inner box edge-to-edge (crop if needed); no margin/padding inside the control. */
 .chatbot-toggle-sticky-host .ols-floating-launcher__logo {
   box-sizing: border-box !important;
   width: 100% !important;
   height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
   margin: 0 !important;
   padding: 0 !important;
-  object-fit: contain !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  object-fit: cover !important;
   object-position: center !important;
   display: block !important;
   pointer-events: none;

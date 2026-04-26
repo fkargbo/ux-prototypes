@@ -117,22 +117,8 @@ import botProfilePicUrl from '../assets/bot-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
 import { persesAgenticBridge, agenticGlobalAiApi } from '../persesAgenticBridge';
 
-/** Same id as `AppLayout` `mainContainerId` — primary `<main>` content box (best FAB anchor). */
-const APP_MAIN_CONTENT_ID = 'primary-app-container';
-
-const LAUNCHER_EDGE_GAP_PX = 24;
-
-function resolveLauncherAnchorEl(): HTMLElement | null {
-  const mainById = document.getElementById(APP_MAIN_CONTENT_ID);
-  if (mainById instanceof HTMLElement) {
-    return mainById;
-  }
-  const mainContainer = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
-  if (mainContainer) {
-    return mainContainer;
-  }
-  return document.querySelector<HTMLElement>('.pf-v6-c-page');
-}
+/** Viewport margin for the OLS floating launcher (`position: fixed` on `document.body`). */
+const OLS_LAUNCHER_VIEWPORT_MARGIN_PX = 24;
 
 // Helper function to create SVG data URL
 const createIconDataUrl = (svgContent: string): string => {
@@ -355,11 +341,6 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const [selectedQuickResponses, setSelectedQuickResponses] = useState<Array<{ containerId: string; content: string }>>([]);
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
-  /** Fixed `right` / `bottom` (px) so the launcher sits inside the shell main area bottom-right. */
-  const [launcherInset, setLauncherInset] = useState<{ right: number; bottom: number }>({
-    right: LAUNCHER_EDGE_GAP_PX,
-    bottom: LAUNCHER_EDGE_GAP_PX,
-  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
@@ -951,77 +932,6 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     };
   }, [handleStartTroubleshooting]);
 
-  // Fixed launcher: `right`/`bottom` = viewport inset so the control’s bottom-right sits `GAP` px inside the anchor rect.
-  useEffect(() => {
-    let observed: HTMLElement | null = null;
-    let moDebounce: number | undefined;
-
-    const ro: ResizeObserver | null =
-      typeof ResizeObserver !== 'undefined'
-        ? new ResizeObserver(() => {
-            measure();
-          })
-        : null;
-
-    function measure() {
-      const el = resolveLauncherAnchorEl();
-      if (el !== observed) {
-        if (observed && ro) {
-          ro.unobserve(observed);
-        }
-        observed = el;
-        if (observed && ro) {
-          ro.observe(observed);
-        }
-      }
-
-      const gap = LAUNCHER_EDGE_GAP_PX;
-      if (!el) {
-        setLauncherInset((p) => (p.right === gap && p.bottom === gap ? p : { right: gap, bottom: gap }));
-        return;
-      }
-
-      const r = el.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const right = Math.max(0, vw - r.right + gap);
-      const bottom = Math.max(0, vh - r.bottom + gap);
-
-      setLauncherInset((p) => (p.right === right && p.bottom === bottom ? p : { right, bottom }));
-    }
-
-    measure();
-    window.requestAnimationFrame(measure);
-    const t0 = window.setTimeout(measure, 0);
-    const t1 = window.setTimeout(measure, 250);
-    const t2 = window.setTimeout(measure, 800);
-    window.addEventListener('resize', measure);
-    window.addEventListener('scroll', measure, true);
-
-    const mo =
-      typeof MutationObserver !== 'undefined'
-        ? new MutationObserver(() => {
-            window.clearTimeout(moDebounce);
-            moDebounce = window.setTimeout(measure, 40);
-          })
-        : null;
-    mo?.observe(document.documentElement, { childList: true, subtree: true });
-
-    return () => {
-      window.clearTimeout(t0);
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.clearTimeout(moDebounce);
-      window.removeEventListener('resize', measure);
-      window.removeEventListener('scroll', measure, true);
-      mo?.disconnect();
-      if (observed && ro) {
-        ro.unobserve(observed);
-      }
-      ro?.disconnect();
-    };
-  }, [isDrawerOpen]);
-
   return (
     <>
     {/* OpenShift Lightspeed–style panel: portal to body, overlays shell (see dashboards-perses.css). */}
@@ -1152,14 +1062,14 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         document.body
       )}
 
-    {/* Floating launcher: `body` portal + fixed insets from `#primary-app-container` (fallback: main-container / page). */}
+    {/* Floating launcher: viewport-fixed on `body` — 24px from layout viewport right and bottom. */}
     {createPortal(
       <div
         className="chatbot-toggle-sticky-host"
         style={{
           position: 'fixed',
-          right: launcherInset.right,
-          bottom: launcherInset.bottom,
+          right: OLS_LAUNCHER_VIEWPORT_MARGIN_PX,
+          bottom: OLS_LAUNCHER_VIEWPORT_MARGIN_PX,
           zIndex: 10000,
           pointerEvents: 'none',
         }}
