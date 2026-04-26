@@ -77,8 +77,8 @@ button[aria-label="View task details"] {
 
 /*
  * OLS chrome dock: single fixed stacking context for chat + launcher (AgenticGlobalAiAssistant portals here).
- * `documentElement`: --ols-ai-chat-top, --ols-ai-chrome-inline-end, --ols-ai-chrome-bottom,
- * --ols-ai-chat-open-top-trim (see TS).
+ * `documentElement`: --ols-ai-chat-top, --ols-ai-chrome-inline-end, --ols-ai-chrome-bottom (see TS).
+ * While chat is open, `.ols-ai-chrome-dock` may set `--ols-ai-prototype-drawer-h` for measured drawer height.
  */
 .ols-ai-chrome-dock {
   position: fixed !important;
@@ -103,8 +103,18 @@ button[aria-label="View task details"] {
   width: min(480px, calc(33.333vw - 16px)) !important;
   min-width: 320px !important;
   max-width: 560px !important;
-  /* Shorten chat only: reserve space at top of dock; launcher + 8px gap stay at dock bottom (`AgenticGlobalAiAssistant`). */
-  padding-top: var(--ols-ai-chat-open-top-trim, 0px) !important;
+}
+
+/* Bottom block: 8px gap (when chat open) + launcher — measured with the dock for drawer height (TS). */
+.ols-ai-chrome-launcher-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
 }
 
 /* Fixed-height row between chat and launcher (see `ols-ai-chrome-launcher-gap` in AgenticGlobalAiAssistant). */
@@ -112,6 +122,12 @@ button[aria-label="View task details"] {
   flex-shrink: 0 !important;
   align-self: stretch !important;
   box-sizing: border-box !important;
+}
+
+.ols-ai-chrome-dock--chat-open .ols-prototype-ai-drawer {
+  flex: 0 0 auto !important;
+  height: var(--ols-ai-prototype-drawer-h, auto) !important;
+  margin-bottom: auto !important;
 }
 
 .ols-ai-chrome-dock .chatbot-toggle-sticky-host {

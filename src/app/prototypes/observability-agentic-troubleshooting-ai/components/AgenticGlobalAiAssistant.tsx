@@ -125,15 +125,14 @@ const OLS_AI_CHAT_TOP_VAR = '--ols-ai-chat-top';
 const OLS_AI_CHROME_INLINE_END_VAR = '--ols-ai-chrome-inline-end';
 const OLS_AI_CHROME_BOTTOM_VAR = '--ols-ai-chrome-bottom';
 
-/** Vertical gap between chat card bottom and launcher (must match `.ols-ai-chrome-dock--chat-open` in CSS). */
+/** Vertical gap between chat card bottom and launcher (must match `.ols-ai-chrome-launcher-gap` in CSS). */
 const OLS_CHAT_GAP_ABOVE_LAUNCHER_PX = 8;
 
-/**
- * When the drawer is open, applied as `padding-top` on `.ols-ai-chrome-dock--chat-open` so the chat card is
- * shorter without moving the launcher (extra space sits under the masthead, not between chat and launcher).
- */
-const OLS_CHAT_OPEN_TOP_TRIM_PX = 48;
-const OLS_AI_CHAT_OPEN_TOP_TRIM_VAR = '--ols-ai-chat-open-top-trim';
+/** Shorter chat card (px): dock height minus launcher stack minus this value (see `syncOlsDrawerHeight`). */
+const OLS_CHAT_BOTTOM_TRIM_PX = 48;
+
+/** Set on `.ols-ai-chrome-dock` while the drawer is open — `height` on `.ols-prototype-ai-drawer` (CSS). */
+const OLS_AI_PROTOTYPE_DRAWER_H_VAR = '--ols-ai-prototype-drawer-h';
 
 /** Popper tooltip above `.ols-ai-chrome-dock` (dock `z-index` is 10000). */
 const OLS_LAUNCHER_TOOLTIP_ZINDEX = 10050;
@@ -382,6 +381,8 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const [announcement, setAnnouncement] = useState<string>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
+  const olsChromeDockRef = useRef<HTMLDivElement>(null);
+  const olsLauncherStackRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
 
@@ -426,7 +427,6 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     root.style.setProperty(OLS_AI_CHROME_INLINE_END_VAR, `${OLS_LAUNCHER_VIEWPORT_MARGIN_PX}px`);
     root.style.setProperty(OLS_AI_CHROME_BOTTOM_VAR, `${OLS_LAUNCHER_VIEWPORT_MARGIN_PX}px`);
     root.style.setProperty('--ols-ai-chrome-chat-launcher-gap', `${OLS_CHAT_GAP_ABOVE_LAUNCHER_PX}px`);
-    root.style.setProperty(OLS_AI_CHAT_OPEN_TOP_TRIM_VAR, `${OLS_CHAT_OPEN_TOP_TRIM_PX}px`);
 
     const resolveMastheadEl = () =>
       (document.querySelector(OLS_PAGE_MASTHEAD_SELECTOR) ??
@@ -456,9 +456,39 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       root.style.removeProperty(OLS_AI_CHROME_INLINE_END_VAR);
       root.style.removeProperty(OLS_AI_CHROME_BOTTOM_VAR);
       root.style.removeProperty('--ols-ai-chrome-chat-launcher-gap');
-      root.style.removeProperty(OLS_AI_CHAT_OPEN_TOP_TRIM_VAR);
     };
   }, []);
+
+  /** Drawer height from dock − launcher row − bottom trim; `margin-bottom: auto` on the drawer absorbs leftover flex space. */
+  useLayoutEffect(() => {
+    const dock = olsChromeDockRef.current;
+    const stack = olsLauncherStackRef.current;
+    if (!dock || !stack) return;
+
+    const sync = () => {
+      if (!isDrawerOpen) {
+        dock.style.removeProperty(OLS_AI_PROTOTYPE_DRAWER_H_VAR);
+        return;
+      }
+      const dh = dock.offsetHeight;
+      const sh = stack.offsetHeight;
+      const drawerH = Math.max(120, dh - sh - OLS_CHAT_BOTTOM_TRIM_PX);
+      dock.style.setProperty(OLS_AI_PROTOTYPE_DRAWER_H_VAR, `${drawerH}px`);
+    };
+
+    sync();
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(sync);
+    });
+    ro.observe(dock);
+    ro.observe(stack);
+    window.addEventListener('resize', sync);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', sync);
+      dock.style.removeProperty(OLS_AI_PROTOTYPE_DRAWER_H_VAR);
+    };
+  }, [isDrawerOpen]);
 
   const triggerQuickResponseByContent = useCallback(
     (desiredContent: string) => {
@@ -1019,9 +1049,8 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     <>
     {/* One fixed stacking column: chat (when open) + launcher — right edges align via shared dock width (dashboards-perses.css). */}
     {createPortal(
-      <div className={olsChromeDockClassName}>
+      <div ref={olsChromeDockRef} className={olsChromeDockClassName}>
         {isDrawerOpen && (
-        <>
         <div className="ols-prototype-ai-drawer">
           <div className="ols-prototype-ai-drawer-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#ffffff' }}>
             <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -1145,24 +1174,26 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
             </div>
           </div>
         </div>
-        <div
-          aria-hidden
-          className="ols-ai-chrome-launcher-gap"
-          style={{
-            flexShrink: 0,
-            height: OLS_CHAT_GAP_ABOVE_LAUNCHER_PX,
-            minHeight: OLS_CHAT_GAP_ABOVE_LAUNCHER_PX,
-            width: '100%',
-            pointerEvents: 'none',
-          }}
-        />
-        </>
         )}
-        <div
-          id="ols-floating-launcher-host"
-          className="chatbot-toggle-sticky-host"
-          style={{ pointerEvents: 'none' }}
-        >
+        <div ref={olsLauncherStackRef} className="ols-ai-chrome-launcher-stack">
+          {isDrawerOpen && (
+            <div
+              aria-hidden
+              className="ols-ai-chrome-launcher-gap"
+              style={{
+                flexShrink: 0,
+                height: OLS_CHAT_GAP_ABOVE_LAUNCHER_PX,
+                minHeight: OLS_CHAT_GAP_ABOVE_LAUNCHER_PX,
+                width: '100%',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+          <div
+            id="ols-floating-launcher-host"
+            className="chatbot-toggle-sticky-host"
+            style={{ pointerEvents: 'none' }}
+          >
           <div
             ref={chatbotToggleRef}
             className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
@@ -1187,6 +1218,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
               }}
             />
           </div>
+        </div>
         </div>
       </div>,
       document.body
