@@ -117,6 +117,23 @@ import botProfilePicUrl from '../assets/bot-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
 import { persesAgenticBridge, agenticGlobalAiApi } from '../persesAgenticBridge';
 
+/** Same id as `AppLayout` `mainContainerId` — primary `<main>` content box (best FAB anchor). */
+const APP_MAIN_CONTENT_ID = 'primary-app-container';
+
+const LAUNCHER_EDGE_GAP_PX = 24;
+
+function resolveLauncherAnchorEl(): HTMLElement | null {
+  const mainById = document.getElementById(APP_MAIN_CONTENT_ID);
+  if (mainById instanceof HTMLElement) {
+    return mainById;
+  }
+  const mainContainer = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
+  if (mainContainer) {
+    return mainContainer;
+  }
+  return document.querySelector<HTMLElement>('.pf-v6-c-page');
+}
+
 // Helper function to create SVG data URL
 const createIconDataUrl = (svgContent: string): string => {
   const encoded = encodeURIComponent(svgContent);
@@ -338,8 +355,11 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const [selectedQuickResponses, setSelectedQuickResponses] = useState<Array<{ containerId: string; content: string }>>([]);
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
-  /** Portal host for the floating launcher: PatternFly `Page` root (`.pf-v6-c-page`), not drawer content. */
-  const [launcherPortalTarget, setLauncherPortalTarget] = useState<HTMLElement | null>(null);
+  /** Fixed `right` / `bottom` (px) so the launcher sits inside the shell main area bottom-right. */
+  const [launcherInset, setLauncherInset] = useState<{ right: number; bottom: number }>({
+    right: LAUNCHER_EDGE_GAP_PX,
+    bottom: LAUNCHER_EDGE_GAP_PX,
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
@@ -931,32 +951,76 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     };
   }, [handleStartTroubleshooting]);
 
-  // Resolve `Page` shell root so the launcher is offset from `.pf-v6-c-page` (24px / 24px), not drawer scroll areas.
+  // Fixed launcher: `right`/`bottom` = viewport inset so the control’s bottom-right sits `GAP` px inside the anchor rect.
   useEffect(() => {
-    const sync = () => {
-      const pageRoot = document.querySelector<HTMLElement>('.pf-v6-c-page');
-      setLauncherPortalTarget((prev) => (prev === pageRoot ? prev : pageRoot));
-    };
-    sync();
-    const raf = window.requestAnimationFrame(sync);
-    const t0 = window.setTimeout(sync, 0);
-    const t1 = window.setTimeout(sync, 300);
-    window.addEventListener('resize', sync);
+    let observed: HTMLElement | null = null;
+    let moDebounce: number | undefined;
+
+    const ro: ResizeObserver | null =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            measure();
+          })
+        : null;
+
+    function measure() {
+      const el = resolveLauncherAnchorEl();
+      if (el !== observed) {
+        if (observed && ro) {
+          ro.unobserve(observed);
+        }
+        observed = el;
+        if (observed && ro) {
+          ro.observe(observed);
+        }
+      }
+
+      const gap = LAUNCHER_EDGE_GAP_PX;
+      if (!el) {
+        setLauncherInset((p) => (p.right === gap && p.bottom === gap ? p : { right: gap, bottom: gap }));
+        return;
+      }
+
+      const r = el.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const right = Math.max(0, vw - r.right + gap);
+      const bottom = Math.max(0, vh - r.bottom + gap);
+
+      setLauncherInset((p) => (p.right === right && p.bottom === bottom ? p : { right, bottom }));
+    }
+
+    measure();
+    window.requestAnimationFrame(measure);
+    const t0 = window.setTimeout(measure, 0);
+    const t1 = window.setTimeout(measure, 250);
+    const t2 = window.setTimeout(measure, 800);
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+
+    const mo =
+      typeof MutationObserver !== 'undefined'
+        ? new MutationObserver(() => {
+            window.clearTimeout(moDebounce);
+            moDebounce = window.setTimeout(measure, 40);
+          })
+        : null;
+    mo?.observe(document.documentElement, { childList: true, subtree: true });
+
     return () => {
-      window.cancelAnimationFrame(raf);
       window.clearTimeout(t0);
       window.clearTimeout(t1);
-      window.removeEventListener('resize', sync);
+      window.clearTimeout(t2);
+      window.clearTimeout(moDebounce);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+      mo?.disconnect();
+      if (observed && ro) {
+        ro.unobserve(observed);
+      }
+      ro?.disconnect();
     };
   }, [isDrawerOpen]);
-
-  useEffect(() => {
-    if (!launcherPortalTarget) return undefined;
-    launcherPortalTarget.classList.add('ols-launcher-page-anchor');
-    return () => {
-      launcherPortalTarget.classList.remove('ols-launcher-page-anchor');
-    };
-  }, [launcherPortalTarget]);
 
   return (
     <>
@@ -1088,18 +1152,22 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         document.body
       )}
 
-    {/* Floating launcher: portaled to `.pf-v6-c-page` when present (24px from page bottom/right). */}
+    {/* Floating launcher: `body` portal + fixed insets from `#primary-app-container` (fallback: main-container / page). */}
     {createPortal(
       <div
-        className={
-          launcherPortalTarget
-            ? 'chatbot-toggle-sticky-host'
-            : 'chatbot-toggle-sticky-host chatbot-toggle-sticky-host--viewport-fallback'
-        }
+        className="chatbot-toggle-sticky-host"
+        style={{
+          position: 'fixed',
+          right: launcherInset.right,
+          bottom: launcherInset.bottom,
+          zIndex: 10000,
+          pointerEvents: 'none',
+        }}
       >
         <div
           ref={chatbotToggleRef}
           className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
+          style={{ pointerEvents: 'auto' }}
         >
           <ChatbotToggle
             isChatbotVisible={isDrawerOpen}
@@ -1111,7 +1179,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
           />
         </div>
       </div>,
-      launcherPortalTarget ?? document.body
+      document.body
     )}
   </>
   );

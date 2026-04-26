@@ -301,40 +301,20 @@ button[aria-label="View task details"] {
   flex-shrink: 0 !important;
 }
 
-/* PatternFly Page root: positioning context for the OLS launcher (portal child). */
-.pf-v6-c-page.ols-launcher-page-anchor {
-  position: relative !important;
-}
-
-/* Floating launcher: anchored to `.pf-v6-c-page` (24px from its bottom/right borders). */
+/*
+ * Launcher host: position + inset + z-index are set inline in AgenticGlobalAiAssistant (fixed to viewport,
+ * insets from `.pf-v6-c-page` via getBoundingClientRect). Keep only non-layout rules here.
+ */
 .chatbot-toggle-sticky-host {
-  position: absolute;
-  right: 24px;
-  bottom: 24px;
-  left: auto;
-  top: auto;
-  height: auto;
-  width: auto;
-  z-index: 301;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
-  padding: 0;
   margin: 0;
-  pointer-events: none;
-}
-
-/* Before `.pf-v6-c-page` exists, portal falls back to `document.body` (viewport-fixed, same offsets). */
-.chatbot-toggle-sticky-host.chatbot-toggle-sticky-host--viewport-fallback {
-  position: fixed;
+  padding: 0;
 }
 
 .chatbot-toggle-button {
   position: relative !important;
-  z-index: 301 !important;
+  z-index: 1 !important;
   visibility: visible !important;
   opacity: 1 !important;
-  pointer-events: auto;
   transform: none;
 }
 
