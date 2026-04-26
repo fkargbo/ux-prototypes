@@ -79,11 +79,12 @@ button[aria-label="View task details"] {
  * AI assistant: viewport-filling fixed panel. Insets are driven by CSS variables set in AgenticGlobalAiAssistant:
  *   --ols-ai-chat-top: masthead bottom (viewport px)
  *   --ols-ai-chat-bottom: launcher margin + 48px launcher + 8px gap (default matches TS if vars unset)
+ *   --ols-ai-chrome-inline-end: shared px inset for chat + launcher (matches OLS_LAUNCHER_VIEWPORT_MARGIN_PX in TS)
  */
 .ols-prototype-ai-drawer {
   position: fixed !important;
   top: var(--ols-ai-chat-top, 76px) !important;
-  right: 24px !important;
+  right: var(--ols-ai-chrome-inline-end, 24px) !important;
   bottom: var(--ols-ai-chat-bottom, 80px) !important;
   left: auto !important;
   width: min(480px, calc(33.333vw - 16px)) !important;
@@ -107,7 +108,7 @@ button[aria-label="View task details"] {
 
 @media (max-width: 768px) {
   .ols-prototype-ai-drawer {
-    width: calc(100vw - 48px) !important;
+    width: calc(100vw - (2 * var(--ols-ai-chrome-inline-end, 24px))) !important;
     min-width: 0 !important;
     max-width: none !important;
   }
