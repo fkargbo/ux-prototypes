@@ -114,6 +114,7 @@ import '../pages/dashboards-perses.css';
 // Import custom profile images
 import userProfilePicUrl from '../assets/user-profile.png';
 import botProfilePicUrl from '../assets/bot-profile.png';
+import olsLogoUrl from '../assets/ols-logo.png';
 import { persesAgenticBridge, agenticGlobalAiApi } from '../persesAgenticBridge';
 
 // Helper function to create SVG data URL
@@ -142,12 +143,14 @@ const botAvatarSrc = botProfilePicUrl || createIconDataUrl(robotIconSvg);
 /** Display name for assistant messages (OpenShift Lightspeed–style shell). */
 const BOT_DISPLAY_NAME = 'OpenShift Lightspeed';
 
-/** Spark mark for the floating launcher (closed state), inspired by the console Lightspeed control. */
-const LightspeedToggleClosedIcon = () => (
-  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
-    <path fill="#ee0000" d="M13.2 2 6.5 14.2h4.4L10.8 22 17.5 9.8H13.1z" />
-    <path fill="#151515" d="M17.8 8.2 14 14.5h2.2L12.4 22l5.6-10.1h-2.1z" opacity={0.35} />
-  </svg>
+/** Compact OLS logo for panel header and empty-state intro. */
+const LightspeedHeaderMark = () => (
+  <img src={olsLogoUrl} alt="" className="lightspeed-header-ols-logo" width={24} height={24} />
+);
+
+/** Full-size logo inside the floating launcher button (closed state). */
+const OlsFloatingLauncherLogo = () => (
+  <img src={olsLogoUrl} alt="" className="ols-floating-launcher__logo" width={32} height={32} />
 );
 
 /** Reusable disclaimer shown before manual instructions (info Alert). */
@@ -335,6 +338,8 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const [selectedQuickResponses, setSelectedQuickResponses] = useState<Array<{ containerId: string; content: string }>>([]);
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
+  /** Portal host for the floating launcher: PatternFly `Page` root (`.pf-v6-c-page`), not drawer content. */
+  const [launcherPortalTarget, setLauncherPortalTarget] = useState<HTMLElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
@@ -926,6 +931,33 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     };
   }, [handleStartTroubleshooting]);
 
+  // Resolve `Page` shell root so the launcher is offset from `.pf-v6-c-page` (24px / 24px), not drawer scroll areas.
+  useEffect(() => {
+    const sync = () => {
+      const pageRoot = document.querySelector<HTMLElement>('.pf-v6-c-page');
+      setLauncherPortalTarget((prev) => (prev === pageRoot ? prev : pageRoot));
+    };
+    sync();
+    const raf = window.requestAnimationFrame(sync);
+    const t0 = window.setTimeout(sync, 0);
+    const t1 = window.setTimeout(sync, 300);
+    window.addEventListener('resize', sync);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(t0);
+      window.clearTimeout(t1);
+      window.removeEventListener('resize', sync);
+    };
+  }, [isDrawerOpen]);
+
+  useEffect(() => {
+    if (!launcherPortalTarget) return undefined;
+    launcherPortalTarget.classList.add('ols-launcher-page-anchor');
+    return () => {
+      launcherPortalTarget.classList.remove('ols-launcher-page-anchor');
+    };
+  }, [launcherPortalTarget]);
+
   return (
     <>
     {/* OpenShift Lightspeed–style panel: portal to body, overlays shell (see dashboards-perses.css). */}
@@ -937,7 +969,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
               <ChatbotHeader style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
                 <ChatbotHeaderMain className="lightspeed-header-main">
                   <span className="lightspeed-header-mark" aria-hidden>
-                    <LightspeedToggleClosedIcon />
+                    <LightspeedHeaderMark />
                   </span>
                   <ChatbotHeaderTitle className="lightspeed-header-title">Red Hat OpenShift Lightspeed</ChatbotHeaderTitle>
                 </ChatbotHeaderMain>
@@ -976,7 +1008,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                     <>
                       <div className="lightspeed-empty-intro">
                         <div className="lightspeed-empty-mark" aria-hidden>
-                          <LightspeedToggleClosedIcon />
+                          <LightspeedHeaderMark />
                         </div>
                         <Content>
                           <p>
@@ -1056,9 +1088,15 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
         document.body
       )}
 
-    {/* Floating launcher: fixed to viewport bottom-right (OpenShift Lightspeed pattern). */}
+    {/* Floating launcher: portaled to `.pf-v6-c-page` when present (24px from page bottom/right). */}
     {createPortal(
-      <div className="chatbot-toggle-sticky-host">
+      <div
+        className={
+          launcherPortalTarget
+            ? 'chatbot-toggle-sticky-host'
+            : 'chatbot-toggle-sticky-host chatbot-toggle-sticky-host--viewport-fallback'
+        }
+      >
         <div
           ref={chatbotToggleRef}
           className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
@@ -1066,13 +1104,14 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
           <ChatbotToggle
             isChatbotVisible={isDrawerOpen}
             onToggleChatbot={() => setIsDrawerOpen(!isDrawerOpen)}
-            closedToggleIcon={LightspeedToggleClosedIcon}
+            isRound={false}
+            closedToggleIcon={OlsFloatingLauncherLogo}
             toggleButtonLabel="Red Hat OpenShift Lightspeed"
             tooltipLabel="Red Hat OpenShift Lightspeed"
           />
         </div>
       </div>,
-      document.body
+      launcherPortalTarget ?? document.body
     )}
   </>
   );

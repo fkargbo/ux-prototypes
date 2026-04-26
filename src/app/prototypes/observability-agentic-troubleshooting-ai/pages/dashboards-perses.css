@@ -301,11 +301,16 @@ button[aria-label="View task details"] {
   flex-shrink: 0 !important;
 }
 
-/* Floating launcher: viewport-fixed bottom-right (OpenShift Lightspeed pattern) */
+/* PatternFly Page root: positioning context for the OLS launcher (portal child). */
+.pf-v6-c-page.ols-launcher-page-anchor {
+  position: relative !important;
+}
+
+/* Floating launcher: anchored to `.pf-v6-c-page` (24px from its bottom/right borders). */
 .chatbot-toggle-sticky-host {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
   left: auto;
   top: auto;
   height: auto;
@@ -319,6 +324,11 @@ button[aria-label="View task details"] {
   pointer-events: none;
 }
 
+/* Before `.pf-v6-c-page` exists, portal falls back to `document.body` (viewport-fixed, same offsets). */
+.chatbot-toggle-sticky-host.chatbot-toggle-sticky-host--viewport-fallback {
+  position: fixed;
+}
+
 .chatbot-toggle-button {
   position: relative !important;
   z-index: 301 !important;
@@ -328,29 +338,52 @@ button[aria-label="View task details"] {
   transform: none;
 }
 
-/* Lightspeed-style circular white launcher */
-.chatbot-toggle-sticky-host .pf-chatbot__button.pf-chatbot__button--round {
+/* Floating launcher: 48×48, 12px radius, OLS logo inside (see ols-floating-launcher__logo) */
+.chatbot-toggle-sticky-host .pf-chatbot__button {
   width: 48px !important;
   height: 48px !important;
   min-width: 48px !important;
   min-height: 48px !important;
   padding: 0 !important;
-  border-radius: 50% !important;
+  border-radius: 12px !important;
   background-color: #ffffff !important;
-  color: #ee0000 !important;
+  color: #151515 !important;
   box-shadow:
     0 4px 12px rgba(3, 3, 3, 0.16),
     0 1px 3px rgba(3, 3, 3, 0.08) !important;
   border: 1px solid rgba(3, 3, 3, 0.08) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-.chatbot-toggle-sticky-host .pf-chatbot__button.pf-chatbot__button--round.pf-chatbot__button--active {
+.chatbot-toggle-sticky-host .pf-chatbot__button.pf-chatbot__button--active {
   background-color: #f5f5f5 !important;
-  color: #151515 !important;
 }
 
-.chatbot-toggle-sticky-host .pf-chatbot__button.pf-chatbot__button--round:hover {
+.chatbot-toggle-sticky-host .pf-chatbot__button:hover {
   background-color: #fafafa !important;
+}
+
+.chatbot-toggle-sticky-host .ols-floating-launcher__logo {
+  width: 32px !important;
+  height: 32px !important;
+  object-fit: contain !important;
+  display: block !important;
+  pointer-events: none;
+}
+
+/* Header / empty-state OLS mark (smaller than launcher) */
+.ai-assistant-drawer-wrapper .lightspeed-header-ols-logo {
+  width: 24px !important;
+  height: 24px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+.lightspeed-empty-intro .lightspeed-header-ols-logo {
+  width: 40px !important;
+  height: 40px !important;
 }
 
 /* Lightspeed header strip */
