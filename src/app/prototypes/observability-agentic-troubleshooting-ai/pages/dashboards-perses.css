@@ -77,7 +77,8 @@ button[aria-label="View task details"] {
 
 /*
  * OLS chrome dock: single fixed stacking context for chat + launcher (AgenticGlobalAiAssistant portals here).
- * `documentElement`: --ols-ai-chat-top, --ols-ai-chrome-inline-end, --ols-ai-chrome-bottom (see TS).
+ * `documentElement`: --ols-ai-chat-top, --ols-ai-chrome-inline-end, --ols-ai-chrome-bottom,
+ * --ols-ai-chat-open-extra-bottom-inset (see TS).
  */
 .ols-ai-chrome-dock {
   position: fixed !important;
@@ -102,6 +103,10 @@ button[aria-label="View task details"] {
   width: min(480px, calc(33.333vw - 16px)) !important;
   min-width: 320px !important;
   max-width: 560px !important;
+  /* Shorter chat column than full masthead→bottom span (`AgenticGlobalAiAssistant` sets the extra inset var). */
+  bottom: calc(
+    var(--ols-ai-chrome-bottom, 24px) + var(--ols-ai-chat-open-extra-bottom-inset, 0px)
+  ) !important;
 }
 
 /* Fixed-height row between chat and launcher (see `ols-ai-chrome-launcher-gap` in AgenticGlobalAiAssistant). */

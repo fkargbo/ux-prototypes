@@ -128,6 +128,10 @@ const OLS_AI_CHROME_BOTTOM_VAR = '--ols-ai-chrome-bottom';
 /** Vertical gap between chat card bottom and launcher (must match `.ols-ai-chrome-dock--chat-open` in CSS). */
 const OLS_CHAT_GAP_ABOVE_LAUNCHER_PX = 8;
 
+/** Extra viewport bottom inset when the drawer is open — shortens the chat column by this amount (see CSS). */
+const OLS_CHAT_OPEN_EXTRA_BOTTOM_INSET_PX = 48;
+const OLS_AI_CHAT_OPEN_EXTRA_BOTTOM_INSET_VAR = '--ols-ai-chat-open-extra-bottom-inset';
+
 /** Popper tooltip above `.ols-ai-chrome-dock` (dock `z-index` is 10000). */
 const OLS_LAUNCHER_TOOLTIP_ZINDEX = 10050;
 
@@ -419,6 +423,10 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     root.style.setProperty(OLS_AI_CHROME_INLINE_END_VAR, `${OLS_LAUNCHER_VIEWPORT_MARGIN_PX}px`);
     root.style.setProperty(OLS_AI_CHROME_BOTTOM_VAR, `${OLS_LAUNCHER_VIEWPORT_MARGIN_PX}px`);
     root.style.setProperty('--ols-ai-chrome-chat-launcher-gap', `${OLS_CHAT_GAP_ABOVE_LAUNCHER_PX}px`);
+    root.style.setProperty(
+      OLS_AI_CHAT_OPEN_EXTRA_BOTTOM_INSET_VAR,
+      `${OLS_CHAT_OPEN_EXTRA_BOTTOM_INSET_PX}px`
+    );
 
     const resolveMastheadEl = () =>
       (document.querySelector(OLS_PAGE_MASTHEAD_SELECTOR) ??
@@ -448,6 +456,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       root.style.removeProperty(OLS_AI_CHROME_INLINE_END_VAR);
       root.style.removeProperty(OLS_AI_CHROME_BOTTOM_VAR);
       root.style.removeProperty('--ols-ai-chrome-chat-launcher-gap');
+      root.style.removeProperty(OLS_AI_CHAT_OPEN_EXTRA_BOTTOM_INSET_VAR);
     };
   }, []);
 
