@@ -1002,10 +1002,10 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
   return (
     <>
-    {/* OpenShift Lightspeed–style panel: portal to body, overlays shell (see dashboards-perses.css). */}
+    {/* OpenShift Lightspeed–style panel: portal to body; layout `.ols-prototype-ai-drawer` in dashboards-perses.css. */}
     {isDrawerOpen && createPortal(
-        <div className="ai-assistant-drawer-wrapper">
-          <div className="ai-assistant-panel-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#ffffff' }}>
+        <div className="ols-prototype-ai-drawer">
+          <div className="ols-prototype-ai-drawer-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#ffffff' }}>
             <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <Chatbot displayMode={ChatbotDisplayMode.drawer}>
               <ChatbotHeader style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>

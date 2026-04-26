@@ -80,10 +80,10 @@ button[aria-label="View task details"] {
  *   --ols-ai-chat-top: masthead bottom (viewport px)
  *   --ols-ai-chat-bottom: launcher margin + 48px launcher + 8px gap (default matches TS if vars unset)
  */
-.ai-assistant-drawer-wrapper {
+.ols-prototype-ai-drawer {
   position: fixed !important;
   top: var(--ols-ai-chat-top, 76px) !important;
-  right: 12px !important;
+  right: 24px !important;
   bottom: var(--ols-ai-chat-bottom, 80px) !important;
   left: auto !important;
   width: min(480px, calc(33.333vw - 16px)) !important;
@@ -106,15 +106,15 @@ button[aria-label="View task details"] {
 }
 
 @media (max-width: 768px) {
-  .ai-assistant-drawer-wrapper {
-    width: calc(100vw - 24px) !important;
+  .ols-prototype-ai-drawer {
+    width: calc(100vw - 48px) !important;
     min-width: 0 !important;
     max-width: none !important;
   }
 }
 
 /* Inner panel container - ensures proper containment */
-.ai-assistant-panel-inner {
+.ols-prototype-ai-drawer-inner {
   position: relative !important;
   height: 100% !important;
   width: 100% !important;
@@ -129,7 +129,7 @@ button[aria-label="View task details"] {
 }
 
 /* Drawer mode defaults to viewport-fixed; contain inside the portal card */
-.ai-assistant-drawer-wrapper .pf-chatbot.pf-chatbot--drawer {
+.ols-prototype-ai-drawer .pf-chatbot.pf-chatbot--drawer {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
@@ -142,13 +142,13 @@ button[aria-label="View task details"] {
   z-index: 1 !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-chatbot--drawer .pf-chatbot-container {
+.ols-prototype-ai-drawer .pf-chatbot--drawer .pf-chatbot-container {
   border-radius: 8px !important;
   overflow: hidden;
 }
 
 /* Override DrawerPanelContent styles when in portal */
-.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel {
+.ols-prototype-ai-drawer .pf-v6-c-drawer__panel {
   position: static !important;
   width: 100% !important;
   height: 100% !important;
@@ -158,7 +158,7 @@ button[aria-label="View task details"] {
   flex-direction: column !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel-main {
+.ols-prototype-ai-drawer .pf-v6-c-drawer__panel-main {
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
@@ -167,7 +167,7 @@ button[aria-label="View task details"] {
   min-height: 0 !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-drawer__panel-body {
+.ols-prototype-ai-drawer .pf-v6-c-drawer__panel-body {
   flex: 1 !important;
   display: flex !important;
   flex-direction: column !important;
@@ -204,8 +204,8 @@ button[aria-label="View task details"] {
 }
 
 /* Ensure Chatbot component takes full height and is visible */
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot,
-.ai-assistant-panel-inner .pf-v6-c-chatbot {
+.ols-prototype-ai-drawer .pf-v6-c-chatbot,
+.ols-prototype-ai-drawer-inner .pf-v6-c-chatbot {
   height: 100% !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -218,14 +218,14 @@ button[aria-label="View task details"] {
   box-sizing: border-box !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__header {
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__header {
   flex-shrink: 0 !important;
   display: flex !important;
   visibility: visible !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content,
-.ai-assistant-panel-inner .pf-v6-c-chatbot__content {
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__content,
+.ols-prototype-ai-drawer-inner .pf-v6-c-chatbot__content {
   flex: 1 !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
@@ -239,7 +239,7 @@ button[aria-label="View task details"] {
   box-sizing: border-box !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__footer {
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__footer {
   flex-shrink: 0 !important;
   width: 100% !important;
   display: flex !important;
@@ -247,7 +247,7 @@ button[aria-label="View task details"] {
 }
 
 /* Ensure MessageBox is visible */
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__message-box {
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__message-box {
   flex: 1 !important;
   overflow-y: auto !important;
   display: flex !important;
@@ -257,14 +257,14 @@ button[aria-label="View task details"] {
 }
 
 /* Ensure MessageBar is visible */
-.ai-assistant-drawer-wrapper .pf-v6-c-message-bar {
+.ols-prototype-ai-drawer .pf-v6-c-message-bar {
   display: flex !important;
   visibility: visible !important;
   width: 100% !important;
 }
 
 /* Fix ChatbotWelcomePrompt alignment and visibility */
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__welcome-prompt {
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__welcome-prompt {
   text-align: left !important;
   padding: var(--pf-v5-global--spacer--lg) var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--md) !important;
   display: block !important;
@@ -272,27 +272,27 @@ button[aria-label="View task details"] {
   opacity: 1 !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__welcome-prompt-title {
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__welcome-prompt-title {
   text-align: left !important;
   margin-bottom: var(--pf-v5-global--spacer--sm) !important;
   display: block !important;
   visibility: visible !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__welcome-prompt-description {
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__welcome-prompt-description {
   text-align: left !important;
   display: block !important;
   visibility: visible !important;
 }
 
 /* Ensure all chatbot content is visible */
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot * {
+.ols-prototype-ai-drawer .pf-v6-c-chatbot * {
   visibility: visible !important;
 }
 
 /* Ensure message avatars are visible and properly sized */
-.ai-assistant-drawer-wrapper .pf-v6-c-message__avatar,
-.ai-assistant-drawer-wrapper .pf-v6-c-avatar {
+.ols-prototype-ai-drawer .pf-v6-c-message__avatar,
+.ols-prototype-ai-drawer .pf-v6-c-avatar {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -443,7 +443,7 @@ button[aria-label="View task details"] {
 }
 
 /* Header / empty-state OLS mark (smaller than launcher) */
-.ai-assistant-drawer-wrapper .lightspeed-header-ols-logo {
+.ols-prototype-ai-drawer .lightspeed-header-ols-logo {
   width: 24px !important;
   height: 24px !important;
   object-fit: contain !important;
@@ -456,41 +456,41 @@ button[aria-label="View task details"] {
 }
 
 /* Lightspeed header strip */
-.ai-assistant-drawer-wrapper .pf-chatbot__header {
+.ols-prototype-ai-drawer .pf-chatbot__header {
   background-color: #f0f0f0 !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-chatbot__header__divider {
+.ols-prototype-ai-drawer .pf-chatbot__header__divider {
   display: none;
 }
 
-.ai-assistant-drawer-wrapper .lightspeed-header-actions {
+.ols-prototype-ai-drawer .lightspeed-header-actions {
   display: flex;
   align-items: center;
   gap: 2px;
   margin-left: auto;
 }
 
-.ai-assistant-drawer-wrapper .lightspeed-header-title {
+.ols-prototype-ai-drawer .lightspeed-header-title {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ai-assistant-drawer-wrapper .lightspeed-header-main {
+.ols-prototype-ai-drawer .lightspeed-header-main {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
   min-width: 0 !important;
 }
 
-.ai-assistant-drawer-wrapper .lightspeed-header-mark {
+.ols-prototype-ai-drawer .lightspeed-header-mark {
   display: inline-flex !important;
   flex-shrink: 0 !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-chatbot__content {
+.ols-prototype-ai-drawer .pf-chatbot__content {
   background-color: #ffffff !important;
 }
 
@@ -519,16 +519,16 @@ button[aria-label="View task details"] {
   padding-top: 4px;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-message__avatar img,
-.ai-assistant-drawer-wrapper .pf-v6-c-avatar img {
+.ols-prototype-ai-drawer .pf-v6-c-message__avatar img,
+.ols-prototype-ai-drawer .pf-v6-c-avatar img {
   width: 48px !important;
   height: 48px !important;
   object-fit: cover !important;
   border-radius: 50% !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-message__avatar svg,
-.ai-assistant-drawer-wrapper .pf-v6-c-avatar svg {
+.ols-prototype-ai-drawer .pf-v6-c-message__avatar svg,
+.ols-prototype-ai-drawer .pf-v6-c-avatar svg {
   width: 48px !important;
   height: 48px !important;
   display: block !important;
@@ -581,8 +581,8 @@ button[aria-label="View task details"] {
 }
 
 /* Chatbot code blocks: match reference (dark header, rounded top, language left, copy icon right). */
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block,
-.ai-assistant-drawer-wrapper .pf-chatbot__message-code-block {
+.ols-prototype-ai-drawer .pf-v6-c-code-block,
+.ols-prototype-ai-drawer .pf-chatbot__message-code-block {
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -597,7 +597,7 @@ button[aria-label="View task details"] {
 }
 
 /* Code block content (bottom half): explicit background so it shows in built/deployed envs. */
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__content {
+.ols-prototype-ai-drawer .pf-v6-c-code-block__content {
   display: block !important;
   min-height: 0;
   flex-shrink: 0;
@@ -605,7 +605,7 @@ button[aria-label="View task details"] {
 }
 
 /* Header: dark bar (#2F3134), rounded top corners, white label and icon. Full width so actions can align. */
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header {
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header {
   display: flex;
   align-items: center;
   min-height: 36px;
@@ -620,7 +620,7 @@ button[aria-label="View task details"] {
 }
 
 /* Actions row: take full width so copy can sit at the end. */
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions {
+.ols-prototype-ai-drawer .pf-v6-c-code-block__actions {
   display: flex;
   align-items: center;
   flex: 1;
@@ -629,12 +629,12 @@ button[aria-label="View task details"] {
 }
 
 /* Language label: left, no grow/shrink. */
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__actions .pf-v6-c-code-block__actions-item:first-child {
+.ols-prototype-ai-drawer .pf-v6-c-code-block__actions .pf-v6-c-code-block__actions-item:first-child {
   flex: 0 0 auto;
 }
 
 /* Code block header: single actions item with language + copy (match chatbot CodeBlockMessage layout). */
-.ai-assistant-drawer-wrapper .pf-chatbot__message-code-block .pf-v6-c-code-block__actions-item {
+.ols-prototype-ai-drawer .pf-chatbot__message-code-block .pf-v6-c-code-block__actions-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -642,7 +642,7 @@ button[aria-label="View task details"] {
 }
 
 /* Language label: PF-recommended weight for CodeBlock headers (semi-bold), white, uppercase format. */
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-language {
+.ols-prototype-ai-drawer .pf-chatbot__code-block-language {
   font-size: var(--pf-t--global--font--size--xs, 12px);
   font-family: var(--pf-t--global--font--family--mono, monospace);
   font-weight: var(--pf-t--global--font--weight--body--bold, 600);
@@ -651,10 +651,10 @@ button[aria-label="View task details"] {
 }
 
 /* Copy button in header: native button + inline SVG (class matches chatbot .pf-chatbot__button--copy). */
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-chatbot__button--copy,
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button {
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header .pf-v6-c-button,
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header button,
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header .pf-chatbot__button--copy,
+.ols-prototype-ai-drawer .pf-chatbot__code-block-copy-button {
   color: #fff !important;
   background: transparent !important;
   border: none !important;
@@ -666,8 +666,8 @@ button[aria-label="View task details"] {
   justify-content: center !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-chatbot__button--copy svg,
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button svg {
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header .pf-chatbot__button--copy svg,
+.ols-prototype-ai-drawer .pf-chatbot__code-block-copy-button svg {
   color: #fff !important;
   fill: #fff !important;
   width: 1em !important;
@@ -676,41 +676,41 @@ button[aria-label="View task details"] {
   flex-shrink: 0 !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button:hover,
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button:hover {
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header .pf-v6-c-button:hover,
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header button:hover,
+.ols-prototype-ai-drawer .pf-chatbot__code-block-copy-button:hover {
   color: rgba(255, 255, 255, 0.9) !important;
   background: rgba(255, 255, 255, 0.08) !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-chatbot__code-block-copy-button:hover svg {
+.ols-prototype-ai-drawer .pf-chatbot__code-block-copy-button:hover svg {
   color: rgba(255, 255, 255, 0.9) !important;
   fill: rgba(255, 255, 255, 0.9) !important;
 }
 
 /* Force copy icon visible on dark header: override PF icon color, ensure icon displays, SVG fill. */
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button .pf-v6-c-button__icon,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button .pf-v6-c-button__icon {
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header .pf-v6-c-button .pf-v6-c-button__icon,
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header button .pf-v6-c-button__icon {
   display: inline-flex !important;
   color: #fff !important;
   --pf-v6-c-button__icon--Color: #fff !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button .pf-v6-c-button__icon svg,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button .pf-v6-c-button__icon svg,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header .pf-v6-c-button svg,
-.ai-assistant-drawer-wrapper .pf-v6-c-code-block__header button svg {
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header .pf-v6-c-button .pf-v6-c-button__icon svg,
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header button .pf-v6-c-button__icon svg,
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header .pf-v6-c-button svg,
+.ols-prototype-ai-drawer .pf-v6-c-code-block__header button svg {
   fill: #fff !important;
   width: 1em !important;
   height: 1em !important;
 }
 
 /* Chatbot suggestion chips (quick responses) - brand interactive blue */
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses .pf-v6-c-button,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses button,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-button,
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content .pf-v6-c-message .pf-v6-c-button:not(.pf-m-plain):not(.pf-m-link) {
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-responses .pf-v6-c-button,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-responses button,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response .pf-v6-c-button,
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__content .pf-v6-c-message .pf-v6-c-button:not(.pf-m-plain):not(.pf-m-link) {
   background-color: var(--pf-t--global--background--color--primary--default) !important;
   border: 1px solid var(--pf-t--global--border--color--interactive--default) !important;
   color: var(--pf-t--global--text--color--brand--default) !important;
@@ -718,98 +718,98 @@ button[aria-label="View task details"] {
   font-weight: 500 !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses .pf-v6-c-button:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses button:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-button:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content .pf-v6-c-message .pf-v6-c-button:not(.pf-m-plain):not(.pf-m-link):hover {
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-responses .pf-v6-c-button:hover,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-responses button:hover,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response:hover,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response .pf-v6-c-button:hover,
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__content .pf-v6-c-message .pf-v6-c-button:not(.pf-m-plain):not(.pf-m-link):hover {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses .pf-v6-c-button:active,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-responses button:active,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response:active,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-button:active,
-.ai-assistant-drawer-wrapper .pf-v6-c-chatbot__content .pf-v6-c-message .pf-v6-c-button:not(.pf-m-plain):not(.pf-m-link):active {
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-responses .pf-v6-c-button:active,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-responses button:active,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response:active,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response .pf-v6-c-button:active,
+.ols-prototype-ai-drawer .pf-v6-c-chatbot__content .pf-v6-c-message .pf-v6-c-button:not(.pf-m-plain):not(.pf-m-link):active {
   background-color: var(--pf-t--global--background--color--tertiary--default) !important;
 }
 
 /* Chatbot quick response chips are rendered as clickable PatternFly Labels. */
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable {
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable {
   background-color: var(--pf-t--global--background--color--primary--default) !important;
   border-color: var(--pf-t--global--border--color--interactive--default) !important;
   color: var(--pf-t--global--text--color--brand--default) !important;
   font-weight: 500 !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable .pf-v6-c-label__content,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable .pf-v6-c-label__text {
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable .pf-v6-c-label__content,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable .pf-v6-c-label__text {
   color: var(--pf-t--global--text--color--brand--default) !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable:hover {
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable:hover {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable:focus-visible {
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable:focus-visible {
   outline: 2px solid var(--pf-t--global--border--color--interactive--default) !important;
   outline-offset: 2px !important;
 }
 
 /* Persisted clicked/selected state: both pills solid blue after click.
    Override both outline (first pill) and filled (second pill) so they match. */
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"],
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-filled.pf-m-clicked,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-filled[aria-pressed="true"],
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-clicked,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-active,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-selected,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable[aria-pressed="true"],
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-filled.pf-m-clicked,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-filled[aria-pressed="true"],
 /* Explicitly override outline variant (Analyze root cause) so it’s solid blue like the other pill */
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-outline.pf-m-clickable.pf-m-clicked,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-outline.pf-m-clickable[aria-pressed="true"],
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-outline.pf-m-clickable.pf-m-clicked,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-outline.pf-m-clickable[aria-pressed="true"],
 /* Fallback: any quick-response label we mark as pressed gets solid blue */
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] {
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] {
   background-color: #9FCCF7 !important;
   border-color: #9FCCF7 !important;
   color: var(--pf-t--global--text--color--default, #151515) !important;
 }
 
 /* Override PF outline CSS variables so outline pill (first pill) uses solid blue, not white */
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-outline[aria-pressed="true"],
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-outline.pf-m-clicked {
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-outline[aria-pressed="true"],
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-outline.pf-m-clicked {
   --pf-v6-c-label--BackgroundColor: #9FCCF7 !important;
   --pf-v6-c-label--BorderColor: #9FCCF7 !important;
   --pf-v6-c-label--Color: #151515 !important;
   --pf-v6-c-label__icon--Color: #151515 !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__content,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__content,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__content,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__content,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__text,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__text,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__text,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__text,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] .pf-v6-c-label__content,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] .pf-v6-c-label__text {
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__content,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__content,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__content,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__content,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__text,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__text,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__text,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__text,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] .pf-v6-c-label__content,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] .pf-v6-c-label__text {
   color: var(--pf-t--global--text--color--default, #151515) !important;
 }
 
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"]:hover,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"]:hover {
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-clicked:hover,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-active:hover,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-selected:hover,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable[aria-pressed="true"]:hover,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"]:hover {
   background-color: #9FCCF7 !important;
   border-color: #9FCCF7 !important;
 }
 
 /* Ensure the check icon inherits the selected (dark) color */
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__icon,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__icon,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__icon,
-.ai-assistant-drawer-wrapper .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__icon,
-.ai-assistant-drawer-wrapper .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] .pf-v6-c-label__icon {
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-clicked .pf-v6-c-label__icon,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-active .pf-v6-c-label__icon,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable.pf-m-selected .pf-v6-c-label__icon,
+.ols-prototype-ai-drawer .pf-v6-c-label.pf-m-clickable[aria-pressed="true"] .pf-v6-c-label__icon,
+.ols-prototype-ai-drawer .pf-v6-c-message__quick-response .pf-v6-c-label[aria-pressed="true"] .pf-v6-c-label__icon {
   color: var(--pf-t--global--text--color--default, #151515) !important;
 }
