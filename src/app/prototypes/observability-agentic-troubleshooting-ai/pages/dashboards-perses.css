@@ -318,23 +318,37 @@ button[aria-label="View task details"] {
   transform: none;
 }
 
-/* Floating launcher: 48×48, 12px radius, OLS logo inside (see ols-floating-launcher__logo) */
+/* Floating launcher: 48×48 outer box, 12px radius; 2px border (~#D9D9D9 → PF default border token). */
 .chatbot-toggle-sticky-host .pf-chatbot__button {
+  box-sizing: border-box !important;
   width: 48px !important;
   height: 48px !important;
   min-width: 48px !important;
   min-height: 48px !important;
   padding: 0 !important;
   border-radius: 12px !important;
+  overflow: hidden !important;
   background-color: #ffffff !important;
   color: #151515 !important;
   box-shadow:
     0 4px 12px rgba(3, 3, 3, 0.16),
     0 1px 3px rgba(3, 3, 3, 0.08) !important;
-  border: 1px solid rgba(3, 3, 3, 0.08) !important;
+  border: 2px solid var(--pf-t--global--border--color--default, #d9d9d9) !important;
   display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  position: relative !important;
+  inset: unset !important;
+}
+
+/* PF uses `display: contents` on the icon slot — override so the logo can size to the inner box. */
+.chatbot-toggle-sticky-host .pf-chatbot__button .pf-v6-c-button__icon {
+  display: flex !important;
+  width: 100% !important;
+  height: 100% !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  line-height: 0 !important;
 }
 
 .chatbot-toggle-sticky-host .pf-chatbot__button.pf-chatbot__button--active {
@@ -345,12 +359,30 @@ button[aria-label="View task details"] {
   background-color: #fafafa !important;
 }
 
+/* Logo fills the padding box inside the 2px border (object-fit keeps aspect; no bleed past inner edge). */
 .chatbot-toggle-sticky-host .ols-floating-launcher__logo {
-  width: 32px !important;
-  height: 32px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
   object-fit: contain !important;
+  object-position: center !important;
   display: block !important;
   pointer-events: none;
+}
+
+/* Open state: center the chevron in the same control. */
+.chatbot-toggle-sticky-host .pf-chatbot__button.pf-chatbot__button--active .pf-v6-c-button__icon {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.chatbot-toggle-sticky-host .pf-chatbot__button.pf-chatbot__button--active svg {
+  width: var(--pf-t--global--spacer--lg, 1rem) !important;
+  height: var(--pf-t--global--spacer--lg, 1rem) !important;
 }
 
 /* Header / empty-state OLS mark (smaller than launcher) */

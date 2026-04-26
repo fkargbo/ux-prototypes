@@ -167,7 +167,7 @@ const LightspeedHeaderMark = () => (
 
 /** Full-size logo inside the floating launcher button (closed state). */
 const OlsFloatingLauncherLogo = () => (
-  <img src={olsLogoUrl} alt="" className="ols-floating-launcher__logo" width={32} height={32} />
+  <img src={olsLogoUrl} alt="" className="ols-floating-launcher__logo" />
 );
 
 /** Reusable disclaimer shown before manual instructions (info Alert). */
