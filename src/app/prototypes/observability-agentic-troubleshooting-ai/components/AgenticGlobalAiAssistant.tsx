@@ -120,6 +120,22 @@ import { persesAgenticBridge, agenticGlobalAiApi } from '../persesAgenticBridge'
 /** Viewport margin for the OLS floating launcher (`position: fixed` on `document.body`). */
 const OLS_LAUNCHER_VIEWPORT_MARGIN_PX = 24;
 
+/**
+ * PF chatbot CSS pins `.pf-chatbot__button` with `position: fixed` + logical insets, which ignores the host
+ * wrapper and adds extra horizontal offset. Inline styles win over those rules (no `!important` on PF).
+ */
+const OLS_LAUNCHER_TOGGLE_BUTTON_STYLE = {
+  position: 'relative' as const,
+  top: 'auto',
+  right: 'auto',
+  bottom: 'auto',
+  left: 'auto',
+  insetInlineStart: 'auto',
+  insetInlineEnd: 'auto',
+  insetBlockStart: 'auto',
+  insetBlockEnd: 'auto',
+};
+
 // Helper function to create SVG data URL
 const createIconDataUrl = (svgContent: string): string => {
   const encoded = encodeURIComponent(svgContent);
@@ -1065,11 +1081,14 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     {/* Floating launcher: viewport-fixed on `body` — 24px from layout viewport right and bottom. */}
     {createPortal(
       <div
+        id="ols-floating-launcher-host"
         className="chatbot-toggle-sticky-host"
         style={{
           position: 'fixed',
           right: OLS_LAUNCHER_VIEWPORT_MARGIN_PX,
           bottom: OLS_LAUNCHER_VIEWPORT_MARGIN_PX,
+          left: 'auto',
+          top: 'auto',
           zIndex: 10000,
           pointerEvents: 'none',
         }}
@@ -1080,6 +1099,8 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
           style={{ pointerEvents: 'auto' }}
         >
           <ChatbotToggle
+            className="ols-launcher-floating-toggle"
+            style={OLS_LAUNCHER_TOGGLE_BUTTON_STYLE}
             isChatbotVisible={isDrawerOpen}
             onToggleChatbot={() => setIsDrawerOpen(!isDrawerOpen)}
             isRound={false}
