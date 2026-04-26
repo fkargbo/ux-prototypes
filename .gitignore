@@ -10,3 +10,4 @@ storybook-static
 .env
 .history
 node_modules
+src/app/prototypes/shiri-alerting-ui-v2/data/monitoring-plugin/

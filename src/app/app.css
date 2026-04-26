@@ -33,6 +33,13 @@ body,
   overflow-x: hidden !important;
 }
 
+/* Horizontal inset for Page main wrapper (contains #primary-app-container) */
+.pf-v6-c-page__main-container {
+  padding-left: var(--pf-t--global--spacer--lg, 24px) !important;
+  padding-right: var(--pf-t--global--spacer--lg, 24px) !important;
+  box-sizing: border-box !important;
+}
+
 /* Ensure the main container takes full width without overflow */
 .pf-v6-c-page__main {
   margin: 0 !important;

@@ -91,6 +91,63 @@ import {
 } from '../data/utils';
 import { AlertsTableContent } from './AlertsTableContent';
 
+/** Multi-column sort for aggregated rows (flat table and each group-by bucket). */
+function compareAggregatedAlertsBySortConfigs(a: AggregatedAlert, b: AggregatedAlert, sortConfigs: SortConfig[]): number {
+  if (sortConfigs.length === 0) return 0;
+  const severityOrder: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 };
+  const groupOrder: Record<string, number> = { Cluster: 0, Namespace: 1 };
+  const sortedConfigs = [...sortConfigs].sort((x, y) => x.priority - y.priority);
+
+  for (const config of sortedConfigs) {
+    let comparison = 0;
+    const multiplier = config.direction === 'asc' ? 1 : -1;
+
+    switch (config.column) {
+      case 'alertName':
+        comparison = a.alertName.localeCompare(b.alertName);
+        break;
+      case 'severity':
+        comparison = (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3);
+        break;
+      case 'clusters':
+        comparison = a.clusters.length - b.clusters.length;
+        break;
+      case 'total':
+        comparison = a.totalCount - b.totalCount;
+        break;
+      case 'group':
+        comparison = (groupOrder[a.group || ''] ?? 2) - (groupOrder[b.group || ''] ?? 2);
+        break;
+      case 'component':
+        comparison = (a.component || '').localeCompare(b.component || '');
+        break;
+      case 'startTime': {
+        const aTimestamp = a.clusters.reduce((latest, c) => {
+          return !latest || (c.lastFiredTimestamp && c.lastFiredTimestamp > latest) ? c.lastFiredTimestamp : latest;
+        }, null as Date | null);
+        const bTimestamp = b.clusters.reduce((latest, c) => {
+          return !latest || (c.lastFiredTimestamp && c.lastFiredTimestamp > latest) ? c.lastFiredTimestamp : latest;
+        }, null as Date | null);
+        if (aTimestamp && bTimestamp) {
+          comparison = aTimestamp.getTime() - bTimestamp.getTime();
+        } else if (aTimestamp) {
+          comparison = 1;
+        } else if (bTimestamp) {
+          comparison = -1;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    if (comparison !== 0) {
+      return comparison * multiplier;
+    }
+  }
+  return 0;
+}
+
 interface AllAlertsCardProps {
   clusters: ClusterData[];
   alertNameFilter: string | null;
@@ -284,8 +341,10 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
         }
       } else {
         // Add new column as primary sort (priority 1), shift others down
+        const defaultDirection: SortDirection =
+          column === 'total' || column === 'clusters' ? 'desc' : 'asc';
         return [
-          { column, direction: 'asc' as SortDirection, priority: 1 },
+          { column, direction: defaultDirection, priority: 1 },
           ...prevConfigs.map(c => ({ ...c, priority: c.priority + 1 }))
         ];
       }
@@ -377,20 +436,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     a.download = `alerts-export-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-  
-  // Get sort indicator for column
-  const getSortParams = (column: SortConfig['column']) => {
-    const config = sortConfigs.find(c => c.column === column);
-    // Always return sort params to make column sortable, but only show active indicator if currently sorted
-    return {
-      sortBy: {
-        index: config ? config.priority - 1 : -1,
-        direction: config ? config.direction : 'asc' as SortDirection,
-      },
-      onSort: () => handleSort(column),
-      columnIndex: 0,
-    };
   };
   
   // Bulk selection state
@@ -536,61 +581,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     
     // Apply multi-column sorting
     if (sortConfigs.length === 0) return filtered;
-    
-    const severityOrder: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 };
-    const groupOrder: Record<string, number> = { Cluster: 0, Namespace: 1 };
-    
-    return [...filtered].sort((a, b) => {
-      // Sort by each column in priority order
-      const sortedConfigs = [...sortConfigs].sort((x, y) => x.priority - y.priority);
-      
-      for (const config of sortedConfigs) {
-        let comparison = 0;
-        const multiplier = config.direction === 'asc' ? 1 : -1;
-        
-        switch (config.column) {
-          case 'alertName':
-            comparison = a.alertName.localeCompare(b.alertName);
-            break;
-          case 'severity':
-            comparison = (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3);
-            break;
-          case 'clusters':
-            comparison = a.clusters.length - b.clusters.length;
-            break;
-          case 'total':
-            comparison = a.totalCount - b.totalCount;
-            break;
-          case 'group':
-            comparison = (groupOrder[a.group || ''] ?? 2) - (groupOrder[b.group || ''] ?? 2);
-            break;
-          case 'component':
-            comparison = (a.component || '').localeCompare(b.component || '');
-            break;
-          case 'startTime':
-            // Compare by most recent timestamp in aggregated alerts
-            const aTimestamp = a.clusters.reduce((latest, c) => {
-              return (!latest || (c.lastFiredTimestamp && c.lastFiredTimestamp > latest)) ? c.lastFiredTimestamp : latest;
-            }, null as Date | null);
-            const bTimestamp = b.clusters.reduce((latest, c) => {
-              return (!latest || (c.lastFiredTimestamp && c.lastFiredTimestamp > latest)) ? c.lastFiredTimestamp : latest;
-            }, null as Date | null);
-            if (aTimestamp && bTimestamp) {
-              comparison = aTimestamp.getTime() - bTimestamp.getTime();
-            } else if (aTimestamp) {
-              comparison = 1;
-            } else if (bTimestamp) {
-              comparison = -1;
-            }
-            break;
-        }
-        
-        if (comparison !== 0) {
-          return comparison * multiplier;
-        }
-      }
-      return 0;
-    });
+    return [...filtered].sort((a, b) => compareAggregatedAlertsBySortConfigs(a, b, sortConfigs));
   }, [aggregatedAlerts, alertNameFilter, alertNamesFilter, componentFilter, severityFilter, searchValue, sortConfigs, groupFilter, triggeredFromDate, triggeredFromTime, triggeredToDate, triggeredToTime]);
 
   // Get selected alerts data for silence modal
@@ -757,36 +748,77 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
       }
       groups[groupKey].push(agg);
     });
+
+    const groupKeys = Object.keys(groups);
+    const aggregateTotalForGroup = (key: string) =>
+      groups[key].reduce((sum, agg) => sum + agg.totalCount, 0);
+
+    const primarySort = sortConfigs.find((s) => s.priority === 1);
+
+    // When Total is the primary column sort, order *groups* by summed Total (matches header "N alerts")
+    let sortedGroupKeys: string[];
+    if (primarySort?.column === 'total') {
+      const mult = primarySort.direction === 'asc' ? 1 : -1;
+      sortedGroupKeys = [...groupKeys].sort((a, b) => {
+        const diff = aggregateTotalForGroup(a) - aggregateTotalForGroup(b);
+        if (diff !== 0) {
+          return diff * mult;
+        }
+        if (groupBy === 'severity') {
+          const order: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 };
+          return (order[a] ?? 3) - (order[b] ?? 3);
+        }
+        if (groupBy === 'time') {
+          const timeOrder: Record<string, number> = {
+            '1 Hour': 0,
+            '4 Hours': 1,
+            Today: 2,
+            Yesterday: 3,
+            'Last 7 days': 4,
+            'Last 30 days': 5,
+            Older: 6,
+            'Unknown time': 7,
+          };
+          return (timeOrder[a] ?? 8) - (timeOrder[b] ?? 8);
+        }
+        return a.localeCompare(b);
+      });
+    } else {
+      sortedGroupKeys = [...groupKeys].sort((a, b) => {
+        if (groupBy === 'severity') {
+          const order: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 };
+          return (order[a] ?? 3) - (order[b] ?? 3);
+        }
+        if (groupBy === 'time') {
+          const timeOrder: Record<string, number> = {
+            '1 Hour': 0,
+            '4 Hours': 1,
+            Today: 2,
+            Yesterday: 3,
+            'Last 7 days': 4,
+            'Last 30 days': 5,
+            Older: 6,
+            'Unknown time': 7,
+          };
+          return (timeOrder[a] ?? 8) - (timeOrder[b] ?? 8);
+        }
+        return a.localeCompare(b);
+      });
+    }
     
-    // Sort groups - for severity and time, use custom order
-    const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
-      if (groupBy === 'severity') {
-        const order: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 };
-        return (order[a] ?? 3) - (order[b] ?? 3);
-      }
-      if (groupBy === 'time') {
-        // Sort time buckets from most recent to oldest
-        const timeOrder: Record<string, number> = { 
-          '1 Hour': 0, 
-          '4 Hours': 1, 
-          'Today': 2, 
-          'Yesterday': 3, 
-          'Last 7 days': 4, 
-          'Last 30 days': 5, 
-          'Older': 6,
-          'Unknown time': 7
-        };
-        return (timeOrder[a] ?? 8) - (timeOrder[b] ?? 8);
-      }
-      return a.localeCompare(b);
+    return sortedGroupKeys.map((key) => {
+      const bucket = groups[key];
+      const alerts =
+        sortConfigs.length > 0
+          ? [...bucket].sort((a, b) => compareAggregatedAlertsBySortConfigs(a, b, sortConfigs))
+          : bucket;
+      return {
+        groupName: key,
+        alerts,
+        totalCount: bucket.reduce((sum, agg) => sum + agg.totalCount, 0),
+      };
     });
-    
-    return sortedGroupKeys.map(key => ({
-      groupName: key,
-      alerts: groups[key],
-      totalCount: groups[key].reduce((sum, agg) => sum + agg.totalCount, 0),
-    }));
-  }, [filteredAggregatedAlerts, groupBy]);
+  }, [filteredAggregatedAlerts, groupBy, sortConfigs]);
 
   // Group individual alerts (non-aggregated) by selected groupBy option
   const groupedIndividualAlerts = React.useMemo(() => {
@@ -1208,7 +1240,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
               toggleAlertSelection={toggleAlertSelection}
               getVisibleColumns={getVisibleColumns}
               columns={columns}
-              getSortParams={getSortParams}
               onAlertClick={onAlertClick}
               onClusterClick={onClusterClick}
               onAlertRuleClick={onAlertRuleClick}

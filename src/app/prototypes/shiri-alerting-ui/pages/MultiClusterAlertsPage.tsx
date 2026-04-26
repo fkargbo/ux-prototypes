@@ -5372,7 +5372,12 @@ spec:
                   <CardHeader>
                     <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <FlexItem>
-                        <CardTitle>Fleet alerts</CardTitle>
+                        <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <CardTitle>Fleet alerts</CardTitle>
+                          <Tooltip content="Overview of all clusters in your fleet. Each tile represents an individual cluster.">
+                            <Button variant="plain" aria-label="More information about Fleet alerts" icon={<InfoCircleIcon />} />
+                          </Tooltip>
+                        </Flex>
                       </FlexItem>
                       <FlexItem>
                         <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>

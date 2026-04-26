@@ -498,7 +498,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         }
       } else {
         const maxPriority = prevConfigs.length > 0 ? Math.max(...prevConfigs.map(c => c.priority)) : 0;
-        return [...prevConfigs, { column, direction: 'asc' as SortDirection, priority: maxPriority + 1 }];
+        const defaultDirection: SortDirection = column === 'total' ? 'desc' : 'asc';
+        return [...prevConfigs, { column, direction: defaultDirection, priority: maxPriority + 1 }];
       }
     });
     setDrillDownPage(1);
@@ -1282,8 +1283,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           >
             Open the <strong>Fleet overview</strong> tab: the cluster card title should be <strong>Fleet alerts</strong> (see also{' '}
             <code data-testid="fleet-alerts-card-title-hint">data-testid=&quot;fleet-alerts-card-title&quot;</code>
-            ). If nothing ever changes, you are likely running <code>npm start</code> (serves old <code>dist/</code> on port 8080). Use{' '}
-            <code>npm run start:dev</code> or <code>npm run dev</code> on port 3000, save a file, then hard-refresh.
+            ). If your source edits never show up, confirm you are on the webpack dev server (<code>npm start</code> / <code>npm run start:dev</code>, port 3000) and hard-refresh. To preview the last production bundle from <code>dist/</code> instead, run <code>npm run build</code> then <code>npm run serve:dist</code> (port 8080).
           </PfAlert>
         </div>
       )}

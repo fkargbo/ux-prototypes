@@ -341,7 +341,17 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                   <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
                     <FlexItem>
                       {clusterCardView === 'all-clusters' ? (
-                        <CardTitle data-testid="fleet-alerts-card-title">Fleet alerts</CardTitle>
+                        <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                          <CardTitle data-testid="fleet-alerts-card-title">Fleet alerts</CardTitle>
+                          <Tooltip content="Overview of all clusters in your fleet. Each tile represents an individual cluster.">
+                            <Button
+                              variant="plain"
+                              aria-label="More information about Fleet alerts"
+                              icon={<InfoCircleIcon />}
+                              data-testid="fleet-alerts-header-info"
+                            />
+                          </Tooltip>
+                        </Flex>
                       ) : (
                         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
                           <FlexItem>

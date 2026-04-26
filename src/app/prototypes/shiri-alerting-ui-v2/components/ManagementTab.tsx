@@ -48,7 +48,6 @@ import {
   BanIcon,
   PauseCircleIcon,
   ColumnsIcon,
-  PlusIcon,
 } from '@patternfly/react-icons';
 import type {
   AlertSeverity,
@@ -59,6 +58,7 @@ import type {
   AlertRule,
 } from '../data/types';
 import { getSeverityLabelColor, getSeverityIcon } from '../data/utils';
+import { SilenceRulesManagement } from './SilenceRulesManagement';
 
 export interface ManagementTabProps {
   managementSubTab: string | number;
@@ -762,86 +762,7 @@ export const ManagementTab: React.FunctionComponent<ManagementTabProps> = (props
               </Card>
             </div>
           )}
-          {managementSubTab === 'silence-rules' && (
-            <Card>
-              <CardHeader>
-                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  <FlexItem>
-                    <CardTitle>Silence Rules</CardTitle>
-                  </FlexItem>
-                  <FlexItem>
-                    <Button variant="primary" icon={<PlusIcon />}>Create Silence</Button>
-                  </FlexItem>
-                </Flex>
-              </CardHeader>
-              <CardBody>
-                <Table aria-label="Silence rules table" variant="compact">
-                  <Thead>
-                    <Tr>
-                      <Th>Silence Name</Th>
-                      <Th>Matchers</Th>
-                      <Th>Status</Th>
-                      <Th>Starts</Th>
-                      <Th>Ends</Th>
-                      <Th>Created By</Th>
-                      <Th>Actions</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    <Tr>
-                      <Td><strong>Maintenance Window</strong></Td>
-                      <Td>
-                        <Flex gap={{ default: 'gapXs' }}>
-                          <Label isCompact variant="outline">cluster=prod-east-1</Label>
-                        </Flex>
-                      </Td>
-                      <Td><Label color="green" isCompact>Active</Label></Td>
-                      <Td>Dec 18, 2025 00:00</Td>
-                      <Td>Dec 18, 2025 04:00</Td>
-                      <Td>admin@redhat.com</Td>
-                      <Td>
-                        <Button variant="link" isInline>Edit</Button>
-                        <Button variant="link" isInline style={{ marginLeft: '8px' }}>Expire</Button>
-                      </Td>
-                    </Tr>
-                    <Tr>
-                      <Td><strong>Known Issue - etcd</strong></Td>
-                      <Td>
-                        <Flex gap={{ default: 'gapXs' }}>
-                          <Label isCompact variant="outline">alertname=EtcdHighLatency</Label>
-                        </Flex>
-                      </Td>
-                      <Td><Label color="green" isCompact>Active</Label></Td>
-                      <Td>Dec 15, 2025 12:00</Td>
-                      <Td>Dec 22, 2025 12:00</Td>
-                      <Td>sre@redhat.com</Td>
-                      <Td>
-                        <Button variant="link" isInline>Edit</Button>
-                        <Button variant="link" isInline style={{ marginLeft: '8px' }}>Expire</Button>
-                      </Td>
-                    </Tr>
-                    <Tr>
-                      <Td><strong>Upgrade Silence</strong></Td>
-                      <Td>
-                        <Flex gap={{ default: 'gapXs' }}>
-                          <Label isCompact variant="outline">severity=warning</Label>
-                          <Label isCompact variant="outline">region=EU West</Label>
-                        </Flex>
-                      </Td>
-                      <Td><Label color="grey" isCompact>Expired</Label></Td>
-                      <Td>Dec 10, 2025 08:00</Td>
-                      <Td>Dec 10, 2025 16:00</Td>
-                      <Td>ops@redhat.com</Td>
-                      <Td>
-                        <Button variant="link" isInline>Recreate</Button>
-                        <Button variant="link" isInline style={{ marginLeft: '8px' }}>Delete</Button>
-                      </Td>
-                    </Tr>
-                  </Tbody>
-                </Table>
-              </CardBody>
-            </Card>
-          )}
+          {managementSubTab === 'silence-rules' && <SilenceRulesManagement />}
         </StackItem>
       </Stack>
     </div>

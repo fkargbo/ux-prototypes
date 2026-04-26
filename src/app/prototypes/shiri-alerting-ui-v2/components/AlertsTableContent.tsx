@@ -85,11 +85,6 @@ export interface AlertsTableContentProps {
   toggleAlertSelection: (alertKey: string) => void;
   getVisibleColumns: () => ColumnConfig[];
   columns: ColumnConfig[];
-  getSortParams: (column: SortConfig['column']) => {
-    sortBy: { index: number; direction: 'asc' | 'desc' };
-    onSort: () => void;
-    columnIndex: number;
-  };
   onAlertClick: (alert: AlertData, initialTab?: number) => void;
   onClusterClick: (cluster: ClusterData) => void;
   onAlertRuleClick: (alertName: string) => void;
@@ -119,6 +114,30 @@ const GROUP_BY_PREFIX: Record<string, string> = {
   time: 'TIME',
 };
 
+/** PatternFly Table `sort` expects `columnIndex` / `sortBy.index` as positions in the full `<Tr>` (including leading cells). */
+function buildThSortParams(args: {
+  columnKey: SortConfig['column'];
+  visibleColKeys: string[];
+  colIdx: number;
+  headerOffset: number;
+  sortConfigs: SortConfig[];
+  handleSort: (column: SortConfig['column']) => void;
+}) {
+  const { columnKey, visibleColKeys, colIdx, headerOffset, sortConfigs, handleSort } = args;
+  const primary = sortConfigs.find((s) => s.priority === 1);
+  const primaryKey = primary?.column;
+  const primaryVisibleIdx = primaryKey ? visibleColKeys.indexOf(primaryKey as string) : -1;
+  const sortByIndex = primaryVisibleIdx >= 0 ? primaryVisibleIdx + headerOffset : -1;
+  return {
+    sortBy: {
+      index: sortByIndex,
+      direction: (primary?.direction ?? 'asc') as 'asc' | 'desc',
+    },
+    onSort: () => handleSort(columnKey),
+    columnIndex: colIdx + headerOffset,
+  };
+}
+
 const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
   totalItems,
   isAggregated,
@@ -140,7 +159,6 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
   toggleAlertSelection,
   getVisibleColumns,
   columns,
-  getSortParams,
   onAlertClick,
   onClusterClick,
   onAlertRuleClick,
@@ -346,6 +364,8 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 
   const renderTableHeader = (opts?: { withSelectAll?: boolean; stickyAlertName?: boolean }) => {
     const { withSelectAll = false, stickyAlertName = false } = opts || {};
+    const visibleColKeys = visibleCols.map((c) => c.key);
+    const aggregatedHeaderOffset = 2; // expand column + checkbox column
     return (
       <Thead style={{ position: 'sticky', top: 0, zIndex: 98, backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
         <Tr>
@@ -363,7 +383,6 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
           {visibleCols.map((col, colIdx) => {
             const columnKey = col.key as SortConfig['column'];
             const canSort = ['alertName', 'severity', 'total', 'group', 'component'].includes(col.key);
-            const sortConfig = sortConfigs.find(c => c.column === columnKey);
             const thProps: any = { key: col.key, modifier: 'nowrap' as const };
             if (stickyAlertName && col.key === 'alertName') { thProps.isStickyColumn = true; thProps.stickyMinWidth = '200px'; thProps.stickyLeftOffset = '80px'; }
             if (col.key === 'severity') { thProps.info = { tooltip: 'The impact level of the alert, categorized as Critical, Warning, or Info.', ariaLabel: 'More information about severity' }; }
@@ -375,11 +394,14 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
             if (col.key === 'namespace') { thProps.info = { tooltip: 'The Kubernetes namespace associated with this alert instance.', ariaLabel: 'More information about namespace' }; }
             if (col.key === 'resource') { thProps.info = { tooltip: 'The specific Kubernetes resource (e.g. node, pod) related to this alert.', ariaLabel: 'More information about resource' }; }
             if (canSort) {
-              thProps.sort = {
-                sortBy: { index: sortConfig ? sortConfig.priority - 1 : -1, direction: sortConfig?.direction || 'asc' },
-                onSort: () => handleSort(columnKey),
-                columnIndex: colIdx,
-              };
+              thProps.sort = buildThSortParams({
+                columnKey,
+                visibleColKeys,
+                colIdx,
+                headerOffset: aggregatedHeaderOffset,
+                sortConfigs,
+                handleSort,
+              });
             }
             return <Th {...thProps}>{col.label}</Th>;
           })}
@@ -563,6 +585,8 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
   // ========== GROUPED INDIVIDUAL (non-aggregated) ==========
   if (!isAggregated && groupBy !== 'none' && groupedIndividualAlerts) {
     const indivVisibleCols = getVisibleColumns().filter(col => col.key !== 'total');
+    const indivVisibleKeys = indivVisibleCols.map((c) => c.key);
+    const groupedIndivHeaderOffset = 1; // tree expand column only
     const prefix = GROUP_BY_PREFIX[groupBy] || groupBy.toUpperCase();
     return (
       <InnerScrollContainer>
@@ -570,7 +594,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
           <Thead style={{ position: 'sticky', top: 0, zIndex: 98, backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
             <Tr>
               <Th width={10} />
-              {indivVisibleCols.map((col) => {
+              {indivVisibleCols.map((col, colIdx) => {
                 const columnKey = col.key as SortConfig['column'];
                 const canSort = ['alertName', 'severity', 'clusters', 'group', 'component', 'startTime'].includes(col.key);
                 const thProps: any = { key: col.key, modifier: 'nowrap' as const };
@@ -579,7 +603,16 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                 if (col.key === 'clusters') { thProps.info = { tooltip: 'The managed cluster where this alert instance is firing.', ariaLabel: 'More information about cluster' }; }
                 if (col.key === 'namespace') { thProps.info = { tooltip: 'The Kubernetes namespace associated with this alert instance.', ariaLabel: 'More information about namespace' }; }
                 if (col.key === 'resource') { thProps.info = { tooltip: 'The specific Kubernetes resource (e.g. node, pod) related to this alert.', ariaLabel: 'More information about resource' }; }
-                if (canSort) { thProps.sort = getSortParams(columnKey); }
+                if (canSort) {
+                  thProps.sort = buildThSortParams({
+                    columnKey,
+                    visibleColKeys: indivVisibleKeys,
+                    colIdx,
+                    headerOffset: groupedIndivHeaderOffset,
+                    sortConfigs,
+                    handleSort,
+                  });
+                }
                 return <Th {...thProps}>{col.label}</Th>;
               })}
             </Tr>
@@ -690,12 +723,14 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 
   // ========== FLAT INDIVIDUAL (no grouping) ==========
   const flatVisibleCols = getVisibleColumns().filter(col => col.key !== 'total');
+  const flatVisibleKeys = flatVisibleCols.map((c) => c.key);
+  const flatHeaderOffset = 0;
   return (
     <InnerScrollContainer>
       <Table aria-label="All alerts table" variant="compact">
         <Thead style={{ position: 'sticky', top: 0, zIndex: 98, backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
           <Tr>
-            {flatVisibleCols.map((col) => {
+            {flatVisibleCols.map((col, colIdx) => {
               const columnKey = col.key as SortConfig['column'];
               const canSort = ['alertName', 'severity', 'clusters', 'group', 'component', 'startTime'].includes(col.key);
               const thProps: any = { key: col.key, modifier: 'nowrap' as const };
@@ -709,7 +744,16 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
               if (col.key === 'clusters') { thProps.info = { tooltip: 'The managed cluster where this alert instance is firing.', ariaLabel: 'More information about cluster' }; }
               if (col.key === 'namespace') { thProps.info = { tooltip: 'The Kubernetes namespace associated with this alert instance.', ariaLabel: 'More information about namespace' }; }
               if (col.key === 'resource') { thProps.info = { tooltip: 'The specific Kubernetes resource (e.g. node, pod) related to this alert.', ariaLabel: 'More information about resource' }; }
-              if (canSort) { thProps.sort = getSortParams(columnKey); }
+              if (canSort) {
+                thProps.sort = buildThSortParams({
+                  columnKey,
+                  visibleColKeys: flatVisibleKeys,
+                  colIdx,
+                  headerOffset: flatHeaderOffset,
+                  sortConfigs,
+                  handleSort,
+                });
+              }
               return <Th {...thProps}>{col.label}</Th>;
             })}
           </Tr>

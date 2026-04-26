@@ -1041,11 +1041,12 @@ spec:
                                     <Th
                                       sort={{
                                         sortBy: {
-                                          index: drillDownSortConfigs.findIndex(c => c.column === 'total'),
-                                          direction: drillDownSortConfigs.find(c => c.column === 'total')?.direction || 'asc'
+                                          // Header row: [expand, Severity, Alert name, Total, ...] — Total is index 3
+                                          index: drillDownSortConfigs.some((c) => c.column === 'total') ? 3 : -1,
+                                          direction: drillDownSortConfigs.find((c) => c.column === 'total')?.direction || 'desc',
                                         },
                                         onSort: () => handleDrillDownSort('total'),
-                                        columnIndex: 3
+                                        columnIndex: 3,
                                       }}
                                     >
                                       Total

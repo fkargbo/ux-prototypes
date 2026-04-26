@@ -17,6 +17,7 @@ import {
   FLEET_INSIGHT_ICON_BOX_STYLE,
   FLEET_INSIGHT_TEXT_WRAPPER_STYLE,
 } from '../data/fleetInsightsConfig';
+import { OpenShiftLightspeedPanel, type LightspeedInvestigateContext } from './OpenShiftLightspeedPanel';
 
 type SeverityKey = 'Critical' | 'Warning' | 'Info';
 
@@ -67,6 +68,18 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
     onViewAllClusters,
   } = props;
 
+  const [lightspeedOpen, setLightspeedOpen] = React.useState(false);
+  const [lightspeedContext, setLightspeedContext] = React.useState<LightspeedInvestigateContext | null>(null);
+
+  const openLightspeed = React.useCallback((ctx: LightspeedInvestigateContext) => {
+    setLightspeedContext(ctx);
+    setLightspeedOpen(true);
+  }, []);
+
+  const closeLightspeed = React.useCallback(() => {
+    setLightspeedOpen(false);
+  }, []);
+
   if (!hasAlertData) {
     return (
       <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentCenter' }} style={{ flex: 1 }}>
@@ -77,6 +90,7 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
 
   return (
     <>
+      <OpenShiftLightspeedPanel isOpen={lightspeedOpen} onClose={closeLightspeed} context={lightspeedContext} />
       <div style={FLEET_INSIGHT_CARD_STYLE} role="region" aria-label="Fleet insight">
         <div style={FLEET_INSIGHT_ICON_BOX_STYLE} aria-hidden="true">
           <MagicIcon style={{ width: 20, height: 20 }} />
@@ -119,9 +133,24 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
               </Flex>
               <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }} style={{ marginTop: 6, width: '100%' }} role="note" aria-label="AI insight">
                 <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true"><OptimizeIcon style={{ width: 14, height: 14 }} /></span>
-                <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1, lineHeight: 1.5 }}>
                   <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
-                  <span style={AI_INSIGHT_TEXT_STYLE}>{getAlertAiInsight(rule.name)}</span>
+                  <span style={AI_INSIGHT_TEXT_STYLE}>{getAlertAiInsight(rule.name)}</span>{' '}
+                  <Button
+                    variant="link"
+                    isInline
+                    className="pf-v6-u-font-size-sm"
+                    style={{ ...INSIGHTS_LINK, padding: 0, verticalAlign: 'baseline' }}
+                    onClick={() =>
+                      openLightspeed({
+                        sourceType: 'alert',
+                        sourceName: rule.name,
+                        aiInsightText: getAlertAiInsight(rule.name),
+                      })
+                    }
+                  >
+                    Investigate with AI
+                  </Button>
                 </span>
               </Flex>
             </div>
@@ -169,9 +198,24 @@ export const FleetHealthInsightsView: React.FC<FleetHealthInsightsViewProps> = (
                   </Flex>
                   <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }} style={{ marginTop: 6, width: '100%' }} role="note" aria-label="AI insight">
                     <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true"><OptimizeIcon style={{ width: 14, height: 14 }} /></span>
-                    <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1 }}>
+                    <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1, lineHeight: 1.5 }}>
                       <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
-                      <span style={AI_INSIGHT_TEXT_STYLE}>{getComponentAiInsight(comp.name)}</span>
+                      <span style={AI_INSIGHT_TEXT_STYLE}>{getComponentAiInsight(comp.name)}</span>{' '}
+                      <Button
+                        variant="link"
+                        isInline
+                        className="pf-v6-u-font-size-sm"
+                        style={{ ...INSIGHTS_LINK, padding: 0, verticalAlign: 'baseline' }}
+                        onClick={() =>
+                          openLightspeed({
+                            sourceType: 'component',
+                            sourceName: comp.name,
+                            aiInsightText: getComponentAiInsight(comp.name),
+                          })
+                        }
+                      >
+                        Investigate with AI
+                      </Button>
                     </span>
                   </Flex>
                 </div>
