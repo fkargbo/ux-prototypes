@@ -117,23 +117,19 @@ import botProfilePicUrl from '../assets/bot-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
 import { persesAgenticBridge, agenticGlobalAiApi } from '../persesAgenticBridge';
 
-/** Viewport margin for the OLS floating launcher (`position: fixed` on `document.body`). */
+/** Viewport inset for OLS chrome dock (`right` / `bottom` on `.ols-ai-chrome-dock`). */
 const OLS_LAUNCHER_VIEWPORT_MARGIN_PX = 24;
 
-/** Outer launcher size — must match `.chatbot-toggle-sticky-host .pf-chatbot__button` in dashboards-perses.css. */
-const OLS_LAUNCHER_OUTER_SIZE_PX = 48;
+const OLS_AI_CHAT_TOP_VAR = '--ols-ai-chat-top';
+/** Dock inset from viewport inline-end / block-end (px on `documentElement`). */
+const OLS_AI_CHROME_INLINE_END_VAR = '--ols-ai-chrome-inline-end';
+const OLS_AI_CHROME_BOTTOM_VAR = '--ols-ai-chrome-bottom';
 
-/** Gap between the bottom of the AI chat card and the top of the floating launcher. */
+/** Vertical gap between chat card bottom and launcher (must match `.ols-ai-chrome-dock--chat-open` in CSS). */
 const OLS_CHAT_GAP_ABOVE_LAUNCHER_PX = 8;
 
-/** Reserve below the chat: launcher margin + launcher height + gap (viewport `bottom` for fixed panel). */
-const OLS_AI_CHAT_BOTTOM_RESERVE_PX =
-  OLS_LAUNCHER_VIEWPORT_MARGIN_PX + OLS_LAUNCHER_OUTER_SIZE_PX + OLS_CHAT_GAP_ABOVE_LAUNCHER_PX;
-
-const OLS_AI_CHAT_TOP_VAR = '--ols-ai-chat-top';
-const OLS_AI_CHAT_BOTTOM_VAR = '--ols-ai-chat-bottom';
-/** Same inset as chat `right` and launcher host `right` (px string on `documentElement`). */
-const OLS_AI_CHROME_INLINE_END_VAR = '--ols-ai-chrome-inline-end';
+/** Popper tooltip above `.ols-ai-chrome-dock` (dock `z-index` is 10000). */
+const OLS_LAUNCHER_TOOLTIP_ZINDEX = 10050;
 
 /** PatternFly `Masthead` root in AppLayout — `top` of the fixed chat aligns to this element’s bottom edge. */
 const OLS_PAGE_MASTHEAD_SELECTOR = '.pf-v6-c-masthead';
@@ -416,13 +412,13 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   }, [messages]);
 
   /**
-   * Fixed AI panel: `top` = masthead bottom; `bottom` = launcher reserve + gap.
-   * `--ols-ai-chrome-inline-end` keeps chat and launcher on the same inset (avoid `innerWidth` vs layout viewport mismatch).
+   * Masthead → `--ols-ai-chat-top`; dock insets → chrome vars (chat + launcher share one fixed stack in CSS).
    */
   useLayoutEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty(OLS_AI_CHAT_BOTTOM_VAR, `${OLS_AI_CHAT_BOTTOM_RESERVE_PX}px`);
     root.style.setProperty(OLS_AI_CHROME_INLINE_END_VAR, `${OLS_LAUNCHER_VIEWPORT_MARGIN_PX}px`);
+    root.style.setProperty(OLS_AI_CHROME_BOTTOM_VAR, `${OLS_LAUNCHER_VIEWPORT_MARGIN_PX}px`);
+    root.style.setProperty('--ols-ai-chrome-chat-launcher-gap', `${OLS_CHAT_GAP_ABOVE_LAUNCHER_PX}px`);
 
     const resolveMastheadEl = () =>
       (document.querySelector(OLS_PAGE_MASTHEAD_SELECTOR) ??
@@ -449,8 +445,9 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       window.removeEventListener('scroll', syncTop, true);
       ro?.disconnect();
       root.style.removeProperty(OLS_AI_CHAT_TOP_VAR);
-      root.style.removeProperty(OLS_AI_CHAT_BOTTOM_VAR);
       root.style.removeProperty(OLS_AI_CHROME_INLINE_END_VAR);
+      root.style.removeProperty(OLS_AI_CHROME_BOTTOM_VAR);
+      root.style.removeProperty('--ols-ai-chrome-chat-launcher-gap');
     };
   }, []);
 
@@ -1007,10 +1004,14 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     };
   }, [handleStartTroubleshooting]);
 
+  const olsChromeDockClassName = `ols-ai-chrome-dock${isDrawerOpen ? ' ols-ai-chrome-dock--chat-open' : ''}`;
+
   return (
     <>
-    {/* OpenShift Lightspeed–style panel: portal to body; layout `.ols-prototype-ai-drawer` in dashboards-perses.css. */}
-    {isDrawerOpen && createPortal(
+    {/* One fixed stacking column: chat (when open) + launcher — right edges align via shared dock width (dashboards-perses.css). */}
+    {createPortal(
+      <div className={olsChromeDockClassName}>
+        {isDrawerOpen && (
         <div className="ols-prototype-ai-drawer">
           <div className="ols-prototype-ai-drawer-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#ffffff' }}>
             <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -1133,42 +1134,37 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
             </Chatbot>
             </div>
           </div>
-        </div>,
-        document.body
-      )}
-
-    {/* Floating launcher: viewport-fixed on `body` — 24px from layout viewport right and bottom. */}
-    {createPortal(
-      <div
-        id="ols-floating-launcher-host"
-        className="chatbot-toggle-sticky-host"
-        style={{
-          position: 'fixed',
-          right: `var(${OLS_AI_CHROME_INLINE_END_VAR}, ${OLS_LAUNCHER_VIEWPORT_MARGIN_PX}px)`,
-          bottom: OLS_LAUNCHER_VIEWPORT_MARGIN_PX,
-          left: 'auto',
-          top: 'auto',
-          zIndex: 10000,
-          pointerEvents: 'none',
-        }}
-      >
+        </div>
+        )}
         <div
-          ref={chatbotToggleRef}
-          className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
-          style={{ pointerEvents: 'auto' }}
+          id="ols-floating-launcher-host"
+          className="chatbot-toggle-sticky-host"
+          style={{ pointerEvents: 'none' }}
         >
-          <ChatbotToggle
-            className="ols-launcher-floating-toggle"
-            style={OLS_LAUNCHER_TOGGLE_BUTTON_STYLE}
-            /* OLS launcher: always show the logo; PF swaps to chevron when `isChatbotVisible` is true. */
-            isChatbotVisible={false}
-            aria-expanded={isDrawerOpen}
-            onToggleChatbot={() => setIsDrawerOpen(!isDrawerOpen)}
-            isRound={false}
-            closedToggleIcon={OlsFloatingLauncherLogo}
-            toggleButtonLabel="Red Hat OpenShift Lightspeed"
-            tooltipLabel="Red Hat OpenShift Lightspeed"
-          />
+          <div
+            ref={chatbotToggleRef}
+            className={isDrawerOpen ? 'chatbot-toggle-button drawer-open' : 'chatbot-toggle-button'}
+            style={{ pointerEvents: 'auto' }}
+          >
+            <ChatbotToggle
+              className="ols-launcher-floating-toggle"
+              style={OLS_LAUNCHER_TOGGLE_BUTTON_STYLE}
+              /* OLS launcher: always show the logo; PF swaps to chevron when `isChatbotVisible` is true. */
+              isChatbotVisible={false}
+              aria-expanded={isDrawerOpen}
+              onToggleChatbot={() => setIsDrawerOpen(!isDrawerOpen)}
+              isRound={false}
+              closedToggleIcon={OlsFloatingLauncherLogo}
+              toggleButtonLabel="Red Hat OpenShift Lightspeed"
+              tooltipLabel="Red Hat OpenShift Lightspeed"
+              tooltipProps={{
+                zIndex: OLS_LAUNCHER_TOOLTIP_ZINDEX,
+                position: 'top',
+                enableFlip: true,
+                className: 'ols-launcher-floating-tooltip',
+              }}
+            />
+          </div>
         </div>
       </div>,
       document.body

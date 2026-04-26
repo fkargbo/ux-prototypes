@@ -76,21 +76,81 @@ button[aria-label="View task details"] {
 }
 
 /*
- * AI assistant: viewport-filling fixed panel. Insets are driven by CSS variables set in AgenticGlobalAiAssistant:
- *   --ols-ai-chat-top: masthead bottom (viewport px)
- *   --ols-ai-chat-bottom: launcher margin + 48px launcher + 8px gap (default matches TS if vars unset)
- *   --ols-ai-chrome-inline-end: shared px inset for chat + launcher (matches OLS_LAUNCHER_VIEWPORT_MARGIN_PX in TS)
+ * OLS chrome dock: single fixed stacking context for chat + launcher (AgenticGlobalAiAssistant portals here).
+ * `documentElement`: --ols-ai-chat-top, --ols-ai-chrome-inline-end, --ols-ai-chrome-bottom (see TS).
  */
-.ols-prototype-ai-drawer {
+.ols-ai-chrome-dock {
   position: fixed !important;
+  z-index: 10000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-end !important;
   top: var(--ols-ai-chat-top, 76px) !important;
   right: var(--ols-ai-chrome-inline-end, 24px) !important;
-  bottom: var(--ols-ai-chat-bottom, 80px) !important;
+  bottom: var(--ols-ai-chrome-bottom, 24px) !important;
   left: auto !important;
+  width: max-content !important;
+  max-width: min(560px, 100vw) !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.ols-ai-chrome-dock--chat-open {
+  justify-content: flex-start !important;
   width: min(480px, calc(33.333vw - 16px)) !important;
   min-width: 320px !important;
   max-width: 560px !important;
-  z-index: 300 !important;
+}
+
+.ols-ai-chrome-dock .chatbot-toggle-sticky-host {
+  position: relative !important;
+  align-self: flex-end !important;
+  flex-shrink: 0 !important;
+  margin-top: 0 !important;
+  margin-right: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  padding: 0 !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 2 !important;
+}
+
+/* 8px between chat card bottom and launcher (must win over `margin-top: 0` above). */
+.ols-ai-chrome-dock--chat-open .chatbot-toggle-sticky-host {
+  margin-top: var(--ols-ai-chrome-chat-launcher-gap, 8px) !important;
+}
+
+/* Launcher popper above the chat card (PF Tooltip portals to `body`). */
+.ols-launcher-floating-tooltip {
+  z-index: 10050 !important;
+}
+
+@media (max-width: 768px) {
+  .ols-ai-chrome-dock--chat-open {
+    width: calc(100vw - (2 * var(--ols-ai-chrome-inline-end, 24px))) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+
+/* Chat card: flex child inside `.ols-ai-chrome-dock` (not separately fixed). */
+.ols-prototype-ai-drawer {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  z-index: 1 !important;
   background-color: #ffffff !important;
   border-radius: 8px !important;
   box-shadow:
@@ -104,14 +164,6 @@ button[aria-label="View task details"] {
     transform 0.2s ease-in-out !important;
   contain: layout style paint !important;
   box-sizing: border-box !important;
-}
-
-@media (max-width: 768px) {
-  .ols-prototype-ai-drawer {
-    width: calc(100vw - (2 * var(--ols-ai-chrome-inline-end, 24px))) !important;
-    min-width: 0 !important;
-    max-width: none !important;
-  }
 }
 
 /* Inner panel container - ensures proper containment */
@@ -306,10 +358,7 @@ button[aria-label="View task details"] {
   flex-shrink: 0 !important;
 }
 
-/*
- * Launcher host: `position: fixed`, `right`/`bottom`, and `z-index` are set inline in AgenticGlobalAiAssistant
- * (viewport margins, not shell div borders). Keep only non-layout rules here.
- */
+/* Launcher host: laid out inside `.ols-ai-chrome-dock` (relative + flex); not viewport-fixed here. */
 .chatbot-toggle-sticky-host {
   margin: 0;
   padding: 0;
