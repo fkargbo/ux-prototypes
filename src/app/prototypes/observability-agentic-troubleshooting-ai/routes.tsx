@@ -31,7 +31,7 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/overview',
     element: <ObserveOverviewPage />,
     label: 'Overview',
-    title: 'Overview',
+    title: 'Observability overview',
     navigation: {
       group: 'Observe',
       order: 1,

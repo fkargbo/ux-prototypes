@@ -465,6 +465,9 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     const stack = olsLauncherStackRef.current;
     if (!dock || !stack) return;
 
+    let rafOuter = 0;
+    let rafInner = 0;
+
     const sync = () => {
       if (!isDrawerOpen) {
         dock.style.removeProperty(OLS_AI_PROTOTYPE_DRAWER_H_VAR);
@@ -473,19 +476,35 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       const dh = dock.offsetHeight;
       const sh = stack.offsetHeight;
       const drawerH = Math.max(120, dh - sh - OLS_CHAT_BOTTOM_TRIM_PX);
-      dock.style.setProperty(OLS_AI_PROTOTYPE_DRAWER_H_VAR, `${drawerH}px`);
+      const next = `${drawerH}px`;
+      if (dock.style.getPropertyValue(OLS_AI_PROTOTYPE_DRAWER_H_VAR) !== next) {
+        dock.style.setProperty(OLS_AI_PROTOTYPE_DRAWER_H_VAR, next);
+      }
     };
 
-    sync();
-    const ro = new ResizeObserver(() => {
-      requestAnimationFrame(sync);
-    });
+    /** RO + layout writes in the same turn trigger "ResizeObserver loop… undelivered notifications"; defer past layout. */
+    const scheduleSync = () => {
+      cancelAnimationFrame(rafOuter);
+      cancelAnimationFrame(rafInner);
+      rafOuter = requestAnimationFrame(() => {
+        rafInner = requestAnimationFrame(() => {
+          rafOuter = 0;
+          rafInner = 0;
+          sync();
+        });
+      });
+    };
+
+    scheduleSync();
+    const ro = new ResizeObserver(scheduleSync);
     ro.observe(dock);
     ro.observe(stack);
-    window.addEventListener('resize', sync);
+    window.addEventListener('resize', scheduleSync);
     return () => {
+      cancelAnimationFrame(rafOuter);
+      cancelAnimationFrame(rafInner);
       ro.disconnect();
-      window.removeEventListener('resize', sync);
+      window.removeEventListener('resize', scheduleSync);
       dock.style.removeProperty(OLS_AI_PROTOTYPE_DRAWER_H_VAR);
     };
   }, [isDrawerOpen]);

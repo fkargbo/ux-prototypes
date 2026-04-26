@@ -25,11 +25,11 @@ export const ObserveOverviewPage: React.FC = () => {
       <Stack hasGutter>
         <StackItem>
           <Title headingLevel="h1" size="2xl">
-            Observe · Overview
+            Observability overview
           </Title>
           <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-            Landing view for agentic troubleshooting under Observe—context from alerts, metrics, and
-            incidents can feed guided investigation flows here.
+            Investigate AI-driven root cause analysis, monitor your installed observability components, and
+            explore recommended operators to expand your metrics.
           </Content>
         </StackItem>
         <StackItem>
