@@ -138,6 +138,9 @@ const OLS_PAGE_MASTHEAD_SELECTOR = '.pf-v6-c-masthead';
 /** If masthead markup differs, fall back to the page header region that wraps it. */
 const OLS_PAGE_HEADER_FALLBACK_SELECTOR = '.pf-v6-c-page__header';
 
+/** Fixed Lightspeed chat card — launcher `right` is synced to this element’s right edge when open. */
+const OLS_CHAT_DRAWER_SELECTOR = '.ols-prototype-ai-drawer';
+
 /**
  * PF chatbot CSS pins `.pf-chatbot__button` with `position: fixed` + logical insets, which ignores the host
  * wrapper and adds extra horizontal offset. Inline styles win over those rules (no `!important` on PF).
@@ -377,6 +380,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const [announcement, setAnnouncement] = useState<string>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
+  const launcherHostRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
 
@@ -413,7 +417,10 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     messagesRef.current = messages;
   }, [messages]);
 
-  /** Fixed AI panel: `top` = masthead bottom; `bottom` = space for launcher + 8px gap (see dashboards-perses.css). */
+  /**
+   * Fixed AI panel: `top` = masthead bottom; `bottom` = launcher reserve + gap.
+   * Launcher `right` matches the chat card’s right edge when the drawer is open (same column as `right: 24px` when closed).
+   */
   useLayoutEffect(() => {
     const root = document.documentElement;
     root.style.setProperty(OLS_AI_CHAT_BOTTOM_VAR, `${OLS_AI_CHAT_BOTTOM_RESERVE_PX}px`);
@@ -428,24 +435,48 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       root.style.setProperty(OLS_AI_CHAT_TOP_VAR, `${topPx}px`);
     };
 
-    syncTop();
-    window.addEventListener('resize', syncTop);
+    const syncLauncherRightToChat = () => {
+      const host = launcherHostRef.current;
+      if (!host) return;
+      const drawer = document.querySelector(OLS_CHAT_DRAWER_SELECTOR);
+      if (drawer instanceof HTMLElement) {
+        const insetPx = Math.max(0, Math.round(window.innerWidth - drawer.getBoundingClientRect().right));
+        host.style.right = `${insetPx}px`;
+      } else {
+        host.style.right = `${OLS_LAUNCHER_VIEWPORT_MARGIN_PX}px`;
+      }
+    };
+
+    const syncLayout = () => {
+      syncTop();
+      syncLauncherRightToChat();
+    };
+
+    syncLayout();
+    window.addEventListener('resize', syncLayout);
     window.addEventListener('scroll', syncTop, true);
 
-    const observed = resolveMastheadEl();
-    const ro = observed ? new ResizeObserver(syncTop) : undefined;
-    if (observed && ro) {
-      ro.observe(observed);
+    const mastheadEl = resolveMastheadEl();
+    const mastheadRo = mastheadEl ? new ResizeObserver(syncLayout) : undefined;
+    if (mastheadEl && mastheadRo) {
+      mastheadRo.observe(mastheadEl);
+    }
+
+    const drawerEl = document.querySelector(OLS_CHAT_DRAWER_SELECTOR);
+    const drawerRo = drawerEl instanceof HTMLElement ? new ResizeObserver(syncLayout) : undefined;
+    if (drawerEl && drawerRo) {
+      drawerRo.observe(drawerEl);
     }
 
     return () => {
-      window.removeEventListener('resize', syncTop);
+      window.removeEventListener('resize', syncLayout);
       window.removeEventListener('scroll', syncTop, true);
-      ro?.disconnect();
+      mastheadRo?.disconnect();
+      drawerRo?.disconnect();
       root.style.removeProperty(OLS_AI_CHAT_TOP_VAR);
       root.style.removeProperty(OLS_AI_CHAT_BOTTOM_VAR);
     };
-  }, []);
+  }, [isDrawerOpen]);
 
   const triggerQuickResponseByContent = useCallback(
     (desiredContent: string) => {
@@ -1134,6 +1165,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     {createPortal(
       <div
         id="ols-floating-launcher-host"
+        ref={launcherHostRef}
         className="chatbot-toggle-sticky-host"
         style={{
           position: 'fixed',
