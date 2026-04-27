@@ -115,6 +115,8 @@ button[aria-label="View task details"] {
   width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box !important;
+  /* Dock uses `pointer-events: none`; re-enable hits for launcher + gap host (gap row stays `none` in TS). */
+  pointer-events: auto !important;
 }
 
 /* Fixed-height row between chat and launcher (see `ols-ai-chrome-launcher-gap` in AgenticGlobalAiAssistant). */
@@ -172,6 +174,8 @@ button[aria-label="View task details"] {
   min-width: 0 !important;
   max-width: none !important;
   z-index: 1 !important;
+  /* Dock uses `pointer-events: none` so the page stays clickable; the card must opt back in. */
+  pointer-events: auto !important;
   background-color: #ffffff !important;
   border-radius: 8px !important;
   box-shadow:
