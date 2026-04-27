@@ -184,9 +184,9 @@ const botAvatarSrc = botProfilePicUrl || createIconDataUrl(robotIconSvg);
 /** Display name for assistant messages (OpenShift Lightspeed–style shell). */
 const BOT_DISPLAY_NAME = 'OpenShift Lightspeed';
 
-/** Compact OLS logo for panel header and empty-state intro. */
+/** OLS logo for panel header and empty-state intro (48×48; matches launcher control size). */
 const LightspeedHeaderMark = () => (
-  <img src={olsLogoUrl} alt="" className="lightspeed-header-ols-logo" width={24} height={24} />
+  <img src={olsLogoUrl} alt="" className="lightspeed-header-ols-logo" width={48} height={48} />
 );
 
 /** Full-size logo inside the floating launcher button (closed state). */
@@ -1079,7 +1079,11 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                   <span className="lightspeed-header-mark" aria-hidden>
                     <LightspeedHeaderMark />
                   </span>
-                  <ChatbotHeaderTitle className="lightspeed-header-title">Red Hat OpenShift Lightspeed</ChatbotHeaderTitle>
+                  <ChatbotHeaderTitle className="lightspeed-header-title">
+                    <Title headingLevel="h2" size="2xl" className="lightspeed-header-title-text">
+                      Red Hat OpenShift Lightspeed
+                    </Title>
+                  </ChatbotHeaderTitle>
                 </ChatbotHeaderMain>
                 <ChatbotHeaderActions className="lightspeed-header-actions">
                   <Tooltip content="Clear chat history">

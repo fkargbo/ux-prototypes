@@ -534,17 +534,17 @@ button[aria-label="View task details"] {
   height: var(--pf-t--global--spacer--lg, 1rem) !important;
 }
 
-/* Header / empty-state OLS mark (smaller than launcher) */
+/* Header / empty-state OLS mark (48×48) */
 .ols-prototype-ai-drawer .lightspeed-header-ols-logo {
-  width: 24px !important;
-  height: 24px !important;
+  width: 48px !important;
+  height: 48px !important;
   object-fit: contain !important;
   display: block !important;
 }
 
 .lightspeed-empty-intro .lightspeed-header-ols-logo {
-  width: 40px !important;
-  height: 40px !important;
+  width: 48px !important;
+  height: 48px !important;
 }
 
 /* Lightspeed header strip */
@@ -570,10 +570,20 @@ button[aria-label="View task details"] {
   white-space: nowrap;
 }
 
+/* `Title` size="2xl" uses PatternFly `pf-m-2xl` heading scale (target ~24px); ellipsis when drawer is narrow. */
+.ols-prototype-ai-drawer .lightspeed-header-title .lightspeed-header-title-text.pf-v6-c-title {
+  margin: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-weight: var(--pf-t--global--font--weight--heading--default, 400) !important;
+}
+
 .ols-prototype-ai-drawer .lightspeed-header-main {
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: var(--pf-t--global--spacer--md, 1rem) !important;
   min-width: 0 !important;
 }
 
