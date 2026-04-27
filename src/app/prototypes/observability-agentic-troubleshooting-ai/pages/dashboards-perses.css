@@ -358,6 +358,11 @@ button[aria-label="View task details"] {
   position: relative !important;
 }
 
+/* Welcome prompt: hide PF title/description row (starter cards only). */
+.ols-prototype-ai-drawer .lightspeed-welcome-prompt--prompts-only > [data-pf-content] {
+  display: none !important;
+}
+
 /* Fix ChatbotWelcomePrompt alignment and visibility */
 .ols-prototype-ai-drawer .pf-v6-c-chatbot__welcome-prompt {
   text-align: left !important;

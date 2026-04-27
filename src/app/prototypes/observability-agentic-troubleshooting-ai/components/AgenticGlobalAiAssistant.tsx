@@ -1139,8 +1139,9 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                         </Alert>
                       </div>
                       <ChatbotWelcomePrompt
-                        title="How can I help?"
-                        description="Choose a starter prompt or type your own message below."
+                        className="lightspeed-welcome-prompt--prompts-only"
+                        title=""
+                        description=""
                         prompts={welcomePrompts}
                       />
                     </>
