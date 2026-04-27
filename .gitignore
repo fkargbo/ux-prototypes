@@ -8,5 +8,7 @@ storybook-static
 .DS_Store
 .idea
 .env
+# Never commit a Jira token; default is ~/.jira-token
+.jira-token
 .history
 node_modules
