@@ -345,6 +345,11 @@ button[aria-label="View task details"] {
   width: 100% !important;
 }
 
+/* MessageBox renders PF `JumpButton` (scroll to top/bottom) as siblings of the scroll region — hide for this prototype. */
+.ols-ai-chrome-dock .pf-chatbot__jump {
+  display: none !important;
+}
+
 /* Ensure MessageBar is visible */
 .ols-prototype-ai-drawer .pf-v6-c-message-bar {
   display: flex !important;
