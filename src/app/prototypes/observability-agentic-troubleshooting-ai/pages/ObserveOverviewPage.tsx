@@ -21,10 +21,9 @@ import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiM
  * Section chrome uses expandable PatternFly Cards (same composition as card HTML demos — header title + expand).
  * @see https://www.patternfly.org/components/card/html-demos
  */
-type OverviewSectionKey = 'diagnostics' | 'stack' | 'installed' | 'recommended';
+type OverviewSectionKey = 'stack' | 'installed' | 'recommended';
 
 const CARD_IDS: Record<OverviewSectionKey, string> = {
-  diagnostics: 'ols-observe-card-diagnostics',
   stack: 'ols-observe-card-stack',
   installed: 'ols-observe-card-installed',
   recommended: 'ols-observe-card-recommended',
@@ -32,7 +31,6 @@ const CARD_IDS: Record<OverviewSectionKey, string> = {
 
 const createExpandedState = (initial: Partial<Record<OverviewSectionKey, boolean>> = {}) =>
   ({
-    diagnostics: initial.diagnostics ?? true,
     stack: initial.stack ?? false,
     installed: initial.installed ?? false,
     recommended: initial.recommended ?? false,
@@ -113,27 +111,6 @@ export const ObserveOverviewPage: React.FC = () => {
           }}
         >
           <Stack hasGutter>
-            <StackItem>
-              <Card id={CARD_IDS.diagnostics} isExpanded={expanded.diagnostics} isCompact>
-                <CardHeader
-                  onExpand={toggleSection('diagnostics')}
-                  toggleButtonProps={{
-                    id: `${CARD_IDS.diagnostics}-toggle`,
-                    'aria-label': 'Toggle Autonomous AI diagnostics',
-                  }}
-                >
-                  <CardTitle component="h2">Autonomous AI diagnostics</CardTitle>
-                </CardHeader>
-                <CardExpandableContent>
-                  <CardBody>
-                    <Content component="p" style={{ margin: 0, maxWidth: '960px', color: '#3c3f42' }}>
-                      Prototype area for Lightspeed-style autonomous triage, alert-to-evidence linking, and guided
-                      remediation drafts. Connect live cluster signals here in a future iteration.
-                    </Content>
-                  </CardBody>
-                </CardExpandableContent>
-              </Card>
-            </StackItem>
             <StackItem>
               <Card id={CARD_IDS.stack} isExpanded={expanded.stack} isCompact>
                 <CardHeader
