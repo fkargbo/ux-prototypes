@@ -1,12 +1,9 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Title, Content, Stack, StackItem, Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
+import { Title, Content, Stack, StackItem } from '@patternfly/react-core';
 import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiMount';
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
 
 export const AIHubPage: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <div
       className="ols-ai-hub-page"
@@ -18,30 +15,6 @@ export const AIHubPage: React.FC = () => {
       }}
     >
       <EnsureGlobalAgenticAiMount />
-
-      <div className="create-policy-breadcrumb">
-        <Breadcrumb>
-          <BreadcrumbItem
-            to="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/core/home/overview');
-            }}
-          >
-            Home
-          </BreadcrumbItem>
-          <BreadcrumbItem
-            to="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/core/observe/overview');
-            }}
-          >
-            Observe
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>AI Hub</BreadcrumbItem>
-        </Breadcrumb>
-      </div>
 
       <div className="create-policy-header">
         <Title headingLevel="h1" size="2xl">
