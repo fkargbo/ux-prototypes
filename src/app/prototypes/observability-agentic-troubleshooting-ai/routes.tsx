@@ -42,7 +42,7 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/ai-hub',
     element: <AIHubPage />,
     label: 'AI Hub',
-    title: 'Autonomous agentic troubleshooting hub',
+    title: 'AI Hub',
     navigation: {
       group: 'Observe',
       order: 2,

@@ -74,7 +74,7 @@ export const AIHubPage: React.FC = () => {
 
       <div className="create-policy-header">
         <Title headingLevel="h1" size="2xl">
-          Autonomous agentic troubleshooting hub
+          AI Hub
         </Title>
         <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
           Coordinate autonomous AI investigations, evidence collection, and guided remediation workflows for
