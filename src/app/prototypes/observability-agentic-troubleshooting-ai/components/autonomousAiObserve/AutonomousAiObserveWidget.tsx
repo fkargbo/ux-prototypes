@@ -36,12 +36,12 @@ import {
   ExclamationTriangleIcon,
   GlobeIcon,
   HistoryIcon,
+  InfoCircleIcon,
   LayerGroupIcon,
   ListIcon,
   MonitoringIcon,
   RobotIcon,
   ServerIcon,
-  ShieldAltIcon,
   ThIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
@@ -90,6 +90,22 @@ function envToLabelColor(env: ClusterRecord['env']): 'red' | 'orange' | 'blue' {
     return 'orange';
   }
   return 'blue';
+}
+
+/** OCP Monitoring–style severity icons (aligned with console alert list) */
+function AwayDigestAlertIcon({ tone }: { tone: 'danger' | 'success' | 'warning' | 'info' }) {
+  const size = { fontSize: '1.25rem' as const };
+  switch (tone) {
+    case 'danger':
+      return <ExclamationCircleIcon style={size} />;
+    case 'warning':
+      return <ExclamationTriangleIcon style={size} />;
+    case 'success':
+      return <CheckCircleIcon style={size} />;
+    case 'info':
+    default:
+      return <InfoCircleIcon style={size} />;
+  }
 }
 
 const mono: React.CSSProperties = {
@@ -322,7 +338,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         </Button>
                       </Flex>
                       <Stack hasGutter>
-                        {AWAY_DIGEST_ITEMS.map((item, idx) => {
+                        {AWAY_DIGEST_ITEMS.map((item) => {
                           const toneColor =
                             item.tone === 'danger'
                               ? 'var(--pf-t--global--color--status--danger--default)'
@@ -331,16 +347,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 : item.tone === 'warning'
                                   ? 'var(--pf-t--global--color--status--warning--default)'
                                   : 'var(--pf-t--global--color--status--info--default)';
-                          const leftIcon =
-                            idx === 0 ? (
-                              <ShieldAltIcon />
-                            ) : idx === 1 ? (
-                              <RobotIcon />
-                            ) : idx === 2 ? (
-                              <MonitoringIcon />
-                            ) : (
-                              <ChartLineIcon />
-                            );
                           return (
                             <Card key={item.text} isCompact variant="secondary">
                               <CardBody>
@@ -358,7 +364,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                         color: toneColor,
                                       }}
                                     >
-                                      {leftIcon}
+                                      <AwayDigestAlertIcon tone={item.tone} />
                                     </div>
                                   </FlexItem>
                                   <FlexItem style={{ flex: 1, minWidth: 0 }}>
@@ -799,7 +805,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         </Button>
                       </Flex>
                       <Stack hasGutter>
-                        {AWAY_DIGEST_ITEMS.map((item, idx) => {
+                        {AWAY_DIGEST_ITEMS.map((item) => {
                           const toneColor =
                             item.tone === 'danger'
                               ? 'var(--pf-t--global--color--status--danger--default)'
@@ -808,16 +814,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 : item.tone === 'warning'
                                   ? 'var(--pf-t--global--color--status--warning--default)'
                                   : 'var(--pf-t--global--color--status--info--default)';
-                          const leftIcon =
-                            idx === 0 ? (
-                              <ShieldAltIcon />
-                            ) : idx === 1 ? (
-                              <RobotIcon />
-                            ) : idx === 2 ? (
-                              <MonitoringIcon />
-                            ) : (
-                              <ChartLineIcon />
-                            );
                           return (
                             <Card key={`c-${item.text}`} isCompact variant="secondary">
                               <CardBody>
@@ -835,7 +831,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                         color: toneColor,
                                       }}
                                     >
-                                      {leftIcon}
+                                      <AwayDigestAlertIcon tone={item.tone} />
                                     </div>
                                   </FlexItem>
                                   <FlexItem style={{ flex: 1, minWidth: 0 }}>
