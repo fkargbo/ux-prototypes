@@ -2,6 +2,7 @@ import React from 'react';
 import { RouteConfig } from '@app/core/types';
 import { OverviewPage } from './pages/OverviewPage';
 import { ObserveOverviewPage } from './pages/ObserveOverviewPage';
+import { AIHubPage } from './pages/AIHubPage';
 import { DashboardsPersesPage } from './pages/DashboardsPersesPage';
 import { PodDetailDashboardPage } from './pages/PodDetailDashboardPage';
 import { EnsureGlobalAgenticAiMount } from './components/ensureAgenticGlobalAiMount';
@@ -38,13 +39,23 @@ export const routes: RouteConfig[] = [
     },
   },
   {
+    path: '/core/observe/ai-hub',
+    element: <AIHubPage />,
+    label: 'AI Hub',
+    title: 'Autonomous agentic troubleshooting hub',
+    navigation: {
+      group: 'Observe',
+      order: 2,
+    },
+  },
+  {
     path: '/core/observe/alerting',
     element: <ObserveNavPlaceholder />,
     label: 'Alerting',
     title: 'Alerting',
     navigation: {
       group: 'Observe',
-      order: 2,
+      order: 3,
     },
   },
   {
@@ -54,7 +65,7 @@ export const routes: RouteConfig[] = [
     title: 'Metrics',
     navigation: {
       group: 'Observe',
-      order: 3,
+      order: 4,
     },
   },
   {
@@ -64,7 +75,7 @@ export const routes: RouteConfig[] = [
     title: 'Dashboards',
     navigation: {
       group: 'Observe',
-      order: 4,
+      order: 5,
     },
   },
   {
@@ -74,7 +85,7 @@ export const routes: RouteConfig[] = [
     title: 'Targets',
     navigation: {
       group: 'Observe',
-      order: 5,
+      order: 6,
     },
   },
   {
@@ -84,7 +95,7 @@ export const routes: RouteConfig[] = [
     title: 'Incidents',
     navigation: {
       group: 'Observe',
-      order: 6,
+      order: 7,
     },
   },
   {
@@ -94,7 +105,7 @@ export const routes: RouteConfig[] = [
     title: 'Dashboards (Perses)',
     navigation: {
       group: 'Observe',
-      order: 7,
+      order: 8,
     },
   },
   {
