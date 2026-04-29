@@ -2,6 +2,7 @@ import React from 'react';
 import { Title, Content, Stack, StackItem } from '@patternfly/react-core';
 import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiMount';
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
+import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
   return (
