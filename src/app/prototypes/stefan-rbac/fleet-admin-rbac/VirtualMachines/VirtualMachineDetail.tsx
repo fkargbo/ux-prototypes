@@ -223,7 +223,7 @@ export const VirtualMachineDetail: React.FunctionComponent = () => {
                   justifyContent: 'center',
                   color: '#fff',
                   fontSize: '12px',
-                  fontFamily: 'monospace'
+                  fontFamily: 'var(--pf-t--global--font--family--mono)'
                 }}>
                   [Console Preview]
                 </div>

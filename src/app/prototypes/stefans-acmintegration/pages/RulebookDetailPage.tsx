@@ -346,7 +346,7 @@ const RulebookDetailPage: React.FC = () => {
                         style={{
                           width: '100%',
                           minHeight: '500px',
-                          fontFamily: 'monospace',
+                          fontFamily: 'var(--pf-t--global--font--family--mono)',
                           fontSize: '14px',
                           padding: '16px',
                           border: 'none',

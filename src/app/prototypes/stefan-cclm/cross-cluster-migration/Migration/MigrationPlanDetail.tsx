@@ -228,7 +228,7 @@ const MigrationPlanDetail: React.FunctionComponent = () => {
             <Card>
               <CardBody>
                 <pre style={{ 
-                  fontFamily: 'monospace', 
+                  fontFamily: 'var(--pf-t--global--font--family--mono)', 
                   fontSize: '13px', 
                   lineHeight: '1.5',
                   whiteSpace: 'pre-wrap',

@@ -301,7 +301,7 @@ const TemplateDetailPage: React.FC = () => {
                           }
                           readOnly
                           rows={6}
-                          style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                          style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
                         />
                       </DescriptionListDescription>
                     </DescriptionListGroup>

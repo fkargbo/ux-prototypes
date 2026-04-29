@@ -1284,7 +1284,7 @@ ${rule.verbs.map(v => `  - "${v}"`).join('\n')}`).join('\n')}`;
                   value={yamlCode}
                   onChange={(_event, value) => setYamlCode(value)}
                   style={{
-                    fontFamily: 'monospace',
+                    fontFamily: 'var(--pf-t--global--font--family--mono)',
                     fontSize: '14px',
                     minHeight: '600px',
                     resize: 'vertical',

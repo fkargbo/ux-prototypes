@@ -481,7 +481,7 @@ export const CreateQuota: React.FC = () => {
               </div>
             </>
           ) : (
-            <div style={{ fontFamily: 'monospace', fontSize: '14px', backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '4px' }}>
+            <div style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '14px', backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '4px' }}>
               <pre>
                 {`apiVersion: quota.openshift.io/v1
 kind: ApplicationAwareClusterResourceQuota
