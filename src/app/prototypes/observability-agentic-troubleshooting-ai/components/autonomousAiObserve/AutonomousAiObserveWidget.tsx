@@ -812,9 +812,14 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       'aria-label': 'Toggle cluster health section',
                     }}
                   >
-                    <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
                       <MonitoringIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-                      <CardTitle component="h3">Cluster Health &amp; Agent Pulse — {selectedCluster.name}</CardTitle>
+                      <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
+                        <CardTitle component="h3">Cluster health</CardTitle>
+                      </FlexItem>
+                      <Label color="grey" variant="filled" isCompact>
+                        {selectedCluster.name}
+                      </Label>
                     </Flex>
                   </CardHeader>
                   <CardExpandableContent>
