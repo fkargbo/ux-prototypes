@@ -18,7 +18,6 @@ import {
   EmptyStateVariant,
   Flex,
   FlexItem,
-  Icon,
   Gallery,
   GalleryItem,
   Grid,
@@ -32,13 +31,11 @@ import {
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
-  ClusterIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   GlobeIcon,
   InfoCircleIcon,
   MonitoringIcon,
-  MulticlusterIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
@@ -209,25 +206,22 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   onClick={() => setIsViewContextOpen((o) => !o)}
                   isExpanded={isViewContextOpen}
                   variant="secondary"
-                  icon={
-                    <Icon>
-                      <MulticlusterIcon />
-                    </Icon>
-                  }
                   aria-label="View context"
                 >
                   {viewMode === 'fleet' ? 'Fleet view' : 'Cluster view'}
                 </MenuToggle>
               )}
             >
-              <DropdownList>
-                <DropdownItem value="fleet" isSelected={viewMode === 'fleet'}>
-                  Fleet view
-                </DropdownItem>
-                <DropdownItem value="cluster" isSelected={viewMode === 'cluster'}>
-                  Cluster view
-                </DropdownItem>
-              </DropdownList>
+              <DropdownGroup label="View" labelHeadingLevel="h2">
+                <DropdownList>
+                  <DropdownItem value="fleet" isSelected={viewMode === 'fleet'}>
+                    Fleet view
+                  </DropdownItem>
+                  <DropdownItem value="cluster" isSelected={viewMode === 'cluster'}>
+                    Cluster view
+                  </DropdownItem>
+                </DropdownList>
+              </DropdownGroup>
             </Dropdown>
           </FlexItem>
           {viewMode === 'cluster' ? (
@@ -249,11 +243,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     onClick={() => setIsClusterSwitcherOpen((o) => !o)}
                     isExpanded={isClusterSwitcherOpen}
                     variant="secondary"
-                    icon={
-                      <Icon>
-                        <ClusterIcon />
-                      </Icon>
-                    }
                     aria-label="Cluster context"
                   >
                     {selectedCluster.name}
