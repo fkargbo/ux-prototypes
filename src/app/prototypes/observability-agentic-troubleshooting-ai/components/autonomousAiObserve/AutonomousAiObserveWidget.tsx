@@ -10,6 +10,7 @@ import {
   CardTitle,
   Content,
   Dropdown,
+  DropdownGroup,
   DropdownItem,
   DropdownList,
   EmptyState,
@@ -17,6 +18,7 @@ import {
   EmptyStateVariant,
   Flex,
   FlexItem,
+  Icon,
   Gallery,
   GalleryItem,
   Grid,
@@ -30,11 +32,13 @@ import {
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
+  ClusterIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   GlobeIcon,
   InfoCircleIcon,
   MonitoringIcon,
+  MulticlusterIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
@@ -189,6 +193,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
             <Dropdown
               isOpen={isViewContextOpen}
               onOpenChange={setIsViewContextOpen}
+              shouldFocusToggleOnSelect
               onSelect={(_event, value) => {
                 if (value === 'fleet' || value === 'cluster') {
                   setViewMode(value);
@@ -204,16 +209,14 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   onClick={() => setIsViewContextOpen((o) => !o)}
                   isExpanded={isViewContextOpen}
                   variant="secondary"
+                  icon={
+                    <Icon>
+                      <MulticlusterIcon />
+                    </Icon>
+                  }
                   aria-label="View context"
                 >
-                  <Flex
-                    spaceItems={{ default: 'spaceItemsSm' }}
-                    alignItems={{ default: 'alignItemsCenter' }}
-                  >
-                    <FlexItem>
-                      {viewMode === 'fleet' ? 'Fleet view' : 'Cluster view'}
-                    </FlexItem>
-                  </Flex>
+                  {viewMode === 'fleet' ? 'Fleet view' : 'Cluster view'}
                 </MenuToggle>
               )}
             >
@@ -232,6 +235,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               <Dropdown
                 isOpen={isClusterSwitcherOpen}
                 onOpenChange={setIsClusterSwitcherOpen}
+                shouldFocusToggleOnSelect
                 onSelect={(_event, value) => {
                   const id = String(value);
                   if (CLUSTERS.some((c) => c.id === id)) {
@@ -245,23 +249,26 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     onClick={() => setIsClusterSwitcherOpen((o) => !o)}
                     isExpanded={isClusterSwitcherOpen}
                     variant="secondary"
-                    aria-label="Select cluster"
+                    icon={
+                      <Icon>
+                        <ClusterIcon />
+                      </Icon>
+                    }
+                    aria-label="Cluster context"
                   >
-                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                      <FlexItem>
-                        {selectedCluster.name} · {selectedCluster.provider} · {selectedCluster.region}
-                      </FlexItem>
-                    </Flex>
+                    {selectedCluster.name}
                   </MenuToggle>
                 )}
               >
-                <DropdownList>
-                  {CLUSTERS.map((c) => (
-                    <DropdownItem key={c.id} value={c.id} isSelected={selectedClusterId === c.id}>
-                      {c.name} · {c.provider} · {c.region}
-                    </DropdownItem>
-                  ))}
-                </DropdownList>
+                <DropdownGroup label="Clusters" labelHeadingLevel="h2">
+                  <DropdownList>
+                    {CLUSTERS.map((c) => (
+                      <DropdownItem key={c.id} value={c.id} isSelected={selectedClusterId === c.id}>
+                        {c.name} · {c.provider} · {c.region}
+                      </DropdownItem>
+                    ))}
+                  </DropdownList>
+                </DropdownGroup>
               </Dropdown>
             </FlexItem>
           ) : null}
