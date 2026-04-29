@@ -40,7 +40,7 @@ import {
   ListIcon,
   MonitoringIcon,
 } from '@patternfly/react-icons';
-import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
+import type { AgentPulseStatus, ClusterRecord, ViewMode } from './data';
 import {
   AWAY_DIGEST_ITEMS,
   ALERTS,
@@ -66,26 +66,6 @@ function fleetAgentStatus(clusters: ClusterRecord[]): AgentPulseStatus {
     return 'investigating';
   }
   return 'idle';
-}
-
-function healthToLabelStatus(health: ClusterHealth): 'success' | 'warning' | 'danger' {
-  if (health === 'healthy') {
-    return 'success';
-  }
-  if (health === 'degraded') {
-    return 'warning';
-  }
-  return 'danger';
-}
-
-function envToLabelColor(env: ClusterRecord['env']): 'red' | 'orange' | 'blue' {
-  if (env === 'prod') {
-    return 'red';
-  }
-  if (env === 'staging') {
-    return 'orange';
-  }
-  return 'blue';
 }
 
 const mono: React.CSSProperties = {
@@ -521,15 +501,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         {CLUSTERS.map((c) => {
                           const crit = ALERTS.filter((a) => a.clusterId === c.id && a.severity === 'critical').length;
                           const warn = ALERTS.filter((a) => a.clusterId === c.id && a.severity === 'warning').length;
-                          const healthStatus = healthToLabelStatus(c.health);
-                          const healthIcon =
-                            c.health === 'healthy' ? (
-                              <CheckCircleIcon />
-                            ) : c.health === 'degraded' ? (
-                              <ExclamationTriangleIcon />
-                            ) : (
-                              <ExclamationCircleIcon />
-                            );
                           return (
                             <GalleryItem key={c.id}>
                               <div
@@ -577,7 +548,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                       </Flex>
                                     </FlexItem>
                                     <FlexItem>
-                                      <Label color={envToLabelColor(c.env)} variant="outline" isCompact>
+                                      <Label color="grey" variant="outline" isCompact>
                                         {c.env}
                                       </Label>
                                     </FlexItem>
@@ -587,7 +558,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                     alignItems={{ default: 'alignItemsCenter' }}
                                     style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
                                   >
-                                    <Label status={healthStatus} icon={healthIcon} isCompact>
+                                    <Label color="grey" variant="outline" isCompact>
                                       {c.health}
                                     </Label>
                                     <span style={{ ...mono, color: 'var(--pf-t--global--text--color--subtle)' }}>
