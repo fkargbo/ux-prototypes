@@ -27,6 +27,7 @@ export const AgentPulseLabel: React.FC<AgentPulseLabelProps> = ({ status, id }) 
   return (
     <Label
       id={id}
+      className="ols-aio-agent-pulse-label"
       color={statusToLabel[status]}
       variant="outline"
       isCompact

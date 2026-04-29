@@ -39,8 +39,23 @@
   grid-column: 2;
   grid-row: 3;
   margin: 0;
-  font-size: var(--pf-t--global--font--size--body--sm);
+}
+
+/* 14px tier: global --font--size--sm (0.875rem). Content `small` uses body--sm, which is 12px (0.75rem) in PF v6. */
+.ols-aio-alert-summary .ols-aio-alert-summary__message.pf-v6-c-content--p {
+  font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
+}
+
+/* Agent status chips (e.g. Agent: INVESTIGATING): 28px tall control. */
+.ols-aio-agent-pulse-label.pf-v6-c-label {
+  min-height: 28px;
+  box-sizing: border-box;
+}
+
+.ols-aio-agent-pulse-label.pf-v6-c-label .pf-v6-c-label__content {
+  min-height: 28px;
+  box-sizing: border-box;
 }
 
 .ols-aio-agent-pulse {
