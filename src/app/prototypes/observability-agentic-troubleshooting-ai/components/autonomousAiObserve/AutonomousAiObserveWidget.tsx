@@ -79,6 +79,26 @@ function healthToLabelStatus(health: ClusterHealth): 'success' | 'warning' | 'da
   return 'danger';
 }
 
+function capitalizeLabelWord(value: string): string {
+  if (!value) {
+    return value;
+  }
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+/** Type label text (prod / staging / dev) — first letter capitalized. */
+function clusterTypeLabelText(env: ClusterRecord['env']): string {
+  return capitalizeLabelWord(env);
+}
+
+/** Health label text shown on the tile; degraded reads as Warning per spec. */
+function clusterHealthLabelText(health: ClusterHealth): string {
+  if (health === 'degraded') {
+    return 'Warning';
+  }
+  return capitalizeLabelWord(health);
+}
+
 const mono: React.CSSProperties = {
   fontFamily: 'var(--pf-t--global--font--family--mono)',
 };
@@ -549,27 +569,52 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               >
                               <Card isCompact>
                                 <CardBody>
-                                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
-                                    <FlexItem>
-                                      <Title headingLevel="h4" size="md">
+                                  <Flex
+                                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                                    alignItems={{ default: 'alignItemsFlexStart' }}
+                                    flexWrap={{ default: 'nowrap' }}
+                                  >
+                                    <FlexItem style={{ flex: '1 1 auto', minWidth: 0, marginRight: 'var(--pf-t--global--spacer--sm)' }}>
+                                      <Title
+                                        headingLevel="h4"
+                                        size="md"
+                                        style={{
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
                                         {c.name}
                                       </Title>
-                                      <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                                        <GlobeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        flexWrap={{ default: 'nowrap' }}
+                                        style={{ marginTop: 'var(--pf-t--global--spacer--xs)', minWidth: 0 }}
+                                      >
+                                        <GlobeIcon
+                                          style={{
+                                            marginRight: 'var(--pf-t--global--spacer--xs)',
+                                            flexShrink: 0,
+                                          }}
+                                        />
                                         <span
                                           style={{
                                             ...mono,
                                             fontSize: 'var(--pf-t--global--font--size--body--sm)',
                                             color: 'var(--pf-t--global--text--color--subtle)',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                            minWidth: 0,
                                           }}
                                         >
                                           {c.provider} · {c.region}
                                         </span>
                                       </Flex>
                                     </FlexItem>
-                                    <FlexItem>
-                                      <Label color="grey" variant="outline" isCompact>
-                                        {c.env}
+                                    <FlexItem style={{ flexShrink: 0 }}>
+                                      <Label status={healthStatus} icon={healthIcon} isCompact>
+                                        {clusterHealthLabelText(c.health)}
                                       </Label>
                                     </FlexItem>
                                   </Flex>
@@ -578,8 +623,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                     alignItems={{ default: 'alignItemsCenter' }}
                                     style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
                                   >
-                                    <Label status={healthStatus} icon={healthIcon} isCompact>
-                                      {c.health}
+                                    <Label color="grey" variant="outline" isCompact>
+                                      {clusterTypeLabelText(c.env)}
                                     </Label>
                                     <span style={{ ...mono, color: 'var(--pf-t--global--text--color--subtle)' }}>
                                       {crit === 0 && warn === 0 ? (
