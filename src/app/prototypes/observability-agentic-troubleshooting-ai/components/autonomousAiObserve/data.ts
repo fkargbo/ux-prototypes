@@ -37,6 +37,10 @@ export interface AlertRecord {
   title: string;
   service: string;
   age: string;
+  /** ISO 8601 instant when the alert began firing (OpenShift-style header date). */
+  firedAt: string;
+  /** One-line user-facing description under the alert name (OpenShift-style message). */
+  message: string;
   agentStatus: AgentPulseStatus;
   steps: ReasoningStep[];
   rcaSummary: string;
@@ -105,6 +109,8 @@ export const ALERTS: AlertRecord[] = [
     title: 'payments-api 5xx surge',
     service: 'payments / payments-api',
     age: '4m',
+    firedAt: '2026-04-29T18:18:00.000Z',
+    message: 'Server errors from payments-api are elevated; clients may see failed or slow checkouts.',
     agentStatus: 'investigating',
     steps: [
       {
@@ -170,6 +176,8 @@ $ kubectl rollout restart deploy/payments-api -n payments`,
     title: 'etcd disk pressure on master-2',
     service: 'openshift-etcd / etcd-master-2',
     age: '11m',
+    firedAt: '2026-04-29T18:11:00.000Z',
+    message: 'etcd data volume is low on disk space; control plane stability may be at risk.',
     agentStatus: 'investigating',
     steps: [
       {
@@ -225,6 +233,8 @@ $ oc patch pvc etcd-master-2 -p '{"spec":{"resources":{"requests":{"storage":"60
     title: 'checkout-svc CPU throttling',
     service: 'payments / checkout-svc',
     age: '22m',
+    firedAt: '2026-04-29T18:00:00.000Z',
+    message: 'Pods are CPU-throttled because requests and limits are below current demand.',
     agentStatus: 'remediating',
     steps: [
       {
@@ -282,6 +292,8 @@ $ oc set resources deploy/checkout-svc --requests=cpu=500m`,
     title: 'ingress TLS cert expires in 36h',
     service: 'openshift-ingress / router-default',
     age: '2m',
+    firedAt: '2026-04-29T18:24:00.000Z',
+    message: 'Router TLS certificate is nearing expiry; renew before clients see trust or handshake errors.',
     agentStatus: 'investigating',
     steps: [
       {

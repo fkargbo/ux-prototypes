@@ -39,6 +39,21 @@ import type { AlertRecord, AlertSeverity, ReasoningStep, ReasoningStepStatus } f
 import { AgentPulseLabel } from './AgentPulseLabel';
 import './autonomous-ai-observe.css';
 
+/** OpenShift console–style: e.g. Apr 27, 2026, 1:39 PM */
+function formatConsoleAlertFiredAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '—';
+  }
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 function severityIcon(sev: AlertSeverity) {
   switch (sev) {
     case 'critical':
@@ -48,16 +63,6 @@ function severityIcon(sev: AlertSeverity) {
     default:
       return <InfoCircleIcon />;
   }
-}
-
-function severityLabelColor(sev: AlertSeverity): 'red' | 'orange' | 'blue' {
-  if (sev === 'critical') {
-    return 'red';
-  }
-  if (sev === 'warning') {
-    return 'orange';
-  }
-  return 'blue';
 }
 
 function rcaBoxClass(sev: AlertSeverity): string {
@@ -125,8 +130,6 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
     [isExpanded, onToggle]
   );
 
-  const sevColor = severityLabelColor(alert.severity);
-
   return (
     <Card id={alert.id} isCompact isExpanded={isExpanded}>
       <CardHeader
@@ -146,71 +149,31 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
           flexWrap={{ default: 'wrap' }}
         >
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsFlexStart' }} flexWrap={{ default: 'nowrap' }}>
-              <FlexItem>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 40,
-                    height: 40,
-                    borderRadius: 'var(--pf-t--global--border--radius--default)',
-                    color:
-                      alert.severity === 'critical'
-                        ? 'var(--pf-t--global--color--status--danger--default)'
-                        : alert.severity === 'warning'
-                          ? 'var(--pf-t--global--color--status--warning--default)'
-                          : 'var(--pf-t--global--color--status--info--default)',
-                  }}
-                >
-                  {severityIcon(alert.severity)}
-                </div>
-              </FlexItem>
-              <FlexItem style={{ minWidth: 0 }}>
-                <Stack hasGutter>
-                  <StackItem>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                      <FlexItem>
-                        <Label color={sevColor} variant="outline" isCompact>
-                          {alert.severity}
-                        </Label>
-                      </FlexItem>
-                      <FlexItem>
-                        <span
-                          style={{
-                            fontFamily: 'var(--pf-t--global--font--family--mono)',
-                            color: 'var(--pf-t--global--text--color--subtle)',
-                          }}
-                        >
-                          {alert.id}
-                        </span>
-                      </FlexItem>
-                      <FlexItem>
-                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>· {alert.age} ago</span>
-                      </FlexItem>
-                    </Flex>
-                  </StackItem>
-                  <StackItem>
-                    <Title headingLevel="h3" size="md">
-                      {alert.title}
-                    </Title>
-                    <Content
-                      component="p"
-                      style={{
-                        marginTop: 'var(--pf-t--global--spacer--xs)',
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                        marginBottom: 0,
-                      }}
-                    >
-                      {alert.service}
-                    </Content>
-                  </StackItem>
-                </Stack>
-              </FlexItem>
-            </Flex>
+          <FlexItem style={{ minWidth: 0 }}>
+            <div className="ols-aio-alert-summary">
+              <div
+                className="ols-aio-alert-summary__icon"
+                style={{
+                  color:
+                    alert.severity === 'critical'
+                      ? 'var(--pf-t--global--color--status--danger--default)'
+                      : alert.severity === 'warning'
+                        ? 'var(--pf-t--global--color--status--warning--default)'
+                        : 'var(--pf-t--global--color--status--info--default)',
+                }}
+              >
+                {severityIcon(alert.severity)}
+              </div>
+              <time className="ols-aio-alert-summary__fired" dateTime={alert.firedAt}>
+                {formatConsoleAlertFiredAt(alert.firedAt)}
+              </time>
+              <Title headingLevel="h3" size="md" className="ols-aio-alert-summary__title">
+                {alert.title}
+              </Title>
+              <Content component="p" className="ols-aio-alert-summary__message">
+                {alert.message}
+              </Content>
+            </div>
           </FlexItem>
         </Flex>
       </CardHeader>
