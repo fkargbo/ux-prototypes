@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  AlertActionCloseButton,
   Button,
   Card,
   CardBody,
@@ -103,6 +104,20 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
   const [isViewContextOpen, setIsViewContextOpen] = useState(false);
+  const [dismissedAwayTexts, setDismissedAwayTexts] = useState<Set<string>>(() => new Set());
+
+  const visibleAwayDigestItems = useMemo(
+    () => AWAY_DIGEST_ITEMS.filter((item) => !dismissedAwayTexts.has(item.text)),
+    [dismissedAwayTexts]
+  );
+
+  const dismissAwayDigest = useCallback((text: string) => {
+    setDismissedAwayTexts((prev) => new Set(prev).add(text));
+  }, []);
+
+  const dismissAllAwayDigests = useCallback(() => {
+    setDismissedAwayTexts(new Set(AWAY_DIGEST_ITEMS.map((i) => i.text)));
+  }, []);
 
   const fleetStats = useMemo(() => computeFleetStats(CLUSTERS, ALERTS), []);
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
@@ -255,7 +270,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         <Flex alignItems={{ default: 'alignItemsCenter' }}>
                           <CardTitle component="h3">While you were away</CardTitle>
                           <Label color="blue" isCompact style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
-                            new · 4 events
+                            new · {visibleAwayDigestItems.length} events
                           </Label>
                         </Flex>
                       </FlexItem>
@@ -271,14 +286,30 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         <span style={{ ...mono, color: 'var(--pf-t--global--text--color--subtle)' }}>
                           Since your last visit · 38m ago
                         </span>
-                        <Button variant="link" isInline aria-label="Mark all digest items reviewed">
-                          mark all reviewed
+                        <Button
+                          variant="link"
+                          isInline
+                          isDisabled={visibleAwayDigestItems.length === 0}
+                          onClick={dismissAllAwayDigests}
+                          aria-label="Dismiss all digest alerts"
+                        >
+                          Dismiss all
                         </Button>
                       </Flex>
                       <Stack hasGutter>
-                        {AWAY_DIGEST_ITEMS.map((item) => (
+                        {visibleAwayDigestItems.map((item) => (
                           <StackItem key={item.text}>
-                            <Alert isInline variant={item.tone} title={item.text}>
+                            <Alert
+                              isInline
+                              variant={item.tone}
+                              title={item.text}
+                              actionClose={
+                                <AlertActionCloseButton
+                                  onClose={() => dismissAwayDigest(item.text)}
+                                  aria-label={`Dismiss: ${item.text}`}
+                                />
+                              }
+                            >
                               <Content
                                 component="p"
                                 style={{
@@ -642,7 +673,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         {isMultiCluster ? `While you were away — ${selectedCluster.name}` : 'While you were away'}
                       </CardTitle>
                       <Label color="blue" isCompact style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
-                        new · 4 events
+                        new · {visibleAwayDigestItems.length} events
                       </Label>
                     </Flex>
                   </CardHeader>
@@ -656,14 +687,30 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         <span style={{ ...mono, color: 'var(--pf-t--global--text--color--subtle)' }}>
                           Since your last visit · 38m ago
                         </span>
-                        <Button variant="link" isInline aria-label="Mark all digest items reviewed">
-                          mark all reviewed
+                        <Button
+                          variant="link"
+                          isInline
+                          isDisabled={visibleAwayDigestItems.length === 0}
+                          onClick={dismissAllAwayDigests}
+                          aria-label="Dismiss all digest alerts"
+                        >
+                          Dismiss all
                         </Button>
                       </Flex>
                       <Stack hasGutter>
-                        {AWAY_DIGEST_ITEMS.map((item) => (
+                        {visibleAwayDigestItems.map((item) => (
                           <StackItem key={`c-${item.text}`}>
-                            <Alert isInline variant={item.tone} title={item.text}>
+                            <Alert
+                              isInline
+                              variant={item.tone}
+                              title={item.text}
+                              actionClose={
+                                <AlertActionCloseButton
+                                  onClose={() => dismissAwayDigest(item.text)}
+                                  aria-label={`Dismiss: ${item.text}`}
+                                />
+                              }
+                            >
                               <Content
                                 component="p"
                                 style={{
