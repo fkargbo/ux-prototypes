@@ -357,11 +357,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: 'var(--pf-t--global--border--radius--default)',
-                                        border: `1px solid ${toneColor}`,
                                         color: toneColor,
+                                        flexShrink: 0,
                                       }}
                                     >
                                       <AwayDigestAlertIcon tone={item.tone} />
@@ -824,11 +821,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: 'var(--pf-t--global--border--radius--default)',
-                                        border: `1px solid ${toneColor}`,
                                         color: toneColor,
+                                        flexShrink: 0,
                                       }}
                                     >
                                       <AwayDigestAlertIcon tone={item.tone} />
