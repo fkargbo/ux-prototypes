@@ -432,25 +432,46 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       (document.querySelector(OLS_PAGE_MASTHEAD_SELECTOR) ??
         document.querySelector(OLS_PAGE_HEADER_FALLBACK_SELECTOR)) as HTMLElement | null;
 
+    let topRafOuter = 0;
+    let topRafInner = 0;
+
     const syncTop = () => {
       const el = resolveMastheadEl();
       const topPx = el ? Math.max(0, Math.round(el.getBoundingClientRect().bottom)) : 0;
-      root.style.setProperty(OLS_AI_CHAT_TOP_VAR, `${topPx}px`);
+      const next = `${topPx}px`;
+      if (root.style.getPropertyValue(OLS_AI_CHAT_TOP_VAR) !== next) {
+        root.style.setProperty(OLS_AI_CHAT_TOP_VAR, next);
+      }
+    };
+
+    /** Same-frame layout writes from RO callbacks cause webpack dev overlay "ResizeObserver loop…"; defer past layout. */
+    const scheduleTopSync = () => {
+      cancelAnimationFrame(topRafOuter);
+      cancelAnimationFrame(topRafInner);
+      topRafOuter = requestAnimationFrame(() => {
+        topRafInner = requestAnimationFrame(() => {
+          topRafOuter = 0;
+          topRafInner = 0;
+          syncTop();
+        });
+      });
     };
 
     syncTop();
-    window.addEventListener('resize', syncTop);
-    window.addEventListener('scroll', syncTop, true);
+    window.addEventListener('resize', scheduleTopSync);
+    window.addEventListener('scroll', scheduleTopSync, true);
 
     const observed = resolveMastheadEl();
-    const ro = observed ? new ResizeObserver(syncTop) : undefined;
+    const ro = observed ? new ResizeObserver(scheduleTopSync) : undefined;
     if (observed && ro) {
       ro.observe(observed);
     }
 
     return () => {
-      window.removeEventListener('resize', syncTop);
-      window.removeEventListener('scroll', syncTop, true);
+      cancelAnimationFrame(topRafOuter);
+      cancelAnimationFrame(topRafInner);
+      window.removeEventListener('resize', scheduleTopSync);
+      window.removeEventListener('scroll', scheduleTopSync, true);
       ro?.disconnect();
       root.style.removeProperty(OLS_AI_CHAT_TOP_VAR);
       root.style.removeProperty(OLS_AI_CHROME_INLINE_END_VAR);

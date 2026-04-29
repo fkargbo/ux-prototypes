@@ -1,40 +1,11 @@
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Title,
-  Content,
-  Stack,
-  StackItem,
-  Breadcrumb,
-  BreadcrumbItem,
-  Card,
-  CardBody,
-  CardExpandableContent,
-  CardHeader,
-  CardTitle,
-} from '@patternfly/react-core';
+import { Title, Content, Stack, StackItem, Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiMount';
-
-type AIHubSectionKey = 'autonomous';
-
-const CARD_IDS: Record<AIHubSectionKey, string> = {
-  autonomous: 'ols-ai-hub-card-autonomous',
-};
-
-const createExpandedState = (initial: Partial<Record<AIHubSectionKey, boolean>> = {}) =>
-  ({
-    autonomous: initial.autonomous ?? true,
-  }) as Record<AIHubSectionKey, boolean>;
+import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
 
 export const AIHubPage: React.FC = () => {
   const navigate = useNavigate();
-  const [expanded, setExpanded] = useState(createExpandedState);
-
-  const toggleSection = useCallback((key: AIHubSectionKey) => {
-    return (_event: React.MouseEvent, _cardId: string) => {
-      setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
-    };
-  }, []);
 
   return (
     <div
@@ -102,25 +73,7 @@ export const AIHubPage: React.FC = () => {
         >
           <Stack hasGutter>
             <StackItem>
-              <Card id={CARD_IDS.autonomous} isExpanded={expanded.autonomous} isCompact>
-                <CardHeader
-                  onExpand={toggleSection('autonomous')}
-                  toggleButtonProps={{
-                    id: `${CARD_IDS.autonomous}-toggle`,
-                    'aria-label': 'Toggle Autonomous AI diagnostics',
-                  }}
-                >
-                  <CardTitle component="h2">Autonomous AI diagnostics</CardTitle>
-                </CardHeader>
-                <CardExpandableContent>
-                  <CardBody>
-                    <Content component="p" style={{ margin: 0, maxWidth: '960px', color: '#3c3f42' }}>
-                      Launch and monitor agentic troubleshooting runs, correlate alerts to evidence automatically, and
-                      review remediation drafts before applying changes to the cluster.
-                    </Content>
-                  </CardBody>
-                </CardExpandableContent>
-              </Card>
+              <AutonomousAiObserveWidget />
             </StackItem>
           </Stack>
         </div>

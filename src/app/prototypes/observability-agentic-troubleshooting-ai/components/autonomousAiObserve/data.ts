@@ -1,0 +1,382 @@
+/**
+ * Mock dataset for Autonomous AI Observe — values match cursor-prompt-cluster-monitoring-console.md
+ */
+
+export type ClusterHealth = 'critical' | 'degraded' | 'healthy';
+export type AgentPulseStatus = 'investigating' | 'remediating' | 'escalated' | 'idle';
+export type AlertSeverity = 'critical' | 'warning' | 'info';
+export type ReasoningStepStatus = 'done' | 'active' | 'pending' | 'alert';
+export type ViewMode = 'fleet' | 'cluster';
+
+export interface ClusterRecord {
+  id: string;
+  name: string;
+  region: string;
+  provider: string;
+  env: 'prod' | 'staging' | 'dev';
+  version: string;
+  nodes: number;
+  health: ClusterHealth;
+  agentStatus: AgentPulseStatus;
+}
+
+export interface ReasoningStep {
+  id: string;
+  time?: string;
+  status: ReasoningStepStatus;
+  title: string;
+  detail?: string;
+  /** PatternFly icon component name hint — resolved in UI */
+  icon: 'exclamation' | 'database' | 'network' | 'search' | 'check';
+}
+
+export interface AlertRecord {
+  id: string;
+  clusterId: string;
+  severity: AlertSeverity;
+  title: string;
+  service: string;
+  age: string;
+  agentStatus: AgentPulseStatus;
+  steps: ReasoningStep[];
+  rcaSummary: string;
+  rootCauseRef: string;
+  rootCauseTail: string;
+  confidence: number;
+  logLines: string;
+  blastRadius: string[];
+  remediationSummary: string;
+  remediationCommands: string;
+  estimatedRecovery: string;
+}
+
+export const CLUSTERS: ClusterRecord[] = [
+  {
+    id: 'prod-east-2',
+    name: 'prod-east-2',
+    region: 'us-east-2',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.8',
+    nodes: 24,
+    health: 'critical',
+    agentStatus: 'investigating',
+  },
+  {
+    id: 'prod-eu-west-1',
+    name: 'prod-eu-west-1',
+    region: 'eu-west-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.8',
+    nodes: 18,
+    health: 'degraded',
+    agentStatus: 'remediating',
+  },
+  {
+    id: 'stg-central',
+    name: 'stg-central',
+    region: 'us-central-1',
+    provider: 'GCP',
+    env: 'staging',
+    version: '4.16.2',
+    nodes: 8,
+    health: 'healthy',
+    agentStatus: 'idle',
+  },
+  {
+    id: 'edge-apac-1',
+    name: 'edge-apac-1',
+    region: 'ap-southeast-1',
+    provider: 'Azure',
+    env: 'prod',
+    version: '4.15.6',
+    nodes: 12,
+    health: 'degraded',
+    agentStatus: 'investigating',
+  },
+];
+
+export const ALERTS: AlertRecord[] = [
+  {
+    id: 'alrt-8821',
+    clusterId: 'prod-east-2',
+    severity: 'critical',
+    title: 'payments-api 5xx surge',
+    service: 'payments / payments-api',
+    age: '4m',
+    agentStatus: 'investigating',
+    steps: [
+      {
+        id: 's1',
+        time: '14:22:01',
+        status: 'done',
+        title: 'Detected anomaly in payments-api',
+        detail: 'Latency p99 spike → 4.2s',
+        icon: 'exclamation',
+      },
+      {
+        id: 's2',
+        time: '14:22:04',
+        status: 'done',
+        title: 'Fetched Kube Events',
+        detail: '32 events across 4 namespaces',
+        icon: 'database',
+      },
+      {
+        id: 's3',
+        time: '14:22:09',
+        status: 'done',
+        title: 'Correlated with network policies',
+        detail: 'egress rule changed 3m ago',
+        icon: 'network',
+      },
+      {
+        id: 's4',
+        time: '14:22:14',
+        status: 'active',
+        title: 'Analyzing pod restart patterns',
+        detail: 'checking CrashLoopBackOff signatures',
+        icon: 'search',
+      },
+      {
+        id: 's5',
+        status: 'pending',
+        title: 'Generate remediation plan',
+        icon: 'check',
+      },
+    ],
+    rcaSummary:
+      'NetworkPolicy applied at 14:18 UTC blocks egress to redis cache, causing connection timeouts in payments-api pods and cascading 5xx errors at the gateway.',
+    rootCauseRef: 'payments-egress-v3',
+    rootCauseTail: 'redis-cache.svc.cluster.local:6379',
+    confidence: 87,
+    logLines: `E 14:21:58 dial tcp 10.0.4.12:6379:
+  i/o timeout
+W 14:21:59 redis pool exhausted (32/32)
+E 14:22:00 payment_intent failed:
+  upstream connect error`,
+    blastRadius: ['payments-api-7f4c', 'payments-api-9b2d', 'checkout-svc', 'ingress-gw', 'redis-cache-0'],
+    remediationSummary:
+      'Roll back NetworkPolicy payments-egress-v3 to revision v2 and restart affected payments-api pods. No data-plane impact expected.',
+    remediationCommands: `$ kubectl rollout undo netpol/payments-egress-v3 -n payments
+$ kubectl rollout restart deploy/payments-api -n payments`,
+    estimatedRecovery: '~45s',
+  },
+  {
+    id: 'alrt-8819',
+    clusterId: 'prod-east-2',
+    severity: 'critical',
+    title: 'etcd disk pressure on master-2',
+    service: 'openshift-etcd / etcd-master-2',
+    age: '11m',
+    agentStatus: 'investigating',
+    steps: [
+      {
+        id: 'e1',
+        time: '14:15:32',
+        status: 'done',
+        title: 'DiskPressure condition on master-2',
+        detail: 'node tainted automatically',
+        icon: 'exclamation',
+      },
+      {
+        id: 'e2',
+        time: '14:15:40',
+        status: 'done',
+        title: 'Inspected etcd WAL size',
+        detail: '12.4 GB / 8 GB threshold',
+        icon: 'database',
+      },
+      {
+        id: 'e3',
+        time: '14:15:55',
+        status: 'active',
+        title: 'Compacting historical revisions',
+        detail: 'rev 88_421_003 → 88_700_112',
+        icon: 'search',
+      },
+      {
+        id: 'e4',
+        status: 'pending',
+        title: 'Validate quorum post-compaction',
+        icon: 'check',
+      },
+    ],
+    rcaSummary:
+      'etcd WAL exceeded 8 GB threshold on master-2 due to skipped auto-compaction window during last upgrade. Disk pressure risks quorum stability.',
+    rootCauseRef: 'etcd-master-2',
+    rootCauseTail: '/var/lib/etcd',
+    confidence: 92,
+    logLines: `W 14:15:30 mvcc: storage backend quota exceeded
+W 14:15:31 apply request took too long (412ms)
+E 14:15:32 DiskPressure: available 4% (<10%)`,
+    blastRadius: ['etcd-master-2', 'kube-apiserver-2', 'controller-manager'],
+    remediationSummary:
+      'Trigger etcd defrag on master-2 after compaction completes; expand PV by 20 GB and reschedule auto-compaction every 6h.',
+    remediationCommands: `$ etcdctl --endpoints=master-2:2379 defrag
+$ oc patch pvc etcd-master-2 -p '{"spec":{"resources":{"requests":{"storage":"60Gi"}}}}'`,
+    estimatedRecovery: '~3m',
+  },
+  {
+    id: 'alrt-8814',
+    clusterId: 'prod-eu-west-1',
+    severity: 'warning',
+    title: 'checkout-svc CPU throttling',
+    service: 'payments / checkout-svc',
+    age: '22m',
+    agentStatus: 'remediating',
+    steps: [
+      {
+        id: 'c1',
+        time: '14:04:10',
+        status: 'done',
+        title: 'CPU throttling > 35% sustained',
+        detail: 'across 3/4 replicas',
+        icon: 'exclamation',
+      },
+      {
+        id: 'c2',
+        time: '14:04:18',
+        status: 'done',
+        title: 'Reviewed HPA history',
+        detail: 'scaled 4→4 (max reached)',
+        icon: 'database',
+      },
+      {
+        id: 'c3',
+        time: '14:04:25',
+        status: 'done',
+        title: 'Profiled hot path',
+        detail: 'JSON serialization 41% of CPU',
+        icon: 'search',
+      },
+      {
+        id: 'c4',
+        time: '14:04:30',
+        status: 'done',
+        title: 'Plan ready',
+        detail: 'raise HPA max + bump requests',
+        icon: 'check',
+      },
+    ],
+    rcaSummary:
+      'checkout-svc hit HPA ceiling of 4 replicas while sustained traffic grew 2.1x week-over-week. CPU requests under-provisioned for current shape.',
+    rootCauseRef: 'checkout-svc',
+    rootCauseTail: 'hpa: max=4 cpu.req=250m',
+    confidence: 78,
+    logLines: `I 14:03:55 cpu_throttled_seconds_total +0.42/s
+I 14:04:02 hpa: desired=6 current=4 (capped)
+W 14:04:10 request latency p95 = 1.8s`,
+    blastRadius: ['checkout-svc-a1', 'checkout-svc-b2', 'checkout-svc-c3', 'checkout-svc-d4'],
+    remediationSummary:
+      'Raise HPA max replicas to 8 and bump CPU request from 250m → 500m. Safe rolling update; no downtime expected.',
+    remediationCommands: `$ oc patch hpa checkout-svc -p '{"spec":{"maxReplicas":8}}'
+$ oc set resources deploy/checkout-svc --requests=cpu=500m`,
+    estimatedRecovery: '~90s',
+  },
+  {
+    id: 'alrt-8830',
+    clusterId: 'edge-apac-1',
+    severity: 'warning',
+    title: 'ingress TLS cert expires in 36h',
+    service: 'openshift-ingress / router-default',
+    age: '2m',
+    agentStatus: 'investigating',
+    steps: [
+      {
+        id: 't1',
+        time: '14:24:00',
+        status: 'done',
+        title: 'Cert-manager probe flagged renewal',
+        detail: 'expiry: 2026-04-27 02:11 UTC',
+        icon: 'exclamation',
+      },
+      {
+        id: 't2',
+        time: '14:24:08',
+        status: 'done',
+        title: 'Checked ACME challenge readiness',
+        detail: 'DNS-01 provider reachable',
+        icon: 'network',
+      },
+      {
+        id: 't3',
+        time: '14:24:14',
+        status: 'active',
+        title: 'Drafting renewal CertificateRequest',
+        icon: 'search',
+      },
+      {
+        id: 't4',
+        status: 'pending',
+        title: 'Apply & verify chain',
+        icon: 'check',
+      },
+    ],
+    rcaSummary:
+      'Wildcard cert *.apac.example.com nearing expiry; auto-renewal disabled during last edge maintenance window and never re-enabled.',
+    rootCauseRef: 'wildcard-apac',
+    rootCauseTail: 'auto-renew=false',
+    confidence: 95,
+    logLines: `I 14:23:55 cert-manager: 36h to expiry
+W 14:23:56 renewBefore window entered
+I 14:24:00 issuer letsencrypt-prod ready`,
+    blastRadius: ['router-default', '*.apac.example.com'],
+    remediationSummary:
+      'Re-enable auto-renewal on the wildcard Certificate resource and trigger an immediate renewal via cert-manager.',
+    remediationCommands: `$ oc annotate certificate wildcard-apac cert-manager.io/renew=true --overwrite
+$ oc delete certificaterequest -l cert=wildcard-apac`,
+    estimatedRecovery: '~2m',
+  },
+];
+
+/** Digest rows for “While you were away” — fixed copy per spec */
+export const AWAY_DIGEST_ITEMS: Array<{
+  tone: 'danger' | 'success' | 'warning' | 'info';
+  text: string;
+  meta: string;
+}> = [
+  {
+    tone: 'danger',
+    text: '2 new critical alerts fired',
+    meta: 'payments-api 5xx · etcd disk pressure',
+  },
+  {
+    tone: 'success',
+    text: 'Agent auto-remediated 3 incidents',
+    meta: 'checkout-svc HPA · ingress restart · pod evict',
+  },
+  {
+    tone: 'warning',
+    text: '1 cluster degraded → recovered',
+    meta: 'prod-eu-west-1 · 6m downtime',
+  },
+  {
+    tone: 'info',
+    text: 'Fleet alerts went 0 → 4 since last visit',
+    meta: 'first event at 13:48 UTC',
+  },
+];
+
+export function getClusterById(id: string): ClusterRecord | undefined {
+  return CLUSTERS.find((c) => c.id === id);
+}
+
+export function getAlertsForCluster(clusterId: string): AlertRecord[] {
+  return ALERTS.filter((a) => a.clusterId === clusterId);
+}
+
+export function computeFleetStats(clusters: ClusterRecord[], alerts: AlertRecord[]) {
+  const criticalCount = alerts.filter((a) => a.severity === 'critical').length;
+  const warningCount = alerts.filter((a) => a.severity === 'warning').length;
+  const degraded = clusters.filter((c) => c.health !== 'healthy').length;
+  const totalNodes = clusters.reduce((sum, c) => sum + c.nodes, 0);
+  return {
+    criticalCount,
+    warningCount,
+    degraded,
+    totalClusters: clusters.length,
+    totalNodes,
+  };
+}

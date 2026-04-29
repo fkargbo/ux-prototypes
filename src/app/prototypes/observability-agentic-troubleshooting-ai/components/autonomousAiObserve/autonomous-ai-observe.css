@@ -1,0 +1,146 @@
+/* Autonomous AI Observe — token-based helpers (pulse ring, timeline, widget chevron). */
+
+.ols-aio-agent-pulse {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+}
+
+.ols-aio-agent-pulse__dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--pf-t--global--border--radius--pill, 999px);
+  background-color: var(--pf-t--global--icon--color--subtle);
+}
+
+.ols-aio-agent-pulse__ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--pf-t--global--border--radius--pill, 999px);
+  border: 1px solid var(--pf-t--global--icon--color--subtle);
+  animation: ols-aio-pulse-ring 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+.ols-aio-agent-pulse--info .ols-aio-agent-pulse__dot {
+  background-color: var(--pf-t--global--color--status--info--default);
+}
+.ols-aio-agent-pulse--info .ols-aio-agent-pulse__ring {
+  border-color: var(--pf-t--global--color--status--info--default);
+}
+
+.ols-aio-agent-pulse--warning .ols-aio-agent-pulse__dot {
+  background-color: var(--pf-t--global--color--status--warning--default);
+}
+.ols-aio-agent-pulse--warning .ols-aio-agent-pulse__ring {
+  border-color: var(--pf-t--global--color--status--warning--default);
+}
+
+.ols-aio-agent-pulse--danger .ols-aio-agent-pulse__dot {
+  background-color: var(--pf-t--global--color--status--danger--default);
+}
+.ols-aio-agent-pulse--danger .ols-aio-agent-pulse__ring {
+  border-color: var(--pf-t--global--color--status--danger--default);
+}
+
+.ols-aio-agent-pulse--muted .ols-aio-agent-pulse__dot {
+  background-color: var(--pf-t--global--icon--color--subtle);
+}
+.ols-aio-agent-pulse--muted .ols-aio-agent-pulse__ring {
+  display: none;
+}
+
+@keyframes ols-aio-pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+.ols-aio-widget-header-chevron {
+  transition: transform var(--pf-t--global--motion--Duration--md, 200ms) var(--pf-t--global--motion--TimingFunction--accelerate, ease-in);
+}
+
+.ols-aio-widget-header-chevron--collapsed {
+  transform: rotate(-90deg);
+}
+
+.ols-aio-reasoning-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  padding-inline-start: var(--pf-t--global--spacer--2xl);
+}
+
+.ols-aio-reasoning-timeline::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 12px;
+  inset-block-start: 0;
+  inset-block-end: 0;
+  width: 2px;
+  background-color: var(--pf-t--global--border--color--default);
+}
+
+.ols-aio-reasoning-timeline__item {
+  position: relative;
+  padding-block-end: var(--pf-t--global--spacer--md);
+}
+
+.ols-aio-reasoning-timeline__node {
+  position: absolute;
+  inset-inline-start: -28px;
+  inset-block-start: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--pf-t--global--border--radius--pill, 999px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  border: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.ols-aio-rca-box {
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--default);
+  padding: var(--pf-t--global--spacer--md);
+}
+
+.ols-aio-rca-box--critical {
+  background-color: color-mix(in srgb, var(--pf-t--global--color--status--danger--default) 6%, transparent);
+}
+
+.ols-aio-rca-box--warning {
+  background-color: color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 6%, transparent);
+}
+
+.ols-aio-rca-box--info {
+  background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 6%, transparent);
+}
+
+.ols-aio-code-block {
+  margin: 0;
+  padding: var(--pf-t--global--spacer--sm);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--default);
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  font-family: var(--pf-t--global--font--family--mono);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.ols-aio-remediation-box {
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--default);
+  padding: var(--pf-t--global--spacer--md);
+  background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 5%, transparent);
+}
