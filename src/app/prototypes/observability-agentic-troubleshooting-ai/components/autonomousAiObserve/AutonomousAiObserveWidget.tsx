@@ -40,7 +40,6 @@ import {
   LayerGroupIcon,
   ListIcon,
   MonitoringIcon,
-  RobotIcon,
   ServerIcon,
   ThIcon,
 } from '@patternfly/react-icons';
@@ -158,7 +157,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const subtitle = useMemo(() => {
     if (isMultiCluster && viewMode === 'fleet') {
-      return `fleet: ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes`;
+      return `Fleet: ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes`;
     }
     return `cluster: ${selectedCluster.name} · ${selectedCluster.provider} · ${selectedCluster.region}`;
   }, [isMultiCluster, viewMode, selectedCluster, totalFleetNodes]);
@@ -245,51 +244,22 @@ export const AutonomousAiObserveWidget: React.FC = () => {
       >
         <Flex alignItems={{ default: 'alignItemsFlexStart' }} flexWrap={{ default: 'wrap' }}>
           <FlexItem>
-            <Flex>
-              <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 48,
-                    height: 48,
-                    borderRadius: 'var(--pf-t--global--border--radius--default)',
-                    border: '1px solid var(--pf-t--global--border--color--default)',
-                    backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-                  }}
-                >
-                  <RobotIcon />
-                </div>
-              </FlexItem>
-              <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsBaseline' }} flexWrap={{ default: 'wrap' }}>
-                  <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
-                    <Title headingLevel="h2" size="md">
-                      Autonomous AI Observe
-                    </Title>
-                  </FlexItem>
-                  <FlexItem>
-                    <Label color="grey" variant="outline" isCompact>
-                      <span style={mono}>v2.4 · multi-cluster</span>
-                    </Label>
-                  </FlexItem>
-                </Flex>
-                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                  <LayerGroupIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-                  <Content
-                    component="p"
-                    style={{
-                      ...mono,
-                      fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      margin: 0,
-                    }}
-                  >
-                    {subtitle}
-                  </Content>
-                </Flex>
-              </FlexItem>
+            <Title headingLevel="h2" size="md">
+              Autonomous AI Observe
+            </Title>
+            <Flex style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+              <LayerGroupIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
+              <Content
+                component="p"
+                style={{
+                  ...mono,
+                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  margin: 0,
+                }}
+              >
+                {subtitle}
+              </Content>
             </Flex>
           </FlexItem>
         </Flex>
