@@ -17,8 +17,6 @@ import {
   EmptyStateVariant,
   Flex,
   FlexItem,
-  FormSelect,
-  FormSelectOption,
   Gallery,
   GalleryItem,
   Grid,
@@ -31,7 +29,6 @@ import {
   Title,
 } from '@patternfly/react-core';
 import {
-  AngleDownIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
@@ -114,6 +111,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
   const [isViewContextOpen, setIsViewContextOpen] = useState(false);
+  const [isClusterSwitcherOpen, setIsClusterSwitcherOpen] = useState(false);
   const [dismissedAwayTexts, setDismissedAwayTexts] = useState<Set<string>>(() => new Set());
 
   const visibleAwayDigestItems = useMemo(
@@ -179,10 +177,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     <>
       {isMultiCluster ? (
         <Flex
-          justifyContent={{ default: 'justifyContentFlexStart' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          flexWrap={{ default: 'wrap' }}
           style={{
             width: '100%',
             marginBottom: 'var(--pf-t--global--spacer--md)',
+            gap: 'var(--pf-t--global--spacer--sm)',
           }}
         >
           <FlexItem>
@@ -192,6 +192,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               onSelect={(_event, value) => {
                 if (value === 'fleet' || value === 'cluster') {
                   setViewMode(value);
+                  if (value === 'fleet') {
+                    setIsClusterSwitcherOpen(false);
+                  }
                 }
                 setIsViewContextOpen(false);
               }}
@@ -224,6 +227,44 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               </DropdownList>
             </Dropdown>
           </FlexItem>
+          {viewMode === 'cluster' ? (
+            <FlexItem>
+              <Dropdown
+                isOpen={isClusterSwitcherOpen}
+                onOpenChange={setIsClusterSwitcherOpen}
+                onSelect={(_event, value) => {
+                  const id = String(value);
+                  if (CLUSTERS.some((c) => c.id === id)) {
+                    setSelectedClusterId(id);
+                  }
+                  setIsClusterSwitcherOpen(false);
+                }}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsClusterSwitcherOpen((o) => !o)}
+                    isExpanded={isClusterSwitcherOpen}
+                    variant="secondary"
+                    aria-label="Select cluster"
+                  >
+                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem>
+                        {selectedCluster.name} · {selectedCluster.provider} · {selectedCluster.region}
+                      </FlexItem>
+                    </Flex>
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  {CLUSTERS.map((c) => (
+                    <DropdownItem key={c.id} value={c.id} isSelected={selectedClusterId === c.id}>
+                      {c.name} · {c.provider} · {c.region}
+                    </DropdownItem>
+                  ))}
+                </DropdownList>
+              </Dropdown>
+            </FlexItem>
+          ) : null}
         </Flex>
       ) : null}
 
@@ -677,39 +718,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
             </Stack>
           ) : (
             <Stack hasGutter>
-              {isMultiCluster ? (
-                <StackItem>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                    <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
-                      <Button
-                        variant="link"
-                        icon={<AngleDownIcon style={{ transform: 'rotate(90deg)' }} />}
-                        onClick={() => setViewMode('fleet')}
-                        aria-label="Back to fleet view"
-                      >
-                        Fleet
-                      </Button>
-                    </FlexItem>
-                    <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>/</FlexItem>
-                    <FlexItem>
-                      <FormSelect
-                        value={selectedClusterId}
-                        onChange={(_e, val) => setSelectedClusterId(String(val))}
-                        aria-label="Select cluster"
-                      >
-                        {CLUSTERS.map((c) => (
-                          <FormSelectOption
-                            key={c.id}
-                            value={c.id}
-                            label={`${c.name} · ${c.provider} · ${c.region}`}
-                          />
-                        ))}
-                      </FormSelect>
-                    </FlexItem>
-                  </Flex>
-                </StackItem>
-              ) : null}
-
               <StackItem>
                 <Card isCompact isExpanded={cAwayOpen} id={`${WIDGET_ID}-c-away`}>
                   <CardHeader
