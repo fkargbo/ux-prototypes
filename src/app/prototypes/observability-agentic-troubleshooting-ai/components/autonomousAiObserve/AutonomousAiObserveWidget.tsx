@@ -296,35 +296,51 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           Dismiss all
                         </Button>
                       </Flex>
-                      <Stack hasGutter>
-                        {visibleAwayDigestItems.map((item) => (
-                          <StackItem key={item.text}>
-                            <Alert
-                              isInline
-                              variant={item.tone}
-                              title={item.text}
-                              actionClose={
-                                <AlertActionCloseButton
-                                  onClose={() => dismissAwayDigest(item.text)}
-                                  aria-label={`Dismiss: ${item.text}`}
-                                />
-                              }
+                      {visibleAwayDigestItems.length === 0 ? (
+                        <EmptyState variant={EmptyStateVariant.lg}>
+                          <EmptyStateBody>
+                            <Title headingLevel="h4" size="lg">
+                              You&apos;re all caught up
+                            </Title>
+                            <Content
+                              component="p"
+                              style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}
                             >
-                              <Content
-                                component="p"
-                                style={{
-                                  ...mono,
-                                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                                  marginBottom: 0,
-                                  color: 'var(--pf-t--global--text--color--subtle)',
-                                }}
+                              There are currently no active alerts requiring your attention.
+                            </Content>
+                          </EmptyStateBody>
+                        </EmptyState>
+                      ) : (
+                        <Stack hasGutter>
+                          {visibleAwayDigestItems.map((item) => (
+                            <StackItem key={item.text}>
+                              <Alert
+                                isInline
+                                variant={item.tone}
+                                title={item.text}
+                                actionClose={
+                                  <AlertActionCloseButton
+                                    onClose={() => dismissAwayDigest(item.text)}
+                                    aria-label={`Dismiss: ${item.text}`}
+                                  />
+                                }
                               >
-                                {item.meta}
-                              </Content>
-                            </Alert>
-                          </StackItem>
-                        ))}
-                      </Stack>
+                                <Content
+                                  component="p"
+                                  style={{
+                                    ...mono,
+                                    marginTop: 'var(--pf-t--global--spacer--xs)',
+                                    marginBottom: 0,
+                                    color: 'var(--pf-t--global--text--color--subtle)',
+                                  }}
+                                >
+                                  {item.meta}
+                                </Content>
+                              </Alert>
+                            </StackItem>
+                          ))}
+                        </Stack>
+                      )}
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
@@ -697,35 +713,51 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           Dismiss all
                         </Button>
                       </Flex>
-                      <Stack hasGutter>
-                        {visibleAwayDigestItems.map((item) => (
-                          <StackItem key={`c-${item.text}`}>
-                            <Alert
-                              isInline
-                              variant={item.tone}
-                              title={item.text}
-                              actionClose={
-                                <AlertActionCloseButton
-                                  onClose={() => dismissAwayDigest(item.text)}
-                                  aria-label={`Dismiss: ${item.text}`}
-                                />
-                              }
+                      {visibleAwayDigestItems.length === 0 ? (
+                        <EmptyState variant={EmptyStateVariant.lg}>
+                          <EmptyStateBody>
+                            <Title headingLevel="h4" size="lg">
+                              You&apos;re all caught up
+                            </Title>
+                            <Content
+                              component="p"
+                              style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}
                             >
-                              <Content
-                                component="p"
-                                style={{
-                                  ...mono,
-                                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                                  marginBottom: 0,
-                                  color: 'var(--pf-t--global--text--color--subtle)',
-                                }}
+                              There are currently no active alerts requiring your attention.
+                            </Content>
+                          </EmptyStateBody>
+                        </EmptyState>
+                      ) : (
+                        <Stack hasGutter>
+                          {visibleAwayDigestItems.map((item) => (
+                            <StackItem key={`c-${item.text}`}>
+                              <Alert
+                                isInline
+                                variant={item.tone}
+                                title={item.text}
+                                actionClose={
+                                  <AlertActionCloseButton
+                                    onClose={() => dismissAwayDigest(item.text)}
+                                    aria-label={`Dismiss: ${item.text}`}
+                                  />
+                                }
                               >
-                                {item.meta}
-                              </Content>
-                            </Alert>
-                          </StackItem>
-                        ))}
-                      </Stack>
+                                <Content
+                                  component="p"
+                                  style={{
+                                    ...mono,
+                                    marginTop: 'var(--pf-t--global--spacer--xs)',
+                                    marginBottom: 0,
+                                    color: 'var(--pf-t--global--text--color--subtle)',
+                                  }}
+                                >
+                                  {item.meta}
+                                </Content>
+                              </Alert>
+                            </StackItem>
+                          ))}
+                        </Stack>
+                      )}
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
