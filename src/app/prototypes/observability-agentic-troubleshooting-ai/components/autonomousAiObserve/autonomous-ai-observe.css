@@ -1,5 +1,10 @@
 /* Autonomous AI Observe — token-based helpers (pulse ring, timeline, widget chevron). */
 
+/* Context selector row: default MenuToggle (outlined) + tighter radius — not secondary “pill” chips. */
+.ols-aio-context-selectors .pf-v6-c-menu-toggle {
+  border-radius: var(--pf-t--global--border--radius--small);
+}
+
 .ols-aio-agent-pulse {
   position: relative;
   display: inline-flex;

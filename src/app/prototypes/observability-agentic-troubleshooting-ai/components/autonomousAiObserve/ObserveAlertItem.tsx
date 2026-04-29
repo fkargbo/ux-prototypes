@@ -157,7 +157,6 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                     width: 40,
                     height: 40,
                     borderRadius: 'var(--pf-t--global--border--radius--default)',
-                    border: '1px solid var(--pf-t--global--border--color--default)',
                     color:
                       alert.severity === 'critical'
                         ? 'var(--pf-t--global--color--status--danger--default)'

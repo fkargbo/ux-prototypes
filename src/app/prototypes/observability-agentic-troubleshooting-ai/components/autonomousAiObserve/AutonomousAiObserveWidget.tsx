@@ -178,6 +178,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     <>
       {isMultiCluster ? (
         <Flex
+          className="ols-aio-context-selectors"
           alignItems={{ default: 'alignItemsCenter' }}
           flexWrap={{ default: 'wrap' }}
           style={{
@@ -205,7 +206,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   ref={toggleRef}
                   onClick={() => setIsViewContextOpen((o) => !o)}
                   isExpanded={isViewContextOpen}
-                  variant="secondary"
+                  variant="default"
                   aria-label="View context"
                 >
                   {viewMode === 'fleet' ? 'Fleet view' : 'Cluster view'}
@@ -242,7 +243,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     ref={toggleRef}
                     onClick={() => setIsClusterSwitcherOpen((o) => !o)}
                     isExpanded={isClusterSwitcherOpen}
-                    variant="secondary"
+                    variant="default"
                     aria-label="Cluster context"
                   >
                     {selectedCluster.name}
