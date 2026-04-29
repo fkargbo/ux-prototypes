@@ -35,13 +35,10 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   GlobeIcon,
-  HistoryIcon,
   InfoCircleIcon,
-  LayerGroupIcon,
   ListIcon,
   MonitoringIcon,
   ServerIcon,
-  ThIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
@@ -202,7 +199,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     spaceItems={{ default: 'spaceItemsSm' }}
                     alignItems={{ default: 'alignItemsCenter' }}
                   >
-                    <FlexItem>{viewMode === 'fleet' ? <ThIcon /> : <ServerIcon />}</FlexItem>
                     <FlexItem>
                       {viewMode === 'fleet' ? 'Fleet view' : 'Cluster view'}
                     </FlexItem>
@@ -211,18 +207,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               )}
             >
               <DropdownList>
-                <DropdownItem
-                  value="fleet"
-                  icon={<ThIcon />}
-                  isSelected={viewMode === 'fleet'}
-                >
+                <DropdownItem value="fleet" isSelected={viewMode === 'fleet'}>
                   Fleet view
                 </DropdownItem>
-                <DropdownItem
-                  value="cluster"
-                  icon={<ServerIcon />}
-                  isSelected={viewMode === 'cluster'}
-                >
+                <DropdownItem value="cluster" isSelected={viewMode === 'cluster'}>
                   Cluster view
                 </DropdownItem>
               </DropdownList>
@@ -247,20 +235,18 @@ export const AutonomousAiObserveWidget: React.FC = () => {
             <Title headingLevel="h2" size="md">
               Autonomous AI Observe
             </Title>
-            <Flex style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-              <LayerGroupIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-              <Content
-                component="p"
-                style={{
-                  ...mono,
-                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                  margin: 0,
-                }}
-              >
-                {subtitle}
-              </Content>
-            </Flex>
+            <Content
+              component="p"
+              style={{
+                ...mono,
+                marginTop: 'var(--pf-t--global--spacer--xs)',
+                fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                color: 'var(--pf-t--global--text--color--subtle)',
+                marginBottom: 0,
+              }}
+            >
+              {subtitle}
+            </Content>
           </FlexItem>
         </Flex>
       </CardHeader>
@@ -284,7 +270,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     >
                       <FlexItem>
                         <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                          <HistoryIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
                           <CardTitle component="h3">While you were away</CardTitle>
                           <Label color="blue" isCompact style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
                             new · 4 events
@@ -350,18 +335,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                       {item.meta}
                                     </Content>
                                   </FlexItem>
-                                  <FlexItem>
-                                    <span
-                                      aria-hidden
-                                      style={{
-                                        display: 'inline-block',
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: 'var(--pf-t--global--border--radius--pill, 999px)',
-                                        backgroundColor: toneColor,
-                                      }}
-                                    />
-                                  </FlexItem>
                                 </Flex>
                               </CardBody>
                             </Card>
@@ -383,7 +356,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     }}
                   >
                     <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                      <LayerGroupIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
                       <CardTitle component="h3">Fleet Summary</CardTitle>
                     </Flex>
                   </CardHeader>
@@ -545,13 +517,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       'aria-label': 'Toggle Clusters section',
                     }}
                   >
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                      <ServerIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-                      <CardTitle component="h3">Clusters</CardTitle>
-                      <Label variant="outline" color="blue" isCompact style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
-                        click to drill in
-                      </Label>
-                    </Flex>
+                    <CardTitle component="h3">Clusters</CardTitle>
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
@@ -748,7 +714,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     }}
                   >
                     <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                      <HistoryIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
                       <CardTitle component="h3">
                         {isMultiCluster ? `While you were away — ${selectedCluster.name}` : 'While you were away'}
                       </CardTitle>
@@ -813,18 +778,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                     >
                                       {item.meta}
                                     </Content>
-                                  </FlexItem>
-                                  <FlexItem>
-                                    <span
-                                      aria-hidden
-                                      style={{
-                                        display: 'inline-block',
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: 'var(--pf-t--global--border--radius--pill, 999px)',
-                                        backgroundColor: toneColor,
-                                      }}
-                                    />
                                   </FlexItem>
                                 </Flex>
                               </CardBody>
