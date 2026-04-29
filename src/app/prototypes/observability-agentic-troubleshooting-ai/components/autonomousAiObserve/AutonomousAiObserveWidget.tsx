@@ -37,7 +37,6 @@ import {
   ExclamationTriangleIcon,
   GlobeIcon,
   InfoCircleIcon,
-  ListIcon,
   MonitoringIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
@@ -918,14 +917,13 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     onExpand={() => setCAlertsOpen((o) => !o)}
                     toggleButtonProps={{
                       id: `${WIDGET_ID}-c-alerts-toggle`,
-                      'aria-label': 'Toggle Active Alerts section',
+                      'aria-label': 'Toggle Active alerts section',
                     }}
                   >
                     <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                      <ListIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
                       <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
                         <Title headingLevel="h3" size="lg">
-                          Active Alerts
+                          Active alerts
                         </Title>
                       </FlexItem>
                       <Label color="grey" variant="outline" isCompact>
@@ -938,22 +936,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       {clusterAlerts.length === 0 ? (
                         <EmptyState variant={EmptyStateVariant.lg}>
                           <EmptyStateBody>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentCenter' }}>
-                              <CheckCircleIcon
-                                style={{
-                                  marginRight: 'var(--pf-t--global--spacer--md)',
-                                  color: 'var(--pf-t--global--color--status--success--default)',
-                                }}
-                              />
-                              <div>
-                                <Title headingLevel="h4" size="lg">
-                                  No active alerts
-                                </Title>
-                                <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                                  Agent is idle on {selectedCluster.name}.
-                                </Content>
-                              </div>
-                            </Flex>
+                            <Title headingLevel="h4" size="lg">
+                              No active alerts
+                            </Title>
+                            <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}>
+                              Agent is idle on {selectedCluster.name}.
+                            </Content>
                           </EmptyStateBody>
                         </EmptyState>
                       ) : (
