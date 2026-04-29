@@ -7,6 +7,9 @@ import {
   CardHeader,
   CardTitle,
   Content,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -19,12 +22,11 @@ import {
   Grid,
   GridItem,
   Label,
+  MenuToggle,
+  type MenuToggleElement,
   Stack,
   StackItem,
   Title,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
 } from '@patternfly/react-core';
 import {
   AngleDownIcon,
@@ -105,6 +107,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const [cAwayOpen, setCAwayOpen] = useState(true);
   const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
+  const [isViewContextOpen, setIsViewContextOpen] = useState(false);
 
   const fleetStats = useMemo(() => computeFleetStats(CLUSTERS, ALERTS), []);
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
@@ -153,7 +156,67 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const degradedCount = CLUSTERS.filter((c) => c.health !== 'healthy').length;
 
   return (
-    <Card id={WIDGET_ID} isCompact isExpanded={widgetExpanded}>
+    <>
+      {isMultiCluster ? (
+        <Flex
+          justifyContent={{ default: 'justifyContentFlexStart' }}
+          style={{
+            width: '100%',
+            marginBottom: 'var(--pf-t--global--spacer--md)',
+          }}
+        >
+          <FlexItem>
+            <Dropdown
+              isOpen={isViewContextOpen}
+              onOpenChange={setIsViewContextOpen}
+              onSelect={(_event, value) => {
+                if (value === 'fleet' || value === 'cluster') {
+                  setViewMode(value);
+                }
+                setIsViewContextOpen(false);
+              }}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsViewContextOpen((o) => !o)}
+                  isExpanded={isViewContextOpen}
+                  variant="secondary"
+                  aria-label="View context"
+                >
+                  <Flex
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                  >
+                    <FlexItem>{viewMode === 'fleet' ? <ThIcon /> : <ServerIcon />}</FlexItem>
+                    <FlexItem>
+                      {viewMode === 'fleet' ? 'Fleet view' : 'Cluster view'}
+                    </FlexItem>
+                  </Flex>
+                </MenuToggle>
+              )}
+            >
+              <DropdownList>
+                <DropdownItem
+                  value="fleet"
+                  icon={<ThIcon />}
+                  isSelected={viewMode === 'fleet'}
+                >
+                  Fleet view
+                </DropdownItem>
+                <DropdownItem
+                  value="cluster"
+                  icon={<ServerIcon />}
+                  isSelected={viewMode === 'cluster'}
+                >
+                  Cluster view
+                </DropdownItem>
+              </DropdownList>
+            </Dropdown>
+          </FlexItem>
+        </Flex>
+      ) : null}
+
+      <Card id={WIDGET_ID} isCompact isExpanded={widgetExpanded}>
       <CardHeader
         onExpand={onWidgetExpand}
         toggleButtonProps={{
@@ -161,43 +224,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
           'aria-label': widgetExpanded ? 'Collapse Autonomous AI Observe' : 'Expand Autonomous AI Observe',
         }}
         actions={{
-          actions: (
-            <Toolbar>
-              <ToolbarContent>
-                {isMultiCluster ? (
-                  <ToolbarItem>
-                    <Flex>
-                      <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
-                        <Button
-                          variant={viewMode === 'fleet' ? 'primary' : 'secondary'}
-                          onClick={() => setViewMode('fleet')}
-                          icon={<ThIcon />}
-                          aria-pressed={viewMode === 'fleet'}
-                          aria-label="Fleet view"
-                        >
-                          Fleet
-                        </Button>
-                      </FlexItem>
-                      <FlexItem>
-                        <Button
-                          variant={viewMode === 'cluster' ? 'primary' : 'secondary'}
-                          onClick={() => setViewMode('cluster')}
-                          icon={<ServerIcon />}
-                          aria-pressed={viewMode === 'cluster'}
-                          aria-label="Cluster view"
-                        >
-                          Cluster
-                        </Button>
-                      </FlexItem>
-                    </Flex>
-                  </ToolbarItem>
-                ) : null}
-                <ToolbarItem>
-                  <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />
-                </ToolbarItem>
-              </ToolbarContent>
-            </Toolbar>
-          ),
+          actions: <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />,
         }}
       >
         <Flex alignItems={{ default: 'alignItemsFlexStart' }} flexWrap={{ default: 'wrap' }}>
@@ -1028,5 +1055,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
         </CardBody>
       </CardExpandableContent>
     </Card>
+    </>
   );
 };
