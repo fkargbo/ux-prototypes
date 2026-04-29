@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { getPatternFlyBodyFontFamily } from '@app/chartFontFamily';
 import ReactECharts from 'echarts-for-react';
 import {
   PageSection,
@@ -876,6 +877,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
   environmentCategories = [],
   teamCategories = [],
 }) => {
+  const chartBodyFont = getPatternFlyBodyFontFamily();
   // PatternFly 6 color palette
   // Critical: Red, Warning: Orange, Info: Purple, Healthy: Green
   const pfColors = {
@@ -1045,7 +1047,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         if (!info.data?.cluster) {
           // Group header tooltip
           return `
-            <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+            <div style="font-family: var(--pf-t--global--font--family--body);">
               <div style="font-size: 14px; font-weight: 600; color: #151515; margin-bottom: 4px;">${info.name}</div>
               <div style="font-size: 12px; color: #6a6e73;">${info.data?.children?.length || 0} clusters</div>
             </div>
@@ -1094,7 +1096,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           : '';
         
         return `
-          <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif; min-width: 220px;">
+          <div style="font-family: var(--pf-t--global--font--family--body); min-width: 220px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};"></span>
               <span style="font-size: 14px; font-weight: 600; color: #151515;">${cluster.name}</span>
@@ -1129,7 +1131,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       textStyle: { 
         color: '#151515', 
         fontSize: 12, 
-        fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif" 
+        fontFamily: chartBodyFont,
       },
     },
     series: [{
@@ -1162,14 +1164,14 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
             fontSize: 11,
             fontWeight: 600,
             color: '#ffffff',
-            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            fontFamily: chartBodyFont,
             textShadowColor: 'rgba(0, 0, 0, 0.3)',
             textShadowBlur: 2,
           },
           count: {
             fontSize: 10,
             color: 'rgba(255, 255, 255, 0.9)',
-            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            fontFamily: chartBodyFont,
             textShadowColor: 'rgba(0, 0, 0, 0.3)',
             textShadowBlur: 2,
           },
@@ -1184,7 +1186,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         color: '#151515',
         fontSize: 13,
         fontWeight: 600,
-        fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+        fontFamily: chartBodyFont,
         backgroundColor: 'rgba(245, 245, 245, 0.95)',
         borderRadius: [6, 6, 0, 0],
         padding: [6, 12],
@@ -1300,7 +1302,6 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
               <span style={{ 
                 fontSize: '13px', 
                 color: isActive ? '#151515' : '#6a6e73', 
-                fontFamily: "'RedHatText', sans-serif", 
                 fontWeight: 500 
               }}>{status}</span>
             </div>
@@ -4903,6 +4904,7 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
   const mostSignificantAnomaly = detectAnomalies.length > 0 ? detectAnomalies[0] : null;
 
   const chartRef = React.useRef<any>(null);
+  const chartBodyFont = getPatternFlyBodyFontFamily();
 
   const option = {
     tooltip: {
@@ -4910,12 +4912,12 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
       backgroundColor: '#fff',
       borderColor: '#d2d2d2',
       borderWidth: 1,
-      textStyle: { color: '#151515', fontFamily: 'RedHatText, sans-serif' },
+      textStyle: { color: '#151515', fontFamily: chartBodyFont },
     },
     legend: {
       data: ['Critical', 'Warning', 'Info'],
       bottom: 0,
-      textStyle: { fontFamily: 'RedHatText, sans-serif' },
+      textStyle: { fontFamily: chartBodyFont },
     },
     grid: {
       left: '3%',
@@ -4928,11 +4930,11 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
       type: 'category',
       boundaryGap: false,
       data: trendData.map(d => d.timestamp),
-      axisLabel: { fontFamily: 'RedHatText, sans-serif' },
+      axisLabel: { fontFamily: chartBodyFont },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { fontFamily: 'RedHatText, sans-serif' },
+      axisLabel: { fontFamily: chartBodyFont },
     },
     series: [
       {
