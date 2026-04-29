@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -30,7 +31,6 @@ import {
 } from '@patternfly/react-core';
 import {
   AngleDownIcon,
-  ChartLineIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
@@ -38,7 +38,6 @@ import {
   InfoCircleIcon,
   ListIcon,
   MonitoringIcon,
-  ServerIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
@@ -86,22 +85,6 @@ function envToLabelColor(env: ClusterRecord['env']): 'red' | 'orange' | 'blue' {
     return 'orange';
   }
   return 'blue';
-}
-
-/** OCP Monitoring–style severity icons (aligned with console alert list) */
-function AwayDigestAlertIcon({ tone }: { tone: 'danger' | 'success' | 'warning' | 'info' }) {
-  const size = { fontSize: '1.25rem' as const };
-  switch (tone) {
-    case 'danger':
-      return <ExclamationCircleIcon style={size} />;
-    case 'warning':
-      return <ExclamationTriangleIcon style={size} />;
-    case 'success':
-      return <CheckCircleIcon style={size} />;
-    case 'info':
-    default:
-      return <InfoCircleIcon style={size} />;
-  }
 }
 
 const mono: React.CSSProperties = {
@@ -286,60 +269,30 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                       >
                         <span style={{ ...mono, color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          since your last visit · 38m ago
+                          Since your last visit · 38m ago
                         </span>
                         <Button variant="link" isInline aria-label="Mark all digest items reviewed">
                           mark all reviewed
                         </Button>
                       </Flex>
                       <Stack hasGutter>
-                        {AWAY_DIGEST_ITEMS.map((item) => {
-                          const toneColor =
-                            item.tone === 'danger'
-                              ? 'var(--pf-t--global--color--status--danger--default)'
-                              : item.tone === 'success'
-                                ? 'var(--pf-t--global--color--status--success--default)'
-                                : item.tone === 'warning'
-                                  ? 'var(--pf-t--global--color--status--warning--default)'
-                                  : 'var(--pf-t--global--color--status--info--default)';
-                          return (
-                            <Card key={item.text} isCompact variant="secondary">
-                              <CardBody>
-                                <Flex>
-                                  <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
-                                    <div
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: toneColor,
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      <AwayDigestAlertIcon tone={item.tone} />
-                                    </div>
-                                  </FlexItem>
-                                  <FlexItem style={{ flex: 1, minWidth: 0 }}>
-                                    <Content component="p" style={{ margin: 0 }}>
-                                      {item.text}
-                                    </Content>
-                                    <Content
-                                      component="p"
-                                      style={{
-                                        ...mono,
-                                        marginTop: 'var(--pf-t--global--spacer--xs)',
-                                        marginBottom: 0,
-                                        color: 'var(--pf-t--global--text--color--subtle)',
-                                      }}
-                                    >
-                                      {item.meta}
-                                    </Content>
-                                  </FlexItem>
-                                </Flex>
-                              </CardBody>
-                            </Card>
-                          );
-                        })}
+                        {AWAY_DIGEST_ITEMS.map((item) => (
+                          <StackItem key={item.text}>
+                            <Alert isInline variant={item.tone} title={item.text}>
+                              <Content
+                                component="p"
+                                style={{
+                                  ...mono,
+                                  marginTop: 'var(--pf-t--global--spacer--xs)',
+                                  marginBottom: 0,
+                                  color: 'var(--pf-t--global--text--color--subtle)',
+                                }}
+                              >
+                                {item.meta}
+                              </Content>
+                            </Alert>
+                          </StackItem>
+                        ))}
                       </Stack>
                     </CardBody>
                   </CardExpandableContent>
@@ -369,12 +322,11 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 <span
                                   style={{
                                     ...mono,
-                                    textTransform: 'uppercase',
                                     fontSize: 'var(--pf-t--global--font--size--body--sm)',
                                     color: 'var(--pf-t--global--text--color--subtle)',
                                   }}
                                 >
-                                  Critical Alerts
+                                  Critical alerts
                                 </span>
                                 <ExclamationCircleIcon
                                   style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
@@ -392,7 +344,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                   color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
-                                across all clusters
+                                Across all clusters
                               </Content>
                             </CardBody>
                           </Card>
@@ -404,12 +356,11 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 <span
                                   style={{
                                     ...mono,
-                                    textTransform: 'uppercase',
                                     fontSize: 'var(--pf-t--global--font--size--body--sm)',
                                     color: 'var(--pf-t--global--text--color--subtle)',
                                   }}
                                 >
-                                  Warning Alerts
+                                  Warning alerts
                                 </span>
                                 <ExclamationTriangleIcon
                                   style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
@@ -427,7 +378,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                   color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
-                                across all clusters
+                                Across all clusters
                               </Content>
                             </CardBody>
                           </Card>
@@ -439,14 +390,13 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 <span
                                   style={{
                                     ...mono,
-                                    textTransform: 'uppercase',
                                     fontSize: 'var(--pf-t--global--font--size--body--sm)',
                                     color: 'var(--pf-t--global--text--color--subtle)',
                                   }}
                                 >
-                                  Clusters Degraded
+                                  Clusters degraded
                                 </span>
-                                <MonitoringIcon
+                                <ExclamationTriangleIcon
                                   style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
                                 />
                               </Flex>
@@ -462,7 +412,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                   color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
-                                non-healthy
+                                Non-healthy
                               </Content>
                             </CardBody>
                           </Card>
@@ -474,14 +424,13 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 <span
                                   style={{
                                     ...mono,
-                                    textTransform: 'uppercase',
                                     fontSize: 'var(--pf-t--global--font--size--body--sm)',
                                     color: 'var(--pf-t--global--text--color--subtle)',
                                   }}
                                 >
-                                  Total Nodes
+                                  Total nodes
                                 </span>
-                                <ChartLineIcon
+                                <InfoCircleIcon
                                   style={{ color: 'var(--pf-t--global--color--status--info--default)' }}
                                 />
                               </Flex>
@@ -497,7 +446,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                   color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
-                                {fleetStats.totalClusters} clusters
+                                {fleetStats.totalClusters} Clusters
                               </Content>
                             </CardBody>
                           </Card>
@@ -564,45 +513,20 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 <CardBody>
                                   <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
                                     <FlexItem>
-                                      <Flex alignItems={{ default: 'alignItemsFlexStart' }}>
-                                        <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
-                                          <div
-                                            style={{
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              width: 36,
-                                              height: 36,
-                                              borderRadius: 'var(--pf-t--global--border--radius--default)',
-                                              border: '1px solid var(--pf-t--global--border--color--default)',
-                                              color:
-                                                c.health === 'healthy'
-                                                  ? 'var(--pf-t--global--color--status--success--default)'
-                                                  : c.health === 'degraded'
-                                                    ? 'var(--pf-t--global--color--status--warning--default)'
-                                                    : 'var(--pf-t--global--color--status--danger--default)',
-                                            }}
-                                          >
-                                            <ServerIcon />
-                                          </div>
-                                        </FlexItem>
-                                        <FlexItem>
-                                          <Title headingLevel="h4" size="md">
-                                            {c.name}
-                                          </Title>
-                                          <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                                            <GlobeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
-                                            <span
-                                              style={{
-                                                ...mono,
-                                                fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                                color: 'var(--pf-t--global--text--color--subtle)',
-                                              }}
-                                            >
-                                              {c.provider} · {c.region}
-                                            </span>
-                                          </Flex>
-                                        </FlexItem>
+                                      <Title headingLevel="h4" size="md">
+                                        {c.name}
+                                      </Title>
+                                      <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                                        <GlobeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+                                        <span
+                                          style={{
+                                            ...mono,
+                                            fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                                            color: 'var(--pf-t--global--text--color--subtle)',
+                                          }}
+                                        >
+                                          {c.provider} · {c.region}
+                                        </span>
                                       </Flex>
                                     </FlexItem>
                                     <FlexItem>
@@ -730,60 +654,30 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                       >
                         <span style={{ ...mono, color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          since your last visit · 38m ago
+                          Since your last visit · 38m ago
                         </span>
                         <Button variant="link" isInline aria-label="Mark all digest items reviewed">
                           mark all reviewed
                         </Button>
                       </Flex>
                       <Stack hasGutter>
-                        {AWAY_DIGEST_ITEMS.map((item) => {
-                          const toneColor =
-                            item.tone === 'danger'
-                              ? 'var(--pf-t--global--color--status--danger--default)'
-                              : item.tone === 'success'
-                                ? 'var(--pf-t--global--color--status--success--default)'
-                                : item.tone === 'warning'
-                                  ? 'var(--pf-t--global--color--status--warning--default)'
-                                  : 'var(--pf-t--global--color--status--info--default)';
-                          return (
-                            <Card key={`c-${item.text}`} isCompact variant="secondary">
-                              <CardBody>
-                                <Flex>
-                                  <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
-                                    <div
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: toneColor,
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      <AwayDigestAlertIcon tone={item.tone} />
-                                    </div>
-                                  </FlexItem>
-                                  <FlexItem style={{ flex: 1, minWidth: 0 }}>
-                                    <Content component="p" style={{ margin: 0 }}>
-                                      {item.text}
-                                    </Content>
-                                    <Content
-                                      component="p"
-                                      style={{
-                                        ...mono,
-                                        marginTop: 'var(--pf-t--global--spacer--xs)',
-                                        marginBottom: 0,
-                                        color: 'var(--pf-t--global--text--color--subtle)',
-                                      }}
-                                    >
-                                      {item.meta}
-                                    </Content>
-                                  </FlexItem>
-                                </Flex>
-                              </CardBody>
-                            </Card>
-                          );
-                        })}
+                        {AWAY_DIGEST_ITEMS.map((item) => (
+                          <StackItem key={`c-${item.text}`}>
+                            <Alert isInline variant={item.tone} title={item.text}>
+                              <Content
+                                component="p"
+                                style={{
+                                  ...mono,
+                                  marginTop: 'var(--pf-t--global--spacer--xs)',
+                                  marginBottom: 0,
+                                  color: 'var(--pf-t--global--text--color--subtle)',
+                                }}
+                              >
+                                {item.meta}
+                              </Content>
+                            </Alert>
+                          </StackItem>
+                        ))}
                       </Stack>
                     </CardBody>
                   </CardExpandableContent>
