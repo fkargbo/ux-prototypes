@@ -179,6 +179,14 @@ function clusterHealthLabelText(health: ClusterHealth): string {
   return capitalizeLabelWord(health);
 }
 
+/** “While you were away” header chip — fleet scope, not tied to dismissed digest rows. */
+function awayDigestNewEventsLabel(clusterCount: number): string {
+  if (clusterCount <= 1) {
+    return 'New events across 1 cluster';
+  }
+  return `New events across ${clusterCount} clusters`;
+}
+
 export const AutonomousAiObserveWidget: React.FC = () => {
   const navigate = useNavigate();
   const isMultiCluster = CLUSTERS.length > 1;
@@ -420,41 +428,50 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       'aria-label': 'Toggle While you were away section',
                     }}
                   >
-                    <Flex
-                      justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      flexWrap={{ default: 'wrap' }}
-                    >
-                      <FlexItem>
-                        <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
-                          <CardTitle component="h3">While you were away</CardTitle>
-                          <Label color="blue" isCompact>
-                            New · {visibleAwayDigestItems.length} events
-                          </Label>
+                    <Stack>
+                      <StackItem>
+                        <Flex
+                          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          flexWrap={{ default: 'wrap' }}
+                        >
+                          <FlexItem>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
+                              <CardTitle component="h3">While you were away</CardTitle>
+                              <Label color="blue" isCompact>
+                                {awayDigestNewEventsLabel(CLUSTERS.length)}
+                              </Label>
+                            </Flex>
+                          </FlexItem>
                         </Flex>
-                      </FlexItem>
-                    </Flex>
+                      </StackItem>
+                      <StackItem style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                        <Flex
+                          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          flexWrap={{ default: 'wrap' }}
+                        >
+                          <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
+                          <Button
+                            variant="link"
+                            isInline
+                            isDisabled={visibleAwayDigestItems.length === 0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              dismissAllAwayDigests();
+                            }}
+                            aria-label="Dismiss all digest alerts"
+                          >
+                            Dismiss all
+                          </Button>
+                        </Flex>
+                      </StackItem>
+                    </Stack>
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
-                      <Flex
-                        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                      >
-                        <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
-                        <Button
-                          variant="link"
-                          isInline
-                          isDisabled={visibleAwayDigestItems.length === 0}
-                          onClick={dismissAllAwayDigests}
-                          aria-label="Dismiss all digest alerts"
-                        >
-                          Dismiss all
-                        </Button>
-                      </Flex>
                       {visibleAwayDigestItems.length === 0 ? (
-                        <EmptyState variant={EmptyStateVariant.lg}>
+                        <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           <EmptyStateBody>
                             <Title headingLevel="h4" size="lg">
                               You&apos;re all caught up
@@ -468,7 +485,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           </EmptyStateBody>
                         </EmptyState>
                       ) : (
-                        <Stack hasGutter>
+                        <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           {visibleAwayDigestItems.map((item) => (
                             <StackItem key={item.text}>
                               <Alert
@@ -772,35 +789,44 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       'aria-label': 'Toggle While you were away section',
                     }}
                   >
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-                      <CardTitle component="h3">
-                        {isMultiCluster ? `While you were away — ${selectedCluster.name}` : 'While you were away'}
-                      </CardTitle>
-                      <Label color="blue" isCompact>
-                        New · {visibleAwayDigestItems.length} events
-                      </Label>
-                    </Flex>
+                    <Stack>
+                      <StackItem>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                          <CardTitle component="h3">
+                            {isMultiCluster ? `While you were away — ${selectedCluster.name}` : 'While you were away'}
+                          </CardTitle>
+                          <Label color="blue" isCompact>
+                            {awayDigestNewEventsLabel(CLUSTERS.length)}
+                          </Label>
+                        </Flex>
+                      </StackItem>
+                      <StackItem style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                        <Flex
+                          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          flexWrap={{ default: 'wrap' }}
+                        >
+                          <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
+                          <Button
+                            variant="link"
+                            isInline
+                            isDisabled={visibleAwayDigestItems.length === 0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              dismissAllAwayDigests();
+                            }}
+                            aria-label="Dismiss all digest alerts"
+                          >
+                            Dismiss all
+                          </Button>
+                        </Flex>
+                      </StackItem>
+                    </Stack>
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
-                      <Flex
-                        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                      >
-                        <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
-                        <Button
-                          variant="link"
-                          isInline
-                          isDisabled={visibleAwayDigestItems.length === 0}
-                          onClick={dismissAllAwayDigests}
-                          aria-label="Dismiss all digest alerts"
-                        >
-                          Dismiss all
-                        </Button>
-                      </Flex>
                       {visibleAwayDigestItems.length === 0 ? (
-                        <EmptyState variant={EmptyStateVariant.lg}>
+                        <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           <EmptyStateBody>
                             <Title headingLevel="h4" size="lg">
                               You&apos;re all caught up
@@ -814,7 +840,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           </EmptyStateBody>
                         </EmptyState>
                       ) : (
-                        <Stack hasGutter>
+                        <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           {visibleAwayDigestItems.map((item) => (
                             <StackItem key={`c-${item.text}`}>
                               <Alert
