@@ -22,8 +22,11 @@ const statusToLabel: Record<AgentPulseStatus, 'blue' | 'orange' | 'red' | 'grey'
   idle: 'grey',
 };
 
+function agentStatusLabelText(status: AgentPulseStatus): string {
+  return `${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}`;
+}
+
 export const AgentPulseLabel: React.FC<AgentPulseLabelProps> = ({ status, id }) => {
-  const upper = status.toUpperCase();
   return (
     <Label
       id={id}
@@ -38,14 +41,7 @@ export const AgentPulseLabel: React.FC<AgentPulseLabelProps> = ({ status, id }) 
         </span>
       }
     >
-      <span
-        style={{
-          fontFamily: 'var(--pf-t--global--font--family--mono)',
-          fontSize: 'var(--pf-t--global--font--size--body--sm)',
-        }}
-      >
-        Agent: {upper}
-      </span>
+      Agent: {agentStatusLabelText(status)}
     </Label>
   );
 };

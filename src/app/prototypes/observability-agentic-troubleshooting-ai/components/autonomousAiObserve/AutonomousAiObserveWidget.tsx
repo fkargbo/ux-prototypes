@@ -184,7 +184,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
           style={{
             width: '100%',
             marginBottom: 'var(--pf-t--global--spacer--md)',
-            gap: 'var(--pf-t--global--spacer--sm)',
+            gap: 'var(--pf-t--global--spacer--md)',
           }}
         >
           <FlexItem>

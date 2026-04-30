@@ -47,15 +47,20 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
-/* Agent status chips (e.g. Agent: INVESTIGATING): 28px tall control. */
+/* Agent status chips: 28px min height; label text uses PF body typography (not mono). */
 .ols-aio-agent-pulse-label.pf-v6-c-label {
   min-height: 28px;
   box-sizing: border-box;
+  font-family: var(--pf-t--global--font--family--body);
 }
 
 .ols-aio-agent-pulse-label.pf-v6-c-label .pf-v6-c-label__content {
   min-height: 28px;
   box-sizing: border-box;
+}
+
+.ols-aio-agent-pulse-label.pf-v6-c-label .pf-v6-c-label__text {
+  font-family: var(--pf-t--global--font--family--body);
 }
 
 .ols-aio-agent-pulse {
