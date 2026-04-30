@@ -121,9 +121,13 @@ import type { SimulationHandoff } from '../simulation/simulationTypes';
 import {
   buildDiscussOpening,
   buildObserveToChatHandoff,
+  buildRecentTurnsForAdvisor,
   buildSituationBriefing,
   composeAdvisorReply,
+  seedAdvisorMemoryFromHandoffAlert,
+  seedAdvisorMemoryFromSnapshot,
 } from '../simulation/olsAdvisorBrain';
+import { resetConversationMemory } from '../simulation/olsConversationMemory';
 
 /** Viewport inset for OLS chrome dock (`right` / `bottom` on `.ols-ai-chrome-dock`). */
 const OLS_LAUNCHER_VIEWPORT_MARGIN_PX = 24;
@@ -729,7 +733,8 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     // Scripted “Senior SRE Advisor” reply grounded in Autonomous AI Observe / simulation snapshot
     setTimeout(() => {
       const snap = getSimulationSnapshot();
-      const body = composeAdvisorReply(messageText, snap);
+      const recent = buildRecentTurnsForAdvisor(messagesRef.current);
+      const body = composeAdvisorReply(messageText, snap, recent);
       const botMessage: MessageProps = {
         id: generateId(),
         role: 'bot',
@@ -767,6 +772,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
     observeIntroHandoffShownRef.current = false;
     setMessages([]);
+    resetConversationMemory();
 
     workflowStageRef.current = 'stage1';
     
@@ -1095,6 +1101,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
   const handleClearChat = useCallback(() => {
     setMessages([]);
+    resetConversationMemory();
     setSelectedQuickResponses([]);
     workflowStageRef.current = 'idle';
     observeIntroHandoffShownRef.current = false;
@@ -1128,6 +1135,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
               timestamp: ts,
             },
           ]);
+          seedAdvisorMemoryFromSnapshot(snap);
           setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Autonomous AI Observe handoff.`);
         });
       }
@@ -1154,6 +1162,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       timestamp: ts,
     };
     setMessages([opening]);
+    seedAdvisorMemoryFromHandoffAlert(ctx.alertId);
     setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: ${ctx.diagnosisName} context.`);
     setIsDrawerOpen(true);
   }, []);
