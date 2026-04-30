@@ -21,8 +21,9 @@ export interface IAppRoute {
   exact?: boolean;
   path: string;
   title: string;
-  routes?: undefined;
   disabled?: boolean;
+  /** When set, sidebar renders this entry as a nested expandable (sub-menu) with these child links. */
+  routes?: IAppRoute[];
 }
 
 export interface IAppRouteGroup {
@@ -131,10 +132,13 @@ const routes: AppRouteConfig[] = [
 const hiddenRoutes: IAppRoute[] = [];
 
 const flattenedRoutes: IAppRoute[] = [
-  ...routes.reduce(
-    (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
-    [] as IAppRoute[],
-  ),
+  ...routes.reduce((flattened, route): IAppRoute[] => {
+    // `IAppRouteGroup` has child `routes` but no `path`; `IAppRoute` may also have nested `routes` for sidebar only.
+    if ('routes' in route && route.routes && !('path' in route)) {
+      return [...flattened, ...route.routes];
+    }
+    return [...flattened, route as IAppRoute];
+  }, [] as IAppRoute[]),
   ...hiddenRoutes,
 ];
 

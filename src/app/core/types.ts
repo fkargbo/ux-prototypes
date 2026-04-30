@@ -100,6 +100,10 @@ export interface RouteConfig {
     group: string;
     order?: number;
     icon?: React.ComponentType;
+    /** Optional second-level label under `group` (e.g. Observe → AI Hub → …). */
+    subMenu?: string;
+    /** Order among siblings inside the same `subMenu`. */
+    subMenuOrder?: number;
   };
 }
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
 import { OverviewPage } from './pages/OverviewPage';
 import { ObserveOverviewPage } from './pages/ObserveOverviewPage';
@@ -19,6 +20,11 @@ const ObserveNavPlaceholder: React.FC = () => (
  */
 export const routes: RouteConfig[] = [
   {
+    path: '/',
+    element: <Navigate to="/core/observe/ai-hub" replace />,
+    title: 'AI Hub',
+  },
+  {
     path: '/core/home/overview',
     element: <OverviewPage />,
     label: 'Overview',
@@ -29,20 +35,20 @@ export const routes: RouteConfig[] = [
     },
   },
   {
-    path: '/core/observe/overview',
-    element: <ObserveOverviewPage />,
-    label: 'Overview',
-    title: 'Observability overview',
+    path: '/core/observe/ai-hub',
+    element: <AIHubPage />,
+    label: 'AI Hub',
+    title: 'AI Hub',
     navigation: {
       group: 'Observe',
       order: 1,
     },
   },
   {
-    path: '/core/observe/ai-hub',
-    element: <AIHubPage />,
-    label: 'AI Hub',
-    title: 'AI Hub',
+    path: '/core/observe/overview',
+    element: <ObserveOverviewPage />,
+    label: 'Observability overview',
+    title: 'Observability overview',
     navigation: {
       group: 'Observe',
       order: 2,
@@ -76,7 +82,7 @@ export const routes: RouteConfig[] = [
     title: 'Metrics',
     navigation: {
       group: 'Observe',
-      order: 4,
+      order: 5,
     },
   },
   {
@@ -86,7 +92,7 @@ export const routes: RouteConfig[] = [
     title: 'Dashboards',
     navigation: {
       group: 'Observe',
-      order: 5,
+      order: 6,
     },
   },
   {
@@ -96,7 +102,7 @@ export const routes: RouteConfig[] = [
     title: 'Targets',
     navigation: {
       group: 'Observe',
-      order: 6,
+      order: 7,
     },
   },
   {
@@ -106,7 +112,7 @@ export const routes: RouteConfig[] = [
     title: 'Incidents',
     navigation: {
       group: 'Observe',
-      order: 7,
+      order: 8,
     },
   },
   {
@@ -116,7 +122,7 @@ export const routes: RouteConfig[] = [
     title: 'Dashboards (Perses)',
     navigation: {
       group: 'Observe',
-      order: 8,
+      order: 9,
     },
   },
   {

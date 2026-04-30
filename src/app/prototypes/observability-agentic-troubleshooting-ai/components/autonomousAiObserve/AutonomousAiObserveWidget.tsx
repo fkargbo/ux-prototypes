@@ -53,6 +53,7 @@ import './autonomous-ai-observe.css';
 import { SimulationProvider } from '../../simulation/SimulationProvider';
 import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
+import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget';
 
@@ -187,10 +188,27 @@ function awayDigestNewEventsLabel(clusterCount: number): string {
   return `New events across ${clusterCount} clusters`;
 }
 
+/** Core platforms: digest count only (updates when rows are dismissed). */
+function awayDigestCorePlatformsEventCountLabel(visibleCount: number): string {
+  if (visibleCount <= 0) {
+    return '0 new events';
+  }
+  if (visibleCount === 1) {
+    return '1 new event';
+  }
+  return `${visibleCount} new events`;
+}
+
 export const AutonomousAiObserveWidget: React.FC = () => {
   const navigate = useNavigate();
+  const { activePerspective, setPerspectiveByKey } = useActivePerspective();
   const isMultiCluster = CLUSTERS.length > 1;
-  const [viewMode, setViewMode] = useState<ViewMode>(isMultiCluster ? 'fleet' : 'cluster');
+  const viewMode: ViewMode = useMemo(() => {
+    if (!isMultiCluster) {
+      return 'cluster';
+    }
+    return activePerspective === 'Fleet management' ? 'fleet' : 'cluster';
+  }, [isMultiCluster, activePerspective]);
   const [selectedClusterId, setSelectedClusterId] = useState(CLUSTERS[0]?.id ?? '');
   const [widgetExpanded, setWidgetExpanded] = useState(true);
   const [awayOpen, setAwayOpen] = useState(true);
@@ -199,7 +217,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const [cAwayOpen, setCAwayOpen] = useState(true);
   const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
-  const [isViewContextOpen, setIsViewContextOpen] = useState(false);
   const [isClusterSwitcherOpen, setIsClusterSwitcherOpen] = useState(false);
   const [dismissedAwayTexts, setDismissedAwayTexts] = useState<Set<string>>(() => new Set());
 
@@ -207,6 +224,13 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     () => AWAY_DIGEST_ITEMS.filter((item) => !dismissedAwayTexts.has(item.text)),
     [dismissedAwayTexts]
   );
+
+  const whileYouWereAwayChipLabel = useMemo(() => {
+    if (activePerspective === 'Core platforms') {
+      return awayDigestCorePlatformsEventCountLabel(visibleAwayDigestItems.length);
+    }
+    return awayDigestNewEventsLabel(CLUSTERS.length);
+  }, [activePerspective, visibleAwayDigestItems.length]);
 
   const dismissAwayDigest = useCallback((text: string) => {
     setDismissedAwayTexts((prev) => new Set(prev).add(text));
@@ -281,9 +305,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const subtitle = useMemo(() => {
     if (isMultiCluster && viewMode === 'fleet') {
-      return `Fleet: ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes`;
+      return `Fleet management · ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes`;
     }
-    return `cluster: ${selectedCluster.name} · ${selectedCluster.provider} · ${selectedCluster.region}`;
+    return `Core platforms · ${selectedCluster.name} · ${selectedCluster.provider} · ${selectedCluster.region}`;
   }, [isMultiCluster, viewMode, selectedCluster, totalFleetNodes]);
 
   const headerPulse: AgentPulseStatus =
@@ -297,7 +321,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   return (
     <SimulationProvider>
     <>
-      {isMultiCluster ? (
+      {isMultiCluster && activePerspective === 'Core platforms' ? (
         <Flex
           className="ols-aio-context-selectors"
           alignItems={{ default: 'alignItemsCenter' }}
@@ -310,79 +334,39 @@ export const AutonomousAiObserveWidget: React.FC = () => {
         >
           <FlexItem>
             <Dropdown
-              isOpen={isViewContextOpen}
-              onOpenChange={setIsViewContextOpen}
+              isOpen={isClusterSwitcherOpen}
+              onOpenChange={setIsClusterSwitcherOpen}
               shouldFocusToggleOnSelect
               onSelect={(_event, value) => {
-                if (value === 'fleet' || value === 'cluster') {
-                  setViewMode(value);
-                  if (value === 'fleet') {
-                    setIsClusterSwitcherOpen(false);
-                  }
+                const id = String(value);
+                if (CLUSTERS.some((c) => c.id === id)) {
+                  setSelectedClusterId(id);
                 }
-                setIsViewContextOpen(false);
+                setIsClusterSwitcherOpen(false);
               }}
               toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                 <MenuToggle
                   ref={toggleRef}
-                  onClick={() => setIsViewContextOpen((o) => !o)}
-                  isExpanded={isViewContextOpen}
+                  onClick={() => setIsClusterSwitcherOpen((o) => !o)}
+                  isExpanded={isClusterSwitcherOpen}
                   variant="default"
-                  aria-label="View context"
+                  aria-label="Cluster context"
                 >
-                  {viewMode === 'fleet' ? 'Fleet view' : 'Cluster view'}
+                  {selectedCluster.name}
                 </MenuToggle>
               )}
             >
-              <DropdownGroup label="View" labelHeadingLevel="h2">
+              <DropdownGroup label="Clusters" labelHeadingLevel="h2">
                 <DropdownList>
-                  <DropdownItem value="fleet" isSelected={viewMode === 'fleet'}>
-                    Fleet view
-                  </DropdownItem>
-                  <DropdownItem value="cluster" isSelected={viewMode === 'cluster'}>
-                    Cluster view
-                  </DropdownItem>
+                  {CLUSTERS.map((c) => (
+                    <DropdownItem key={c.id} value={c.id} isSelected={selectedClusterId === c.id}>
+                      {c.name} · {c.provider} · {c.region}
+                    </DropdownItem>
+                  ))}
                 </DropdownList>
               </DropdownGroup>
             </Dropdown>
           </FlexItem>
-          {viewMode === 'cluster' ? (
-            <FlexItem>
-              <Dropdown
-                isOpen={isClusterSwitcherOpen}
-                onOpenChange={setIsClusterSwitcherOpen}
-                shouldFocusToggleOnSelect
-                onSelect={(_event, value) => {
-                  const id = String(value);
-                  if (CLUSTERS.some((c) => c.id === id)) {
-                    setSelectedClusterId(id);
-                  }
-                  setIsClusterSwitcherOpen(false);
-                }}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsClusterSwitcherOpen((o) => !o)}
-                    isExpanded={isClusterSwitcherOpen}
-                    variant="default"
-                    aria-label="Cluster context"
-                  >
-                    {selectedCluster.name}
-                  </MenuToggle>
-                )}
-              >
-                <DropdownGroup label="Clusters" labelHeadingLevel="h2">
-                  <DropdownList>
-                    {CLUSTERS.map((c) => (
-                      <DropdownItem key={c.id} value={c.id} isSelected={selectedClusterId === c.id}>
-                        {c.name} · {c.provider} · {c.region}
-                      </DropdownItem>
-                    ))}
-                  </DropdownList>
-                </DropdownGroup>
-              </Dropdown>
-            </FlexItem>
-          ) : null}
         </Flex>
       ) : null}
 
@@ -439,7 +423,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
                               <CardTitle component="h3">While you were away</CardTitle>
                               <Label color="blue" isCompact>
-                                {awayDigestNewEventsLabel(CLUSTERS.length)}
+                                {whileYouWereAwayChipLabel}
                               </Label>
                             </Flex>
                           </FlexItem>
@@ -641,13 +625,13 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 }}
                                 onClick={() => {
                                   setSelectedClusterId(c.id);
-                                  setViewMode('cluster');
+                                  setPerspectiveByKey('core-platforms');
                                 }}
                                 onKeyDown={(event) => {
                                   if (event.key === 'Enter' || event.key === ' ') {
                                     event.preventDefault();
                                     setSelectedClusterId(c.id);
-                                    setViewMode('cluster');
+                                    setPerspectiveByKey('core-platforms');
                                   }
                                 }}
                               >
@@ -796,7 +780,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             {isMultiCluster ? `While you were away — ${selectedCluster.name}` : 'While you were away'}
                           </CardTitle>
                           <Label color="blue" isCompact>
-                            {awayDigestNewEventsLabel(CLUSTERS.length)}
+                            {whileYouWereAwayChipLabel}
                           </Label>
                         </Flex>
                       </StackItem>
