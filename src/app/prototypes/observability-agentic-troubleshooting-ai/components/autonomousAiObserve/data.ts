@@ -147,6 +147,7 @@ export const ALERTS: AlertRecord[] = [
       },
       {
         id: 's5',
+        time: '00:00:00',
         status: 'pending',
         title: 'Generate remediation plan',
         icon: 'check',

@@ -211,25 +211,26 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                       <span className="ols-aio-reasoning-timeline__node">{stepGlyph(step, step.status)}</span>
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
                         <FlexItem>
-                          <span
-                            style={{
-                              fontFamily: 'var(--pf-t--global--font--family--mono)',
-                              fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                              color: 'var(--pf-t--global--text--color--subtle)',
-                            }}
+                          <Flex
+                            alignItems={{ default: 'alignItemsCenter' }}
+                            flexWrap={{ default: 'wrap' }}
+                            gap={{ default: 'gapSm' }}
                           >
-                            {step.time ?? '—'}
-                          </span>
-                          {step.status === 'active' ? (
-                            <Label
-                              color="blue"
-                              variant="outline"
-                              isCompact
-                              style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                            <span
+                              style={{
+                                fontFamily: 'var(--pf-t--global--font--family--mono)',
+                                fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                                color: 'var(--pf-t--global--text--color--subtle)',
+                              }}
                             >
-                              <span style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>in progress</span>
-                            </Label>
-                          ) : null}
+                              {step.time ?? '—'}
+                            </span>
+                            {step.status === 'active' ? (
+                              <Label color="blue" variant="outline" isCompact>
+                                In progress
+                              </Label>
+                            ) : null}
+                          </Flex>
                         </FlexItem>
                       </Flex>
                       <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
