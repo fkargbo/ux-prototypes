@@ -5,6 +5,29 @@
   border-radius: var(--pf-t--global--border--radius--small);
 }
 
+/*
+ * Expand / collapse carets (nested UI under the main observe card).
+ * PF Card uses `.pf-m-expanded .pf-v6-c-card__header-toggle-icon` (descendant), so nested *collapsed*
+ * cards still inherit the parent’s open rotation. PF ExpandableSection sets --Rotate on `.pf-m-expanded`;
+ * that value inherits into nested *collapsed* sections. Scope fixes to this widget only.
+ */
+#ols-autonomous-ai-observe-widget .pf-v6-c-card.pf-m-expanded .pf-v6-c-card:not(.pf-m-expanded) .pf-v6-c-card__header-toggle-icon {
+  transform: rotate(0deg);
+}
+
+#ols-autonomous-ai-observe-widget .pf-v6-c-card.pf-m-expanded > .pf-v6-c-card__header .pf-v6-c-card__header-toggle-icon {
+  transform: rotate(90deg);
+}
+
+#ols-autonomous-ai-observe-widget .pf-v6-c-expandable-section:not(.pf-m-expanded) {
+  --pf-v6-c-expandable-section__toggle-icon--Rotate: 0;
+}
+
+#ols-autonomous-ai-observe-widget .pf-v6-c-card__header-toggle-icon,
+#ols-autonomous-ai-observe-widget .pf-v6-c-expandable-section__toggle-icon {
+  transform-origin: center;
+}
+
 /* OpenShift-style alert summary: icon in gutter; date, name, and message share one text column. */
 .ols-aio-alert-summary {
   display: grid;
@@ -124,14 +147,6 @@
     transform: scale(2.1);
     opacity: 0;
   }
-}
-
-.ols-aio-widget-header-chevron {
-  transition: transform var(--pf-t--global--motion--Duration--md, 200ms) var(--pf-t--global--motion--TimingFunction--accelerate, ease-in);
-}
-
-.ols-aio-widget-header-chevron--collapsed {
-  transform: rotate(-90deg);
 }
 
 .ols-aio-reasoning-timeline {
