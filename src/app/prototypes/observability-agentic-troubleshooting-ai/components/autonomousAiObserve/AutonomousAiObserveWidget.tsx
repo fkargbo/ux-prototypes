@@ -64,59 +64,98 @@ const FLEET_DRILL = {
   nodesFleet: '/core/observe/nodes?scope=fleet',
 } as const;
 
-type FleetSummaryStatCardProps = {
+function clusterDrillHref(clusterId: string, target: 'alert-critical' | 'alert-warning' | 'nodes'): string {
+  const id = encodeURIComponent(clusterId);
+  if (target === 'alert-critical') {
+    return `/core/observe/alerting?scope=cluster&cluster=${id}&severity=critical`;
+  }
+  if (target === 'alert-warning') {
+    return `/core/observe/alerting?scope=cluster&cluster=${id}&severity=warning`;
+  }
+  return `/core/observe/nodes?scope=cluster&cluster=${id}`;
+}
+
+type ObserveMetricStatCardProps = {
+  /** `metricHeader`: CardTitle row + icon (fleet tiles). `stacked`: overline label (cluster health tiles). */
+  layout: 'metricHeader' | 'stacked';
   cardTitle: string;
-  titleIcon: React.ReactNode;
+  titleIcon?: React.ReactNode;
   statistic: React.ReactNode;
+  /** When true, statistic renders as a link-styled control (blue); otherwise plain 24px text. */
+  drillable: boolean;
   statisticAriaLabel: string;
   onStatisticClick: () => void;
   caption: React.ReactNode;
 };
 
-/** Nested metric card: `CardTitle` in header (PatternFly card pattern), drill-down on the statistic. */
-const FleetSummaryStatCard: React.FC<FleetSummaryStatCardProps> = ({
+/** Nested metric card — PatternFly `CardTitle` in header when `metricHeader`; 24px stat with optional drill-down. */
+const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
+  layout,
   cardTitle,
   titleIcon,
   statistic,
+  drillable,
   statisticAriaLabel,
   onStatisticClick,
   caption,
-}) => (
-  <Card isCompact>
-    <CardHeader>
-      <Flex
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        alignItems={{ default: 'alignItemsCenter' }}
-        flexWrap={{ default: 'nowrap' }}
-      >
-        <CardTitle component="h4">{cardTitle}</CardTitle>
-        <span aria-hidden="true">{titleIcon}</span>
-      </Flex>
-    </CardHeader>
-    <CardBody>
-      <div className="ols-aio-stat-figure">
-        <Button
-          variant="link"
-          className="ols-aio-fleet-stat-drilldown"
-          onClick={onStatisticClick}
-          aria-label={statisticAriaLabel}
-        >
-          {statistic}
-        </Button>
-      </div>
-      <Content
-        component="p"
-        className="ols-aio-text-subtle-sm"
-        style={{
-          marginTop: 'var(--pf-t--global--spacer--xs)',
-          marginBottom: 0,
-        }}
-      >
-        {caption}
-      </Content>
-    </CardBody>
-  </Card>
-);
+}) => {
+  const statBlock = drillable ? (
+    <Button
+      variant="link"
+      className="ols-aio-card-stat-number--drill"
+      onClick={onStatisticClick}
+      aria-label={statisticAriaLabel}
+    >
+      {statistic}
+    </Button>
+  ) : (
+    <span className="ols-aio-card-stat-number">{statistic}</span>
+  );
+
+  const captionBlock = (
+    <Content
+      component="p"
+      className="ols-aio-text-subtle-sm"
+      style={{
+        marginTop: 'var(--pf-t--global--spacer--xs)',
+        marginBottom: 0,
+      }}
+    >
+      {caption}
+    </Content>
+  );
+
+  if (layout === 'metricHeader') {
+    return (
+      <Card isCompact>
+        <CardHeader>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+            flexWrap={{ default: 'nowrap' }}
+          >
+            <CardTitle component="h4">{cardTitle}</CardTitle>
+            {titleIcon ? <span aria-hidden="true">{titleIcon}</span> : null}
+          </Flex>
+        </CardHeader>
+        <CardBody>
+          <div className="ols-aio-stat-figure">{statBlock}</div>
+          {captionBlock}
+        </CardBody>
+      </Card>
+    );
+  }
+
+  return (
+    <Card isCompact>
+      <CardBody>
+        <span className="ols-aio-text-overline">{cardTitle}</span>
+        <div className="ols-aio-stat-figure">{statBlock}</div>
+        {captionBlock}
+      </CardBody>
+    </Card>
+  );
+};
 
 function fleetAgentStatus(clusters: ClusterRecord[]): AgentPulseStatus {
   if (clusters.some((c) => c.agentStatus === 'escalated')) {
@@ -502,7 +541,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     <CardBody>
                       <Grid hasGutter>
                         <GridItem span={12} md={6} lg={3}>
-                          <FleetSummaryStatCard
+                          <ObserveMetricStatCard
+                            layout="metricHeader"
                             cardTitle="Critical alerts"
                             titleIcon={
                               <ExclamationCircleIcon
@@ -510,13 +550,15 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.criticalCount}
+                            drillable={fleetStats.criticalCount > 0}
                             statisticAriaLabel="Open Alerting for critical alerts in fleet scope"
                             onStatisticClick={() => navigate(FLEET_DRILL.alertingCritical)}
                             caption="Across all clusters"
                           />
                         </GridItem>
                         <GridItem span={12} md={6} lg={3}>
-                          <FleetSummaryStatCard
+                          <ObserveMetricStatCard
+                            layout="metricHeader"
                             cardTitle="Warning alerts"
                             titleIcon={
                               <ExclamationTriangleIcon
@@ -524,13 +566,15 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.warningCount}
+                            drillable={fleetStats.warningCount > 0}
                             statisticAriaLabel="Open Alerting for warning alerts in fleet scope"
                             onStatisticClick={() => navigate(FLEET_DRILL.alertingWarning)}
                             caption="Across all clusters"
                           />
                         </GridItem>
                         <GridItem span={12} md={6} lg={3}>
-                          <FleetSummaryStatCard
+                          <ObserveMetricStatCard
+                            layout="metricHeader"
                             cardTitle="Clusters degraded"
                             titleIcon={
                               <ExclamationTriangleIcon
@@ -542,18 +586,21 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 {degradedCount} / {fleetStats.totalClusters}
                               </>
                             }
+                            drillable={degradedCount > 0}
                             statisticAriaLabel="Open Clusters for degraded or unhealthy fleet members"
                             onStatisticClick={() => navigate(FLEET_DRILL.clustersNonHealthy)}
                             caption="Non-healthy"
                           />
                         </GridItem>
                         <GridItem span={12} md={6} lg={3}>
-                          <FleetSummaryStatCard
+                          <ObserveMetricStatCard
+                            layout="metricHeader"
                             cardTitle="Total nodes"
                             titleIcon={
                               <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />
                             }
                             statistic={fleetStats.totalNodes}
+                            drillable={fleetStats.totalNodes > 0}
                             statisticAriaLabel="Open Nodes for fleet-wide capacity"
                             onStatisticClick={() => navigate(FLEET_DRILL.nodesFleet)}
                             caption={`${fleetStats.totalClusters} clusters`}
@@ -667,6 +714,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                     </FlexItem>
                                   </Flex>
                                   <Flex
+                                    className="ols-aio-cluster-tile-stat-row"
                                     justifyContent={{ default: 'justifyContentSpaceBetween' }}
                                     alignItems={{ default: 'alignItemsCenter' }}
                                     style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
@@ -674,40 +722,63 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                     <Label color="grey" variant="outline" isCompact>
                                       {clusterTypeLabelText(c.env)}
                                     </Label>
-                                    <span
-                                      className="ols-aio-text-subtle-sm"
-                                      style={{ fontVariantNumeric: 'tabular-nums' }}
-                                    >
+                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
                                       {crit === 0 && warn === 0 ? (
-                                        <span style={{ color: 'var(--pf-t--global--text--color--disabled)' }}>no alerts</span>
+                                        <span className="ols-aio-text-subtle-sm">no alerts</span>
                                       ) : (
                                         <>
                                           {crit > 0 ? (
-                                            <span style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>· {crit}</span>
-                                          ) : null}{' '}
+                                            <Button
+                                              variant="link"
+                                              className="ols-aio-card-stat-number--drill"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(clusterDrillHref(c.id, 'alert-critical'));
+                                              }}
+                                              aria-label={`Open critical alerts for ${c.name}`}
+                                            >
+                                              · {crit}
+                                            </Button>
+                                          ) : null}
                                           {warn > 0 ? (
-                                            <span style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>· {warn}</span>
+                                            <Button
+                                              variant="link"
+                                              className="ols-aio-card-stat-number--drill"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(clusterDrillHref(c.id, 'alert-warning'));
+                                              }}
+                                              aria-label={`Open warning alerts for ${c.name}`}
+                                            >
+                                              · {warn}
+                                            </Button>
                                           ) : null}
                                         </>
                                       )}
-                                    </span>
+                                    </Flex>
                                   </Flex>
                                   <Flex
+                                    className="ols-aio-cluster-tile-stat-row"
                                     justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                                    alignItems={{ default: 'alignItemsCenter' }}
                                     style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
                                   >
-                                    <span
-                                      className="ols-aio-text-subtle-sm"
-                                      style={{ fontVariantNumeric: 'tabular-nums' }}
-                                    >
-                                      v{c.version}
-                                    </span>
-                                    <span
-                                      className="ols-aio-text-subtle-sm"
-                                      style={{ fontVariantNumeric: 'tabular-nums' }}
-                                    >
-                                      {c.nodes} nodes
-                                    </span>
+                                    <span className="ols-aio-card-stat-number">v{c.version}</span>
+                                    {c.nodes > 0 ? (
+                                      <Button
+                                        variant="link"
+                                        className="ols-aio-card-stat-number--drill"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(clusterDrillHref(c.id, 'nodes'));
+                                        }}
+                                        aria-label={`Open nodes for ${c.name}`}
+                                      >
+                                        {c.nodes} nodes
+                                      </Button>
+                                    ) : (
+                                      <span className="ols-aio-card-stat-number">{c.nodes} nodes</span>
+                                    )}
                                   </Flex>
                                 </CardBody>
                               </Card>
@@ -831,64 +902,41 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     <CardBody>
                       <Grid hasGutter>
                         <GridItem span={12} md={4}>
-                          <Card isCompact>
-                            <CardBody>
-                              <span className="ols-aio-text-overline">Active Critical Alerts</span>
-                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
-                                {criticalOnCluster}
-                              </Title>
-                              <Content
-                                component="p"
-                                className="ols-aio-text-subtle-sm"
-                                style={{
-                                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                                  marginBottom: 0,
-                                }}
-                              >
-                                on {selectedCluster.name}
-                              </Content>
-                            </CardBody>
-                          </Card>
+                          <ObserveMetricStatCard
+                            layout="stacked"
+                            cardTitle="Active Critical Alerts"
+                            statistic={criticalOnCluster}
+                            drillable={criticalOnCluster > 0}
+                            statisticAriaLabel={`Open Alerting for critical alerts on ${selectedCluster.name}`}
+                            onStatisticClick={() => navigate(clusterDrillHref(selectedCluster.id, 'alert-critical'))}
+                            caption={`on ${selectedCluster.name}`}
+                          />
                         </GridItem>
                         <GridItem span={12} md={4}>
-                          <Card isCompact>
-                            <CardBody>
-                              <span className="ols-aio-text-overline">Active Warning Alerts</span>
-                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
-                                {warningOnCluster}
-                              </Title>
-                              <Content
-                                component="p"
-                                className="ols-aio-text-subtle-sm"
-                                style={{
-                                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                                  marginBottom: 0,
-                                }}
-                              >
-                                on {selectedCluster.name}
-                              </Content>
-                            </CardBody>
-                          </Card>
+                          <ObserveMetricStatCard
+                            layout="stacked"
+                            cardTitle="Active Warning Alerts"
+                            statistic={warningOnCluster}
+                            drillable={warningOnCluster > 0}
+                            statisticAriaLabel={`Open Alerting for warning alerts on ${selectedCluster.name}`}
+                            onStatisticClick={() => navigate(clusterDrillHref(selectedCluster.id, 'alert-warning'))}
+                            caption={`on ${selectedCluster.name}`}
+                          />
                         </GridItem>
                         <GridItem span={12} md={4}>
-                          <Card isCompact>
-                            <CardBody>
-                              <span className="ols-aio-text-overline">Nodes / Version</span>
-                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
+                          <ObserveMetricStatCard
+                            layout="stacked"
+                            cardTitle="Nodes / Version"
+                            statistic={
+                              <>
                                 {selectedCluster.nodes} / {selectedCluster.version}
-                              </Title>
-                              <Content
-                                component="p"
-                                className="ols-aio-text-subtle-sm"
-                                style={{
-                                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                                  marginBottom: 0,
-                                }}
-                              >
-                                {selectedCluster.provider} · {selectedCluster.region}
-                              </Content>
-                            </CardBody>
-                          </Card>
+                              </>
+                            }
+                            drillable={selectedCluster.nodes > 0}
+                            statisticAriaLabel={`Open Nodes for ${selectedCluster.name}`}
+                            onStatisticClick={() => navigate(clusterDrillHref(selectedCluster.id, 'nodes'))}
+                            caption={`${selectedCluster.provider} · ${selectedCluster.region}`}
+                          />
                         </GridItem>
                       </Grid>
                     </CardBody>

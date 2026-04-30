@@ -290,11 +290,8 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                   <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                     <span className="ols-aio-text-overline">Confidence Score</span>
                     <span
-                      style={{
-                        fontVariantNumeric: 'tabular-nums',
-                        fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                        color: 'var(--pf-t--global--color--status--success--default)',
-                      }}
+                      className="ols-aio-card-stat-number"
+                      style={{ color: 'var(--pf-t--global--color--status--success--default)' }}
                     >
                       {alert.confidence}%
                     </span>

@@ -22,38 +22,51 @@
 
 .ols-aio-stat-figure {
   margin-top: var(--pf-t--global--spacer--sm);
-  font-variant-numeric: tabular-nums;
 }
 
 /*
- * Fleet summary KPI: statistic is a link-styled control (not a second heading — `CardTitle` is h4).
- * Size aligns with prior Title `4xl` treatment; tabular numerals for stable digit width.
+ * Card KPI numerals (prototype-wide): 24px body tabular figures.
+ * When drillable (value > 0), use a link `Button` + `--drill` for PatternFly link blue.
  */
-.ols-aio-stat-figure .ols-aio-fleet-stat-drilldown {
+span.ols-aio-card-stat-number {
+  display: inline-block;
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
   font-variant-numeric: tabular-nums;
+  color: var(--pf-t--global--text--color--regular);
 }
 
-.ols-aio-fleet-stat-drilldown.pf-v6-c-button.pf-m-link {
+button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link {
   display: inline;
   padding: 0;
   margin: 0;
   height: auto;
   min-height: 0;
-  font-family: var(--pf-t--global--font--family--heading, var(--pf-t--global--font--family--body));
-  font-size: 2.25rem;
-  font-weight: var(--pf-t--global--font--weight--heading, 400);
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: 24px;
   line-height: 1.2;
-  letter-spacing: -0.02em;
-  color: var(--pf-t--global--text--color--regular);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pf-t--global--link--color--default);
   text-decoration: none;
   text-underline-offset: 0.125rem;
   vertical-align: baseline;
 }
 
-.ols-aio-fleet-stat-drilldown.pf-v6-c-button.pf-m-link:hover,
-.ols-aio-fleet-stat-drilldown.pf-v6-c-button.pf-m-link:focus {
+button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link:hover,
+button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link:focus {
   color: var(--pf-t--global--link--color--hover);
   text-decoration: underline;
+}
+
+/* Cluster gallery: inline stat controls sit beside labels without the stat-figure top margin. */
+.ols-aio-cluster-tile-stat-row .ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link,
+.ols-aio-cluster-tile-stat-row span.ols-aio-card-stat-number {
+  font-size: 24px;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  vertical-align: middle;
 }
 
 /* Context selector row: default MenuToggle (outlined) + tighter radius — not secondary “pill” chips. */
