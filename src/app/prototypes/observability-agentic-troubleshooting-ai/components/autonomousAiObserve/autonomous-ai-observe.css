@@ -1,5 +1,30 @@
 /* Autonomous AI Observe — token-based helpers (pulse ring, timeline, widget chevron). */
 
+/*
+ * Typography (PatternFly design foundations):
+ * — Red Hat Text (`--pf-t--global--font--family--body`): UI labels, descriptions, metrics in cards.
+ * — Red Hat Mono (`--pf-t--global--font--family--mono`): code blocks, commands, log output only.
+ * Use `font-variant-numeric: tabular-nums` on body for aligned KPI digits instead of switching to mono.
+ */
+.ols-aio-text-subtle-sm {
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ols-aio-text-overline {
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ols-aio-stat-figure {
+  margin-top: var(--pf-t--global--spacer--sm);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Context selector row: default MenuToggle (outlined) + tighter radius — not secondary “pill” chips. */
 .ols-aio-context-selectors .pf-v6-c-menu-toggle {
   border-radius: var(--pf-t--global--border--radius--small);

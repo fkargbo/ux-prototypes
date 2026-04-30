@@ -99,10 +99,6 @@ function clusterHealthLabelText(health: ClusterHealth): string {
   return capitalizeLabelWord(health);
 }
 
-const mono: React.CSSProperties = {
-  fontFamily: 'var(--pf-t--global--font--family--mono)',
-};
-
 export const AutonomousAiObserveWidget: React.FC = () => {
   const isMultiCluster = CLUSTERS.length > 1;
   const [viewMode, setViewMode] = useState<ViewMode>(isMultiCluster ? 'fleet' : 'cluster');
@@ -319,11 +315,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
             </Title>
             <Content
               component="p"
+              className="ols-aio-text-subtle-sm"
               style={{
-                ...mono,
                 marginTop: 'var(--pf-t--global--spacer--xs)',
-                fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                color: 'var(--pf-t--global--text--color--subtle)',
                 marginBottom: 0,
               }}
             >
@@ -367,9 +361,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         alignItems={{ default: 'alignItemsCenter' }}
                         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                       >
-                        <span style={{ ...mono, color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          Since your last visit · 38m ago
-                        </span>
+                        <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
                         <Button
                           variant="link"
                           isInline
@@ -411,11 +403,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               >
                                 <Content
                                   component="p"
+                                  className="ols-aio-text-subtle-sm"
                                   style={{
-                                    ...mono,
                                     marginTop: 'var(--pf-t--global--spacer--xs)',
                                     marginBottom: 0,
-                                    color: 'var(--pf-t--global--text--color--subtle)',
                                   }}
                                 >
                                   {item.meta}
@@ -450,29 +441,20 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           <Card isCompact>
                             <CardBody>
                               <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                                <span
-                                  style={{
-                                    ...mono,
-                                    fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                    color: 'var(--pf-t--global--text--color--subtle)',
-                                  }}
-                                >
-                                  Critical alerts
-                                </span>
+                                <span className="ols-aio-text-subtle-sm">Critical alerts</span>
                                 <ExclamationCircleIcon
                                   style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
                                 />
                               </Flex>
-                              <Title headingLevel="h4" size="4xl" style={{ ...mono, marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
                                 {fleetStats.criticalCount}
                               </Title>
                               <Content
                                 component="p"
+                                className="ols-aio-text-subtle-sm"
                                 style={{
-                                  ...mono,
                                   marginTop: 'var(--pf-t--global--spacer--xs)',
                                   marginBottom: 0,
-                                  color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
                                 Across all clusters
@@ -484,29 +466,20 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           <Card isCompact>
                             <CardBody>
                               <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                                <span
-                                  style={{
-                                    ...mono,
-                                    fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                    color: 'var(--pf-t--global--text--color--subtle)',
-                                  }}
-                                >
-                                  Warning alerts
-                                </span>
+                                <span className="ols-aio-text-subtle-sm">Warning alerts</span>
                                 <ExclamationTriangleIcon
                                   style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
                                 />
                               </Flex>
-                              <Title headingLevel="h4" size="4xl" style={{ ...mono, marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
                                 {fleetStats.warningCount}
                               </Title>
                               <Content
                                 component="p"
+                                className="ols-aio-text-subtle-sm"
                                 style={{
-                                  ...mono,
                                   marginTop: 'var(--pf-t--global--spacer--xs)',
                                   marginBottom: 0,
-                                  color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
                                 Across all clusters
@@ -518,29 +491,20 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           <Card isCompact>
                             <CardBody>
                               <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                                <span
-                                  style={{
-                                    ...mono,
-                                    fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                    color: 'var(--pf-t--global--text--color--subtle)',
-                                  }}
-                                >
-                                  Clusters degraded
-                                </span>
+                                <span className="ols-aio-text-subtle-sm">Clusters degraded</span>
                                 <ExclamationTriangleIcon
                                   style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
                                 />
                               </Flex>
-                              <Title headingLevel="h4" size="4xl" style={{ ...mono, marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
                                 {degradedCount} / {fleetStats.totalClusters}
                               </Title>
                               <Content
                                 component="p"
+                                className="ols-aio-text-subtle-sm"
                                 style={{
-                                  ...mono,
                                   marginTop: 'var(--pf-t--global--spacer--xs)',
                                   marginBottom: 0,
-                                  color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
                                 Non-healthy
@@ -552,29 +516,20 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           <Card isCompact>
                             <CardBody>
                               <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                                <span
-                                  style={{
-                                    ...mono,
-                                    fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                    color: 'var(--pf-t--global--text--color--subtle)',
-                                  }}
-                                >
-                                  Total nodes
-                                </span>
+                                <span className="ols-aio-text-subtle-sm">Total nodes</span>
                                 <InfoCircleIcon
                                   style={{ color: 'var(--pf-t--global--color--status--info--default)' }}
                                 />
                               </Flex>
-                              <Title headingLevel="h4" size="4xl" style={{ ...mono, marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
                                 {fleetStats.totalNodes}
                               </Title>
                               <Content
                                 component="p"
+                                className="ols-aio-text-subtle-sm"
                                 style={{
-                                  ...mono,
                                   marginTop: 'var(--pf-t--global--spacer--xs)',
                                   marginBottom: 0,
-                                  color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
                                 {fleetStats.totalClusters} Clusters
@@ -671,10 +626,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                           }}
                                         />
                                         <span
+                                          className="ols-aio-text-subtle-sm"
                                           style={{
-                                            ...mono,
-                                            fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                            color: 'var(--pf-t--global--text--color--subtle)',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
                                             whiteSpace: 'nowrap',
@@ -699,7 +652,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                     <Label color="grey" variant="outline" isCompact>
                                       {clusterTypeLabelText(c.env)}
                                     </Label>
-                                    <span style={{ ...mono, color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    <span
+                                      className="ols-aio-text-subtle-sm"
+                                      style={{ fontVariantNumeric: 'tabular-nums' }}
+                                    >
                                       {crit === 0 && warn === 0 ? (
                                         <span style={{ color: 'var(--pf-t--global--text--color--disabled)' }}>no alerts</span>
                                       ) : (
@@ -719,20 +675,14 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                     style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
                                   >
                                     <span
-                                      style={{
-                                        ...mono,
-                                        fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                        color: 'var(--pf-t--global--text--color--subtle)',
-                                      }}
+                                      className="ols-aio-text-subtle-sm"
+                                      style={{ fontVariantNumeric: 'tabular-nums' }}
                                     >
                                       v{c.version}
                                     </span>
                                     <span
-                                      style={{
-                                        ...mono,
-                                        fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                        color: 'var(--pf-t--global--text--color--subtle)',
-                                      }}
+                                      className="ols-aio-text-subtle-sm"
+                                      style={{ fontVariantNumeric: 'tabular-nums' }}
                                     >
                                       {c.nodes} nodes
                                     </span>
@@ -776,9 +726,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         alignItems={{ default: 'alignItemsCenter' }}
                         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                       >
-                        <span style={{ ...mono, color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          Since your last visit · 38m ago
-                        </span>
+                        <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
                         <Button
                           variant="link"
                           isInline
@@ -820,11 +768,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               >
                                 <Content
                                   component="p"
+                                  className="ols-aio-text-subtle-sm"
                                   style={{
-                                    ...mono,
                                     marginTop: 'var(--pf-t--global--spacer--xs)',
                                     marginBottom: 0,
-                                    color: 'var(--pf-t--global--text--color--subtle)',
                                   }}
                                 >
                                   {item.meta}
@@ -864,26 +811,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         <GridItem span={12} md={4}>
                           <Card isCompact>
                             <CardBody>
-                              <span
-                                style={{
-                                  ...mono,
-                                  textTransform: 'uppercase',
-                                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                  color: 'var(--pf-t--global--text--color--subtle)',
-                                }}
-                              >
-                                Active Critical Alerts
-                              </span>
-                              <Title headingLevel="h4" size="4xl" style={{ ...mono, marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                              <span className="ols-aio-text-overline">Active Critical Alerts</span>
+                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
                                 {criticalOnCluster}
                               </Title>
                               <Content
                                 component="p"
+                                className="ols-aio-text-subtle-sm"
                                 style={{
-                                  ...mono,
                                   marginTop: 'var(--pf-t--global--spacer--xs)',
                                   marginBottom: 0,
-                                  color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
                                 on {selectedCluster.name}
@@ -894,26 +831,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         <GridItem span={12} md={4}>
                           <Card isCompact>
                             <CardBody>
-                              <span
-                                style={{
-                                  ...mono,
-                                  textTransform: 'uppercase',
-                                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                  color: 'var(--pf-t--global--text--color--subtle)',
-                                }}
-                              >
-                                Active Warning Alerts
-                              </span>
-                              <Title headingLevel="h4" size="4xl" style={{ ...mono, marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                              <span className="ols-aio-text-overline">Active Warning Alerts</span>
+                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
                                 {warningOnCluster}
                               </Title>
                               <Content
                                 component="p"
+                                className="ols-aio-text-subtle-sm"
                                 style={{
-                                  ...mono,
                                   marginTop: 'var(--pf-t--global--spacer--xs)',
                                   marginBottom: 0,
-                                  color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
                                 on {selectedCluster.name}
@@ -924,26 +851,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         <GridItem span={12} md={4}>
                           <Card isCompact>
                             <CardBody>
-                              <span
-                                style={{
-                                  ...mono,
-                                  textTransform: 'uppercase',
-                                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                  color: 'var(--pf-t--global--text--color--subtle)',
-                                }}
-                              >
-                                Nodes / Version
-                              </span>
-                              <Title headingLevel="h4" size="4xl" style={{ ...mono, marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                              <span className="ols-aio-text-overline">Nodes / Version</span>
+                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
                                 {selectedCluster.nodes} / {selectedCluster.version}
                               </Title>
                               <Content
                                 component="p"
+                                className="ols-aio-text-subtle-sm"
                                 style={{
-                                  ...mono,
                                   marginTop: 'var(--pf-t--global--spacer--xs)',
                                   marginBottom: 0,
-                                  color: 'var(--pf-t--global--text--color--subtle)',
                                 }}
                               >
                                 {selectedCluster.provider} · {selectedCluster.region}

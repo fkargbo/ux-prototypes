@@ -20,7 +20,6 @@ import {
   Title,
 } from '@patternfly/react-core';
 import {
-  BoltIcon,
   BullseyeIcon,
   CheckCircleIcon,
   CodeBranchIcon,
@@ -33,7 +32,6 @@ import {
   SearchIcon,
   StarIcon,
   TerminalIcon,
-  UserCogIcon,
   WrenchIcon,
 } from '@patternfly/react-icons';
 import type { AlertRecord, AlertSeverity, ReasoningStep, ReasoningStepStatus } from './data';
@@ -221,11 +219,8 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                             gap={{ default: 'gapSm' }}
                           >
                             <span
-                              style={{
-                                fontFamily: 'var(--pf-t--global--font--family--mono)',
-                                fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                color: 'var(--pf-t--global--text--color--subtle)',
-                              }}
+                              className="ols-aio-text-subtle-sm"
+                              style={{ fontVariantNumeric: 'tabular-nums' }}
                             >
                               {step.time ?? '—'}
                             </span>
@@ -245,7 +240,6 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                           component="p"
                           style={{
                             marginTop: 'var(--pf-t--global--spacer--xs)',
-                            fontFamily: 'var(--pf-t--global--font--family--mono)',
                             color: 'var(--pf-t--global--text--color--subtle)',
                             marginBottom: 0,
                           }}
@@ -276,50 +270,28 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                 <div className={rcaBoxClass(alert.severity)}>
                   <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                     <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
-                    <span
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        textTransform: 'uppercase',
-                        fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                      }}
-                    >
-                      Detected Root Cause
-                    </span>
+                    <span className="ols-aio-text-overline">Detected Root Cause</span>
                   </Flex>
                   <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     {alert.rcaSummary}{' '}
                     <span
                       style={{
                         fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        fontSize: 'var(--pf-t--global--font--size--body--sm)',
                         color: 'var(--pf-t--global--color--status--danger--default)',
                       }}
                     >
                       {alert.rootCauseRef}
                     </span>{' '}
-                    <span
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        color: 'var(--pf-t--global--color--status--info--default)',
-                      }}
-                    >
+                    <span style={{ color: 'var(--pf-t--global--color--status--info--default)' }}>
                       {alert.rootCauseTail}
                     </span>
                   </Content>
                   <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                    <span className="ols-aio-text-overline">Confidence Score</span>
                     <span
                       style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        textTransform: 'uppercase',
-                        fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                      }}
-                    >
-                      Confidence Score
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        fontVariantNumeric: 'tabular-nums',
                         fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
                         color: 'var(--pf-t--global--color--status--success--default)',
                       }}
@@ -410,24 +382,11 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                 <div className="ols-aio-remediation-box">
                   <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                     <TerminalIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
-                    <span
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        textTransform: 'uppercase',
-                        fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                      }}
-                    >
-                      Recommended Action
-                    </span>
+                    <span className="ols-aio-text-overline">Recommended Action</span>
                   </Flex>
                   <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     {alert.remediationSummary}{' '}
-                    <span
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        color: 'var(--pf-t--global--color--status--success--default)',
-                      }}
-                    >
+                    <span style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>
                       {alert.estimatedRecovery}
                     </span>
                   </Content>
@@ -458,12 +417,12 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                   ) : null}
                   <Flex>
                     <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
-                      <Button variant="primary" icon={<BoltIcon />}>
+                      <Button variant="primary">
                         Apply Fix (Autonomous)
                       </Button>
                     </FlexItem>
                     <FlexItem>
-                      <Button variant="secondary" icon={<UserCogIcon />}>
+                      <Button variant="secondary">
                         Escalate to SRE
                       </Button>
                     </FlexItem>
