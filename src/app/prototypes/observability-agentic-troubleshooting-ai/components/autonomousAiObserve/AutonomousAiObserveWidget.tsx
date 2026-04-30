@@ -301,7 +301,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
           {viewMode === 'fleet' && isMultiCluster ? (
             <Stack hasGutter>
               <StackItem>
-                <Card isCompact isExpanded={awayOpen} id={`${WIDGET_ID}-away`}>
+                <Card className="ols-aio-subcard" isCompact isExpanded={awayOpen} id={`${WIDGET_ID}-away`}>
                   <CardHeader
                     onExpand={() => setAwayOpen((o) => !o)}
                     toggleButtonProps={{
@@ -395,7 +395,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               </StackItem>
 
               <StackItem>
-                <Card isCompact isExpanded={fleetSummaryOpen} id={`${WIDGET_ID}-fleet-summary`}>
+                <Card className="ols-aio-subcard" isCompact isExpanded={fleetSummaryOpen} id={`${WIDGET_ID}-fleet-summary`}>
                   <CardHeader
                     onExpand={() => setFleetSummaryOpen((o) => !o)}
                     toggleButtonProps={{
@@ -553,7 +553,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               </StackItem>
 
               <StackItem>
-                <Card isCompact isExpanded={clustersOpen} id={`${WIDGET_ID}-clusters`}>
+                <Card className="ols-aio-subcard" isCompact isExpanded={clustersOpen} id={`${WIDGET_ID}-clusters`}>
                   <CardHeader
                     onExpand={() => setClustersOpen((o) => !o)}
                     toggleButtonProps={{
@@ -716,7 +716,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
           ) : (
             <Stack hasGutter>
               <StackItem>
-                <Card isCompact isExpanded={cAwayOpen} id={`${WIDGET_ID}-c-away`}>
+                <Card className="ols-aio-subcard" isCompact isExpanded={cAwayOpen} id={`${WIDGET_ID}-c-away`}>
                   <CardHeader
                     onExpand={() => setCAwayOpen((o) => !o)}
                     toggleButtonProps={{
@@ -804,7 +804,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               </StackItem>
 
               <StackItem>
-                <Card isCompact isExpanded={cHealthOpen} id={`${WIDGET_ID}-c-health`}>
+                <Card className="ols-aio-subcard" isCompact isExpanded={cHealthOpen} id={`${WIDGET_ID}-c-health`}>
                   <CardHeader
                     onExpand={() => setCHealthOpen((o) => !o)}
                     toggleButtonProps={{
@@ -922,7 +922,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               </StackItem>
 
               <StackItem>
-                <Card isCompact isExpanded={cAlertsOpen} id={`${WIDGET_ID}-c-alerts`}>
+                <Card className="ols-aio-subcard" isCompact isExpanded={cAlertsOpen} id={`${WIDGET_ID}-c-alerts`}>
                   <CardHeader
                     onExpand={() => setCAlertsOpen((o) => !o)}
                     toggleButtonProps={{

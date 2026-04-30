@@ -6,21 +6,26 @@
 }
 
 /*
- * Expand / collapse carets (nested UI under the main observe card).
- * PF Card uses `.pf-m-expanded .pf-v6-c-card__header-toggle-icon` (descendant), so nested *collapsed*
- * cards still inherit the parent’s open rotation. PF ExpandableSection sets --Rotate on `.pf-m-expanded`;
- * that value inherits into nested *collapsed* sections. Scope fixes to this widget only.
+ * Expand / collapse carets under the main observe card.
+ * PF Card uses `.pf-v6-c-card.pf-m-expanded .pf-v6-c-card__header-toggle-icon` (any descendant), so
+ * nested collapsed cards still show the parent’s open chevron. Mark nested expandable cards with
+ * `.ols-aio-subcard` and tie rotation to that card’s own `pf-m-expanded` only (matches root card UX).
+ * ExpandableSection icons get the same explicit open/closed transform inside this widget.
  */
-#ols-autonomous-ai-observe-widget .pf-v6-c-card.pf-m-expanded .pf-v6-c-card:not(.pf-m-expanded) .pf-v6-c-card__header-toggle-icon {
-  transform: rotate(0deg);
+#ols-autonomous-ai-observe-widget .ols-aio-subcard.pf-m-expanded > .pf-v6-c-card__header .pf-v6-c-card__header-toggle-icon {
+  transform: rotate(90deg) !important;
 }
 
-#ols-autonomous-ai-observe-widget .pf-v6-c-card.pf-m-expanded > .pf-v6-c-card__header .pf-v6-c-card__header-toggle-icon {
-  transform: rotate(90deg);
+#ols-autonomous-ai-observe-widget .ols-aio-subcard:not(.pf-m-expanded) > .pf-v6-c-card__header .pf-v6-c-card__header-toggle-icon {
+  transform: rotate(0deg) !important;
 }
 
-#ols-autonomous-ai-observe-widget .pf-v6-c-expandable-section:not(.pf-m-expanded) {
-  --pf-v6-c-expandable-section__toggle-icon--Rotate: 0;
+#ols-autonomous-ai-observe-widget .pf-v6-c-expandable-section:not(.pf-m-expanded) .pf-v6-c-expandable-section__toggle-icon {
+  transform: rotate(0deg) !important;
+}
+
+#ols-autonomous-ai-observe-widget .pf-v6-c-expandable-section.pf-m-expanded .pf-v6-c-expandable-section__toggle-icon {
+  transform: rotate(90deg) !important;
 }
 
 #ols-autonomous-ai-observe-widget .pf-v6-c-card__header-toggle-icon,

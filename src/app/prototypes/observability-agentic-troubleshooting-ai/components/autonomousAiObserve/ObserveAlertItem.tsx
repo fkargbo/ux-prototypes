@@ -131,7 +131,7 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
   );
 
   return (
-    <Card id={alert.id} isCompact isExpanded={isExpanded}>
+    <Card id={alert.id} className="ols-aio-subcard" isCompact isExpanded={isExpanded}>
       <CardHeader
         onExpand={onCardExpand}
         toggleButtonProps={{
