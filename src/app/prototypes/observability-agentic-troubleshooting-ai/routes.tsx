@@ -69,9 +69,19 @@ export const routes: RouteConfig[] = [
     },
   },
   {
-    path: '/core/observe/alerting/create-alert-rule',
+    path: '/core/observe/alerting-v2/create-alert-rule',
     element: <CreateAlertRuleFleetManagementGate />,
     title: 'Create alert rule',
+  },
+  {
+    path: '/core/observe/alerting/:clusterId/components',
+    element: <AlertingFleetManagementGate />,
+    title: 'Cluster components',
+  },
+  {
+    path: '/core/observe/alerting/:clusterId/:componentId',
+    element: <AlertingFleetManagementGate />,
+    title: 'Component alerts',
   },
   /** Fleet drill-down targets (sidebar entries can be added when pages ship). */
   {

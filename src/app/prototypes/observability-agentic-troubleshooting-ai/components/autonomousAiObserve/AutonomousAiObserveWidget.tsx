@@ -54,6 +54,10 @@ import { SimulationProvider } from '../../simulation/SimulationProvider';
 import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
+import {
+  readFocusedClusterIdFromSession,
+  writeFocusedClusterIdToSession,
+} from './focusClusterSession';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget';
 
@@ -209,7 +213,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     }
     return activePerspective === 'Fleet management' ? 'fleet' : 'cluster';
   }, [isMultiCluster, activePerspective]);
-  const [selectedClusterId, setSelectedClusterId] = useState(CLUSTERS[0]?.id ?? '');
+  const [selectedClusterId, setSelectedClusterId] = useState(
+    () => readFocusedClusterIdFromSession() ?? CLUSTERS[0]?.id ?? ''
+  );
   const [widgetExpanded, setWidgetExpanded] = useState(true);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
@@ -248,6 +254,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     () => getClusterById(selectedClusterId) ?? CLUSTERS[0],
     [selectedClusterId]
   );
+
+  useEffect(() => {
+    writeFocusedClusterIdToSession(selectedClusterId);
+  }, [selectedClusterId]);
 
   const clusterAlerts = useMemo(() => getAlertsForCluster(selectedClusterId), [selectedClusterId]);
 
@@ -305,7 +315,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const subtitle = useMemo(() => {
     if (isMultiCluster && viewMode === 'fleet') {
-      return `Fleet management · ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes`;
+      return `Fleet management · ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes · Focus cluster: ${selectedCluster.name} (kept when switching to Core platforms)`;
     }
     return `Core platforms · ${selectedCluster.name} · ${selectedCluster.provider} · ${selectedCluster.region}`;
   }, [isMultiCluster, viewMode, selectedCluster, totalFleetNodes]);
@@ -321,7 +331,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   return (
     <SimulationProvider>
     <>
-      {isMultiCluster && activePerspective === 'Core platforms' ? (
+      {isMultiCluster ? (
         <Flex
           className="ols-aio-context-selectors"
           alignItems={{ default: 'alignItemsCenter' }}
@@ -350,7 +360,11 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   onClick={() => setIsClusterSwitcherOpen((o) => !o)}
                   isExpanded={isClusterSwitcherOpen}
                   variant="default"
-                  aria-label="Cluster context"
+                  aria-label={
+                    activePerspective === 'Fleet management'
+                      ? 'Focus cluster for handoff to Core platforms (persists across perspective changes)'
+                      : 'Cluster context'
+                  }
                 >
                   {selectedCluster.name}
                 </MenuToggle>

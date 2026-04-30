@@ -1190,5 +1190,5 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
   );
 };
 
-/** Forked copy for Observability Agentic Troubleshooting (Summit) — independent of `shiri-alerting-ui`. */
+/** Forked from `shiri-alerting-ui-v2` (Multi-cluster Alerting v2.0) for this prototype only. */
 export { CreateAlertRulePage as SummitFleetCreateAlertRulePage };
