@@ -6,6 +6,10 @@ import { ObserveOverviewPage } from './pages/ObserveOverviewPage';
 import { AIHubPage } from './pages/AIHubPage';
 import { DashboardsPersesPage } from './pages/DashboardsPersesPage';
 import { PodDetailDashboardPage } from './pages/PodDetailDashboardPage';
+import {
+  AlertingFleetManagementGate,
+  CreateAlertRuleFleetManagementGate,
+} from './pages/AlertingFleetManagementGate';
 import { Content, PageSection } from '@patternfly/react-core';
 
 const ObserveNavPlaceholder: React.FC = () => (
@@ -56,13 +60,18 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/alerting',
-    element: <ObserveNavPlaceholder />,
+    element: <AlertingFleetManagementGate />,
     label: 'Alerting',
     title: 'Alerting',
     navigation: {
       group: 'Observe',
       order: 3,
     },
+  },
+  {
+    path: '/core/observe/alerting/create-alert-rule',
+    element: <CreateAlertRuleFleetManagementGate />,
+    title: 'Create alert rule',
   },
   /** Fleet drill-down targets (sidebar entries can be added when pages ship). */
   {
