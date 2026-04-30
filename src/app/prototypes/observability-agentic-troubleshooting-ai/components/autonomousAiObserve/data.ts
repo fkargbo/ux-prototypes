@@ -58,6 +58,35 @@ export interface AlertRecord {
   agentInvestigationNarrative: string;
 }
 
+/**
+ * Fleet-scoped critical incident (not tied to a single clusterId) — surfaced only in Fleet management view.
+ */
+export interface FleetWideCriticalIncident {
+  id: string;
+  title: string;
+  severity: AlertSeverity;
+  firedAt: string;
+  agentStatus: AgentPulseStatus;
+  /** Clusters included in the causal story (ids into `CLUSTERS`). */
+  affectedClusterIds: string[];
+  correlatedAlertCount: number;
+  /** Plain-language fleet narrative (“I have correlated…”). */
+  aiSummary: string;
+  /** When ingress-to-workload loss began (display string, e.g. for subtitles). */
+  symptomStartedDisplay: string;
+  /** Active reasoning chain (same shape as per-cluster alerts). */
+  steps: ReasoningStep[];
+  /** Aggregated RCA — timestamped finding (GitOps, etc.). */
+  aggregatedFinding: string;
+  /** Aggregated RCA — root cause narrative. */
+  rootCauseNarrative: string;
+  /** Remediation hub — governor-facing proposal. */
+  remediationProposal: string;
+  /** Remediation hub — risk / recovery framing. */
+  riskAssessment: string;
+  estimatedRecovery: string;
+}
+
 export const CLUSTERS: ClusterRecord[] = [
   {
     id: 'prod-east-2',
@@ -364,6 +393,70 @@ $ oc delete certificaterequest -l cert=wildcard-apac`,
   },
 ];
 
+/** Fleet-wide critical: regional ingress — causal grouping, aggregated RCA, governor remediation (fleet view only). */
+export const FLEET_WIDE_REGIONAL_INGRESS: FleetWideCriticalIncident = {
+  id: 'fleet-alrt-regional-ingress-us-east',
+  title: 'Critical: Regional Ingress Failure (US-East)',
+  severity: 'critical',
+  firedAt: '2026-04-29T15:05:00.000Z',
+  agentStatus: 'investigating',
+  affectedClusterIds: ['prod-east-2', 'prod-eu-west-1', 'stg-central'],
+  correlatedAlertCount: 112,
+  aiSummary:
+    'I have correlated 112 alerts across prod-east-2, prod-eu-west-1, and stg-central. All symptoms point to a total loss of Ingress-to-Workload communication starting at 10:05 AM.',
+  symptomStartedDisplay: '10:05 AM',
+  steps: [
+    {
+      id: 'fw1',
+      time: '10:04',
+      status: 'done',
+      title: 'Grouped fleet alerts by ingress symptom',
+      detail: '112 firing alerts share 502/503 at router → Service hop within a 6-minute window',
+      icon: 'database',
+    },
+    {
+      id: 'fw2',
+      time: '10:05',
+      status: 'done',
+      title: 'Anchored blast to ingress dataplane',
+      detail: 'OpenShift Ingress metrics show coordinated drop across prod-east-2, prod-eu-west-1, and stg-central',
+      icon: 'network',
+    },
+    {
+      id: 'fw3',
+      time: '10:06',
+      status: 'done',
+      title: 'Global GitOps sync detected 2 minutes prior to alert storm',
+      detail: 'Argo CD application cluster-gitops-policies completed sync at 10:03 AM',
+      icon: 'search',
+    },
+    {
+      id: 'fw4',
+      time: '10:07',
+      status: 'active',
+      title: 'Diffed applied NetworkPolicy objects',
+      detail: 'New deny-all-ingress policy lacks allow-rule for openshift-ingress namespace',
+      icon: 'exclamation',
+    },
+    {
+      id: 'fw5',
+      time: '—',
+      status: 'pending',
+      title: 'Governor approval for fleet rollback',
+      icon: 'check',
+    },
+  ],
+  aggregatedFinding:
+    'Global GitOps Sync detected 2 minutes prior to alert storm — Argo CD application cluster-gitops-policies applied revision r4821 at 10:03 AM.',
+  rootCauseNarrative:
+    'A new NetworkPolicy (deny-all-ingress) was applied globally. It lacks an allow-rule for the OpenShift Ingress Controller namespace, so router → workload traffic is denied fleet-wide.',
+  remediationProposal:
+    'Roll back NetworkPolicy deny-all-ingress to version v2.1.0 across all 3 clusters (prod-east-2, prod-eu-west-1, stg-central).',
+  riskAssessment:
+    'Low risk. This will restore traffic immediately. Est. recovery time: 45 seconds.',
+  estimatedRecovery: '~45s',
+};
+
 /** Digest rows for “While you were away” — fixed copy per spec */
 export const AWAY_DIGEST_ITEMS: Array<{
   tone: 'danger' | 'success' | 'warning' | 'info';
@@ -372,8 +465,8 @@ export const AWAY_DIGEST_ITEMS: Array<{
 }> = [
   {
     tone: 'danger',
-    text: '2 new critical alerts fired',
-    meta: 'payments-api 5xx · etcd disk pressure',
+    text: '3 new critical alerts fired',
+    meta: 'Regional ingress (fleet) · payments-api 5xx · etcd disk pressure',
   },
   {
     tone: 'success',
@@ -400,8 +493,14 @@ export function getAlertsForCluster(clusterId: string): AlertRecord[] {
   return ALERTS.filter((a) => a.clusterId === clusterId);
 }
 
-export function computeFleetStats(clusters: ClusterRecord[], alerts: AlertRecord[]) {
-  const criticalCount = alerts.filter((a) => a.severity === 'critical').length;
+export function computeFleetStats(
+  clusters: ClusterRecord[],
+  alerts: AlertRecord[],
+  /** Count of fleet-scoped critical incidents (not in `alerts` per-cluster list). */
+  fleetWideCriticalCount = 0
+) {
+  const criticalCount =
+    alerts.filter((a) => a.severity === 'critical').length + fleetWideCriticalCount;
   const warningCount = alerts.filter((a) => a.severity === 'warning').length;
   const degraded = clusters.filter((c) => c.health !== 'healthy').length;
   const totalNodes = clusters.reduce((sum, c) => sum + c.nodes, 0);
