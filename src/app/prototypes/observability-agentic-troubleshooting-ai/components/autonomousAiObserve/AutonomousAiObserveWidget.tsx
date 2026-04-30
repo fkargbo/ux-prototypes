@@ -45,6 +45,7 @@ import {
   CLUSTERS,
   computeFleetStats,
   FLEET_WIDE_REGIONAL_INGRESS,
+  fleetWideCriticalAddsForCluster,
   getAlertsForCluster,
   getClusterById,
 } from './data';
@@ -334,7 +335,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const headerPulse: AgentPulseStatus =
     isMultiCluster && viewMode === 'fleet' ? fleetPulse : selectedCluster.agentStatus;
 
-  const criticalOnCluster = clusterAlerts.filter((a) => a.severity === 'critical').length;
+  const criticalOnCluster =
+    clusterAlerts.filter((a) => a.severity === 'critical').length +
+    fleetWideCriticalAddsForCluster(selectedCluster.id);
   const warningOnCluster = clusterAlerts.filter((a) => a.severity === 'warning').length;
 
   const degradedCount = CLUSTERS.filter((c) => c.health !== 'healthy').length;
@@ -633,7 +636,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     <CardBody>
                       <Gallery hasGutter>
                         {CLUSTERS.map((c) => {
-                          const crit = ALERTS.filter((a) => a.clusterId === c.id && a.severity === 'critical').length;
+                          const crit =
+                            ALERTS.filter((a) => a.clusterId === c.id && a.severity === 'critical').length +
+                            fleetWideCriticalAddsForCluster(c.id);
                           const warn = ALERTS.filter((a) => a.clusterId === c.id && a.severity === 'warning').length;
                           const healthStatus = healthToLabelStatus(c.health);
                           const healthIcon =

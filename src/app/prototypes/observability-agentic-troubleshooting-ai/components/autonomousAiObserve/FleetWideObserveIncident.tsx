@@ -9,8 +9,6 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
-  Grid,
-  GridItem,
   Label,
   Progress,
   ProgressSize,
@@ -26,8 +24,6 @@ import {
   DatabaseIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  GlobeIcon,
-  InfoCircleIcon,
   NetworkIcon,
   SearchIcon,
   StarIcon,
@@ -109,7 +105,7 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
   );
 
   return (
-    <Card id={incident.id} className="ols-aio-subcard ols-aio-fleet-incident" isCompact isExpanded={isExpanded}>
+    <Card id={incident.id} className="ols-aio-subcard" isCompact isExpanded={isExpanded}>
       <CardHeader
         onExpand={onCardExpand}
         toggleButtonProps={{
@@ -136,48 +132,21 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
               <time className="ols-aio-alert-summary__fired" dateTime={incident.firedAt}>
                 {formatConsoleAlertFiredAt(incident.firedAt)}
               </time>
-              <Label color="teal" variant="outline" isCompact style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}>
-                Fleet scope
-              </Label>
               <Title headingLevel="h3" size="md" className="ols-aio-alert-summary__title">
                 {incident.title}
               </Title>
-              <Content component="p" className="ols-aio-text-overline" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                Causal grouping (the story)
-              </Content>
-              <Grid hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                {affectedClusters.map((c) => (
-                  <GridItem key={c.id} span={12} md={4}>
-                    <div
-                      className="ols-aio-fleet-incident__cluster-chip"
-                      style={{
-                        border: '1px solid var(--pf-t--global--border--color--100)',
-                        borderRadius: 'var(--pf-t--global--border--radius--default)',
-                        padding: 'var(--pf-t--global--spacer--sm)',
-                        background: 'var(--pf-t--global--BackgroundColor--100)',
-                      }}
-                    >
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <GlobeIcon style={{ flexShrink: 0, color: 'var(--pf-t--global--icon--color--subtle)' }} />
-                        <div style={{ minWidth: 0 }}>
-                          <Title headingLevel="h5" size="md" style={{ marginBottom: 0 }}>
-                            {c.name}
-                          </Title>
-                          <Content component="small" className="ols-aio-text-subtle-sm" style={{ marginBottom: 0 }}>
-                            {c.provider} · {c.region}
-                          </Content>
-                        </div>
-                      </Flex>
-                    </div>
-                  </GridItem>
-                ))}
-              </Grid>
-              <Content component="p" className="ols-aio-alert-summary__message" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                <strong>AI summary.</strong> {incident.aiSummary}
-              </Content>
-              <Content component="p" className="ols-aio-text-subtle-sm" style={{ marginTop: 'var(--pf-t--global--spacer--xs)', marginBottom: 0 }}>
-                Expand this card for the active reasoning chain, aggregated RCA, and the remediation hub (governor actions).
-              </Content>
+              <div className="ols-aio-alert-summary__fleet-meta">
+                <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
+                  {affectedClusters.map((c) => (
+                    <Label key={c.id} color="grey" variant="outline" isCompact>
+                      {c.name}
+                    </Label>
+                  ))}
+                </Flex>
+                <Content component="p" className="ols-aio-fleet-incident-lede">
+                  {incident.aiSummary}
+                </Content>
+              </div>
             </div>
           </FlexItem>
         </Flex>
@@ -265,26 +234,24 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                   <Flex alignItems={{ default: 'alignItemsCenter' }}>
                     <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
                     <Title headingLevel="h4" size="md">
-                      Aggregated RCA (the evidence)
+                      Root Cause Analysis (RCA)
                     </Title>
                   </Flex>
                 }
               >
                 <div className="ols-aio-rca-box ols-aio-rca-box--critical">
-                  <Content component="p" className="ols-aio-text-overline" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                    Finding
-                  </Content>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                    <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+                    <span className="ols-aio-text-overline">Detected Root Cause</span>
+                  </Flex>
                   <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     {incident.aggregatedFinding}
-                  </Content>
-                  <Content component="p" className="ols-aio-text-overline" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                    Root cause
                   </Content>
                   <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     {incident.rootCauseNarrative}
                   </Content>
                   <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                    <span className="ols-aio-text-overline">Confidence (fleet aggregate)</span>
+                    <span className="ols-aio-text-overline">Confidence Score</span>
                     <span
                       className="ols-aio-card-stat-number"
                       style={{ color: 'var(--pf-t--global--color--status--success--default)' }}
@@ -307,7 +274,7 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                           onDiscussWithLightspeed({
                             alertId: incident.id,
                             cardId: 'fleet-rca',
-                            diagnosisName: 'Fleet-wide aggregated RCA',
+                            diagnosisName: 'Root cause analysis',
                           })
                         }
                       >
@@ -328,34 +295,28 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                   <Flex alignItems={{ default: 'alignItemsCenter' }}>
                     <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
                     <Title headingLevel="h4" size="md">
-                      Remediation hub (the action)
+                      Remediation Hub
                     </Title>
                   </Flex>
                 }
               >
                 <div className="ols-aio-remediation-box">
-                  <Content component="p" className="ols-aio-text-overline" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                    You are the governor
-                  </Content>
-                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                    Approve or escalate the proposed fleet change. Autonomous rollback is gated on your decision.
-                  </Content>
                   <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                     <TerminalIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
-                    <span className="ols-aio-text-overline">The proposal</span>
+                    <span className="ols-aio-text-overline">Recommended Action</span>
                   </Flex>
-                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    {incident.remediationProposal}
-                  </Content>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                    <InfoCircleIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
-                    <span className="ols-aio-text-overline">Risk assessment</span>
-                  </Flex>
-                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    {incident.riskAssessment}{' '}
+                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                    {incident.remediationProposal}{' '}
                     <span style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>
                       {incident.estimatedRecovery}
                     </span>
+                  </Content>
+                  <Content
+                    component="p"
+                    className="ols-aio-text-subtle-sm"
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                  >
+                    {incident.riskAssessment}
                   </Content>
                   {onDiscussWithLightspeed ? (
                     <Flex
@@ -371,7 +332,7 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                           onDiscussWithLightspeed({
                             alertId: incident.id,
                             cardId: 'fleet-remediation',
-                            diagnosisName: 'Fleet remediation proposal',
+                            diagnosisName: 'Remediation plan',
                           })
                         }
                       >
@@ -379,9 +340,9 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                       </Button>
                     </Flex>
                   ) : null}
-                  <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
-                    <FlexItem>
-                      <Button variant="primary">Approve fleet rollback</Button>
+                  <Flex>
+                    <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
+                      <Button variant="primary">Apply Fix (Autonomous)</Button>
                     </FlexItem>
                     <FlexItem>
                       <Button variant="secondary">Escalate to SRE</Button>

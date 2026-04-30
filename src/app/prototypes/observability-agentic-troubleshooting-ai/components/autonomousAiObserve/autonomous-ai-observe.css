@@ -178,6 +178,20 @@ button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link:focus {
   color: var(--pf-t--global--text--color--subtle);
 }
 
+/* Fleet incident: clusters + lede share one grid cell (do not use __message on nested nodes — it sets grid placement). */
+.ols-aio-alert-summary__fleet-meta {
+  grid-column: 2;
+  grid-row: 3;
+  min-width: 0;
+}
+
+.ols-aio-alert-summary .ols-aio-alert-summary__fleet-meta .ols-aio-fleet-incident-lede.pf-v6-c-content--p {
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  margin: 0;
+  margin-top: var(--pf-t--global--spacer--xs);
+}
+
 /* Agent status chips: 28px min height; label text uses PF body typography (not mono). */
 .ols-aio-agent-pulse-label.pf-v6-c-label {
   min-height: 28px;

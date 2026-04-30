@@ -452,10 +452,20 @@ export const FLEET_WIDE_REGIONAL_INGRESS: FleetWideCriticalIncident = {
     'A new NetworkPolicy (deny-all-ingress) was applied globally. It lacks an allow-rule for the OpenShift Ingress Controller namespace, so router → workload traffic is denied fleet-wide.',
   remediationProposal:
     'Roll back NetworkPolicy deny-all-ingress to version v2.1.0 across all 3 clusters (prod-east-2, prod-eu-west-1, stg-central).',
-  riskAssessment:
-    'Low risk. This will restore traffic immediately. Est. recovery time: 45 seconds.',
+  riskAssessment: 'Low risk. This will restore traffic immediately.',
   estimatedRecovery: '~45s',
 };
+
+/**
+ * Extra critical count for a cluster when it appears on the active fleet-scoped critical
+ * (`FLEET_WIDE_REGIONAL_INGRESS` is not stored as `AlertRecord` rows on `clusterId`).
+ */
+export function fleetWideCriticalAddsForCluster(clusterId: string): number {
+  if (FLEET_WIDE_REGIONAL_INGRESS.severity !== 'critical') {
+    return 0;
+  }
+  return FLEET_WIDE_REGIONAL_INGRESS.affectedClusterIds.includes(clusterId) ? 1 : 0;
+}
 
 /** Digest rows for “While you were away” — fixed copy per spec */
 export const AWAY_DIGEST_ITEMS: Array<{
