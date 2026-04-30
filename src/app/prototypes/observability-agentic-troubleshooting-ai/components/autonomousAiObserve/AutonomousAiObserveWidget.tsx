@@ -181,10 +181,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
           className="ols-aio-context-selectors"
           alignItems={{ default: 'alignItemsCenter' }}
           flexWrap={{ default: 'wrap' }}
+          gap={{ default: 'gapMd' }}
           style={{
             width: '100%',
             marginBottom: 'var(--pf-t--global--spacer--md)',
-            gap: 'var(--pf-t--global--spacer--md)',
           }}
         >
           <FlexItem>
