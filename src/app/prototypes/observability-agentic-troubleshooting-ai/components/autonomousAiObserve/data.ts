@@ -118,8 +118,8 @@ export const CLUSTERS: ClusterRecord[] = [
     env: 'staging',
     version: '4.16.2',
     nodes: 8,
-    health: 'healthy',
-    agentStatus: 'idle',
+    health: 'degraded',
+    agentStatus: 'investigating',
   },
   {
     id: 'edge-apac-1',
