@@ -26,7 +26,7 @@
 
 /*
  * Card KPI numerals (prototype-wide): 24px body tabular figures.
- * When drillable (value > 0), use a link `Button` + `--drill` for PatternFly link blue.
+ * Demo: primary stats use link `Button` + `--drill` (PatternFly link blue) even when the value is zero.
  */
 span.ols-aio-card-stat-number {
   display: inline-block;
@@ -61,12 +61,22 @@ button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link:focus {
   text-decoration: underline;
 }
 
-/* Cluster gallery: inline stat controls sit beside labels without the stat-figure top margin. */
-.ols-aio-cluster-tile-stat-row .ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link,
-.ols-aio-cluster-tile-stat-row span.ols-aio-card-stat-number {
-  font-size: 24px;
-  font-weight: var(--pf-t--global--font--weight--body--bold);
-  vertical-align: middle;
+/* Cluster gallery tiles: compact inline drill for alert counts (not 24px KPI — those stay on fleet / health cards). */
+button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link {
+  padding: 0;
+  margin: 0;
+  height: auto;
+  min-height: 0;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  font-weight: var(--pf-t--global--font--weight--body);
+  line-height: 1.4;
+  text-decoration: none;
+  vertical-align: baseline;
+}
+
+button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link:hover,
+button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link:focus {
+  text-decoration: underline;
 }
 
 /* Context selector row: default MenuToggle (outlined) + tighter radius — not secondary “pill” chips. */
