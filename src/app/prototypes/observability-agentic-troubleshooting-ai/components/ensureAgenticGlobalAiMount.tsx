@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { AgenticGlobalAiAssistant } from './AgenticGlobalAiAssistant';
+import { SimulationProvider } from '../simulation/SimulationProvider';
 
 const HOST_ID = 'observability-agentic-global-ai-root';
 
@@ -21,7 +22,11 @@ export function ensureAgenticGlobalAiMounted(): void {
     document.body.appendChild(el);
   }
   root = createRoot(el);
-  root.render(<AgenticGlobalAiAssistant />);
+  root.render(
+    <SimulationProvider>
+      <AgenticGlobalAiAssistant />
+    </SimulationProvider>
+  );
 }
 
 /** Remove the portal from the document (e.g. when leaving the prototype or the launcher). */

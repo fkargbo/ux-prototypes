@@ -52,6 +52,10 @@ export interface AlertRecord {
   remediationSummary: string;
   remediationCommands: string;
   estimatedRecovery: string;
+  /** Downtime / blast-radius framing for advisor responses (plain language, no “simulated”). */
+  remediationRiskSummary: string;
+  /** How Autonomous AI Observe reached the current conclusion (evidence chain, console-style). */
+  agentInvestigationNarrative: string;
 }
 
 export const CLUSTERS: ClusterRecord[] = [
@@ -169,6 +173,10 @@ E 14:22:00 payment_intent failed:
     remediationCommands: `$ kubectl rollout undo netpol/payments-egress-v3 -n payments
 $ kubectl rollout restart deploy/payments-api -n payments`,
     estimatedRecovery: '~45s',
+    remediationRiskSummary:
+      'Medium–High — rolling back netpol and restarting payments-api can cause sub-minute errors on checkout paths while endpoints converge.',
+    agentInvestigationNarrative:
+      'Autonomous AI Observe correlated Kube events, NetworkPolicy change timestamps, and pod restart signatures on payments-api before locking onto egress to redis-cache.',
   },
   {
     id: 'alrt-8819',
@@ -226,6 +234,10 @@ E 14:15:32 DiskPressure: available 4% (<10%)`,
     remediationCommands: `$ etcdctl --endpoints=master-2:2379 defrag
 $ oc patch pvc etcd-master-2 -p '{"spec":{"resources":{"requests":{"storage":"60Gi"}}}}'`,
     estimatedRecovery: '~3m',
+    remediationRiskSummary:
+      'High — etcd maintenance on a control-plane member can briefly lengthen API write latency; schedule during a maintenance window if possible.',
+    agentInvestigationNarrative:
+      'Autonomous AI Observe read node conditions, etcd WAL metrics, and compaction state on master-2 to confirm disk pressure as the limiting factor.',
   },
   {
     id: 'alrt-8814',
@@ -285,6 +297,10 @@ W 14:04:10 request latency p95 = 1.8s`,
     remediationCommands: `$ oc patch hpa checkout-svc -p '{"spec":{"maxReplicas":8}}'
 $ oc set resources deploy/checkout-svc --requests=cpu=500m`,
     estimatedRecovery: '~90s',
+    remediationRiskSummary:
+      'Low–Medium — HPA and resource bumps are rolling; expect brief CPU scheduling noise only.',
+    agentInvestigationNarrative:
+      'Autonomous AI Observe compared HPA events, replica saturation, and container CPU throttling metrics on checkout-svc to justify raising limits.',
   },
   {
     id: 'alrt-8830',
@@ -341,6 +357,10 @@ I 14:24:00 issuer letsencrypt-prod ready`,
     remediationCommands: `$ oc annotate certificate wildcard-apac cert-manager.io/renew=true --overwrite
 $ oc delete certificaterequest -l cert=wildcard-apac`,
     estimatedRecovery: '~2m',
+    remediationRiskSummary:
+      'Medium — ingress reload on renewal can drop a small number of in-flight TLS handshakes during router rollout.',
+    agentInvestigationNarrative:
+      'Autonomous AI Observe verified cert-manager issuer health, renewal windows, and router-default attachment for the wildcard before prioritizing renewal.',
   },
 ];
 

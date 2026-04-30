@@ -49,6 +49,9 @@ import {
 import { AgentPulseLabel } from './AgentPulseLabel';
 import { ObserveAlertItem } from './ObserveAlertItem';
 import './autonomous-ai-observe.css';
+import { SimulationProvider } from '../../simulation/SimulationProvider';
+import { syncObserveSimulationState } from '../../simulation/simulationStore';
+import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget';
 
@@ -139,6 +142,11 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const clusterAlerts = useMemo(() => getAlertsForCluster(selectedClusterId), [selectedClusterId]);
 
+  const simulationAlerts = useMemo(
+    () => (viewMode === 'fleet' ? ALERTS : clusterAlerts),
+    [viewMode, clusterAlerts]
+  );
+
   const [expandedAlerts, setExpandedAlerts] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -152,6 +160,33 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const toggleAlert = useCallback((id: string, open: boolean) => {
     setExpandedAlerts((prev) => ({ ...prev, [id]: open }));
   }, []);
+
+  useEffect(() => {
+    syncObserveSimulationState({
+      viewMode,
+      selectedCluster,
+      clusterAlerts: simulationAlerts,
+      expandedAlerts,
+      observeWidgetExpanded: widgetExpanded,
+      isMultiCluster,
+      fleetAgentPulse: fleetPulse,
+    });
+  }, [
+    viewMode,
+    selectedCluster,
+    simulationAlerts,
+    expandedAlerts,
+    widgetExpanded,
+    isMultiCluster,
+    fleetPulse,
+  ]);
+
+  const discussLightspeed = useCallback(
+    (payload: { alertId: string; cardId: string; diagnosisName: string }) => {
+      agenticGlobalAiApi.openDiscussWithLightspeed?.(payload);
+    },
+    []
+  );
 
   const onWidgetExpand = useCallback((_e: React.MouseEvent, id: string) => {
     if (id === WIDGET_ID) {
@@ -175,6 +210,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const degradedCount = CLUSTERS.filter((c) => c.health !== 'healthy').length;
 
   return (
+    <SimulationProvider>
     <>
       {isMultiCluster ? (
         <Flex
@@ -962,6 +998,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               alert={a}
                               isExpanded={expandedAlerts[a.id] ?? false}
                               onToggle={(open) => toggleAlert(a.id, open)}
+                              onDiscussWithLightspeed={discussLightspeed}
                             />
                           ))}
                         </Stack>
@@ -976,5 +1013,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
       </CardExpandableContent>
     </Card>
     </>
+    </SimulationProvider>
   );
 };

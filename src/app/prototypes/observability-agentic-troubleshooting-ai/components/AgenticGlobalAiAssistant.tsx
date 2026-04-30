@@ -115,7 +115,16 @@ import '../pages/dashboards-perses.css';
 import userProfilePicUrl from '../assets/user-profile.png';
 import botProfilePicUrl from '../assets/bot-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
-import { persesAgenticBridge, agenticGlobalAiApi } from '../persesAgenticBridge';
+import { persesAgenticBridge, agenticGlobalAiApi, type DiscussLightspeedContext } from '../persesAgenticBridge';
+import { useSimulation } from '../simulation/SimulationProvider';
+import { getSimulationSnapshot } from '../simulation/simulationStore';
+import type { SimulationHandoff } from '../simulation/simulationTypes';
+import {
+  buildDiscussOpening,
+  buildObserveToChatHandoff,
+  buildSituationBriefing,
+  composeAdvisorReply,
+} from '../simulation/olsAdvisorBrain';
 
 /** Viewport inset for OLS chrome dock (`right` / `bottom` on `.ols-ai-chrome-dock`). */
 const OLS_LAUNCHER_VIEWPORT_MARGIN_PX = 24;
@@ -372,8 +381,10 @@ type MessageWithCustomPills = MessageProps & {
 /**
  * Globally mounted AI assistant (floating toggle + drawer) for this prototype.
  * Perses-specific UI is driven via persesAgenticBridge when that page registers callbacks.
+ * Cluster truth + Autonomous AI Observe scope: `simulationStore` / `olsAdvisorBrain` (persona: `OLS_SRE_ADVISOR_SYSTEM_DIRECTIVES`).
  */
 export const AgenticGlobalAiAssistant: React.FC = () => {
+  const simulation = useSimulation();
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedQuickResponses, setSelectedQuickResponses] = useState<Array<{ containerId: string; content: string }>>([]);
@@ -385,6 +396,8 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const olsLauncherStackRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
+  /** Suppress duplicate Autonomous AI Observe → OLS intro when the drawer is reopened. */
+  const observeIntroHandoffShownRef = useRef(false);
 
   const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
     setSelectedQuickResponses((prev) => {
@@ -713,36 +726,38 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
     setAnnouncement(`Message from User: ${messageText}. Message from ${BOT_DISPLAY_NAME} is loading.`);
 
-    // Simulate AI response (replace with actual API call)
+    // Scripted “Senior SRE Advisor” reply grounded in Autonomous AI Observe / simulation snapshot
     setTimeout(() => {
+      const snap = getSimulationSnapshot();
+      const body = composeAdvisorReply(messageText, snap);
       const botMessage: MessageProps = {
         id: generateId(),
         role: 'bot',
-        content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
+        content: body,
         name: BOT_DISPLAY_NAME,
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
         actions: {
-          positive: { onClick: () => console.log('Good response') },
-          negative: { onClick: () => console.log('Bad response') },
-          copy: { onClick: () => console.log('Copy') },
-          download: { onClick: () => console.log('Download') },
-          listen: { onClick: () => console.log('Listen') }
-        }
+          positive: { onClick: () => undefined },
+          negative: { onClick: () => undefined },
+          copy: { onClick: () => undefined },
+          download: { onClick: () => undefined },
+          listen: { onClick: () => undefined },
+        },
       };
       setMessages((prev) => {
         const newMessages = [...prev];
-        const loadingIndex = newMessages.findIndex(m => m.isLoading);
+        const loadingIndex = newMessages.findIndex((m) => m.isLoading);
         if (loadingIndex !== -1) {
           newMessages[loadingIndex] = botMessage;
         }
         return newMessages;
       });
-      setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: ${botMessage.content}`);
+      setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: ${body}`);
       setIsSendButtonDisabled(false);
-    }, 2000);
-  }, []);
+    }, 650);
+  }, [isRejectionTrigger, triggerQuickResponseByContent, getWorkflowIntentQuickResponse]);
 
   // Handle starting troubleshooting workflow from alert
   const handleStartTroubleshooting = useCallback((alertName: string) => {
@@ -750,6 +765,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
     setIsDrawerOpen(true);
 
+    observeIntroHandoffShownRef.current = false;
     setMessages([]);
 
     workflowStageRef.current = 'stage1';
@@ -1057,31 +1073,99 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     }, 3000);
   }, [generateId, setMessages, setAnnouncement]);
 
-  // Welcome prompts for ChatbotWelcomePrompt
-  const welcomePrompts = [
-    {
-      title: 'Observe cluster health',
-      message: 'Summarize current alerts and what I should check first in Observe.'
-    },
-    {
-      title: 'Troubleshoot workload',
-      message: 'Help me troubleshoot high CPU for a namespace shown on my dashboards.'
-    }
-  ];
+  const welcomePrompts = useMemo(
+    () => [
+      {
+        title: 'What is happening right now?',
+        message: 'What is happening right now on the cluster?',
+      },
+      {
+        title: 'Where should I look in the console?',
+        message: 'Where should I look in the OpenShift console to validate this incident?',
+      },
+      {
+        title: 'Explain the autonomous findings',
+        message: 'Summarize what Autonomous AI Observe found and the remediation risk.',
+      },
+    ],
+    []
+  );
+
+  const situationLine = useMemo(() => buildSituationBriefing(simulation), [simulation]);
 
   const handleClearChat = useCallback(() => {
     setMessages([]);
     setSelectedQuickResponses([]);
     workflowStageRef.current = 'idle';
+    observeIntroHandoffShownRef.current = false;
     setAnnouncement(undefined);
+  }, []);
+
+  const toggleChatDrawer = useCallback(() => {
+    setIsDrawerOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        queueMicrotask(() => {
+          if (observeIntroHandoffShownRef.current) {
+            return;
+          }
+          const snap = getSimulationSnapshot();
+          if (!snap.isIncidentActive) {
+            return;
+          }
+          if (messagesRef.current.length > 0) {
+            return;
+          }
+          observeIntroHandoffShownRef.current = true;
+          const ts = new Date().toLocaleString();
+          setMessages([
+            {
+              id: generateId(),
+              role: 'bot',
+              content: buildObserveToChatHandoff(snap),
+              name: BOT_DISPLAY_NAME,
+              avatar: botAvatarSrc,
+              timestamp: ts,
+            },
+          ]);
+          setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Autonomous AI Observe handoff.`);
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const handleOpenDiscussWithLightspeed = useCallback((ctx: DiscussLightspeedContext) => {
+    observeIntroHandoffShownRef.current = true;
+    const snap = getSimulationSnapshot();
+    const handoff: SimulationHandoff = {
+      source: ctx.cardId === 'remediation' ? 'discuss-remediation' : 'discuss-rca',
+      alertId: ctx.alertId,
+      cardId: ctx.cardId,
+      diagnosisName: ctx.diagnosisName,
+    };
+    const ts = new Date().toLocaleString();
+    const opening: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: buildDiscussOpening(snap, handoff),
+      name: BOT_DISPLAY_NAME,
+      avatar: botAvatarSrc,
+      timestamp: ts,
+    };
+    setMessages([opening]);
+    setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: ${ctx.diagnosisName} context.`);
+    setIsDrawerOpen(true);
   }, []);
 
   useEffect(() => {
     agenticGlobalAiApi.startTroubleshootingForAlert = handleStartTroubleshooting;
+    agenticGlobalAiApi.openDiscussWithLightspeed = handleOpenDiscussWithLightspeed;
     return () => {
       agenticGlobalAiApi.startTroubleshootingForAlert = null;
+      agenticGlobalAiApi.openDiscussWithLightspeed = null;
     };
-  }, [handleStartTroubleshooting]);
+  }, [handleStartTroubleshooting, handleOpenDiscussWithLightspeed]);
 
   const olsChromeDockClassName = `ols-ai-chrome-dock${isDrawerOpen ? ' ols-ai-chrome-dock--chat-open' : ''}`;
 
@@ -1145,8 +1229,11 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                         </div>
                         <Content>
                           <p>
-                            Ask questions about your cluster and observability data. This prototype mirrors the Red Hat
-                            OpenShift Lightspeed assistant layout from the console overview.
+                            I am synced with <strong>Autonomous AI Observe</strong> for your current Observe scope.
+                            {simulation.isIncidentActive
+                              ? ` Active incident context: ${situationLine}`
+                              : ` ${situationLine}`}{' '}
+                            Ask for a live briefing, console navigation, or deep dive on any firing alert.
                           </p>
                         </Content>
                         <Alert
@@ -1250,7 +1337,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
               /* OLS launcher: always show the logo; PF swaps to chevron when `isChatbotVisible` is true. */
               isChatbotVisible={false}
               aria-expanded={isDrawerOpen}
-              onToggleChatbot={() => setIsDrawerOpen(!isDrawerOpen)}
+              onToggleChatbot={toggleChatDrawer}
               isRound={false}
               closedToggleIcon={OlsFloatingLauncherLogo}
               toggleButtonLabel="Red Hat OpenShift Lightspeed"

@@ -31,6 +31,7 @@ import {
   InfoCircleIcon,
   NetworkIcon,
   SearchIcon,
+  StarIcon,
   TerminalIcon,
   UserCogIcon,
   WrenchIcon,
@@ -112,12 +113,15 @@ export interface ObserveAlertItemProps {
   alert: AlertRecord;
   isExpanded: boolean;
   onToggle: (next: boolean) => void;
+  /** Opens OLS with this alert’s diagnosis card context (RCA / remediation). */
+  onDiscussWithLightspeed?: (payload: { alertId: string; cardId: string; diagnosisName: string }) => void;
 }
 
 export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
   alert,
   isExpanded,
   onToggle,
+  onDiscussWithLightspeed,
 }) => {
   const [openChain, setOpenChain] = useState(true);
   const [openRca, setOpenRca] = useState(true);
@@ -330,6 +334,28 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                     measureLocation="none"
                     variant="success"
                   />
+                  {onDiscussWithLightspeed ? (
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      gap={{ default: 'gapSm' }}
+                      style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+                    >
+                      <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() =>
+                          onDiscussWithLightspeed({
+                            alertId: alert.id,
+                            cardId: 'rca',
+                            diagnosisName: 'Root cause analysis',
+                          })
+                        }
+                      >
+                        Discuss with Lightspeed
+                      </Button>
+                    </Flex>
+                  ) : null}
                   <Grid hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                     <GridItem span={12} md={6}>
                       <Card isCompact>
@@ -408,6 +434,28 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                   <pre className="ols-aio-code-block" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     {alert.remediationCommands}
                   </pre>
+                  {onDiscussWithLightspeed ? (
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      gap={{ default: 'gapSm' }}
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                    >
+                      <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() =>
+                          onDiscussWithLightspeed({
+                            alertId: alert.id,
+                            cardId: 'remediation',
+                            diagnosisName: 'Remediation plan',
+                          })
+                        }
+                      >
+                        Discuss with Lightspeed
+                      </Button>
+                    </Flex>
+                  ) : null}
                   <Flex>
                     <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
                       <Button variant="primary" icon={<BoltIcon />}>
