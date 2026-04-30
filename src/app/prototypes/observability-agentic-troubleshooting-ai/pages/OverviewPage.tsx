@@ -8,7 +8,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
 } from '@patternfly/react-core';
-import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiMount';
 
 /** Home → Overview (agentic prototype). Same full-page shell as OperatorHub install flows in this repo. */
 export const OverviewPage: React.FC = () => {
@@ -24,8 +23,6 @@ export const OverviewPage: React.FC = () => {
         backgroundColor: '#f5f5f5',
       }}
     >
-      <EnsureGlobalAgenticAiMount />
-
       <div className="create-policy-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem

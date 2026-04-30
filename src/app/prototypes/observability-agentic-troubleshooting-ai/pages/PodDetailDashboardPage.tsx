@@ -1,7 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Card, CardBody, CardHeader, CardTitle, Content, PageSection, Title } from '@patternfly/react-core';
-import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiMount';
 
 export const PodDetailDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,7 +16,6 @@ export const PodDetailDashboardPage: React.FC = () => {
 
   return (
     <>
-    <EnsureGlobalAgenticAiMount />
     <PageSection>
       <Breadcrumb>
         <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/dashboards-perses')}>

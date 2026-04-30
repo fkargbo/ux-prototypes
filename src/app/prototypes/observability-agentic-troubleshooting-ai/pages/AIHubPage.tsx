@@ -1,6 +1,5 @@
 import React from 'react';
 import { Title, Content, Stack, StackItem } from '@patternfly/react-core';
-import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiMount';
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
 import './ai-hub-page.css';
 
@@ -15,8 +14,6 @@ export const AIHubPage: React.FC = () => {
         backgroundColor: '#f5f5f5',
       }}
     >
-      <EnsureGlobalAgenticAiMount />
-
       <div className="create-policy-header">
         <Title headingLevel="h1" size="2xl">
           AI Hub

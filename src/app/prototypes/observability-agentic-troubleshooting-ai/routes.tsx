@@ -5,12 +5,12 @@ import { ObserveOverviewPage } from './pages/ObserveOverviewPage';
 import { AIHubPage } from './pages/AIHubPage';
 import { DashboardsPersesPage } from './pages/DashboardsPersesPage';
 import { PodDetailDashboardPage } from './pages/PodDetailDashboardPage';
-import { EnsureGlobalAgenticAiMount } from './components/ensureAgenticGlobalAiMount';
+import { Content, PageSection } from '@patternfly/react-core';
 
 const ObserveNavPlaceholder: React.FC = () => (
-  <>
-    <EnsureGlobalAgenticAiMount />
-  </>
+  <PageSection>
+    <Content component="p">This page is a navigation placeholder in the prototype.</Content>
+  </PageSection>
 );
 
 /**

@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@patternfly/react-core';
-import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiMount';
 
 /**
  * Observe → Observability overview.
@@ -56,8 +55,6 @@ export const ObserveOverviewPage: React.FC = () => {
         backgroundColor: '#f5f5f5',
       }}
     >
-      <EnsureGlobalAgenticAiMount />
-
       <div className="create-policy-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem

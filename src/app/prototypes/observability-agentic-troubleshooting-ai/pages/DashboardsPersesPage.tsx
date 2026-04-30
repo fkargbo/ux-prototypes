@@ -122,7 +122,6 @@ import ChatbotHeader, {
 } from '@patternfly/chatbot/dist/esm/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
-import { EnsureGlobalAgenticAiMount } from '../components/ensureAgenticGlobalAiMount';
 import { persesAgenticBridge, agenticGlobalAiApi } from '../persesAgenticBridge';
 
 // Import custom profile images
@@ -1548,7 +1547,6 @@ export const DashboardsPersesPage: React.FC = () => {
 
   return (
     <>
-      <EnsureGlobalAgenticAiMount />
       <Drawer isExpanded={isNotificationsDrawerOpen} position="end">
       <DrawerContent
         panelContent={

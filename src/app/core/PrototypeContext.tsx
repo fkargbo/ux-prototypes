@@ -36,6 +36,14 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
         throw new Error(`Prototype with ID "${id}" not found in registry`);
       }
 
+      // Run previous prototype teardown when switching without going through the launcher
+      if (currentPrototype && currentPrototype.config.id !== id) {
+        console.log(`👋 Deactivating previous prototype: ${currentPrototype.config.id}`);
+        if (currentPrototype.onDeactivate) {
+          await currentPrototype.onDeactivate();
+        }
+      }
+
       // Call lifecycle hook if defined
       if (prototype.onActivate) {
         await prototype.onActivate();
@@ -54,7 +62,7 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentPrototype]);
 
   /**
    * Unload the current prototype
