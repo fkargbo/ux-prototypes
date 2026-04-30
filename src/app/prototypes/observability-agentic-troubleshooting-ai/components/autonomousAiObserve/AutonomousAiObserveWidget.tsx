@@ -872,7 +872,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       <Grid hasGutter>
                         <GridItem span={12} md={4}>
                           <ObserveMetricStatCard
-                            cardTitle="Active Critical Alerts"
+                            cardTitle="Critical alerts"
                             titleIcon={
                               <ExclamationCircleIcon
                                 style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
@@ -886,7 +886,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         </GridItem>
                         <GridItem span={12} md={4}>
                           <ObserveMetricStatCard
-                            cardTitle="Active Warning Alerts"
+                            cardTitle="Warning alerts"
                             titleIcon={
                               <ExclamationTriangleIcon
                                 style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}

@@ -4,7 +4,9 @@
  * Typography (PatternFly design foundations):
  * — Red Hat Text (`--pf-t--global--font--family--body`): UI labels, descriptions, metrics in cards.
  * — Red Hat Mono (`--pf-t--global--font--family--mono`): code blocks, commands, log output only.
- * Use `font-variant-numeric: tabular-nums` on body for aligned KPI digits instead of switching to mono.
+ * Prefer proportional lining figures on large KPI numerals: Red Hat Text `tabular-nums` has historically
+ *   used slashed-zero tabular glyphs (see RedHatOfficial/RedHatFont#53), which is easy to misread.
+ *   Use `tabular-nums` only where alignment matters and slashed zero is acceptable (e.g. dense tables).
  */
 .ols-aio-text-subtle-sm {
   font-family: var(--pf-t--global--font--family--body);
@@ -25,7 +27,7 @@
 }
 
 /*
- * Card KPI numerals: 24px bold tabular. Static uses body color; drill uses link color / hover (text-link rules on color only).
+ * Card KPI numerals: 24px bold (proportional lining figures — no tabular-nums; avoids slashed zero in RH Text).
  */
 span.ols-aio-card-stat-number {
   display: inline-block;
@@ -33,7 +35,6 @@ span.ols-aio-card-stat-number {
   font-size: 24px;
   line-height: 1.2;
   font-weight: var(--pf-t--global--font--weight--body--bold);
-  font-variant-numeric: tabular-nums;
   color: var(--pf-t--global--text--color--regular);
 }
 
@@ -51,7 +52,6 @@ span.ols-aio-card-stat-number {
   font-size: 24px;
   line-height: 1.2;
   font-weight: var(--pf-t--global--font--weight--body--bold);
-  font-variant-numeric: tabular-nums;
   color: var(--pf-t--global--text--color--link--default);
   text-decoration: none;
   text-underline-offset: 0.125rem;
