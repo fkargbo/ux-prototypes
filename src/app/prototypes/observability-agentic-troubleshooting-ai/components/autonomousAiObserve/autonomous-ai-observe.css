@@ -37,7 +37,11 @@ span.ols-aio-card-stat-number {
   color: var(--pf-t--global--text--color--regular);
 }
 
-button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link {
+/*
+ * PF semantic link text tokens (v6): `--pf-t--global--text--color--link--*`
+ * (not `--pf-t--global--link--color--*`, which is invalid and leaves inherited body color).
+ */
+#ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link {
   display: inline;
   padding: 0;
   margin: 0;
@@ -48,27 +52,36 @@ button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link {
   line-height: 1.2;
   font-weight: var(--pf-t--global--font--weight--body--bold);
   font-variant-numeric: tabular-nums;
-  color: var(--pf-t--global--link--color--default);
+  color: var(--pf-t--global--text--color--link--default);
   text-decoration: none;
   text-underline-offset: 0.125rem;
   vertical-align: baseline;
 }
 
-button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link:hover,
-button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link:focus {
-  color: var(--pf-t--global--link--color--hover);
+#ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link .pf-v6-c-button__text {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+#ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link:hover,
+#ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link:focus {
+  color: var(--pf-t--global--text--color--link--hover, var(--pf-t--global--text--color--link--default));
   text-decoration: underline;
 }
 
-/* Fleet summary sub-cards: status icon before the 24px link-styled value (see `ols-aio-card-stat-number--drill`). */
-.ols-aio-fleet-summary-stat-icon {
+#ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link:hover .pf-v6-c-button__text,
+#ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link:focus .pf-v6-c-button__text {
+  color: var(--pf-t--global--text--color--link--hover, var(--pf-t--global--text--color--link--default));
+}
+
+/* Fleet summary & cluster health KPI rows: status icon before the 24px link-styled value. */
+.ols-aio-metric-kpi-stat-icon {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
   line-height: 1;
 }
 
-.ols-aio-fleet-summary-stat-icon svg {
+.ols-aio-metric-kpi-stat-icon svg {
   vertical-align: middle;
 }
 

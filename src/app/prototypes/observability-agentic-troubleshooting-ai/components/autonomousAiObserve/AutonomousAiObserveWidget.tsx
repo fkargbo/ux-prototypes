@@ -76,9 +76,9 @@ function clusterDrillHref(clusterId: string, target: 'alert-critical' | 'alert-w
 }
 
 type ObserveMetricStatCardProps = {
-  /** `metricHeader`: CardTitle row + icon (fleet tiles). `stacked`: overline label (cluster health tiles). */
-  layout: 'metricHeader' | 'stacked';
+  /** Row label in `CardHeader` (same pattern as Fleet summary KPI tiles). */
   cardTitle: string;
+  /** Status / severity icon shown before the linked statistic in `CardBody`. */
   titleIcon?: React.ReactNode;
   statistic: React.ReactNode;
   statisticAriaLabel: string;
@@ -87,84 +87,53 @@ type ObserveMetricStatCardProps = {
 };
 
 /**
- * Nested metric card — PatternFly `CardTitle` in header when `metricHeader`.
- * Fleet (`metricHeader`): status icon precedes the value; value is link-colored at KPI size (`ols-aio-card-stat-number--drill`).
- * Stacked (cluster health): same drill link styling.
+ * Nested compact metric card: `CardTitle` in header; body row is icon + link-styled KPI (`ols-aio-card-stat-number--drill`).
+ * Used for Fleet summary and Cluster health tiles.
  */
 const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
-  layout,
   cardTitle,
   titleIcon,
   statistic,
   statisticAriaLabel,
   onStatisticClick,
   caption,
-}) => {
-  const statBlockStacked = (
-    <Button
-      variant="link"
-      className="ols-aio-card-stat-number--drill"
-      onClick={onStatisticClick}
-      aria-label={statisticAriaLabel}
-    >
-      {statistic}
-    </Button>
-  );
-
-  const captionBlock = (
-    <Content
-      component="p"
-      className="ols-aio-text-subtle-sm"
-      style={{
-        marginTop: 'var(--pf-t--global--spacer--xs)',
-        marginBottom: 0,
-      }}
-    >
-      {caption}
-    </Content>
-  );
-
-  if (layout === 'metricHeader') {
-    return (
-      <Card isCompact>
-        <CardHeader>
-          <CardTitle component="h4">{cardTitle}</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <div className="ols-aio-stat-figure">
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-              {titleIcon ? (
-                <span className="ols-aio-fleet-summary-stat-icon" aria-hidden="true">
-                  {titleIcon}
-                </span>
-              ) : null}
-              <Button
-                variant="link"
-                isInline
-                className="ols-aio-card-stat-number--drill"
-                onClick={onStatisticClick}
-                aria-label={statisticAriaLabel}
-              >
-                {statistic}
-              </Button>
-            </Flex>
-          </div>
-          {captionBlock}
-        </CardBody>
-      </Card>
-    );
-  }
-
-  return (
-    <Card isCompact>
-      <CardBody>
-        <span className="ols-aio-text-overline">{cardTitle}</span>
-        <div className="ols-aio-stat-figure">{statBlockStacked}</div>
-        {captionBlock}
-      </CardBody>
-    </Card>
-  );
-};
+}) => (
+  <Card isCompact>
+    <CardHeader>
+      <CardTitle component="h4">{cardTitle}</CardTitle>
+    </CardHeader>
+    <CardBody>
+      <div className="ols-aio-stat-figure">
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+          {titleIcon ? (
+            <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true">
+              {titleIcon}
+            </span>
+          ) : null}
+          <Button
+            variant="link"
+            isInline
+            className="ols-aio-card-stat-number--drill"
+            onClick={onStatisticClick}
+            aria-label={statisticAriaLabel}
+          >
+            {statistic}
+          </Button>
+        </Flex>
+      </div>
+      <Content
+        component="p"
+        className="ols-aio-text-subtle-sm"
+        style={{
+          marginTop: 'var(--pf-t--global--spacer--xs)',
+          marginBottom: 0,
+        }}
+      >
+        {caption}
+      </Content>
+    </CardBody>
+  </Card>
+);
 
 function fleetAgentStatus(clusters: ClusterRecord[]): AgentPulseStatus {
   if (clusters.some((c) => c.agentStatus === 'escalated')) {
@@ -551,7 +520,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       <Grid hasGutter>
                         <GridItem span={12} md={6} lg={3}>
                           <ObserveMetricStatCard
-                            layout="metricHeader"
                             cardTitle="Critical alerts"
                             titleIcon={
                               <ExclamationCircleIcon
@@ -566,7 +534,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         </GridItem>
                         <GridItem span={12} md={6} lg={3}>
                           <ObserveMetricStatCard
-                            layout="metricHeader"
                             cardTitle="Warning alerts"
                             titleIcon={
                               <ExclamationTriangleIcon
@@ -581,7 +548,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         </GridItem>
                         <GridItem span={12} md={6} lg={3}>
                           <ObserveMetricStatCard
-                            layout="metricHeader"
                             cardTitle="Clusters degraded"
                             titleIcon={
                               <ExclamationTriangleIcon
@@ -600,7 +566,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         </GridItem>
                         <GridItem span={12} md={6} lg={3}>
                           <ObserveMetricStatCard
-                            layout="metricHeader"
                             cardTitle="Total nodes"
                             titleIcon={
                               <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />
@@ -907,8 +872,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       <Grid hasGutter>
                         <GridItem span={12} md={4}>
                           <ObserveMetricStatCard
-                            layout="stacked"
                             cardTitle="Active Critical Alerts"
+                            titleIcon={
+                              <ExclamationCircleIcon
+                                style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
+                              />
+                            }
                             statistic={criticalOnCluster}
                             statisticAriaLabel={`Open Alerting for critical alerts on ${selectedCluster.name}`}
                             onStatisticClick={() => navigate(clusterDrillHref(selectedCluster.id, 'alert-critical'))}
@@ -917,8 +886,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         </GridItem>
                         <GridItem span={12} md={4}>
                           <ObserveMetricStatCard
-                            layout="stacked"
                             cardTitle="Active Warning Alerts"
+                            titleIcon={
+                              <ExclamationTriangleIcon
+                                style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
+                              />
+                            }
                             statistic={warningOnCluster}
                             statisticAriaLabel={`Open Alerting for warning alerts on ${selectedCluster.name}`}
                             onStatisticClick={() => navigate(clusterDrillHref(selectedCluster.id, 'alert-warning'))}
@@ -927,8 +900,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         </GridItem>
                         <GridItem span={12} md={4}>
                           <ObserveMetricStatCard
-                            layout="stacked"
                             cardTitle="Nodes / Version"
+                            titleIcon={
+                              <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />
+                            }
                             statistic={
                               <>
                                 {selectedCluster.nodes} / {selectedCluster.version}
