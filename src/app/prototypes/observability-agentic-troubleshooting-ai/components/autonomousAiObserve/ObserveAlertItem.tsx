@@ -198,7 +198,7 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                     <FlexItem>
                       {alert.agentStatus === 'investigating' ? (
                         <Label color="blue" variant="outline" isCompact>
-                          live
+                          Live
                         </Label>
                       ) : null}
                     </FlexItem>

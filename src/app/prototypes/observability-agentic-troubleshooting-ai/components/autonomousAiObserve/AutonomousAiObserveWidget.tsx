@@ -315,10 +315,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       flexWrap={{ default: 'wrap' }}
                     >
                       <FlexItem>
-                        <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
                           <CardTitle component="h3">While you were away</CardTitle>
-                          <Label color="blue" isCompact style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
-                            new · {visibleAwayDigestItems.length} events
+                          <Label color="blue" isCompact>
+                            New · {visibleAwayDigestItems.length} events
                           </Label>
                         </Flex>
                       </FlexItem>
@@ -724,12 +724,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       'aria-label': 'Toggle While you were away section',
                     }}
                   >
-                    <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
                       <CardTitle component="h3">
                         {isMultiCluster ? `While you were away — ${selectedCluster.name}` : 'While you were away'}
                       </CardTitle>
-                      <Label color="blue" isCompact style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
-                        new · {visibleAwayDigestItems.length} events
+                      <Label color="blue" isCompact>
+                        New · {visibleAwayDigestItems.length} events
                       </Label>
                     </Flex>
                   </CardHeader>
