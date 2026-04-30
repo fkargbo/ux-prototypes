@@ -126,7 +126,7 @@ import { persesAgenticBridge, agenticGlobalAiApi } from '../persesAgenticBridge'
 
 // Import custom profile images
 import userProfilePicUrl from '../assets/user-profile.png';
-import botProfilePicUrl from '../assets/bot-profile.png';
+import olsLogoUrl from '../assets/ols-logo.png';
 
 // Helper function to create SVG data URL
 const createIconDataUrl = (svgContent: string): string => {
@@ -147,7 +147,7 @@ const robotIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 5
 
 // Avatar configuration - use custom images, fallback to icon data URLs if images fail to load
 const userAvatarSrc = userProfilePicUrl || createIconDataUrl(userIconSvg);
-const botAvatarSrc = botProfilePicUrl || createIconDataUrl(robotIconSvg);
+const botAvatarSrc = olsLogoUrl || createIconDataUrl(robotIconSvg);
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 

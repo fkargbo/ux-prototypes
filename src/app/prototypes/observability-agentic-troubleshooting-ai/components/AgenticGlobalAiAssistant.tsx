@@ -113,7 +113,6 @@ import '../pages/dashboards-perses.css';
 
 // Import custom profile images
 import userProfilePicUrl from '../assets/user-profile.png';
-import botProfilePicUrl from '../assets/bot-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
 import { persesAgenticBridge, agenticGlobalAiApi, type DiscussLightspeedContext } from '../persesAgenticBridge';
 import { useSimulation } from '../simulation/SimulationProvider';
@@ -186,7 +185,8 @@ const robotIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 5
 
 // Avatar configuration - use custom images, fallback to icon data URLs if images fail to load
 const userAvatarSrc = userProfilePicUrl || createIconDataUrl(userIconSvg);
-const botAvatarSrc = botProfilePicUrl || createIconDataUrl(robotIconSvg);
+/** Lightspeed assistant avatar in message threads — matches header / launcher branding. */
+const botAvatarSrc = olsLogoUrl || createIconDataUrl(robotIconSvg);
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
@@ -1229,11 +1229,13 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                         </div>
                         <Content>
                           <p>
-                            I am synced with <strong>Autonomous AI Observe</strong> for your current Observe scope.
+                            Ask questions in natural language about OpenShift and Kubernetes for this console scope.
+                            Context from <strong>Autonomous AI Observe</strong> is available here:
                             {simulation.isIncidentActive
-                              ? ` Active incident context: ${situationLine}`
+                              ? ` active incident view — ${situationLine}`
                               : ` ${situationLine}`}{' '}
-                            Ask for a live briefing, console navigation, or deep dive on any firing alert.
+                            Use follow-up questions in this chat to refine answers; specific wording (namespace, workload,
+                            console page) improves results, as described in the OpenShift Lightspeed documentation.
                           </p>
                         </Content>
                         <Alert

@@ -1,22 +1,51 @@
 import type { SimulationAlertBrief, SimulationHandoff, SimulationSnapshot } from './simulationTypes';
 
 /**
+ * Red Hat OpenShift Lightspeed — official conversation & usage patterns (tone, follow-ups, scope).
+ * @see https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/1.0/html/operate/ols-using-openshift-lightspeed
+ */
+export const OLS_OPERATE_DOCUMENTATION_URL =
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/1.0/html/operate/ols-using-openshift-lightspeed';
+
+/**
+ * Voice and behavior aligned with *Operate → Using OpenShift Lightspeed* (natural language, scope,
+ * follow-ups, specificity, alert troubleshooting).
+ */
+export const OLS_LIGHTSPEED_VOICE_FROM_DOCS = [
+  'Respond like the in-console OpenShift Lightspeed assistant: clear, neutral, instructive product guidance—not theatrical roleplay.',
+  'Prioritize OpenShift, Kubernetes, and related in-console workflows (Observe, Workloads, Operators, Networking, Storage, and specialized components where applicable).',
+  'Use specific language: narrow questions with resource type, namespace, and product area improve answer quality; if intent could be misread, suggest a concise rephrase.',
+  'Treat follow-up questions in this chat as first-class: conversation history shapes later replies—invite refinement, examples, or more detail in the same thread.',
+  'For troubleshooting, pair explanations with verifiable console steps where possible (documentation-style procedures).',
+  'When scope drifts outside OpenShift/Kubernetes, state the boundary briefly and steer back—mirroring how Lightspeed focuses on target topics.',
+].join(' ');
+
+/**
  * Internal persona + “play along” guardrails for the scripted OLS advisor (not sent to a real LLM here).
- * Blend: **Senior SRE**, **Cluster Admin**, and **Lead Enterprise Applications Developer** viewpoints on OCP 5 / Kubernetes.
+ * Blend: **Senior SRE**, **Cluster Admin**, and **Lead Enterprise Applications Developer** viewpoints on OCP 5 / Kubernetes,
+ * delivered in **OpenShift Lightspeed documentation voice** (see `OLS_LIGHTSPEED_VOICE_FROM_DOCS`).
  * `SimulationSnapshot` (including optional `playAlong`) is treated as live operational truth in user-facing copy.
  */
 export const OLS_SRE_ADVISOR_SYSTEM_DIRECTIVES = [
-  'You combine the judgment of a Senior OpenShift SRE, a Cluster Administrator, and a Lead Enterprise Applications Developer.',
+  OLS_LIGHTSPEED_VOICE_FROM_DOCS,
+  'You combine the judgment of a Senior OpenShift SRE, a Cluster Administrator, and a Lead Enterprise Applications Developer—expressed as concise product support, not jargon for its own sake.',
   'SRE lens: reliability, incident command, observability signals, upgrade risk, and platform guardrails.',
   'Cluster Admin lens: RBAC, quotas, nodes, etcd/API health, networking, and day-2 operations.',
   'Lead App Dev lens: workload behavior, rollouts, dependencies, performance regressions, and safe change windows.',
-  'Tone: professional, technical, objective. Reference Red Hat / OCP documentation patterns where helpful.',
   'Navigation: prefer OCP 5 console paths (e.g. Observe > Metrics, Observe > Alerting, Workloads > Deployments).',
   'Ground every claim in the current `SimulationSnapshot` (Observe alerts, causal-chain timestamps, remediation text, and any `playAlong` fields).',
   'Play along: when another prototype merges new simulated context via `mergeSimulationPlayAlong`, adopt that vocabulary and treat it as authoritative for this session—adapt gracefully as fields appear, change, or disappear.',
   'Never describe supplied data as mock, fake, simulated, or placeholder.',
   'When Autonomous AI Observe (internal legacy label: KubeKlaw TBC) is active, prioritize its causal chain and investigation narrative alongside other snapshot fields.',
 ].join(' ');
+
+/** Closing line mirroring docs: follow-ups refine results; same-chat context matters. */
+const CONVERSATION_FOLLOW_UP =
+  '\n\nYou can ask a follow-up in this chat to refine this answer—for example, more detail, a command example, or a narrower scope. OpenShift Lightspeed uses your conversation history when forming the next reply.';
+
+function appendConversationGuidance(body: string): string {
+  return `${body}${CONVERSATION_FOLLOW_UP}`;
+}
 
 function formatPlayAlongContext(snap: SimulationSnapshot): string {
   const pl = snap.playAlong;
@@ -94,7 +123,7 @@ export function buildRightNowAnswer(snap: SimulationSnapshot): string {
         `If you need pod-level signals, use **Observe > Dashboards** or **Workloads > Pods** filtered by the alert namespace.`
       : `**What to do next:** anchor on the console areas that match your current screen (Administrator vs Developer perspective). ` +
         `If this flow is not Observe-centric, map questions to the closest operational surface (workloads, operators, networking, or storage) implied by the context above.`;
-  return `${briefing}\n\n${observePath}`;
+  return appendConversationGuidance(`${briefing}\n\n${observePath}`);
 }
 
 export function buildDiscussOpening(
@@ -105,43 +134,55 @@ export function buildDiscussOpening(
   const title = alert?.title ?? 'this incident';
   const scope = handoff.cardId === 'remediation' ? 'remediation path' : 'root cause analysis';
 
-  return (
-    `I see you're looking at the **${handoff.diagnosisName}** view (${scope}) for **${title}** (${handoff.alertId}). ` +
-    `${alert ? `Root cause summary: ${alert.rcaSummary}` : ''}\n\n` +
-    `${alert ? `Autonomous AI Observe evidence: ${alert.agentInvestigationNarrative}` : ''}\n\n` +
-    `**Proposed direction:** ${alert?.remediationSummary ?? 'Review the remediation hub in Observe for recommended changes.'}\n` +
-    `**Risk framing:** ${alert?.remediationRiskSummary ?? 'Evaluate blast radius before applying changes.'}`
-  );
+  const body =
+    `Based on the **${handoff.diagnosisName}** context (${scope}) for **${title}** (reference **${handoff.alertId}**), here is information you can use in the console:\n\n` +
+    `${alert ? `**Summary:** ${alert.rcaSummary}\n\n` : ''}` +
+    `${alert ? `**Evidence Autonomous AI Observe correlated:** ${alert.agentInvestigationNarrative}\n\n` : ''}` +
+    `**Recommended direction:** ${alert?.remediationSummary ?? 'Review the remediation hub in Observe for recommended changes.'}\n` +
+    `**Change risk:** ${alert?.remediationRiskSummary ?? 'Evaluate blast radius before applying changes.'}`;
+
+  return appendConversationGuidance(body);
 }
 
 export function buildObserveToChatHandoff(snap: SimulationSnapshot): string {
   const p = primaryAlert(snap);
   if (!snap.isIncidentActive || !p) {
-    return (
-      'I am synced with Autonomous AI Observe for this scope. Ask about cluster health, alert triage, or where to click next in the Observe menu.'
+    return appendConversationGuidance(
+      'OpenShift Lightspeed is ready for natural-language questions about this OpenShift scope. ' +
+        'Ask about cluster health, alert triage, or console navigation (Observe, Workloads, Operators). ' +
+        'Use specific wording—resource type, namespace, and product area help produce clearer answers.'
     );
   }
-  return (
-    `I see Autonomous AI Observe has flagged active work on **${p.title}** (${p.severity}). ` +
-    `Latest chain emphasis: **${latestCausalStep(p)}**. ` +
-    `Here is my assessment of the remediation path: ${p.remediationSummary} ` +
-    `Risk: ${p.remediationRiskSummary} ` +
-    `Evidence trail: ${p.agentInvestigationNarrative} ` +
-    `Navigate to **Observe > Alerting** to validate firing labels, then **Observe > Metrics** for workload corroboration.`
-  );
+  const body =
+    `Based on the alert context available here, Autonomous AI Observe highlights **${p.title}** (${p.severity}). ` +
+    `The latest causal-chain emphasis is **${latestCausalStep(p)}**.\n\n` +
+    `**Remediation path:** ${p.remediationSummary}\n` +
+    `**Risk:** ${p.remediationRiskSummary}\n` +
+    `**Evidence trail:** ${p.agentInvestigationNarrative}\n\n` +
+    `**Verify in the console:** open **Observe > Alerting** to confirm labels and routing, then **Observe > Metrics** for workload-level corroboration.`;
+
+  return appendConversationGuidance(body);
 }
 
 export function composeAdvisorReply(userMessage: string, snap: SimulationSnapshot): string {
   const q = userMessage.toLowerCase().trim();
+  const wordCount = userMessage.trim().split(/\s+/).filter(Boolean).length;
+
+  if (/\b(recipe|poem|lyrics|bitcoin|stock price|weather forecast|sports score)\b/i.test(userMessage)) {
+    return appendConversationGuidance(
+      'OpenShift Lightspeed focuses on OpenShift, Kubernetes, and related console workflows. ' +
+        'Rephrase your question with that scope—for example, name a namespace, workload, or Observe view you are working in—and I can return more targeted information.'
+    );
+  }
 
   if (/\b(right now|currently|happening now|status)\b/.test(q) || (q.includes('what') && q.includes('happening'))) {
     return buildRightNowAnswer(snap);
   }
 
   if (/\b(navigate|where do i|console|menu|ocp)\b/.test(q)) {
-    return (
-      'Use the **Administrator** perspective. For signals: **Observe > Alerting** (rules and fires), **Observe > Metrics** (Prometheus explorer), **Observe > Dashboards** (saved views), and **Observe > Targets** for scrape health. ' +
-      buildSituationBriefing(snap)
+    return appendConversationGuidance(
+      'In the **Administrator** perspective, use **Observe > Alerting** (rules and firing alerts), **Observe > Metrics** (Prometheus explorer), **Observe > Dashboards** (saved views), and **Observe > Targets** for scrape health. ' +
+        buildSituationBriefing(snap)
     );
   }
 
@@ -149,12 +190,14 @@ export function composeAdvisorReply(userMessage: string, snap: SimulationSnapsho
     const aid = snap.ambientIndicatorAlertId;
     const target = aid ? snap.alerts.find((a) => a.id === aid) : primaryAlert(snap);
     if (!target) {
-      return 'Select an alert row or open Autonomous AI Observe so I can reference the pre-analyzed causal chain for a specific alert ID.';
+      return appendConversationGuidance(
+        'Attach or select alert context in the console (for example, expand an alert row in **Observe > Alerting**) so OpenShift Lightspeed can reference a specific alert ID and its causal chain.'
+      );
     }
-    return (
-      `For alert **${target.id}** / **${target.title}**, the pre-analyzed causal chain is: ` +
-      `${target.steps.map((s) => `[${s.status}] ${s.title}${s.time ? ` @${s.time}` : ''}`).join(' → ')}. ` +
-      `Narrative: ${target.agentInvestigationNarrative}`
+    return appendConversationGuidance(
+      `For alert **${target.id}** (**${target.title}**), the pre-analyzed causal chain is: ` +
+        `${target.steps.map((s) => `[${s.status}] ${s.title}${s.time ? ` @${s.time}` : ''}`).join(' → ')}. ` +
+        `Narrative: ${target.agentInvestigationNarrative}`
     );
   }
 
@@ -162,24 +205,30 @@ export function composeAdvisorReply(userMessage: string, snap: SimulationSnapsho
   if (!p) {
     const pl = formatPlayAlongContext(snap);
     if (pl) {
-      return (
-        `Drawing on the combined **SRE / Cluster Admin / Lead App Dev** view for **${snap.selectedClusterName || 'this environment'}**:\n\n${pl}\n\n` +
-        `Ask how to validate, roll out, or roll back a change, or where to click next in the console for this prototype.`
+      return appendConversationGuidance(
+        `Here is information grounded in your current scope for **${snap.selectedClusterName || 'this environment'}**:\n\n${pl}\n\n` +
+          'Ask a follow-up with a namespace, workload name, or console page if you want command examples or a narrower procedure.'
       );
     }
-    return (
-      `I can help triage Observe signals for **${snap.selectedClusterName}**. ` +
-      `No active alerts are loaded in this scope—ask about capacity planning, upgrade risk, or paste a metric question.`
+    return appendConversationGuidance(
+      `No firing alerts are loaded for **${snap.selectedClusterName}** in this view. ` +
+        'You can ask about capacity planning, upgrades, or metrics—include the namespace or workload for more precise guidance.'
     );
   }
 
+  const specificityHint =
+    wordCount <= 3
+      ? 'For clearer results, include the namespace, workload type, and what you are trying to verify (documentation recommends specific wording).\n\n'
+      : '';
+
   const pl = formatPlayAlongContext(snap);
   const core =
-    `Grounded in Autonomous AI Observe for **${snap.selectedClusterName}**: **${p.title}** — ${p.message} ` +
-    `RCA: ${p.rcaSummary} ` +
-    `Key reference: \`${p.rootCauseRef}\` ${p.rootCauseTail}. ` +
-    `Confidence ${p.confidence}%. ` +
-    `Remediation: ${p.remediationSummary} ` +
-    `Risk: ${p.remediationRiskSummary}`;
-  return pl ? `${core}\n\n${pl}` : core;
+    specificityHint +
+    `**${p.title}** — ${p.message}\n\n` +
+    `**Root cause:** ${p.rcaSummary} Key reference: \`${p.rootCauseRef}\` ${p.rootCauseTail}. ` +
+    `**Confidence:** ${p.confidence}%.\n\n` +
+    `**Remediation:** ${p.remediationSummary}\n` +
+    `**Risk:** ${p.remediationRiskSummary}`;
+
+  return appendConversationGuidance(pl ? `${core}\n\n${pl}` : core);
 }
