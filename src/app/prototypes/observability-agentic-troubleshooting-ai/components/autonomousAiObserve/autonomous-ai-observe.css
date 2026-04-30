@@ -25,6 +25,37 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Fleet summary KPI: statistic is a link-styled control (not a second heading — `CardTitle` is h4).
+ * Size aligns with prior Title `4xl` treatment; tabular numerals for stable digit width.
+ */
+.ols-aio-stat-figure .ols-aio-fleet-stat-drilldown {
+  font-variant-numeric: tabular-nums;
+}
+
+.ols-aio-fleet-stat-drilldown.pf-v6-c-button.pf-m-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  height: auto;
+  min-height: 0;
+  font-family: var(--pf-t--global--font--family--heading, var(--pf-t--global--font--family--body));
+  font-size: 2.25rem;
+  font-weight: var(--pf-t--global--font--weight--heading, 400);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--pf-t--global--text--color--regular);
+  text-decoration: none;
+  text-underline-offset: 0.125rem;
+  vertical-align: baseline;
+}
+
+.ols-aio-fleet-stat-drilldown.pf-v6-c-button.pf-m-link:hover,
+.ols-aio-fleet-stat-drilldown.pf-v6-c-button.pf-m-link:focus {
+  color: var(--pf-t--global--link--color--hover);
+  text-decoration: underline;
+}
+
 /* Context selector row: default MenuToggle (outlined) + tighter radius — not secondary “pill” chips. */
 .ols-aio-context-selectors .pf-v6-c-menu-toggle {
   border-radius: var(--pf-t--global--border--radius--small);

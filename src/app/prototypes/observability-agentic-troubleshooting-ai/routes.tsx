@@ -58,6 +58,17 @@ export const routes: RouteConfig[] = [
       order: 3,
     },
   },
+  /** Fleet drill-down targets (sidebar entries can be added when pages ship). */
+  {
+    path: '/core/observe/clusters',
+    element: <ObserveNavPlaceholder />,
+    title: 'Clusters',
+  },
+  {
+    path: '/core/observe/nodes',
+    element: <ObserveNavPlaceholder />,
+    title: 'Nodes',
+  },
   {
     path: '/core/observe/metrics',
     element: <ObserveNavPlaceholder />,

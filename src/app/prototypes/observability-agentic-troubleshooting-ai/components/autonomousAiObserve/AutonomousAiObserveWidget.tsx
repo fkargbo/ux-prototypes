@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   AlertActionCloseButton,
@@ -55,6 +56,68 @@ import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget';
 
+/** Fleet summary stat drill-down (full pages can replace placeholders later). */
+const FLEET_DRILL = {
+  alertingCritical: '/core/observe/alerting?scope=fleet&severity=critical',
+  alertingWarning: '/core/observe/alerting?scope=fleet&severity=warning',
+  clustersNonHealthy: '/core/observe/clusters?scope=fleet&health=non-healthy',
+  nodesFleet: '/core/observe/nodes?scope=fleet',
+} as const;
+
+type FleetSummaryStatCardProps = {
+  cardTitle: string;
+  titleIcon: React.ReactNode;
+  statistic: React.ReactNode;
+  statisticAriaLabel: string;
+  onStatisticClick: () => void;
+  caption: React.ReactNode;
+};
+
+/** Nested metric card: `CardTitle` in header (PatternFly card pattern), drill-down on the statistic. */
+const FleetSummaryStatCard: React.FC<FleetSummaryStatCardProps> = ({
+  cardTitle,
+  titleIcon,
+  statistic,
+  statisticAriaLabel,
+  onStatisticClick,
+  caption,
+}) => (
+  <Card isCompact>
+    <CardHeader>
+      <Flex
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        alignItems={{ default: 'alignItemsCenter' }}
+        flexWrap={{ default: 'nowrap' }}
+      >
+        <CardTitle component="h4">{cardTitle}</CardTitle>
+        <span aria-hidden="true">{titleIcon}</span>
+      </Flex>
+    </CardHeader>
+    <CardBody>
+      <div className="ols-aio-stat-figure">
+        <Button
+          variant="link"
+          className="ols-aio-fleet-stat-drilldown"
+          onClick={onStatisticClick}
+          aria-label={statisticAriaLabel}
+        >
+          {statistic}
+        </Button>
+      </div>
+      <Content
+        component="p"
+        className="ols-aio-text-subtle-sm"
+        style={{
+          marginTop: 'var(--pf-t--global--spacer--xs)',
+          marginBottom: 0,
+        }}
+      >
+        {caption}
+      </Content>
+    </CardBody>
+  </Card>
+);
+
 function fleetAgentStatus(clusters: ClusterRecord[]): AgentPulseStatus {
   if (clusters.some((c) => c.agentStatus === 'escalated')) {
     return 'escalated';
@@ -100,6 +163,7 @@ function clusterHealthLabelText(health: ClusterHealth): string {
 }
 
 export const AutonomousAiObserveWidget: React.FC = () => {
+  const navigate = useNavigate();
   const isMultiCluster = CLUSTERS.length > 1;
   const [viewMode, setViewMode] = useState<ViewMode>(isMultiCluster ? 'fleet' : 'cluster');
   const [selectedClusterId, setSelectedClusterId] = useState(CLUSTERS[0]?.id ?? '');
@@ -438,104 +502,62 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     <CardBody>
                       <Grid hasGutter>
                         <GridItem span={12} md={6} lg={3}>
-                          <Card isCompact>
-                            <CardBody>
-                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                                <span className="ols-aio-text-subtle-sm">Critical alerts</span>
-                                <ExclamationCircleIcon
-                                  style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
-                                />
-                              </Flex>
-                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
-                                {fleetStats.criticalCount}
-                              </Title>
-                              <Content
-                                component="p"
-                                className="ols-aio-text-subtle-sm"
-                                style={{
-                                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                                  marginBottom: 0,
-                                }}
-                              >
-                                Across all clusters
-                              </Content>
-                            </CardBody>
-                          </Card>
+                          <FleetSummaryStatCard
+                            cardTitle="Critical alerts"
+                            titleIcon={
+                              <ExclamationCircleIcon
+                                style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
+                              />
+                            }
+                            statistic={fleetStats.criticalCount}
+                            statisticAriaLabel="Open Alerting for critical alerts in fleet scope"
+                            onStatisticClick={() => navigate(FLEET_DRILL.alertingCritical)}
+                            caption="Across all clusters"
+                          />
                         </GridItem>
                         <GridItem span={12} md={6} lg={3}>
-                          <Card isCompact>
-                            <CardBody>
-                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                                <span className="ols-aio-text-subtle-sm">Warning alerts</span>
-                                <ExclamationTriangleIcon
-                                  style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
-                                />
-                              </Flex>
-                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
-                                {fleetStats.warningCount}
-                              </Title>
-                              <Content
-                                component="p"
-                                className="ols-aio-text-subtle-sm"
-                                style={{
-                                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                                  marginBottom: 0,
-                                }}
-                              >
-                                Across all clusters
-                              </Content>
-                            </CardBody>
-                          </Card>
+                          <FleetSummaryStatCard
+                            cardTitle="Warning alerts"
+                            titleIcon={
+                              <ExclamationTriangleIcon
+                                style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
+                              />
+                            }
+                            statistic={fleetStats.warningCount}
+                            statisticAriaLabel="Open Alerting for warning alerts in fleet scope"
+                            onStatisticClick={() => navigate(FLEET_DRILL.alertingWarning)}
+                            caption="Across all clusters"
+                          />
                         </GridItem>
                         <GridItem span={12} md={6} lg={3}>
-                          <Card isCompact>
-                            <CardBody>
-                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                                <span className="ols-aio-text-subtle-sm">Clusters degraded</span>
-                                <ExclamationTriangleIcon
-                                  style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
-                                />
-                              </Flex>
-                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
+                          <FleetSummaryStatCard
+                            cardTitle="Clusters degraded"
+                            titleIcon={
+                              <ExclamationTriangleIcon
+                                style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
+                              />
+                            }
+                            statistic={
+                              <>
                                 {degradedCount} / {fleetStats.totalClusters}
-                              </Title>
-                              <Content
-                                component="p"
-                                className="ols-aio-text-subtle-sm"
-                                style={{
-                                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                                  marginBottom: 0,
-                                }}
-                              >
-                                Non-healthy
-                              </Content>
-                            </CardBody>
-                          </Card>
+                              </>
+                            }
+                            statisticAriaLabel="Open Clusters for degraded or unhealthy fleet members"
+                            onStatisticClick={() => navigate(FLEET_DRILL.clustersNonHealthy)}
+                            caption="Non-healthy"
+                          />
                         </GridItem>
                         <GridItem span={12} md={6} lg={3}>
-                          <Card isCompact>
-                            <CardBody>
-                              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                                <span className="ols-aio-text-subtle-sm">Total nodes</span>
-                                <InfoCircleIcon
-                                  style={{ color: 'var(--pf-t--global--color--status--info--default)' }}
-                                />
-                              </Flex>
-                              <Title headingLevel="h4" size="4xl" className="ols-aio-stat-figure">
-                                {fleetStats.totalNodes}
-                              </Title>
-                              <Content
-                                component="p"
-                                className="ols-aio-text-subtle-sm"
-                                style={{
-                                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                                  marginBottom: 0,
-                                }}
-                              >
-                                {fleetStats.totalClusters} Clusters
-                              </Content>
-                            </CardBody>
-                          </Card>
+                          <FleetSummaryStatCard
+                            cardTitle="Total nodes"
+                            titleIcon={
+                              <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />
+                            }
+                            statistic={fleetStats.totalNodes}
+                            statisticAriaLabel="Open Nodes for fleet-wide capacity"
+                            onStatisticClick={() => navigate(FLEET_DRILL.nodesFleet)}
+                            caption={`${fleetStats.totalClusters} clusters`}
+                          />
                         </GridItem>
                       </Grid>
                     </CardBody>
