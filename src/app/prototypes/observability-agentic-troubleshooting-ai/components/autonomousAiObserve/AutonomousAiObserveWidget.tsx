@@ -88,7 +88,8 @@ type ObserveMetricStatCardProps = {
 
 /**
  * Nested metric card — PatternFly `CardTitle` in header when `metricHeader`.
- * Demo: statistic is always a link-styled drill control (blue), including when the value is zero.
+ * Fleet (`metricHeader`): status icon precedes the value; value is link-colored at KPI size (`ols-aio-card-stat-number--drill`).
+ * Stacked (cluster health): same drill link styling.
  */
 const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
   layout,
@@ -99,7 +100,7 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
   onStatisticClick,
   caption,
 }) => {
-  const statBlock = (
+  const statBlockStacked = (
     <Button
       variant="link"
       className="ols-aio-card-stat-number--drill"
@@ -127,17 +128,27 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
     return (
       <Card isCompact>
         <CardHeader>
-          <Flex
-            justifyContent={{ default: 'justifyContentSpaceBetween' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-            flexWrap={{ default: 'nowrap' }}
-          >
-            <CardTitle component="h4">{cardTitle}</CardTitle>
-            {titleIcon ? <span aria-hidden="true">{titleIcon}</span> : null}
-          </Flex>
+          <CardTitle component="h4">{cardTitle}</CardTitle>
         </CardHeader>
         <CardBody>
-          <div className="ols-aio-stat-figure">{statBlock}</div>
+          <div className="ols-aio-stat-figure">
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+              {titleIcon ? (
+                <span className="ols-aio-fleet-summary-stat-icon" aria-hidden="true">
+                  {titleIcon}
+                </span>
+              ) : null}
+              <Button
+                variant="link"
+                isInline
+                className="ols-aio-card-stat-number--drill"
+                onClick={onStatisticClick}
+                aria-label={statisticAriaLabel}
+              >
+                {statistic}
+              </Button>
+            </Flex>
+          </div>
           {captionBlock}
         </CardBody>
       </Card>
@@ -148,7 +159,7 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
     <Card isCompact>
       <CardBody>
         <span className="ols-aio-text-overline">{cardTitle}</span>
-        <div className="ols-aio-stat-figure">{statBlock}</div>
+        <div className="ols-aio-stat-figure">{statBlockStacked}</div>
         {captionBlock}
       </CardBody>
     </Card>

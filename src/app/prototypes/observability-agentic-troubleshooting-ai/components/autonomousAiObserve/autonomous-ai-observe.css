@@ -25,8 +25,7 @@
 }
 
 /*
- * Card KPI numerals (prototype-wide): 24px body tabular figures.
- * Demo: primary stats use link `Button` + `--drill` (PatternFly link blue) even when the value is zero.
+ * Card KPI numerals: 24px bold tabular. Static uses body color; drill uses link color / hover (text-link rules on color only).
  */
 span.ols-aio-card-stat-number {
   display: inline-block;
@@ -59,6 +58,18 @@ button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link:hover,
 button.ols-aio-card-stat-number--drill.pf-v6-c-button.pf-m-link:focus {
   color: var(--pf-t--global--link--color--hover);
   text-decoration: underline;
+}
+
+/* Fleet summary sub-cards: status icon before the 24px link-styled value (see `ols-aio-card-stat-number--drill`). */
+.ols-aio-fleet-summary-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.ols-aio-fleet-summary-stat-icon svg {
+  vertical-align: middle;
 }
 
 /* Cluster gallery tiles: compact inline drill for alert counts (not 24px KPI — those stay on fleet / health cards). */
