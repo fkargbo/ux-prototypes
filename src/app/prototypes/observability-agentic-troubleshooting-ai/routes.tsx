@@ -9,6 +9,7 @@ import { PodDetailDashboardPage } from './pages/PodDetailDashboardPage';
 import {
   AlertingFleetManagementGate,
   CreateAlertRuleFleetManagementGate,
+  CreateSilenceFleetManagementGate,
 } from './pages/AlertingFleetManagementGate';
 import { Content, PageSection } from '@patternfly/react-core';
 
@@ -72,6 +73,11 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/alerting-v2/create-alert-rule',
     element: <CreateAlertRuleFleetManagementGate />,
     title: 'Create alert rule',
+  },
+  {
+    path: '/core/observe/alerting-v2/create-silence',
+    element: <CreateSilenceFleetManagementGate />,
+    title: 'Create silence',
   },
   {
     path: '/core/observe/alerting/:clusterId/components',
