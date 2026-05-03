@@ -478,6 +478,42 @@ export function fleetWideCriticalAddsForCluster(clusterId: string): number {
   return FLEET_WIDE_REGIONAL_INGRESS.affectedClusterIds.includes(clusterId) ? 1 : 0;
 }
 
+/**
+ * Synthetic per-cluster row for the fleet-wide ingress incident so Active alerts and drill-down
+ * match fleet KPIs (`fleetWideCriticalAddsForCluster`). Not stored on `ALERTS` to avoid duplicating
+ * one incident across three cluster rows in fleet-wide tables.
+ */
+export function buildFleetWideIngressAlertRecordForCluster(clusterId: string): AlertRecord | null {
+  if (fleetWideCriticalAddsForCluster(clusterId) === 0) {
+    return null;
+  }
+  const fw = FLEET_WIDE_REGIONAL_INGRESS;
+  return {
+    id: `${fw.id}__${clusterId}`,
+    clusterId,
+    severity: 'critical',
+    title: fw.title,
+    service: 'openshift-ingress / fleet-correlated',
+    age: fw.symptomStartedDisplay,
+    firedAt: fw.firedAt,
+    message: fw.aiSummary,
+    agentStatus: fw.agentStatus,
+    steps: fw.steps,
+    rcaSummary: `${fw.aggregatedFinding} ${fw.rootCauseNarrative}`.trim(),
+    rootCauseRef: 'cluster-gitops-policies',
+    rootCauseTail: fw.rootCauseNarrative.slice(0, 120),
+    confidence: 94,
+    logLines: `Fleet ingress symptom · ${fw.correlatedAlertCount} correlated alerts · deny-all-ingress NetworkPolicy roll-forward detected.`,
+    blastRadius: [...fw.affectedClusterIds, 'router-default', 'openshift-ingress'],
+    remediationSummary: fw.remediationProposal,
+    remediationCommands:
+      'Use Remediation hub in Fleet management for governor-approved rollback across affected clusters.',
+    estimatedRecovery: fw.estimatedRecovery,
+    remediationRiskSummary: fw.riskAssessment,
+    agentInvestigationNarrative: fw.aiSummary,
+  };
+}
+
 /** Digest rows for “While you were away” — fixed copy per spec */
 export const AWAY_DIGEST_ITEMS: Array<{
   tone: 'danger' | 'success' | 'warning' | 'info';
@@ -532,7 +568,12 @@ export function sortAlertsBySeverityPriority(alerts: AlertRecord[]): AlertRecord
 }
 
 export function getAlertsForCluster(clusterId: string): AlertRecord[] {
-  return sortAlertsBySeverityPriority(ALERTS.filter((a) => a.clusterId === clusterId));
+  const perCluster = sortAlertsBySeverityPriority(ALERTS.filter((a) => a.clusterId === clusterId));
+  const fleetRow = buildFleetWideIngressAlertRecordForCluster(clusterId);
+  if (!fleetRow) {
+    return perCluster;
+  }
+  return sortAlertsBySeverityPriority([fleetRow, ...perCluster]);
 }
 
 /**
@@ -546,7 +587,9 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   }
 
   const items: AwayDigestItem[] = [];
-  const alerts = getAlertsForCluster(clusterId);
+  const perClusterAlerts = sortAlertsBySeverityPriority(
+    ALERTS.filter((a) => a.clusterId === clusterId)
+  );
 
   if (fleetWideCriticalAddsForCluster(clusterId) > 0) {
     const summary = FLEET_WIDE_REGIONAL_INGRESS.aiSummary;
@@ -557,8 +600,8 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
     });
   }
 
-  const crit = alerts.filter((a) => a.severity === 'critical');
-  const warn = alerts.filter((a) => a.severity === 'warning');
+  const crit = perClusterAlerts.filter((a) => a.severity === 'critical');
+  const warn = perClusterAlerts.filter((a) => a.severity === 'warning');
 
   if (crit.length > 0) {
     items.push({

@@ -46,13 +46,11 @@ import {
   buildClusterAwayDigestItems,
   CLUSTERS,
   computeFleetStats,
-  FLEET_WIDE_REGIONAL_INGRESS,
   fleetWideCriticalAddsForCluster,
   getAlertsForCluster,
   getClusterById,
 } from './data';
 import { AgentPulseLabel } from './AgentPulseLabel';
-import { FleetWideObserveIncident } from './FleetWideObserveIncident';
 import { ObserveAlertItem } from './ObserveAlertItem';
 import './autonomous-ai-observe.css';
 import { SimulationProvider } from '../../simulation/SimulationProvider';
@@ -246,7 +244,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const [widgetExpanded, setWidgetExpanded] = useState(true);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
-  const [fleetWideIncidentExpanded, setFleetWideIncidentExpanded] = useState(true);
   const [clustersOpen, setClustersOpen] = useState(true);
   const [cAwayOpen, setCAwayOpen] = useState(true);
   const [cHealthOpen, setCHealthOpen] = useState(true);
@@ -303,13 +300,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const fleetStats = useMemo(() => computeFleetStats(CLUSTERS, ALERTS, 1), []);
 
-  const fleetWideAffectedClusters = useMemo(
-    () =>
-      FLEET_WIDE_REGIONAL_INGRESS.affectedClusterIds
-        .map((id) => getClusterById(id))
-        .filter((c): c is NonNullable<typeof c> => Boolean(c)),
-    []
-  );
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
   const totalFleetNodes = useMemo(() => CLUSTERS.reduce((s, c) => s + c.nodes, 0), []);
 
@@ -394,9 +384,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const headerPulse: AgentPulseStatus = showFleetOverview ? fleetPulse : selectedCluster.agentStatus;
 
-  const criticalOnCluster =
-    clusterAlerts.filter((a) => a.severity === 'critical').length +
-    fleetWideCriticalAddsForCluster(selectedCluster.id);
+  const criticalOnCluster = clusterAlerts.filter((a) => a.severity === 'critical').length;
   const warningOnCluster = clusterAlerts.filter((a) => a.severity === 'warning').length;
 
   const degradedCount = CLUSTERS.filter((c) => c.health !== 'healthy').length;
@@ -599,16 +587,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
-              </StackItem>
-
-              <StackItem>
-                <FleetWideObserveIncident
-                  incident={FLEET_WIDE_REGIONAL_INGRESS}
-                  affectedClusters={fleetWideAffectedClusters}
-                  isExpanded={fleetWideIncidentExpanded}
-                  onToggle={setFleetWideIncidentExpanded}
-                  onDiscussWithLightspeed={discussLightspeed}
-                />
               </StackItem>
 
               <StackItem>
