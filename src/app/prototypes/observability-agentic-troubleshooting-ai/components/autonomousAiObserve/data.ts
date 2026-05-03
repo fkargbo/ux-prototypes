@@ -132,6 +132,17 @@ export const CLUSTERS: ClusterRecord[] = [
     health: 'degraded',
     agentStatus: 'investigating',
   },
+  {
+    id: 'prod-us-west-2',
+    name: 'prod-us-west-2',
+    region: 'us-west-2',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.8',
+    nodes: 16,
+    health: 'healthy',
+    agentStatus: 'idle',
+  },
 ];
 
 export const ALERTS: AlertRecord[] = [
