@@ -107,7 +107,7 @@ export const CLUSTERS: ClusterRecord[] = [
     env: 'prod',
     version: '4.15.8',
     nodes: 18,
-    health: 'degraded',
+    health: 'critical',
     agentStatus: 'remediating',
   },
   {

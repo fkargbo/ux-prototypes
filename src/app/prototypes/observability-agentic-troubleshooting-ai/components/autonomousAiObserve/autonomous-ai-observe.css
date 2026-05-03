@@ -95,21 +95,25 @@ span.ols-aio-card-stat-number {
   vertical-align: middle;
 }
 
-/* Cluster gallery tiles: compact inline drill for alert counts (not 24px KPI — those stay on fleet / health cards). */
-button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link {
+/*
+ * Cluster gallery tiles: compact inline drill for alert counts (not 24px KPI — those stay on fleet / health cards).
+ * PF Button link overrides font on `.pf-v6-c-button__text`; alert numerals use global `--font--size--sm` (14px tier).
+ */
+#ols-autonomous-ai-observe-widget button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link,
+#ols-autonomous-ai-observe-widget button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link .pf-v6-c-button__text {
   padding: 0;
   margin: 0;
   height: auto;
   min-height: 0;
-  font-size: var(--pf-t--global--font--size--body--sm);
+  font-size: var(--pf-t--global--font--size--sm, 14px);
   font-weight: var(--pf-t--global--font--weight--body);
   line-height: 1.4;
   text-decoration: none;
   vertical-align: baseline;
 }
 
-button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link:hover,
-button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link:focus {
+#ols-autonomous-ai-observe-widget button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link:hover,
+#ols-autonomous-ai-observe-widget button.ols-aio-cluster-tile-alert-drill.pf-v6-c-button.pf-m-link:focus {
   text-decoration: underline;
 }
 

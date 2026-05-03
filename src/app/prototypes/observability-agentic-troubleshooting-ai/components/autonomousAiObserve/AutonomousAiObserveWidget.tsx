@@ -36,7 +36,6 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   GlobeIcon,
-  InfoCircleIcon,
   MonitoringIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
@@ -311,6 +310,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   useEffect(() => {
     writeFocusedClusterIdToSession(selectedClusterId);
   }, [selectedClusterId]);
+
+  useEffect(() => {
+    if (fleetClusterDrillDown) {
+      setCAwayOpen(false);
+    }
+  }, [fleetClusterDrillDown]);
 
   const clusterAlerts = useMemo(() => getAlertsForCluster(selectedClusterId), [selectedClusterId]);
 
@@ -657,9 +662,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         <GridItem span={12} md={6} lg={3}>
                           <ObserveMetricStatCard
                             cardTitle="Total nodes"
-                            titleIcon={
-                              <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />
-                            }
                             statistic={fleetStats.totalNodes}
                             statisticAriaLabel="Total nodes in fleet"
                             statisticInteractive={false}
@@ -1005,9 +1007,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         <GridItem span={12} md={4}>
                           <ObserveMetricStatCard
                             cardTitle="Nodes / Version"
-                            titleIcon={
-                              <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />
-                            }
                             statistic={
                               <>
                                 {selectedCluster.nodes} / {selectedCluster.version}
