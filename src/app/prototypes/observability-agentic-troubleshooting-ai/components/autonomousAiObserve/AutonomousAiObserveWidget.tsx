@@ -83,15 +83,36 @@ function awayDigestClusterEventCountLabel(visibleCount: number): string {
   return `${visibleCount} new events`;
 }
 
+/** Multi-cluster Alerting: `tab=alerts` with optional `cluster`, `severity`, `scope=ai-hub` (see `MultiClusterAlertsPage`). */
+function alertingAlertsTabHref(options: {
+  severity?: 'critical' | 'warning';
+  clusterId?: string;
+  /** Fleet KPI drill: limit Alerting to AI Hub mock clusters only (excludes generated filler clusters). */
+  aiHubFleetScope?: boolean;
+}): string {
+  const params = new URLSearchParams();
+  params.set('tab', 'alerts');
+  if (options.severity) {
+    params.set('severity', options.severity);
+  }
+  if (options.clusterId) {
+    params.set('cluster', options.clusterId);
+  }
+  if (options.aiHubFleetScope) {
+    params.set('scope', 'ai-hub');
+  }
+  return `/core/observe/alerting?${params.toString()}`;
+}
+
 function clusterDrillHref(clusterId: string, target: 'alert-critical' | 'alert-warning' | 'nodes'): string {
-  const id = encodeURIComponent(clusterId);
+  const enc = encodeURIComponent(clusterId);
   if (target === 'alert-critical') {
-    return `/core/observe/alerting?scope=cluster&cluster=${id}&severity=critical`;
+    return alertingAlertsTabHref({ severity: 'critical', clusterId });
   }
   if (target === 'alert-warning') {
-    return `/core/observe/alerting?scope=cluster&cluster=${id}&severity=warning`;
+    return alertingAlertsTabHref({ severity: 'warning', clusterId });
   }
-  return `/core/observe/nodes?scope=cluster&cluster=${id}`;
+  return `/core/observe/nodes?scope=cluster&cluster=${enc}`;
 }
 
 type ObserveMetricStatCardProps = {
@@ -103,7 +124,7 @@ type ObserveMetricStatCardProps = {
   statisticAriaLabel: string;
   onStatisticClick: () => void;
   caption: React.ReactNode;
-  /** When false, the KPI is display-only (Fleet summary, Cluster health). */
+  /** When false, the KPI is display-only. */
   statisticInteractive?: boolean;
 };
 
@@ -199,10 +220,10 @@ function clusterTypeLabelText(env: ClusterRecord['env']): string {
   return capitalizeLabelWord(env);
 }
 
-/** Health label text shown on the tile; degraded reads as Warning per spec. */
+/** Health label text shown on the tile (matches `ClusterHealth` vocabulary). */
 function clusterHealthLabelText(health: ClusterHealth): string {
   if (health === 'degraded') {
-    return 'Warning';
+    return 'Degraded';
   }
   return capitalizeLabelWord(health);
 }
@@ -623,9 +644,11 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.criticalCount}
-                            statisticAriaLabel="Critical alerts across all clusters"
-                            statisticInteractive={false}
-                            onStatisticClick={() => {}}
+                            statisticAriaLabel="Open Multi-cluster alerting, Alerts tab, critical severity, AI Hub clusters only (matches Observe fleet counts)"
+                            statisticInteractive
+                            onStatisticClick={() =>
+                              navigate(alertingAlertsTabHref({ severity: 'critical', aiHubFleetScope: true }))
+                            }
                             caption="Across all clusters"
                           />
                         </GridItem>
@@ -638,9 +661,11 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.warningCount}
-                            statisticAriaLabel="Warning alerts across all clusters"
-                            statisticInteractive={false}
-                            onStatisticClick={() => {}}
+                            statisticAriaLabel="Open Multi-cluster alerting, Alerts tab, warning severity, AI Hub clusters only (matches Observe fleet counts)"
+                            statisticInteractive
+                            onStatisticClick={() =>
+                              navigate(alertingAlertsTabHref({ severity: 'warning', aiHubFleetScope: true }))
+                            }
                             caption="Across all clusters"
                           />
                         </GridItem>
@@ -984,9 +1009,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={criticalOnCluster}
-                            statisticAriaLabel={`Critical alerts on ${selectedCluster.name}`}
-                            onStatisticClick={() => {}}
-                            statisticInteractive={false}
+                            statisticAriaLabel={`Open Alerting Alerts tab, critical filter, for ${selectedCluster.name}`}
+                            onStatisticClick={() =>
+                              navigate(
+                                alertingAlertsTabHref({
+                                  severity: 'critical',
+                                  clusterId: selectedCluster.id,
+                                })
+                              )
+                            }
+                            statisticInteractive
                             caption={`on ${selectedCluster.name}`}
                           />
                         </GridItem>
@@ -999,9 +1031,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={warningOnCluster}
-                            statisticAriaLabel={`Warning alerts on ${selectedCluster.name}`}
-                            onStatisticClick={() => {}}
-                            statisticInteractive={false}
+                            statisticAriaLabel={`Open Alerting Alerts tab, warning filter, for ${selectedCluster.name}`}
+                            onStatisticClick={() =>
+                              navigate(
+                                alertingAlertsTabHref({
+                                  severity: 'warning',
+                                  clusterId: selectedCluster.id,
+                                })
+                              )
+                            }
+                            statisticInteractive
                             caption={`on ${selectedCluster.name}`}
                           />
                         </GridItem>

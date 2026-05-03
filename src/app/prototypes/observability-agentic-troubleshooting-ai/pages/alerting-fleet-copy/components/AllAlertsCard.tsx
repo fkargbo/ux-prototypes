@@ -182,6 +182,9 @@ interface AllAlertsCardProps {
   stateFilter?: string[];
   sourceFilter?: string[];
   alertNamesFilter?: string[];
+  /** Row-level severity filter (must match Alerts tab / URL e.g. drill from Observe KPI). */
+  severityFilter: AlertSeverity[];
+  setSeverityFilter: React.Dispatch<React.SetStateAction<AlertSeverity[]>>;
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
@@ -218,6 +221,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   stateFilter = [],
   sourceFilter = [],
   alertNamesFilter = [],
+  severityFilter,
+  setSeverityFilter,
 }) => {
   // Component metadata with alert scopes
   const componentMeta: Record<AlertComponent, { impactGroup: 'Cluster' | 'Namespace' }> = {
@@ -233,7 +238,6 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   };
   
   const [searchValue, setSearchValue] = React.useState('');
-  const [severityFilter, setSeverityFilter] = React.useState<AlertSeverity[]>([]);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(10);
   const [expandedAlerts, setExpandedAlerts] = React.useState<string[]>([]);

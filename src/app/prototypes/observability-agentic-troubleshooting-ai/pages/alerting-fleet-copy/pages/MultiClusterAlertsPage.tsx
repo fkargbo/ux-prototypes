@@ -219,6 +219,7 @@ import { FleetOverviewTab } from '../components/FleetOverviewTab';
 import { FleetOverviewToolbar } from '../components/FleetOverviewToolbar';
 import { AlertsTabFleetOverviewContent } from '../components/AlertsTabFleetOverviewContent';
 import { mockAlertRules, mockTrendData, mockClusters } from '../data/mockData';
+import { CLUSTERS } from '../../../components/autonomousAiObserve/data';
 
 type QuickTimeRange =
   | 'last-5m'
@@ -643,7 +644,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       setCameFromFleetOverview(false);
     }
     
-    // Sync cluster filter with URL
+    // Sync cluster filter with URL (single-cluster drill takes precedence over fleet scope below)
     if (urlCluster && (urlTab === 'alerts' || urlTab === 'firing-alerts')) {
       const cluster = mockClusters.find(c => c.name === urlCluster);
       if (cluster && clusterFilter[0] !== urlCluster) {
@@ -652,6 +653,15 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         setSelectedClusterForAlerts(cluster);
         setFiringAlertsCardView('single-cluster');
       }
+    } else if (
+      searchParams.get('scope') === 'ai-hub' &&
+      (urlTab === 'alerts' || urlTab === 'firing-alerts')
+    ) {
+      const hubNames = CLUSTERS.map((c) => c.name);
+      setAlertsTabClusterFilter(hubNames);
+      setClusterFilter(hubNames);
+      setSelectedClusterForAlerts(null);
+      setFiringAlertsCardView('all-clusters');
     }
     
     // Sync component filter with URL
@@ -659,6 +669,22 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       setMainComponentFilter(urlComponent);
     } else if (!urlComponent && mainComponentFilter) {
       setMainComponentFilter(null);
+    }
+
+    // Sync Alerts tab severity from URL (e.g. Observe Fleet Summary / Cluster health KPI drill-down)
+    const urlSeverity = searchParams.get('severity');
+    if (
+      urlSeverity &&
+      (urlTab === 'alerts' || urlTab === 'firing-alerts')
+    ) {
+      const n = urlSeverity.toLowerCase();
+      if (n === 'critical') {
+        setAlertsTabSeverityFilter(['Critical']);
+      } else if (n === 'warning') {
+        setAlertsTabSeverityFilter(['Warning']);
+      } else if (n === 'info') {
+        setAlertsTabSeverityFilter(['Info']);
+      }
     }
   }, [searchParams]);
 

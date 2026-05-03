@@ -65,7 +65,7 @@ export interface AlertsTabFleetOverviewContentProps {
   alertsTabLabelFilter: string[];
   setAlertsTabLabelFilter: (v: string[]) => void;
   alertsTabSeverityFilter: AlertSeverity[];
-  setAlertsTabSeverityFilter: (v: AlertSeverity[]) => void;
+  setAlertsTabSeverityFilter: React.Dispatch<React.SetStateAction<AlertSeverity[]>>;
   alertsTabGroupFilter: AlertGroup[];
   setAlertsTabGroupFilter: (v: AlertGroup[]) => void;
   alertsTabComponentFilter: AlertComponent[];
@@ -382,6 +382,8 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                     stateFilter={alertStateFilter}
                     sourceFilter={alertSourceFilter}
                     alertNamesFilter={contributingAlertsFilter}
+                    severityFilter={alertsTabSeverityFilter}
+                    setSeverityFilter={setAlertsTabSeverityFilter}
                     filterToolbar={
                       <>
                         <Toolbar className="pf-m-align-items-center" style={{ backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0, paddingTop: 0, paddingBottom: 0 }}>
