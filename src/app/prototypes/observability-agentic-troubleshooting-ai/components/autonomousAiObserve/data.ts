@@ -506,12 +506,86 @@ export const AWAY_DIGEST_ITEMS: Array<{
   },
 ];
 
+/** Shape shared by fleet mock digest rows and cluster-scoped digest rows. */
+export type AwayDigestItem = {
+  tone: 'danger' | 'success' | 'warning' | 'info';
+  text: string;
+  meta: string;
+};
+
 export function getClusterById(id: string): ClusterRecord | undefined {
   return CLUSTERS.find((c) => c.id === id);
 }
 
 export function getAlertsForCluster(clusterId: string): AlertRecord[] {
   return ALERTS.filter((a) => a.clusterId === clusterId);
+}
+
+/**
+ * Cluster-scoped “While you were away” rows derived from alerts, fleet-wide incidents,
+ * agent pulse, and health — used in Core platforms / single-cluster view only.
+ */
+export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[] {
+  const cluster = getClusterById(clusterId);
+  if (!cluster) {
+    return [];
+  }
+
+  const items: AwayDigestItem[] = [];
+  const alerts = getAlertsForCluster(clusterId);
+
+  if (fleetWideCriticalAddsForCluster(clusterId) > 0) {
+    const summary = FLEET_WIDE_REGIONAL_INGRESS.aiSummary;
+    items.push({
+      tone: 'danger',
+      text: `Fleet incident: ${FLEET_WIDE_REGIONAL_INGRESS.title}`,
+      meta: summary.length > 140 ? `${summary.slice(0, 140)}…` : summary,
+    });
+  }
+
+  const crit = alerts.filter((a) => a.severity === 'critical');
+  const warn = alerts.filter((a) => a.severity === 'warning');
+
+  if (crit.length > 0) {
+    items.push({
+      tone: 'danger',
+      text: `${crit.length} critical firing alert${crit.length !== 1 ? 's' : ''}`,
+      meta: crit.map((a) => a.title).join(' · '),
+    });
+  }
+  if (warn.length > 0) {
+    items.push({
+      tone: 'warning',
+      text: `${warn.length} warning alert${warn.length !== 1 ? 's' : ''}`,
+      meta: warn.map((a) => a.title).join(' · '),
+    });
+  }
+
+  if (cluster.agentStatus !== 'idle') {
+    items.push({
+      tone: cluster.agentStatus === 'escalated' ? 'danger' : 'info',
+      text: `Agent status: ${cluster.agentStatus}`,
+      meta: `Single-cluster context · ${cluster.name}`,
+    });
+  }
+
+  if (cluster.health !== 'healthy') {
+    items.push({
+      tone: cluster.health === 'critical' ? 'danger' : 'warning',
+      text: `Cluster health is ${cluster.health}`,
+      meta: `${cluster.nodes} nodes · ${cluster.provider} · ${cluster.region}`,
+    });
+  }
+
+  if (items.length === 0) {
+    items.push({
+      tone: 'success',
+      text: `No new issues on ${cluster.name}`,
+      meta: 'Agent idle · monitoring continues',
+    });
+  }
+
+  return items.slice(0, 6);
 }
 
 export function computeFleetStats(

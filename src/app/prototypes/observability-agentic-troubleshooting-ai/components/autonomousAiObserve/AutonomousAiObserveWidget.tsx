@@ -29,6 +29,8 @@ import {
   Stack,
   StackItem,
   Title,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
@@ -42,6 +44,7 @@ import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from '.
 import {
   ALERTS,
   AWAY_DIGEST_ITEMS,
+  buildClusterAwayDigestItems,
   CLUSTERS,
   computeFleetStats,
   FLEET_WIDE_REGIONAL_INGRESS,
@@ -63,6 +66,25 @@ import {
 } from './focusClusterSession';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget';
+
+function fleetAwayDismissKey(text: string): string {
+  return `fleet:${text}`;
+}
+
+function clusterAwayDismissKey(clusterId: string, text: string): string {
+  return `cluster:${clusterId}:${text}`;
+}
+
+/** Chip label for cluster-scoped digest rows (non-dismissed count). */
+function awayDigestClusterEventCountLabel(visibleCount: number): string {
+  if (visibleCount <= 0) {
+    return '0 new events';
+  }
+  if (visibleCount === 1) {
+    return '1 new event';
+  }
+  return `${visibleCount} new events`;
+}
 
 /** Fleet summary stat drill-down (full pages can replace placeholders later). */
 const FLEET_DRILL = {
@@ -195,17 +217,6 @@ function awayDigestNewEventsLabel(clusterCount: number): string {
   return `New events across ${clusterCount} clusters`;
 }
 
-/** Core platforms: digest count only (updates when rows are dismissed). */
-function awayDigestCorePlatformsEventCountLabel(visibleCount: number): string {
-  if (visibleCount <= 0) {
-    return '0 new events';
-  }
-  if (visibleCount === 1) {
-    return '1 new event';
-  }
-  return `${visibleCount} new events`;
-}
-
 export const AutonomousAiObserveWidget: React.FC = () => {
   const navigate = useNavigate();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
@@ -228,26 +239,53 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
   const [isClusterSwitcherOpen, setIsClusterSwitcherOpen] = useState(false);
-  const [dismissedAwayTexts, setDismissedAwayTexts] = useState<Set<string>>(() => new Set());
+  /** Fleet digest rows use `fleet:${text}`; cluster rows use `cluster:${clusterId}:${text}`. */
+  const [dismissedAwayKeys, setDismissedAwayKeys] = useState<Set<string>>(() => new Set());
 
-  const visibleAwayDigestItems = useMemo(
-    () => AWAY_DIGEST_ITEMS.filter((item) => !dismissedAwayTexts.has(item.text)),
-    [dismissedAwayTexts]
+  const visibleFleetAwayDigestItems = useMemo(
+    () => AWAY_DIGEST_ITEMS.filter((item) => !dismissedAwayKeys.has(fleetAwayDismissKey(item.text))),
+    [dismissedAwayKeys]
   );
 
-  const whileYouWereAwayChipLabel = useMemo(() => {
-    if (activePerspective === 'Core platforms') {
-      return awayDigestCorePlatformsEventCountLabel(visibleAwayDigestItems.length);
-    }
-    return awayDigestNewEventsLabel(CLUSTERS.length);
-  }, [activePerspective, visibleAwayDigestItems.length]);
+  const visibleClusterAwayDigestItems = useMemo(() => {
+    return buildClusterAwayDigestItems(selectedClusterId).filter(
+      (item) => !dismissedAwayKeys.has(clusterAwayDismissKey(selectedClusterId, item.text))
+    );
+  }, [dismissedAwayKeys, selectedClusterId]);
 
-  const dismissAwayDigest = useCallback((text: string) => {
-    setDismissedAwayTexts((prev) => new Set(prev).add(text));
+  const fleetWhileYouWereAwayChipLabel = useMemo(() => awayDigestNewEventsLabel(CLUSTERS.length), []);
+
+  const clusterWhileYouWereAwayChipLabel = useMemo(
+    () => awayDigestClusterEventCountLabel(visibleClusterAwayDigestItems.length),
+    [visibleClusterAwayDigestItems.length]
+  );
+
+  const dismissFleetAwayDigest = useCallback((text: string) => {
+    setDismissedAwayKeys((prev) => new Set(prev).add(fleetAwayDismissKey(text)));
   }, []);
 
-  const dismissAllAwayDigests = useCallback(() => {
-    setDismissedAwayTexts(new Set(AWAY_DIGEST_ITEMS.map((i) => i.text)));
+  const dismissClusterAwayDigest = useCallback(
+    (clusterId: string, text: string) => {
+      setDismissedAwayKeys((prev) => new Set(prev).add(clusterAwayDismissKey(clusterId, text)));
+    },
+    []
+  );
+
+  const dismissAllFleetAwayDigests = useCallback(() => {
+    setDismissedAwayKeys((prev) => {
+      const next = new Set(prev);
+      AWAY_DIGEST_ITEMS.forEach((i) => next.add(fleetAwayDismissKey(i.text)));
+      return next;
+    });
+  }, []);
+
+  const dismissAllClusterAwayDigests = useCallback((clusterId: string) => {
+    const rows = buildClusterAwayDigestItems(clusterId);
+    setDismissedAwayKeys((prev) => {
+      const next = new Set(prev);
+      rows.forEach((r) => next.add(clusterAwayDismissKey(clusterId, r.text)));
+      return next;
+    });
   }, []);
 
   const fleetStats = useMemo(() => computeFleetStats(CLUSTERS, ALERTS, 1), []);
@@ -327,7 +365,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const subtitle = useMemo(() => {
     if (isMultiCluster && viewMode === 'fleet') {
-      return `Fleet management · ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes · Focus cluster: ${selectedCluster.name} (kept when switching to Core platforms)`;
+      return `Fleet management · ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes · full fleet view`;
     }
     return `Core platforms · ${selectedCluster.name} · ${selectedCluster.provider} · ${selectedCluster.region}`;
   }, [isMultiCluster, viewMode, selectedCluster, totalFleetNodes]);
@@ -346,6 +384,35 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     <SimulationProvider>
     <>
       {isMultiCluster ? (
+        <Flex
+          justifyContent={{ default: 'justifyContentFlexEnd' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          flexWrap={{ default: 'wrap' }}
+          gap={{ default: 'gapMd' }}
+          style={{
+            width: '100%',
+            marginBottom: 'var(--pf-t--global--spacer--md)',
+          }}
+        >
+          <ToggleGroup aria-label="Fleet-wide or single-cluster scope for Autonomous AI Observe" isCompact>
+            <ToggleGroupItem
+              text="Fleet view"
+              buttonId={`${WIDGET_ID}-toggle-fleet`}
+              isSelected={viewMode === 'fleet'}
+              onChange={() => setPerspectiveByKey('fleet-management')}
+            />
+            <ToggleGroupItem
+              text="Cluster view"
+              buttonId={`${WIDGET_ID}-toggle-cluster`}
+              isSelected={viewMode === 'cluster'}
+              onChange={() => setPerspectiveByKey('core-platforms')}
+            />
+          </ToggleGroup>
+        </Flex>
+      ) : null}
+
+      {/* Cluster picker only in Cluster view (multi-cluster). Fleet view uses the Clusters gallery. */}
+      {isMultiCluster && viewMode === 'cluster' ? (
         <Flex
           className="ols-aio-context-selectors"
           alignItems={{ default: 'alignItemsCenter' }}
@@ -374,11 +441,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   onClick={() => setIsClusterSwitcherOpen((o) => !o)}
                   isExpanded={isClusterSwitcherOpen}
                   variant="default"
-                  aria-label={
-                    activePerspective === 'Fleet management'
-                      ? 'Focus cluster for handoff to Core platforms (persists across perspective changes)'
-                      : 'Cluster context'
-                  }
+                  aria-label="Cluster context for Core platforms"
                 >
                   {selectedCluster.name}
                 </MenuToggle>
@@ -451,7 +514,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
                               <CardTitle component="h3">While you were away</CardTitle>
                               <Label color="blue" isCompact>
-                                {whileYouWereAwayChipLabel}
+                                {fleetWhileYouWereAwayChipLabel}
                               </Label>
                             </Flex>
                           </FlexItem>
@@ -467,10 +530,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           <Button
                             variant="link"
                             isInline
-                            isDisabled={visibleAwayDigestItems.length === 0}
+                            isDisabled={visibleFleetAwayDigestItems.length === 0}
                             onClick={(e) => {
                               e.stopPropagation();
-                              dismissAllAwayDigests();
+                              dismissAllFleetAwayDigests();
                             }}
                             aria-label="Dismiss all digest alerts"
                           >
@@ -482,7 +545,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
-                      {visibleAwayDigestItems.length === 0 ? (
+                      {visibleFleetAwayDigestItems.length === 0 ? (
                         <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           <EmptyStateBody>
                             <Title headingLevel="h4" size="lg">
@@ -498,7 +561,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                         </EmptyState>
                       ) : (
                         <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                          {visibleAwayDigestItems.map((item) => (
+                          {visibleFleetAwayDigestItems.map((item) => (
                             <StackItem key={item.text}>
                               <Alert
                                 isInline
@@ -506,7 +569,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 title={item.text}
                                 actionClose={
                                   <AlertActionCloseButton
-                                    onClose={() => dismissAwayDigest(item.text)}
+                                    onClose={() => dismissFleetAwayDigest(item.text)}
                                     aria-label={`Dismiss: ${item.text}`}
                                   />
                                 }
@@ -820,7 +883,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             {isMultiCluster ? `While you were away — ${selectedCluster.name}` : 'While you were away'}
                           </CardTitle>
                           <Label color="blue" isCompact>
-                            {whileYouWereAwayChipLabel}
+                            {clusterWhileYouWereAwayChipLabel}
                           </Label>
                         </Flex>
                       </StackItem>
@@ -834,12 +897,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           <Button
                             variant="link"
                             isInline
-                            isDisabled={visibleAwayDigestItems.length === 0}
+                            isDisabled={visibleClusterAwayDigestItems.length === 0}
                             onClick={(e) => {
                               e.stopPropagation();
-                              dismissAllAwayDigests();
+                              dismissAllClusterAwayDigests(selectedClusterId);
                             }}
-                            aria-label="Dismiss all digest alerts"
+                            aria-label="Dismiss all digest alerts for this cluster"
                           >
                             Dismiss all
                           </Button>
@@ -849,7 +912,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
-                      {visibleAwayDigestItems.length === 0 ? (
+                      {visibleClusterAwayDigestItems.length === 0 ? (
                         <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           <EmptyStateBody>
                             <Title headingLevel="h4" size="lg">
@@ -859,21 +922,21 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               component="p"
                               style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}
                             >
-                              There are currently no active alerts requiring your attention.
+                              There are currently no active digest items for {selectedCluster.name}.
                             </Content>
                           </EmptyStateBody>
                         </EmptyState>
                       ) : (
                         <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                          {visibleAwayDigestItems.map((item) => (
-                            <StackItem key={`c-${item.text}`}>
+                          {visibleClusterAwayDigestItems.map((item) => (
+                            <StackItem key={clusterAwayDismissKey(selectedClusterId, item.text)}>
                               <Alert
                                 isInline
                                 variant={item.tone}
                                 title={item.text}
                                 actionClose={
                                   <AlertActionCloseButton
-                                    onClose={() => dismissAwayDigest(item.text)}
+                                    onClose={() => dismissClusterAwayDigest(selectedClusterId, item.text)}
                                     aria-label={`Dismiss: ${item.text}`}
                                   />
                                 }

@@ -121,7 +121,9 @@ export function toFleetRegionFilterLabel(raw: string): string {
 
 /** Sorts region filter options: canonical order first, then any extra regions (e.g. ME CENTRAL 1) A–Z. */
 export function sortFleetRegionFilterLabels(labels: string[]): string[] {
-  const order = new Map(FLEET_REGION_FILTER_LABELS.map((l, i) => [l, i]));
+  const order: Map<string, number> = new Map(
+    FLEET_REGION_FILTER_LABELS.map((l, i) => [l, i] as [string, number])
+  );
   return [...labels].sort((a, b) => {
     const ia = order.get(a);
     const ib = order.get(b);
