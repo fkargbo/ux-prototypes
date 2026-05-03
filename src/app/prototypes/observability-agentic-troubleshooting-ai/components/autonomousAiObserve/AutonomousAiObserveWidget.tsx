@@ -103,7 +103,7 @@ type ObserveMetricStatCardProps = {
   statisticAriaLabel: string;
   onStatisticClick: () => void;
   caption: React.ReactNode;
-  /** When false, the KPI is display-only (Fleet summary); cluster drill tiles stay clickable. */
+  /** When false, the KPI is display-only (Fleet summary, Cluster health). */
   statisticInteractive?: boolean;
 };
 
@@ -981,8 +981,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={criticalOnCluster}
-                            statisticAriaLabel={`Open Alerting for critical alerts on ${selectedCluster.name}`}
-                            onStatisticClick={() => navigate(clusterDrillHref(selectedCluster.id, 'alert-critical'))}
+                            statisticAriaLabel={`Critical alerts on ${selectedCluster.name}`}
+                            onStatisticClick={() => {}}
+                            statisticInteractive={false}
                             caption={`on ${selectedCluster.name}`}
                           />
                         </GridItem>
@@ -995,8 +996,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={warningOnCluster}
-                            statisticAriaLabel={`Open Alerting for warning alerts on ${selectedCluster.name}`}
-                            onStatisticClick={() => navigate(clusterDrillHref(selectedCluster.id, 'alert-warning'))}
+                            statisticAriaLabel={`Warning alerts on ${selectedCluster.name}`}
+                            onStatisticClick={() => {}}
+                            statisticInteractive={false}
                             caption={`on ${selectedCluster.name}`}
                           />
                         </GridItem>
@@ -1011,8 +1013,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 {selectedCluster.nodes} / {selectedCluster.version}
                               </>
                             }
-                            statisticAriaLabel={`Open Nodes for ${selectedCluster.name}`}
-                            onStatisticClick={() => navigate(clusterDrillHref(selectedCluster.id, 'nodes'))}
+                            statisticAriaLabel={`Nodes and version for ${selectedCluster.name}`}
+                            onStatisticClick={() => {}}
+                            statisticInteractive={false}
                             caption={`${selectedCluster.provider} · ${selectedCluster.region}`}
                           />
                         </GridItem>
