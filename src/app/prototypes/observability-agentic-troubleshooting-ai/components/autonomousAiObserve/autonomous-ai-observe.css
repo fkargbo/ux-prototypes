@@ -38,6 +38,16 @@ span.ols-aio-card-stat-number {
   color: var(--pf-t--global--text--color--regular);
 }
 
+/* Fleet Summary KPIs: same numeral weight as drill links, without link color or pointer. */
+#ols-autonomous-ai-observe-widget span.ols-aio-card-stat-number--readonly {
+  display: inline-block;
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--regular);
+}
+
 /*
  * PF semantic link text tokens (v6): `--pf-t--global--text--color--link--*`
  * (not `--pf-t--global--link--color--*`, which is invalid and leaves inherited body color).

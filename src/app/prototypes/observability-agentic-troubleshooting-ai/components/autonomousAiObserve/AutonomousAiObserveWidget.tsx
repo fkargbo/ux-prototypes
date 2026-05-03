@@ -29,10 +29,9 @@ import {
   Stack,
   StackItem,
   Title,
-  ToggleGroup,
-  ToggleGroupItem,
 } from '@patternfly/react-core';
 import {
+  ArrowLeftIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
@@ -86,14 +85,6 @@ function awayDigestClusterEventCountLabel(visibleCount: number): string {
   return `${visibleCount} new events`;
 }
 
-/** Fleet summary stat drill-down (full pages can replace placeholders later). */
-const FLEET_DRILL = {
-  alertingCritical: '/core/observe/alerting?scope=fleet&severity=critical',
-  alertingWarning: '/core/observe/alerting?scope=fleet&severity=warning',
-  clustersNonHealthy: '/core/observe/clusters?scope=fleet&health=non-healthy',
-  nodesFleet: '/core/observe/nodes?scope=fleet',
-} as const;
-
 function clusterDrillHref(clusterId: string, target: 'alert-critical' | 'alert-warning' | 'nodes'): string {
   const id = encodeURIComponent(clusterId);
   if (target === 'alert-critical') {
@@ -114,10 +105,12 @@ type ObserveMetricStatCardProps = {
   statisticAriaLabel: string;
   onStatisticClick: () => void;
   caption: React.ReactNode;
+  /** When false, the KPI is display-only (Fleet summary); cluster drill tiles stay clickable. */
+  statisticInteractive?: boolean;
 };
 
 /**
- * Nested compact metric card: `CardTitle` in header; body row is icon + link-styled KPI (`ols-aio-card-stat-number--drill`).
+ * Nested compact metric card: `CardTitle` in header; body row is icon + KPI value (link drill or plain text).
  * Used for Fleet summary and Cluster health tiles.
  */
 const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
@@ -127,6 +120,7 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
   statisticAriaLabel,
   onStatisticClick,
   caption,
+  statisticInteractive = true,
 }) => (
   <Card isCompact>
     <CardHeader>
@@ -140,15 +134,21 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
               {titleIcon}
             </span>
           ) : null}
-          <Button
-            variant="link"
-            isInline
-            className="ols-aio-card-stat-number--drill"
-            onClick={onStatisticClick}
-            aria-label={statisticAriaLabel}
-          >
-            {statistic}
-          </Button>
+          {statisticInteractive ? (
+            <Button
+              variant="link"
+              isInline
+              className="ols-aio-card-stat-number--drill"
+              onClick={onStatisticClick}
+              aria-label={statisticAriaLabel}
+            >
+              {statistic}
+            </Button>
+          ) : (
+            <span className="ols-aio-card-stat-number--readonly" aria-label={statisticAriaLabel}>
+              {statistic}
+            </span>
+          )}
         </Flex>
       </div>
       <Content
@@ -219,17 +219,30 @@ function awayDigestNewEventsLabel(clusterCount: number): string {
 
 export const AutonomousAiObserveWidget: React.FC = () => {
   const navigate = useNavigate();
-  const { activePerspective, setPerspectiveByKey } = useActivePerspective();
+  const { activePerspective } = useActivePerspective();
   const isMultiCluster = CLUSTERS.length > 1;
-  const viewMode: ViewMode = useMemo(() => {
-    if (!isMultiCluster) {
-      return 'cluster';
-    }
-    return activePerspective === 'Fleet management' ? 'fleet' : 'cluster';
-  }, [isMultiCluster, activePerspective]);
+  /** In Fleet management only: drill into one cluster without leaving the perspective (vs Core platforms). */
+  const [fleetClusterDrillDown, setFleetClusterDrillDown] = useState(false);
+  const prevPerspectiveRef = React.useRef(activePerspective);
+
+  const showFleetOverview = useMemo(
+    () => isMultiCluster && activePerspective === 'Fleet management' && !fleetClusterDrillDown,
+    [isMultiCluster, activePerspective, fleetClusterDrillDown]
+  );
+
+  const viewMode: ViewMode = useMemo(() => (showFleetOverview ? 'fleet' : 'cluster'), [showFleetOverview]);
+
   const [selectedClusterId, setSelectedClusterId] = useState(
     () => readFocusedClusterIdFromSession() ?? CLUSTERS[0]?.id ?? ''
   );
+
+  React.useEffect(() => {
+    const prev = prevPerspectiveRef.current;
+    prevPerspectiveRef.current = activePerspective;
+    if (activePerspective === 'Fleet management' && prev === 'Core platforms') {
+      setFleetClusterDrillDown(false);
+    }
+  }, [activePerspective]);
   const [widgetExpanded, setWidgetExpanded] = useState(true);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
@@ -312,8 +325,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const clusterAlerts = useMemo(() => getAlertsForCluster(selectedClusterId), [selectedClusterId]);
 
   const simulationAlerts = useMemo(
-    () => (viewMode === 'fleet' ? ALERTS : clusterAlerts),
-    [viewMode, clusterAlerts]
+    () => (showFleetOverview ? ALERTS : clusterAlerts),
+    [showFleetOverview, clusterAlerts]
   );
 
   const [expandedAlerts, setExpandedAlerts] = useState<Record<string, boolean>>({});
@@ -364,14 +377,22 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   }, []);
 
   const subtitle = useMemo(() => {
-    if (isMultiCluster && viewMode === 'fleet') {
+    if (showFleetOverview) {
       return `Fleet management · ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes · full fleet view`;
     }
+    if (activePerspective === 'Fleet management' && fleetClusterDrillDown) {
+      return `Fleet management · ${selectedCluster.name} · drill-down · ${selectedCluster.provider} · ${selectedCluster.region}`;
+    }
     return `Core platforms · ${selectedCluster.name} · ${selectedCluster.provider} · ${selectedCluster.region}`;
-  }, [isMultiCluster, viewMode, selectedCluster, totalFleetNodes]);
+  }, [
+    showFleetOverview,
+    activePerspective,
+    fleetClusterDrillDown,
+    selectedCluster,
+    totalFleetNodes,
+  ]);
 
-  const headerPulse: AgentPulseStatus =
-    isMultiCluster && viewMode === 'fleet' ? fleetPulse : selectedCluster.agentStatus;
+  const headerPulse: AgentPulseStatus = showFleetOverview ? fleetPulse : selectedCluster.agentStatus;
 
   const criticalOnCluster =
     clusterAlerts.filter((a) => a.severity === 'critical').length +
@@ -383,36 +404,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   return (
     <SimulationProvider>
     <>
-      {isMultiCluster ? (
-        <Flex
-          justifyContent={{ default: 'justifyContentFlexEnd' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-          flexWrap={{ default: 'wrap' }}
-          gap={{ default: 'gapMd' }}
-          style={{
-            width: '100%',
-            marginBottom: 'var(--pf-t--global--spacer--md)',
-          }}
-        >
-          <ToggleGroup aria-label="Fleet-wide or single-cluster scope for Autonomous AI Observe" isCompact>
-            <ToggleGroupItem
-              text="Fleet view"
-              buttonId={`${WIDGET_ID}-toggle-fleet`}
-              isSelected={viewMode === 'fleet'}
-              onChange={() => setPerspectiveByKey('fleet-management')}
-            />
-            <ToggleGroupItem
-              text="Cluster view"
-              buttonId={`${WIDGET_ID}-toggle-cluster`}
-              isSelected={viewMode === 'cluster'}
-              onChange={() => setPerspectiveByKey('core-platforms')}
-            />
-          </ToggleGroup>
-        </Flex>
-      ) : null}
-
-      {/* Cluster picker only in Cluster view (multi-cluster). Fleet view uses the Clusters gallery. */}
-      {isMultiCluster && viewMode === 'cluster' ? (
+      {/* Core platforms: cluster picker. Fleet management drill-down: picker without leaving Fleet perspective. */}
+      {isMultiCluster &&
+      (activePerspective === 'Core platforms' ||
+        (activePerspective === 'Fleet management' && fleetClusterDrillDown)) ? (
         <Flex
           className="ols-aio-context-selectors"
           alignItems={{ default: 'alignItemsCenter' }}
@@ -423,6 +418,18 @@ export const AutonomousAiObserveWidget: React.FC = () => {
             marginBottom: 'var(--pf-t--global--spacer--md)',
           }}
         >
+          {activePerspective === 'Fleet management' && fleetClusterDrillDown ? (
+            <FlexItem>
+              <Button
+                variant="link"
+                icon={<ArrowLeftIcon />}
+                onClick={() => setFleetClusterDrillDown(false)}
+                aria-label="Return to full fleet Autonomous AI Observe view"
+              >
+                Back to fleet overview
+              </Button>
+            </FlexItem>
+          ) : null}
           <FlexItem>
             <Dropdown
               isOpen={isClusterSwitcherOpen}
@@ -441,7 +448,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   onClick={() => setIsClusterSwitcherOpen((o) => !o)}
                   isExpanded={isClusterSwitcherOpen}
                   variant="default"
-                  aria-label="Cluster context for Core platforms"
+                  aria-label="Select cluster context"
                 >
                   {selectedCluster.name}
                 </MenuToggle>
@@ -492,7 +499,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
       </CardHeader>
       <CardExpandableContent>
         <CardBody>
-          {viewMode === 'fleet' && isMultiCluster ? (
+          {showFleetOverview ? (
             <Stack hasGutter>
               <StackItem>
                 <Card className="ols-aio-subcard" isCompact isExpanded={awayOpen} id={`${WIDGET_ID}-away`}>
@@ -629,8 +636,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.criticalCount}
-                            statisticAriaLabel="Open Alerting for critical alerts in fleet scope"
-                            onStatisticClick={() => navigate(FLEET_DRILL.alertingCritical)}
+                            statisticAriaLabel="Critical alerts across all clusters"
+                            statisticInteractive={false}
+                            onStatisticClick={() => {}}
                             caption="Across all clusters"
                           />
                         </GridItem>
@@ -643,8 +651,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.warningCount}
-                            statisticAriaLabel="Open Alerting for warning alerts in fleet scope"
-                            onStatisticClick={() => navigate(FLEET_DRILL.alertingWarning)}
+                            statisticAriaLabel="Warning alerts across all clusters"
+                            statisticInteractive={false}
+                            onStatisticClick={() => {}}
                             caption="Across all clusters"
                           />
                         </GridItem>
@@ -661,8 +670,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 {degradedCount} / {fleetStats.totalClusters}
                               </>
                             }
-                            statisticAriaLabel="Open Clusters for degraded or unhealthy fleet members"
-                            onStatisticClick={() => navigate(FLEET_DRILL.clustersNonHealthy)}
+                            statisticAriaLabel="Clusters degraded versus total fleet size"
+                            statisticInteractive={false}
+                            onStatisticClick={() => {}}
                             caption="Non-healthy"
                           />
                         </GridItem>
@@ -673,8 +683,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />
                             }
                             statistic={fleetStats.totalNodes}
-                            statisticAriaLabel="Open Nodes for fleet-wide capacity"
-                            onStatisticClick={() => navigate(FLEET_DRILL.nodesFleet)}
+                            statisticAriaLabel="Total nodes in fleet"
+                            statisticInteractive={false}
+                            onStatisticClick={() => {}}
                             caption={`${fleetStats.totalClusters} clusters`}
                           />
                         </GridItem>
@@ -717,7 +728,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               <div
                                 role="button"
                                 tabIndex={0}
-                                aria-label={`Open cluster ${c.name} in cluster view`}
+                                aria-label={`Drill into ${c.name} in Autonomous AI Observe (Fleet management)`}
                                 style={{
                                   cursor: 'pointer',
                                   borderRadius: 'var(--pf-t--global--border--radius--default)',
@@ -728,13 +739,13 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 }}
                                 onClick={() => {
                                   setSelectedClusterId(c.id);
-                                  setPerspectiveByKey('core-platforms');
+                                  setFleetClusterDrillDown(true);
                                 }}
                                 onKeyDown={(event) => {
                                   if (event.key === 'Enter' || event.key === ' ') {
                                     event.preventDefault();
                                     setSelectedClusterId(c.id);
-                                    setPerspectiveByKey('core-platforms');
+                                    setFleetClusterDrillDown(true);
                                   }
                                 }}
                               >

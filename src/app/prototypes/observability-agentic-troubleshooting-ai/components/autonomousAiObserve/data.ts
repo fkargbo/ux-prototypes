@@ -517,8 +517,22 @@ export function getClusterById(id: string): ClusterRecord | undefined {
   return CLUSTERS.find((c) => c.id === id);
 }
 
+/** Lower number = higher priority (shown first in UI). */
+const ALERT_SEVERITY_SORT_ORDER: Record<AlertSeverity, number> = {
+  critical: 0,
+  warning: 1,
+  info: 2,
+};
+
+/** Critical before warning before info; stable within the same severity. */
+export function sortAlertsBySeverityPriority(alerts: AlertRecord[]): AlertRecord[] {
+  return [...alerts].sort(
+    (a, b) => ALERT_SEVERITY_SORT_ORDER[a.severity] - ALERT_SEVERITY_SORT_ORDER[b.severity]
+  );
+}
+
 export function getAlertsForCluster(clusterId: string): AlertRecord[] {
-  return ALERTS.filter((a) => a.clusterId === clusterId);
+  return sortAlertsBySeverityPriority(ALERTS.filter((a) => a.clusterId === clusterId));
 }
 
 /**
