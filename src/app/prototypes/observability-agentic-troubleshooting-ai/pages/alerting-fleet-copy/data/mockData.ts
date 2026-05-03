@@ -386,7 +386,7 @@ function buildAiHubAlignedClusters(baseTime: Date): ClusterData[] {
 
   // Anchor to baseTime so default "last 6h" (and similar) time filters always include these alerts
   const fleetFired = new Date(baseTime.getTime() - 50 * 60 * 1000);
-  const fleetTitle = 'Regional Ingress Failure (US-East)';
+  const fleetTitle = FLEET_WIDE_REGIONAL_INGRESS.title;
 
   for (const cid of FLEET_WIDE_REGIONAL_INGRESS.affectedClusterIds) {
     const cd = byId.get(cid);
@@ -474,7 +474,7 @@ export const mockTrendData: TrendData[] = [
     critical: 9,
     warning: 11,
     info: 5,
-    topAlerts: ['Regional Ingress Failure (US-East)', 'payments-api 5xx surge', 'etcd disk pressure on master-2'],
+    topAlerts: ['Regional Ingress Failure', 'payments-api 5xx surge', 'etcd disk pressure on master-2'],
   },
 ];
 

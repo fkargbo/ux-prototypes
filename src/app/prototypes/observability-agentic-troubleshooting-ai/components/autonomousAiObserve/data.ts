@@ -407,7 +407,7 @@ $ oc delete certificaterequest -l cert=wildcard-apac`,
 /** Fleet-wide critical: regional ingress — causal grouping, aggregated RCA, governor remediation (fleet view only). */
 export const FLEET_WIDE_REGIONAL_INGRESS: FleetWideCriticalIncident = {
   id: 'fleet-alrt-regional-ingress-us-east',
-  title: 'Critical: Regional Ingress Failure (US-East)',
+  title: 'Regional Ingress Failure',
   severity: 'critical',
   firedAt: '2026-04-29T15:05:00.000Z',
   agentStatus: 'investigating',
