@@ -117,6 +117,32 @@ span.ols-aio-card-stat-number {
   text-decoration: underline;
 }
 
+/*
+ * Fleet Clusters gallery: `Card isClickable` alone removes the card `::before` border (PF expects
+ * selectable-actions + clickable-action). Use a default bordered `Card` inside a focusable wrapper and
+ * apply the same border CSS variables PF uses for selectable hover / clicked current state.
+ */
+#ols-autonomous-ai-observe-widget .ols-aio-cluster-gallery-tile {
+  cursor: pointer;
+  border-radius: var(--pf-t--global--border--radius--medium);
+  outline: none;
+}
+
+#ols-autonomous-ai-observe-widget .ols-aio-cluster-gallery-tile:focus-visible {
+  outline: 2px solid var(--pf-t--global--color--focus--default);
+  outline-offset: 2px;
+}
+
+#ols-autonomous-ai-observe-widget .ols-aio-cluster-gallery-tile:hover > .pf-v6-c-card {
+  --pf-v6-c-card--BorderColor: var(--pf-v6-c-card--m-selectable--hover--BorderColor);
+  --pf-v6-c-card--BorderWidth: var(--pf-v6-c-card--m-selectable--hover--BorderWidth);
+}
+
+#ols-autonomous-ai-observe-widget .ols-aio-cluster-gallery-tile--current > .pf-v6-c-card {
+  --pf-v6-c-card--BorderColor: var(--pf-v6-c-card--m-clickable--m-current--BorderColor);
+  --pf-v6-c-card--BorderWidth: var(--pf-v6-c-card--m-clickable--m-current--BorderWidth);
+}
+
 /* Context selector row: default MenuToggle (outlined) + tighter radius — not secondary “pill” chips. */
 .ols-aio-context-selectors .pf-v6-c-menu-toggle {
   border-radius: var(--pf-t--global--border--radius--small);

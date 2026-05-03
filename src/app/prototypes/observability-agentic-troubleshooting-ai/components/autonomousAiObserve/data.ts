@@ -118,7 +118,7 @@ export const CLUSTERS: ClusterRecord[] = [
     env: 'staging',
     version: '4.16.2',
     nodes: 8,
-    health: 'degraded',
+    health: 'critical',
     agentStatus: 'investigating',
   },
   {
@@ -478,6 +478,14 @@ export function fleetWideCriticalAddsForCluster(clusterId: string): number {
   return FLEET_WIDE_REGIONAL_INGRESS.affectedClusterIds.includes(clusterId) ? 1 : 0;
 }
 
+/** +1 per cluster in `FLEET_WIDE_REGIONAL_INGRESS.affectedClusterIds` — aligns Fleet Summary critical with Σ cluster tiles. */
+export function fleetCriticalAttributionCount(): number {
+  if (FLEET_WIDE_REGIONAL_INGRESS.severity !== 'critical') {
+    return 0;
+  }
+  return FLEET_WIDE_REGIONAL_INGRESS.affectedClusterIds.length;
+}
+
 /**
  * Synthetic per-cluster row for the fleet-wide ingress incident so Active alerts and drill-down
  * match fleet KPIs (`fleetWideCriticalAddsForCluster`). Not stored on `ALERTS` to avoid duplicating
@@ -648,11 +656,11 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
 export function computeFleetStats(
   clusters: ClusterRecord[],
   alerts: AlertRecord[],
-  /** Count of fleet-scoped critical incidents (not in `alerts` per-cluster list). */
-  fleetWideCriticalCount = 0
+  /** Per-cluster attributions from fleet-scoped critical (e.g. `fleetCriticalAttributionCount()`). */
+  fleetCriticalAttributionTotal = 0
 ) {
   const criticalCount =
-    alerts.filter((a) => a.severity === 'critical').length + fleetWideCriticalCount;
+    alerts.filter((a) => a.severity === 'critical').length + fleetCriticalAttributionTotal;
   const warningCount = alerts.filter((a) => a.severity === 'warning').length;
   const degraded = clusters.filter((c) => c.health !== 'healthy').length;
   const totalNodes = clusters.reduce((sum, c) => sum + c.nodes, 0);

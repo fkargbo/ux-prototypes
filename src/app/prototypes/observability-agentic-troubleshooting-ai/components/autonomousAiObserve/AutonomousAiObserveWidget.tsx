@@ -45,6 +45,7 @@ import {
   buildClusterAwayDigestItems,
   CLUSTERS,
   computeFleetStats,
+  fleetCriticalAttributionCount,
   fleetWideCriticalAddsForCluster,
   getAlertsForCluster,
   getClusterById,
@@ -297,7 +298,10 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     });
   }, []);
 
-  const fleetStats = useMemo(() => computeFleetStats(CLUSTERS, ALERTS, 1), []);
+  const fleetStats = useMemo(
+    () => computeFleetStats(CLUSTERS, ALERTS, fleetCriticalAttributionCount()),
+    []
+  );
 
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
   const totalFleetNodes = useMemo(() => CLUSTERS.reduce((s, c) => s + c.nodes, 0), []);
@@ -706,22 +710,19 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                           return (
                             <GalleryItem key={c.id}>
                               <div
+                                className={
+                                  selectedClusterId === c.id
+                                    ? 'ols-aio-cluster-gallery-tile ols-aio-cluster-gallery-tile--current'
+                                    : 'ols-aio-cluster-gallery-tile'
+                                }
                                 role="button"
                                 tabIndex={0}
                                 aria-label={`Drill into ${c.name} in Autonomous AI Observe (Fleet management)`}
-                                style={{
-                                  cursor: 'pointer',
-                                  borderRadius: 'var(--pf-t--global--border--radius--default)',
-                                  outline:
-                                    selectedClusterId === c.id
-                                      ? '2px solid var(--pf-t--global--active--color--100)'
-                                      : undefined,
-                                }}
                                 onClick={() => {
                                   setSelectedClusterId(c.id);
                                   setFleetClusterDrillDown(true);
                                 }}
-                                onKeyDown={(event) => {
+                                onKeyDown={(event: React.KeyboardEvent) => {
                                   if (event.key === 'Enter' || event.key === ' ') {
                                     event.preventDefault();
                                     setSelectedClusterId(c.id);
@@ -729,8 +730,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                   }
                                 }}
                               >
-                              <Card isCompact>
-                                <CardBody>
+                                <Card isCompact>
+                                  <CardBody>
                                   <Flex
                                     justifyContent={{ default: 'justifyContentSpaceBetween' }}
                                     alignItems={{ default: 'alignItemsFlexStart' }}
@@ -844,8 +845,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                       {c.nodes} nodes
                                     </span>
                                   </Flex>
-                                </CardBody>
-                              </Card>
+                                  </CardBody>
+                                </Card>
                               </div>
                             </GalleryItem>
                           );
