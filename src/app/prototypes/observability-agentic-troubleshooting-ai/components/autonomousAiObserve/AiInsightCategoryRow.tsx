@@ -1,15 +1,12 @@
 /**
  * Mirrors `FleetHealthInsightsView` per-row AI insight treatment: `OptimizeIcon` (14px) + “AI insight: ”
  * (semibold, subtle) + body (`AI_INSIGHT_TEXT_STYLE` — italic, subtle). The fleet promo card uses
- * `MagicIcon` in a purple tile; list rows use `OptimizeIcon`, which we follow here.
+ * `MagicIcon` in a purple tile (`#6753ac`); list-style `OptimizeIcon` here uses the same purple (`.ols-aio-ai-insight-icon`).
  */
 import * as React from 'react';
 import { Flex } from '@patternfly/react-core';
 import { OptimizeIcon } from '@patternfly/react-icons';
-import {
-  AI_INSIGHT_ICON_STYLE,
-  AI_INSIGHT_TEXT_STYLE,
-} from '../../pages/alerting-fleet-copy/data/fleetInsightsConfig';
+import { AI_INSIGHT_TEXT_STYLE } from '../../pages/alerting-fleet-copy/data/fleetInsightsConfig';
 
 /**
  * Strips a leading "AI insight · …" from mock category labels so the UI can render
@@ -47,7 +44,7 @@ export const AiInsightLede: React.FC<AiInsightLedeProps> = ({
         role="note"
         aria-label="AI insight"
       >
-        <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true">
+        <span className="ols-aio-ai-insight-icon" aria-hidden="true">
           <OptimizeIcon style={{ width: 14, height: 14 }} />
         </span>
         <span
