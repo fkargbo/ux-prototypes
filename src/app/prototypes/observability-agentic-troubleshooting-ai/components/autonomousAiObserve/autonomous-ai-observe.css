@@ -190,6 +190,13 @@ span.ols-aio-card-stat-number {
   margin: 0;
 }
 
+.ols-aio-alert-summary__ai-insight {
+  grid-column: 2;
+  grid-row: 4;
+  min-width: 0;
+  margin-top: var(--pf-t--global--spacer--md);
+}
+
 /* 14px tier: global --font--size--sm (0.875rem). Content `small` uses body--sm, which is 12px (0.75rem) in PF v6. */
 .ols-aio-alert-summary .ols-aio-alert-summary__message.pf-v6-c-content--p {
   font-size: var(--pf-t--global--font--size--sm);
@@ -208,6 +215,10 @@ span.ols-aio-card-stat-number {
   color: var(--pf-t--global--text--color--subtle);
   margin: 0;
   margin-top: var(--pf-t--global--spacer--xs);
+}
+
+.ols-aio-alert-summary__fleet-meta .ols-aio-ai-insight {
+  margin-top: var(--pf-t--global--spacer--sm);
 }
 
 /* Agent status chips: 28px min height; label text uses PF body typography (not mono). */
@@ -361,4 +372,40 @@ span.ols-aio-card-stat-number {
   border-radius: var(--pf-t--global--border--radius--default);
   padding: var(--pf-t--global--spacer--md);
   background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 5%, transparent);
+}
+
+/* Structured AI insight (category → headline → evidence → narrative) */
+.ols-aio-ai-insight {
+  border-radius: var(--pf-t--global--border--radius--medium, 8px);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  background-color: color-mix(in srgb, #6753ac 8%, var(--pf-t--global--background--color--primary--default));
+  border-left: 3px solid #6753ac;
+}
+
+.ols-aio-ai-insight__category {
+  margin: 0 0 var(--pf-t--global--spacer--xs) 0;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: #6753ac;
+  letter-spacing: 0.02em;
+}
+
+.ols-aio-ai-insight__headline {
+  margin: 0 0 var(--pf-t--global--spacer--xs) 0;
+  font-weight: var(--pf-t--global--font--weight--heading--bold);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.ols-aio-ai-insight__evidence {
+  margin: 0 0 var(--pf-t--global--spacer--xs) 0;
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.ols-aio-ai-insight__narrative {
+  margin: 0;
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  font-style: italic;
 }

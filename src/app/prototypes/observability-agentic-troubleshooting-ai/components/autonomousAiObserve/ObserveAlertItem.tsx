@@ -36,6 +36,7 @@ import {
 } from '@patternfly/react-icons';
 import type { AlertRecord, AlertSeverity, ReasoningStep, ReasoningStepStatus } from './data';
 import { AgentPulseLabel } from './AgentPulseLabel';
+import { ObserveAiInsightBlock } from './ObserveAiInsightBlock';
 import './autonomous-ai-observe.css';
 
 /** OpenShift console–style: e.g. Apr 27, 2026, 1:39 PM */
@@ -175,6 +176,9 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
               <Content component="p" className="ols-aio-alert-summary__message">
                 {alert.message}
               </Content>
+              <div className="ols-aio-alert-summary__ai-insight">
+                <ObserveAiInsightBlock insight={alert.aiInsight} idSuffix={alert.id} />
+              </div>
             </div>
           </FlexItem>
         </Flex>

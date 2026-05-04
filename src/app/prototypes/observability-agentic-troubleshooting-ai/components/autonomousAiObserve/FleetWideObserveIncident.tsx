@@ -32,6 +32,7 @@ import {
 } from '@patternfly/react-icons';
 import type { ClusterRecord, FleetWideCriticalIncident, ReasoningStep, ReasoningStepStatus } from './data';
 import { AgentPulseLabel } from './AgentPulseLabel';
+import { ObserveAiInsightBlock } from './ObserveAiInsightBlock';
 import './autonomous-ai-observe.css';
 
 function formatConsoleAlertFiredAt(iso: string): string {
@@ -143,9 +144,7 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                     </Label>
                   ))}
                 </Flex>
-                <Content component="p" className="ols-aio-fleet-incident-lede">
-                  {incident.aiSummary}
-                </Content>
+                <ObserveAiInsightBlock insight={incident.aiInsight} idSuffix={incident.id} />
               </div>
             </div>
           </FlexItem>
