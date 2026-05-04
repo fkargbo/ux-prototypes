@@ -1,6 +1,6 @@
 /**
  * Prototype Context
- * 
+ *
  * React context for managing the currently active prototype
  */
 
@@ -18,8 +18,8 @@ interface PrototypeProviderProps {
 export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }) => {
   const [currentPrototype, setCurrentPrototype] = useState<PrototypeModule | null>(null);
   const [availablePrototypes, setAvailablePrototypes] = useState<PrototypeModule[]>([]);
-  /** Start true so we do not flash the launcher while restoring session or initializing the registry */
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   /**
@@ -33,7 +33,7 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
       console.log(`🚀 Loading prototype: ${id}`);
 
       const prototype = prototypeRegistry.get(id);
-      
+
       if (!prototype) {
         throw new Error(`Prototype with ID "${id}" not found in registry`);
       }
@@ -52,10 +52,10 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
       }
 
       setCurrentPrototype(prototype);
-      
+
       // Store in sessionStorage for persistence across page reloads
       sessionStorage.setItem('activePrototypeId', id);
-      
+
       console.log(`✅ Loaded prototype: ${prototype.config.name}`);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to load prototype');
@@ -84,12 +84,13 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
 
     setCurrentPrototype(null);
     sessionStorage.removeItem('activePrototypeId');
-    
+
     console.log('✅ Prototype unloaded');
   }, [currentPrototype]);
 
   /**
-   * Initialize registry and restore last active prototype from session (same tab reload / dev refresh)
+   * Initialize registry, then load prototype from (in order): ?prototype=, URL path match,
+   * or last session — supports GitHub Pages shared links and same-tab reload.
    */
   useEffect(() => {
     let cancelled = false;
@@ -97,30 +98,49 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
     const bootstrap = async () => {
       try {
         console.log('🚀 Initializing prototype system...');
-        
+
         await prototypeRegistry.initialize();
-        
+        if (cancelled) {
+          return;
+        }
+
         const prototypes = prototypeRegistry.getAll();
         console.log(`📦 Loaded ${prototypes.length} prototypes`, prototypes.map((p) => p.config.id));
         setAvailablePrototypes(prototypes);
-        
-        const savedId = sessionStorage.getItem('activePrototypeId');
-        if (savedId && prototypeRegistry.get(savedId)) {
-          console.log(`♻️ Restoring prototype from session: ${savedId}`);
-          await loadPrototype(savedId);
+
+        const params = new URLSearchParams(window.location.search);
+        let prototypeId = params.get('prototype');
+        if (!prototypeId) {
+          prototypeId = findPrototypeIdForPath(getRouterPathname());
+        }
+        if (!prototypeId) {
+          const savedId = sessionStorage.getItem('activePrototypeId');
+          if (savedId && prototypeRegistry.get(savedId)) {
+            prototypeId = savedId;
+            console.log(`♻️ Restoring prototype from session: ${savedId}`);
+          }
+        }
+
+        if (prototypeId && prototypeRegistry.get(prototypeId)) {
+          await loadPrototypeRef.current(prototypeId);
         } else {
-          setIsLoading(false);
           console.log('✅ Ready — pick a prototype from the launcher');
         }
       } catch (err) {
         console.error('❌ Failed to initialize prototype system:', err);
         setError(err as Error);
-        setIsLoading(false);
+      } finally {
+        if (!cancelled) {
+          setIsBootstrapping(false);
+        }
       }
     };
-    
-    initializeAndRestore();
-  }, [loadPrototype]);
+
+    void bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const value: PrototypeContextType = {
     currentPrototype,
@@ -165,4 +185,3 @@ export const useIsPrototypeActive = (prototypeId: string): boolean => {
   const { currentPrototype } = usePrototype();
   return currentPrototype?.config.id === prototypeId;
 };
-
