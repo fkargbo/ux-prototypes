@@ -300,6 +300,7 @@ const PrototypeLauncher: React.FC = () => {
   const counts = {
     all: cardsToDisplay.length,
     'in-progress': countCardsByStatus('in-progress'),
+    'in-review': countCardsByStatus('in-review'),
     done: countCardsByStatus('done'),
     archived: countCardsByStatus('archived'),
   };
@@ -309,10 +310,12 @@ const PrototypeLauncher: React.FC = () => {
     loadPrototype(prototypeId);
   };
 
-  const getStatusColor = (status: PrototypeStatus): 'blue' | 'green' | 'grey' | 'orange' => {
+  const getStatusColor = (status: PrototypeStatus): 'blue' | 'green' | 'grey' | 'orange' | 'purple' => {
     switch (status) {
       case 'in-progress':
         return 'green';
+      case 'in-review':
+        return 'purple';
       case 'done':
         return 'green';
       case 'archived':
@@ -410,6 +413,10 @@ const PrototypeLauncher: React.FC = () => {
               title={<TabTitleText>In-progress ({counts['in-progress']})</TabTitleText>}
             />
             <Tab
+              eventKey="in-review"
+              title={<TabTitleText>In-review ({counts['in-review']})</TabTitleText>}
+            />
+            <Tab
               eventKey="done"
               title={<TabTitleText>Done ({counts.done})</TabTitleText>}
             />
@@ -458,12 +465,12 @@ const PrototypeLauncher: React.FC = () => {
                     const prototype = card.representative;
                     const cardId = card.type === 'versionGroup' ? card.versions![0].config.versionGroup! : prototype.config.id;
                     
-                    // Get children/versions based on card type
+                    // Get children/versions based on card type, excluding archived versions
                     let children: PrototypeModule[] = [];
                     if (card.type === 'parent') {
                       children = getChildren(prototype.config.id);
                     } else if (card.type === 'versionGroup') {
-                      children = card.versions || [];
+                      children = (card.versions || []).filter(v => v.config.status !== 'archived');
                     }
                     
                     const selectedVersion = card.type === 'versionGroup' && children.length > 0
@@ -722,12 +729,12 @@ const PrototypeLauncher: React.FC = () => {
                 const prototype = card.representative;
                 const cardId = card.type === 'versionGroup' ? card.versions![0].config.versionGroup! : prototype.config.id;
                 
-                // Get children/versions based on card type
+                // Get children/versions based on card type, excluding archived versions
                 let children: PrototypeModule[] = [];
                 if (card.type === 'parent') {
                   children = getChildren(prototype.config.id);
                 } else if (card.type === 'versionGroup') {
-                  children = card.versions || [];
+                  children = (card.versions || []).filter(v => v.config.status !== 'archived');
                 }
                 
                 // For parent cards, check if children have versions
