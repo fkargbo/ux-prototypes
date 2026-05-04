@@ -51,7 +51,7 @@ export const mockAlertRules: AlertRule[] = [
     activeAlerts: [
       {
         id: 'aa1',
-        message: 'payments-api 5xx surge — server errors elevated at gateway.',
+        message: 'PaymentsAPI5xxSurge — server errors elevated at gateway.',
         cluster: 'prod-east-2',
         activeSince: 'Apr 29, 2026, 2:18 PM',
         state: 'Firing',
@@ -60,7 +60,7 @@ export const mockAlertRules: AlertRule[] = [
       },
       {
         id: 'aa2',
-        message: 'etcd disk pressure on master-2 — control plane risk.',
+        message: 'EtcdDiskPressureOnMaster2 — control plane risk.',
         cluster: 'prod-east-2',
         activeSince: 'Apr 29, 2026, 2:11 PM',
         state: 'Firing',
@@ -69,7 +69,7 @@ export const mockAlertRules: AlertRule[] = [
       },
       {
         id: 'aa3',
-        message: 'checkout-svc CPU throttling — HPA at max replicas.',
+        message: 'CheckoutSvcCPUThrottling — HPA at max replicas.',
         cluster: 'prod-eu-west-1',
         activeSince: 'Apr 29, 2026, 2:00 PM',
         state: 'Firing',
@@ -78,7 +78,7 @@ export const mockAlertRules: AlertRule[] = [
       },
       {
         id: 'aa4',
-        message: 'ingress TLS cert expires in 36h — router-default.',
+        message: 'IngressTLSCertExpiresIn36h — router-default.',
         cluster: 'edge-apac-1',
         activeSince: 'Apr 29, 2026, 2:24 PM',
         state: 'Firing',
@@ -474,7 +474,7 @@ export const mockTrendData: TrendData[] = [
     critical: 9,
     warning: 11,
     info: 5,
-    topAlerts: ['Regional Ingress Failure', 'payments-api 5xx surge', 'etcd disk pressure on master-2'],
+    topAlerts: ['RegionalIngressFailure', 'PaymentsAPI5xxSurge', 'EtcdDiskPressureOnMaster2'],
   },
 ];
 

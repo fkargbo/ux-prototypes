@@ -812,42 +812,60 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                     <Label color="grey" variant="outline" isCompact>
                                       {clusterTypeLabelText(c.env)}
                                     </Label>
-                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }} flexWrap={{ default: 'wrap' }}>
                                       {crit === 0 && warn === 0 ? (
                                         <span className="ols-aio-text-subtle-sm">no alerts</span>
                                       ) : (
                                         <>
                                           {crit > 0 ? (
-                                            <Button
-                                              variant="link"
-                                              isInline
-                                              className="ols-aio-cluster-tile-alert-drill"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(clusterDrillHref(c.id, 'alert-critical'));
-                                              }}
-                                              aria-label={`Open critical alerts for ${c.name}`}
+                                            <Flex
+                                              alignItems={{ default: 'alignItemsCenter' }}
+                                              gap={{ default: 'gapSm' }}
+                                              flexWrap={{ default: 'nowrap' }}
                                             >
-                                              <span style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>
-                                                · {crit}
+                                              <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true">
+                                                <ExclamationCircleIcon
+                                                  style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
+                                                />
                                               </span>
-                                            </Button>
+                                              <Button
+                                                variant="link"
+                                                isInline
+                                                className="ols-aio-card-stat-number--drill"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  navigate(clusterDrillHref(c.id, 'alert-critical'));
+                                                }}
+                                                aria-label={`Open critical alerts for ${c.name}`}
+                                              >
+                                                {crit}
+                                              </Button>
+                                            </Flex>
                                           ) : null}
                                           {warn > 0 ? (
-                                            <Button
-                                              variant="link"
-                                              isInline
-                                              className="ols-aio-cluster-tile-alert-drill"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(clusterDrillHref(c.id, 'alert-warning'));
-                                              }}
-                                              aria-label={`Open warning alerts for ${c.name}`}
+                                            <Flex
+                                              alignItems={{ default: 'alignItemsCenter' }}
+                                              gap={{ default: 'gapSm' }}
+                                              flexWrap={{ default: 'nowrap' }}
                                             >
-                                              <span style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>
-                                                · {warn}
+                                              <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true">
+                                                <ExclamationTriangleIcon
+                                                  style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
+                                                />
                                               </span>
-                                            </Button>
+                                              <Button
+                                                variant="link"
+                                                isInline
+                                                className="ols-aio-card-stat-number--drill"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  navigate(clusterDrillHref(c.id, 'alert-warning'));
+                                                }}
+                                                aria-label={`Open warning alerts for ${c.name}`}
+                                              >
+                                                {warn}
+                                              </Button>
+                                            </Flex>
                                           ) : null}
                                         </>
                                       )}
