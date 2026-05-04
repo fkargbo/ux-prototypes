@@ -57,7 +57,7 @@ import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
-  readFocusedClusterIdFromSession,
+  clearFocusedClusterSession,
   writeFocusedClusterIdToSession,
 } from './focusClusterSession';
 
@@ -250,9 +250,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const viewMode: ViewMode = useMemo(() => (showFleetOverview ? 'fleet' : 'cluster'), [showFleetOverview]);
 
-  const [selectedClusterId, setSelectedClusterId] = useState(
-    () => readFocusedClusterIdFromSession() ?? CLUSTERS[0]?.id ?? ''
-  );
+  /** No default cluster — user picks from the menu or Fleet drill-down (avoids a false “selected” state). */
+  const [selectedClusterId, setSelectedClusterId] = useState('');
 
   React.useEffect(() => {
     const prev = prevPerspectiveRef.current;
@@ -327,12 +326,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const totalFleetNodes = useMemo(() => CLUSTERS.reduce((s, c) => s + c.nodes, 0), []);
 
   const selectedCluster = useMemo(
-    () => getClusterById(selectedClusterId) ?? CLUSTERS[0],
+    () => (selectedClusterId ? getClusterById(selectedClusterId) : undefined),
     [selectedClusterId]
   );
 
   useEffect(() => {
-    writeFocusedClusterIdToSession(selectedClusterId);
+    if (selectedClusterId && CLUSTERS.some((c) => c.id === selectedClusterId)) {
+      writeFocusedClusterIdToSession(selectedClusterId);
+    } else {
+      clearFocusedClusterSession();
+    }
   }, [selectedClusterId]);
 
   useEffect(() => {
@@ -365,7 +368,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   useEffect(() => {
     syncObserveSimulationState({
       viewMode,
-      selectedCluster,
+      selectedCluster: selectedCluster ?? null,
       clusterAlerts: simulationAlerts,
       expandedAlerts,
       observeWidgetExpanded: widgetExpanded,
@@ -399,6 +402,11 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     if (showFleetOverview) {
       return `Fleet management · ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes · full fleet view`;
     }
+    if (!selectedCluster) {
+      return activePerspective === 'Fleet management' && fleetClusterDrillDown
+        ? 'Fleet management · select a cluster to drill down'
+        : 'Core platforms · select a cluster to load cluster-scoped monitoring';
+    }
     if (activePerspective === 'Fleet management' && fleetClusterDrillDown) {
       return `Fleet management · ${selectedCluster.name} · drill-down · ${selectedCluster.provider} · ${selectedCluster.region}`;
     }
@@ -411,7 +419,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     totalFleetNodes,
   ]);
 
-  const headerPulse: AgentPulseStatus = showFleetOverview ? fleetPulse : selectedCluster.agentStatus;
+  const headerPulse: AgentPulseStatus = showFleetOverview ? fleetPulse : selectedCluster?.agentStatus ?? 'idle';
 
   const criticalOnCluster = clusterAlerts.filter((a) => a.severity === 'critical').length;
   const warningOnCluster = clusterAlerts.filter((a) => a.severity === 'warning').length;
@@ -467,7 +475,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   variant="default"
                   aria-label="Select cluster context"
                 >
-                  {selectedCluster.name}
+                  {selectedCluster ? selectedCluster.name : 'Select a cluster'}
                 </MenuToggle>
               )}
             >
@@ -918,7 +926,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                 </Card>
               </StackItem>
             </Stack>
-          ) : (
+          ) : selectedCluster ? (
             <Stack hasGutter>
               <StackItem>
                 <Card className="ols-aio-subcard" isCompact isExpanded={cAwayOpen} id={`${WIDGET_ID}-c-away`}>
@@ -1154,6 +1162,21 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                 </Card>
               </StackItem>
             </Stack>
+          ) : (
+            <EmptyState variant={EmptyStateVariant.lg}>
+              <EmptyStateBody>
+                <Title headingLevel="h4" size="lg">
+                  Select a cluster
+                </Title>
+                <Content
+                  component="p"
+                  style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0, maxWidth: 520 }}
+                >
+                  No cluster is selected. Use the <strong>cluster menu</strong> above to choose which environment to
+                  inspect first.
+                </Content>
+              </EmptyStateBody>
+            </EmptyState>
           )}
         </CardBody>
       </CardExpandableContent>

@@ -43,7 +43,8 @@ export function isAgentHotAlert(a: AlertRecord): boolean {
 
 export interface ObserveSimulationSyncInput {
   viewMode: ViewMode;
-  selectedCluster: ClusterRecord;
+  /** `null` when no cluster is chosen (Core platforms until user picks from the menu). */
+  selectedCluster: ClusterRecord | null;
   clusterAlerts: AlertRecord[];
   expandedAlerts: Record<string, boolean>;
   observeWidgetExpanded: boolean;
@@ -77,13 +78,14 @@ export function syncObserveSimulationState(input: ObserveSimulationSyncInput): v
 
   const isIncidentActive = input.clusterAlerts.some(isAgentHotAlert);
 
+  const sc = input.selectedCluster;
   snapshot = {
     ...snapshot,
     viewMode: input.viewMode,
-    selectedClusterId: input.selectedCluster.id,
-    selectedClusterName: input.selectedCluster.name,
-    selectedClusterHealth: input.selectedCluster.health,
-    selectedClusterAgentStatus: input.selectedCluster.agentStatus,
+    selectedClusterId: sc?.id ?? '',
+    selectedClusterName: sc?.name ?? '',
+    selectedClusterHealth: sc?.health ?? 'healthy',
+    selectedClusterAgentStatus: sc?.agentStatus ?? 'idle',
     fleetAgentPulse: input.fleetAgentPulse,
     isMultiCluster: input.isMultiCluster,
     isIncidentActive,
