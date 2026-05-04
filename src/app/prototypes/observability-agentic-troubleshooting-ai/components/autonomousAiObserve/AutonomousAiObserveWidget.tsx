@@ -713,9 +713,11 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       'aria-label': 'Toggle Clusters section',
                     }}
                   >
-                    <Stack hasGutter>
+                    <Stack>
                       <StackItem>
-                        <CardTitle component="h3">Clusters</CardTitle>
+                        <CardTitle component="h3" style={{ marginBottom: 0 }}>
+                          Clusters
+                        </CardTitle>
                       </StackItem>
                       <StackItem>
                         <Content
