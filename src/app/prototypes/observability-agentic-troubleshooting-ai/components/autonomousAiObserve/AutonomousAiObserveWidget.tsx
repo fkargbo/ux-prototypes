@@ -36,7 +36,6 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   GlobeIcon,
-  MonitoringIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
@@ -1025,11 +1024,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     }}
                   >
                     <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                      <MonitoringIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
                       <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
-                        <CardTitle component="h3">Cluster health</CardTitle>
+                        <Title headingLevel="h3" size="lg">
+                          Cluster health
+                        </Title>
                       </FlexItem>
-                      <Label color="grey" variant="filled" isCompact>
+                      <Label color="grey" variant="outline" isCompact>
                         {selectedCluster.name}
                       </Label>
                     </Flex>

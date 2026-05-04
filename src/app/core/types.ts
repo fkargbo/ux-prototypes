@@ -165,6 +165,8 @@ export interface PrototypeContextType {
   loadPrototype: (id: string) => Promise<void>;
   unloadPrototype: () => void;
   isLoading: boolean;
+  /** True until registry init finishes and optional deep-link prototype load completes */
+  isBootstrapping: boolean;
   error: Error | null;
 }
 

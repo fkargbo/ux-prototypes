@@ -17,6 +17,9 @@ import {
   MenuToggle,
   MenuToggleElement,
   PageSection,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
 import { AppLayout } from '@app/AppLayout/AppLayout';
@@ -24,6 +27,7 @@ import { PrototypeModule } from './types';
 import { QuotasProvider } from '@app/shared/contexts/QuotasContext';
 import { usePrototype } from './PrototypeContext';
 import { prototypeRegistry } from './PrototypeRegistry';
+import { GITHUB_PAGES_BASENAME } from './deepLinkUtils';
 
 interface PrototypeLayoutProps {
   prototype: PrototypeModule;
@@ -35,6 +39,26 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   const location = useLocation();
   const [isVersionOpen, setIsVersionOpen] = useState(false);
   const [isUseCaseOpen, setIsUseCaseOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const sharePageUrl = React.useMemo(() => {
+    const base = process.env.NODE_ENV === 'production' ? GITHUB_PAGES_BASENAME : '';
+    const u = new URL(`${base}${location.pathname}${location.search}${location.hash}`, window.location.origin);
+    u.searchParams.set('prototype', prototype.config.id);
+    return u.toString();
+  }, [prototype.config.id, location.pathname, location.search, location.hash]);
+
+  const handleCopyShareLink = React.useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(sharePageUrl);
+      setLinkCopied(true);
+      setIsShareOpen(false);
+      window.setTimeout(() => setLinkCopied(false), 2500);
+    } catch {
+      window.prompt('Copy this link:', sharePageUrl);
+    }
+  }, [sharePageUrl]);
   
   // Check if this prototype has versions (siblings with same versionGroup)
   const allPrototypes = prototypeRegistry.getAll();
@@ -175,6 +199,37 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
               </Select>
             </FlexItem>
           )}
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+              <Dropdown
+                isOpen={isShareOpen}
+                onSelect={() => setIsShareOpen(false)}
+                onOpenChange={(open) => setIsShareOpen(open)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsShareOpen(!isShareOpen)}
+                    isExpanded={isShareOpen}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Share
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem key="copy-link" onClick={() => void handleCopyShareLink()}>
+                    Copy link
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+              {linkCopied && (
+                <span style={{ color: 'var(--pf-v5-global--active-color--400)', fontSize: 'var(--pf-global--FontSize--sm)' }}>
+                  Copied
+                </span>
+              )}
+            </Flex>
+          </FlexItem>
         </Flex>
       </Flex>
     </Banner>

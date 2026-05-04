@@ -4,9 +4,10 @@
  * React context for managing the currently active prototype
  */
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { PrototypeModule, PrototypeContextType } from './types';
 import { prototypeRegistry } from './PrototypeRegistry';
+import { findPrototypeIdForPath, getRouterPathname } from './deepLinkUtils';
 
 const PrototypeContext = createContext<PrototypeContextType | undefined>(undefined);
 
@@ -18,6 +19,7 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
   const [currentPrototype, setCurrentPrototype] = useState<PrototypeModule | null>(null);
   const [availablePrototypes, setAvailablePrototypes] = useState<PrototypeModule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   /**
@@ -64,6 +66,9 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
     }
   }, [currentPrototype]);
 
+  const loadPrototypeRef = useRef(loadPrototype);
+  loadPrototypeRef.current = loadPrototype;
+
   /**
    * Unload the current prototype
    */
@@ -84,32 +89,50 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
   }, [currentPrototype]);
 
   /**
-   * Initialize registry and restore last active prototype on mount
+   * Initialize registry; load prototype from `?prototype=` or from URL path (GitHub Pages / shared links).
    */
   useEffect(() => {
-    const initializeAndRestore = async () => {
+    let cancelled = false;
+
+    const bootstrap = async () => {
       try {
         console.log('🚀 Initializing prototype system...');
-        
-        // Initialize the registry to discover all prototypes
+
         await prototypeRegistry.initialize();
-        
-        // Update available prototypes state
+        if (cancelled) {
+          return;
+        }
+
         const prototypes = prototypeRegistry.getAll();
-        console.log(`📦 Loaded ${prototypes.length} prototypes`, prototypes.map(p => p.config.id));
+        console.log(`📦 Loaded ${prototypes.length} prototypes`, prototypes.map((p) => p.config.id));
         setAvailablePrototypes(prototypes);
-        
-        // NOTE: Auto-restore disabled - always show launcher on page load
-        // Users must explicitly select a prototype from the launcher
-        console.log('✅ Ready - showing launcher');
+
+        const params = new URLSearchParams(window.location.search);
+        let prototypeId = params.get('prototype');
+        if (!prototypeId) {
+          prototypeId = findPrototypeIdForPath(getRouterPathname());
+        }
+
+        if (prototypeId && prototypeRegistry.get(prototypeId)) {
+          await loadPrototypeRef.current(prototypeId);
+        } else {
+          console.log('✅ Ready — launcher (no deep link match)');
+        }
       } catch (err) {
         console.error('❌ Failed to initialize prototype system:', err);
         setError(err as Error);
+      } finally {
+        if (!cancelled) {
+          setIsBootstrapping(false);
+        }
       }
     };
-    
-    initializeAndRestore();
-  }, [loadPrototype]); // Run once on mount
+
+    void bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const value: PrototypeContextType = {
     currentPrototype,
@@ -117,7 +140,8 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
     loadPrototype,
     unloadPrototype,
     isLoading,
-    error
+    isBootstrapping,
+    error,
   };
 
   return (
