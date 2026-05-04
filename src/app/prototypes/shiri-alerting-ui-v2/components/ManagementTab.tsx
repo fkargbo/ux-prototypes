@@ -89,6 +89,10 @@ export interface ManagementTabProps {
   setIsBulkActionsMenuOpen: (open: boolean) => void;
   setAlertRulesToDisable: (value: AlertRule[]) => void;
   setIsDisableAlertRuleModalOpen: (open: boolean) => void;
+  setAlertRulesForLabelEdit: (value: AlertRule[]) => void;
+  setIsEditAlertRuleLabelsModalOpen: (open: boolean) => void;
+  setAlertRulesForComponentEdit: (value: AlertRule[]) => void;
+  setIsChangeAlertRuleComponentModalOpen: (open: boolean) => void;
   setSelectedAlertRule: (value: AlertRule | null) => void;
   setIsAlertRuleDrawerOpen: (open: boolean) => void;
   setAlertRuleDrawerTab: (value: string | number) => void;
@@ -127,6 +131,10 @@ export const ManagementTab: React.FunctionComponent<ManagementTabProps> = (props
     setIsBulkActionsMenuOpen,
     setAlertRulesToDisable,
     setIsDisableAlertRuleModalOpen,
+    setAlertRulesForLabelEdit,
+    setIsEditAlertRuleLabelsModalOpen,
+    setAlertRulesForComponentEdit,
+    setIsChangeAlertRuleComponentModalOpen,
     setSelectedAlertRule,
     setIsAlertRuleDrawerOpen,
     setAlertRuleDrawerTab,
@@ -395,13 +403,29 @@ export const ManagementTab: React.FunctionComponent<ManagementTabProps> = (props
                                   <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Stop the rule from running and sending alerts.</div>
                                 </div>
                               </DropdownItem>
-                              <DropdownItem key="edit-labels">
+                              <DropdownItem
+                                key="edit-labels"
+                                onClick={() => {
+                                  const selected = mockAlertRules.filter((r) => selectedAlertRuleIds.includes(r.id));
+                                  setAlertRulesForLabelEdit(selected);
+                                  setIsEditAlertRuleLabelsModalOpen(true);
+                                  setIsBulkActionsMenuOpen(false);
+                                }}
+                              >
                                 <div>
                                   <div><strong>Edit labels</strong></div>
                                   <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Modify labels for all selected alert rules.</div>
                                 </div>
                               </DropdownItem>
-                              <DropdownItem key="edit-components">
+                              <DropdownItem
+                                key="edit-components"
+                                onClick={() => {
+                                  const selected = mockAlertRules.filter((r) => selectedAlertRuleIds.includes(r.id));
+                                  setAlertRulesForComponentEdit(selected);
+                                  setIsChangeAlertRuleComponentModalOpen(true);
+                                  setIsBulkActionsMenuOpen(false);
+                                }}
+                              >
                                 <div>
                                   <div><strong>Edit components</strong></div>
                                   <div style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>Change the component type for all selected alert rules.</div>

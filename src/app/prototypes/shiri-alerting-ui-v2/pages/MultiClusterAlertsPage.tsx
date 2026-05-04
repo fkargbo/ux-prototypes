@@ -213,6 +213,8 @@ import { CrossClusterInsightsCards } from '../components/CrossClusterInsightsCar
 import { TreemapHeatmap } from '../components/TreemapHeatmap';
 import { ManagementTab } from '../components/ManagementTab';
 import { SettingsModals } from '../components/SettingsModals';
+import { EditAlertRuleLabelsModal } from '../components/EditAlertRuleLabelsModal';
+import { ChangeAlertRuleComponentModal } from '../components/ChangeAlertRuleComponentModal';
 import { SavedFiltersModals } from '../components/SavedFiltersModals';
 import { DrillDownContent } from '../components/DrillDownContent';
 import { FleetOverviewTab } from '../components/FleetOverviewTab';
@@ -559,6 +561,11 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Disable Alert Rule Modal state
   const [isDisableAlertRuleModalOpen, setIsDisableAlertRuleModalOpen] = React.useState(false);
   const [alertRulesToDisable, setAlertRulesToDisable] = React.useState<AlertRule[]>([]);
+  // Bulk edit alert rule labels modal
+  const [isEditAlertRuleLabelsModalOpen, setIsEditAlertRuleLabelsModalOpen] = React.useState(false);
+  const [alertRulesForLabelEdit, setAlertRulesForLabelEdit] = React.useState<AlertRule[]>([]);
+  const [isChangeAlertRuleComponentModalOpen, setIsChangeAlertRuleComponentModalOpen] = React.useState(false);
+  const [alertRulesForComponentEdit, setAlertRulesForComponentEdit] = React.useState<AlertRule[]>([]);
   const [disableAlertRuleExpandedIds, setDisableAlertRuleExpandedIds] = React.useState<string[]>([]);
 
   // Toast notifications
@@ -1961,6 +1968,10 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           setIsBulkActionsMenuOpen={setIsBulkActionsMenuOpen}
           setAlertRulesToDisable={setAlertRulesToDisable}
           setIsDisableAlertRuleModalOpen={setIsDisableAlertRuleModalOpen}
+          setAlertRulesForLabelEdit={setAlertRulesForLabelEdit}
+          setIsEditAlertRuleLabelsModalOpen={setIsEditAlertRuleLabelsModalOpen}
+          setAlertRulesForComponentEdit={setAlertRulesForComponentEdit}
+          setIsChangeAlertRuleComponentModalOpen={setIsChangeAlertRuleComponentModalOpen}
           setSelectedAlertRule={setSelectedAlertRule}
           setIsAlertRuleDrawerOpen={setIsAlertRuleDrawerOpen}
           setAlertRuleDrawerTab={setAlertRuleDrawerTab}
@@ -2070,6 +2081,40 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         onTimelineRangeChange={setAlertRuleTimelineRange}
         isTimelineRangeOpen={isAlertRuleTimelineRangeOpen}
         onTimelineRangeOpenChange={setIsAlertRuleTimelineRangeOpen}
+      />
+
+      <EditAlertRuleLabelsModal
+        isOpen={isEditAlertRuleLabelsModalOpen}
+        onClose={() => {
+          setIsEditAlertRuleLabelsModalOpen(false);
+          setAlertRulesForLabelEdit([]);
+        }}
+        rules={alertRulesForLabelEdit}
+        allAlertRules={mockAlertRules}
+        onApply={(labels) => {
+          addToast(
+            `Labels applied to ${alertRulesForLabelEdit.length} alert rule${alertRulesForLabelEdit.length === 1 ? '' : 's'}`,
+            'success',
+            labels.length > 0 ? labels.join(', ') : 'No label chips selected.',
+          );
+          setSelectedAlertRuleIds([]);
+        }}
+      />
+
+      <ChangeAlertRuleComponentModal
+        isOpen={isChangeAlertRuleComponentModalOpen}
+        onClose={() => {
+          setIsChangeAlertRuleComponentModalOpen(false);
+          setAlertRulesForComponentEdit([]);
+        }}
+        rules={alertRulesForComponentEdit}
+        onConfirm={({ group, component }) => {
+          addToast(
+            `Component set to ${component} (${group} scope) for ${alertRulesForComponentEdit.length} alert rule${alertRulesForComponentEdit.length === 1 ? '' : 's'}`,
+            'success',
+          );
+          setSelectedAlertRuleIds([]);
+        }}
       />
 
       <SettingsModals

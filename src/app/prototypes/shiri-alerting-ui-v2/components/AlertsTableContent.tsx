@@ -90,7 +90,8 @@ export interface AlertsTableContentProps {
   onAlertRuleClick: (alertName: string) => void;
   onComponentClick: (componentName: string) => void;
   openSilenceModal: (alertName: string, severity: string, clusterName: string) => void;
-  openAcknowledgeModal: (alertName: string, severity: string, clusterName: string) => void;
+  openAcknowledgeModal: (alertName: string, severity: string, clusterName: string, alertId?: string) => void;
+  acknowledgedAlerts?: Record<string, { by: string; at: Date }>;
   openActionMenuId: string | null;
   setOpenActionMenuId: React.Dispatch<React.SetStateAction<string | null>>;
   singleClusterView?: boolean;
@@ -165,12 +166,25 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
   onComponentClick,
   openSilenceModal,
   openAcknowledgeModal,
+  acknowledgedAlerts = {},
   openActionMenuId,
   setOpenActionMenuId,
   singleClusterView = false,
   onClusterFilterChange,
   onNamespaceFilterChange,
 }) => {
+
+  const getAcknowledgeInfo = (alert: AlertData): { by: string; at: Date } | null => {
+    if (acknowledgedAlerts[alert.id]) return acknowledgedAlerts[alert.id];
+    if (alert.acknowledgedBy && alert.acknowledgedAt) return { by: alert.acknowledgedBy, at: alert.acknowledgedAt };
+    if (alert.status === 'acknowledged') return { by: 'admin@nyf.com', at: new Date() };
+    return null;
+  };
+
+  const formatAckDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ', ' +
+      date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
 
   const visibleCols = getVisibleColumns().filter(
     col => col.key !== 'flappingRate'
@@ -252,6 +266,9 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 
   const renderInstanceActionMenu = (agg: AggregatedAlert, clusterInfo: AggregatedAlert['clusters'][0], instanceIdx: number) => {
     const menuId = `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`;
+    const alertForAction = clusterInfo.cluster?.alerts?.find(
+      a => a.alertName === agg.alertName && a.severity === agg.severity
+    );
     return (
       <Dropdown
         isOpen={openActionMenuId === menuId}
@@ -268,7 +285,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
         <DropdownList>
           <DropdownItem key="silence" onClick={() => openSilenceModal(agg.alertName, agg.severity, clusterInfo.name)}
             description="Temporarily stop notifications for this alert.">Silence alert</DropdownItem>
-          <DropdownItem key="acknowledge" onClick={() => openAcknowledgeModal(agg.alertName, agg.severity, clusterInfo.name)}
+          <DropdownItem key="acknowledge" onClick={() => openAcknowledgeModal(agg.alertName, agg.severity, clusterInfo.name, alertForAction?.id)}
             description="Mark the alert as being addressed by your teammates.">Acknowledge</DropdownItem>
           <Divider component="li" />
           <DropdownItem key="rule" onClick={() => setOpenActionMenuId(null)}>View alert rule</DropdownItem>
@@ -300,9 +317,19 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
           <Checkbox id={`checkbox-${alertKey}-${instanceIdx}`} aria-label="Select instance" />
         </Td>
         <Td modifier="nowrap">
-          <Button variant="link" isInline onClick={() => { if (alertInstance) onAlertClick(alertInstance); }}>
-            {agg.alertName}
-          </Button>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+            <Button variant="link" isInline onClick={() => { if (alertInstance) onAlertClick(alertInstance); }}>
+              {agg.alertName}
+            </Button>
+            {alertInstance && getAcknowledgeInfo(alertInstance) && (() => {
+              const ackInfo = getAcknowledgeInfo(alertInstance)!;
+              return (
+                <Tooltip content={`Acknowledged by ${ackInfo.by} at ${formatAckDate(ackInfo.at)}`}>
+                  <Icon size="sm" status="info"><InfoCircleIcon /></Icon>
+                </Tooltip>
+              );
+            })()}
+          </Flex>
         </Td>
         <Td modifier="nowrap">
           <Label color={getSeverityLabelColor(agg.severity)} icon={getSeverityIcon(agg.severity)} isCompact>{agg.severity}</Label>
@@ -672,8 +699,19 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 
                     const renderCellContent = (col: ColumnConfig) => {
                       switch (col.key) {
-                        case 'alertName':
-                          return <Button variant="link" isInline onClick={() => onAlertClick(alert)}>{alert.alertName}</Button>;
+                        case 'alertName': {
+                          const ackInfo = getAcknowledgeInfo(alert);
+                          return (
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+                              <Button variant="link" isInline onClick={() => onAlertClick(alert)}>{alert.alertName}</Button>
+                              {ackInfo && (
+                                <Tooltip content={`Acknowledged by ${ackInfo.by} at ${formatAckDate(ackInfo.at)}`}>
+                                  <Icon size="sm" status="info"><InfoCircleIcon /></Icon>
+                                </Tooltip>
+                              )}
+                            </Flex>
+                          );
+                        }
                         case 'severity':
                           return <Label color={getSeverityLabelColor(alert.severity)} icon={getSeverityIcon(alert.severity)} isCompact>{alert.severity}</Label>;
                         case 'clusters':
@@ -762,8 +800,19 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
           {paginatedAlerts.map((alert, idx) => {
             const renderCellContent = (col: ColumnConfig) => {
               switch (col.key) {
-                case 'alertName':
-                  return <Button variant="link" isInline onClick={() => onAlertClick(alert)}>{alert.alertName}</Button>;
+                case 'alertName': {
+                  const ackInfo = getAcknowledgeInfo(alert);
+                  return (
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+                      <Button variant="link" isInline onClick={() => onAlertClick(alert)}>{alert.alertName}</Button>
+                      {ackInfo && (
+                        <Tooltip content={`Acknowledged by ${ackInfo.by} at ${formatAckDate(ackInfo.at)}`}>
+                          <Icon size="sm" status="info"><InfoCircleIcon /></Icon>
+                        </Tooltip>
+                      )}
+                    </Flex>
+                  );
+                }
                 case 'severity':
                   return <Label color={getSeverityLabelColor(alert.severity)} icon={getSeverityIcon(alert.severity)} isCompact>{alert.severity}</Label>;
                 case 'clusters':

@@ -369,6 +369,8 @@ export const generateMockClusters = (): ClusterData[] => {
         lastFiredStr = `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`;
       }
 
+      const ackAt = status === 'acknowledged' ? new Date(now.getTime() - Math.floor(Math.random() * minutesAgo * 0.5) * 60000) : undefined;
+
       alerts.push({
         id: `alert-${i}-${j}`,
         severity,
@@ -388,6 +390,8 @@ export const generateMockClusters = (): ClusterData[] => {
         description: `This alert indicates ${alertName.toLowerCase()} condition.`,
         resource: Math.random() < 0.3 ? `node-${Math.floor(Math.random() * 10) + 1}` : undefined,
         runbookUrl: Math.random() < 0.7 ? `https://runbooks.example.com/alerts/${alertName}` : undefined,
+        acknowledgedBy: status === 'acknowledged' ? 'admin@nyf.com' : undefined,
+        acknowledgedAt: ackAt,
       });
     }
 

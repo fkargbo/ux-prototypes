@@ -260,8 +260,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   const [isSilenceDurationUnitOpen, setIsSilenceDurationUnitOpen] = React.useState(false);
   const [isSilenceParamsExpanded, setIsSilenceParamsExpanded] = React.useState(true);
   
+  // Track alerts acknowledged during this session (alertId -> { by, at })
+  const [acknowledgedAlerts, setAcknowledgedAlerts] = React.useState<Record<string, { by: string; at: Date }>>({}); 
+
   // Acknowledge modal state
   const [isAcknowledgeModalOpen, setIsAcknowledgeModalOpen] = React.useState(false);
+  const [acknowledgeAlertId, setAcknowledgeAlertId] = React.useState<string>('');
   const [acknowledgeAlertName, setAcknowledgeAlertName] = React.useState<string>('');
   const [acknowledgeSeverity, setAcknowledgeSeverity] = React.useState<string>('');
   const [acknowledgeClusterName, setAcknowledgeClusterName] = React.useState<string>('');
@@ -292,7 +296,8 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   };
   
   // Open acknowledge modal with alert info
-  const openAcknowledgeModal = (alertName: string, severity: string, clusterName: string) => {
+  const openAcknowledgeModal = (alertName: string, severity: string, clusterName: string, alertId?: string) => {
+    setAcknowledgeAlertId(alertId || '');
     setAcknowledgeAlertName(alertName);
     setAcknowledgeSeverity(severity);
     setAcknowledgeClusterName(clusterName);
@@ -1246,6 +1251,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
               onComponentClick={onComponentClick}
               openSilenceModal={openSilenceModal}
               openAcknowledgeModal={openAcknowledgeModal}
+              acknowledgedAlerts={acknowledgedAlerts}
               openActionMenuId={openActionMenuId}
               setOpenActionMenuId={setOpenActionMenuId}
               singleClusterView={singleClusterView}
@@ -1936,7 +1942,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                         <label htmlFor="v2-ack-duration-for">For</label>
                       </FlexItem>
                       <FlexItem>
-                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
                           <Button 
                             variant="control" 
                             onClick={() => setAcknowledgeDuration(Math.max(1, acknowledgeDuration - 1))}
@@ -2037,7 +2043,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
           </Stack>
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={() => setIsAcknowledgeModalOpen(false)} isDisabled={!acknowledgeComment.trim()}>
+          <Button variant="primary" onClick={() => {
+            if (acknowledgeAlertId) {
+              setAcknowledgedAlerts(prev => ({ ...prev, [acknowledgeAlertId]: { by: 'admin@nyf.com', at: new Date() } }));
+            }
+            setIsAcknowledgeModalOpen(false);
+          }} isDisabled={!acknowledgeComment.trim()}>
             Acknowledge alert
           </Button>
           <Button variant="link" onClick={() => setIsAcknowledgeModalOpen(false)}>

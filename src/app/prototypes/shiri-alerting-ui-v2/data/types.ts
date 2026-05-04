@@ -52,6 +52,8 @@ export interface AlertData {
   description?: string;
   resource?: string;
   runbookUrl?: string;
+  acknowledgedBy?: string;
+  acknowledgedAt?: Date;
 }
 
 export interface ClusterData {

@@ -54,6 +54,7 @@ import {
   ModalBody,
   ModalFooter,
   Tooltip,
+  Icon,
   Pagination,
   TextInputGroup,
   TextInputGroupMain,
@@ -1135,9 +1136,16 @@ spec:
                                     <Tr key={alert.id}>
                                       <Td><Label color={getSeverityLabelColor(alert.severity)} icon={getSeverityIcon(alert.severity)}>{alert.severity}</Label></Td>
                                       <Td>
-                                        <Button variant="link" isInline onClick={() => { setSelectedAlertDetail(alert); setIsDrawerExpanded(true); }}>
-                                          <strong>{alert.alertName}</strong>
-                                        </Button>
+                                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+                                          <Button variant="link" isInline onClick={() => { setSelectedAlertDetail(alert); setIsDrawerExpanded(true); }}>
+                                            <strong>{alert.alertName}</strong>
+                                          </Button>
+                                          {(alert.acknowledgedBy && alert.acknowledgedAt) && (
+                                            <Tooltip content={`Acknowledged by ${alert.acknowledgedBy} at ${alert.acknowledgedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${alert.acknowledgedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}>
+                                              <Icon size="sm" status="info"><InfoCircleIcon /></Icon>
+                                            </Tooltip>
+                                          )}
+                                        </Flex>
                                       </Td>
                                       {columns.find(c => c.key === 'state')?.isVisible && <Td><Label color={getStatusLabelColor(alert.status)} variant="outline">{alert.status}</Label></Td>}
                                       {columns.find(c => c.key === 'group')?.isVisible && <Td><Label isCompact>{alert.group}</Label></Td>}
