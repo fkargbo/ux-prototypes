@@ -508,6 +508,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               style={{
                 marginTop: 'var(--pf-t--global--spacer--xs)',
                 marginBottom: 0,
+                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
               }}
             >
               {subtitle}
