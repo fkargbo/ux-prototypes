@@ -203,6 +203,16 @@ span.ols-aio-card-stat-number {
   min-width: 0;
 }
 
+/**
+ * AI insight row icon: matches Autonomous AI Observe card mark (`FLEET_INSIGHT_ICON_BOX_STYLE` uses #6753ac).
+ */
+.ols-aio-ai-insight-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #6753ac;
+}
+
 /* Fleet incident: clusters + lede share one grid cell (do not use __message on nested nodes — it sets grid placement). */
 .ols-aio-alert-summary__fleet-meta {
   grid-column: 2;
