@@ -7,9 +7,9 @@ import PrototypeLauncher from '@app/core/PrototypeLauncher';
 import '@app/app.css';
 
 const AppContent: React.FunctionComponent = () => {
-  const { currentPrototype, isLoading, error } = usePrototype();
+  const { currentPrototype, isLoading, isBootstrapping, error } = usePrototype();
 
-  console.log('AppContent render:', { currentPrototype: currentPrototype?.config?.id, isLoading, error });
+  console.log('AppContent render:', { currentPrototype: currentPrototype?.config?.id, isLoading, isBootstrapping, error });
 
   // Show error state
   if (error) {
@@ -21,8 +21,8 @@ const AppContent: React.FunctionComponent = () => {
     );
   }
 
-  // Show loading state while prototype is being activated
-  if (isLoading) {
+  // Show loading while registry/deep link bootstrap runs or a prototype is activating
+  if (isBootstrapping || isLoading) {
     return <div style={{ padding: '40px' }}>Loading prototype...</div>;
   }
 

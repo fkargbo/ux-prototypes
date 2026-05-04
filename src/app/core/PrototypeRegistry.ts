@@ -272,6 +272,16 @@ export async function discoverPrototypes(): Promise<void> {
           // Navigation is optional
         }
 
+        let onActivate: (() => void | Promise<void>) | undefined;
+        let onDeactivate: (() => void | Promise<void>) | undefined;
+        try {
+          const lifecycle = await import(`../prototypes/${prototypePath}/prototype.lifecycle`);
+          onActivate = lifecycle.onActivate;
+          onDeactivate = lifecycle.onDeactivate;
+        } catch {
+          // Optional per-prototype activate/deactivate hooks
+        }
+
         // Import PrototypeLayout dynamically to avoid circular dependencies
         const { PrototypeLayout } = await import('./PrototypeLayout');
         
@@ -284,7 +294,9 @@ export async function discoverPrototypes(): Promise<void> {
           config,
           routes,
           navigation,
-          component: PrototypeComponent
+          component: PrototypeComponent,
+          onActivate,
+          onDeactivate,
         };
 
         // Register it

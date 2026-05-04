@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { getPatternFlyBodyFontFamily } from '@app/chartFontFamily';
 import ReactECharts from 'echarts-for-react';
 import {
   PageSection,
@@ -449,6 +450,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
   severityFilter,
   onDrillDown,
 }) => {
+  const chartBodyFont = getPatternFlyBodyFontFamily();
   // PatternFly 6 color palette
   // Critical: Red, Warning: Orange, Info: Purple, Healthy: Green
   const pfColors = {
@@ -514,7 +516,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         if (!info.data?.cluster) {
           // Group header tooltip
           return `
-            <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+            <div style="font-family: var(--pf-t--global--font--family--body);">
               <div style="font-size: 14px; font-weight: 600; color: #151515; margin-bottom: 4px;">${info.name}</div>
               <div style="font-size: 12px; color: #6a6e73;">${info.data?.children?.length || 0} clusters</div>
             </div>
@@ -530,7 +532,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         const statusColor = getClusterColor(cluster);
         
         return `
-          <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif; min-width: 200px;">
+          <div style="font-family: var(--pf-t--global--font--family--body); min-width: 200px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};"></span>
               <span style="font-size: 14px; font-weight: 600; color: #151515;">${cluster.name}</span>
@@ -558,7 +560,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       textStyle: { 
         color: '#151515', 
         fontSize: 12, 
-        fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif" 
+        fontFamily: chartBodyFont,
       },
     },
     series: [{
@@ -591,14 +593,14 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
             fontSize: 11,
             fontWeight: 600,
             color: '#ffffff',
-            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            fontFamily: chartBodyFont,
             textShadowColor: 'rgba(0, 0, 0, 0.3)',
             textShadowBlur: 2,
           },
           count: {
             fontSize: 10,
             color: 'rgba(255, 255, 255, 0.9)',
-            fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+            fontFamily: chartBodyFont,
             textShadowColor: 'rgba(0, 0, 0, 0.3)',
             textShadowBlur: 2,
           },
@@ -613,7 +615,7 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
         color: '#151515',
         fontSize: 12,
         fontWeight: 600,
-        fontFamily: "'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+        fontFamily: chartBodyFont,
         backgroundColor: '#f5f5f5',
         borderRadius: 0,
         padding: [4, 8],
@@ -689,19 +691,19 @@ const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.critical }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Critical</span>
+          <span style={{ fontSize: '12px', color: '#151515' }}>Critical</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.warning }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Warning</span>
+          <span style={{ fontSize: '12px', color: '#151515' }}>Warning</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.info }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Info</span>
+          <span style={{ fontSize: '12px', color: '#151515' }}>Info</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '12px', height: '12px', borderRadius: '2px', background: pfColors.healthy }}></span>
-          <span style={{ fontSize: '12px', color: '#151515', fontFamily: "'RedHatText', sans-serif" }}>Healthy</span>
+          <span style={{ fontSize: '12px', color: '#151515' }}>Healthy</span>
         </div>
       </div>
     </div>
@@ -1670,18 +1672,19 @@ interface AlertsTimelineCardProps {
 }
 
 const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) => {
+  const chartBodyFont = getPatternFlyBodyFontFamily();
   const option = {
     tooltip: {
       trigger: 'axis',
       backgroundColor: '#fff',
       borderColor: '#d2d2d2',
       borderWidth: 1,
-      textStyle: { color: '#151515', fontFamily: 'RedHatText, sans-serif' },
+      textStyle: { color: '#151515', fontFamily: chartBodyFont },
     },
     legend: {
       data: ['Critical', 'Warning', 'Info'],
       bottom: 0,
-      textStyle: { fontFamily: 'RedHatText, sans-serif' },
+      textStyle: { fontFamily: chartBodyFont },
     },
     grid: {
       left: '3%',
@@ -1694,11 +1697,11 @@ const AlertsTimelineCard: React.FC<AlertsTimelineCardProps> = ({ trendData }) =>
       type: 'category',
       boundaryGap: false,
       data: trendData.map(d => d.timestamp),
-      axisLabel: { fontFamily: 'RedHatText, sans-serif' },
+      axisLabel: { fontFamily: chartBodyFont },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { fontFamily: 'RedHatText, sans-serif' },
+      axisLabel: { fontFamily: chartBodyFont },
     },
     series: [
       {

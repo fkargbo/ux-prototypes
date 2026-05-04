@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { getPatternFlyBodyFontFamily } from '@app/chartFontFamily';
 import ReactECharts from 'echarts-for-react';
 import {
   PageSection,

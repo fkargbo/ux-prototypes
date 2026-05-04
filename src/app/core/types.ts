@@ -100,6 +100,10 @@ export interface RouteConfig {
     group: string;
     order?: number;
     icon?: React.ComponentType;
+    /** Optional second-level label under `group` (e.g. Observe → AI Hub → …). */
+    subMenu?: string;
+    /** Order among siblings inside the same `subMenu`. */
+    subMenuOrder?: number;
   };
 }
 
@@ -161,6 +165,8 @@ export interface PrototypeContextType {
   loadPrototype: (id: string) => Promise<void>;
   unloadPrototype: () => void;
   isLoading: boolean;
+  /** True until registry init finishes and optional deep-link prototype load completes */
+  isBootstrapping: boolean;
   error: Error | null;
 }
 

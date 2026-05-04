@@ -315,7 +315,7 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     onChange={(_, value) => setAlertRuleExpression(value)}
                     placeholder="sum(etcd_server_has_leader) by (cluster) < count(etcd_server_has_leader) | | by (cluster)"
                     rows={4}
-                    style={{ fontFamily: 'monospace' }}
+                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}
                   />
                 </FormGroup>
                 
@@ -1060,7 +1060,7 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Expression</DescriptionListTerm>
-                    <DescriptionListDescription style={{ fontFamily: 'monospace' }}>
+                    <DescriptionListDescription style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}>
                       {alertRuleExpression || 'intstr.FromString("kubevirt_vmi_non_evictable * on(name, namespace) group_left() kubevirt_vmi_info{phase=\'running\'} == 1"),'}
                     </DescriptionListDescription>
                   </DescriptionListGroup>

@@ -4,9 +4,10 @@
  * React context for managing the currently active prototype
  */
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { PrototypeModule, PrototypeContextType } from './types';
 import { prototypeRegistry } from './PrototypeRegistry';
+import { findPrototypeIdForPath, getRouterPathname } from './deepLinkUtils';
 
 const PrototypeContext = createContext<PrototypeContextType | undefined>(undefined);
 
@@ -37,6 +38,14 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
         throw new Error(`Prototype with ID "${id}" not found in registry`);
       }
 
+      // Run previous prototype teardown when switching without going through the launcher
+      if (currentPrototype && currentPrototype.config.id !== id) {
+        console.log(`👋 Deactivating previous prototype: ${currentPrototype.config.id}`);
+        if (currentPrototype.onDeactivate) {
+          await currentPrototype.onDeactivate();
+        }
+      }
+
       // Call lifecycle hook if defined
       if (prototype.onActivate) {
         await prototype.onActivate();
@@ -55,7 +64,10 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentPrototype]);
+
+  const loadPrototypeRef = useRef(loadPrototype);
+  loadPrototypeRef.current = loadPrototype;
 
   /**
    * Unload the current prototype
@@ -80,14 +92,16 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
    * Initialize registry and restore last active prototype from session (same tab reload / dev refresh)
    */
   useEffect(() => {
-    const initializeAndRestore = async () => {
+    let cancelled = false;
+
+    const bootstrap = async () => {
       try {
         console.log('🚀 Initializing prototype system...');
         
         await prototypeRegistry.initialize();
         
         const prototypes = prototypeRegistry.getAll();
-        console.log(`📦 Loaded ${prototypes.length} prototypes`, prototypes.map(p => p.config.id));
+        console.log(`📦 Loaded ${prototypes.length} prototypes`, prototypes.map((p) => p.config.id));
         setAvailablePrototypes(prototypes);
         
         const savedId = sessionStorage.getItem('activePrototypeId');
@@ -114,7 +128,8 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
     loadPrototype,
     unloadPrototype,
     isLoading,
-    error
+    isBootstrapping,
+    error,
   };
 
   return (

@@ -75,6 +75,10 @@ import {
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { useImpersonation } from '@app/shared/contexts/ImpersonationContext';
 import { useUseCaseContext } from '@app/shared/contexts/UseCaseContext';
+import {
+  ActivePerspectiveProvider,
+  type AppShellPerspectiveKey,
+} from '@app/shared/contexts/ActivePerspectiveContext';
 import { UseCaseBanner } from '@app/UseCaseSelector/UseCaseBanner';
 import virtIcon from '@app/bgimages/virt-icon.png';
 import multiclusterIcon from '@app/bgimages/pficon-multicluster.svg';
@@ -202,6 +206,24 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
   const perspectives = impersonatingUser
     ? perspectivesWithDisabled.filter((p) => p.name === 'Fleet virtualization')
     : perspectivesWithDisabled;
+
+  const setPerspectiveByKey = React.useCallback(
+    (key: AppShellPerspectiveKey) => {
+      const row = perspectivesWithDisabled.find((p) => p.key === key);
+      if (row && !row.disabled) {
+        setActivePerspective(row.name);
+      }
+    },
+    [perspectivesWithDisabled]
+  );
+
+  const activePerspectiveContextValue = React.useMemo(
+    () => ({
+      activePerspective,
+      setPerspectiveByKey,
+    }),
+    [activePerspective, setPerspectiveByKey]
+  );
 
   // Core platforms navigation routes
   const corePlatformsRoutes: IAppRouteGroup[] = [
@@ -556,11 +578,42 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
 
   const location = useLocation();
 
-  const renderNavItem = (route: IAppRoute, index: number) => (
-    <NavItem key={`${route.label}-${index}`} id={`${route.label}-${index}`} isActive={route.path === location.pathname}>
+  const navRouteMatchesLocation = (route: IAppRoute): boolean => {
+    if (route.path && route.path === location.pathname) {
+      return true;
+    }
+    if (route.routes?.length) {
+      return route.routes.some((child) => navRouteMatchesLocation(child));
+    }
+    return false;
+  };
+
+  const renderNavItem = (route: IAppRoute, keyId: string) => (
+    <NavItem key={keyId} id={keyId.replace(/\s+/g, '-')} isActive={route.path === location.pathname}>
       <NavLink to={route.path}>{route.label}</NavLink>
     </NavItem>
   );
+
+  const renderNavRoute = (route: IAppRoute, keyId: string): React.ReactNode => {
+    if (route.routes && route.routes.length > 0 && route.label) {
+      const active = navRouteMatchesLocation(route);
+      return (
+        <NavExpandable
+          key={keyId}
+          id={keyId.replace(/\s+/g, '-')}
+          title={route.label}
+          isActive={active}
+          isExpanded={active}
+        >
+          {route.routes.map((child, i) => renderNavRoute(child, `${keyId}-c${i}`))}
+        </NavExpandable>
+      );
+    }
+    if (route.label) {
+      return renderNavItem(route, keyId);
+    }
+    return null;
+  };
 
   const renderNavGroup = (group: IAppRouteGroup, groupIndex: number) => {
     // For disabled groups, render as non-expandable nav items (just the group title, not clickable)
@@ -571,17 +624,19 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
         </NavItem>
       );
     }
-    
+
+    const groupActive = group.routes.some((route) => navRouteMatchesLocation(route));
+
     // For enabled groups, render as expandable
     return (
       <NavExpandable
         key={`${group.label}-${groupIndex}`}
         id={`${group.label}-${groupIndex}`}
         title={group.label}
-        isActive={group.routes.some((route) => route.path === location.pathname)}
-        isExpanded={group.routes.some((route) => route.path === location.pathname)}
+        isActive={groupActive}
+        isExpanded={groupActive}
       >
-        {group.routes.map((route, idx) => route.label && renderNavItem(route, idx))}
+        {group.routes.map((route, idx) => renderNavRoute(route, `nav-${group.label}-${groupIndex}-r${idx}`))}
       </NavExpandable>
     );
   };
@@ -719,11 +774,47 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
 
   // Helper function to convert prototype routes to navigation groups
   const convertPrototypeRoutesToNavigation = (prototypeRoutes: RouteConfig[]): IAppRouteGroup[] => {
+    const routeConfigToNavLeaf = (route: RouteConfig): IAppRoute => ({
+      element: route.element,
+      label: route.label || '',
+      path: route.path,
+      title: route.title || '',
+    });
+
+    /** Flatten `navigation.subMenu` into nested `IAppRoute.routes` (e.g. Observe → AI Hub → …). */
+    const buildGroupedNavRoutes = (routesInGroup: RouteConfig[]): IAppRoute[] => {
+      const sorted = [...routesInGroup].sort((a, b) => (a.navigation?.order ?? 999) - (b.navigation?.order ?? 999));
+      const seenSubMenus = new Set<string>();
+      const out: IAppRoute[] = [];
+      for (const r of sorted) {
+        const sm = r.navigation?.subMenu?.trim();
+        if (sm) {
+          if (!seenSubMenus.has(sm)) {
+            seenSubMenus.add(sm);
+            const subRoutes = sorted
+              .filter((x) => (x.navigation?.subMenu?.trim() ?? '') === sm)
+              .sort((a, b) => (a.navigation?.subMenuOrder ?? 999) - (b.navigation?.subMenuOrder ?? 999));
+            const leaves = subRoutes.map(routeConfigToNavLeaf);
+            out.push({
+              label: sm,
+              element: <></>,
+              path: leaves[0]?.path ?? '',
+              title: sm,
+              routes: leaves,
+            });
+          }
+          continue;
+        }
+        out.push(routeConfigToNavLeaf(r));
+      }
+      return out;
+    };
+
     // Group routes by navigation.group (empty string is valid for top-level items)
     const groupsMap = new Map<string, RouteConfig[]>();
     const ungroupedRoutes: RouteConfig[] = [];
-    
-    prototypeRoutes.forEach(route => {
+
+    prototypeRoutes.forEach((route) => {
       if (route.label && route.navigation !== undefined) {
         const groupName = route.navigation.group || '';
         // Handle routes with empty group (top-level items)
@@ -737,65 +828,54 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
         }
       }
     });
-    
+
     // Convert to IAppRouteGroup[] format, sorted by order
     const groups: Array<{ group: IAppRouteGroup; firstOrder: number }> = [];
-    
+
     // Add ungrouped routes (empty group) as individual groups
     ungroupedRoutes.sort((a, b) => {
       const orderA = a.navigation?.order || 999;
       const orderB = b.navigation?.order || 999;
       return orderA - orderB;
     });
-    
-    ungroupedRoutes.forEach(route => {
+
+    ungroupedRoutes.forEach((route) => {
       const order = route.navigation?.order || 999;
       groups.push({
         group: {
           label: '',
-          routes: [{
-            element: route.element,
-            label: route.label || '',
-            path: route.path,
-            title: route.title || '',
-          }],
+          routes: [routeConfigToNavLeaf(route)],
         },
         firstOrder: order,
       });
     });
-    
+
     // Add grouped routes
     groupsMap.forEach((routes, groupName) => {
-      // Sort routes by order
       routes.sort((a, b) => {
         const orderA = a.navigation?.order || 999;
         const orderB = b.navigation?.order || 999;
         return orderA - orderB;
       });
-      
+
       const firstOrder = routes[0]?.navigation?.order || 999;
-      
+
       groups.push({
         group: {
           label: groupName,
-          routes: routes.map(route => ({
-            element: route.element,
-            label: route.label || '',
-            path: route.path,
-            title: route.title || '',
-          })),
+          routes: buildGroupedNavRoutes(routes),
         },
         firstOrder,
       });
     });
-    
+
     // Sort groups by first route's order (or alphabetically)
     groups.sort((a, b) => {
       if (a.firstOrder !== b.firstOrder) return a.firstOrder - b.firstOrder;
       return a.group.label.localeCompare(b.group.label);
     });
-    
-    return groups.map(g => g.group);
+
+    return groups.map((g) => g.group);
   };
 
   // Select routes based on active perspective
@@ -930,12 +1010,21 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
         let filteredRoutes = prototype.routes;
         
         if (activePerspective === 'Fleet management') {
-          // Fleet management: routes that don't start with /core or /virtualization
-          filteredRoutes = prototype.routes.filter(route => 
-            !route.path.startsWith('/core') && 
-            !route.path.startsWith('/virtualization') &&
-            route.navigation !== undefined
-          );
+          // Fleet management: non-core (and non-virt) fleet routes, plus **Observe** pages under `/core/observe`
+          // (multi-cluster Observe / AI Hub UX lives here while the rest of `/core` stays Core platforms–only).
+          filteredRoutes = prototype.routes.filter((route) => {
+            if (route.navigation === undefined) {
+              return false;
+            }
+            const p = route.path;
+            if (p.startsWith('/virtualization')) {
+              return false;
+            }
+            if (p.startsWith('/core') && !p.startsWith('/core/observe')) {
+              return false;
+            }
+            return true;
+          });
           
           // For Cost Management prototype, filter by selected option (A or B)
           if (currentPrototypeId === 'stefan-costmanagement') {
@@ -1053,7 +1142,10 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
                     }}
                   />
                 )}
-                {route.routes.map((subRoute, subIdx) => subRoute.label && renderNavItem(subRoute, idx * 1000 + subIdx))}
+                {route.routes.map(
+                  (subRoute, subIdx) =>
+                    subRoute.label && renderNavRoute(subRoute, `nav-flat-${idx}-r${subIdx}`)
+                )}
               </React.Fragment>
             );
           }
@@ -1062,7 +1154,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
             if ('routes' in route && route.routes) {
               return renderNavGroup(route, idx);
             } else if (!('routes' in route) && 'path' in route && 'element' in route && 'title' in route) {
-              return renderNavItem(route as unknown as IAppRoute, idx);
+              return renderNavRoute(route as unknown as IAppRoute, `nav-top-${idx}`);
             }
           }
           return null;
@@ -1126,7 +1218,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
           <Spinner size="lg" />
         </div>
       ) : (
-        children
+        <ActivePerspectiveProvider value={activePerspectiveContextValue}>{children}</ActivePerspectiveProvider>
       )}
     </Page>
 

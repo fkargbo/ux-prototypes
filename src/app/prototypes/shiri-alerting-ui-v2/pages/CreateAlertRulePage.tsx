@@ -1580,7 +1580,7 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Expression</DescriptionListTerm>
-                    <DescriptionListDescription style={{ fontFamily: 'monospace' }}>
+                    <DescriptionListDescription style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}>
                       {alertRuleExpression || 'intstr.FromString("kubevirt_vmi_non_evictable * on(name, namespace) group_left() kubevirt_vmi_info{phase=\'running\'} == 1"),'}
                     </DescriptionListDescription>
                   </DescriptionListGroup>

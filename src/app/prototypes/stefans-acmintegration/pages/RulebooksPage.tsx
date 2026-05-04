@@ -566,7 +566,7 @@ const RulebooksPage: React.FC = () => {
                       onChange={(_event, value) => setWizardData({ ...wizardData, yaml: value })}
                       placeholder="Enter rulebook YAML"
                       rows={15}
-                      style={{ fontFamily: 'monospace', fontSize: '14px' }}
+                      style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '14px' }}
                     />
                   </FormGroup>
                 </Form>
