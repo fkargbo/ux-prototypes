@@ -36,7 +36,6 @@ import {
 } from '@patternfly/react-icons';
 import type { AlertRecord, AlertSeverity, ReasoningStep, ReasoningStepStatus } from './data';
 import { AgentPulseLabel } from './AgentPulseLabel';
-import { ObserveAiInsightBlock } from './ObserveAiInsightBlock';
 import './autonomous-ai-observe.css';
 
 /** OpenShift console–style: e.g. Apr 27, 2026, 1:39 PM */
@@ -176,9 +175,6 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
               <Content component="p" className="ols-aio-alert-summary__message">
                 {alert.message}
               </Content>
-              <div className="ols-aio-alert-summary__ai-insight">
-                <ObserveAiInsightBlock insight={alert.aiInsight} idSuffix={alert.id} />
-              </div>
             </div>
           </FlexItem>
         </Flex>
@@ -192,13 +188,22 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                 isExpanded={openChain}
                 onToggle={(_e, expanded) => setOpenChain(expanded)}
                 toggleContent={
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    flexWrap={{ default: 'wrap' }}
+                    gap={{ default: 'gapSm' }}
+                    style={{ width: '100%' }}
+                  >
                     <FlexItem>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
                         <CodeBranchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
                         <Title headingLevel="h4" size="md">
                           Active Reasoning Chain
                         </Title>
+                        <span className="ols-aio-section-ai-category ols-aio-section-ai-category--inline">
+                          {alert.aiInsight.categoryLabel}
+                        </span>
                       </Flex>
                     </FlexItem>
                     <FlexItem>
