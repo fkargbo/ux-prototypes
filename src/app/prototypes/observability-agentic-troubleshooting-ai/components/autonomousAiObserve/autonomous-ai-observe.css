@@ -196,6 +196,13 @@ span.ols-aio-card-stat-number {
   color: var(--pf-t--global--text--color--subtle);
 }
 
+/* Same tier as message paragraph when body uses `AiInsightLede` (icon + AI insight + message). */
+.ols-aio-alert-summary .ols-aio-alert-summary__message--ai-insight {
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  min-width: 0;
+}
+
 /* Fleet incident: clusters + lede share one grid cell (do not use __message on nested nodes — it sets grid placement). */
 .ols-aio-alert-summary__fleet-meta {
   grid-column: 2;
@@ -203,11 +210,11 @@ span.ols-aio-card-stat-number {
   min-width: 0;
 }
 
-.ols-aio-alert-summary .ols-aio-alert-summary__fleet-meta .ols-aio-fleet-incident-lede.pf-v6-c-content--p {
-  font-size: var(--pf-t--global--font--size--sm);
-  color: var(--pf-t--global--text--color--subtle);
-  margin: 0;
-  margin-top: var(--pf-t--global--spacer--xs);
+/* Fleet AI narrative: matches Alerting “AI insight” row (icon + label + italic body). */
+.ols-aio-alert-summary .ols-aio-alert-summary__fleet-meta .ols-aio-fleet-ai-narrative-block {
+  margin-top: var(--pf-t--global--spacer--sm);
+  min-width: 0;
+  width: 100%;
 }
 
 /* Agent status chips: 28px min height; label text uses PF body typography (not mono). */
@@ -362,3 +369,4 @@ span.ols-aio-card-stat-number {
   padding: var(--pf-t--global--spacer--md);
   background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 5%, transparent);
 }
+

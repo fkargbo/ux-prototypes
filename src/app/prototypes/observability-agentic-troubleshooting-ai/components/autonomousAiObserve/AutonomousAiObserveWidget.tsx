@@ -36,6 +36,7 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   GlobeIcon,
+  MagicIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
@@ -56,6 +57,7 @@ import { SimulationProvider } from '../../simulation/SimulationProvider';
 import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
+import { FLEET_INSIGHT_ICON_BOX_STYLE } from '../../pages/alerting-fleet-copy/data/fleetInsightsConfig';
 import {
   clearFocusedClusterSession,
   writeFocusedClusterIdToSession,
@@ -506,20 +508,27 @@ export const AutonomousAiObserveWidget: React.FC = () => {
       >
         <Flex alignItems={{ default: 'alignItemsFlexStart' }} flexWrap={{ default: 'wrap' }}>
           <FlexItem>
-            <Title headingLevel="h2" size="md">
-              Autonomous AI Observe
-            </Title>
-            <Content
-              component="p"
-              className="ols-aio-text-subtle-sm"
-              style={{
-                marginTop: 'var(--pf-t--global--spacer--xs)',
-                marginBottom: 0,
-                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-              }}
-            >
-              {subtitle}
-            </Content>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+              <div style={FLEET_INSIGHT_ICON_BOX_STYLE} aria-hidden="true">
+                <MagicIcon style={{ width: 20, height: 20 }} />
+              </div>
+              <div>
+                <Title headingLevel="h2" size="md">
+                  Autonomous AI Observe
+                </Title>
+                <Content
+                  component="p"
+                  className="ols-aio-text-subtle-sm"
+                  style={{
+                    marginTop: 'var(--pf-t--global--spacer--xs)',
+                    marginBottom: 0,
+                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                  }}
+                >
+                  {subtitle}
+                </Content>
+              </div>
+            </Flex>
           </FlexItem>
         </Flex>
       </CardHeader>

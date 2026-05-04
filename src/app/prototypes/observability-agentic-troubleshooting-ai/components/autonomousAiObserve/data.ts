@@ -30,6 +30,21 @@ export interface ReasoningStep {
   icon: 'exclamation' | 'database' | 'network' | 'search' | 'check';
 }
 
+/**
+ * Structured “AI insight” for transparency above the Active Reasoning Chain:
+ * category → headline (agent move) → evidence (signals) → optional narrative (synthesis).
+ */
+export interface AlertAiInsight {
+  /** e.g. "AI insight · Correlation" */
+  categoryLabel: string;
+  /** Short headline — anchor / grouping / scope */
+  headline: string;
+  /** Evidence line — metrics, clusters, time windows */
+  evidence: string;
+  /** Optional first-person or plain-language synthesis */
+  narrative?: string;
+}
+
 export interface AlertRecord {
   id: string;
   clusterId: string;
@@ -56,6 +71,8 @@ export interface AlertRecord {
   remediationRiskSummary: string;
   /** How Autonomous AI Observe reached the current conclusion (evidence chain, console-style). */
   agentInvestigationNarrative: string;
+  /** Labeled AI transparency block (title / evidence / narrative). */
+  aiInsight: AlertAiInsight;
 }
 
 /**
@@ -70,8 +87,8 @@ export interface FleetWideCriticalIncident {
   /** Clusters included in the causal story (ids into `CLUSTERS`). */
   affectedClusterIds: string[];
   correlatedAlertCount: number;
-  /** Plain-language fleet narrative (“I have correlated…”). */
-  aiSummary: string;
+  /** Structured AI insight (replaces a single undifferentiated summary paragraph). */
+  aiInsight: AlertAiInsight;
   /** When ingress-to-workload loss began (display string, e.g. for subtitles). */
   symptomStartedDisplay: string;
   /** Active reasoning chain (same shape as per-cluster alerts). */
@@ -217,6 +234,14 @@ $ kubectl rollout restart deploy/payments-api -n payments`,
       'Medium–High — rolling back netpol and restarting payments-api can cause sub-minute errors on checkout paths while endpoints converge.',
     agentInvestigationNarrative:
       'Autonomous AI Observe correlated Kube events, NetworkPolicy change timestamps, and pod restart signatures on payments-api before locking onto egress to redis-cache.',
+    aiInsight: {
+      categoryLabel: 'AI insight · Correlation',
+      headline: 'Scoped egress failure to redis behind payments-api',
+      evidence:
+        'Kube events + NetworkPolicy timestamps align with redis dial timeouts on payments-api replicas.',
+      narrative:
+        "I've tied the 5xx surge to egress blocked to redis-cache — next I'm validating rollback blast radius before recommending undo.",
+    },
   },
   {
     id: 'alrt-8819',
@@ -278,6 +303,14 @@ $ oc patch pvc etcd-master-2 -p '{"spec":{"resources":{"requests":{"storage":"60
       'High — etcd maintenance on a control-plane member can briefly lengthen API write latency; schedule during a maintenance window if possible.',
     agentInvestigationNarrative:
       'Autonomous AI Observe read node conditions, etcd WAL metrics, and compaction state on master-2 to confirm disk pressure as the limiting factor.',
+    aiInsight: {
+      categoryLabel: 'AI insight · Capacity',
+      headline: 'Prioritized etcd WAL under DiskPressure on master-2',
+      evidence:
+        'Node condition timeline matches WAL growth beyond quota; compaction lag explains sustained API latency.',
+      narrative:
+        "I'm treating skipped compaction after upgrade as the primary risk — expanding disk and defrag reduces quorum hazard next.",
+    },
   },
   {
     id: 'alrt-8814',
@@ -341,6 +374,14 @@ $ oc set resources deploy/checkout-svc --requests=cpu=500m`,
       'Low–Medium — HPA and resource bumps are rolling; expect brief CPU scheduling noise only.',
     agentInvestigationNarrative:
       'Autonomous AI Observe compared HPA events, replica saturation, and container CPU throttling metrics on checkout-svc to justify raising limits.',
+    aiInsight: {
+      categoryLabel: 'AI insight · Performance',
+      headline: 'CPU starvation before horizontal scale could help',
+      evidence:
+        'HPA maxReplicas reached while cpu_throttled_seconds grows — requests sit below sustained load shape.',
+      narrative:
+        "I've queued a safe HPA max + CPU request bump; expecting rolling noise only during the rollout.",
+    },
   },
   {
     id: 'alrt-8830',
@@ -401,6 +442,14 @@ $ oc delete certificaterequest -l cert=wildcard-apac`,
       'Medium — ingress reload on renewal can drop a small number of in-flight TLS handshakes during router rollout.',
     agentInvestigationNarrative:
       'Autonomous AI Observe verified cert-manager issuer health, renewal windows, and router-default attachment for the wildcard before prioritizing renewal.',
+    aiInsight: {
+      categoryLabel: 'AI insight · Security posture',
+      headline: 'Renewal path clear before clients hit trust errors',
+      evidence:
+        'cert-manager issuer healthy; DNS-01 challenge ready — expiry window entered for wildcard router cert.',
+      narrative:
+        "I'm driving an immediate CertificateRequest so ingress reload happens before the 36h cut-off.",
+    },
   },
 ];
 
@@ -413,8 +462,14 @@ export const FLEET_WIDE_REGIONAL_INGRESS: FleetWideCriticalIncident = {
   agentStatus: 'investigating',
   affectedClusterIds: ['prod-east-2', 'prod-eu-west-1', 'stg-central'],
   correlatedAlertCount: 112,
-  aiSummary:
-    'I have correlated 112 alerts across prod-east-2, prod-eu-west-1, and stg-central. All symptoms point to a total loss of Ingress-to-Workload communication starting at 10:05 AM.',
+  aiInsight: {
+    categoryLabel: 'AI insight · Fleet correlation',
+    headline: 'Anchored blast to ingress dataplane',
+    evidence:
+      'OpenShift Ingress metrics show coordinated drop across prod-east-2, prod-eu-west-1, and stg-central',
+    narrative:
+      'I have correlated 112 alerts across prod-east-2, prod-eu-west-1, and stg-central. All symptoms point to a total loss of Ingress-to-Workload communication starting at 10:05 AM.',
+  },
   symptomStartedDisplay: '10:05 AM',
   steps: [
     {
@@ -504,7 +559,7 @@ export function buildFleetWideIngressAlertRecordForCluster(clusterId: string): A
     service: 'openshift-ingress / fleet-correlated',
     age: fw.symptomStartedDisplay,
     firedAt: fw.firedAt,
-    message: fw.aiSummary,
+    message: fw.aiInsight.narrative ?? fw.aiInsight.evidence,
     agentStatus: fw.agentStatus,
     steps: fw.steps,
     rcaSummary: `${fw.aggregatedFinding} ${fw.rootCauseNarrative}`.trim(),
@@ -518,7 +573,8 @@ export function buildFleetWideIngressAlertRecordForCluster(clusterId: string): A
       'Use Remediation hub in Fleet management for governor-approved rollback across affected clusters.',
     estimatedRecovery: fw.estimatedRecovery,
     remediationRiskSummary: fw.riskAssessment,
-    agentInvestigationNarrative: fw.aiSummary,
+    agentInvestigationNarrative: fw.aiInsight.narrative ?? fw.aiInsight.evidence,
+    aiInsight: { ...fw.aiInsight },
   };
 }
 
@@ -600,7 +656,7 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   );
 
   if (fleetWideCriticalAddsForCluster(clusterId) > 0) {
-    const summary = FLEET_WIDE_REGIONAL_INGRESS.aiSummary;
+    const summary = FLEET_WIDE_REGIONAL_INGRESS.aiInsight.narrative ?? FLEET_WIDE_REGIONAL_INGRESS.aiInsight.evidence;
     items.push({
       tone: 'danger',
       text: `Fleet incident: ${FLEET_WIDE_REGIONAL_INGRESS.title}`,

@@ -399,7 +399,7 @@ function buildAiHubAlignedClusters(baseTime: Date): ClusterData[] {
       clusterName: cd.name,
       namespace: 'openshift-ingress',
       labels: { env: String(cd.labels.env), scope: 'fleet', story: 'ai-hub' },
-      summary: FLEET_WIDE_REGIONAL_INGRESS.aiSummary,
+      summary: FLEET_WIDE_REGIONAL_INGRESS.aiInsight.narrative ?? FLEET_WIDE_REGIONAL_INGRESS.aiInsight.evidence,
       lastFired: relativeLastFired(fleetFired, baseTime),
       lastFiredTimestamp: fleetFired,
       details: `${FLEET_WIDE_REGIONAL_INGRESS.aggregatedFinding} ${FLEET_WIDE_REGIONAL_INGRESS.rootCauseNarrative}`,
