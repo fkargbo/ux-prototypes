@@ -7,7 +7,7 @@ import React from 'react';
 /**
  * Prototype status in its lifecycle
  */
-export type PrototypeStatus = 'draft' | 'in-progress' | 'done' | 'paused' | 'archived';
+export type PrototypeStatus = 'draft' | 'in-progress' | 'in-review' | 'done' | 'paused' | 'archived';
 
 /**
  * Available perspectives in the application

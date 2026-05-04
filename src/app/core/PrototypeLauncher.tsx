@@ -81,7 +81,12 @@ const PrototypeLauncher: React.FC = () => {
     const lastUsed = versions.find(v => v.config.id === lastUsedId);
     if (lastUsed) return lastUsed;
     
-    // Default to first version
+    // Multi-cluster alerting: default to v2 (shiri-alerting-ui-v2) — active development target
+    if (cardId === 'multi-cluster-alerting') {
+      const v2 = versions.find(v => v.config.id === 'shiri-alerting-ui-v2');
+      if (v2) return v2;
+    }
+    // Default to first version in sort order
     return versions[0];
   };
   
@@ -176,11 +181,15 @@ const PrototypeLauncher: React.FC = () => {
       }
     });
     
-    // Sort versions within each group
-    versionGroups.forEach((versions) => {
+    // Sort versions within each group (newest first for multi-cluster-alerting, else default)
+    versionGroups.forEach((versions, groupName) => {
       versions.sort((a, b) => {
         if (a.config.version === 'final') return 1;
         if (b.config.version === 'final') return -1;
+        // For multi-cluster-alerting, prefer v2 as default (newest first)
+        if (groupName === 'multi-cluster-alerting') {
+          return b.config.version.localeCompare(a.config.version);
+        }
         return a.config.version.localeCompare(b.config.version);
       });
     });
@@ -207,7 +216,7 @@ const PrototypeLauncher: React.FC = () => {
   
   // Add version groups (as single cards)
   versionGroups.forEach((versions, groupName) => {
-    // Use the first version as representative for metadata
+    // Use the first version as representative (already sorted - v2 first for multi-cluster-alerting)
     cardsToDisplay.push({
       type: 'versionGroup',
       representative: versions[0],
@@ -291,6 +300,7 @@ const PrototypeLauncher: React.FC = () => {
   const counts = {
     all: cardsToDisplay.length,
     'in-progress': countCardsByStatus('in-progress'),
+    'in-review': countCardsByStatus('in-review'),
     done: countCardsByStatus('done'),
     archived: countCardsByStatus('archived'),
   };
@@ -300,10 +310,12 @@ const PrototypeLauncher: React.FC = () => {
     loadPrototype(prototypeId);
   };
 
-  const getStatusColor = (status: PrototypeStatus): 'blue' | 'green' | 'grey' | 'orange' => {
+  const getStatusColor = (status: PrototypeStatus): 'blue' | 'green' | 'grey' | 'orange' | 'purple' => {
     switch (status) {
       case 'in-progress':
         return 'green';
+      case 'in-review':
+        return 'purple';
       case 'done':
         return 'green';
       case 'archived':
@@ -316,14 +328,17 @@ const PrototypeLauncher: React.FC = () => {
   };
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      boxSizing: 'border-box',
-      backgroundColor: '#f5f5f5',
-      overflow: 'auto'
-    }}>
+    <main
+      role="main"
+      style={{ 
+        height: '100vh', 
+        boxSizing: 'border-box',
+        backgroundColor: '#f5f5f5',
+        overflow: 'auto'
+      }}
+    >
       {/* Header, Filters, and Tabs - All White Background */}
-      <div style={{ 
+      <header style={{ 
         padding: '24px',
         paddingBottom: '0',
         backgroundColor: '#ffffff'
@@ -344,6 +359,7 @@ const PrototypeLauncher: React.FC = () => {
             <ToolbarContent>
               <ToolbarItem style={{ flexGrow: 1, maxWidth: '400px' }}>
                 <SearchInput
+                  aria-label="Search prototypes by name, owner, or persona"
                   placeholder="Search by name, owner, or persona..."
                   value={searchValue}
                   onChange={(_event, value) => setSearchValue(value)}
@@ -397,6 +413,10 @@ const PrototypeLauncher: React.FC = () => {
               title={<TabTitleText>In-progress ({counts['in-progress']})</TabTitleText>}
             />
             <Tab
+              eventKey="in-review"
+              title={<TabTitleText>In-review ({counts['in-review']})</TabTitleText>}
+            />
+            <Tab
               eventKey="done"
               title={<TabTitleText>Done ({counts.done})</TabTitleText>}
             />
@@ -410,12 +430,10 @@ const PrototypeLauncher: React.FC = () => {
             />
           </Tabs>
         </div>
-      </div>
+      </header>
 
-              {/* Prototype Grid/Table */}
-              <div style={{ 
-                padding: '24px'
-              }}>
+      {/* Prototype Grid/Table */}
+      <section aria-label="Prototype list" style={{ padding: '24px' }}>
                 <div style={{ 
                   minHeight: '400px'
                 }}>
@@ -447,12 +465,12 @@ const PrototypeLauncher: React.FC = () => {
                     const prototype = card.representative;
                     const cardId = card.type === 'versionGroup' ? card.versions![0].config.versionGroup! : prototype.config.id;
                     
-                    // Get children/versions based on card type
+                    // Get children/versions based on card type, excluding archived versions
                     let children: PrototypeModule[] = [];
                     if (card.type === 'parent') {
                       children = getChildren(prototype.config.id);
                     } else if (card.type === 'versionGroup') {
-                      children = card.versions || [];
+                      children = (card.versions || []).filter(v => v.config.status !== 'archived');
                     }
                     
                     const selectedVersion = card.type === 'versionGroup' && children.length > 0
@@ -711,12 +729,12 @@ const PrototypeLauncher: React.FC = () => {
                 const prototype = card.representative;
                 const cardId = card.type === 'versionGroup' ? card.versions![0].config.versionGroup! : prototype.config.id;
                 
-                // Get children/versions based on card type
+                // Get children/versions based on card type, excluding archived versions
                 let children: PrototypeModule[] = [];
                 if (card.type === 'parent') {
                   children = getChildren(prototype.config.id);
                 } else if (card.type === 'versionGroup') {
-                  children = card.versions || [];
+                  children = (card.versions || []).filter(v => v.config.status !== 'archived');
                 }
                 
                 // For parent cards, check if children have versions
@@ -1239,8 +1257,8 @@ const PrototypeLauncher: React.FC = () => {
             </Grid>
           )}
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

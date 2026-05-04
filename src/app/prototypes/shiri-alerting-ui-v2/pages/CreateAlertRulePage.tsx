@@ -1,11 +1,7 @@
 /**
- * Create Alert Rule - Full Page Wizard
- * 
- * A 4-step wizard for creating custom alert rules:
- * 1. Alert rules definition
- * 2. Metadata and notifications
- * 3. Target clusters
- * 4. Review and create
+ * Create alert rule — full-page wizard (prototype)
+ *
+ * Steps: Alert rule definition → Metadata and notifications → Target clusters → Review and create
  */
 
 import * as React from 'react';
@@ -45,13 +41,22 @@ import {
   SelectList,
   MenuToggle,
   MenuToggleElement,
-  SearchInput,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateActions,
   Alert as PfAlert,
   Divider,
   TextInputGroup,
   TextInputGroupMain,
   TextInputGroupUtilities,
+  Pagination,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from '@patternfly/react-core';
+import { PromqlExpressionField } from '../components/PromqlExpressionField';
+import './createAlertRulePage.css';
 import {
   Table,
   Thead,
@@ -74,30 +79,116 @@ import {
 type AlertSeverity = 'Critical' | 'Warning' | 'Info';
 type AlertComponent = 'kube-apiserver' | 'Storage' | 'Network' | 'etcd' | 'Scheduler' | 'Controller' | 'Workload' | 'Pod' | 'Quota';
 
-// Mock cluster data for target clusters step
 interface ClusterData {
   name: string;
   namespace: string;
   infrastructure: string;
-  status: 'Ready' | 'Offline' | 'Degraded';
+  status: 'Ready' | 'Not ready';
   region: string;
   version: string;
   labels: Record<string, string>;
   environment: string;
 }
 
-const mockClusters: ClusterData[] = [
-  { name: 'prod-web-us-east-1', namespace: 'aks-central', infrastructure: 'Microsoft Azure', status: 'Ready', region: 'us-east-1', version: 'v1.31.6', labels: { team: 'platform', tier: 'production' }, environment: 'Production' },
-  { name: 'prod-web-us-west-2', namespace: 'aks-central', infrastructure: 'AWS', status: 'Ready', region: 'us-west-2', version: 'ARO 4.17.12', labels: { team: 'platform', tier: 'production' }, environment: 'Staging' },
-  { name: 'prod-db-us-east-1', namespace: 'Default', infrastructure: 'VMware vSphere', status: 'Ready', region: 'us-west-2', version: 'v1.31.6-eks-bc8f', labels: { team: 'database', tier: 'production' }, environment: 'Production' },
-  { name: 'OCP-Stage-AppB', namespace: 'boston', infrastructure: 'AWS', status: 'Ready', region: 'eu-west-1', version: 'OpenShift 4.17.8', labels: { app: 'staging', team: 'appb' }, environment: 'Development' },
-  { name: 'legacy-monolith-03', namespace: 'boston', infrastructure: 'VMware vSphere', status: 'Ready', region: 'us-east-1', version: 'OpenShift 4.21.1', labels: { legacy: 'true', team: 'ops' }, environment: 'Production' },
-  { name: 'OCP-Stage-AppC', namespace: 'k3s-east', infrastructure: 'Other', status: 'Ready', region: 'eu-west-1', version: 'OpenShift 4.19.8', labels: { app: 'staging', team: 'appc' }, environment: 'Staging' },
-  { name: 'OCP-Stage-AppD', namespace: 'k3s-west', infrastructure: 'AWS', status: 'Ready', region: 'eu-central-1', version: 'OpenShift 4.21.1', labels: { app: 'staging', team: 'appd' }, environment: 'Production' },
-  { name: 'dev-k8s-sandbox-01', namespace: 'k3s-east', infrastructure: 'Other', status: 'Ready', region: 'us-east-2', version: 'OpenShift 4.21.1', labels: { sandbox: 'true', team: 'dev' }, environment: 'Development' },
-  { name: 'prod-api-eu-central', namespace: 'eks-europe', infrastructure: 'AWS', status: 'Ready', region: 'eu-central-1', version: 'OpenShift 4.18.5', labels: { api: 'true', tier: 'production' }, environment: 'Production' },
-  { name: 'stage-ml-us-west', namespace: 'gke-ml', infrastructure: 'Google Cloud', status: 'Ready', region: 'us-west-1', version: 'OpenShift 4.20.3', labels: { ml: 'true', team: 'data' }, environment: 'Staging' },
-];
+const FLEET_CLUSTER_COUNT = 110;
+
+/** Red Hat style: required marker visible only to sighted users */
+const RequiredMark: React.FC = () => (
+  <span style={{ color: '#c9190b' }} aria-hidden="true">
+    {' '}
+    *
+  </span>
+);
+
+function buildFleetMockClusters(): ClusterData[] {
+  const regions = ['us-east-1', 'us-west-2', 'eu-west-1', 'eu-central-1', 'ap-south-1'];
+  const base: ClusterData[] = [
+    { name: 'prod-web-us-east-1', namespace: 'aks-central', infrastructure: 'Microsoft Azure', status: 'Ready', region: 'us-east-1', version: 'v1.31.6', labels: { team: 'platform', tier: 'production', env: 'prod' }, environment: 'Production' },
+    { name: 'prod-web-us-west-2', namespace: 'aks-central', infrastructure: 'AWS', status: 'Not ready', region: 'us-west-2', version: 'ARO 4.17.12', labels: { team: 'platform', tier: 'production', env: 'prod' }, environment: 'Staging' },
+    { name: 'prod-db-us-east-1', namespace: 'Default', infrastructure: 'VMware vSphere', status: 'Ready', region: 'us-west-2', version: 'v1.31.6-eks-bc8f', labels: { team: 'database', tier: 'production', env: 'prod' }, environment: 'Production' },
+    { name: 'OCP-Stage-AppB', namespace: 'boston', infrastructure: 'AWS', status: 'Ready', region: 'eu-west-1', version: 'OpenShift 4.17.8', labels: { app: 'staging', team: 'appb', env: 'dev' }, environment: 'Development' },
+    { name: 'legacy-monolith-03', namespace: 'boston', infrastructure: 'VMware vSphere', status: 'Not ready', region: 'us-east-1', version: 'OpenShift 4.21.1', labels: { legacy: 'true', team: 'ops', env: 'prod' }, environment: 'Production' },
+    { name: 'OCP-Stage-AppC', namespace: 'k3s-east', infrastructure: 'Other', status: 'Ready', region: 'eu-west-1', version: 'OpenShift 4.19.8', labels: { app: 'staging', team: 'appc', env: 'dev' }, environment: 'Staging' },
+    { name: 'OCP-Stage-AppD', namespace: 'k3s-west', infrastructure: 'AWS', status: 'Ready', region: 'eu-central-1', version: 'OpenShift 4.21.1', labels: { app: 'staging', team: 'appd', env: 'prod' }, environment: 'Production' },
+    { name: 'dev-k8s-sandbox-01', namespace: 'k3s-east', infrastructure: 'Other', status: 'Ready', region: 'us-east-2', version: 'OpenShift 4.21.1', labels: { sandbox: 'true', team: 'dev', env: 'dev' }, environment: 'Development' },
+    { name: 'prod-api-eu-central', namespace: 'eks-europe', infrastructure: 'AWS', status: 'Ready', region: 'eu-central-1', version: 'OpenShift 4.18.5', labels: { api: 'true', tier: 'production', env: 'prod' }, environment: 'Production' },
+    { name: 'stage-ml-us-west', namespace: 'gke-ml', infrastructure: 'Google Cloud', status: 'Not ready', region: 'us-west-1', version: 'OpenShift 4.20.3', labels: { ml: 'true', team: 'data', env: 'staging' }, environment: 'Staging' },
+  ];
+  for (let i = base.length; i < FLEET_CLUSTER_COUNT; i++) {
+    const ready = i % 11 !== 0;
+    base.push({
+      name: `fleet-ocp-${String(i + 1).padStart(3, '0')}`,
+      namespace: 'multicluster-engine',
+      infrastructure: i % 3 === 0 ? 'AWS' : i % 3 === 1 ? 'Bare metal' : 'Google Cloud',
+      status: ready ? 'Ready' : 'Not ready',
+      region: regions[i % regions.length],
+      version: `OpenShift 4.${18 + (i % 4)}.${(i % 8) + 1}`,
+      labels: { env: i % 4 === 0 ? 'prod' : 'dev', team: `team-${(i % 9) + 1}`, shard: String((i % 3) + 1) },
+      environment: i % 3 === 0 ? 'Production' : i % 3 === 1 ? 'Staging' : 'Development',
+    });
+  }
+  return base;
+}
+
+const mockClusters: ClusterData[] = buildFleetMockClusters();
+
+type ClusterFilterAttribute = 'name' | 'label' | 'version';
+
+interface ClusterTableFilter {
+  id: string;
+  attribute: ClusterFilterAttribute;
+  value: string;
+}
+
+function clusterFilterAttributeLabel(attr: ClusterFilterAttribute): string {
+  switch (attr) {
+    case 'name':
+      return 'Name';
+    case 'label':
+      return 'Label';
+    case 'version':
+      return 'Version';
+  }
+}
+
+function clusterFilterValuePlaceholder(attr: ClusterFilterAttribute): string {
+  switch (attr) {
+    case 'name':
+      return 'Filter by name...';
+    case 'label':
+      return 'Enter label...';
+    case 'version':
+      return 'Type to narrow versions...';
+  }
+}
+
+function formatClusterLabelsTooltip(labels: Record<string, string>): string {
+  return Object.entries(labels)
+    .map(([k, v]) => `${k}=${v}`)
+    .join('\n');
+}
+
+function clusterMatchesTableFilter(cluster: ClusterData, f: ClusterTableFilter): boolean {
+  const q = f.value.trim().toLowerCase();
+  if (!q) return true;
+  if (f.attribute === 'name') {
+    return cluster.name.toLowerCase().includes(q);
+  }
+  if (f.attribute === 'label') {
+    return Object.entries(cluster.labels).some(
+      ([k, val]) =>
+        `${k}=${val}`.toLowerCase().includes(q) || k.toLowerCase().includes(q) || val.toLowerCase().includes(q),
+    );
+  }
+  if (f.attribute === 'version') {
+    return cluster.version.toLowerCase().includes(q);
+  }
+  return true;
+}
+
+function clusterTableChipText(f: ClusterTableFilter): string {
+  return `${clusterFilterAttributeLabel(f.attribute)}: ${f.value}`;
+}
 
 // Available components for typeahead
 const availableComponents: AlertComponent[] = ['kube-apiserver', 'Storage', 'Network', 'etcd', 'Scheduler', 'Controller', 'Workload', 'Pod', 'Quota'];
@@ -111,9 +202,14 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
   // Step 1: Alert rules definition
   const [alertRuleName, setAlertRuleName] = React.useState('');
   const [alertRuleExpression, setAlertRuleExpression] = React.useState('');
+  const [isQueryValidating, setIsQueryValidating] = React.useState(false);
+  const [queryValidationResult, setQueryValidationResult] = React.useState<{
+    status: 'success' | 'error' | null;
+    message: string;
+  }>({ status: null, message: '' });
   const [alertRuleFireImmediately, setAlertRuleFireImmediately] = React.useState(false);
-  const [alertRuleForDuration, setAlertRuleForDuration] = React.useState(1);
-  const [alertRuleForUnit, setAlertRuleForUnit] = React.useState<'Seconds' | 'Minutes' | 'Hours'>('Seconds');
+  const [alertRuleForDuration, setAlertRuleForDuration] = React.useState(5);
+  const [alertRuleForUnit, setAlertRuleForUnit] = React.useState<'Seconds' | 'Minutes' | 'Hours'>('Minutes');
   const [isAlertRuleForUnitOpen, setIsAlertRuleForUnitOpen] = React.useState(false);
   const [alertRuleSeverity, setAlertRuleSeverity] = React.useState<'Critical' | 'Warning' | 'Info'>('Critical');
   const [isAlertRuleSeverityOpen, setIsAlertRuleSeverityOpen] = React.useState(false);
@@ -125,6 +221,8 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
   const [customComponents, setCustomComponents] = React.useState<string[]>([]);
   const [alertRuleAppendTo, setAlertRuleAppendTo] = React.useState('');
   const [isAlertRuleAppendToOpen, setIsAlertRuleAppendToOpen] = React.useState(false);
+  const [alertRuleSource, setAlertRuleSource] = React.useState<'Platform' | 'User'>('User');
+  const [isAlertRuleSourceOpen, setIsAlertRuleSourceOpen] = React.useState(false);
   
   // Step 2: Metadata and notifications
   const [alertRuleSummary, setAlertRuleSummary] = React.useState('');
@@ -147,11 +245,16 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
   // Step 3: Target clusters
   const [alertRuleTargetAllClusters, setAlertRuleTargetAllClusters] = React.useState(true);
   const [alertRuleSelectedClusters, setAlertRuleSelectedClusters] = React.useState<string[]>([]);
-  const [alertRuleClusterSearch, setAlertRuleClusterSearch] = React.useState('');
-  
-  // Attribute-value filter state
-  const [filterAttribute, setFilterAttribute] = React.useState<'Name' | 'Label' | 'Version'>('Name');
-  const [isFilterAttributeOpen, setIsFilterAttributeOpen] = React.useState(false);
+  const [clusterTableFilters, setClusterTableFilters] = React.useState<ClusterTableFilter[]>([]);
+  const [clusterFilterAttribute, setClusterFilterAttribute] = React.useState<ClusterFilterAttribute>('name');
+  const [clusterFilterValueInput, setClusterFilterValueInput] = React.useState('');
+  const [isClusterFilterAttributeMenuOpen, setIsClusterFilterAttributeMenuOpen] = React.useState(false);
+  const [isClusterVersionMenuOpen, setIsClusterVersionMenuOpen] = React.useState(false);
+  const [clusterTablePage, setClusterTablePage] = React.useState(1);
+  const [clusterPerPage, setClusterPerPage] = React.useState(20);
+  const [viewSelectedClustersOnly, setViewSelectedClustersOnly] = React.useState(false);
+  const [isTargetListModalOpen, setIsTargetListModalOpen] = React.useState(false);
+
   const [environmentFilters, setEnvironmentFilters] = React.useState<string[]>([]);
   const [regionFilters, setRegionFilters] = React.useState<string[]>([]);
   
@@ -181,28 +284,97 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
     setComponentInputValue('');
   };
   
-  // Filter clusters based on search and filters
+  const uniqueClusterVersions = React.useMemo(() => {
+    const set = new Set(mockClusters.map((c) => c.version));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, []);
+
+  const filteredVersionOptions = React.useMemo(() => {
+    const q = clusterFilterValueInput.trim().toLowerCase();
+    if (!q) return uniqueClusterVersions;
+    return uniqueClusterVersions.filter((v) => v.toLowerCase().includes(q));
+  }, [uniqueClusterVersions, clusterFilterValueInput]);
+
   const filteredClusters = React.useMemo(() => {
-    return mockClusters.filter(cluster => {
-      // Search filter
-      if (alertRuleClusterSearch) {
-        const searchLower = alertRuleClusterSearch.toLowerCase();
-        if (filterAttribute === 'Name' && !cluster.name.toLowerCase().includes(searchLower)) return false;
-        if (filterAttribute === 'Label') {
-          const labelMatch = Object.entries(cluster.labels).some(([k, v]) => 
-            `${k}=${v}`.toLowerCase().includes(searchLower) || k.toLowerCase().includes(searchLower) || v.toLowerCase().includes(searchLower)
-          );
-          if (!labelMatch) return false;
-        }
-        if (filterAttribute === 'Version' && !cluster.version.toLowerCase().includes(searchLower)) return false;
+    return mockClusters.filter((cluster) => {
+      if (viewSelectedClustersOnly && !alertRuleSelectedClusters.includes(cluster.name)) {
+        return false;
       }
-      // Environment filter
+      for (const f of clusterTableFilters) {
+        if (!clusterMatchesTableFilter(cluster, f)) return false;
+      }
       if (environmentFilters.length > 0 && !environmentFilters.includes(cluster.environment)) return false;
-      // Region filter
       if (regionFilters.length > 0 && !regionFilters.includes(cluster.region)) return false;
       return true;
     });
-  }, [alertRuleClusterSearch, filterAttribute, environmentFilters, regionFilters]);
+  }, [
+    clusterTableFilters,
+    environmentFilters,
+    regionFilters,
+    viewSelectedClustersOnly,
+    alertRuleSelectedClusters,
+  ]);
+
+  const addClusterTextFilter = React.useCallback(() => {
+    const raw = clusterFilterValueInput.trim();
+    if (!raw || clusterFilterAttribute === 'version') return;
+    const id = `cf-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    setClusterTableFilters((prev) => [...prev, { id, attribute: clusterFilterAttribute, value: raw }]);
+    setClusterFilterValueInput('');
+  }, [clusterFilterValueInput, clusterFilterAttribute]);
+
+  const addClusterVersionFilter = React.useCallback((version: string) => {
+    const v = version.trim();
+    if (!v) return;
+    const id = `cf-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    setClusterTableFilters((prev) => {
+      if (prev.some((f) => f.attribute === 'version' && f.value === v)) return prev;
+      return [...prev, { id, attribute: 'version', value: v }];
+    });
+    setIsClusterVersionMenuOpen(false);
+  }, []);
+
+  const clearAllClusterFilters = React.useCallback(() => {
+    setClusterTableFilters([]);
+    setEnvironmentFilters([]);
+    setRegionFilters([]);
+    setViewSelectedClustersOnly(false);
+    setClusterFilterValueInput('');
+  }, []);
+
+  React.useEffect(() => {
+    setClusterTablePage(1);
+  }, [clusterTableFilters, environmentFilters, regionFilters, viewSelectedClustersOnly]);
+
+  const pagedClusters = React.useMemo(() => {
+    const start = (clusterTablePage - 1) * clusterPerPage;
+    return filteredClusters.slice(start, start + clusterPerPage);
+  }, [filteredClusters, clusterTablePage, clusterPerPage]);
+
+  const filteredClusterNames = React.useMemo(() => filteredClusters.map((c) => c.name), [filteredClusters]);
+  const allFilteredSelected =
+    filteredClusterNames.length > 0 && filteredClusterNames.every((n) => alertRuleSelectedClusters.includes(n));
+  const someFilteredSelected = filteredClusterNames.some((n) => alertRuleSelectedClusters.includes(n));
+
+  const targetClusterSummaryText = React.useMemo(() => {
+    const parts: string[] = clusterTableFilters.map((f) => clusterTableChipText(f));
+    if (environmentFilters.length) parts.push(`environment ∈ {${environmentFilters.join(', ')}}`);
+    if (regionFilters.length) parts.push(`region ∈ {${regionFilters.join(', ')}}`);
+    if (viewSelectedClustersOnly) parts.push('view: selected only');
+    return parts.length ? parts.join('; ') : 'no filters';
+  }, [clusterTableFilters, environmentFilters, regionFilters, viewSelectedClustersOnly]);
+
+  const reviewTargetNames = React.useMemo(() => {
+    if (alertRuleTargetAllClusters) return mockClusters.map((c) => c.name);
+    return [...alertRuleSelectedClusters].sort((a, b) => a.localeCompare(b));
+  }, [alertRuleTargetAllClusters, alertRuleSelectedClusters]);
+
+  const reviewTargetCount = reviewTargetNames.length;
+  const reviewFilterSummary = alertRuleTargetAllClusters
+    ? 'Fleet-wide (all clusters)'
+    : targetClusterSummaryText === 'no filters'
+      ? 'No filters'
+      : targetClusterSummaryText;
   
   // Handle navigation back - return to Management > Alert rules
   const handleClose = () => {
@@ -220,19 +392,23 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
   const uniqueRegions = React.useMemo(() => Array.from(new Set(mockClusters.map(c => c.region))), []);
   
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}>
+    <div
+      className="create-alert-rule-page"
+      style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' }}
+    >
       {/* Page Header with Breadcrumb */}
       <div style={{ padding: '16px 24px', backgroundColor: 'var(--pf-t--global--background--color--primary--default)', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
         <Breadcrumb>
-          <BreadcrumbItem to="/observe/alerting">Observe</BreadcrumbItem>
-          <BreadcrumbItem to="/observe/alerting">alerting</BreadcrumbItem>
-          <BreadcrumbItem isActive>Create new alert rules</BreadcrumbItem>
+          <BreadcrumbItem>Observe</BreadcrumbItem>
+          <BreadcrumbItem>Multi-cluster alerting</BreadcrumbItem>
+          <BreadcrumbItem component="button" onClick={() => navigate(-1)}>Management</BreadcrumbItem>
+          <BreadcrumbItem isActive>Create alert rule</BreadcrumbItem>
         </Breadcrumb>
         
         <div style={{ marginTop: '16px' }}>
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
             <FlexItem>
-              <Title headingLevel="h1" size="2xl">Create Alert rules</Title>
+              <Title headingLevel="h1" size="2xl">Create alert rule</Title>
             </FlexItem>
             <FlexItem>
               <Switch
@@ -250,7 +426,10 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
       </div>
       
       {/* Wizard Content */}
-      <div style={{ flex: 1, overflow: 'hidden', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
+      <div
+        className="carw-wizard-shell"
+        style={{ flex: 1, overflow: 'hidden', backgroundColor: 'var(--pf-t--global--background--color--primary--default)', minHeight: 0 }}
+      >
         <Wizard onClose={handleClose} height="100%">
           {/* Step 1: Alert rules definition */}
           <WizardStep
@@ -258,14 +437,17 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
             id="step-alert-rules-definition"
           >
             <div style={{ padding: '24px', maxWidth: '800px' }}>
-              <Title headingLevel="h2" size="xl" style={{ marginBottom: '24px' }}>Alert rules definition</Title>
+              <Title headingLevel="h2" size="xl" style={{ marginBottom: '24px' }}>Alert rule definition</Title>
               
               <Form>
                 {/* Alert name */}
                 <FormGroup
                   label={
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                      <FlexItem>Alert name</FlexItem>
+                    <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapSm' }}>
+                      <FlexItem>
+                        Alert name
+                        <RequiredMark />
+                      </FlexItem>
                       <FlexItem>
                         <Tooltip content="A unique name for the alert rule. Must be in PascalCase.">
                           <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
@@ -273,7 +455,6 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                       </FlexItem>
                     </Flex>
                   }
-                  isRequired
                   fieldId="alert-rule-name"
                 >
                   <TextInput
@@ -281,6 +462,8 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     value={alertRuleName}
                     onChange={(_, value) => setAlertRuleName(value)}
                     placeholder="e.g., NodeCPUHigh, EtcdLeaderElectionFailed"
+                    required
+                    aria-required="true"
                   />
                   <FormHelperText>
                     <HelperText>
@@ -297,8 +480,11 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                 {/* Expression */}
                 <FormGroup
                   label={
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                      <FlexItem>Expression</FlexItem>
+                    <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapSm' }}>
+                      <FlexItem>
+                        Expression
+                        <RequiredMark />
+                      </FlexItem>
                       <FlexItem>
                         <Tooltip content="A PromQL expression that defines when the alert should fire.">
                           <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
@@ -306,25 +492,109 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                       </FlexItem>
                     </Flex>
                   }
-                  isRequired
                   fieldId="alert-rule-expression"
                 >
-                  <TextArea
-                    id="alert-rule-expression"
-                    value={alertRuleExpression}
-                    onChange={(_, value) => setAlertRuleExpression(value)}
-                    placeholder="sum(etcd_server_has_leader) by (cluster) < count(etcd_server_has_leader) | | by (cluster)"
-                    rows={4}
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}
-                  />
+                  <Stack hasGutter>
+                    <StackItem className="carw-promql-wrap">
+                      <PromqlExpressionField
+                        id="alert-rule-expression"
+                        value={alertRuleExpression}
+                        onChange={(value) => {
+                          setAlertRuleExpression(value);
+                          if (queryValidationResult.status) {
+                            setQueryValidationResult({ status: null, message: '' });
+                          }
+                        }}
+                        placeholder={'sum(etcd_server_has_leader) by (cluster) < count(etcd_server_has_leader) or on(cluster) ...'}
+                        rows={4}
+                        validated={
+                          queryValidationResult.status === 'error'
+                            ? 'error'
+                            : queryValidationResult.status === 'success'
+                              ? 'success'
+                              : 'default'
+                        }
+                        aria-required="true"
+                      />
+                    </StackItem>
+                    <StackItem>
+                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsFlexStart' }} direction={{ default: 'column' }}>
+                        <FlexItem>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            isDisabled={!alertRuleExpression.trim() || isQueryValidating}
+                            isLoading={isQueryValidating}
+                            onClick={() => {
+                              setIsQueryValidating(true);
+                              setTimeout(() => {
+                                const expr = alertRuleExpression.trim();
+                                if (expr.includes('|||') || expr.match(/\(\s*\)/)) {
+                                  setQueryValidationResult({
+                                    status: 'error',
+                                    message: 'Invalid PromQL syntax detected',
+                                  });
+                                } else if (!expr) {
+                                  setQueryValidationResult({
+                                    status: 'error',
+                                    message: 'Expression cannot be empty',
+                                  });
+                                } else {
+                                  setQueryValidationResult({
+                                    status: 'success',
+                                    message: 'Query syntax is valid',
+                                  });
+                                }
+                                setIsQueryValidating(false);
+                              }, 800);
+                            }}
+                          >
+                            {isQueryValidating ? 'Validating…' : 'Run query'}
+                          </Button>
+                        </FlexItem>
+                        <FlexItem>
+                          <div aria-live="polite" aria-atomic="true">
+                            {queryValidationResult.status ? (
+                              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsFlexStart' }}>
+                                {queryValidationResult.status === 'success' ? (
+                                  <>
+                                    <FlexItem>
+                                      <CheckCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />
+                                    </FlexItem>
+                                    <FlexItem>
+                                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--status--success--default)' }}>
+                                        {queryValidationResult.message}
+                                      </Content>
+                                    </FlexItem>
+                                  </>
+                                ) : (
+                                  <>
+                                    <FlexItem>
+                                      <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--icon--color--status--danger--default)' }} />
+                                    </FlexItem>
+                                    <FlexItem>
+                                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--status--danger--default)' }}>
+                                        {queryValidationResult.message}
+                                      </Content>
+                                    </FlexItem>
+                                  </>
+                                )}
+                              </Flex>
+                            ) : null}
+                          </div>
+                        </FlexItem>
+                      </Flex>
+                    </StackItem>
+                  </Stack>
                 </FormGroup>
                 
                 {/* Fire alert options */}
-                <FormGroup fieldId="alert-rule-fire-options">
+                <FormGroup fieldId="alert-rule-fire-options" className="carw-radio-stack">
                   <Radio
                     id="fire-immediately"
                     name="fire-option"
                     label="Fire alert immediately when expression is met"
+                    description="Use for alerts that should open as soon as the query returns a non-empty result."
                     isChecked={alertRuleFireImmediately}
                     onChange={() => setAlertRuleFireImmediately(true)}
                   />
@@ -332,9 +602,9 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     id="fire-after-duration"
                     name="fire-option"
                     label="Fire alert only if the expression is met for the following period of time"
+                    description="Waits for the condition to remain true before opening the alert."
                     isChecked={!alertRuleFireImmediately}
                     onChange={() => setAlertRuleFireImmediately(false)}
-                    style={{ marginTop: '8px' }}
                   />
                   
                   {!alertRuleFireImmediately && (
@@ -389,10 +659,54 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   )}
                 </FormGroup>
                 
+                {/* Source */}
+                <FormGroup
+                  label={
+                    <>
+                      Source
+                      <RequiredMark />
+                    </>
+                  }
+                  fieldId="alert-rule-source"
+                >
+                  <Select
+                    isOpen={isAlertRuleSourceOpen}
+                    onOpenChange={setIsAlertRuleSourceOpen}
+                    onSelect={(_, value) => { 
+                      setAlertRuleSource(value as 'Platform' | 'User'); 
+                      setIsAlertRuleSourceOpen(false);
+                      // Reset append to when source changes
+                      setAlertRuleAppendTo('');
+                    }}
+                    selected={alertRuleSource}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle ref={toggleRef} onClick={() => setIsAlertRuleSourceOpen(!isAlertRuleSourceOpen)} isExpanded={isAlertRuleSourceOpen} style={{ width: '100%' }}>
+                        {alertRuleSource}
+                      </MenuToggle>
+                    )}
+                  >
+                    <SelectList>
+                      <SelectOption value="Platform">Platform</SelectOption>
+                      <SelectOption value="User">User</SelectOption>
+                    </SelectList>
+                  </Select>
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Platform alerts are managed in openshift-monitoring namespace as AlertingRules. User alerts are custom PrometheusRules.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
+                
                 {/* Severity */}
                 <FormGroup
-                  label="Severity"
-                  isRequired
+                  label={
+                    <>
+                      Severity
+                      <RequiredMark />
+                    </>
+                  }
                   fieldId="alert-rule-severity"
                 >
                   <Select
@@ -436,11 +750,20 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   </Select>
                 </FormGroup>
                 
-                {/* Alert group and Component */}
+                {/* Alert scope and Affected component */}
                 <Flex gap={{ default: 'gapMd' }}>
                   <FlexItem flex={{ default: 'flex_1' }}>
                     <FormGroup
-                      label="Alert group"
+                      label={
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <FlexItem>Alert scope</FlexItem>
+                          <FlexItem>
+                            <Tooltip content="Indicates whether the alert affects the entire cluster or a specific namespace.">
+                              <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                            </Tooltip>
+                          </FlexItem>
+                        </Flex>
+                      }
                       fieldId="alert-rule-group"
                     >
                       <Select
@@ -463,7 +786,16 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   </FlexItem>
                   <FlexItem flex={{ default: 'flex_1' }}>
                     <FormGroup
-                      label="Component"
+                      label={
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <FlexItem>Affected component</FlexItem>
+                          <FlexItem>
+                            <Tooltip content="The specific services, operators, or nodes affected by this alert.">
+                              <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+                            </Tooltip>
+                          </FlexItem>
+                        </Flex>
+                      }
                       fieldId="alert-rule-component"
                     >
                       {/* Typeahead with creatable */}
@@ -521,11 +853,6 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     </FormGroup>
                   </FlexItem>
                 </Flex>
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem>The high-level impact group and component area the alert relates to</HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
                 
                 {/* Append to */}
                 <FormGroup
@@ -533,7 +860,10 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                       <FlexItem>Append to</FlexItem>
                       <FlexItem>
-                        <Tooltip content="Select which Kubernetes PrometheusRule Custom Resource will contain this alert definition.">
+                        <Tooltip content={alertRuleSource === 'Platform' 
+                          ? "Select which AlertingRule Custom Resource will contain this alert definition."
+                          : "Select which PrometheusRule Custom Resource will contain this alert definition."
+                        }>
                           <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
                         </Tooltip>
                       </FlexItem>
@@ -548,19 +878,31 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     selected={alertRuleAppendTo || undefined}
                     toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                       <MenuToggle ref={toggleRef} onClick={() => setIsAlertRuleAppendToOpen(!isAlertRuleAppendToOpen)} isExpanded={isAlertRuleAppendToOpen} style={{ width: '100%' }}>
-                        {alertRuleAppendTo || 'Select a PrometheusRule CR'}
+                        {alertRuleAppendTo || (alertRuleSource === 'Platform' ? 'Select an AlertingRule CR' : 'Select a PrometheusRule CR')}
                       </MenuToggle>
                     )}
                   >
                     <SelectList>
-                      <SelectOption value="PrometheusRule-default">PrometheusRule-default (namespace: openshift-monitoring)</SelectOption>
-                      <SelectOption value="PrometheusRule-custom">PrometheusRule-custom (namespace: openshift-monitoring)</SelectOption>
-                      <SelectOption value="PrometheusRule-cluster">PrometheusRule-cluster (namespace: openshift-monitoring)</SelectOption>
+                      {alertRuleSource === 'Platform' ? (
+                        <>
+                          <SelectOption value="AlertingRule-platform">AlertingRule-platform (namespace: openshift-monitoring)</SelectOption>
+                          <SelectOption value="AlertingRule-cluster">AlertingRule-cluster (namespace: openshift-monitoring)</SelectOption>
+                          <SelectOption value="AlertingRule-default">AlertingRule-default (namespace: openshift-monitoring)</SelectOption>
+                        </>
+                      ) : (
+                        <>
+                          <SelectOption value="PrometheusRule-default">PrometheusRule-default (namespace: openshift-monitoring)</SelectOption>
+                          <SelectOption value="PrometheusRule-custom">PrometheusRule-custom (namespace: openshift-monitoring)</SelectOption>
+                          <SelectOption value="PrometheusRule-cluster">PrometheusRule-cluster (namespace: openshift-monitoring)</SelectOption>
+                        </>
+                      )}
                     </SelectList>
                   </Select>
                   <FormHelperText>
                     <HelperText>
-                      <HelperTextItem>This selection determines which Kubernetes PrometheusRule Custom Resource will contain this alert definition.</HelperTextItem>
+                      <HelperTextItem>
+                        This selection determines which Kubernetes {alertRuleSource === 'Platform' ? 'AlertingRule' : 'PrometheusRule'} Custom Resource will contain this alert definition.
+                      </HelperTextItem>
                       <HelperTextItem>The location cannot be changed later without recreating the alert.</HelperTextItem>
                     </HelperText>
                   </FormHelperText>
@@ -580,8 +922,12 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
               <Form>
                 {/* Summary */}
                 <FormGroup
-                  label="Summary"
-                  isRequired
+                  label={
+                    <>
+                      Summary
+                      <RequiredMark />
+                    </>
+                  }
                   fieldId="alert-rule-summary"
                 >
                   <TextInput
@@ -589,6 +935,8 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     value={alertRuleSummary}
                     onChange={(_, value) => setAlertRuleSummary(value)}
                     placeholder="Node CPU Critical - {{ $labels.instance }}"
+                    required
+                    aria-required="true"
                   />
                   <FormHelperText>
                     <HelperText>
@@ -629,8 +977,12 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                 
                 {/* Labels */}
                 <FormGroup
-                  label="Labels (key=value)"
-                  isRequired
+                  label={
+                    <>
+                      Labels (key=value)
+                      <RequiredMark />
+                    </>
+                  }
                   fieldId="alert-rule-labels"
                 >
                   <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -737,8 +1089,8 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                   {/* Receive by */}
                   <FormGroup
                     label={
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <FlexItem>Receive by</FlexItem>
+                      <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapSm' }}>
+                        <FlexItem>Receivers</FlexItem>
                         <FlexItem>
                           <Tooltip content="Select the notification channels for this alert.">
                             <QuestionCircleIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
@@ -748,7 +1100,7 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     }
                     fieldId="alert-rule-receive-by"
                   >
-                    <Stack hasGutter>
+                    <Stack hasGutter className="carw-radio-stack">
                       <StackItem>
                         <Checkbox
                           id="alert-rule-receive-email"
@@ -819,12 +1171,15 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                         />
                       </StackItem>
                     </Stack>
+                    <Content component="p" style={{ marginTop: '12px', marginBottom: 0, fontSize: '0.875rem' }}>
+                      <Button variant="link" isInline component="a" href="#administration-alertmanager">
+                        Configure receivers in Alertmanager
+                      </Button>{' '}
+                      (opens Administration settings).
+                    </Content>
                   </FormGroup>
                   
-                  {/* Info alert about receivers */}
-                  <PfAlert variant="info" isInline title="Receivers must be pre-configured under Administration > Cluster Settings > Alert Manager details" style={{ marginTop: '16px' }}>
-                    <Button variant="link" isInline>Configure Alertmanager</Button>
-                    {' '}
+                  <PfAlert variant="info" isInline title="Receivers must be pre-configured before they appear in this list." style={{ marginTop: '16px' }}>
                     <Button variant="link" isInline>Learn more<ExternalLinkAltIcon /></Button>
                   </PfAlert>
                 </div>
@@ -847,7 +1202,7 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                 {/* Apply to */}
                 <FormGroup
                   label={
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapSm' }}>
                       <FlexItem>Apply to</FlexItem>
                       <FlexItem>
                         <Tooltip content="Choose whether to apply this alert rule to all clusters or specific ones.">
@@ -857,11 +1212,13 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     </Flex>
                   }
                   fieldId="alert-rule-apply-to"
+                  className="carw-radio-stack"
                 >
                   <Radio
                     id="apply-all-clusters"
                     name="apply-to"
                     label={`All clusters (${mockClusters.length})`}
+                    description="Apply the rule fleet-wide without selecting individual clusters."
                     isChecked={alertRuleTargetAllClusters}
                     onChange={() => setAlertRuleTargetAllClusters(true)}
                   />
@@ -869,74 +1226,199 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     id="apply-specific-clusters"
                     name="apply-to"
                     label="Specific clusters"
+                    description="Pick clusters from the fleet table (supports filters and pagination)."
                     isChecked={!alertRuleTargetAllClusters}
                     onChange={() => setAlertRuleTargetAllClusters(false)}
-                    style={{ marginTop: '8px' }}
                   />
                 </FormGroup>
                 
                 {!alertRuleTargetAllClusters && (
                   <div style={{ marginTop: '16px', padding: '16px', backgroundColor: 'var(--pf-t--global--background--color--secondary--default)', borderRadius: '8px' }}>
-                    {/* Toolbar with attribute-value filter */}
-                    <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
+                    <Flex
+                      className="carw-cluster-filter-toolbar"
+                      gap={{ default: 'gapMd' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      flexWrap={{ default: 'wrap' }}
+                      style={{ marginBottom: '12px' }}
+                    >
                       <FlexItem>
-                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                          <FlexItem>
-                            <Checkbox 
-                              id="select-all-clusters" 
-                              isChecked={alertRuleSelectedClusters.length === filteredClusters.length && filteredClusters.length > 0}
-                              onChange={(_, checked) => {
-                                if (checked) {
-                                  setAlertRuleSelectedClusters(filteredClusters.map(c => c.name));
-                                } else {
-                                  setAlertRuleSelectedClusters([]);
-                                }
-                              }}
-                            />
-                          </FlexItem>
-                          <FlexItem>
-                            <MenuToggle>
-                              {alertRuleSelectedClusters.length} selected
-                            </MenuToggle>
-                          </FlexItem>
-                        </Flex>
+                        <Checkbox
+                          id="select-all-clusters"
+                          label="Select all in view"
+                          isChecked={
+                            allFilteredSelected ? true : someFilteredSelected ? null : false
+                          }
+                          onChange={(_, checked) => {
+                            if (checked) {
+                              const set = new Set(alertRuleSelectedClusters);
+                              filteredClusterNames.forEach((n) => set.add(n));
+                              setAlertRuleSelectedClusters(Array.from(set));
+                            } else {
+                              setAlertRuleSelectedClusters(
+                                alertRuleSelectedClusters.filter((n) => !filteredClusterNames.includes(n))
+                              );
+                            }
+                          }}
+                        />
                       </FlexItem>
-                      
-                      {/* Attribute dropdown (Name / Label / Version) */}
                       <FlexItem>
                         <Select
-                          isOpen={isFilterAttributeOpen}
-                          onOpenChange={setIsFilterAttributeOpen}
-                          onSelect={(_, value) => { setFilterAttribute(value as 'Name' | 'Label' | 'Version'); setIsFilterAttributeOpen(false); }}
-                          selected={filterAttribute}
+                          isOpen={isClusterFilterAttributeMenuOpen}
+                          onOpenChange={setIsClusterFilterAttributeMenuOpen}
+                          selected={clusterFilterAttribute}
+                          onSelect={(_, value) => {
+                            setClusterFilterAttribute(value as ClusterFilterAttribute);
+                            setIsClusterFilterAttributeMenuOpen(false);
+                            setClusterFilterValueInput('');
+                            setIsClusterVersionMenuOpen(false);
+                          }}
                           toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                            <MenuToggle ref={toggleRef} onClick={() => setIsFilterAttributeOpen(!isFilterAttributeOpen)} isExpanded={isFilterAttributeOpen}>
-                              {filterAttribute}
+                            <MenuToggle
+                              ref={toggleRef}
+                              onClick={() => setIsClusterFilterAttributeMenuOpen(!isClusterFilterAttributeMenuOpen)}
+                              isExpanded={isClusterFilterAttributeMenuOpen}
+                              style={{ minWidth: '10rem' }}
+                              aria-label="Filter attribute"
+                            >
+                              {clusterFilterAttributeLabel(clusterFilterAttribute)}
                             </MenuToggle>
                           )}
                         >
                           <SelectList>
-                            <SelectOption value="Name">Name</SelectOption>
-                            <SelectOption value="Label">Label</SelectOption>
-                            <SelectOption value="Version">Version</SelectOption>
+                            <SelectOption value="name">Name</SelectOption>
+                            <SelectOption value="label">Label</SelectOption>
+                            <SelectOption value="version">Version</SelectOption>
                           </SelectList>
                         </Select>
                       </FlexItem>
-                      
-                      {/* Search input */}
-                      <FlexItem flex={{ default: 'flex_1' }}>
-                        <SearchInput
-                          placeholder={`Find by ${filterAttribute.toLowerCase()}`}
-                          value={alertRuleClusterSearch}
-                          onChange={(_, value) => setAlertRuleClusterSearch(value)}
-                          onClear={() => setAlertRuleClusterSearch('')}
-                        />
+                      <FlexItem flex={{ default: 'flex_1' }} style={{ minWidth: 0, width: '100%' }}>
+                        {clusterFilterAttribute === 'version' ? (
+                          <Stack hasGutter style={{ width: '100%' }}>
+                            <StackItem>
+                              <TextInput
+                                id="cluster-filter-version-typeahead"
+                                aria-label={clusterFilterValuePlaceholder('version')}
+                                placeholder={clusterFilterValuePlaceholder('version')}
+                                value={clusterFilterValueInput}
+                                onChange={(_, v) => setClusterFilterValueInput(v)}
+                                style={{ width: '100%' }}
+                              />
+                            </StackItem>
+                            <StackItem>
+                              <Select
+                                isOpen={isClusterVersionMenuOpen}
+                                onOpenChange={setIsClusterVersionMenuOpen}
+                                selected={undefined}
+                                onSelect={(_, value) => {
+                                  const v = String(value);
+                                  if (v !== '__none__') addClusterVersionFilter(v);
+                                }}
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    onClick={() => setIsClusterVersionMenuOpen(!isClusterVersionMenuOpen)}
+                                    isExpanded={isClusterVersionMenuOpen}
+                                    style={{ width: '100%' }}
+                                    aria-label="Choose OpenShift or Kubernetes version"
+                                  >
+                                    Select version
+                                  </MenuToggle>
+                                )}
+                              >
+                                <SelectList>
+                                  {filteredVersionOptions.length === 0 ? (
+                                    <SelectOption value="__none__" isDisabled>
+                                      No versions match
+                                    </SelectOption>
+                                  ) : (
+                                    filteredVersionOptions.map((ver) => (
+                                      <SelectOption key={ver} value={ver}>
+                                        {ver}
+                                      </SelectOption>
+                                    ))
+                                  )}
+                                </SelectList>
+                              </Select>
+                            </StackItem>
+                            <StackItem>
+                              <Button
+                                variant="secondary"
+                                onClick={() => {
+                                  const raw = clusterFilterValueInput.trim();
+                                  if (!raw) return;
+                                  const id = `cf-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                                  setClusterTableFilters((prev) => [...prev, { id, attribute: 'version', value: raw }]);
+                                  setClusterFilterValueInput('');
+                                }}
+                              >
+                                Add filter
+                              </Button>
+                            </StackItem>
+                          </Stack>
+                        ) : (
+                          <TextInput
+                            id="cluster-filter-value"
+                            aria-label={clusterFilterValuePlaceholder(clusterFilterAttribute)}
+                            placeholder={clusterFilterValuePlaceholder(clusterFilterAttribute)}
+                            value={clusterFilterValueInput}
+                            onChange={(_, v) => setClusterFilterValueInput(v)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addClusterTextFilter();
+                              }
+                            }}
+                            style={{ width: '100%' }}
+                          />
+                        )}
+                      </FlexItem>
+                      {clusterFilterAttribute !== 'version' && (
+                        <FlexItem>
+                          <Button variant="secondary" onClick={addClusterTextFilter}>
+                            Add filter
+                          </Button>
+                        </FlexItem>
+                      )}
+                    </Flex>
+
+                    {clusterTableFilters.length > 0 && (
+                      <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '12px' }}>
+                        {clusterTableFilters.map((f) => (
+                          <FlexItem key={f.id}>
+                            <Label color="blue" onClose={() => setClusterTableFilters((prev) => prev.filter((x) => x.id !== f.id))}>
+                              {clusterTableChipText(f)}
+                            </Label>
+                          </FlexItem>
+                        ))}
+                      </Flex>
+                    )}
+
+                    <Flex
+                      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      flexWrap={{ default: 'wrap' }}
+                      gap={{ default: 'gapMd' }}
+                      style={{ marginBottom: '12px' }}
+                    >
+                      <FlexItem>
+                        <Content component="p" style={{ margin: 0, fontSize: '0.875rem' }}>
+                          <strong>{alertRuleSelectedClusters.filter((n) => filteredClusterNames.includes(n)).length}</strong>
+                          {' '}of <strong>{filteredClusters.length}</strong> clusters in view selected
+                        </Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                          <Button variant="link" isInline onClick={() => setAlertRuleSelectedClusters([])}>
+                            Clear selection
+                          </Button>
+                          <Button variant="link" isInline onClick={() => setViewSelectedClustersOnly((v) => !v)}>
+                            {viewSelectedClustersOnly ? 'Show all in view' : 'View selected only'}
+                          </Button>
+                        </Flex>
                       </FlexItem>
                     </Flex>
                     
-                    {/* Filter chips */}
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }} flexWrap={{ default: 'wrap' }}>
-                      {/* Environment filter group */}
                       {environmentFilters.length > 0 && (
                         <FlexItem>
                           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
@@ -952,8 +1434,6 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                           </Flex>
                         </FlexItem>
                       )}
-                      
-                      {/* Region filter group */}
                       {regionFilters.length > 0 && (
                         <FlexItem>
                           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
@@ -972,59 +1452,99 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                       )}
                     </Flex>
                     
-                    {/* Clusters Table */}
-                    <div style={{ maxHeight: '400px', overflowY: 'auto', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
-                      <Table aria-label="Target clusters table" variant="compact">
-                        <Thead>
-                          <Tr>
-                            <Th screenReaderText="Select" />
-                            <Th>Name</Th>
-                            <Th>Namespace</Th>
-                            <Th>Infrastructure</Th>
-                            <Th>Status</Th>
-                            <Th>Region</Th>
-                            <Th>Version</Th>
-                            <Th>Labels</Th>
-                            <Th>Environment</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {filteredClusters.map((cluster) => (
-                            <Tr key={cluster.name}>
-                              <Td>
-                                <Checkbox
-                                  id={`cluster-${cluster.name}`}
-                                  isChecked={alertRuleSelectedClusters.includes(cluster.name)}
-                                  onChange={(_, checked) => {
-                                    if (checked) {
-                                      setAlertRuleSelectedClusters([...alertRuleSelectedClusters, cluster.name]);
-                                    } else {
-                                      setAlertRuleSelectedClusters(alertRuleSelectedClusters.filter(c => c !== cluster.name));
-                                    }
-                                  }}
-                                />
-                              </Td>
-                              <Td>
-                                <Button variant="link" isInline>{cluster.name}</Button>
-                              </Td>
-                              <Td>{cluster.namespace}</Td>
-                              <Td>{cluster.infrastructure}</Td>
-                              <Td>
-                                <Label color="green" isCompact icon={<CheckCircleIcon />}>
-                                  {cluster.status}
-                                </Label>
-                              </Td>
-                              <Td>{cluster.region}</Td>
-                              <Td>{cluster.version}</Td>
-                              <Td>
-                                <Button variant="link" isInline size="sm">{Object.keys(cluster.labels).length} Labels</Button>
-                              </Td>
-                              <Td>{cluster.environment}</Td>
+                    <div className="carw-cluster-scroll">
+                      {filteredClusters.length === 0 ? (
+                        <EmptyState>
+                          <Title headingLevel="h4" size="lg">
+                            No clusters match the selected filters
+                          </Title>
+                          <EmptyStateBody>
+                            Adjust or remove filters to see clusters in the fleet table.
+                          </EmptyStateBody>
+                          <EmptyStateActions>
+                            <Button variant="link" onClick={clearAllClusterFilters}>
+                              Clear all filters
+                            </Button>
+                          </EmptyStateActions>
+                        </EmptyState>
+                      ) : (
+                        <Table aria-label="Target clusters table" variant="compact">
+                          <Thead>
+                            <Tr>
+                              <Th screenReaderText="Select row" />
+                              <Th>Name</Th>
+                              <Th>Namespace</Th>
+                              <Th>Infrastructure</Th>
+                              <Th>Status</Th>
+                              <Th>Region</Th>
+                              <Th>Version</Th>
+                              <Th>Labels</Th>
+                              <Th>Environment</Th>
                             </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
+                          </Thead>
+                          <Tbody>
+                            {pagedClusters.map((cluster) => (
+                              <Tr key={cluster.name}>
+                                <Td>
+                                  <Checkbox
+                                    id={`cluster-${cluster.name}`}
+                                    isChecked={alertRuleSelectedClusters.includes(cluster.name)}
+                                    onChange={(_, checked) => {
+                                      if (checked) {
+                                        setAlertRuleSelectedClusters([...alertRuleSelectedClusters, cluster.name]);
+                                      } else {
+                                        setAlertRuleSelectedClusters(alertRuleSelectedClusters.filter((c) => c !== cluster.name));
+                                      }
+                                    }}
+                                  />
+                                </Td>
+                                <Td>
+                                  <span style={{ fontWeight: 600 }}>{cluster.name}</span>
+                                </Td>
+                                <Td>{cluster.namespace}</Td>
+                                <Td>{cluster.infrastructure}</Td>
+                                <Td>
+                                  {cluster.status === 'Ready' ? (
+                                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
+                                      <CheckCircleIcon style={{ color: 'var(--pf-t--global--palette--green-500, #3e8635)' }} aria-hidden />
+                                      <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--regular)' }}>Ready</span>
+                                    </Flex>
+                                  ) : (
+                                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
+                                      <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--palette--red-400, #c9190b)' }} aria-hidden />
+                                      <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--regular)' }}>Not ready</span>
+                                    </Flex>
+                                  )}
+                                </Td>
+                                <Td>{cluster.region}</Td>
+                                <Td>{cluster.version}</Td>
+                                <Td>
+                                  <Tooltip content={formatClusterLabelsTooltip(cluster.labels)}>
+                                    <span tabIndex={0} style={{ cursor: 'default', textDecoration: 'underline dotted' }}>
+                                      {Object.keys(cluster.labels).length} labels
+                                    </span>
+                                  </Tooltip>
+                                </Td>
+                                <Td>{cluster.environment}</Td>
+                              </Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
+                      )}
                     </div>
+                    <Pagination
+                      itemCount={filteredClusters.length}
+                      perPage={clusterPerPage}
+                      page={clusterTablePage}
+                      onSetPage={(_, page) => setClusterTablePage(page)}
+                      onPerPageSelect={(_, perPage) => {
+                        setClusterPerPage(perPage);
+                        setClusterTablePage(1);
+                      }}
+                      variant="bottom"
+                      isCompact
+                      titles={{ paginationAriaLabel: 'Clusters table pagination' }}
+                    />
                   </div>
                 )}
               </Form>
@@ -1041,13 +1561,13 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
             }}
           >
             <div style={{ padding: '24px', maxWidth: '900px' }}>
-              <Title headingLevel="h2" size="xl" style={{ marginBottom: '24px' }}>Review alert rules</Title>
+              <Title headingLevel="h2" size="xl" style={{ marginBottom: '24px' }}>Review and create</Title>
               
               {/* Alert rules definition section */}
               <div style={{ marginBottom: '24px' }}>
                 <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '16px' }}>
                   <FlexItem>
-                    <Title headingLevel="h3" size="lg">Alert rules definition</Title>
+                    <Title headingLevel="h3" size="lg">Alert rule definition</Title>
                   </FlexItem>
                   <FlexItem>
                     <Button variant="link">Edit step</Button>
@@ -1081,16 +1601,22 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Group</DescriptionListTerm>
+                    <DescriptionListTerm>Alert scope</DescriptionListTerm>
                     <DescriptionListDescription>{alertRuleGroup}</DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Component</DescriptionListTerm>
+                    <DescriptionListTerm>Affected component</DescriptionListTerm>
                     <DescriptionListDescription>{alertRuleComponent || 'etcd'}</DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
-                    <DescriptionListTerm>PrometheusRule</DescriptionListTerm>
-                    <DescriptionListDescription>{alertRuleAppendTo || 'PrometheusRule-default'} (namespace: openshift-monitoring)</DescriptionListDescription>
+                    <DescriptionListTerm>Source</DescriptionListTerm>
+                    <DescriptionListDescription>{alertRuleSource}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>{alertRuleSource === 'Platform' ? 'AlertingRule' : 'PrometheusRule'}</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {alertRuleAppendTo || (alertRuleSource === 'Platform' ? 'AlertingRule-platform' : 'PrometheusRule-default')} (namespace: openshift-monitoring)
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
               </div>
@@ -1131,9 +1657,9 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Receive by</DescriptionListTerm>
+                    <DescriptionListTerm>Notify by</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {alertRuleReceiveBySlack ? 'Slack' : alertRuleReceiveByEmail ? 'Email' : alertRuleReceiveByPagerDuty ? 'PagerDuty' : 'Slack'}
+                      {alertRuleReceiveBySlack ? 'Slack' : alertRuleReceiveByEmail ? 'Email' : alertRuleReceiveByPagerDuty ? 'PagerDuty' : 'None selected'}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
@@ -1158,21 +1684,31 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
                 <DescriptionList isHorizontal>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Number of clusters</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {alertRuleTargetAllClusters ? `${mockClusters.length} target clusters` : `${alertRuleSelectedClusters.length} target clusters`}
-                    </DescriptionListDescription>
+                    <DescriptionListDescription>{reviewTargetCount}</DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Cluster names</DescriptionListTerm>
+                    <DescriptionListTerm>Target summary</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {alertRuleTargetAllClusters 
-                        ? `${mockClusters.slice(0, 4).map(c => c.name).join(', ')} `
-                        : alertRuleSelectedClusters.slice(0, 4).join(', ')
-                      }
-                      {(alertRuleTargetAllClusters ? mockClusters.length : alertRuleSelectedClusters.length) > 4 && (
-                        <Button variant="link" isInline>
-                          {(alertRuleTargetAllClusters ? mockClusters.length : alertRuleSelectedClusters.length) - 4} more
-                        </Button>
+                      {reviewTargetCount > 5 ? (
+                        <div>
+                          <Content component="p" style={{ margin: 0, marginBottom: '8px', fontSize: '1rem' }}>
+                            <strong>{reviewTargetCount} clusters targeted</strong>{' '}
+                            (Filtered by: {reviewFilterSummary})
+                          </Content>
+                          <Button variant="link" isInline onClick={() => setIsTargetListModalOpen(true)}>
+                            Expand
+                          </Button>
+                        </div>
+                      ) : reviewTargetCount === 0 ? (
+                        <Content component="p" style={{ margin: 0, fontSize: '1rem' }}>
+                          No clusters selected.
+                        </Content>
+                      ) : (
+                        <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '1rem' }}>
+                          {reviewTargetNames.map((name) => (
+                            <li key={name}>{name}</li>
+                          ))}
+                        </ul>
                       )}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
@@ -1186,6 +1722,33 @@ const CreateAlertRulePage: React.FunctionComponent = () => {
           </WizardStep>
         </Wizard>
       </div>
+
+      <Modal
+        isOpen={isTargetListModalOpen}
+        onClose={() => setIsTargetListModalOpen(false)}
+        variant="medium"
+        aria-labelledby="carw-target-modal-title"
+      >
+        <ModalHeader title="Clusters targeted" labelId="carw-target-modal-title" />
+        <ModalBody>
+          <Content component="p" style={{ marginBottom: '16px', fontSize: '0.875rem' }}>
+            Filtered by: <strong>{reviewFilterSummary}</strong>
+          </Content>
+          <ul
+            style={{ maxHeight: '50vh', overflow: 'auto', margin: 0, paddingLeft: '1.25rem', fontSize: '1rem' }}
+            aria-label="Target cluster names"
+          >
+            {reviewTargetNames.map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="primary" onClick={() => setIsTargetListModalOpen(false)}>
+            Close
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 };

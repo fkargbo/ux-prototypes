@@ -19,6 +19,7 @@ import { RouteConfig } from '@app/core/types';
 import { MultiClusterAlertingDashboard } from './pages/MultiClusterAlertsPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { CreateAlertRulePage } from './pages/CreateAlertRulePage';
+import { CreateSilencePage } from './pages/CreateSilencePage';
 
 /**
  * Routes for Multi-cluster Alerting UI V2
@@ -55,6 +56,12 @@ export const routes: RouteConfig[] = [
       order: 1
     }
   },
+  // Redirect /core/observe/alerting to /observe/alerting (sidebar may use core path)
+  {
+    path: '/core/observe/alerting',
+    element: <Navigate to="/observe/alerting" replace />,
+    title: 'Redirect',
+  },
   
   // V2: Cluster Components Health view
   // Note: The actual navigation is handled via state management in the component
@@ -77,6 +84,13 @@ export const routes: RouteConfig[] = [
     path: '/observe/alerting-v2/create-alert-rule',
     element: <CreateAlertRulePage />,
     title: 'Create Alert Rule | OpenShift ACM',
+  },
+
+  // Create Silence Rule - Full page form
+  {
+    path: '/observe/alerting-v2/create-silence',
+    element: <CreateSilencePage />,
+    title: 'Create Silence Rule | OpenShift ACM',
   },
   
   // Dashboards placeholder (for navigation structure)

@@ -12,3 +12,4 @@ storybook-static
 .jira-token
 .history
 node_modules
+src/app/prototypes/shiri-alerting-ui-v2/data/monitoring-plugin/

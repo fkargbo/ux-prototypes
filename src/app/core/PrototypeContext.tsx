@@ -18,8 +18,8 @@ interface PrototypeProviderProps {
 export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }) => {
   const [currentPrototype, setCurrentPrototype] = useState<PrototypeModule | null>(null);
   const [availablePrototypes, setAvailablePrototypes] = useState<PrototypeModule[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  /** Start true so we do not flash the launcher while restoring session or initializing the registry */
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   /**
@@ -89,7 +89,7 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
   }, [currentPrototype]);
 
   /**
-   * Initialize registry; load prototype from `?prototype=` or from URL path (GitHub Pages / shared links).
+   * Initialize registry and restore last active prototype from session (same tab reload / dev refresh)
    */
   useEffect(() => {
     let cancelled = false;
@@ -97,42 +97,30 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
     const bootstrap = async () => {
       try {
         console.log('🚀 Initializing prototype system...');
-
+        
         await prototypeRegistry.initialize();
-        if (cancelled) {
-          return;
-        }
-
+        
         const prototypes = prototypeRegistry.getAll();
         console.log(`📦 Loaded ${prototypes.length} prototypes`, prototypes.map((p) => p.config.id));
         setAvailablePrototypes(prototypes);
-
-        const params = new URLSearchParams(window.location.search);
-        let prototypeId = params.get('prototype');
-        if (!prototypeId) {
-          prototypeId = findPrototypeIdForPath(getRouterPathname());
-        }
-
-        if (prototypeId && prototypeRegistry.get(prototypeId)) {
-          await loadPrototypeRef.current(prototypeId);
+        
+        const savedId = sessionStorage.getItem('activePrototypeId');
+        if (savedId && prototypeRegistry.get(savedId)) {
+          console.log(`♻️ Restoring prototype from session: ${savedId}`);
+          await loadPrototype(savedId);
         } else {
-          console.log('✅ Ready — launcher (no deep link match)');
+          setIsLoading(false);
+          console.log('✅ Ready — pick a prototype from the launcher');
         }
       } catch (err) {
         console.error('❌ Failed to initialize prototype system:', err);
         setError(err as Error);
-      } finally {
-        if (!cancelled) {
-          setIsBootstrapping(false);
-        }
+        setIsLoading(false);
       }
     };
-
-    void bootstrap();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    
+    initializeAndRestore();
+  }, [loadPrototype]);
 
   const value: PrototypeContextType = {
     currentPrototype,

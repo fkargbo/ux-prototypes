@@ -31,5 +31,11 @@
     "**/*.jsx",
     "**/*.js"
   ],
-  "exclude": ["node_modules", "dist", "**/*.bundle.js", "**/*.map"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.bundle.js",
+    "**/*.map",
+    "src/app/prototypes/shiri-alerting-ui-v2/data/monitoring-plugin"
+  ]
 }
