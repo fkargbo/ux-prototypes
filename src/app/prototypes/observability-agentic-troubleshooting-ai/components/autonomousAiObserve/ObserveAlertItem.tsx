@@ -420,7 +420,7 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                     </FlexItem>
                     <FlexItem>
                       <Button variant="secondary">
-                        Escalate to SRE
+                        Escalate to human
                       </Button>
                     </FlexItem>
                   </Flex>

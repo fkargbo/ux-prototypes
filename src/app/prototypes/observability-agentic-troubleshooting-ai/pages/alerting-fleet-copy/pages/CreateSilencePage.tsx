@@ -37,7 +37,7 @@ const CreateSilencePage: React.FunctionComponent = () => {
       >
         <Breadcrumb aria-label="Breadcrumb">
           <BreadcrumbItem>Observe</BreadcrumbItem>
-          <BreadcrumbItem>Multi-cluster alerting</BreadcrumbItem>
+          <BreadcrumbItem>Alerting</BreadcrumbItem>
           <BreadcrumbItem component="button" onClick={goToAlertingManagement}>
             Management
           </BreadcrumbItem>

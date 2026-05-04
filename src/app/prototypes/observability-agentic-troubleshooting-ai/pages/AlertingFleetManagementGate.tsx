@@ -5,23 +5,9 @@ import { SummitFleetAlertingPage } from './alerting-fleet-copy/SummitFleetAlerti
 import { SummitFleetCreateAlertRulePage } from './alerting-fleet-copy/SummitFleetCreateAlertRulePage';
 import { SummitFleetCreateSilencePage } from './alerting-fleet-copy/SummitFleetCreateSilencePage';
 
-/**
- * Renders the forked Multi-cluster Alerting **v2** UI only in Fleet management; Core platforms keeps a lightweight stub.
- */
+/** Renders the forked Multi-cluster Alerting v2 UI in both Fleet management and Core platforms. */
 export const AlertingFleetManagementGate: React.FC = () => {
-  const { activePerspective } = useActivePerspective();
-  if (activePerspective === 'Fleet management') {
-    return <SummitFleetAlertingPage />;
-  }
-  return (
-    <PageSection>
-      <Content component="p">
-        The full multi-cluster Alerting (v2) experience for this prototype is available in the{' '}
-        <strong>Fleet management</strong> perspective. Use the platform switcher at the top of the navigation sidebar,
-        then open <strong>Observe → Alerting</strong> again.
-      </Content>
-    </PageSection>
-  );
+  return <SummitFleetAlertingPage />;
 };
 
 export const CreateAlertRuleFleetManagementGate: React.FC = () => {

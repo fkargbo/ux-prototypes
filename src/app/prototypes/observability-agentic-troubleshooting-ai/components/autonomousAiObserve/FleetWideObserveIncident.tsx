@@ -345,7 +345,7 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                       <Button variant="primary">Apply Fix (Autonomous)</Button>
                     </FlexItem>
                     <FlexItem>
-                      <Button variant="secondary">Escalate to SRE</Button>
+                      <Button variant="secondary">Escalate to human</Button>
                     </FlexItem>
                   </Flex>
                 </div>

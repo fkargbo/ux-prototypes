@@ -12,7 +12,6 @@ import {
   CardFooter,
   Flex,
   FlexItem,
-  Icon,
   Toolbar,
   ToolbarContent,
   ToolbarGroup,
@@ -145,7 +144,6 @@ import {
   ThLargeIcon,
   TachometerAltIcon,
   CogIcon,
-  OutlinedBellIcon,
   ServerIcon,
   ArrowUpIcon,
   ArrowDownIcon,
@@ -220,6 +218,7 @@ import { FleetOverviewToolbar } from '../components/FleetOverviewToolbar';
 import { AlertsTabFleetOverviewContent } from '../components/AlertsTabFleetOverviewContent';
 import { mockAlertRules, mockTrendData, mockClusters } from '../data/mockData';
 import { CLUSTERS } from '../../../components/autonomousAiObserve/data';
+import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 
 type QuickTimeRange =
   | 'last-5m'
@@ -257,14 +256,17 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  // Main page tabs - Fleet overview | Alerts | Incidents | Management
+  const { activePerspective } = useActivePerspective();
+  const isCorePlatformsPerspective = activePerspective === 'Core platforms';
+
+  // Main page tabs - Fleet overview | Alerts | Incidents | Management (Core platforms: no Fleet overview tab; default Alerts)
   const [mainPageTab, setMainPageTab] = React.useState<string | number>(() => {
     const tab = searchParams.get('tab');
     if (tab === 'management') return 'management';
     if (tab === 'incidents') return 'incidents';
     if (tab === 'alerts' || tab === 'firing-alerts') return 'alerts';
-    return 'fleet-overview';
+    if (tab === 'fleet-overview') return 'fleet-overview';
+    return isCorePlatformsPerspective ? 'alerts' : 'fleet-overview';
   });
   const [managementSubTab, setManagementSubTab] = React.useState<string | number>(() => {
     const subtab = searchParams.get('subtab');
@@ -291,11 +293,31 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       setCameFromFleetOverview(false);
     } else if (tab === 'alerts' || tab === 'firing-alerts') {
       setMainPageTab('alerts');
+    } else if (tab === 'fleet-overview') {
+      if (isCorePlatformsPerspective) {
+        setMainPageTab('alerts');
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('tab', 'alerts');
+        navigate(`?${newParams.toString()}`, { replace: true });
+      } else {
+        setMainPageTab('fleet-overview');
+        setCameFromFleetOverview(false);
+      }
+    } else if (!tab) {
+      if (isCorePlatformsPerspective) {
+        setMainPageTab('alerts');
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('tab', 'alerts');
+        navigate(`?${newParams.toString()}`, { replace: true });
+      } else {
+        setMainPageTab('fleet-overview');
+        setCameFromFleetOverview(false);
+      }
     } else {
       setMainPageTab('fleet-overview');
       setCameFromFleetOverview(false);
     }
-  }, [searchParams]);
+  }, [searchParams, isCorePlatformsPerspective, navigate]);
   
   // Handle main tab change with URL sync
   const handleMainTabChange = React.useCallback((key: string | number) => {
@@ -1352,9 +1374,11 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
             <div style={{ marginBottom: '8px' }}>
               <Breadcrumb aria-label="Breadcrumb">
                 <BreadcrumbItem>Observe</BreadcrumbItem>
-                <BreadcrumbItem>Multi-cluster alerting</BreadcrumbItem>
-                {mainPageTab === 'fleet-overview' && <BreadcrumbItem isActive>Fleet overview</BreadcrumbItem>}
-                {mainPageTab === 'alerts' && cameFromFleetOverview && (
+                <BreadcrumbItem>Alerting</BreadcrumbItem>
+                {mainPageTab === 'fleet-overview' && !isCorePlatformsPerspective && (
+                  <BreadcrumbItem isActive>Fleet overview</BreadcrumbItem>
+                )}
+                {mainPageTab === 'alerts' && cameFromFleetOverview && !isCorePlatformsPerspective && (
                   <BreadcrumbItem component="button" onClick={handleBackToFleetOverview}>
                     Fleet overview
                   </BreadcrumbItem>
@@ -1368,13 +1392,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
             <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ marginBottom: '4px' }}>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                 <FlexItem>
-                  <Icon size="md" status="danger">
-                    <OutlinedBellIcon />
-                  </Icon>
-                </FlexItem>
-                <FlexItem>
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                    <Title headingLevel="h1" size="lg">Multi-cluster alerting</Title>
+                    <Title headingLevel="h1" size="lg">Alerting</Title>
                     <Badge>v2</Badge>
                   </Flex>
                 </FlexItem>
@@ -1459,7 +1478,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
               aria-label="Main alerting tabs"
               style={{ marginBottom: 0 }}
             >
-              <Tab eventKey="fleet-overview" title={<TabTitleText><TachometerAltIcon /> Fleet overview</TabTitleText>} />
+              {!isCorePlatformsPerspective && (
+                <Tab eventKey="fleet-overview" title={<TabTitleText><TachometerAltIcon /> Fleet overview</TabTitleText>} />
+              )}
               <Tab eventKey="alerts" title={<TabTitleText><BellIcon /> Alerts</TabTitleText>} />
               <Tab eventKey="incidents" title={<TabTitleText><PortIcon /> Incidents</TabTitleText>} />
               <Tab eventKey="management" title={<TabTitleText><CogIcon /> Management</TabTitleText>} />

@@ -645,7 +645,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.criticalCount}
-                            statisticAriaLabel="Open Multi-cluster alerting, Alerts tab, critical severity, AI Hub clusters only (matches Observe fleet counts)"
+                            statisticAriaLabel="Open Alerting, Alerts tab, critical severity, AI Hub clusters only (matches Observe fleet counts)"
                             statisticInteractive
                             onStatisticClick={() =>
                               navigate(alertingAlertsTabHref({ severity: 'critical', aiHubFleetScope: true }))
@@ -662,7 +662,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.warningCount}
-                            statisticAriaLabel="Open Multi-cluster alerting, Alerts tab, warning severity, AI Hub clusters only (matches Observe fleet counts)"
+                            statisticAriaLabel="Open Alerting, Alerts tab, warning severity, AI Hub clusters only (matches Observe fleet counts)"
                             statisticInteractive
                             onStatisticClick={() =>
                               navigate(alertingAlertsTabHref({ severity: 'warning', aiHubFleetScope: true }))
@@ -1052,6 +1052,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 alertingAlertsTabHref({
                                   severity: 'critical',
                                   clusterId: selectedCluster.id,
+                                  aiHubFleetScope: true,
                                 })
                               )
                             }
@@ -1074,6 +1075,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 alertingAlertsTabHref({
                                   severity: 'warning',
                                   clusterId: selectedCluster.id,
+                                  aiHubFleetScope: true,
                                 })
                               )
                             }
