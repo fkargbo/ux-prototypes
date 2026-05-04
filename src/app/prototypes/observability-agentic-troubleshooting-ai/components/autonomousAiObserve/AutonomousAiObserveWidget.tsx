@@ -713,7 +713,23 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       'aria-label': 'Toggle Clusters section',
                     }}
                   >
-                    <CardTitle component="h3">Clusters</CardTitle>
+                    <Stack hasGutter>
+                      <StackItem>
+                        <CardTitle component="h3">Clusters</CardTitle>
+                      </StackItem>
+                      <StackItem>
+                        <Content
+                          component="p"
+                          style={{
+                            margin: 0,
+                            fontSize: '14px',
+                            color: 'var(--pf-t--global--text--color--subtle)',
+                          }}
+                        >
+                          Click any cluster to drill in.
+                        </Content>
+                      </StackItem>
+                    </Stack>
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
