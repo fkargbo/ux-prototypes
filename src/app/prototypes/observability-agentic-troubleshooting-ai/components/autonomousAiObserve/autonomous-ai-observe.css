@@ -210,6 +210,17 @@ span.ols-aio-card-stat-number {
   margin-top: var(--pf-t--global--spacer--xs);
 }
 
+/* Fleet AI narrative: one paragraph with purple category prefix + body (replaces stacked category line). */
+.ols-aio-alert-summary .ols-aio-alert-summary__fleet-meta .ols-aio-fleet-ai-narrative-block.pf-v6-c-content--p {
+  margin-top: var(--pf-t--global--spacer--sm);
+}
+
+.ols-aio-ai-narrative-prefix {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
 /* Compact purple label for AI-scoped sections (not the large insight card). */
 .ols-aio-section-ai-category {
   margin: 0;
@@ -223,11 +234,6 @@ span.ols-aio-card-stat-number {
 .ols-aio-section-ai-category--inline {
   line-height: 1.25;
   white-space: normal;
-}
-
-.ols-aio-fleet-narrative-category {
-  margin-top: var(--pf-t--global--spacer--sm);
-  margin-bottom: 0;
 }
 
 /* Agent status chips: 28px min height; label text uses PF body typography (not mono). */

@@ -143,11 +143,16 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                     </Label>
                   ))}
                 </Flex>
-                <Content component="p" className="ols-aio-section-ai-category ols-aio-fleet-narrative-category">
-                  {incident.aiInsight.categoryLabel}
-                </Content>
                 {incident.aiInsight.narrative ? (
-                  <Content component="p" className="ols-aio-fleet-incident-lede">
+                  <Content component="p" className="ols-aio-fleet-incident-lede ols-aio-fleet-ai-narrative-block">
+                    {incident.aiInsight.categoryLabel ? (
+                      <>
+                        <span className="ols-aio-section-ai-category ols-aio-ai-narrative-prefix">
+                          {incident.aiInsight.categoryLabel}
+                        </span>
+                        {' — '}
+                      </>
+                    ) : null}
                     {incident.aiInsight.narrative}
                   </Content>
                 ) : null}
