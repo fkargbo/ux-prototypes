@@ -42,3 +42,10 @@ export function buildFleetAlertKpiRows(firingAlerts: AlertData[], filter?: Fleet
   }
   return list.map(alertDataToRow).sort((a, b) => a.title.localeCompare(b.title));
 }
+
+/** Shared PatternFly `Tooltip` props for KPI breakdown popovers (matches Autonomous analysis cards). */
+export const FLEET_ALERT_KPI_TOOLTIP_PROPS = {
+  position: 'top' as const,
+  isContentLeftAligned: true,
+  maxWidth: 'min(600px, 92vw)' as const,
+};

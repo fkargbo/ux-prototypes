@@ -40,6 +40,9 @@ import {
   ClusterIcon,
 } from '@patternfly/react-icons';
 import type { ClusterData, AlertComponent, AlertGroup, ComponentHealthData } from '../data/types';
+import { AlertKpiTooltip } from '../../../components/autonomousAiObserve/AlertKpiTooltip';
+import '../../../components/autonomousAiObserve/autonomous-ai-observe.css';
+import { buildFleetAlertKpiRows, FLEET_ALERT_KPI_TOOLTIP_PROPS } from '../utils/alertKpiBreakdown';
 
 interface ClusterComponentsHealthProps {
   cluster: ClusterData;
@@ -126,6 +129,11 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
     return 'healthy';
   }, [cluster.alerts]);
 
+  const firingAlertsAll = React.useMemo(
+    () => cluster.alerts.filter((a) => a.status === 'firing'),
+    [cluster.alerts]
+  );
+
   const getHealthStatusColor = (status: 'critical' | 'warning' | 'info' | 'healthy') => {
     switch (status) {
       case 'critical': return 'var(--pf-t--global--color--status--danger--default)';
@@ -144,13 +152,6 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
     }
   };
 
-  const getHealthStatusLabel = (data: ComponentHealthData) => {
-    if (data.criticalCount > 0) return { text: `${data.criticalCount} Critical`, color: 'red' as const };
-    if (data.warningCount > 0) return { text: `${data.warningCount} Warning`, color: 'gold' as const };
-    if (data.infoCount > 0) return { text: `${data.infoCount} Info`, color: 'blue' as const };
-    return { text: 'Healthy', color: 'green' as const };
-  };
-
   // Group components by Alert Scope
   const clusterComponents = componentHealthData.filter(c => componentMeta[c.component].impactGroup === 'Cluster');
   const namespaceComponents = componentHealthData.filter(c => componentMeta[c.component].impactGroup === 'Namespace');
@@ -160,7 +161,7 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
   const namespaceGroupAlerts = cluster.alerts.filter(a => a.status === 'firing' && a.group === 'Namespace');
 
   const renderComponentCard = (data: ComponentHealthData) => {
-    const statusLabel = getHealthStatusLabel(data);
+    const componentFiring = cluster.alerts.filter((a) => a.status === 'firing' && a.component === data.component);
     return (
       <Card 
         key={data.component} 
@@ -205,9 +206,51 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
                 <FlexItem>
                   {data.alertCount > 0 ? (
                     <LabelGroup>
-                      {data.criticalCount > 0 && <Label color="red" icon={<ExclamationCircleIcon />}>{data.criticalCount}</Label>}
-                      {data.warningCount > 0 && <Label color="orange" icon={<ExclamationTriangleIcon />}>{data.warningCount}</Label>}
-                      {data.infoCount > 0 && <Label color="blue" icon={<InfoCircleIcon />}>{data.infoCount}</Label>}
+                      {data.criticalCount > 0 && (
+                        <Tooltip
+                          content={
+                            <AlertKpiTooltip
+                              bucketLabel="Critical alerts"
+                              rows={buildFleetAlertKpiRows(componentFiring, { severity: 'Critical' })}
+                            />
+                          }
+                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                        >
+                          <Label color="red" icon={<ExclamationCircleIcon />}>
+                            {data.criticalCount}
+                          </Label>
+                        </Tooltip>
+                      )}
+                      {data.warningCount > 0 && (
+                        <Tooltip
+                          content={
+                            <AlertKpiTooltip
+                              bucketLabel="Warning alerts"
+                              rows={buildFleetAlertKpiRows(componentFiring, { severity: 'Warning' })}
+                            />
+                          }
+                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                        >
+                          <Label color="orange" icon={<ExclamationTriangleIcon />}>
+                            {data.warningCount}
+                          </Label>
+                        </Tooltip>
+                      )}
+                      {data.infoCount > 0 && (
+                        <Tooltip
+                          content={
+                            <AlertKpiTooltip
+                              bucketLabel="Info alerts"
+                              rows={buildFleetAlertKpiRows(componentFiring, { severity: 'Info' })}
+                            />
+                          }
+                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                        >
+                          <Label color="blue" icon={<InfoCircleIcon />}>
+                            {data.infoCount}
+                          </Label>
+                        </Tooltip>
+                      )}
                     </LabelGroup>
                   ) : (
                     <Label color="green" icon={<CheckCircleIcon />}>Healthy</Label>
@@ -325,9 +368,16 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
                             <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Total alerts</Content>
                           </StackItem>
                           <StackItem>
-                            <Title headingLevel="h3" size="lg">
-                              {cluster.alerts.filter(a => a.status === 'firing').length}
-                            </Title>
+                            <Tooltip
+                              content={<AlertKpiTooltip bucketLabel="Firing alerts" rows={buildFleetAlertKpiRows(firingAlertsAll)} />}
+                              {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                            >
+                              <span style={{ display: 'inline-block' }}>
+                                <Title headingLevel="h3" size="lg">
+                                  {firingAlertsAll.length}
+                                </Title>
+                              </span>
+                            </Tooltip>
                           </StackItem>
                         </Stack>
                       </FlexItem>
@@ -340,9 +390,21 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
                           <StackItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                               <Icon status="danger"><ExclamationCircleIcon /></Icon>
-                              <Title headingLevel="h3" size="lg" style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>
-                                {cluster.alerts.filter(a => a.status === 'firing' && a.severity === 'Critical').length}
-                              </Title>
+                              <Tooltip
+                                content={
+                                  <AlertKpiTooltip
+                                    bucketLabel="Critical alerts"
+                                    rows={buildFleetAlertKpiRows(firingAlertsAll, { severity: 'Critical' })}
+                                  />
+                                }
+                                {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                              >
+                                <span style={{ display: 'inline-block' }}>
+                                  <Title headingLevel="h3" size="lg" style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>
+                                    {firingAlertsAll.filter((a) => a.severity === 'Critical').length}
+                                  </Title>
+                                </span>
+                              </Tooltip>
                             </Flex>
                           </StackItem>
                         </Stack>
@@ -355,9 +417,21 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
                           <StackItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                               <Icon status="warning"><ExclamationTriangleIcon /></Icon>
-                              <Title headingLevel="h3" size="lg" style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>
-                                {cluster.alerts.filter(a => a.status === 'firing' && a.severity === 'Warning').length}
-                              </Title>
+                              <Tooltip
+                                content={
+                                  <AlertKpiTooltip
+                                    bucketLabel="Warning alerts"
+                                    rows={buildFleetAlertKpiRows(firingAlertsAll, { severity: 'Warning' })}
+                                  />
+                                }
+                                {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                              >
+                                <span style={{ display: 'inline-block' }}>
+                                  <Title headingLevel="h3" size="lg" style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>
+                                    {firingAlertsAll.filter((a) => a.severity === 'Warning').length}
+                                  </Title>
+                                </span>
+                              </Tooltip>
                             </Flex>
                           </StackItem>
                         </Stack>
@@ -370,9 +444,21 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
                           <StackItem>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                               <Icon status="info"><InfoCircleIcon /></Icon>
-                              <Title headingLevel="h3" size="lg" style={{ color: 'var(--pf-t--global--color--status--info--default)' }}>
-                                {cluster.alerts.filter(a => a.status === 'firing' && a.severity === 'Info').length}
-                              </Title>
+                              <Tooltip
+                                content={
+                                  <AlertKpiTooltip
+                                    bucketLabel="Info alerts"
+                                    rows={buildFleetAlertKpiRows(firingAlertsAll, { severity: 'Info' })}
+                                  />
+                                }
+                                {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                              >
+                                <span style={{ display: 'inline-block' }}>
+                                  <Title headingLevel="h3" size="lg" style={{ color: 'var(--pf-t--global--color--status--info--default)' }}>
+                                    {firingAlertsAll.filter((a) => a.severity === 'Info').length}
+                                  </Title>
+                                </span>
+                              </Tooltip>
                             </Flex>
                           </StackItem>
                         </Stack>
@@ -401,21 +487,46 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
                         </Tooltip>
                       </FlexItem>
                       <FlexItem>
-                        <Badge isRead>{clusterGroupAlerts.length} alerts</Badge>
+                        <Tooltip
+                          content={<AlertKpiTooltip bucketLabel="Firing alerts" rows={buildFleetAlertKpiRows(clusterGroupAlerts)} />}
+                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                        >
+                          <Badge isRead>{clusterGroupAlerts.length} alerts</Badge>
+                        </Tooltip>
                       </FlexItem>
                     </Flex>
                   </FlexItem>
                   <FlexItem>
                     <Flex gap={{ default: 'gapSm' }}>
                       {clusterGroupAlerts.filter(a => a.severity === 'Critical').length > 0 && (
-                        <Label color="red" icon={<ExclamationCircleIcon />}>
-                          {clusterGroupAlerts.filter(a => a.severity === 'Critical').length} Critical
-                        </Label>
+                        <Tooltip
+                          content={
+                            <AlertKpiTooltip
+                              bucketLabel="Critical alerts"
+                              rows={buildFleetAlertKpiRows(clusterGroupAlerts, { severity: 'Critical' })}
+                            />
+                          }
+                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                        >
+                          <Label color="red" icon={<ExclamationCircleIcon />}>
+                            {clusterGroupAlerts.filter(a => a.severity === 'Critical').length} Critical
+                          </Label>
+                        </Tooltip>
                       )}
                       {clusterGroupAlerts.filter(a => a.severity === 'Warning').length > 0 && (
-                        <Label color="orange" icon={<ExclamationTriangleIcon />}>
-                          {clusterGroupAlerts.filter(a => a.severity === 'Warning').length} Warning
-                        </Label>
+                        <Tooltip
+                          content={
+                            <AlertKpiTooltip
+                              bucketLabel="Warning alerts"
+                              rows={buildFleetAlertKpiRows(clusterGroupAlerts, { severity: 'Warning' })}
+                            />
+                          }
+                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                        >
+                          <Label color="orange" icon={<ExclamationTriangleIcon />}>
+                            {clusterGroupAlerts.filter(a => a.severity === 'Warning').length} Warning
+                          </Label>
+                        </Tooltip>
                       )}
                     </Flex>
                   </FlexItem>
@@ -449,21 +560,46 @@ export const ClusterComponentsHealth: React.FC<ClusterComponentsHealthProps> = (
                         </Tooltip>
                       </FlexItem>
                       <FlexItem>
-                        <Badge isRead>{namespaceGroupAlerts.length} alerts</Badge>
+                        <Tooltip
+                          content={<AlertKpiTooltip bucketLabel="Firing alerts" rows={buildFleetAlertKpiRows(namespaceGroupAlerts)} />}
+                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                        >
+                          <Badge isRead>{namespaceGroupAlerts.length} alerts</Badge>
+                        </Tooltip>
                       </FlexItem>
                     </Flex>
                   </FlexItem>
                   <FlexItem>
                     <Flex gap={{ default: 'gapSm' }}>
                       {namespaceGroupAlerts.filter(a => a.severity === 'Critical').length > 0 && (
-                        <Label color="red" icon={<ExclamationCircleIcon />}>
-                          {namespaceGroupAlerts.filter(a => a.severity === 'Critical').length} Critical
-                        </Label>
+                        <Tooltip
+                          content={
+                            <AlertKpiTooltip
+                              bucketLabel="Critical alerts"
+                              rows={buildFleetAlertKpiRows(namespaceGroupAlerts, { severity: 'Critical' })}
+                            />
+                          }
+                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                        >
+                          <Label color="red" icon={<ExclamationCircleIcon />}>
+                            {namespaceGroupAlerts.filter(a => a.severity === 'Critical').length} Critical
+                          </Label>
+                        </Tooltip>
                       )}
                       {namespaceGroupAlerts.filter(a => a.severity === 'Warning').length > 0 && (
-                        <Label color="orange" icon={<ExclamationTriangleIcon />}>
-                          {namespaceGroupAlerts.filter(a => a.severity === 'Warning').length} Warning
-                        </Label>
+                        <Tooltip
+                          content={
+                            <AlertKpiTooltip
+                              bucketLabel="Warning alerts"
+                              rows={buildFleetAlertKpiRows(namespaceGroupAlerts, { severity: 'Warning' })}
+                            />
+                          }
+                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                        >
+                          <Label color="orange" icon={<ExclamationTriangleIcon />}>
+                            {namespaceGroupAlerts.filter(a => a.severity === 'Warning').length} Warning
+                          </Label>
+                        </Tooltip>
                       )}
                     </Flex>
                   </FlexItem>

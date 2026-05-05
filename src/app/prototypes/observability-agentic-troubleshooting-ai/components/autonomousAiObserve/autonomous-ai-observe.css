@@ -325,6 +325,44 @@ span.ols-aio-card-stat-number {
   display: none;
 }
 
+/* Compact token usage chip in the Autonomous analysis card header actions. */
+.ols-aio-token-counter {
+  min-width: 190px;
+  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--sm);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--pill);
+  background-color: var(--pf-t--global--background--color--primary--default);
+  box-sizing: border-box;
+}
+
+.ols-aio-token-counter__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pf-t--global--icon--color--brand--default);
+}
+
+.ols-aio-token-counter__label {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--subtle);
+  letter-spacing: 0.02em;
+}
+
+.ols-aio-token-counter__value {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  white-space: nowrap;
+}
+
+.ols-aio-token-counter__value strong {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+.ols-aio-token-counter .pf-v6-c-progress {
+  margin-top: var(--pf-t--global--spacer--xs);
+}
+
 @keyframes ols-aio-pulse-ring {
   0% {
     transform: scale(0.85);

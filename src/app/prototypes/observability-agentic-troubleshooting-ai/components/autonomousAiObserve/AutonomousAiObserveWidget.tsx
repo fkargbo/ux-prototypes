@@ -26,6 +26,7 @@ import {
   Label,
   MenuToggle,
   type MenuToggleElement,
+  Progress,
   Stack,
   StackItem,
   Title,
@@ -37,6 +38,7 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   GlobeIcon,
+  KeyIcon,
   MagicIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
@@ -70,6 +72,65 @@ import {
 } from './focusClusterSession';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget';
+const AGENT_TOKEN_LIMIT = 20000;
+const AGENT_TOKEN_USED = 7500;
+
+function formatTokenCount(value: number): string {
+  if (value >= 1000) {
+    const thousands = value / 1000;
+    const formatted =
+      Number.isInteger(thousands) || value >= 10000 ? `${Math.round(thousands)}` : `${thousands.toFixed(1)}`;
+    return `${formatted}K`;
+  }
+  return `${value}`;
+}
+
+const AgentTokenCounter: React.FC = () => {
+  const usagePct = Math.min(100, Math.round((AGENT_TOKEN_USED / AGENT_TOKEN_LIMIT) * 100));
+  const usedLabel = formatTokenCount(AGENT_TOKEN_USED);
+  const limitLabel = formatTokenCount(AGENT_TOKEN_LIMIT);
+
+  return (
+    <div
+      className="ols-aio-token-counter"
+      aria-label={`Token usage ${AGENT_TOKEN_USED} out of ${AGENT_TOKEN_LIMIT}`}
+    >
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        gap={{ default: 'gapSm' }}
+      >
+        <FlexItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+            <FlexItem>
+              <span className="ols-aio-token-counter__icon" aria-hidden="true">
+                <KeyIcon />
+              </span>
+            </FlexItem>
+            <FlexItem>
+              <span className="ols-aio-token-counter__label">TOKENS</span>
+            </FlexItem>
+          </Flex>
+        </FlexItem>
+        <FlexItem>
+          <span className="ols-aio-token-counter__value">
+            <strong>{usedLabel}</strong>
+            {' / '}
+            {limitLabel}
+          </span>
+        </FlexItem>
+      </Flex>
+      <Progress
+        value={usagePct}
+        min={0}
+        max={100}
+        measureLocation="none"
+        size="sm"
+        aria-label={`Token usage ${usagePct}%`}
+      />
+    </div>
+  );
+};
 
 function fleetAwayDismissKey(text: string): string {
   return `fleet:${text}`;
@@ -554,7 +615,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
           'aria-label': widgetExpanded ? 'Collapse Autonomous analysis' : 'Expand Autonomous analysis',
         }}
         actions={{
-          actions: <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />,
+          actions: (
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <FlexItem>
+                <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />
+              </FlexItem>
+              <FlexItem>
+                <AgentTokenCounter />
+              </FlexItem>
+            </Flex>
+          ),
         }}
       >
         <Flex alignItems={{ default: 'alignItemsFlexStart' }} flexWrap={{ default: 'wrap' }}>
