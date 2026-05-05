@@ -38,7 +38,6 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   GlobeIcon,
-  KeyIcon,
   MagicIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
@@ -89,28 +88,22 @@ const AgentTokenCounter: React.FC = () => {
   const usagePct = Math.min(100, Math.round((AGENT_TOKEN_USED / AGENT_TOKEN_LIMIT) * 100));
   const usedLabel = formatTokenCount(AGENT_TOKEN_USED);
   const limitLabel = formatTokenCount(AGENT_TOKEN_LIMIT);
+  const creditsLeft = Math.max(0, AGENT_TOKEN_LIMIT - AGENT_TOKEN_USED);
+  const creditsLeftLabel = creditsLeft.toLocaleString();
 
   return (
     <div
       className="ols-aio-token-counter"
-      aria-label={`Token usage ${AGENT_TOKEN_USED} out of ${AGENT_TOKEN_LIMIT}`}
+      aria-label={`Credits usage ${AGENT_TOKEN_USED} out of ${AGENT_TOKEN_LIMIT}`}
     >
       <Flex
+        className="ols-aio-token-counter__row"
         alignItems={{ default: 'alignItemsCenter' }}
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        gap={{ default: 'gapSm' }}
+        gap={{ default: 'gapMd' }}
       >
         <FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-            <FlexItem>
-              <span className="ols-aio-token-counter__icon" aria-hidden="true">
-                <KeyIcon />
-              </span>
-            </FlexItem>
-            <FlexItem>
-              <span className="ols-aio-token-counter__label">TOKENS</span>
-            </FlexItem>
-          </Flex>
+          <span className="ols-aio-token-counter__label">CREDITS</span>
         </FlexItem>
         <FlexItem>
           <span className="ols-aio-token-counter__value">
@@ -120,14 +113,18 @@ const AgentTokenCounter: React.FC = () => {
           </span>
         </FlexItem>
       </Flex>
-      <Progress
-        value={usagePct}
-        min={0}
-        max={100}
-        measureLocation="none"
-        size="sm"
-        aria-label={`Token usage ${usagePct}%`}
-      />
+      <Tooltip content={`${creditsLeftLabel} remediation credits left`} position="top" isContentLeftAligned>
+        <div className="ols-aio-token-counter__progress-wrap">
+          <Progress
+            value={usagePct}
+            min={0}
+            max={100}
+            measureLocation="none"
+            size="sm"
+            aria-label={`${creditsLeftLabel} remediation credits left`}
+          />
+        </div>
+      </Tooltip>
     </div>
   );
 };
@@ -616,7 +613,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
         }}
         actions={{
           actions: (
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
               <FlexItem>
                 <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />
               </FlexItem>
