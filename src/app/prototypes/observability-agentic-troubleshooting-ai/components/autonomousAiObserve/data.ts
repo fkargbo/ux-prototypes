@@ -1,5 +1,5 @@
 /**
- * Mock dataset for Autonomous AI Observe — values match cursor-prompt-cluster-monitoring-console.md
+ * Mock dataset for Autonomous analysis — values match cursor-prompt-cluster-monitoring-console.md
  */
 
 export type ClusterHealth = 'critical' | 'degraded' | 'healthy';
@@ -69,7 +69,7 @@ export interface AlertRecord {
   estimatedRecovery: string;
   /** Downtime / blast-radius framing for advisor responses (plain language, no “simulated”). */
   remediationRiskSummary: string;
-  /** How Autonomous AI Observe reached the current conclusion (evidence chain, console-style). */
+  /** How Autonomous analysis reached the current conclusion (evidence chain, console-style). */
   agentInvestigationNarrative: string;
   /** Labeled AI transparency block (title / evidence / narrative). */
   aiInsight: AlertAiInsight;
@@ -103,6 +103,9 @@ export interface FleetWideCriticalIncident {
   riskAssessment: string;
   estimatedRecovery: string;
 }
+
+/** Default cluster when Core platforms loads Observe with no session-stored focus. */
+export const DEFAULT_CORE_PLATFORMS_CLUSTER_ID = 'prod-east-2';
 
 export const CLUSTERS: ClusterRecord[] = [
   {
@@ -233,7 +236,7 @@ $ kubectl rollout restart deploy/payments-api -n payments`,
     remediationRiskSummary:
       'Medium–High — rolling back netpol and restarting payments-api can cause sub-minute errors on checkout paths while endpoints converge.',
     agentInvestigationNarrative:
-      'Autonomous AI Observe correlated Kube events, NetworkPolicy change timestamps, and pod restart signatures on payments-api before locking onto egress to redis-cache.',
+      'Autonomous analysis correlated Kube events, NetworkPolicy change timestamps, and pod restart signatures on payments-api before locking onto egress to redis-cache.',
     aiInsight: {
       categoryLabel: 'AI insight · Correlation',
       headline: 'Scoped egress failure to redis behind payments-api',
@@ -302,7 +305,7 @@ $ oc patch pvc etcd-master-2 -p '{"spec":{"resources":{"requests":{"storage":"60
     remediationRiskSummary:
       'High — etcd maintenance on a control-plane member can briefly lengthen API write latency; schedule during a maintenance window if possible.',
     agentInvestigationNarrative:
-      'Autonomous AI Observe read node conditions, etcd WAL metrics, and compaction state on master-2 to confirm disk pressure as the limiting factor.',
+      'Autonomous analysis read node conditions, etcd WAL metrics, and compaction state on master-2 to confirm disk pressure as the limiting factor.',
     aiInsight: {
       categoryLabel: 'AI insight · Capacity',
       headline: 'Prioritized etcd WAL under DiskPressure on master-2',
@@ -373,7 +376,7 @@ $ oc set resources deploy/checkout-svc --requests=cpu=500m`,
     remediationRiskSummary:
       'Low–Medium — HPA and resource bumps are rolling; expect brief CPU scheduling noise only.',
     agentInvestigationNarrative:
-      'Autonomous AI Observe compared HPA events, replica saturation, and container CPU throttling metrics on checkout-svc to justify raising limits.',
+      'Autonomous analysis compared HPA events, replica saturation, and container CPU throttling metrics on checkout-svc to justify raising limits.',
     aiInsight: {
       categoryLabel: 'AI insight · Performance',
       headline: 'CPU starvation before horizontal scale could help',
@@ -441,7 +444,7 @@ $ oc delete certificaterequest -l cert=wildcard-apac`,
     remediationRiskSummary:
       'Medium — ingress reload on renewal can drop a small number of in-flight TLS handshakes during router rollout.',
     agentInvestigationNarrative:
-      'Autonomous AI Observe verified cert-manager issuer health, renewal windows, and router-default attachment for the wildcard before prioritizing renewal.',
+      'Autonomous analysis verified cert-manager issuer health, renewal windows, and router-default attachment for the wildcard before prioritizing renewal.',
     aiInsight: {
       categoryLabel: 'AI insight · Security posture',
       headline: 'Renewal path clear before clients hit trust errors',
@@ -631,6 +634,73 @@ export function sortAlertsBySeverityPriority(alerts: AlertRecord[]): AlertRecord
   );
 }
 
+/** Display suffix after `AI insight ·` for KPI tooltips and summaries. */
+export function aiInsightCategoryShort(categoryLabel: string): string {
+  const trimmed = categoryLabel.trim();
+  const m = trimmed.match(/^AI insight\s*·\s*(.+)$/i);
+  return m ? m[1].trim() : trimmed;
+}
+
+/**
+ * Console-style grouping for tooltip “Category” (Policy, Security, …), derived from alert names/services.
+ */
+export function alertDomainCategoryFromText(title: string, componentOrService: string): string {
+  const hay = `${title} ${componentOrService}`.toLowerCase();
+  if (/cert|tls|wildcard|expir|renew/i.test(hay)) {
+    return 'Security';
+  }
+  if (/networkpolicy|netpol|regionalingress|ingress.*failure/i.test(hay)) {
+    return 'Policy';
+  }
+  if (/etcd|disk|wal|pressure|volume/i.test(hay)) {
+    return 'Capacity';
+  }
+  if (/payment|checkout|hpa|quota|throttl/i.test(hay)) {
+    return 'Workload';
+  }
+  return 'Platform';
+}
+
+export function alertDomainCategory(a: AlertRecord): string {
+  return alertDomainCategoryFromText(a.title, a.service);
+}
+
+export type AlertKpiBreakdownRow = {
+  title: string;
+  severity: AlertSeverity;
+  component: string;
+  insightCategory: string;
+  domainCategory: string;
+};
+
+function alertToBreakdownRow(a: AlertRecord): AlertKpiBreakdownRow {
+  return {
+    title: a.title,
+    severity: a.severity,
+    component: a.service,
+    insightCategory: aiInsightCategoryShort(a.aiInsight.categoryLabel),
+    domainCategory: alertDomainCategory(a),
+  };
+}
+
+/** Fleet KPI counts include synthetic fleet-critical attributions; mirror that in tooltip rows. */
+export function buildFleetSeverityBreakdown(severity: AlertSeverity): AlertKpiBreakdownRow[] {
+  const rows = ALERTS.filter((a) => a.severity === severity).map(alertToBreakdownRow);
+  if (severity === 'critical' && FLEET_WIDE_REGIONAL_INGRESS.severity === 'critical') {
+    const fw = FLEET_WIDE_REGIONAL_INGRESS;
+    fw.affectedClusterIds.forEach(() => {
+      rows.push({
+        title: fw.title,
+        severity: 'critical',
+        component: 'openshift-ingress / fleet-correlated',
+        insightCategory: aiInsightCategoryShort(fw.aiInsight.categoryLabel),
+        domainCategory: 'Policy',
+      });
+    });
+  }
+  return rows.sort((a, b) => a.title.localeCompare(b.title));
+}
+
 export function getAlertsForCluster(clusterId: string): AlertRecord[] {
   const perCluster = sortAlertsBySeverityPriority(ALERTS.filter((a) => a.clusterId === clusterId));
   const fleetRow = buildFleetWideIngressAlertRecordForCluster(clusterId);
@@ -638,6 +708,13 @@ export function getAlertsForCluster(clusterId: string): AlertRecord[] {
     return perCluster;
   }
   return sortAlertsBySeverityPriority([fleetRow, ...perCluster]);
+}
+
+export function buildClusterSeverityBreakdown(clusterId: string, severity: AlertSeverity): AlertKpiBreakdownRow[] {
+  return getAlertsForCluster(clusterId)
+    .filter((a) => a.severity === severity)
+    .map(alertToBreakdownRow)
+    .sort((a, b) => a.title.localeCompare(b.title));
 }
 
 /**

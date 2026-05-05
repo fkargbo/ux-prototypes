@@ -16,7 +16,7 @@ export const AIHubPage: React.FC = () => {
     >
       <div className="create-policy-header">
         <Title headingLevel="h1" size="2xl">
-          AI Hub
+          AI Troubleshooting Hub
         </Title>
         <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
           Coordinate autonomous AI investigations, evidence collection, and guided remediation workflows for
@@ -27,7 +27,7 @@ export const AIHubPage: React.FC = () => {
       <div
         id="ols-ai-hub-main"
         role="main"
-        aria-label="AI Hub content"
+        aria-label="AI Troubleshooting Hub content"
         style={{
           flex: 1,
           overflow: 'auto',

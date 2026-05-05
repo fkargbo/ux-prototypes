@@ -73,6 +73,9 @@ import { TreemapHeatmap } from './TreemapHeatmap';
 import { AlertsTimelineCard } from './AlertsTimelineCard';
 import { CrossClusterInsightsCards } from './CrossClusterInsightsCards';
 import { mockTrendData, mockClusters } from '../data/mockData';
+import { AlertKpiTooltip } from '../../../components/autonomousAiObserve/AlertKpiTooltip';
+import '../../../components/autonomousAiObserve/autonomous-ai-observe.css';
+import { buildFleetAlertKpiRows, FLEET_ALERT_KPI_TOOLTIP_PROPS } from '../utils/alertKpiBreakdown';
 
 export interface FleetOverviewTabProps {
   // Filter panel
@@ -680,10 +683,57 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                                   </FlexItem>
                                   <FlexItem>
                                     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                      <Badge>{firingAlerts.length} alerts</Badge>
-                                      {criticalCount > 0 && <Label color="red" isCompact icon={<ExclamationCircleIcon />}>{criticalCount}</Label>}
-                                      {warningCount > 0 && <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>{warningCount}</Label>}
-                                      {infoCount > 0 && <Label color="blue" isCompact icon={<InfoCircleIcon />}>{infoCount}</Label>}
+                                      <Tooltip
+                                        content={<AlertKpiTooltip bucketLabel="Firing alerts" rows={buildFleetAlertKpiRows(firingAlerts)} />}
+                                        {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                      >
+                                        <Badge>{firingAlerts.length} alerts</Badge>
+                                      </Tooltip>
+                                      {criticalCount > 0 && (
+                                        <Tooltip
+                                          content={
+                                            <AlertKpiTooltip
+                                              bucketLabel="Critical alerts"
+                                              rows={buildFleetAlertKpiRows(firingAlerts, { severity: 'Critical' })}
+                                            />
+                                          }
+                                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                        >
+                                          <Label color="red" isCompact icon={<ExclamationCircleIcon />}>
+                                            {criticalCount}
+                                          </Label>
+                                        </Tooltip>
+                                      )}
+                                      {warningCount > 0 && (
+                                        <Tooltip
+                                          content={
+                                            <AlertKpiTooltip
+                                              bucketLabel="Warning alerts"
+                                              rows={buildFleetAlertKpiRows(firingAlerts, { severity: 'Warning' })}
+                                            />
+                                          }
+                                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                        >
+                                          <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>
+                                            {warningCount}
+                                          </Label>
+                                        </Tooltip>
+                                      )}
+                                      {infoCount > 0 && (
+                                        <Tooltip
+                                          content={
+                                            <AlertKpiTooltip
+                                              bucketLabel="Info alerts"
+                                              rows={buildFleetAlertKpiRows(firingAlerts, { severity: 'Info' })}
+                                            />
+                                          }
+                                          {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                        >
+                                          <Label color="blue" isCompact icon={<InfoCircleIcon />}>
+                                            {infoCount}
+                                          </Label>
+                                        </Tooltip>
+                                      )}
                                       {firingAlerts.length === 0 && <Label color="green" isCompact icon={<CheckCircleIcon />}>Healthy</Label>}
                                     </Flex>
                                   </FlexItem>
@@ -767,8 +817,42 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                                           </FlexItem>
                                           <FlexItem>
                                             <Flex gap={{ default: 'gapSm' }}>
-                                              {criticalCount > 0 && <Label color="red" isCompact>{criticalCount} Critical</Label>}
-                                              {warningCount > 0 && <Label color="orange" isCompact>{warningCount} Warning</Label>}
+                                              {criticalCount > 0 && (
+                                                <Tooltip
+                                                  content={
+                                                    <AlertKpiTooltip
+                                                      bucketLabel="Critical alerts"
+                                                      rows={buildFleetAlertKpiRows(
+                                                        clusterAlerts.filter((a) => a.component === component),
+                                                        { severity: 'Critical' }
+                                                      )}
+                                                    />
+                                                  }
+                                                  {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                                >
+                                                  <Label color="red" isCompact>
+                                                    {criticalCount} Critical
+                                                  </Label>
+                                                </Tooltip>
+                                              )}
+                                              {warningCount > 0 && (
+                                                <Tooltip
+                                                  content={
+                                                    <AlertKpiTooltip
+                                                      bucketLabel="Warning alerts"
+                                                      rows={buildFleetAlertKpiRows(
+                                                        clusterAlerts.filter((a) => a.component === component),
+                                                        { severity: 'Warning' }
+                                                      )}
+                                                    />
+                                                  }
+                                                  {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                                >
+                                                  <Label color="orange" isCompact>
+                                                    {warningCount} Warning
+                                                  </Label>
+                                                </Tooltip>
+                                              )}
                                             </Flex>
                                           </FlexItem>
                                         </Flex>
@@ -852,8 +936,42 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                                           </FlexItem>
                                           <FlexItem>
                                             <Flex gap={{ default: 'gapSm' }}>
-                                              {criticalCount > 0 && <Label color="red" isCompact>{criticalCount} Critical</Label>}
-                                              {warningCount > 0 && <Label color="orange" isCompact>{warningCount} Warning</Label>}
+                                              {criticalCount > 0 && (
+                                                <Tooltip
+                                                  content={
+                                                    <AlertKpiTooltip
+                                                      bucketLabel="Critical alerts"
+                                                      rows={buildFleetAlertKpiRows(
+                                                        namespaceAlerts.filter((a) => a.component === component),
+                                                        { severity: 'Critical' }
+                                                      )}
+                                                    />
+                                                  }
+                                                  {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                                >
+                                                  <Label color="red" isCompact>
+                                                    {criticalCount} Critical
+                                                  </Label>
+                                                </Tooltip>
+                                              )}
+                                              {warningCount > 0 && (
+                                                <Tooltip
+                                                  content={
+                                                    <AlertKpiTooltip
+                                                      bucketLabel="Warning alerts"
+                                                      rows={buildFleetAlertKpiRows(
+                                                        namespaceAlerts.filter((a) => a.component === component),
+                                                        { severity: 'Warning' }
+                                                      )}
+                                                    />
+                                                  }
+                                                  {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                                >
+                                                  <Label color="orange" isCompact>
+                                                    {warningCount} Warning
+                                                  </Label>
+                                                </Tooltip>
+                                              )}
                                             </Flex>
                                           </FlexItem>
                                         </Flex>
@@ -986,14 +1104,73 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
                               </Td>
                               <Td>{cluster.region}</Td>
                               <Td>
-                                <Badge>{firingAlerts.length}</Badge>
+                                <Tooltip
+                                  content={<AlertKpiTooltip bucketLabel="Firing alerts" rows={buildFleetAlertKpiRows(firingAlerts)} />}
+                                  {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                >
+                                  <Badge>{firingAlerts.length}</Badge>
+                                </Tooltip>
                               </Td>
                               <Td>
                                 <Flex gap={{ default: 'gapSm' }}>
-                                  {criticalCount > 0 && <FlexItem><Label color="red" isCompact icon={<ExclamationCircleIcon />}>{criticalCount}</Label></FlexItem>}
-                                  {warningCount > 0 && <FlexItem><Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>{warningCount}</Label></FlexItem>}
-                                  {infoCount > 0 && <FlexItem><Label color="purple" isCompact icon={<InfoCircleIcon />}>{infoCount}</Label></FlexItem>}
-                                  {firingAlerts.length === 0 && <FlexItem><Label color="green" isCompact icon={<CheckCircleIcon />}>Healthy</Label></FlexItem>}
+                                  {criticalCount > 0 && (
+                                    <FlexItem>
+                                      <Tooltip
+                                        content={
+                                          <AlertKpiTooltip
+                                            bucketLabel="Critical alerts"
+                                            rows={buildFleetAlertKpiRows(firingAlerts, { severity: 'Critical' })}
+                                          />
+                                        }
+                                        {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                      >
+                                        <Label color="red" isCompact icon={<ExclamationCircleIcon />}>
+                                          {criticalCount}
+                                        </Label>
+                                      </Tooltip>
+                                    </FlexItem>
+                                  )}
+                                  {warningCount > 0 && (
+                                    <FlexItem>
+                                      <Tooltip
+                                        content={
+                                          <AlertKpiTooltip
+                                            bucketLabel="Warning alerts"
+                                            rows={buildFleetAlertKpiRows(firingAlerts, { severity: 'Warning' })}
+                                          />
+                                        }
+                                        {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                      >
+                                        <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>
+                                          {warningCount}
+                                        </Label>
+                                      </Tooltip>
+                                    </FlexItem>
+                                  )}
+                                  {infoCount > 0 && (
+                                    <FlexItem>
+                                      <Tooltip
+                                        content={
+                                          <AlertKpiTooltip
+                                            bucketLabel="Info alerts"
+                                            rows={buildFleetAlertKpiRows(firingAlerts, { severity: 'Info' })}
+                                          />
+                                        }
+                                        {...FLEET_ALERT_KPI_TOOLTIP_PROPS}
+                                      >
+                                        <Label color="purple" isCompact icon={<InfoCircleIcon />}>
+                                          {infoCount}
+                                        </Label>
+                                      </Tooltip>
+                                    </FlexItem>
+                                  )}
+                                  {firingAlerts.length === 0 && (
+                                    <FlexItem>
+                                      <Label color="green" isCompact icon={<CheckCircleIcon />}>
+                                        Healthy
+                                      </Label>
+                                    </FlexItem>
+                                  )}
                                 </Flex>
                               </Td>
                             </Tr>

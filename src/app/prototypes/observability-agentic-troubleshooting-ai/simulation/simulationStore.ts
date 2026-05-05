@@ -70,7 +70,7 @@ export function subscribeSimulation(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-/** Push latest Autonomous AI Observe scope into the shared simulation. */
+/** Push latest Autonomous analysis scope into the shared simulation. */
 export function syncObserveSimulationState(input: ObserveSimulationSyncInput): void {
   const expandedAlertIds = Object.entries(input.expandedAlerts)
     .filter(([, open]) => open)

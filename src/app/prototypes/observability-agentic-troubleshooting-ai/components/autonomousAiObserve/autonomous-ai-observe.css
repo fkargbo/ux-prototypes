@@ -1,4 +1,4 @@
-/* Autonomous AI Observe — token-based helpers (pulse ring, timeline, widget chevron). */
+/* Autonomous analysis — token-based helpers (pulse ring, timeline, widget chevron). */
 
 /*
  * Typography (PatternFly design foundations):
@@ -213,13 +213,34 @@ span.ols-aio-card-stat-number {
 }
 
 /**
- * AI insight row icon: matches Autonomous AI Observe card mark (`FLEET_INSIGHT_ICON_BOX_STYLE` uses #6753ac).
+ * AI insight row icon: matches Autonomous analysis card mark (`FLEET_INSIGHT_ICON_BOX_STYLE` uses #6753ac).
  */
 .ols-aio-ai-insight-icon {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
   color: #6753ac;
+}
+
+/* KPI drill targets: PatternFly Tooltip body — concise breakdown lists */
+.ols-aio-kpi-tooltip {
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(600px, 92vw);
+  text-align: left;
+}
+
+/*
+ * `Content` forces regular page text color; tooltip shell uses inverse colors.
+ * Without this, heading / empty-state lines are effectively invisible (dark on dark).
+ */
+.ols-aio-kpi-tooltip [class*='pf-v6-c-content'] {
+  color: inherit;
+}
+
+.ols-aio-kpi-tooltip__list {
+  margin: 0;
+  padding-left: var(--pf-t--global--spacer--md);
 }
 
 /* Fleet incident: clusters + lede share one grid cell (do not use __message on nested nodes — it sets grid placement). */
@@ -302,6 +323,53 @@ span.ols-aio-card-stat-number {
 }
 .ols-aio-agent-pulse--muted .ols-aio-agent-pulse__ring {
   display: none;
+}
+
+/* Compact token usage chip in the Autonomous analysis card header actions. */
+.ols-aio-token-counter {
+  width: 200px;
+  box-sizing: border-box;
+}
+
+.ols-aio-token-counter__row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: var(--pf-t--global--spacer--md);
+  width: 100%;
+}
+
+.ols-aio-token-counter__label {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--subtle);
+  letter-spacing: 0.02em;
+}
+
+.ols-aio-token-counter__value {
+  justify-self: end;
+  text-align: right;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  white-space: nowrap;
+}
+
+.ols-aio-token-counter__value strong {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+.ols-aio-token-counter .pf-v6-c-progress {
+  margin-top: 0;
+}
+
+.ols-aio-token-counter__progress-wrap {
+  display: block;
+  width: 100%;
+  margin-top: var(--pf-t--global--spacer--xs);
+}
+
+.ols-aio-token-counter__progress-wrap .pf-v6-c-progress {
+  width: 100%;
 }
 
 @keyframes ols-aio-pulse-ring {

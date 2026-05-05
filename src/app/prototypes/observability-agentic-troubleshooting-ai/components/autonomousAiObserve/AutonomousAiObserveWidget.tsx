@@ -26,9 +26,11 @@ import {
   Label,
   MenuToggle,
   type MenuToggleElement,
+  Progress,
   Stack,
   StackItem,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   ArrowLeftIcon,
@@ -43,13 +45,17 @@ import {
   ALERTS,
   AWAY_DIGEST_ITEMS,
   buildClusterAwayDigestItems,
+  buildClusterSeverityBreakdown,
+  buildFleetSeverityBreakdown,
   CLUSTERS,
+  DEFAULT_CORE_PLATFORMS_CLUSTER_ID,
   computeFleetStats,
   fleetCriticalAttributionCount,
   fleetWideCriticalAddsForCluster,
   getAlertsForCluster,
   getClusterById,
 } from './data';
+import { AlertKpiTooltip } from './AlertKpiTooltip';
 import { AgentPulseLabel } from './AgentPulseLabel';
 import { ObserveAlertItem } from './ObserveAlertItem';
 import './autonomous-ai-observe.css';
@@ -60,10 +66,59 @@ import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveCont
 import { FLEET_INSIGHT_ICON_BOX_STYLE } from '../../pages/alerting-fleet-copy/data/fleetInsightsConfig';
 import {
   clearFocusedClusterSession,
+  readFocusedClusterIdFromSession,
   writeFocusedClusterIdToSession,
 } from './focusClusterSession';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget';
+const AGENT_TOKEN_LIMIT = 20000;
+const AGENT_TOKEN_USED = 7500;
+
+function formatTokenCount(value: number): string {
+  if (value >= 1000) {
+    const thousands = value / 1000;
+    const formatted =
+      Number.isInteger(thousands) || value >= 10000 ? `${Math.round(thousands)}` : `${thousands.toFixed(1)}`;
+    return `${formatted}K`;
+  }
+  return `${value}`;
+}
+
+const AgentTokenCounter: React.FC = () => {
+  const usagePct = Math.min(100, Math.round((AGENT_TOKEN_USED / AGENT_TOKEN_LIMIT) * 100));
+  const usedLabel = formatTokenCount(AGENT_TOKEN_USED);
+  const limitLabel = formatTokenCount(AGENT_TOKEN_LIMIT);
+  const creditsLeft = Math.max(0, AGENT_TOKEN_LIMIT - AGENT_TOKEN_USED);
+  const creditsLeftLabel = creditsLeft.toLocaleString();
+
+  return (
+    <div
+      className="ols-aio-token-counter"
+      aria-label={`Credits usage ${AGENT_TOKEN_USED} out of ${AGENT_TOKEN_LIMIT}`}
+    >
+      <div className="ols-aio-token-counter__row">
+        <span className="ols-aio-token-counter__label">Credits</span>
+        <span className="ols-aio-token-counter__value">
+          <strong>{usedLabel}</strong>
+          {' / '}
+          {limitLabel}
+        </span>
+      </div>
+      <Tooltip content={`${creditsLeftLabel} remediation credits left`} position="top" isContentLeftAligned>
+        <div className="ols-aio-token-counter__progress-wrap">
+          <Progress
+            value={usagePct}
+            min={0}
+            max={100}
+            measureLocation="none"
+            size="sm"
+            aria-label={`${creditsLeftLabel} remediation credits left`}
+          />
+        </div>
+      </Tooltip>
+    </div>
+  );
+};
 
 function fleetAwayDismissKey(text: string): string {
   return `fleet:${text}`;
@@ -128,6 +183,8 @@ type ObserveMetricStatCardProps = {
   caption: React.ReactNode;
   /** When false, the KPI is display-only. */
   statisticInteractive?: boolean;
+  /** Hover breakdown (PatternFly `Tooltip`); omit when not applicable. */
+  statisticTooltip?: React.ReactNode;
 };
 
 /**
@@ -142,7 +199,40 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
   onStatisticClick,
   caption,
   statisticInteractive = true,
-}) => (
+  statisticTooltip,
+}) => {
+  const statisticTrigger =
+    statisticInteractive ? (
+      <Button
+        variant="link"
+        isInline
+        className="ols-aio-card-stat-number--drill"
+        onClick={onStatisticClick}
+        aria-label={statisticAriaLabel}
+      >
+        {statistic}
+      </Button>
+    ) : (
+      <span className="ols-aio-card-stat-number--readonly" aria-label={statisticAriaLabel}>
+        {statistic}
+      </span>
+    );
+
+  const statisticNode =
+    statisticTooltip !== undefined && statisticTooltip !== null ? (
+      <Tooltip
+        content={statisticTooltip}
+        position="top"
+        isContentLeftAligned
+        maxWidth="min(600px, 92vw)"
+      >
+        {statisticTrigger}
+      </Tooltip>
+    ) : (
+      statisticTrigger
+    );
+
+  return (
   <Card isCompact>
     <CardHeader>
       <CardTitle component="h4">{cardTitle}</CardTitle>
@@ -155,21 +245,7 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
               {titleIcon}
             </span>
           ) : null}
-          {statisticInteractive ? (
-            <Button
-              variant="link"
-              isInline
-              className="ols-aio-card-stat-number--drill"
-              onClick={onStatisticClick}
-              aria-label={statisticAriaLabel}
-            >
-              {statistic}
-            </Button>
-          ) : (
-            <span className="ols-aio-card-stat-number--readonly" aria-label={statisticAriaLabel}>
-              {statistic}
-            </span>
-          )}
+          {statisticNode}
         </Flex>
       </div>
       <Content
@@ -184,7 +260,8 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
       </Content>
     </CardBody>
   </Card>
-);
+  );
+};
 
 function fleetAgentStatus(clusters: ClusterRecord[]): AgentPulseStatus {
   if (clusters.some((c) => c.agentStatus === 'escalated')) {
@@ -253,8 +330,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const viewMode: ViewMode = useMemo(() => (showFleetOverview ? 'fleet' : 'cluster'), [showFleetOverview]);
 
-  /** No default cluster — user picks from the menu or Fleet drill-down (avoids a false “selected” state). */
-  const [selectedClusterId, setSelectedClusterId] = useState('');
+  /** Restores session handoff; Core platforms applies `DEFAULT_CORE_PLATFORMS_CLUSTER_ID` when still empty. */
+  const [selectedClusterId, setSelectedClusterId] = useState(() => readFocusedClusterIdFromSession() ?? '');
 
   React.useEffect(() => {
     const prev = prevPerspectiveRef.current;
@@ -263,6 +340,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
       setFleetClusterDrillDown(false);
     }
   }, [activePerspective]);
+
+  React.useEffect(() => {
+    if (activePerspective !== 'Core platforms') {
+      return;
+    }
+    if (selectedClusterId) {
+      return;
+    }
+    setSelectedClusterId(DEFAULT_CORE_PLATFORMS_CLUSTER_ID);
+  }, [activePerspective, selectedClusterId]);
   const [widgetExpanded, setWidgetExpanded] = useState(true);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
@@ -324,6 +411,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     () => computeFleetStats(CLUSTERS, ALERTS, fleetCriticalAttributionCount()),
     []
   );
+
+  const fleetCriticalBreakdown = useMemo(() => buildFleetSeverityBreakdown('critical'), []);
+  const fleetWarningBreakdown = useMemo(() => buildFleetSeverityBreakdown('warning'), []);
 
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
   const totalFleetNodes = useMemo(() => CLUSTERS.reduce((s, c) => s + c.nodes, 0), []);
@@ -427,6 +517,15 @@ export const AutonomousAiObserveWidget: React.FC = () => {
   const criticalOnCluster = clusterAlerts.filter((a) => a.severity === 'critical').length;
   const warningOnCluster = clusterAlerts.filter((a) => a.severity === 'warning').length;
 
+  const clusterCriticalBreakdown = useMemo(
+    () => (selectedClusterId ? buildClusterSeverityBreakdown(selectedClusterId, 'critical') : []),
+    [selectedClusterId]
+  );
+  const clusterWarningBreakdown = useMemo(
+    () => (selectedClusterId ? buildClusterSeverityBreakdown(selectedClusterId, 'warning') : []),
+    [selectedClusterId]
+  );
+
   const degradedCount = CLUSTERS.filter((c) => c.health !== 'healthy').length;
 
   return (
@@ -452,7 +551,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                 variant="link"
                 icon={<ArrowLeftIcon />}
                 onClick={() => setFleetClusterDrillDown(false)}
-                aria-label="Return to full fleet Autonomous AI Observe view"
+                aria-label="Return to full fleet Autonomous analysis view"
               >
                 Back to fleet overview
               </Button>
@@ -501,10 +600,19 @@ export const AutonomousAiObserveWidget: React.FC = () => {
         onExpand={onWidgetExpand}
         toggleButtonProps={{
           id: `${WIDGET_ID}-toggle`,
-          'aria-label': widgetExpanded ? 'Collapse Autonomous AI Observe' : 'Expand Autonomous AI Observe',
+          'aria-label': widgetExpanded ? 'Collapse Autonomous analysis' : 'Expand Autonomous analysis',
         }}
         actions={{
-          actions: <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />,
+          actions: (
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+              <FlexItem>
+                <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />
+              </FlexItem>
+              <FlexItem>
+                <AgentTokenCounter />
+              </FlexItem>
+            </Flex>
+          ),
         }}
       >
         <Flex alignItems={{ default: 'alignItemsFlexStart' }} flexWrap={{ default: 'wrap' }}>
@@ -515,7 +623,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               </div>
               <div>
                 <Title headingLevel="h2" size="md">
-                  Autonomous AI Observe
+                  Autonomous analysis
                 </Title>
                 <Content
                   component="p"
@@ -654,7 +762,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             event.stopPropagation();
                             navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }));
                           }}
-                          aria-label="Open Alerting Fleet overview filtered to currently surfaced AI Observe alerts"
+                          aria-label="Open Alerting Fleet overview filtered to currently surfaced Autonomous analysis alerts"
                         >
                           View alerts
                         </Button>
@@ -682,6 +790,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             onStatisticClick={() =>
                               navigate(alertingHref({ tab: 'alerts', severity: 'critical', aiHubFleetScope: true }))
                             }
+                            statisticTooltip={
+                              <AlertKpiTooltip bucketLabel="Critical alerts" rows={fleetCriticalBreakdown} />
+                            }
                             caption="Across all clusters"
                           />
                         </GridItem>
@@ -698,6 +809,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             statisticInteractive
                             onStatisticClick={() =>
                               navigate(alertingHref({ tab: 'alerts', severity: 'warning', aiHubFleetScope: true }))
+                            }
+                            statisticTooltip={
+                              <AlertKpiTooltip bucketLabel="Warning alerts" rows={fleetWarningBreakdown} />
                             }
                             caption="Across all clusters"
                           />
@@ -793,7 +907,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 }
                                 role="button"
                                 tabIndex={0}
-                                aria-label={`Drill into ${c.name} in Autonomous AI Observe (Fleet management)`}
+                                aria-label={`Drill into ${c.name} in Autonomous analysis (Fleet management)`}
                                 onClick={() => {
                                   setSelectedClusterId(c.id);
                                   setFleetClusterDrillDown(true);
@@ -1091,6 +1205,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               )
                             }
                             statisticInteractive
+                            statisticTooltip={
+                              <AlertKpiTooltip bucketLabel="Critical alerts" rows={clusterCriticalBreakdown} />
+                            }
                             caption={`on ${selectedCluster.name}`}
                           />
                         </GridItem>
@@ -1115,6 +1232,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               )
                             }
                             statisticInteractive
+                            statisticTooltip={
+                              <AlertKpiTooltip bucketLabel="Warning alerts" rows={clusterWarningBreakdown} />
+                            }
                             caption={`on ${selectedCluster.name}`}
                           />
                         </GridItem>

@@ -37,7 +37,7 @@ export const OLS_SRE_ADVISOR_SYSTEM_DIRECTIVES = [
   'Ground every claim in the current `SimulationSnapshot` (Observe alerts, causal-chain timestamps, remediation text, and any `playAlong` fields).',
   'Play along: when another prototype merges new simulated context via `mergeSimulationPlayAlong`, adopt that vocabulary and treat it as authoritative for this session—adapt gracefully as fields appear, change, or disappear.',
   'Never describe supplied data as mock, fake, simulated, or placeholder.',
-  'When Autonomous AI Observe (internal legacy label: KubeKlaw TBC) is active, prioritize its causal chain and investigation narrative alongside other snapshot fields.',
+  'When Autonomous analysis (internal legacy label: KubeKlaw TBC) is active, prioritize its causal chain and investigation narrative alongside other snapshot fields.',
 ].join(' ');
 
 /** Closing line mirroring docs: follow-ups refine results; same-chat context matters. */
@@ -168,7 +168,7 @@ function buildDeepDiveForAlert(a: SimulationAlertBrief): string {
   return (
     `Here is a **more detailed** read of **${a.title}** (${a.severity}, \`${a.id}\`), grounded in the current Observe context:\n\n` +
     `**What the alert shows:** ${a.message}\n\n` +
-    `**Autonomous AI Observe narrative:** ${a.agentInvestigationNarrative}\n\n` +
+    `**Autonomous analysis narrative:** ${a.agentInvestigationNarrative}\n\n` +
     `**Causal chain:**\n${stepsText}\n\n` +
     `**Root cause (synthesis):** ${a.rcaSummary} Reference: \`${a.rootCauseRef}\` ${a.rootCauseTail}\n\n` +
     `**Remediation (summary):** ${a.remediationSummary}\n\n` +
@@ -248,7 +248,7 @@ export function buildSituationBriefing(snap: SimulationSnapshot): string {
   const core =
     `${head} Leading signal: **${p.title}** (${p.severity}, ${p.service}). ` +
     `Latest causal-chain focus: ${chain}. ` +
-    `Autonomous AI Observe narrative: ${p.agentInvestigationNarrative}`;
+    `Autonomous analysis narrative: ${p.agentInvestigationNarrative}`;
   return playAlong ? `${core}\n\n${playAlong}` : core;
 }
 
@@ -271,7 +271,7 @@ export function buildDiscussOpening(
   const body =
     `Based on the **${handoff.diagnosisName}** context (${scope}) for **${title}** (reference **${handoff.alertId}**), here is information you can use in the console:\n\n` +
     `${alert ? `**Summary:** ${alert.rcaSummary}\n\n` : ''}` +
-    `${alert ? `**Evidence Autonomous AI Observe correlated:** ${alert.agentInvestigationNarrative}\n\n` : ''}` +
+    `${alert ? `**Evidence Autonomous analysis correlated:** ${alert.agentInvestigationNarrative}\n\n` : ''}` +
     `**Recommended direction:** ${alert?.remediationSummary ?? 'Review the remediation hub in Observe for recommended changes.'}\n` +
     `**Change risk:** ${alert?.remediationRiskSummary ?? 'Evaluate blast radius before applying changes.'}`;
 
@@ -288,7 +288,7 @@ export function buildObserveToChatHandoff(snap: SimulationSnapshot): string {
     );
   }
   const body =
-    `Based on the alert context available here, Autonomous AI Observe highlights **${p.title}** (${p.severity}). ` +
+    `Based on the alert context available here, Autonomous analysis highlights **${p.title}** (${p.severity}). ` +
     `The latest causal-chain emphasis is **${latestCausalStep(p)}**.\n\n` +
     `**Remediation path:** ${p.remediationSummary}\n` +
     `**Risk:** ${p.remediationRiskSummary}\n` +
@@ -330,7 +330,7 @@ export function composeAdvisorReply(
     return reply(
       'continuation_thanks',
       mem.lastFocusedAlertId,
-      'Glad that helps. If the cluster picture changes or Autonomous AI Observe refreshes the chain, ask again here and we can align the next reply to the latest context.'
+      'Glad that helps. If the cluster picture changes or Autonomous analysis refreshes the chain, ask again here and we can align the next reply to the latest context.'
     );
   }
 
