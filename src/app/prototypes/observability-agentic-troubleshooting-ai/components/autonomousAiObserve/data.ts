@@ -644,8 +644,8 @@ export function aiInsightCategoryShort(categoryLabel: string): string {
 /**
  * Console-style grouping for tooltip “Category” (Policy, Security, …), derived from alert names/services.
  */
-export function alertDomainCategory(a: AlertRecord): string {
-  const hay = `${a.title} ${a.service}`.toLowerCase();
+export function alertDomainCategoryFromText(title: string, componentOrService: string): string {
+  const hay = `${title} ${componentOrService}`.toLowerCase();
   if (/cert|tls|wildcard|expir|renew/i.test(hay)) {
     return 'Security';
   }
@@ -659,6 +659,10 @@ export function alertDomainCategory(a: AlertRecord): string {
     return 'Workload';
   }
   return 'Platform';
+}
+
+export function alertDomainCategory(a: AlertRecord): string {
+  return alertDomainCategoryFromText(a.title, a.service);
 }
 
 export type AlertKpiBreakdownRow = {
