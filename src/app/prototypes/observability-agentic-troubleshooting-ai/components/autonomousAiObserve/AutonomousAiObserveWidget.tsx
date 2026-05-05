@@ -96,23 +96,14 @@ const AgentTokenCounter: React.FC = () => {
       className="ols-aio-token-counter"
       aria-label={`Credits usage ${AGENT_TOKEN_USED} out of ${AGENT_TOKEN_LIMIT}`}
     >
-      <Flex
-        className="ols-aio-token-counter__row"
-        alignItems={{ default: 'alignItemsCenter' }}
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        gap={{ default: 'gapMd' }}
-      >
-        <FlexItem>
-          <span className="ols-aio-token-counter__label">CREDITS</span>
-        </FlexItem>
-        <FlexItem>
-          <span className="ols-aio-token-counter__value">
-            <strong>{usedLabel}</strong>
-            {' / '}
-            {limitLabel}
-          </span>
-        </FlexItem>
-      </Flex>
+      <div className="ols-aio-token-counter__row">
+        <span className="ols-aio-token-counter__label">Credits</span>
+        <span className="ols-aio-token-counter__value">
+          <strong>{usedLabel}</strong>
+          {' / '}
+          {limitLabel}
+        </span>
+      </div>
       <Tooltip content={`${creditsLeftLabel} remediation credits left`} position="top" isContentLeftAligned>
         <div className="ols-aio-token-counter__progress-wrap">
           <Progress
