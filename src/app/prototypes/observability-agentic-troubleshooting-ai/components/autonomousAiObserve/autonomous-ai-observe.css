@@ -222,6 +222,17 @@ span.ols-aio-card-stat-number {
   color: #6753ac;
 }
 
+/* KPI drill targets: PatternFly Tooltip body — concise breakdown lists */
+.ols-aio-kpi-tooltip {
+  max-width: min(22rem, 85vw);
+  text-align: left;
+}
+
+.ols-aio-kpi-tooltip__list {
+  margin: 0;
+  padding-left: var(--pf-t--global--spacer--md);
+}
+
 /* Fleet incident: clusters + lede share one grid cell (do not use __message on nested nodes — it sets grid placement). */
 .ols-aio-alert-summary__fleet-meta {
   grid-column: 2;

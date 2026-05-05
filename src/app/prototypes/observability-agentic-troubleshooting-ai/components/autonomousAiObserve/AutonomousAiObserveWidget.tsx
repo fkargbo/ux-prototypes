@@ -29,6 +29,7 @@ import {
   Stack,
   StackItem,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   ArrowLeftIcon,
@@ -43,6 +44,8 @@ import {
   ALERTS,
   AWAY_DIGEST_ITEMS,
   buildClusterAwayDigestItems,
+  buildClusterSeverityBreakdown,
+  buildFleetSeverityBreakdown,
   CLUSTERS,
   DEFAULT_CORE_PLATFORMS_CLUSTER_ID,
   computeFleetStats,
@@ -51,6 +54,7 @@ import {
   getAlertsForCluster,
   getClusterById,
 } from './data';
+import { AlertKpiTooltip } from './AlertKpiTooltip';
 import { AgentPulseLabel } from './AgentPulseLabel';
 import { ObserveAlertItem } from './ObserveAlertItem';
 import './autonomous-ai-observe.css';
@@ -130,6 +134,8 @@ type ObserveMetricStatCardProps = {
   caption: React.ReactNode;
   /** When false, the KPI is display-only. */
   statisticInteractive?: boolean;
+  /** Hover breakdown (PatternFly `Tooltip`); omit when not applicable. */
+  statisticTooltip?: React.ReactNode;
 };
 
 /**
@@ -144,7 +150,35 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
   onStatisticClick,
   caption,
   statisticInteractive = true,
-}) => (
+  statisticTooltip,
+}) => {
+  const statisticTrigger =
+    statisticInteractive ? (
+      <Button
+        variant="link"
+        isInline
+        className="ols-aio-card-stat-number--drill"
+        onClick={onStatisticClick}
+        aria-label={statisticAriaLabel}
+      >
+        {statistic}
+      </Button>
+    ) : (
+      <span className="ols-aio-card-stat-number--readonly" aria-label={statisticAriaLabel}>
+        {statistic}
+      </span>
+    );
+
+  const statisticNode =
+    statisticTooltip !== undefined && statisticTooltip !== null ? (
+      <Tooltip content={statisticTooltip} position="top">
+        {statisticTrigger}
+      </Tooltip>
+    ) : (
+      statisticTrigger
+    );
+
+  return (
   <Card isCompact>
     <CardHeader>
       <CardTitle component="h4">{cardTitle}</CardTitle>
@@ -157,21 +191,7 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
               {titleIcon}
             </span>
           ) : null}
-          {statisticInteractive ? (
-            <Button
-              variant="link"
-              isInline
-              className="ols-aio-card-stat-number--drill"
-              onClick={onStatisticClick}
-              aria-label={statisticAriaLabel}
-            >
-              {statistic}
-            </Button>
-          ) : (
-            <span className="ols-aio-card-stat-number--readonly" aria-label={statisticAriaLabel}>
-              {statistic}
-            </span>
-          )}
+          {statisticNode}
         </Flex>
       </div>
       <Content
@@ -186,7 +206,8 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
       </Content>
     </CardBody>
   </Card>
-);
+  );
+};
 
 function fleetAgentStatus(clusters: ClusterRecord[]): AgentPulseStatus {
   if (clusters.some((c) => c.agentStatus === 'escalated')) {
@@ -337,6 +358,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     []
   );
 
+  const fleetCriticalBreakdown = useMemo(() => buildFleetSeverityBreakdown('critical'), []);
+  const fleetWarningBreakdown = useMemo(() => buildFleetSeverityBreakdown('warning'), []);
+
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
   const totalFleetNodes = useMemo(() => CLUSTERS.reduce((s, c) => s + c.nodes, 0), []);
 
@@ -438,6 +462,15 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const criticalOnCluster = clusterAlerts.filter((a) => a.severity === 'critical').length;
   const warningOnCluster = clusterAlerts.filter((a) => a.severity === 'warning').length;
+
+  const clusterCriticalBreakdown = useMemo(
+    () => (selectedClusterId ? buildClusterSeverityBreakdown(selectedClusterId, 'critical') : []),
+    [selectedClusterId]
+  );
+  const clusterWarningBreakdown = useMemo(
+    () => (selectedClusterId ? buildClusterSeverityBreakdown(selectedClusterId, 'warning') : []),
+    [selectedClusterId]
+  );
 
   const degradedCount = CLUSTERS.filter((c) => c.health !== 'healthy').length;
 
@@ -694,6 +727,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             onStatisticClick={() =>
                               navigate(alertingHref({ tab: 'alerts', severity: 'critical', aiHubFleetScope: true }))
                             }
+                            statisticTooltip={
+                              <AlertKpiTooltip bucketLabel="Critical alerts" rows={fleetCriticalBreakdown} />
+                            }
                             caption="Across all clusters"
                           />
                         </GridItem>
@@ -710,6 +746,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             statisticInteractive
                             onStatisticClick={() =>
                               navigate(alertingHref({ tab: 'alerts', severity: 'warning', aiHubFleetScope: true }))
+                            }
+                            statisticTooltip={
+                              <AlertKpiTooltip bucketLabel="Warning alerts" rows={fleetWarningBreakdown} />
                             }
                             caption="Across all clusters"
                           />
@@ -1103,6 +1142,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               )
                             }
                             statisticInteractive
+                            statisticTooltip={
+                              <AlertKpiTooltip bucketLabel="Critical alerts" rows={clusterCriticalBreakdown} />
+                            }
                             caption={`on ${selectedCluster.name}`}
                           />
                         </GridItem>
@@ -1127,6 +1169,9 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               )
                             }
                             statisticInteractive
+                            statisticTooltip={
+                              <AlertKpiTooltip bucketLabel="Warning alerts" rows={clusterWarningBreakdown} />
+                            }
                             caption={`on ${selectedCluster.name}`}
                           />
                         </GridItem>

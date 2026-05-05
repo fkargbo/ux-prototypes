@@ -634,6 +634,69 @@ export function sortAlertsBySeverityPriority(alerts: AlertRecord[]): AlertRecord
   );
 }
 
+/** Display suffix after `AI insight ·` for KPI tooltips and summaries. */
+export function aiInsightCategoryShort(categoryLabel: string): string {
+  const trimmed = categoryLabel.trim();
+  const m = trimmed.match(/^AI insight\s*·\s*(.+)$/i);
+  return m ? m[1].trim() : trimmed;
+}
+
+/**
+ * Console-style grouping for tooltip “Category” (Policy, Security, …), derived from alert names/services.
+ */
+export function alertDomainCategory(a: AlertRecord): string {
+  const hay = `${a.title} ${a.service}`.toLowerCase();
+  if (/cert|tls|wildcard|expir|renew/i.test(hay)) {
+    return 'Security';
+  }
+  if (/networkpolicy|netpol|regionalingress|ingress.*failure/i.test(hay)) {
+    return 'Policy';
+  }
+  if (/etcd|disk|wal|pressure|volume/i.test(hay)) {
+    return 'Capacity';
+  }
+  if (/payment|checkout|hpa|quota|throttl/i.test(hay)) {
+    return 'Workload';
+  }
+  return 'Platform';
+}
+
+export type AlertKpiBreakdownRow = {
+  title: string;
+  severity: AlertSeverity;
+  component: string;
+  insightCategory: string;
+  domainCategory: string;
+};
+
+function alertToBreakdownRow(a: AlertRecord): AlertKpiBreakdownRow {
+  return {
+    title: a.title,
+    severity: a.severity,
+    component: a.service,
+    insightCategory: aiInsightCategoryShort(a.aiInsight.categoryLabel),
+    domainCategory: alertDomainCategory(a),
+  };
+}
+
+/** Fleet KPI counts include synthetic fleet-critical attributions; mirror that in tooltip rows. */
+export function buildFleetSeverityBreakdown(severity: AlertSeverity): AlertKpiBreakdownRow[] {
+  const rows = ALERTS.filter((a) => a.severity === severity).map(alertToBreakdownRow);
+  if (severity === 'critical' && FLEET_WIDE_REGIONAL_INGRESS.severity === 'critical') {
+    const fw = FLEET_WIDE_REGIONAL_INGRESS;
+    fw.affectedClusterIds.forEach(() => {
+      rows.push({
+        title: fw.title,
+        severity: 'critical',
+        component: 'openshift-ingress / fleet-correlated',
+        insightCategory: aiInsightCategoryShort(fw.aiInsight.categoryLabel),
+        domainCategory: 'Policy',
+      });
+    });
+  }
+  return rows.sort((a, b) => a.title.localeCompare(b.title));
+}
+
 export function getAlertsForCluster(clusterId: string): AlertRecord[] {
   const perCluster = sortAlertsBySeverityPriority(ALERTS.filter((a) => a.clusterId === clusterId));
   const fleetRow = buildFleetWideIngressAlertRecordForCluster(clusterId);
@@ -641,6 +704,13 @@ export function getAlertsForCluster(clusterId: string): AlertRecord[] {
     return perCluster;
   }
   return sortAlertsBySeverityPriority([fleetRow, ...perCluster]);
+}
+
+export function buildClusterSeverityBreakdown(clusterId: string, severity: AlertSeverity): AlertKpiBreakdownRow[] {
+  return getAlertsForCluster(clusterId)
+    .filter((a) => a.severity === severity)
+    .map(alertToBreakdownRow)
+    .sort((a, b) => a.title.localeCompare(b.title));
 }
 
 /**
