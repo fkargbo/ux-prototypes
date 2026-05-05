@@ -130,12 +130,12 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
               >
                 <ExclamationCircleIcon />
               </div>
-              <time className="ols-aio-alert-summary__fired" dateTime={incident.firedAt}>
-                {formatConsoleAlertFiredAt(incident.firedAt)}
-              </time>
               <Title headingLevel="h3" size="md" className="ols-aio-alert-summary__title">
                 {incident.title}
               </Title>
+              <time className="ols-aio-alert-summary__fired" dateTime={incident.firedAt}>
+                {formatConsoleAlertFiredAt(incident.firedAt)}
+              </time>
               <div className="ols-aio-alert-summary__fleet-meta">
                 <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
                   {affectedClusters.map((c) => (

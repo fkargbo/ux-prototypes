@@ -167,12 +167,12 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
               >
                 {severityIcon(alert.severity)}
               </div>
-              <time className="ols-aio-alert-summary__fired" dateTime={alert.firedAt}>
-                {formatConsoleAlertFiredAt(alert.firedAt)}
-              </time>
               <Title headingLevel="h3" size="md" className="ols-aio-alert-summary__title">
                 {alert.title}
               </Title>
+              <time className="ols-aio-alert-summary__fired" dateTime={alert.firedAt}>
+                {formatConsoleAlertFiredAt(alert.firedAt)}
+              </time>
               <AiInsightLede
                 className="ols-aio-alert-summary__message ols-aio-alert-summary__message--ai-insight"
                 categoryLabel={alert.aiInsight.categoryLabel}
