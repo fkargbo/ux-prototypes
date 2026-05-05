@@ -1,4 +1,4 @@
-/* Autonomous AI Observe — token-based helpers (pulse ring, timeline, widget chevron). */
+/* Autonomous analysis — token-based helpers (pulse ring, timeline, widget chevron). */
 
 /*
  * Typography (PatternFly design foundations):
@@ -213,7 +213,7 @@ span.ols-aio-card-stat-number {
 }
 
 /**
- * AI insight row icon: matches Autonomous AI Observe card mark (`FLEET_INSIGHT_ICON_BOX_STYLE` uses #6753ac).
+ * AI insight row icon: matches Autonomous analysis card mark (`FLEET_INSIGHT_ICON_BOX_STYLE` uses #6753ac).
  */
 .ols-aio-ai-insight-icon {
   display: inline-flex;

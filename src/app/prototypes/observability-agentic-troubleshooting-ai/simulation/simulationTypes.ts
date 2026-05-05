@@ -1,6 +1,6 @@
 import type { AgentPulseStatus, AlertSeverity, ClusterHealth, ViewMode } from '../components/autonomousAiObserve/data';
 
-/** Serialized alert slice shared between Autonomous AI Observe and OLS (no mock/fake wording in UX). */
+/** Serialized alert slice shared between Autonomous analysis and OLS (no mock/fake wording in UX). */
 export interface SimulationAlertBrief {
   id: string;
   title: string;
@@ -54,7 +54,7 @@ export interface SimulationSnapshot {
   /** Alerts in the current scope (fleet = union, cluster = filtered). */
   alerts: SimulationAlertBrief[];
   expandedAlertIds: string[];
-  /** Main Autonomous AI Observe card expanded. */
+  /** Main Autonomous analysis card expanded. */
   observeWidgetExpanded: boolean;
   /** Optional sparkle / ambient target (alert id) for pre-analyzed chain explanations. */
   ambientIndicatorAlertId: string | null;

@@ -385,7 +385,7 @@ type MessageWithCustomPills = MessageProps & {
 /**
  * Globally mounted AI assistant (floating toggle + drawer) for this prototype.
  * Perses-specific UI is driven via persesAgenticBridge when that page registers callbacks.
- * Cluster truth + Autonomous AI Observe scope: `simulationStore` / `olsAdvisorBrain` (persona: `OLS_SRE_ADVISOR_SYSTEM_DIRECTIVES`).
+ * Cluster truth + Autonomous analysis scope: `simulationStore` / `olsAdvisorBrain` (persona: `OLS_SRE_ADVISOR_SYSTEM_DIRECTIVES`).
  */
 export const AgenticGlobalAiAssistant: React.FC = () => {
   const simulation = useSimulation();
@@ -400,7 +400,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const olsLauncherStackRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
-  /** Suppress duplicate Autonomous AI Observe → OLS intro when the drawer is reopened. */
+  /** Suppress duplicate Autonomous analysis → OLS intro when the drawer is reopened. */
   const observeIntroHandoffShownRef = useRef(false);
 
   const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
@@ -730,7 +730,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
     setAnnouncement(`Message from User: ${messageText}. Message from ${BOT_DISPLAY_NAME} is loading.`);
 
-    // Scripted “Senior SRE Advisor” reply grounded in Autonomous AI Observe / simulation snapshot
+    // Scripted “Senior SRE Advisor” reply grounded in Autonomous analysis / simulation snapshot
     setTimeout(() => {
       const snap = getSimulationSnapshot();
       const recent = buildRecentTurnsForAdvisor(messagesRef.current);
@@ -1091,7 +1091,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       },
       {
         title: 'Explain the autonomous findings',
-        message: 'Summarize what Autonomous AI Observe found and the remediation risk.',
+        message: 'Summarize what Autonomous analysis found and the remediation risk.',
       },
     ],
     []
@@ -1136,7 +1136,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
             },
           ]);
           seedAdvisorMemoryFromSnapshot(snap);
-          setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Autonomous AI Observe handoff.`);
+          setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Autonomous analysis handoff.`);
         });
       }
       return next;
@@ -1239,7 +1239,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                         <Content>
                           <p>
                             Ask questions in natural language about OpenShift and Kubernetes for this console scope.
-                            Context from <strong>Autonomous AI Observe</strong> is available here:
+                            Context from <strong>Autonomous analysis</strong> is available here:
                             {simulation.isIncidentActive
                               ? ` active incident view — ${situationLine}`
                               : ` ${situationLine}`}{' '}

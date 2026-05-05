@@ -329,7 +329,7 @@ export const mockAlertRules: AlertRule[] = [
 
 export const now = new Date();
 
-/** Align ACM shell status with Autonomous AI Observe cluster health. */
+/** Align ACM shell status with Autonomous analysis cluster health. */
 function healthToAcmStatus(h: ClusterHealth): ACMClusterStatus {
   return h === 'healthy' ? 'Ready' : 'Degraded';
 }

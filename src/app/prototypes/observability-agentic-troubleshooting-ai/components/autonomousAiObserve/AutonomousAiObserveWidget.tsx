@@ -464,7 +464,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                 variant="link"
                 icon={<ArrowLeftIcon />}
                 onClick={() => setFleetClusterDrillDown(false)}
-                aria-label="Return to full fleet Autonomous AI Observe view"
+                aria-label="Return to full fleet Autonomous analysis view"
               >
                 Back to fleet overview
               </Button>
@@ -513,7 +513,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
         onExpand={onWidgetExpand}
         toggleButtonProps={{
           id: `${WIDGET_ID}-toggle`,
-          'aria-label': widgetExpanded ? 'Collapse Autonomous AI Observe' : 'Expand Autonomous AI Observe',
+          'aria-label': widgetExpanded ? 'Collapse Autonomous analysis' : 'Expand Autonomous analysis',
         }}
         actions={{
           actions: <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />,
@@ -527,7 +527,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               </div>
               <div>
                 <Title headingLevel="h2" size="md">
-                  Autonomous AI Observe
+                  Autonomous analysis
                 </Title>
                 <Content
                   component="p"
@@ -666,7 +666,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             event.stopPropagation();
                             navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }));
                           }}
-                          aria-label="Open Alerting Fleet overview filtered to currently surfaced AI Observe alerts"
+                          aria-label="Open Alerting Fleet overview filtered to currently surfaced Autonomous analysis alerts"
                         >
                           View alerts
                         </Button>
@@ -805,7 +805,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                                 }
                                 role="button"
                                 tabIndex={0}
-                                aria-label={`Drill into ${c.name} in Autonomous AI Observe (Fleet management)`}
+                                aria-label={`Drill into ${c.name} in Autonomous analysis (Fleet management)`}
                                 onClick={() => {
                                   setSelectedClusterId(c.id);
                                   setFleetClusterDrillDown(true);
