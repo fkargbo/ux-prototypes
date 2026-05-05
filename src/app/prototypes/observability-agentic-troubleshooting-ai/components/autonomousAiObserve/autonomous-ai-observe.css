@@ -224,8 +224,18 @@ span.ols-aio-card-stat-number {
 
 /* KPI drill targets: PatternFly Tooltip body — concise breakdown lists */
 .ols-aio-kpi-tooltip {
-  max-width: min(22rem, 85vw);
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(600px, 92vw);
   text-align: left;
+}
+
+/*
+ * `Content` forces regular page text color; tooltip shell uses inverse colors.
+ * Without this, heading / empty-state lines are effectively invisible (dark on dark).
+ */
+.ols-aio-kpi-tooltip [class*='pf-v6-c-content'] {
+  color: inherit;
 }
 
 .ols-aio-kpi-tooltip__list {

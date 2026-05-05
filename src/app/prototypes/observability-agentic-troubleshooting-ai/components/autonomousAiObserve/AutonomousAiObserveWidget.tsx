@@ -171,7 +171,12 @@ const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
 
   const statisticNode =
     statisticTooltip !== undefined && statisticTooltip !== null ? (
-      <Tooltip content={statisticTooltip} position="top">
+      <Tooltip
+        content={statisticTooltip}
+        position="top"
+        isContentLeftAligned
+        maxWidth="min(600px, 92vw)"
+      >
         {statisticTrigger}
       </Tooltip>
     ) : (
