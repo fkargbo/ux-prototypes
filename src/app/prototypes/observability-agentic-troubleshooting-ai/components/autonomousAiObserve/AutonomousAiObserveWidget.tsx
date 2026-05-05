@@ -785,10 +785,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.criticalCount}
-                            statisticAriaLabel="Open Alerting, Alerts tab, critical severity, AI Hub clusters only (matches Observe fleet counts)"
+                            statisticAriaLabel="Open Alerting Fleet overview, critical severity filtered, AI Hub clusters only (matches Observe fleet counts)"
                             statisticInteractive
                             onStatisticClick={() =>
-                              navigate(alertingHref({ tab: 'alerts', severity: 'critical', aiHubFleetScope: true }))
+                              navigate(
+                                alertingHref({ tab: 'fleet-overview', severity: 'critical', aiHubFleetScope: true })
+                              )
                             }
                             statisticTooltip={
                               <AlertKpiTooltip bucketLabel="Critical alerts" rows={fleetCriticalBreakdown} />
@@ -805,10 +807,12 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                               />
                             }
                             statistic={fleetStats.warningCount}
-                            statisticAriaLabel="Open Alerting, Alerts tab, warning severity, AI Hub clusters only (matches Observe fleet counts)"
+                            statisticAriaLabel="Open Alerting Fleet overview, warning severity filtered, AI Hub clusters only (matches Observe fleet counts)"
                             statisticInteractive
                             onStatisticClick={() =>
-                              navigate(alertingHref({ tab: 'alerts', severity: 'warning', aiHubFleetScope: true }))
+                              navigate(
+                                alertingHref({ tab: 'fleet-overview', severity: 'warning', aiHubFleetScope: true })
+                              )
                             }
                             statisticTooltip={
                               <AlertKpiTooltip bucketLabel="Warning alerts" rows={fleetWarningBreakdown} />
