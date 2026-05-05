@@ -104,6 +104,9 @@ export interface FleetWideCriticalIncident {
   estimatedRecovery: string;
 }
 
+/** Default cluster when Core platforms loads Observe with no session-stored focus. */
+export const DEFAULT_CORE_PLATFORMS_CLUSTER_ID = 'prod-east-2';
+
 export const CLUSTERS: ClusterRecord[] = [
   {
     id: 'prod-east-2',

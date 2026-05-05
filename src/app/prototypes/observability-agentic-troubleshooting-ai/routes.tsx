@@ -27,7 +27,7 @@ export const routes: RouteConfig[] = [
   {
     path: '/',
     element: <Navigate to="/core/observe/ai-hub" replace />,
-    title: 'AI Hub',
+    title: 'AI Troubleshooting Hub',
   },
   {
     path: '/core/home/overview',
@@ -42,11 +42,11 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/ai-hub',
     element: <AIHubPage />,
-    label: 'AI Hub',
-    title: 'AI Hub',
+    label: 'AI Troubleshooting Hub',
+    title: 'AI Troubleshooting Hub',
     navigation: {
-      group: 'Observe',
-      order: 1,
+      group: 'Home',
+      order: 2,
     },
   },
   {
@@ -56,7 +56,7 @@ export const routes: RouteConfig[] = [
     title: 'Observability overview',
     navigation: {
       group: 'Observe',
-      order: 2,
+      order: 1,
     },
   },
   {
@@ -66,7 +66,7 @@ export const routes: RouteConfig[] = [
     title: 'Alerting',
     navigation: {
       group: 'Observe',
-      order: 3,
+      order: 2,
     },
   },
   {
@@ -107,7 +107,7 @@ export const routes: RouteConfig[] = [
     title: 'Metrics',
     navigation: {
       group: 'Observe',
-      order: 5,
+      order: 3,
     },
   },
   {
@@ -117,7 +117,7 @@ export const routes: RouteConfig[] = [
     title: 'Dashboards',
     navigation: {
       group: 'Observe',
-      order: 6,
+      order: 4,
     },
   },
   {
@@ -127,7 +127,7 @@ export const routes: RouteConfig[] = [
     title: 'Targets',
     navigation: {
       group: 'Observe',
-      order: 7,
+      order: 5,
     },
   },
   {
@@ -137,7 +137,7 @@ export const routes: RouteConfig[] = [
     title: 'Incidents',
     navigation: {
       group: 'Observe',
-      order: 8,
+      order: 6,
     },
   },
   {
@@ -147,7 +147,7 @@ export const routes: RouteConfig[] = [
     title: 'Dashboards (Perses)',
     navigation: {
       group: 'Observe',
-      order: 9,
+      order: 7,
     },
   },
   {

@@ -44,6 +44,7 @@ import {
   AWAY_DIGEST_ITEMS,
   buildClusterAwayDigestItems,
   CLUSTERS,
+  DEFAULT_CORE_PLATFORMS_CLUSTER_ID,
   computeFleetStats,
   fleetCriticalAttributionCount,
   fleetWideCriticalAddsForCluster,
@@ -60,6 +61,7 @@ import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveCont
 import { FLEET_INSIGHT_ICON_BOX_STYLE } from '../../pages/alerting-fleet-copy/data/fleetInsightsConfig';
 import {
   clearFocusedClusterSession,
+  readFocusedClusterIdFromSession,
   writeFocusedClusterIdToSession,
 } from './focusClusterSession';
 
@@ -253,8 +255,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
 
   const viewMode: ViewMode = useMemo(() => (showFleetOverview ? 'fleet' : 'cluster'), [showFleetOverview]);
 
-  /** No default cluster — user picks from the menu or Fleet drill-down (avoids a false “selected” state). */
-  const [selectedClusterId, setSelectedClusterId] = useState('');
+  /** Restores session handoff; Core platforms applies `DEFAULT_CORE_PLATFORMS_CLUSTER_ID` when still empty. */
+  const [selectedClusterId, setSelectedClusterId] = useState(() => readFocusedClusterIdFromSession() ?? '');
 
   React.useEffect(() => {
     const prev = prevPerspectiveRef.current;
@@ -263,6 +265,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
       setFleetClusterDrillDown(false);
     }
   }, [activePerspective]);
+
+  React.useEffect(() => {
+    if (activePerspective !== 'Core platforms') {
+      return;
+    }
+    if (selectedClusterId) {
+      return;
+    }
+    setSelectedClusterId(DEFAULT_CORE_PLATFORMS_CLUSTER_ID);
+  }, [activePerspective, selectedClusterId]);
   const [widgetExpanded, setWidgetExpanded] = useState(true);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
