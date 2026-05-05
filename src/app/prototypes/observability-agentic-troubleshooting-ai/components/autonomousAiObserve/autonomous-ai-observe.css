@@ -184,7 +184,7 @@ span.ols-aio-card-stat-number {
   grid-row: 2;
   margin: 0;
   font-size: var(--pf-t--global--font--size--body--default);
-  color: var(--pf-t--global--text--color--regular);
+  color: var(--pf-t--global--text--color--subtle);
 }
 
 .ols-aio-alert-summary__title {
