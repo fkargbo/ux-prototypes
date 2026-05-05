@@ -84,15 +84,16 @@ function awayDigestClusterEventCountLabel(visibleCount: number): string {
   return `${visibleCount} new events`;
 }
 
-/** Multi-cluster Alerting: `tab=alerts` with optional `cluster`, `severity`, `scope=ai-hub` (see `MultiClusterAlertsPage`). */
-function alertingAlertsTabHref(options: {
+/** Multi-cluster Alerting deep-link with optional `cluster`, `severity`, `scope=ai-hub` (see `MultiClusterAlertsPage`). */
+function alertingHref(options: {
+  tab: 'alerts' | 'fleet-overview';
   severity?: 'critical' | 'warning';
   clusterId?: string;
   /** Fleet KPI drill: limit Alerting to AI Hub mock clusters only (excludes generated filler clusters). */
   aiHubFleetScope?: boolean;
 }): string {
   const params = new URLSearchParams();
-  params.set('tab', 'alerts');
+  params.set('tab', options.tab);
   if (options.severity) {
     params.set('severity', options.severity);
   }
@@ -108,10 +109,10 @@ function alertingAlertsTabHref(options: {
 function clusterDrillHref(clusterId: string, target: 'alert-critical' | 'alert-warning' | 'nodes'): string {
   const enc = encodeURIComponent(clusterId);
   if (target === 'alert-critical') {
-    return alertingAlertsTabHref({ severity: 'critical', clusterId });
+    return alertingHref({ tab: 'alerts', severity: 'critical', clusterId });
   }
   if (target === 'alert-warning') {
-    return alertingAlertsTabHref({ severity: 'warning', clusterId });
+    return alertingHref({ tab: 'alerts', severity: 'warning', clusterId });
   }
   return `/core/observe/nodes?scope=cluster&cluster=${enc}`;
 }
@@ -644,6 +645,21 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                       id: `${WIDGET_ID}-fleet-summary-toggle`,
                       'aria-label': 'Toggle Fleet Summary section',
                     }}
+                    actions={{
+                      actions: (
+                        <Button
+                          variant="link"
+                          isInline
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }));
+                          }}
+                          aria-label="Open Alerting Fleet overview filtered to currently surfaced AI Observe alerts"
+                        >
+                          View alerts
+                        </Button>
+                      ),
+                    }}
                   >
                     <Flex alignItems={{ default: 'alignItemsCenter' }}>
                       <CardTitle component="h3">Fleet Summary</CardTitle>
@@ -664,7 +680,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             statisticAriaLabel="Open Alerting, Alerts tab, critical severity, AI Hub clusters only (matches Observe fleet counts)"
                             statisticInteractive
                             onStatisticClick={() =>
-                              navigate(alertingAlertsTabHref({ severity: 'critical', aiHubFleetScope: true }))
+                              navigate(alertingHref({ tab: 'alerts', severity: 'critical', aiHubFleetScope: true }))
                             }
                             caption="Across all clusters"
                           />
@@ -681,7 +697,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             statisticAriaLabel="Open Alerting, Alerts tab, warning severity, AI Hub clusters only (matches Observe fleet counts)"
                             statisticInteractive
                             onStatisticClick={() =>
-                              navigate(alertingAlertsTabHref({ severity: 'warning', aiHubFleetScope: true }))
+                              navigate(alertingHref({ tab: 'alerts', severity: 'warning', aiHubFleetScope: true }))
                             }
                             caption="Across all clusters"
                           />
@@ -1066,7 +1082,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             statisticAriaLabel={`Open Alerting Alerts tab, critical filter, for ${selectedCluster.name}`}
                             onStatisticClick={() =>
                               navigate(
-                                alertingAlertsTabHref({
+                                alertingHref({
+                                  tab: 'alerts',
                                   severity: 'critical',
                                   clusterId: selectedCluster.id,
                                   aiHubFleetScope: true,
@@ -1089,7 +1106,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                             statisticAriaLabel={`Open Alerting Alerts tab, warning filter, for ${selectedCluster.name}`}
                             onStatisticClick={() =>
                               navigate(
-                                alertingAlertsTabHref({
+                                alertingHref({
+                                  tab: 'alerts',
                                   severity: 'warning',
                                   clusterId: selectedCluster.id,
                                   aiHubFleetScope: true,

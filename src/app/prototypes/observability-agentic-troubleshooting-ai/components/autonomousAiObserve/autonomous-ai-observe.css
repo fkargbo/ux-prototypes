@@ -154,7 +154,7 @@ span.ols-aio-card-stat-number {
   transform-origin: center;
 }
 
-/* OpenShift-style alert summary: icon in gutter; date, name, and message share one text column. */
+/* OpenShift-style alert summary: icon in gutter; name, date, and message share one text column. */
 .ols-aio-alert-summary {
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -168,19 +168,28 @@ span.ols-aio-card-stat-number {
   grid-column: 1;
   grid-row: 1;
   line-height: 1;
+  /* Vertically center with the title in row 1 (icon + title share one horizontal band). */
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ols-aio-alert-summary__icon svg {
+  display: block;
 }
 
 .ols-aio-alert-summary__fired {
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 2;
   margin: 0;
   font-size: var(--pf-t--global--font--size--body--default);
-  color: var(--pf-t--global--text--color--regular);
+  color: var(--pf-t--global--text--color--subtle);
 }
 
 .ols-aio-alert-summary__title {
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 1;
   margin: 0;
 }
 
