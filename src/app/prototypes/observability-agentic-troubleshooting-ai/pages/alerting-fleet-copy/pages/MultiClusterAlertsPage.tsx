@@ -656,9 +656,20 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     const urlTab = searchParams.get('tab');
     const urlCluster = searchParams.get('cluster');
     const urlComponent = searchParams.get('component');
+    const urlScope = searchParams.get('scope');
+    const aiHubScopedTab =
+      urlScope === 'ai-hub' &&
+      (urlTab === 'alerts' || urlTab === 'firing-alerts' || urlTab === 'fleet-overview');
     
     // Sync tab state with URL - when going back to fleet-overview, reset filter state
-    if (urlTab !== 'alerts' && urlTab !== 'firing-alerts' && urlTab !== 'management' && urlTab !== 'incidents') {
+    // unless URL explicitly requests AI Hub fleet scope.
+    if (
+      urlTab !== 'alerts' &&
+      urlTab !== 'firing-alerts' &&
+      urlTab !== 'management' &&
+      urlTab !== 'incidents' &&
+      !aiHubScopedTab
+    ) {
       setClusterFilter([]);
       setMainComponentFilter(null);
       setSelectedClusterForAlerts(null);
@@ -675,15 +686,13 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         setSelectedClusterForAlerts(cluster);
         setFiringAlertsCardView('single-cluster');
       }
-    } else if (
-      searchParams.get('scope') === 'ai-hub' &&
-      (urlTab === 'alerts' || urlTab === 'firing-alerts')
-    ) {
+    } else if (aiHubScopedTab) {
       const hubNames = CLUSTERS.map((c) => c.name);
       setAlertsTabClusterFilter(hubNames);
       setClusterFilter(hubNames);
       setSelectedClusterForAlerts(null);
       setFiringAlertsCardView('all-clusters');
+      setCameFromFleetOverview(false);
     }
     
     // Sync component filter with URL
