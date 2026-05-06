@@ -30,9 +30,9 @@ export const FleetInventoryBar: React.FC = () => {
       },
       {
         id: 'namespaces',
-        label: 'Namespaces / projects',
+        label: 'Namespaces',
         value: metrics.namespaces,
-        ariaLabel: `Namespaces and projects across fleet ${metrics.namespaces}`,
+        ariaLabel: `Namespaces across fleet ${metrics.namespaces}`,
       },
       {
         id: 'workloads',

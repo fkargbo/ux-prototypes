@@ -1,11 +1,11 @@
 import React from 'react';
-import { Title, Content, Stack, StackItem } from '@patternfly/react-core';
+import { Content, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
 import { AutonomousAiObserveWidgetV2 } from '../components/autonomousAiObserve/AutonomousAiObserveWidgetV2';
 import { config as prototypeConfig } from '../prototype.config';
-import { FleetInventoryBar, ClusterInventoryBar } from './ai-hub-v2';
+import { AgentTokenCounter, ClusterInventoryBar, FleetInventoryBar } from './ai-hub-v2';
 import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
@@ -29,13 +29,28 @@ export const AIHubPage: React.FC = () => {
       }}
     >
       <div className="create-policy-header">
-        <Title headingLevel="h1" size="2xl">
-          AI Troubleshooting Hub
-        </Title>
-        <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
-          Coordinate autonomous AI investigations, evidence collection, and guided remediation workflows for
-          observability incidents from one hub.
-        </Content>
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsFlexStart' }}
+          gap={{ default: 'gapMd' }}
+          flexWrap={{ default: 'wrap' }}
+          style={{ width: '100%' }}
+        >
+          <FlexItem style={{ minWidth: 0, flex: '1 1 auto' }}>
+            <Title headingLevel="h1" size="2xl">
+              AI Troubleshooting Hub
+            </Title>
+            <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
+              Coordinate autonomous AI investigations, evidence collection, and guided remediation workflows for
+              observability incidents from one hub.
+            </Content>
+          </FlexItem>
+          {isHubV2 ? (
+            <FlexItem style={{ flexShrink: 0 }}>
+              <AgentTokenCounter />
+            </FlexItem>
+          ) : null}
+        </Flex>
       </div>
 
       <div
