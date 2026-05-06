@@ -1273,13 +1273,13 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                     onExpand={() => setCAlertsOpen((o) => !o)}
                     toggleButtonProps={{
                       id: `${WIDGET_ID}-c-alerts-toggle`,
-                      'aria-label': 'Toggle Top alerts section',
+                      'aria-label': 'Toggle Top alerts and remediations section',
                     }}
                   >
                     <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
                       <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
                         <Title headingLevel="h3" size="lg">
-                          Top alerts
+                          Top alerts and remediations
                         </Title>
                       </FlexItem>
                       <Label color="grey" variant="outline" isCompact>
