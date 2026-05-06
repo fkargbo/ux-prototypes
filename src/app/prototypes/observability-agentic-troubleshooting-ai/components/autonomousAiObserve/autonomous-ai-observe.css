@@ -149,11 +149,6 @@ span.ols-aio-card-stat-number {
   box-sizing: border-box;
 }
 
-.ols-aio-widget-head__titles {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
 .ols-aio-widget-head__actions {
   flex-shrink: 0;
 }

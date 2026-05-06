@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, CardBody, CardTitle, Content, Flex, FlexItem, Tooltip } from '@patternfly/react-core';
+import { Card, CardBody, Content, Flex, FlexItem, Title, Tooltip } from '@patternfly/react-core';
 import { getClusterInventoryMetrics } from './fleetInventoryData';
 import { useFocusedClusterId } from './useFocusedClusterId';
 import './ai-hub-v2-inventory.css';
@@ -61,8 +61,10 @@ export const ClusterInventoryBar: React.FC = () => {
   if (!metrics || !kpis) {
     return (
       <Card className="ols-ai-hub-cluster-inventory-card" isCompact isPlain component="section">
-        <CardTitle component="h2">Cluster inventory</CardTitle>
         <CardBody>
+          <Title headingLevel="h2" size="lg" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Cluster inventory
+          </Title>
           <Content component="p" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
             No cluster context available.
           </Content>
@@ -80,8 +82,10 @@ export const ClusterInventoryBar: React.FC = () => {
       component="section"
       aria-label={`Cluster inventory for ${cluster.name}`}
     >
-      <CardTitle component="h2">Cluster inventory</CardTitle>
       <CardBody>
+        <Title headingLevel="h2" size="lg" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          Cluster inventory
+        </Title>
         <Flex
           alignItems={{ default: 'alignItemsFlexStart' }}
           justifyContent={{ default: 'justifyContentSpaceBetween' }}

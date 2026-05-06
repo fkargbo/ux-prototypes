@@ -538,7 +538,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
       <div id={WIDGET_ID} className="ols-autonomous-ai-observe-widget">
         <div className="ols-aio-widget-head">
           <div className="ols-aio-widget-head__row">
-            <div className="ols-aio-widget-head__titles">
+            <div style={{ minWidth: 0, flex: '1 1 auto' }}>
               <Title headingLevel="h2" size="md">
                 Autonomous analysis
               </Title>

@@ -59,6 +59,7 @@ import { SimulationProvider } from '../../simulation/SimulationProvider';
 import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
+import { TopFiringAlertsCard } from '../../pages/ai-hub-v2/TopFiringAlertsCard';
 import {
   clearFocusedClusterSession,
   readFocusedClusterIdFromSession,
@@ -492,7 +493,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
       <div id={WIDGET_ID} className="ols-autonomous-ai-observe-widget">
         <div className="ols-aio-widget-head">
           <div className="ols-aio-widget-head__row">
-            <div className="ols-aio-widget-head__titles">
+            <div style={{ minWidth: 0, flex: '1 1 auto' }}>
               <Title headingLevel="h2" size="md">
                 Autonomous analysis
               </Title>
@@ -517,6 +518,11 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
           {showFleetOverview ? (
             <Stack hasGutter>
               <StackItem>
+                <Grid hasGutter style={{ alignItems: 'stretch' }}>
+                  <GridItem span={12} lg={5} style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <TopFiringAlertsCard />
+                  </GridItem>
+                  <GridItem span={12} lg={7} style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <Card className="ols-aio-subcard" isCompact isExpanded={awayOpen} id={`${WIDGET_ID}-away`}>
                   <CardHeader
                     onExpand={() => setAwayOpen((o) => !o)}
@@ -614,6 +620,8 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
+                  </GridItem>
+                </Grid>
               </StackItem>
 
               <StackItem>

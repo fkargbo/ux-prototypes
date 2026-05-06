@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, CardBody, CardTitle, Content, Flex, FlexItem } from '@patternfly/react-core';
+import { Card, CardBody, Content, Flex, FlexItem, Title } from '@patternfly/react-core';
 import { getFleetInventoryMetrics } from './fleetInventoryData';
 import './ai-hub-v2-inventory.css';
 
@@ -52,8 +52,10 @@ export const FleetInventoryBar: React.FC = () => {
 
   return (
     <Card className="ols-ai-hub-fleet-inventory-card" isCompact component="section" aria-label="Fleet inventory">
-      <CardTitle component="h2">Fleet inventory</CardTitle>
       <CardBody>
+        <Title headingLevel="h2" size="lg" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          Fleet inventory
+        </Title>
         <Flex
           alignItems={{ default: 'alignItemsFlexStart' }}
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
