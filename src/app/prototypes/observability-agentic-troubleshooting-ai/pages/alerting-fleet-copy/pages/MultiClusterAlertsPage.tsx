@@ -717,6 +717,18 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         setAlertsTabSeverityFilter(['Info']);
       }
     }
+
+    // Fleet overview tab: severity filter on fleet clusters/treemap/table (Observe Fleet Summary KPI drill-down)
+    if (urlSeverity && urlTab === 'fleet-overview') {
+      const n = urlSeverity.toLowerCase();
+      if (n === 'critical') {
+        setSeverityFilter(['Critical']);
+      } else if (n === 'warning') {
+        setSeverityFilter(['Warning']);
+      } else if (n === 'info') {
+        setSeverityFilter(['Info']);
+      }
+    }
   }, [searchParams]);
 
   // Get unique filter options (canonical fleet labels; cloud IDs merged via mock cluster build)

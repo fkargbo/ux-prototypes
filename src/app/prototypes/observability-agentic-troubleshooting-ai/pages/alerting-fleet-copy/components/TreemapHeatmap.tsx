@@ -34,6 +34,18 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
   environmentCategories = [],
   teamCategories = [],
 }) => {
+  /** Firing alerts included in tile sizing / counts when fleet severity filters are active */
+  const firingAlertsForDisplay = React.useCallback(
+    (cluster: ClusterData) => {
+      const firing = cluster.alerts.filter((a) => a.status === 'firing');
+      if (severityFilter.length === 0) {
+        return firing;
+      }
+      return firing.filter((a) => severityFilter.includes(a.severity));
+    },
+    [severityFilter]
+  );
+
   // PatternFly 6 color palette
   // Critical: Red, Warning: Orange, Info: Purple, Healthy: Green
   const pfColors = {
@@ -431,7 +443,9 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
           ? `<div style="font-size: 11px; color: #6a6e73; margin-top: 4px;">+${Object.keys(componentHealth).length - 5} more components</div>` 
           : '';
         
-        const totalAlerts = cluster.alerts.filter(a => a.status === 'firing').length;
+        const firingFiltered = firingAlertsForDisplay(cluster);
+        const totalAlerts = firingFiltered.length;
+        const firingTotalAllSeverities = cluster.alerts.filter((a) => a.status === 'firing').length;
         
         return `
           <div style="font-family: 'RedHatText', 'Helvetica Neue', Helvetica, Arial, sans-serif; min-width: 220px;">
@@ -457,7 +471,7 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
               <span>Pods: <strong style="color: #151515;">${cluster.podCount}</strong></span>
               <span>Memory: <strong style="color: #151515;">${cluster.totalMemory} GB</strong></span>
               <span>VMs: <strong style="color: #151515;">${cluster.vmCount || 0}</strong></span>
-              <span>Alerts: <strong style="color: ${totalAlerts > 0 ? statusColor : '#151515'};">${totalAlerts}</strong></span>
+              <span>Alerts${severityFilter.length ? ` (${severityFilter.join(', ')})` : ''}: <strong style="color: ${totalAlerts > 0 ? statusColor : '#151515'};">${totalAlerts}</strong>${severityFilter.length && firingTotalAllSeverities !== totalAlerts ? ` <span style="font-size: 11px; color: #6a6e73;">/ ${firingTotalAllSeverities} firing total</span>` : ''}</span>
             </div>
             <div style="font-size: 12px; color: #6a6e73; margin-top: 10px;">Select the cluster to view all alerts</div>
             <div style="margin-top: 8px;">
@@ -508,7 +522,16 @@ export const TreemapHeatmap: React.FC<TreemapHeatmapProps> = ({
                 case 'totalMemory': return `${c.totalMemory} GB`;
                 case 'podCount': return `${c.podCount} pods`;
                 case 'vmCount': return `${c.vmCount || 0} VMs`;
-                case 'totalAlerts': return `${c.alerts.filter((a: AlertData) => a.status === 'firing').length} alerts`;
+                case 'totalAlerts': {
+                  const n = firingAlertsForDisplay(c).length;
+                  if (severityFilter.length === 0) {
+                    return `${n} alerts`;
+                  }
+                  if (severityFilter.length === 1) {
+                    return `${n} ${severityFilter[0].toLowerCase()} alerts`;
+                  }
+                  return `${n} alerts (filtered)`;
+                }
                 case 'cpuRequests': return `${c.cpuRequests} CPU req`;
                 case 'memoryRequests': return `${c.memoryRequests} mem req`;
                 default: return '';
