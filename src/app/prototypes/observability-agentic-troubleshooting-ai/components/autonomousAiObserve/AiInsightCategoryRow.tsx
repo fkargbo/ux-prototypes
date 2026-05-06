@@ -1,5 +1,5 @@
 /**
- * Mirrors `FleetHealthInsightsView` per-row AI insight treatment: RH AI experience artwork (14px) + “AI insight: ”
+ * Mirrors `FleetHealthInsightsView` per-row AI insight treatment: RH AI experience artwork (16px) + “AI insight: ”
  * (semibold, subtle) + body (`AI_INSIGHT_TEXT_STYLE` — italic, subtle).
  */
 import * as React from 'react';
@@ -47,8 +47,8 @@ export const AiInsightLede: React.FC<AiInsightLedeProps> = ({
           <img
             src={AI_EXPERIENCE_ICON_DATA_URL}
             alt=""
-            width={14}
-            height={14}
+            width={16}
+            height={16}
             style={{ display: 'block', flexShrink: 0 }}
           />
         </span>

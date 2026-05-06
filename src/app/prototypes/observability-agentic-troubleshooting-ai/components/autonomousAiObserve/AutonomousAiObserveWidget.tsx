@@ -616,8 +616,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                 src={AI_EXPERIENCE_ICON_DATA_URL}
                 alt=""
                 aria-hidden="true"
-                width={20}
-                height={20}
+                width={24}
+                height={24}
                 style={{ display: 'block', flexShrink: 0 }}
               />
               <div>
