@@ -42,10 +42,12 @@ body,
   overflow-x: hidden !important;
 }
 
-/* Horizontal inset for Page main wrapper (contains #primary-app-container) */
+/* Page main wrapper (contains #primary-app-container): no horizontal padding; 24px inset on the right */
 .pf-v6-c-page__main-container {
-  padding-left: var(--pf-t--global--spacer--lg, 24px) !important;
-  padding-right: var(--pf-t--global--spacer--lg, 24px) !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: var(--pf-t--global--spacer--lg, 24px) !important;
   box-sizing: border-box !important;
 }
 

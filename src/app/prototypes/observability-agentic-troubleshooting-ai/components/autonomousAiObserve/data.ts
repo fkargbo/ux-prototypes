@@ -642,6 +642,34 @@ export function aiInsightCategoryShort(categoryLabel: string): string {
 }
 
 /**
+ * Same body string as `AiInsightLede` / `ObserveAlertItem` alert cards:
+ * category short — user-facing message (or narrative when no category).
+ */
+export function formatAiInsightLedeBody(categoryLabel: string, narrative: string): string {
+  const suffix = categoryLabel.trim() ? aiInsightCategoryShort(categoryLabel) : '';
+  return suffix ? `${suffix} — ${narrative}` : narrative;
+}
+
+/**
+ * Insight line for Fleet hub “Top firing alerts” — resolves `ALERTS` + fleet-wide ingress by rule title.
+ */
+export function getFleetTopAlertInsightDisplay(ruleName: string): string {
+  const fromAlerts = ALERTS.find((a) => a.title === ruleName);
+  if (fromAlerts) {
+    return formatAiInsightLedeBody(fromAlerts.aiInsight.categoryLabel, fromAlerts.message);
+  }
+  if (FLEET_WIDE_REGIONAL_INGRESS.title === ruleName) {
+    const fw = FLEET_WIDE_REGIONAL_INGRESS;
+    const narrative = fw.aiInsight.narrative ?? fw.aiInsight.evidence;
+    return formatAiInsightLedeBody(fw.aiInsight.categoryLabel, narrative);
+  }
+  return formatAiInsightLedeBody(
+    '',
+    'Firing across multiple clusters — might indicate a shared infrastructure issue.'
+  );
+}
+
+/**
  * Console-style grouping for tooltip “Category” (Policy, Security, …), derived from alert names/services.
  */
 export function alertDomainCategoryFromText(title: string, componentOrService: string): string {
@@ -804,4 +832,73 @@ export function computeFleetStats(
     totalClusters: clusters.length,
     totalNodes,
   };
+}
+
+/** Same row cap as Alerting “Top alerts” (`INSIGHTS_LIST_SIZE`). */
+const TOP_FLEET_ALERTS_DISPLAY_MAX = 5;
+
+export type FleetTopAlertRuleRow = {
+  name: string;
+  critical: number;
+  warning: number;
+  info: number;
+  clusters: string[];
+};
+
+/**
+ * Fleet hub “Top firing alerts” — aggregates `ALERTS` by rule title (matches Fleet Summary scope),
+ * then merges `FLEET_WIDE_REGIONAL_INGRESS` critical attributions the same way KPI math does.
+ */
+export function buildFleetTopFiringAlertRuleRows(): FleetTopAlertRuleRow[] {
+  const byTitle: Record<string, FleetTopAlertRuleRow> = {};
+
+  const clusterDisplayName = (clusterId: string) => getClusterById(clusterId)?.name ?? clusterId;
+
+  for (const a of ALERTS) {
+    const key = a.title;
+    if (!byTitle[key]) {
+      byTitle[key] = { name: key, critical: 0, warning: 0, info: 0, clusters: [] };
+    }
+    const row = byTitle[key];
+    const cn = clusterDisplayName(a.clusterId);
+    if (a.severity === 'critical') {
+      row.critical++;
+    } else if (a.severity === 'warning') {
+      row.warning++;
+    } else {
+      row.info++;
+    }
+    if (!row.clusters.includes(cn)) {
+      row.clusters.push(cn);
+    }
+  }
+
+  const fw = FLEET_WIDE_REGIONAL_INGRESS;
+  if (fw.severity === 'critical') {
+    const key = fw.title;
+    if (!byTitle[key]) {
+      byTitle[key] = { name: key, critical: 0, warning: 0, info: 0, clusters: [] };
+    }
+    const row = byTitle[key];
+    fw.affectedClusterIds.forEach((cid) => {
+      row.critical++;
+      const cn = clusterDisplayName(cid);
+      if (!row.clusters.includes(cn)) {
+        row.clusters.push(cn);
+      }
+    });
+  }
+
+  return Object.values(byTitle)
+    .sort((a, b) => b.critical + b.warning + b.info - (a.critical + a.warning + a.info))
+    .slice(0, TOP_FLEET_ALERTS_DISPLAY_MAX);
+}
+
+/** Aligns with Fleet Summary firing totals (`computeFleetStats` / fleet ingress attribution). */
+export function fleetHubTotalFiringAlertsCount(): number {
+  const critical =
+    ALERTS.filter((a) => a.severity === 'critical').length + fleetCriticalAttributionCount();
+  const warning = ALERTS.filter((a) => a.severity === 'warning').length;
+  const info = ALERTS.filter((a) => a.severity === 'info').length;
+  return critical + warning + info;
 }

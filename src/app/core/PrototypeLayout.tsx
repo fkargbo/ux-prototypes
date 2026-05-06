@@ -28,6 +28,10 @@ import { QuotasProvider } from '@app/shared/contexts/QuotasContext';
 import { usePrototype } from './PrototypeContext';
 import { prototypeRegistry } from './PrototypeRegistry';
 import { GITHUB_PAGES_BASENAME } from './deepLinkUtils';
+import {
+  BANNER_VERSION_CHANGE_EVENT,
+  getBannerVersionStorageKey,
+} from './bannerVersionPicker';
 
 interface PrototypeLayoutProps {
   prototype: PrototypeModule;
@@ -38,6 +42,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   const navigate = useNavigate();
   const location = useLocation();
   const [isVersionOpen, setIsVersionOpen] = useState(false);
+  const [isBannerPickerOpen, setIsBannerPickerOpen] = useState(false);
   const [isUseCaseOpen, setIsUseCaseOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -95,6 +100,45 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   
   const hasVersions = versions.length > 1;
   const hasUseCases = siblings.length > 1;
+
+  const bannerPickerCfg = prototype.config.bannerVersionPicker;
+  const bannerPickerOptions = bannerPickerCfg?.options ?? [];
+  const showBannerVersionPicker = bannerPickerOptions.length > 1;
+  const defaultBannerPickerKey =
+    bannerPickerCfg?.defaultKey ?? bannerPickerOptions[0]?.key ?? '';
+
+  const [bannerPickerKey, setBannerPickerKey] = useState(() => {
+    if (!showBannerVersionPicker) {
+      return defaultBannerPickerKey;
+    }
+    try {
+      const raw = sessionStorage.getItem(getBannerVersionStorageKey(prototype.config.id));
+      if (raw && bannerPickerOptions.some((o) => o.key === raw)) {
+        return raw;
+      }
+    } catch {
+      /* ignore */
+    }
+    return defaultBannerPickerKey;
+  });
+
+  const bannerPickerDisplayLabel =
+    bannerPickerOptions.find((o) => o.key === bannerPickerKey)?.label ?? prototype.config.version;
+
+  const handleBannerPickerSelect = (key: string) => {
+    setBannerPickerKey(key);
+    try {
+      sessionStorage.setItem(getBannerVersionStorageKey(prototype.config.id), key);
+    } catch {
+      /* ignore */
+    }
+    window.dispatchEvent(
+      new CustomEvent(BANNER_VERSION_CHANGE_EVENT, {
+        detail: { prototypeId: prototype.config.id, key },
+      })
+    );
+    setIsBannerPickerOpen(false);
+  };
   
   const handleBackToLauncher = () => {
     unloadPrototype();
@@ -154,6 +198,36 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
                       isSelected={version.config.id === prototype.config.id}
                     >
                       {version.config.version}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </FlexItem>
+          ) : showBannerVersionPicker ? (
+            <FlexItem>
+              <Select
+                isOpen={isBannerPickerOpen}
+                onSelect={(_, value) => handleBannerPickerSelect(value as string)}
+                onOpenChange={(open) => setIsBannerPickerOpen(open)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsBannerPickerOpen(!isBannerPickerOpen)}
+                    isExpanded={isBannerPickerOpen}
+                    variant="secondary"
+                  >
+                    Version: {bannerPickerDisplayLabel}
+                  </MenuToggle>
+                )}
+              >
+                <SelectList>
+                  {bannerPickerOptions.map((opt) => (
+                    <SelectOption
+                      key={opt.key}
+                      value={opt.key}
+                      isSelected={opt.key === bannerPickerKey}
+                    >
+                      {opt.label}
                     </SelectOption>
                   ))}
                 </SelectList>
