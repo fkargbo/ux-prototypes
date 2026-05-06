@@ -5,8 +5,7 @@ import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveCont
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
 import { AutonomousAiObserveWidgetV2 } from '../components/autonomousAiObserve/AutonomousAiObserveWidgetV2';
 import { config as prototypeConfig } from '../prototype.config';
-import { FleetInventoryBar } from './FleetInventoryBar';
-import { ClusterInventoryBar } from './ClusterInventoryBar';
+import { FleetInventoryBar, ClusterInventoryBar } from './ai-hub-v2';
 import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
@@ -15,8 +14,9 @@ export const AIHubPage: React.FC = () => {
     prototypeConfig.bannerVersionPicker?.defaultKey ?? 'v2'
   );
   const { activePerspective } = useActivePerspective();
-  const showFleetInventory = activePerspective === 'Fleet management';
-  const showClusterInventory = activePerspective === 'Core platforms';
+  const isHubV2 = bannerVersionKey === 'v2';
+  const showFleetInventory = isHubV2 && activePerspective === 'Fleet management';
+  const showClusterInventory = isHubV2 && activePerspective === 'Core platforms';
 
   return (
     <div
