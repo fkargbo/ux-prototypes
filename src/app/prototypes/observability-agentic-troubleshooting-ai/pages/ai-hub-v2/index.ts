@@ -5,3 +5,4 @@
 export { FleetInventoryBar } from './FleetInventoryBar';
 export { ClusterInventoryBar } from './ClusterInventoryBar';
 export { AgentTokenCounter } from './AgentTokenCounter';
+export { AiExperienceIcon } from './AiExperienceIcon';

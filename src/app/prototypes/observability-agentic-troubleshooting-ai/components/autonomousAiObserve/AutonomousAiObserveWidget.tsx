@@ -56,7 +56,6 @@ import { SimulationProvider } from '../../simulation/SimulationProvider';
 import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
-import { AI_EXPERIENCE_ICON_DATA_URL } from './aiExperienceIconUrl';
 import {
   clearFocusedClusterSession,
   readFocusedClusterIdFromSession,
@@ -346,7 +345,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     }
     setSelectedClusterId(DEFAULT_CORE_PLATFORMS_CLUSTER_ID);
   }, [activePerspective, selectedClusterId]);
-  const [widgetExpanded, setWidgetExpanded] = useState(true);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
   const [clustersOpen, setClustersOpen] = useState(true);
@@ -459,19 +457,11 @@ export const AutonomousAiObserveWidget: React.FC = () => {
       selectedCluster: selectedCluster ?? null,
       clusterAlerts: simulationAlerts,
       expandedAlerts,
-      observeWidgetExpanded: widgetExpanded,
+      observeWidgetExpanded: true,
       isMultiCluster,
       fleetAgentPulse: fleetPulse,
     });
-  }, [
-    viewMode,
-    selectedCluster,
-    simulationAlerts,
-    expandedAlerts,
-    widgetExpanded,
-    isMultiCluster,
-    fleetPulse,
-  ]);
+  }, [viewMode, selectedCluster, simulationAlerts, expandedAlerts, isMultiCluster, fleetPulse]);
 
   const discussLightspeed = useCallback(
     (payload: { alertId: string; cardId: string; diagnosisName: string }) => {
@@ -479,12 +469,6 @@ export const AutonomousAiObserveWidget: React.FC = () => {
     },
     []
   );
-
-  const onWidgetExpand = useCallback((_e: React.MouseEvent, id: string) => {
-    if (id === WIDGET_ID) {
-      setWidgetExpanded((v) => !v);
-    }
-  }, []);
 
   const subtitle = useMemo(() => {
     if (showFleetOverview) {
@@ -551,63 +535,34 @@ export const AutonomousAiObserveWidget: React.FC = () => {
         </Flex>
       ) : null}
 
-      <Card id={WIDGET_ID} className="ols-autonomous-ai-observe-widget" isCompact isExpanded={widgetExpanded}>
-      <CardHeader
-        onExpand={onWidgetExpand}
-        toggleButtonProps={{
-          id: `${WIDGET_ID}-toggle`,
-          'aria-label': widgetExpanded ? 'Collapse Autonomous analysis' : 'Expand Autonomous analysis',
-        }}
-      >
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-          flexWrap={{ default: 'wrap' }}
-          gap={{ default: 'gapSm' }}
-          style={{ width: '100%' }}
-        >
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-              <img
-                src={AI_EXPERIENCE_ICON_DATA_URL}
-                alt=""
-                aria-hidden="true"
-                width={24}
-                height={24}
-                style={{ display: 'block', flexShrink: 0 }}
-              />
-              <div>
-                <Title headingLevel="h2" size="md">
-                  Autonomous analysis
-                </Title>
-                <Content
-                  component="p"
-                  className="ols-aio-text-subtle-sm"
-                  style={{
-                    marginTop: 'var(--pf-t--global--spacer--xs)',
-                    marginBottom: 0,
-                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                  }}
-                >
-                  {subtitle}
-                </Content>
-              </div>
-            </Flex>
-          </FlexItem>
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapMd' }}>
-              <FlexItem>
+      <div id={WIDGET_ID} className="ols-autonomous-ai-observe-widget">
+        <div className="ols-aio-widget-head">
+          <div className="ols-aio-widget-head__row">
+            <div className="ols-aio-widget-head__titles">
+              <Title headingLevel="h2" size="md">
+                Autonomous analysis
+              </Title>
+              <Content
+                component="p"
+                className="ols-aio-text-subtle-sm"
+                style={{
+                  marginTop: 'var(--pf-t--global--spacer--xs)',
+                  marginBottom: 0,
+                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                }}
+              >
+                {subtitle}
+              </Content>
+            </div>
+            <div className="ols-aio-widget-head__actions">
+              <div className="ols-aio-widget-head__actions-inner">
                 <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />
-              </FlexItem>
-              <FlexItem>
                 <AgentTokenCounter />
-              </FlexItem>
-            </Flex>
-          </FlexItem>
-        </Flex>
-      </CardHeader>
-      <CardExpandableContent>
-        <CardBody>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="ols-aio-widget-main">
           {showFleetOverview ? (
             <Stack hasGutter>
               <StackItem>
@@ -1293,9 +1248,8 @@ export const AutonomousAiObserveWidget: React.FC = () => {
               </EmptyStateBody>
             </EmptyState>
           )}
-        </CardBody>
-      </CardExpandableContent>
-    </Card>
+        </div>
+      </div>
     </>
     </SimulationProvider>
   );

@@ -2,3 +2,30 @@
 .ols-ai-hub-page div.create-policy-header {
   border-top: none !important;
 }
+
+/* Page header: plain layout (avoid PF Flex layout classes on this row). */
+.ols-ai-hub-page-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--pf-t--global--spacer--md);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ols-ai-hub-page-header-primary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pf-t--global--spacer--sm);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ols-ai-hub-page-header-copy {
+  min-width: 0;
+}
+
+.ols-ai-hub-page-header-aside {
+  flex-shrink: 0;
+}

@@ -127,12 +127,43 @@ span.ols-aio-card-stat-number {
 }
 
 /*
- * Expand / collapse carets under the main observe card.
+ * Autonomous analysis chrome (AI Hub): section titles + actions live outside an outer Card (`.ols-aio-widget-head`).
+ *
+ * Expand / collapse carets on nested sections:
  * PF Card uses `.pf-v6-c-card.pf-m-expanded .pf-v6-c-card__header-toggle-icon` (any descendant), so
- * nested collapsed cards still show the parent’s open chevron. Mark nested expandable cards with
- * `.ols-aio-subcard` and tie rotation to that card’s own `pf-m-expanded` only (matches root card UX).
+ * nested collapsed cards need `.ols-aio-subcard` rotation scoped per card.
  * ExpandableSection icons get the same explicit open/closed transform inside this widget.
  */
+.ols-autonomous-ai-observe-widget .ols-aio-widget-head {
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+
+/* Widget title row: layout without PatternFly `Flex` (avoids `pf-v6-l-flex` + modifier classes in DOM). */
+.ols-aio-widget-head__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--pf-t--global--spacer--sm);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ols-aio-widget-head__titles {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ols-aio-widget-head__actions {
+  flex-shrink: 0;
+}
+
+.ols-aio-widget-head__actions-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pf-t--global--spacer--md);
+}
+
 .ols-autonomous-ai-observe-widget .ols-aio-subcard.pf-m-expanded > .pf-v6-c-card__header .pf-v6-c-card__header-toggle-icon {
   transform: rotate(90deg) !important;
 }

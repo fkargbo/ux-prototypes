@@ -1,11 +1,11 @@
 import React from 'react';
-import { Content, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
+import { Content, Stack, StackItem, Title } from '@patternfly/react-core';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
 import { AutonomousAiObserveWidgetV2 } from '../components/autonomousAiObserve/AutonomousAiObserveWidgetV2';
 import { config as prototypeConfig } from '../prototype.config';
-import { AgentTokenCounter, ClusterInventoryBar, FleetInventoryBar } from './ai-hub-v2';
+import { AgentTokenCounter, AiExperienceIcon, ClusterInventoryBar, FleetInventoryBar } from './ai-hub-v2';
 import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
@@ -29,28 +29,36 @@ export const AIHubPage: React.FC = () => {
       }}
     >
       <div className="create-policy-header">
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-          gap={{ default: 'gapMd' }}
-          flexWrap={{ default: 'wrap' }}
-          style={{ width: '100%' }}
-        >
-          <FlexItem style={{ minWidth: 0, flex: '1 1 auto' }}>
-            <Title headingLevel="h1" size="2xl">
-              AI Troubleshooting Hub
-            </Title>
-            <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
-              Coordinate autonomous AI investigations, evidence collection, and guided remediation workflows for
-              observability incidents from one hub.
-            </Content>
-          </FlexItem>
+        <div className="ols-ai-hub-page-header-inner">
+          <div className="ols-ai-hub-page-header-primary">
+            <AiExperienceIcon size={40} />
+            <div className="ols-ai-hub-page-header-copy">
+              <Title headingLevel="h1" size="2xl">
+                AI Troubleshooting Hub
+              </Title>
+              <Content component="p" style={{ marginTop: '8px', color: '#6a6e73' }}>
+                Coordinate autonomous AI investigations, evidence collection, and guided remediation workflows for
+                observability incidents from one hub.
+              </Content>
+              <Content
+                component="p"
+                style={{
+                  marginTop: 'var(--pf-t--global--spacer--xs)',
+                  marginBottom: 0,
+                  fontSize: '12px',
+                  color: '#4D4D4D',
+                }}
+              >
+                Always review AI-generated content prior to use.
+              </Content>
+            </div>
+          </div>
           {isHubV2 ? (
-            <FlexItem style={{ flexShrink: 0 }}>
+            <div className="ols-ai-hub-page-header-aside">
               <AgentTokenCounter />
-            </FlexItem>
+            </div>
           ) : null}
-        </Flex>
+        </div>
       </div>
 
       <div

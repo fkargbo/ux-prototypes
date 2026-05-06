@@ -42,10 +42,12 @@ body,
   overflow-x: hidden !important;
 }
 
-/* Horizontal inset for Page main wrapper (contains #primary-app-container) */
+/* Page main wrapper (contains #primary-app-container): flush left/right — inner routes apply their own inset */
 .pf-v6-c-page__main-container {
-  padding-left: var(--pf-t--global--spacer--lg, 24px) !important;
-  padding-right: var(--pf-t--global--spacer--lg, 24px) !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   box-sizing: border-box !important;
 }
 
