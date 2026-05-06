@@ -107,6 +107,7 @@ const AgentTokenCounter: React.FC = () => {
       <Tooltip content={`${creditsLeftLabel} remediation credits left`} position="top" isContentLeftAligned>
         <div className="ols-aio-token-counter__progress-wrap">
           <Progress
+            className="ols-aio-token-counter__progress"
             value={usagePct}
             min={0}
             max={100}
