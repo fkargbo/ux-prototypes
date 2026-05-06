@@ -13,6 +13,7 @@
 .ols-ai-hub-fleet-inventory-label {
   font-family: var(--pf-t--global--font--family--body);
   font-size: 14px;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
   color: var(--pf-t--global--text--color--subtle);
 }
 
