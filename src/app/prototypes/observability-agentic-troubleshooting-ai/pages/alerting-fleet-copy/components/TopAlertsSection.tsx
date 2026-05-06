@@ -4,9 +4,9 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   InfoCircleIcon,
-  OptimizeIcon,
   ExternalLinkAltIcon,
 } from '@patternfly/react-icons';
+import { AI_EXPERIENCE_ICON_DATA_URL } from '../../../components/autonomousAiObserve/aiExperienceIconUrl';
 import {
   INSIGHTS_LIST_SIZE,
   INSIGHTS_LINK,
@@ -45,6 +45,11 @@ export interface TopAlertsSectionProps {
   onViewAllFiringAlerts?: () => void;
   /** When false, omit the internal “Top alerts” heading (e.g. card supplies its own title). */
   showSectionHeading?: boolean;
+  /**
+   * Optional AI insight body (per rule name). Defaults to Alerting mock copy from `getAlertAiInsight`.
+   * AI Hub passes Observe-aligned copy (`getFleetTopAlertInsightDisplay`).
+   */
+  getAiInsightCopy?: (ruleName: string) => string;
 }
 
 /**
@@ -58,6 +63,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
   onOpenLightspeed,
   onViewAllFiringAlerts,
   showSectionHeading = true,
+  getAiInsightCopy,
 }) => {
   if (!hasAlertData) {
     return (
@@ -81,6 +87,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
           const dominantSeverity: SeverityKey = rule.critical > 0 ? 'Critical' : rule.warning > 0 ? 'Warning' : 'Info';
           const clusterCount = rule.clusters.length;
           const isLast = index === Math.min(INSIGHTS_LIST_SIZE, alertRuleData.length) - 1;
+          const insightCopy = getAiInsightCopy ? getAiInsightCopy(rule.name) : getAlertAiInsight(rule.name);
           return (
             <div key={rule.name} style={{ ...INSIGHTS_LIST_ITEM, ...(isLast ? INSIGHTS_LIST_ITEM_LAST : {}) }}>
               <Flex
@@ -142,12 +149,22 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                 role="note"
                 aria-label="AI insight"
               >
-                <span style={AI_INSIGHT_ICON_STYLE} aria-hidden="true">
-                  <OptimizeIcon style={{ width: 14, height: 14 }} />
+                <span
+                  className="ols-aio-ai-insight-icon"
+                  style={{ ...AI_INSIGHT_ICON_STYLE, display: 'inline-flex', alignItems: 'center' }}
+                  aria-hidden="true"
+                >
+                  <img
+                    src={AI_EXPERIENCE_ICON_DATA_URL}
+                    alt=""
+                    width={16}
+                    height={16}
+                    style={{ display: 'block', flexShrink: 0 }}
+                  />
                 </span>
                 <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1, lineHeight: 1.5 }}>
                   <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
-                  <span style={AI_INSIGHT_TEXT_STYLE}>{getAlertAiInsight(rule.name)}</span>{' '}
+                  <span style={AI_INSIGHT_TEXT_STYLE}>{insightCopy}</span>{' '}
                   <Button
                     variant="link"
                     isInline
@@ -157,7 +174,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                       onOpenLightspeed({
                         sourceType: 'alert',
                         sourceName: rule.name,
-                        aiInsightText: getAlertAiInsight(rule.name),
+                        aiInsightText: insightCopy,
                       })
                     }
                   >

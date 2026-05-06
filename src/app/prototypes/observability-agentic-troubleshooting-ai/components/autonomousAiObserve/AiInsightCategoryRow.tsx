@@ -5,6 +5,7 @@
 import * as React from 'react';
 import { Flex } from '@patternfly/react-core';
 import { AI_INSIGHT_TEXT_STYLE } from '../../pages/alerting-fleet-copy/data/fleetInsightsConfig';
+import { formatAiInsightLedeBody } from './data';
 import { AI_EXPERIENCE_ICON_DATA_URL } from './aiExperienceIconUrl';
 
 /**
@@ -31,8 +32,7 @@ export const AiInsightLede: React.FC<AiInsightLedeProps> = ({
   className,
   style,
 }) => {
-  const suffix = categoryLabel.trim() ? aiInsightCategoryDisplaySuffix(categoryLabel) : '';
-  const body = suffix ? `${suffix} — ${narrative}` : narrative;
+  const body = formatAiInsightLedeBody(categoryLabel, narrative);
 
   return (
     <div className={className} style={style}>

@@ -52,7 +52,6 @@ import {
   getClusterById,
 } from './data';
 import { AlertKpiTooltip } from './AlertKpiTooltip';
-import { AgentPulseLabel } from './AgentPulseLabel';
 import { ObserveAlertItem } from './ObserveAlertItem';
 import './autonomous-ai-observe.css';
 import { SimulationProvider } from '../../simulation/SimulationProvider';
@@ -364,7 +363,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   const fleetWarningBreakdown = useMemo(() => buildFleetSeverityBreakdown('warning'), []);
 
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
-  const totalFleetNodes = useMemo(() => CLUSTERS.reduce((s, c) => s + c.nodes, 0), []);
 
   const selectedCluster = useMemo(
     () => (selectedClusterId ? getClusterById(selectedClusterId) : undefined),
@@ -425,29 +423,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
     []
   );
 
-  const subtitle = useMemo(() => {
-    if (showFleetOverview) {
-      return `Fleet management · ${CLUSTERS.length} clusters · ${totalFleetNodes} nodes · full fleet view`;
-    }
-    if (!selectedCluster) {
-      return activePerspective === 'Fleet management' && fleetClusterDrillDown
-        ? 'Fleet management · open a cluster from the list below'
-        : 'Core platforms · cluster-scoped monitoring';
-    }
-    if (activePerspective === 'Fleet management' && fleetClusterDrillDown) {
-      return `Fleet management · ${selectedCluster.name} · drill-down · ${selectedCluster.provider} · ${selectedCluster.region}`;
-    }
-    return `Core platforms · ${selectedCluster.name} · ${selectedCluster.provider} · ${selectedCluster.region}`;
-  }, [
-    showFleetOverview,
-    activePerspective,
-    fleetClusterDrillDown,
-    selectedCluster,
-    totalFleetNodes,
-  ]);
-
-  const headerPulse: AgentPulseStatus = showFleetOverview ? fleetPulse : selectedCluster?.agentStatus ?? 'idle';
-
   const criticalOnCluster = clusterAlerts.filter((a) => a.severity === 'critical').length;
   const warningOnCluster = clusterAlerts.filter((a) => a.severity === 'warning').length;
 
@@ -491,37 +466,11 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
       ) : null}
 
       <div id={WIDGET_ID} className="ols-autonomous-ai-observe-widget">
-        <div className="ols-aio-widget-head">
-          <div className="ols-aio-widget-head__row">
-            <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-              <Title headingLevel="h2" size="md">
-                Autonomous analysis
-              </Title>
-              <Content
-                component="p"
-                className="ols-aio-text-subtle-sm"
-                style={{
-                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                  marginBottom: 0,
-                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                }}
-              >
-                {subtitle}
-              </Content>
-            </div>
-            <div className="ols-aio-widget-head__actions">
-              <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />
-            </div>
-          </div>
-        </div>
         <div className="ols-aio-widget-main">
           {showFleetOverview ? (
             <Stack hasGutter>
               <StackItem>
                 <Grid hasGutter style={{ alignItems: 'stretch' }}>
-                  <GridItem span={12} lg={5} style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <TopFiringAlertsCard />
-                  </GridItem>
                   <GridItem span={12} lg={7} style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <Card className="ols-aio-subcard" isCompact isExpanded={awayOpen} id={`${WIDGET_ID}-away`}>
                   <CardHeader
@@ -620,6 +569,9 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
+                  </GridItem>
+                  <GridItem span={12} lg={5} style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <TopFiringAlertsCard />
                   </GridItem>
                 </Grid>
               </StackItem>

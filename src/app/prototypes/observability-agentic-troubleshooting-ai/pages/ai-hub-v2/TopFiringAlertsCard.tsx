@@ -1,25 +1,43 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardBody, Title } from '@patternfly/react-core';
-import { mockClusters } from '../alerting-fleet-copy/data/mockData';
-import { useFleetHealthData } from '../alerting-fleet-copy/data/useFleetHealthData';
+import {
+  buildFleetTopFiringAlertRuleRows,
+  fleetHubTotalFiringAlertsCount,
+  getFleetTopAlertInsightDisplay,
+} from '../../components/autonomousAiObserve/data';
 import { TopAlertsSection } from '../alerting-fleet-copy/components/TopAlertsSection';
 import { OpenShiftLightspeedPanel, type LightspeedInvestigateContext } from '../alerting-fleet-copy/components/OpenShiftLightspeedPanel';
 
-/** v2 fleet hub — same “Top alerts” list as Fleet-wide alert impact on Alerting (mock fleet data). */
+function alertingFleetOverviewHref(options: { alertName?: string }): string {
+  const params = new URLSearchParams();
+  params.set('tab', 'fleet-overview');
+  params.set('scope', 'ai-hub');
+  if (options.alertName) {
+    params.set('alertName', options.alertName);
+  }
+  return `/core/observe/alerting?${params.toString()}`;
+}
+
+/**
+ * v2 fleet hub — same aggregate alert scope as Fleet Summary (`ALERTS` + fleet-wide ingress attributions).
+ */
 export const TopFiringAlertsCard: React.FC = () => {
   const navigate = useNavigate();
-  const data = useFleetHealthData(mockClusters, false);
+
+  const alertRuleData = useMemo(() => buildFleetTopFiringAlertRuleRows(), []);
+  const totalFiringAlertsCount = useMemo(() => fleetHubTotalFiringAlertsCount(), []);
+  const hasAlertData = totalFiringAlertsCount > 0;
 
   const onAlertRuleClick = useCallback(
     (alertName: string) => {
-      navigate(`/core/observe/alerting?tab=alerts&alertName=${encodeURIComponent(alertName)}`);
+      navigate(alertingFleetOverviewHref({ alertName }));
     },
     [navigate]
   );
 
   const onViewAllFiringAlerts = useCallback(() => {
-    navigate('/core/observe/alerting?tab=alerts');
+    navigate(alertingFleetOverviewHref({}));
   }, [navigate]);
 
   const [lightspeedOpen, setLightspeedOpen] = useState(false);
@@ -36,15 +54,16 @@ export const TopFiringAlertsCard: React.FC = () => {
 
   const sectionProps = useMemo(
     () => ({
-      alertRuleData: data.alertRuleData,
-      totalFiringAlertsCount: data.totalFiringAlertsCount,
-      hasAlertData: data.hasAlertData,
+      alertRuleData,
+      totalFiringAlertsCount,
+      hasAlertData,
       onAlertRuleClick,
       onOpenLightspeed,
       onViewAllFiringAlerts,
       showSectionHeading: false as const,
+      getAiInsightCopy: getFleetTopAlertInsightDisplay,
     }),
-    [data.alertRuleData, data.totalFiringAlertsCount, data.hasAlertData, onAlertRuleClick, onOpenLightspeed, onViewAllFiringAlerts]
+    [alertRuleData, totalFiringAlertsCount, hasAlertData, onAlertRuleClick, onOpenLightspeed, onViewAllFiringAlerts]
   );
 
   return (
