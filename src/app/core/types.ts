@@ -61,6 +61,14 @@ export interface PrototypeConfig {
   versionGroup?: string; // Groups related versions together (e.g., 'fleet-admin-rbac')
   version: string;       // Version identifier (e.g., 'v1', 'v2', 'final', '1.0.0')
   versionLabel?: string; // Optional display label (e.g., 'Initial Design', 'Iteration 2')
+  /**
+   * Optional banner “Version” dropdown for the same prototype module (vs. separate registry entries via `versionGroup`).
+   * Selection is stored under `hpux.bannerVersion.${id}`; listen via `useBannerVersionSelection` or the `hpux-banner-version-change` event.
+   */
+  bannerVersionPicker?: {
+    options: Array<{ key: string; label: string }>;
+    defaultKey?: string;
+  };
   
   // Ownership
   owner: PrototypeOwner;
