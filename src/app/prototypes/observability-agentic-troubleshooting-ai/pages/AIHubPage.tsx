@@ -1,9 +1,12 @@
 import React from 'react';
 import { Title, Content, Stack, StackItem } from '@patternfly/react-core';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
+import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
 import { AutonomousAiObserveWidgetV2 } from '../components/autonomousAiObserve/AutonomousAiObserveWidgetV2';
 import { config as prototypeConfig } from '../prototype.config';
+import { FleetInventoryBar } from './FleetInventoryBar';
+import { ClusterInventoryBar } from './ClusterInventoryBar';
 import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
@@ -11,6 +14,9 @@ export const AIHubPage: React.FC = () => {
     prototypeConfig.id,
     prototypeConfig.bannerVersionPicker?.defaultKey ?? 'v2'
   );
+  const { activePerspective } = useActivePerspective();
+  const showFleetInventory = activePerspective === 'Fleet management';
+  const showClusterInventory = activePerspective === 'Core platforms';
 
   return (
     <div
@@ -51,6 +57,16 @@ export const AIHubPage: React.FC = () => {
           }}
         >
           <Stack hasGutter>
+            {showFleetInventory ? (
+              <StackItem>
+                <FleetInventoryBar />
+              </StackItem>
+            ) : null}
+            {showClusterInventory ? (
+              <StackItem>
+                <ClusterInventoryBar />
+              </StackItem>
+            ) : null}
             <StackItem>
               {bannerVersionKey === 'v2' ? <AutonomousAiObserveWidgetV2 /> : <AutonomousAiObserveWidget />}
             </StackItem>

@@ -14,10 +14,6 @@ import {
   CardHeader,
   CardTitle,
   Content,
-  Dropdown,
-  DropdownGroup,
-  DropdownItem,
-  DropdownList,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -28,8 +24,6 @@ import {
   Grid,
   GridItem,
   Label,
-  MenuToggle,
-  type MenuToggleElement,
   Progress,
   Stack,
   StackItem,
@@ -335,7 +329,9 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   const viewMode: ViewMode = useMemo(() => (showFleetOverview ? 'fleet' : 'cluster'), [showFleetOverview]);
 
   /** Restores session handoff; Core platforms applies `DEFAULT_CORE_PLATFORMS_CLUSTER_ID` when still empty. */
-  const [selectedClusterId, setSelectedClusterId] = useState(() => readFocusedClusterIdFromSession() ?? '');
+  const [selectedClusterId, setSelectedClusterId] = useState(
+    () => readFocusedClusterIdFromSession() ?? DEFAULT_CORE_PLATFORMS_CLUSTER_ID
+  );
 
   React.useEffect(() => {
     const prev = prevPerspectiveRef.current;
@@ -361,7 +357,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   const [cAwayOpen, setCAwayOpen] = useState(true);
   const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
-  const [isClusterSwitcherOpen, setIsClusterSwitcherOpen] = useState(false);
   /** Fleet digest rows use `fleet:${text}`; cluster rows use `cluster:${clusterId}:${text}`. */
   const [dismissedAwayKeys, setDismissedAwayKeys] = useState<Set<string>>(() => new Set());
 
@@ -501,8 +496,8 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
     }
     if (!selectedCluster) {
       return activePerspective === 'Fleet management' && fleetClusterDrillDown
-        ? 'Fleet management · select a cluster to drill down'
-        : 'Core platforms · select a cluster to load cluster-scoped monitoring';
+        ? 'Fleet management · open a cluster from the list below'
+        : 'Core platforms · cluster-scoped monitoring';
     }
     if (activePerspective === 'Fleet management' && fleetClusterDrillDown) {
       return `Fleet management · ${selectedCluster.name} · drill-down · ${selectedCluster.provider} · ${selectedCluster.region}`;
@@ -535,10 +530,8 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   return (
     <SimulationProvider>
     <>
-      {/* Core platforms: cluster picker. Fleet management drill-down: picker without leaving Fleet perspective. */}
-      {isMultiCluster &&
-      (activePerspective === 'Core platforms' ||
-        (activePerspective === 'Fleet management' && fleetClusterDrillDown)) ? (
+      {/* Fleet management drill-down: return to fleet overview (cluster switcher removed for now). */}
+      {isMultiCluster && activePerspective === 'Fleet management' && fleetClusterDrillDown ? (
         <Flex
           className="ols-aio-context-selectors"
           alignItems={{ default: 'alignItemsCenter' }}
@@ -549,52 +542,15 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
             marginBottom: 'var(--pf-t--global--spacer--md)',
           }}
         >
-          {activePerspective === 'Fleet management' && fleetClusterDrillDown ? (
-            <FlexItem>
-              <Button
-                variant="link"
-                icon={<ArrowLeftIcon />}
-                onClick={() => setFleetClusterDrillDown(false)}
-                aria-label="Return to full fleet Autonomous analysis view"
-              >
-                Back to fleet overview
-              </Button>
-            </FlexItem>
-          ) : null}
           <FlexItem>
-            <Dropdown
-              isOpen={isClusterSwitcherOpen}
-              onOpenChange={setIsClusterSwitcherOpen}
-              shouldFocusToggleOnSelect
-              onSelect={(_event, value) => {
-                const id = String(value);
-                if (CLUSTERS.some((c) => c.id === id)) {
-                  setSelectedClusterId(id);
-                }
-                setIsClusterSwitcherOpen(false);
-              }}
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsClusterSwitcherOpen((o) => !o)}
-                  isExpanded={isClusterSwitcherOpen}
-                  variant="default"
-                  aria-label="Select cluster context"
-                >
-                  {selectedCluster ? selectedCluster.name : 'Select a cluster'}
-                </MenuToggle>
-              )}
+            <Button
+              variant="link"
+              icon={<ArrowLeftIcon />}
+              onClick={() => setFleetClusterDrillDown(false)}
+              aria-label="Return to full fleet Autonomous analysis view"
             >
-              <DropdownGroup label="Clusters" labelHeadingLevel="h2">
-                <DropdownList>
-                  {CLUSTERS.map((c) => (
-                    <DropdownItem key={c.id} value={c.id} isSelected={selectedClusterId === c.id}>
-                      {c.name} · {c.provider} · {c.region}
-                    </DropdownItem>
-                  ))}
-                </DropdownList>
-              </DropdownGroup>
-            </Dropdown>
+              Back to fleet overview
+            </Button>
           </FlexItem>
         </Flex>
       ) : null}
@@ -1330,14 +1286,13 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
             <EmptyState variant={EmptyStateVariant.lg}>
               <EmptyStateBody>
                 <Title headingLevel="h4" size="lg">
-                  Select a cluster
+                  Cluster unavailable
                 </Title>
                 <Content
                   component="p"
                   style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0, maxWidth: 520 }}
                 >
-                  No cluster is selected. Use the <strong>cluster menu</strong> above to choose which environment to
-                  inspect first.
+                  No cluster context is loaded for this view.
                 </Content>
               </EmptyStateBody>
             </EmptyState>
