@@ -62,7 +62,7 @@ import { SimulationProvider } from '../../simulation/SimulationProvider';
 import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
-import aiExperienceIcon from '../../assets/rh-ui-icon-ai-experience-black.svg';
+import { AI_EXPERIENCE_ICON_DATA_URL } from './aiExperienceIconUrl';
 import {
   clearFocusedClusterSession,
   readFocusedClusterIdFromSession,
@@ -613,7 +613,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
           <FlexItem>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
               <img
-                src={aiExperienceIcon}
+                src={AI_EXPERIENCE_ICON_DATA_URL}
                 alt=""
                 aria-hidden="true"
                 width={20}

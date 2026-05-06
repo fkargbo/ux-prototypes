@@ -1,12 +1,11 @@
 /**
- * Mirrors `FleetHealthInsightsView` per-row AI insight treatment: `OptimizeIcon` (14px) + “AI insight: ”
- * (semibold, subtle) + body (`AI_INSIGHT_TEXT_STYLE` — italic, subtle). The fleet promo card uses
- * `MagicIcon` in a purple tile (`#6753ac`); list-style `OptimizeIcon` here uses the same purple (`.ols-aio-ai-insight-icon`).
+ * Mirrors `FleetHealthInsightsView` per-row AI insight treatment: RH AI experience artwork (14px) + “AI insight: ”
+ * (semibold, subtle) + body (`AI_INSIGHT_TEXT_STYLE` — italic, subtle).
  */
 import * as React from 'react';
 import { Flex } from '@patternfly/react-core';
-import { OptimizeIcon } from '@patternfly/react-icons';
 import { AI_INSIGHT_TEXT_STYLE } from '../../pages/alerting-fleet-copy/data/fleetInsightsConfig';
+import { AI_EXPERIENCE_ICON_DATA_URL } from './aiExperienceIconUrl';
 
 /**
  * Strips a leading "AI insight · …" from mock category labels so the UI can render
@@ -45,7 +44,13 @@ export const AiInsightLede: React.FC<AiInsightLedeProps> = ({
         aria-label="AI insight"
       >
         <span className="ols-aio-ai-insight-icon" aria-hidden="true">
-          <OptimizeIcon style={{ width: 14, height: 14 }} />
+          <img
+            src={AI_EXPERIENCE_ICON_DATA_URL}
+            alt=""
+            width={14}
+            height={14}
+            style={{ display: 'block', flexShrink: 0 }}
+          />
         </span>
         <span
           style={{

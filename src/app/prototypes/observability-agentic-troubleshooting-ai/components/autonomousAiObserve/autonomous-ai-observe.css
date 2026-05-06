@@ -213,13 +213,12 @@ span.ols-aio-card-stat-number {
 }
 
 /**
- * AI insight row icon: matches Autonomous analysis card mark (`FLEET_INSIGHT_ICON_BOX_STYLE` uses #6753ac).
+ * AI insight row icon: RH AI experience artwork (black fill in SVG).
  */
 .ols-aio-ai-insight-icon {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  color: #6753ac;
 }
 
 /* KPI drill targets: PatternFly Tooltip body — concise breakdown lists */
