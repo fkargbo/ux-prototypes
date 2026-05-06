@@ -38,7 +38,6 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   GlobeIcon,
-  MagicIcon,
 } from '@patternfly/react-icons';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
@@ -63,7 +62,7 @@ import { SimulationProvider } from '../../simulation/SimulationProvider';
 import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
-import { FLEET_INSIGHT_ICON_BOX_STYLE } from '../../pages/alerting-fleet-copy/data/fleetInsightsConfig';
+import aiExperienceIcon from '../../assets/rh-ui-icon-ai-experience-black.svg';
 import {
   clearFocusedClusterSession,
   readFocusedClusterIdFromSession,
@@ -613,9 +612,14 @@ export const AutonomousAiObserveWidget: React.FC = () => {
         >
           <FlexItem>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-              <div style={FLEET_INSIGHT_ICON_BOX_STYLE} aria-hidden="true">
-                <MagicIcon style={{ width: 20, height: 20 }} />
-              </div>
+              <img
+                src={aiExperienceIcon}
+                alt=""
+                aria-hidden="true"
+                width={20}
+                height={20}
+                style={{ display: 'block', flexShrink: 0 }}
+              />
               <div>
                 <Title headingLevel="h2" size="md">
                   Autonomous analysis
