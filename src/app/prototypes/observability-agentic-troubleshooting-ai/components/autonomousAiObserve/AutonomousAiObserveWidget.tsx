@@ -603,20 +603,14 @@ export const AutonomousAiObserveWidget: React.FC = () => {
           id: `${WIDGET_ID}-toggle`,
           'aria-label': widgetExpanded ? 'Collapse Autonomous analysis' : 'Expand Autonomous analysis',
         }}
-        actions={{
-          actions: (
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-              <FlexItem>
-                <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />
-              </FlexItem>
-              <FlexItem>
-                <AgentTokenCounter />
-              </FlexItem>
-            </Flex>
-          ),
-        }}
       >
-        <Flex alignItems={{ default: 'alignItemsFlexStart' }} flexWrap={{ default: 'wrap' }}>
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsFlexStart' }}
+          flexWrap={{ default: 'wrap' }}
+          gap={{ default: 'gapSm' }}
+          style={{ width: '100%' }}
+        >
           <FlexItem>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
               <div style={FLEET_INSIGHT_ICON_BOX_STYLE} aria-hidden="true">
@@ -638,6 +632,16 @@ export const AutonomousAiObserveWidget: React.FC = () => {
                   {subtitle}
                 </Content>
               </div>
+            </Flex>
+          </FlexItem>
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapMd' }}>
+              <FlexItem>
+                <AgentPulseLabel status={headerPulse} id={`${WIDGET_ID}-header-pulse`} />
+              </FlexItem>
+              <FlexItem>
+                <AgentTokenCounter />
+              </FlexItem>
             </Flex>
           </FlexItem>
         </Flex>
