@@ -470,9 +470,14 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
           {showFleetOverview ? (
             <Stack hasGutter>
               <StackItem>
-                <Grid hasGutter style={{ alignItems: 'stretch' }}>
-                  <GridItem span={12} lg={7} style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <Card className="ols-aio-subcard" isCompact isExpanded={awayOpen} id={`${WIDGET_ID}-away`}>
+                <Grid hasGutter className="ols-aio-fleet-pair-grid">
+                  <GridItem span={12} lg={7} className="ols-aio-fleet-pair-item">
+                <Card
+                  className="ols-aio-subcard ols-aio-fleet-pair-card"
+                  isCompact
+                  isExpanded={awayOpen}
+                  id={`${WIDGET_ID}-away`}
+                >
                   <CardHeader
                     onExpand={() => setAwayOpen((o) => !o)}
                     toggleButtonProps={{
@@ -489,7 +494,9 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                         >
                           <FlexItem>
                             <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
-                              <CardTitle component="h3">While you were away</CardTitle>
+                              <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
+                                While you were away
+                              </CardTitle>
                               <Label color="blue" isCompact>
                                 {fleetWhileYouWereAwayChipLabel}
                               </Label>
@@ -570,7 +577,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                   </CardExpandableContent>
                 </Card>
                   </GridItem>
-                  <GridItem span={12} lg={5} style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <GridItem span={12} lg={5} className="ols-aio-fleet-pair-item">
                     <TopFiringAlertsCard />
                   </GridItem>
                 </Grid>
@@ -601,7 +608,9 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                     }}
                   >
                     <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                      <CardTitle component="h3">Fleet Summary</CardTitle>
+                      <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
+                        Fleet Summary
+                      </CardTitle>
                     </Flex>
                   </CardHeader>
                   <CardExpandableContent>
@@ -697,7 +706,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                   >
                     <Stack>
                       <StackItem>
-                        <CardTitle component="h3" style={{ marginBottom: 0 }}>
+                        <CardTitle component="h3" className="ols-aio-fleet-subcard-title" style={{ marginBottom: 0 }}>
                           Clusters
                         </CardTitle>
                       </StackItem>
