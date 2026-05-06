@@ -1,9 +1,17 @@
 import React from 'react';
 import { Title, Content, Stack, StackItem } from '@patternfly/react-core';
+import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
+import { AutonomousAiObserveWidgetV2 } from '../components/autonomousAiObserve/AutonomousAiObserveWidgetV2';
+import { config as prototypeConfig } from '../prototype.config';
 import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
+  const bannerVersionKey = useBannerVersionSelection(
+    prototypeConfig.id,
+    prototypeConfig.bannerVersionPicker?.defaultKey ?? 'v2'
+  );
+
   return (
     <div
       className="ols-ai-hub-page"
@@ -44,7 +52,7 @@ export const AIHubPage: React.FC = () => {
         >
           <Stack hasGutter>
             <StackItem>
-              <AutonomousAiObserveWidget />
+              {bannerVersionKey === 'v2' ? <AutonomousAiObserveWidgetV2 /> : <AutonomousAiObserveWidget />}
             </StackItem>
           </Stack>
         </div>
