@@ -167,6 +167,19 @@ span.ols-aio-card-stat-number {
   transform: rotate(0deg) !important;
 }
 
+/* Fleet overview: 24px spacing between main cards (Stack) and between While away / Top firing columns (Grid). */
+.ols-autonomous-ai-observe-widget .ols-aio-stack-gutter-24.pf-v6-l-stack.pf-m-gutter {
+  gap: 24px;
+}
+
+/* PatternFly Grid / Gallery `hasGutter` — force 24px gaps between nested cards (Fleet Summary KPIs, Clusters gallery, fleet pair row). */
+.ols-autonomous-ai-observe-widget .ols-aio-gutter-24.pf-v6-l-grid.pf-m-gutter,
+.ols-autonomous-ai-observe-widget .ols-aio-gutter-24.pf-v6-l-gallery.pf-m-gutter {
+  gap: 24px;
+  column-gap: 24px;
+  row-gap: 24px;
+}
+
 /* Fleet overview row: match column heights; scroll long bodies (While you were away / Top firing alerts). */
 .ols-autonomous-ai-observe-widget .ols-aio-fleet-pair-grid {
   align-items: stretch;
@@ -177,6 +190,12 @@ span.ols-aio-card-stat-number {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+}
+
+/* Top firing alerts (ai-hub): keep action links on one line; allow horizontal scroll if the card is narrow. */
+.ols-autonomous-ai-observe-widget .ols-aio-top-alerts-ai-hub-actions {
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 /* Section titles — Fleet overview expandable cards (18px). */

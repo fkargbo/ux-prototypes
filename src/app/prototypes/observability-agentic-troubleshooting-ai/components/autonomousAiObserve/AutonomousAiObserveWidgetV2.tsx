@@ -468,10 +468,10 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
       <div id={WIDGET_ID} className="ols-autonomous-ai-observe-widget">
         <div className="ols-aio-widget-main">
           {showFleetOverview ? (
-            <Stack hasGutter>
+            <Stack hasGutter className="ols-aio-stack-gutter-24">
               <StackItem>
-                <Grid hasGutter className="ols-aio-fleet-pair-grid">
-                  <GridItem span={12} lg={7} className="ols-aio-fleet-pair-item">
+                <Grid hasGutter className="ols-aio-fleet-pair-grid ols-aio-gutter-24">
+                  <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
                 <Card
                   className="ols-aio-subcard ols-aio-fleet-pair-card"
                   isCompact
@@ -577,7 +577,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                   </CardExpandableContent>
                 </Card>
                   </GridItem>
-                  <GridItem span={12} lg={5} className="ols-aio-fleet-pair-item">
+                  <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
                     <TopFiringAlertsCard />
                   </GridItem>
                 </Grid>
@@ -615,7 +615,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
-                      <Grid hasGutter>
+                      <Grid hasGutter className="ols-aio-gutter-24">
                         <GridItem span={12} md={6} lg={3}>
                           <ObserveMetricStatCard
                             cardTitle="Critical alerts"
@@ -726,7 +726,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
-                      <Gallery hasGutter>
+                      <Gallery hasGutter className="ols-aio-gutter-24">
                         {CLUSTERS.map((c) => {
                           const crit =
                             ALERTS.filter((a) => a.clusterId === c.id && a.severity === 'critical').length +

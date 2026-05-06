@@ -50,6 +50,11 @@ export interface TopAlertsSectionProps {
    * AI Hub passes Observe-aligned copy (`getFleetTopAlertInsightDisplay`).
    */
   getAiInsightCopy?: (ruleName: string) => string;
+  /**
+   * `fleet-insights` — actions on the title row; Investigate with AI inline after insight copy (Alerting Fleet Insights).
+   * `ai-hub` — View alert → Investigate with AI → View Runbook on one line below the AI insight block (AI Hub Top firing alerts).
+   */
+  alertActionsLayout?: 'fleet-insights' | 'ai-hub';
 }
 
 /**
@@ -64,6 +69,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
   onViewAllFiringAlerts,
   showSectionHeading = true,
   getAiInsightCopy,
+  alertActionsLayout = 'fleet-insights',
 }) => {
   if (!hasAlertData) {
     return (
@@ -88,11 +94,19 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
           const clusterCount = rule.clusters.length;
           const isLast = index === Math.min(INSIGHTS_LIST_SIZE, alertRuleData.length) - 1;
           const insightCopy = getAiInsightCopy ? getAiInsightCopy(rule.name) : getAlertAiInsight(rule.name);
+          const runbookAction =
+            getAlertActions(rule.name).find((a) => a.label.toLowerCase().includes('runbook')) ?? {
+              label: 'View Runbook',
+            };
           return (
             <div key={rule.name} style={{ ...INSIGHTS_LIST_ITEM, ...(isLast ? INSIGHTS_LIST_ITEM_LAST : {}) }}>
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
-                justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                justifyContent={
+                  alertActionsLayout === 'ai-hub'
+                    ? { default: 'justifyContentFlexStart' }
+                    : { default: 'justifyContentSpaceBetween' }
+                }
                 flexWrap={{ default: 'wrap' }}
                 gap={{ default: 'gapSm' }}
               >
@@ -113,34 +127,36 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                     </span>
                   </Flex>
                 </FlexItem>
-                <FlexItem style={{ flexShrink: 0 }}>
-                  <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    {getAlertActions(rule.name).map((action) => (
+                {alertActionsLayout === 'fleet-insights' ? (
+                  <FlexItem style={{ flexShrink: 0 }}>
+                    <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      {getAlertActions(rule.name).map((action) => (
+                        <Button
+                          key={action.label}
+                          variant="link"
+                          isInline
+                          style={INSIGHTS_LINK}
+                          className="pf-v6-u-font-size-sm"
+                          onClick={action.onClick}
+                          {...(action.label.toLowerCase().includes('runbook')
+                            ? { icon: <ExternalLinkAltIcon />, iconPosition: 'end' as const }
+                            : {})}
+                        >
+                          {action.label}
+                        </Button>
+                      ))}
                       <Button
-                        key={action.label}
                         variant="link"
                         isInline
                         style={INSIGHTS_LINK}
                         className="pf-v6-u-font-size-sm"
-                        onClick={action.onClick}
-                        {...(action.label.toLowerCase().includes('runbook')
-                          ? { icon: <ExternalLinkAltIcon />, iconPosition: 'end' as const }
-                          : {})}
+                        onClick={() => onAlertRuleClick(rule.name)}
                       >
-                        {action.label}
+                        View alert
                       </Button>
-                    ))}
-                    <Button
-                      variant="link"
-                      isInline
-                      style={INSIGHTS_LINK}
-                      className="pf-v6-u-font-size-sm"
-                      onClick={() => onAlertRuleClick(rule.name)}
-                    >
-                      View alert
-                    </Button>
-                  </Flex>
-                </FlexItem>
+                    </Flex>
+                  </FlexItem>
+                ) : null}
               </Flex>
               <Flex
                 alignItems={{ default: 'alignItemsFlexStart' }}
@@ -164,12 +180,55 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                 </span>
                 <span style={{ fontSize: 'var(--pf-t--global--font--size--sm)', minWidth: 0, flex: 1, lineHeight: 1.5 }}>
                   <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
-                  <span style={AI_INSIGHT_TEXT_STYLE}>{insightCopy}</span>{' '}
+                  <span style={AI_INSIGHT_TEXT_STYLE}>{insightCopy}</span>
+                  {alertActionsLayout === 'fleet-insights' ? (
+                    <>
+                      {' '}
+                      <Button
+                        variant="link"
+                        isInline
+                        className="pf-v6-u-font-size-sm"
+                        style={{ ...INSIGHTS_LINK, padding: 0, verticalAlign: 'baseline' }}
+                        onClick={() =>
+                          onOpenLightspeed({
+                            sourceType: 'alert',
+                            sourceName: rule.name,
+                            aiInsightText: insightCopy,
+                          })
+                        }
+                      >
+                        Investigate with AI
+                      </Button>
+                    </>
+                  ) : null}
+                </span>
+              </Flex>
+              {alertActionsLayout === 'ai-hub' ? (
+                <Flex
+                  className="ols-aio-top-alerts-ai-hub-actions"
+                  flexWrap={{ default: 'nowrap' }}
+                  gap={{ default: 'gapMd' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  style={{
+                    marginTop: 'var(--pf-t--global--spacer--sm)',
+                    width: '100%',
+                    minWidth: 0,
+                  }}
+                >
                   <Button
                     variant="link"
                     isInline
+                    style={INSIGHTS_LINK}
                     className="pf-v6-u-font-size-sm"
-                    style={{ ...INSIGHTS_LINK, padding: 0, verticalAlign: 'baseline' }}
+                    onClick={() => onAlertRuleClick(rule.name)}
+                  >
+                    View alert
+                  </Button>
+                  <Button
+                    variant="link"
+                    isInline
+                    style={INSIGHTS_LINK}
+                    className="pf-v6-u-font-size-sm"
                     onClick={() =>
                       onOpenLightspeed({
                         sourceType: 'alert',
@@ -180,8 +239,19 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                   >
                     Investigate with AI
                   </Button>
-                </span>
-              </Flex>
+                  <Button
+                    variant="link"
+                    isInline
+                    style={INSIGHTS_LINK}
+                    className="pf-v6-u-font-size-sm"
+                    onClick={runbookAction.onClick}
+                    icon={<ExternalLinkAltIcon />}
+                    iconPosition="end"
+                  >
+                    {runbookAction.label}
+                  </Button>
+                </Flex>
+              ) : null}
             </div>
           );
         })}

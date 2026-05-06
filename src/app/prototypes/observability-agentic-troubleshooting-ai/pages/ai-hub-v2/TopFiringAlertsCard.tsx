@@ -66,6 +66,7 @@ export const TopFiringAlertsCard: React.FC = () => {
       onViewAllFiringAlerts,
       showSectionHeading: false as const,
       getAiInsightCopy: getFleetTopAlertInsightDisplay,
+      alertActionsLayout: 'ai-hub' as const,
     }),
     [alertRuleData, totalFiringAlertsCount, hasAlertData, onAlertRuleClick, onOpenLightspeed, onViewAllFiringAlerts]
   );
