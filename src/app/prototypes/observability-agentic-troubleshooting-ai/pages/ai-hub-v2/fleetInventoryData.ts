@@ -4,8 +4,8 @@
  */
 import type { ClusterRecord } from '../../components/autonomousAiObserve/data';
 import {
-  ALERTS,
   CLUSTERS,
+  fleetHubTotalFiringAlertsCount,
   getAlertsForCluster,
   getClusterById,
 } from '../../components/autonomousAiObserve/data';
@@ -27,7 +27,8 @@ export function getFleetInventoryMetrics(): FleetInventoryMetrics {
     nodes: CLUSTERS.reduce((sum, c) => sum + c.nodes, 0),
     namespaces: FLEET_INVENTORY_NAMESPACE_TOTAL,
     workloads: FLEET_INVENTORY_WORKLOAD_TOTAL,
-    alerts: ALERTS.length,
+    /** Matches Fleet Summary / Top firing alerts (`ALERTS` + fleet-wide ingress attributions). */
+    alerts: fleetHubTotalFiringAlertsCount(),
   };
 }
 

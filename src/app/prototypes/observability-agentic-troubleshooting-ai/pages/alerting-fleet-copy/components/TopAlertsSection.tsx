@@ -55,6 +55,8 @@ export interface TopAlertsSectionProps {
    * `ai-hub` — View alert → Investigate with AI → View Runbook on one line below the AI insight block (AI Hub Top firing alerts).
    */
   alertActionsLayout?: 'fleet-insights' | 'ai-hub';
+  /** When false, do not render the footer “View all firing alerts” row (e.g. card header supplies it). */
+  showViewAllFiringAlertsFooter?: boolean;
 }
 
 /**
@@ -70,6 +72,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
   showSectionHeading = true,
   getAiInsightCopy,
   alertActionsLayout = 'fleet-insights',
+  showViewAllFiringAlertsFooter = true,
 }) => {
   if (!hasAlertData) {
     return (
@@ -209,6 +212,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                   flexWrap={{ default: 'nowrap' }}
                   gap={{ default: 'gapMd' }}
                   alignItems={{ default: 'alignItemsCenter' }}
+                  justifyContent={{ default: 'justifyContentFlexEnd' }}
                   style={{
                     marginTop: 'var(--pf-t--global--spacer--sm)',
                     width: '100%',
@@ -256,13 +260,13 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
           );
         })}
       </div>
-      {totalFiringAlertsCount > 0 && (
+      {totalFiringAlertsCount > 0 && showViewAllFiringAlertsFooter ? (
         <div className="pf-v6-u-pt-md" style={{ paddingBottom: 24 }}>
           <Button variant="link" isInline onClick={() => onViewAllFiringAlerts?.()} isDisabled={!onViewAllFiringAlerts}>
             View all firing alerts ({totalFiringAlertsCount})
           </Button>
         </div>
-      )}
+      ) : null}
     </>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardBody, CardExpandableContent, CardHeader, CardTitle } from '@patternfly/react-core';
+import { Button, Card, CardBody, CardExpandableContent, CardHeader, CardTitle } from '@patternfly/react-core';
 import {
   buildFleetTopFiringAlertRuleRows,
   fleetHubTotalFiringAlertsCount,
@@ -67,6 +67,7 @@ export const TopFiringAlertsCard: React.FC = () => {
       showSectionHeading: false as const,
       getAiInsightCopy: getFleetTopAlertInsightDisplay,
       alertActionsLayout: 'ai-hub' as const,
+      showViewAllFiringAlertsFooter: false as const,
     }),
     [alertRuleData, totalFiringAlertsCount, hasAlertData, onAlertRuleClick, onOpenLightspeed, onViewAllFiringAlerts]
   );
@@ -89,6 +90,25 @@ export const TopFiringAlertsCard: React.FC = () => {
             id: `${TOP_FIRING_CARD_ID}-toggle`,
             'aria-label': 'Toggle Top firing alerts section',
           }}
+          actions={
+            totalFiringAlertsCount > 0
+              ? {
+                  actions: (
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewAllFiringAlerts();
+                      }}
+                      aria-label={`View all firing alerts, ${totalFiringAlertsCount} total`}
+                    >
+                      View all firing alerts ({totalFiringAlertsCount})
+                    </Button>
+                  ),
+                }
+              : undefined
+          }
         >
           <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
             Top firing alerts
