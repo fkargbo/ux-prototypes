@@ -212,7 +212,6 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                   flexWrap={{ default: 'nowrap' }}
                   gap={{ default: 'gapMd' }}
                   alignItems={{ default: 'alignItemsCenter' }}
-                  justifyContent={{ default: 'justifyContentFlexEnd' }}
                   style={{
                     marginTop: 'var(--pf-t--global--spacer--sm)',
                     width: '100%',

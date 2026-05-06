@@ -19,8 +19,6 @@ import {
   EmptyStateVariant,
   Flex,
   FlexItem,
-  Gallery,
-  GalleryItem,
   Grid,
   GridItem,
   Label,
@@ -34,19 +32,16 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  GlobeIcon,
 } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
   ALERTS,
   AWAY_DIGEST_ITEMS,
   buildClusterAwayDigestItems,
   buildClusterSeverityBreakdown,
-  buildFleetSeverityBreakdown,
   CLUSTERS,
   DEFAULT_CORE_PLATFORMS_CLUSTER_ID,
-  computeFleetStats,
-  fleetCriticalAttributionCount,
   fleetWideCriticalAddsForCluster,
   getAlertsForCluster,
   getClusterById,
@@ -108,15 +103,9 @@ function alertingHref(options: {
   return `/core/observe/alerting?${params.toString()}`;
 }
 
-function clusterDrillHref(clusterId: string, target: 'alert-critical' | 'alert-warning' | 'nodes'): string {
-  const enc = encodeURIComponent(clusterId);
-  if (target === 'alert-critical') {
-    return alertingHref({ tab: 'alerts', severity: 'critical', clusterId });
-  }
-  if (target === 'alert-warning') {
-    return alertingHref({ tab: 'alerts', severity: 'warning', clusterId });
-  }
-  return `/core/observe/nodes?scope=cluster&cluster=${enc}`;
+/** Firing alert rows attributed to a cluster (`ALERTS` plus fleet-wide ingress synthetic attribution when applicable). */
+function clusterFireCount(clusterId: string): number {
+  return ALERTS.filter((a) => a.clusterId === clusterId).length + fleetWideCriticalAddsForCluster(clusterId);
 }
 
 type ObserveMetricStatCardProps = {
@@ -241,11 +230,6 @@ function capitalizeLabelWord(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
-/** Type label text (prod / staging / dev) — first letter capitalized. */
-function clusterTypeLabelText(env: ClusterRecord['env']): string {
-  return capitalizeLabelWord(env);
-}
-
 /** Health label text shown on the tile (matches `ClusterHealth` vocabulary). */
 function clusterHealthLabelText(health: ClusterHealth): string {
   if (health === 'degraded') {
@@ -354,14 +338,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
     });
   }, []);
 
-  const fleetStats = useMemo(
-    () => computeFleetStats(CLUSTERS, ALERTS, fleetCriticalAttributionCount()),
-    []
-  );
-
-  const fleetCriticalBreakdown = useMemo(() => buildFleetSeverityBreakdown('critical'), []);
-  const fleetWarningBreakdown = useMemo(() => buildFleetSeverityBreakdown('warning'), []);
-
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
 
   const selectedCluster = useMemo(
@@ -435,7 +411,10 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
     [selectedClusterId]
   );
 
-  const degradedCount = CLUSTERS.filter((c) => c.health !== 'healthy').length;
+  const drillIntoClusterFromFleetOverview = useCallback((clusterId: string) => {
+    setSelectedClusterId(clusterId);
+    setFleetClusterDrillDown(true);
+  }, []);
 
   return (
     <SimulationProvider>
@@ -584,329 +563,149 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
               </StackItem>
 
               <StackItem>
-                <Card className="ols-aio-subcard" isCompact isExpanded={fleetSummaryOpen} id={`${WIDGET_ID}-fleet-summary`}>
-                  <CardHeader
-                    onExpand={() => setFleetSummaryOpen((o) => !o)}
-                    toggleButtonProps={{
-                      id: `${WIDGET_ID}-fleet-summary-toggle`,
-                      'aria-label': 'Toggle Fleet Summary section',
-                    }}
-                    actions={{
-                      actions: (
-                        <Button
-                          variant="link"
-                          isInline
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }));
-                          }}
-                          aria-label="Open Alerting Fleet overview filtered to currently surfaced Autonomous analysis alerts"
-                        >
-                          View alerts
-                        </Button>
-                      ),
-                    }}
-                  >
-                    <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                      <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
-                        Fleet Summary
-                      </CardTitle>
-                    </Flex>
-                  </CardHeader>
-                  <CardExpandableContent>
-                    <CardBody>
-                      <Grid hasGutter className="ols-aio-gutter-24">
-                        <GridItem span={12} md={6} lg={3}>
-                          <ObserveMetricStatCard
-                            cardTitle="Critical alerts"
-                            titleIcon={
-                              <ExclamationCircleIcon
-                                style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
-                              />
-                            }
-                            statistic={fleetStats.criticalCount}
-                            statisticAriaLabel="Open Alerting Fleet overview, critical severity filtered, AI Hub clusters only (matches Observe fleet counts)"
-                            statisticInteractive
-                            onStatisticClick={() =>
-                              navigate(
-                                alertingHref({ tab: 'fleet-overview', severity: 'critical', aiHubFleetScope: true })
-                              )
-                            }
-                            statisticTooltip={
-                              <AlertKpiTooltip bucketLabel="Critical alerts" rows={fleetCriticalBreakdown} />
-                            }
-                            caption="Across all clusters"
-                          />
-                        </GridItem>
-                        <GridItem span={12} md={6} lg={3}>
-                          <ObserveMetricStatCard
-                            cardTitle="Warning alerts"
-                            titleIcon={
-                              <ExclamationTriangleIcon
-                                style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
-                              />
-                            }
-                            statistic={fleetStats.warningCount}
-                            statisticAriaLabel="Open Alerting Fleet overview, warning severity filtered, AI Hub clusters only (matches Observe fleet counts)"
-                            statisticInteractive
-                            onStatisticClick={() =>
-                              navigate(
-                                alertingHref({ tab: 'fleet-overview', severity: 'warning', aiHubFleetScope: true })
-                              )
-                            }
-                            statisticTooltip={
-                              <AlertKpiTooltip bucketLabel="Warning alerts" rows={fleetWarningBreakdown} />
-                            }
-                            caption="Across all clusters"
-                          />
-                        </GridItem>
-                        <GridItem span={12} md={6} lg={3}>
-                          <ObserveMetricStatCard
-                            cardTitle="Clusters degraded"
-                            titleIcon={
-                              <ExclamationTriangleIcon
-                                style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
-                              />
-                            }
-                            statistic={
-                              <>
-                                {degradedCount} / {fleetStats.totalClusters}
-                              </>
-                            }
-                            statisticAriaLabel="Clusters degraded versus total fleet size"
-                            statisticInteractive={false}
-                            onStatisticClick={() => {}}
-                            caption="Non-healthy"
-                          />
-                        </GridItem>
-                        <GridItem span={12} md={6} lg={3}>
-                          <ObserveMetricStatCard
-                            cardTitle="Total nodes"
-                            statistic={fleetStats.totalNodes}
-                            statisticAriaLabel="Total nodes in fleet"
-                            statisticInteractive={false}
-                            onStatisticClick={() => {}}
-                            caption={`${fleetStats.totalClusters} clusters`}
-                          />
-                        </GridItem>
-                      </Grid>
-                    </CardBody>
-                  </CardExpandableContent>
-                </Card>
-              </StackItem>
-
-              <StackItem>
-                <Card className="ols-aio-subcard" isCompact isExpanded={clustersOpen} id={`${WIDGET_ID}-clusters`}>
-                  <CardHeader
-                    onExpand={() => setClustersOpen((o) => !o)}
-                    toggleButtonProps={{
-                      id: `${WIDGET_ID}-clusters-toggle`,
-                      'aria-label': 'Toggle Clusters section',
-                    }}
-                  >
-                    <Stack>
-                      <StackItem>
-                        <CardTitle component="h3" className="ols-aio-fleet-subcard-title" style={{ marginBottom: 0 }}>
-                          Clusters
-                        </CardTitle>
-                      </StackItem>
-                      <StackItem>
-                        <Content
-                          component="p"
-                          style={{
-                            margin: 0,
-                            fontSize: '14px',
-                            color: 'var(--pf-t--global--text--color--subtle)',
-                          }}
-                        >
-                          Click any cluster to drill in.
-                        </Content>
-                      </StackItem>
-                    </Stack>
-                  </CardHeader>
-                  <CardExpandableContent>
-                    <CardBody>
-                      <Gallery hasGutter className="ols-aio-gutter-24">
-                        {CLUSTERS.map((c) => {
-                          const crit =
-                            ALERTS.filter((a) => a.clusterId === c.id && a.severity === 'critical').length +
-                            fleetWideCriticalAddsForCluster(c.id);
-                          const warn = ALERTS.filter((a) => a.clusterId === c.id && a.severity === 'warning').length;
-                          const healthStatus = healthToLabelStatus(c.health);
-                          const healthIcon =
-                            c.health === 'healthy' ? (
-                              <CheckCircleIcon />
-                            ) : c.health === 'degraded' ? (
-                              <ExclamationTriangleIcon />
-                            ) : (
-                              <ExclamationCircleIcon />
-                            );
-                          return (
-                            <GalleryItem key={c.id}>
-                              <div
-                                className={
-                                  selectedClusterId === c.id
-                                    ? 'ols-aio-cluster-gallery-tile ols-aio-cluster-gallery-tile--current'
-                                    : 'ols-aio-cluster-gallery-tile'
-                                }
-                                role="button"
-                                tabIndex={0}
-                                aria-label={`Drill into ${c.name} in Autonomous analysis (Fleet management)`}
-                                onClick={() => {
-                                  setSelectedClusterId(c.id);
-                                  setFleetClusterDrillDown(true);
-                                }}
-                                onKeyDown={(event: React.KeyboardEvent) => {
-                                  if (event.key === 'Enter' || event.key === ' ') {
-                                    event.preventDefault();
-                                    setSelectedClusterId(c.id);
-                                    setFleetClusterDrillDown(true);
-                                  }
-                                }}
-                              >
-                                <Card isCompact>
-                                  <CardBody>
-                                  <Flex
-                                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                                    alignItems={{ default: 'alignItemsFlexStart' }}
-                                    flexWrap={{ default: 'nowrap' }}
+                <Grid hasGutter className="ols-aio-gutter-24 ols-aio-fleet-summary-clusters-grid">
+                  <GridItem span={12} lg={6} className="ols-aio-fleet-summary-clusters-item">
+                    <Card className="ols-aio-subcard" isCompact isExpanded={fleetSummaryOpen} id={`${WIDGET_ID}-fleet-summary`}>
+                      <CardHeader
+                        onExpand={() => setFleetSummaryOpen((o) => !o)}
+                        toggleButtonProps={{
+                          id: `${WIDGET_ID}-fleet-summary-toggle`,
+                          'aria-label': 'Toggle Fleet Summary section',
+                        }}
+                        actions={{
+                          actions: (
+                            <Button
+                              variant="link"
+                              isInline
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }));
+                              }}
+                              aria-label="Open Alerting Fleet overview filtered to currently surfaced Autonomous analysis alerts"
+                            >
+                              View alerts
+                            </Button>
+                          ),
+                        }}
+                      >
+                        <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                          <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
+                            Fleet Summary
+                          </CardTitle>
+                        </Flex>
+                      </CardHeader>
+                      <CardExpandableContent>
+                        <CardBody>
+                          <Table
+                            aria-label="Fleet summary by cluster"
+                            variant="compact"
+                            borders
+                            gridBreakPoint=""
+                          >
+                            <Thead>
+                              <Tr>
+                                <Th modifier="wrap">Cluster</Th>
+                                <Th modifier="wrap">Provider</Th>
+                                <Th modifier="nowrap">Total nodes</Th>
+                                <Th modifier="wrap">Cluster status</Th>
+                                <Th modifier="nowrap">Version</Th>
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              {CLUSTERS.map((c) => {
+                                const healthStatus = healthToLabelStatus(c.health);
+                                const healthIcon =
+                                  c.health === 'healthy' ? (
+                                    <CheckCircleIcon />
+                                  ) : c.health === 'degraded' ? (
+                                    <ExclamationTriangleIcon />
+                                  ) : (
+                                    <ExclamationCircleIcon />
+                                  );
+                                return (
+                                  <Tr
+                                    key={c.id}
+                                    isClickable
+                                    isRowSelected={selectedClusterId === c.id}
+                                    onRowClick={() => drillIntoClusterFromFleetOverview(c.id)}
                                   >
-                                    <FlexItem style={{ flex: '1 1 auto', minWidth: 0, marginRight: 'var(--pf-t--global--spacer--sm)' }}>
-                                      <Title
-                                        headingLevel="h4"
-                                        size="md"
-                                        style={{
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                          whiteSpace: 'nowrap',
-                                        }}
-                                      >
-                                        {c.name}
-                                      </Title>
-                                      <Flex
-                                        alignItems={{ default: 'alignItemsCenter' }}
-                                        flexWrap={{ default: 'nowrap' }}
-                                        style={{ marginTop: 'var(--pf-t--global--spacer--xs)', minWidth: 0 }}
-                                      >
-                                        <GlobeIcon
-                                          style={{
-                                            marginRight: 'var(--pf-t--global--spacer--xs)',
-                                            flexShrink: 0,
-                                          }}
-                                        />
-                                        <span
-                                          className="ols-aio-text-subtle-sm"
-                                          style={{
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                            minWidth: 0,
-                                          }}
-                                        >
-                                          {c.provider} · {c.region}
-                                        </span>
-                                      </Flex>
-                                    </FlexItem>
-                                    <FlexItem style={{ flexShrink: 0 }}>
+                                    <Td>{c.name}</Td>
+                                    <Td>{c.provider}</Td>
+                                    <Td>{c.nodes}</Td>
+                                    <Td>
                                       <Label status={healthStatus} icon={healthIcon} isCompact>
                                         {clusterHealthLabelText(c.health)}
                                       </Label>
-                                    </FlexItem>
-                                  </Flex>
-                                  <Flex
-                                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                                    alignItems={{ default: 'alignItemsCenter' }}
-                                    style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
-                                  >
-                                    <Label color="grey" variant="outline" isCompact>
-                                      {clusterTypeLabelText(c.env)}
-                                    </Label>
-                                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }} flexWrap={{ default: 'wrap' }}>
-                                      {crit === 0 && warn === 0 ? (
-                                        <span className="ols-aio-text-subtle-sm">no alerts</span>
-                                      ) : (
-                                        <>
-                                          {crit > 0 ? (
-                                            <Flex
-                                              alignItems={{ default: 'alignItemsCenter' }}
-                                              gap={{ default: 'gapSm' }}
-                                              flexWrap={{ default: 'nowrap' }}
-                                            >
-                                              <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true">
-                                                <ExclamationCircleIcon
-                                                  style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
-                                                />
-                                              </span>
-                                              <Button
-                                                variant="link"
-                                                isInline
-                                                className="ols-aio-card-stat-number--drill"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  navigate(clusterDrillHref(c.id, 'alert-critical'));
-                                                }}
-                                                aria-label={`Open critical alerts for ${c.name}`}
-                                              >
-                                                {crit}
-                                              </Button>
-                                            </Flex>
-                                          ) : null}
-                                          {warn > 0 ? (
-                                            <Flex
-                                              alignItems={{ default: 'alignItemsCenter' }}
-                                              gap={{ default: 'gapSm' }}
-                                              flexWrap={{ default: 'nowrap' }}
-                                            >
-                                              <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true">
-                                                <ExclamationTriangleIcon
-                                                  style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
-                                                />
-                                              </span>
-                                              <Button
-                                                variant="link"
-                                                isInline
-                                                className="ols-aio-card-stat-number--drill"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  navigate(clusterDrillHref(c.id, 'alert-warning'));
-                                                }}
-                                                aria-label={`Open warning alerts for ${c.name}`}
-                                              >
-                                                {warn}
-                                              </Button>
-                                            </Flex>
-                                          ) : null}
-                                        </>
-                                      )}
-                                    </Flex>
-                                  </Flex>
-                                  <Flex
-                                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                                    style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
-                                  >
-                                    <span
-                                      className="ols-aio-text-subtle-sm"
-                                      style={{ fontVariantNumeric: 'tabular-nums' }}
-                                    >
-                                      v{c.version}
-                                    </span>
-                                    <span
-                                      className="ols-aio-text-subtle-sm"
-                                      style={{ fontVariantNumeric: 'tabular-nums' }}
-                                    >
-                                      {c.nodes} nodes
-                                    </span>
-                                  </Flex>
-                                  </CardBody>
-                                </Card>
-                              </div>
-                            </GalleryItem>
-                          );
-                        })}
-                      </Gallery>
-                    </CardBody>
-                  </CardExpandableContent>
-                </Card>
+                                    </Td>
+                                    <Td modifier="nowrap">v{c.version}</Td>
+                                  </Tr>
+                                );
+                              })}
+                            </Tbody>
+                          </Table>
+                        </CardBody>
+                      </CardExpandableContent>
+                    </Card>
+                  </GridItem>
+                  <GridItem span={12} lg={6} className="ols-aio-fleet-summary-clusters-item">
+                    <Card className="ols-aio-subcard" isCompact isExpanded={clustersOpen} id={`${WIDGET_ID}-clusters`}>
+                      <CardHeader
+                        onExpand={() => setClustersOpen((o) => !o)}
+                        toggleButtonProps={{
+                          id: `${WIDGET_ID}-clusters-toggle`,
+                          'aria-label': 'Toggle Clusters section',
+                        }}
+                      >
+                        <Stack>
+                          <StackItem>
+                            <CardTitle component="h3" className="ols-aio-fleet-subcard-title" style={{ marginBottom: 0 }}>
+                              Clusters
+                            </CardTitle>
+                          </StackItem>
+                          <StackItem>
+                            <Content
+                              component="p"
+                              style={{
+                                margin: 0,
+                                fontSize: '14px',
+                                color: 'var(--pf-t--global--text--color--subtle)',
+                              }}
+                            >
+                              Click any cluster row to drill in.
+                            </Content>
+                          </StackItem>
+                        </Stack>
+                      </CardHeader>
+                      <CardExpandableContent>
+                        <CardBody>
+                          <Table aria-label="Clusters" variant="compact" borders gridBreakPoint="">
+                            <Thead>
+                              <Tr>
+                                <Th modifier="wrap">Cluster name</Th>
+                                <Th modifier="nowrap">Alert amount</Th>
+                                <Th modifier="wrap">Region</Th>
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              {CLUSTERS.map((c) => (
+                                <Tr
+                                  key={c.id}
+                                  isClickable
+                                  isRowSelected={selectedClusterId === c.id}
+                                  onRowClick={() => drillIntoClusterFromFleetOverview(c.id)}
+                                >
+                                  <Td>{c.name}</Td>
+                                  <Td>{clusterFireCount(c.id)}</Td>
+                                  <Td>{c.region}</Td>
+                                </Tr>
+                              ))}
+                            </Tbody>
+                          </Table>
+                        </CardBody>
+                      </CardExpandableContent>
+                    </Card>
+                  </GridItem>
+                </Grid>
               </StackItem>
             </Stack>
           ) : selectedCluster ? (

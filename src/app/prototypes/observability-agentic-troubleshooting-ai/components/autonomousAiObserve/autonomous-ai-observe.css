@@ -192,10 +192,29 @@ span.ols-aio-card-stat-number {
   min-height: 0;
 }
 
-/* Top firing alerts (ai-hub): keep action links on one line; allow horizontal scroll if the card is narrow. */
+/* Fleet Summary + Clusters row: side-by-side cards stretch to row height. */
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-summary-clusters-grid {
+  align-items: stretch;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-summary-clusters-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-summary-clusters-item > .pf-v6-c-card {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+/* Top firing alerts (ai-hub): align link row with AI insight text (skip icon column); left-justify links. */
 .ols-autonomous-ai-observe-widget .ols-aio-top-alerts-ai-hub-actions {
   flex-wrap: nowrap;
   overflow-x: auto;
+  justify-content: flex-start;
+  padding-inline-start: calc(16px + var(--pf-t--global--spacer--xs));
 }
 
 /* Section titles — Fleet overview expandable cards (18px). */
