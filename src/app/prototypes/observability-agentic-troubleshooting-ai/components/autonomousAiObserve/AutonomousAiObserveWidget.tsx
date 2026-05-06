@@ -595,7 +595,7 @@ export const AutonomousAiObserveWidget: React.FC = () => {
         </Flex>
       ) : null}
 
-      <Card id={WIDGET_ID} isCompact isExpanded={widgetExpanded}>
+      <Card id={WIDGET_ID} className="ols-autonomous-ai-observe-widget" isCompact isExpanded={widgetExpanded}>
       <CardHeader
         onExpand={onWidgetExpand}
         toggleButtonProps={{
