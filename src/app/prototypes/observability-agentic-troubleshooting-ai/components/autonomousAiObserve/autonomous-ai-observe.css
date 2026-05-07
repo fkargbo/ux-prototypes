@@ -302,6 +302,22 @@ span.ols-aio-card-stat-number {
   align-items: center;
 }
 
+/* While-you-were-away: inner scroll mask region (mirrors top firing containment behavior). */
+.ols-autonomous-ai-observe-widget .ols-aio-away-card-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-scroll-region {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 2px;
+}
+
 /* OpenShift-style alert summary: icon in gutter; name, date, and message share one text column. */
 .ols-aio-alert-summary {
   display: grid;

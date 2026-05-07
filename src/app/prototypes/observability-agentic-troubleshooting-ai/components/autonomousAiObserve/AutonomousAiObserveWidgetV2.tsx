@@ -540,54 +540,56 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                     </Stack>
                   </CardHeader>
                   <CardExpandableContent>
-                    <CardBody>
-                      {fleetAwayDigestItems.length === 0 ? (
-                        <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                          <EmptyStateBody>
-                            <Title headingLevel="h4" size="lg">
-                              You&apos;re all caught up
-                            </Title>
-                            <Content
-                              component="p"
-                              style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}
-                            >
-                              There are currently no active alerts requiring your attention.
-                            </Content>
-                          </EmptyStateBody>
-                        </EmptyState>
-                      ) : (
-                        <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                          {fleetAwayDigestItems.map((item) => (
-                            <StackItem key={item.text}>
-                              <Alert
-                                isInline
-                                isExpandable
-                                variant={item.tone}
-                                className="ols-aio-away-alert"
-                                title={item.text}
-                                toggleAriaLabel={`Toggle details: ${item.text}`}
-                                customIcon={
-                                  <span className="ols-aio-away-alert-icon-wrap" aria-hidden="true">
-                                    <span className="ols-aio-away-alert-time">{item.timestamp}</span>
-                                    <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
-                                  </span>
-                                }
+                    <CardBody className="ols-aio-away-card-body">
+                      <div className="ols-aio-away-scroll-region">
+                        {fleetAwayDigestItems.length === 0 ? (
+                          <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                            <EmptyStateBody>
+                              <Title headingLevel="h4" size="lg">
+                                You&apos;re all caught up
+                              </Title>
+                              <Content
+                                component="p"
+                                style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}
                               >
-                                <Content
-                                  component="p"
-                                  className="ols-aio-text-subtle-sm"
-                                  style={{
-                                    marginTop: 0,
-                                    marginBottom: 0,
-                                  }}
+                                There are currently no active alerts requiring your attention.
+                              </Content>
+                            </EmptyStateBody>
+                          </EmptyState>
+                        ) : (
+                          <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                            {fleetAwayDigestItems.map((item) => (
+                              <StackItem key={item.text}>
+                                <Alert
+                                  isInline
+                                  isExpandable
+                                  variant={item.tone}
+                                  className="ols-aio-away-alert"
+                                  title={item.text}
+                                  toggleAriaLabel={`Toggle details: ${item.text}`}
+                                  customIcon={
+                                    <span className="ols-aio-away-alert-icon-wrap" aria-hidden="true">
+                                      <span className="ols-aio-away-alert-time">{item.timestamp}</span>
+                                      <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
+                                    </span>
+                                  }
                                 >
-                                  {item.meta}
-                                </Content>
-                              </Alert>
-                            </StackItem>
-                          ))}
-                        </Stack>
-                      )}
+                                  <Content
+                                    component="p"
+                                    className="ols-aio-text-subtle-sm"
+                                    style={{
+                                      marginTop: 0,
+                                      marginBottom: 0,
+                                    }}
+                                  >
+                                    {item.meta}
+                                  </Content>
+                                </Alert>
+                              </StackItem>
+                            ))}
+                          </Stack>
+                        )}
+                      </div>
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
@@ -767,54 +769,56 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                     </Stack>
                   </CardHeader>
                   <CardExpandableContent>
-                    <CardBody>
-                      {clusterAwayDigestItems.length === 0 ? (
-                        <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                          <EmptyStateBody>
-                            <Title headingLevel="h4" size="lg">
-                              You&apos;re all caught up
-                            </Title>
-                            <Content
-                              component="p"
-                              style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}
-                            >
-                              There are currently no active digest items for {selectedCluster.name}.
-                            </Content>
-                          </EmptyStateBody>
-                        </EmptyState>
-                      ) : (
-                        <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                          {clusterAwayDigestItems.map((item) => (
-                            <StackItem key={item.text}>
-                              <Alert
-                                isInline
-                                isExpandable
-                                variant={item.tone}
-                                className="ols-aio-away-alert"
-                                title={item.text}
-                                toggleAriaLabel={`Toggle details: ${item.text}`}
-                                customIcon={
-                                  <span className="ols-aio-away-alert-icon-wrap" aria-hidden="true">
-                                    <span className="ols-aio-away-alert-time">{item.timestamp}</span>
-                                    <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
-                                  </span>
-                                }
+                    <CardBody className="ols-aio-away-card-body">
+                      <div className="ols-aio-away-scroll-region">
+                        {clusterAwayDigestItems.length === 0 ? (
+                          <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                            <EmptyStateBody>
+                              <Title headingLevel="h4" size="lg">
+                                You&apos;re all caught up
+                              </Title>
+                              <Content
+                                component="p"
+                                style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}
                               >
-                                <Content
-                                  component="p"
-                                  className="ols-aio-text-subtle-sm"
-                                  style={{
-                                    marginTop: 0,
-                                    marginBottom: 0,
-                                  }}
+                                There are currently no active digest items for {selectedCluster.name}.
+                              </Content>
+                            </EmptyStateBody>
+                          </EmptyState>
+                        ) : (
+                          <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                            {clusterAwayDigestItems.map((item) => (
+                              <StackItem key={item.text}>
+                                <Alert
+                                  isInline
+                                  isExpandable
+                                  variant={item.tone}
+                                  className="ols-aio-away-alert"
+                                  title={item.text}
+                                  toggleAriaLabel={`Toggle details: ${item.text}`}
+                                  customIcon={
+                                    <span className="ols-aio-away-alert-icon-wrap" aria-hidden="true">
+                                      <span className="ols-aio-away-alert-time">{item.timestamp}</span>
+                                      <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
+                                    </span>
+                                  }
                                 >
-                                  {item.meta}
-                                </Content>
-                              </Alert>
-                            </StackItem>
-                          ))}
-                        </Stack>
-                      )}
+                                  <Content
+                                    component="p"
+                                    className="ols-aio-text-subtle-sm"
+                                    style={{
+                                      marginTop: 0,
+                                      marginBottom: 0,
+                                    }}
+                                  >
+                                    {item.meta}
+                                  </Content>
+                                </Alert>
+                              </StackItem>
+                            ))}
+                          </Stack>
+                        )}
+                      </div>
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
