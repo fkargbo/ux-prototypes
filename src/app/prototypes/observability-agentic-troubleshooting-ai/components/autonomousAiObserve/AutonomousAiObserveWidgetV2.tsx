@@ -544,7 +544,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                   component="p"
                                   className="ols-aio-text-subtle-sm"
                                   style={{
-                                    marginTop: 'var(--pf-t--global--spacer--xs)',
+                                    marginTop: 0,
                                     marginBottom: 0,
                                   }}
                                 >
@@ -794,7 +794,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                   component="p"
                                   className="ols-aio-text-subtle-sm"
                                   style={{
-                                    marginTop: 'var(--pf-t--global--spacer--xs)',
+                                    marginTop: 0,
                                     marginBottom: 0,
                                   }}
                                 >
