@@ -584,26 +584,31 @@ export function buildFleetWideIngressAlertRecordForCluster(clusterId: string): A
 /** Digest rows for “While you were away” — fixed copy per spec */
 export const AWAY_DIGEST_ITEMS: Array<{
   tone: 'danger' | 'success' | 'warning' | 'info';
+  timestamp: string;
   text: string;
   meta: string;
 }> = [
   {
     tone: 'danger',
+    timestamp: '13:48 UTC',
     text: '3 new critical alerts fired',
     meta: 'RegionalIngressFailure (fleet) · PaymentsAPI5xxSurge · EtcdDiskPressureOnMaster2',
   },
   {
     tone: 'success',
+    timestamp: '13:52 UTC',
     text: 'Agent auto-remediated 3 incidents',
     meta: 'checkout-svc HPA · ingress restart · pod evict',
   },
   {
     tone: 'warning',
+    timestamp: '13:56 UTC',
     text: '1 cluster degraded → recovered',
     meta: 'prod-eu-west-1 · 6m downtime',
   },
   {
     tone: 'info',
+    timestamp: '14:01 UTC',
     text: 'Fleet alerts went 0 → 4 since last visit',
     meta: 'first event at 13:48 UTC',
   },
@@ -612,9 +617,25 @@ export const AWAY_DIGEST_ITEMS: Array<{
 /** Shape shared by fleet mock digest rows and cluster-scoped digest rows. */
 export type AwayDigestItem = {
   tone: 'danger' | 'success' | 'warning' | 'info';
+  timestamp: string;
   text: string;
   meta: string;
 };
+
+/** 24h UTC timestamp used by away-digest rows (aligns with simulation timeline copy). */
+function formatUtcDigestTimestamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return 'recent';
+  }
+  const hhmm = d.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'UTC',
+  });
+  return `${hhmm} UTC`;
+}
 
 export function getClusterById(id: string): ClusterRecord | undefined {
   return CLUSTERS.find((c) => c.id === id);
@@ -759,11 +780,19 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   const perClusterAlerts = sortAlertsBySeverityPriority(
     ALERTS.filter((a) => a.clusterId === clusterId)
   );
+  const latestClusterAlertIso = perClusterAlerts.reduce<string | null>((latest, a) => {
+    if (!latest || a.firedAt > latest) {
+      return a.firedAt;
+    }
+    return latest;
+  }, null);
+  const latestClusterTimestamp = latestClusterAlertIso ? formatUtcDigestTimestamp(latestClusterAlertIso) : 'recent';
 
   if (fleetWideCriticalAddsForCluster(clusterId) > 0) {
     const summary = FLEET_WIDE_REGIONAL_INGRESS.aiInsight.narrative ?? FLEET_WIDE_REGIONAL_INGRESS.aiInsight.evidence;
     items.push({
       tone: 'danger',
+      timestamp: formatUtcDigestTimestamp(FLEET_WIDE_REGIONAL_INGRESS.firedAt),
       text: `Fleet incident: ${FLEET_WIDE_REGIONAL_INGRESS.title}`,
       meta: summary.length > 140 ? `${summary.slice(0, 140)}…` : summary,
     });
@@ -773,15 +802,29 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   const warn = perClusterAlerts.filter((a) => a.severity === 'warning');
 
   if (crit.length > 0) {
+    const latestCritIso = crit.reduce<string | null>((latest, a) => {
+      if (!latest || a.firedAt > latest) {
+        return a.firedAt;
+      }
+      return latest;
+    }, null);
     items.push({
       tone: 'danger',
+      timestamp: latestCritIso ? formatUtcDigestTimestamp(latestCritIso) : latestClusterTimestamp,
       text: `${crit.length} critical firing alert${crit.length !== 1 ? 's' : ''}`,
       meta: crit.map((a) => a.title).join(' · '),
     });
   }
   if (warn.length > 0) {
+    const latestWarnIso = warn.reduce<string | null>((latest, a) => {
+      if (!latest || a.firedAt > latest) {
+        return a.firedAt;
+      }
+      return latest;
+    }, null);
     items.push({
       tone: 'warning',
+      timestamp: latestWarnIso ? formatUtcDigestTimestamp(latestWarnIso) : latestClusterTimestamp,
       text: `${warn.length} warning alert${warn.length !== 1 ? 's' : ''}`,
       meta: warn.map((a) => a.title).join(' · '),
     });
@@ -790,6 +833,7 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   if (cluster.agentStatus !== 'idle') {
     items.push({
       tone: cluster.agentStatus === 'escalated' ? 'danger' : 'info',
+      timestamp: latestClusterTimestamp,
       text: `Agent status: ${cluster.agentStatus}`,
       meta: `Single-cluster context · ${cluster.name}`,
     });
@@ -798,6 +842,7 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   if (cluster.health !== 'healthy') {
     items.push({
       tone: cluster.health === 'critical' ? 'danger' : 'warning',
+      timestamp: latestClusterTimestamp,
       text: `Cluster health is ${cluster.health}`,
       meta: `${cluster.nodes} nodes · ${cluster.provider} · ${cluster.region}`,
     });
@@ -806,6 +851,7 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   if (items.length === 0) {
     items.push({
       tone: 'success',
+      timestamp: 'recent',
       text: `No new issues on ${cluster.name}`,
       meta: 'Agent idle · monitoring continues',
     });

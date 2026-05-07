@@ -272,7 +272,6 @@ span.ols-aio-card-stat-number {
   --pf-v6-c-alert__action--MarginBlockEnd: 0;
   --pf-v6-c-alert__action--MarginInlineEnd: 0;
   --pf-v6-c-alert__icon--MarginBlockStart: 0;
-  background-color: #f2f2f2;
   border: 0;
   border-inline-start: 0;
   box-shadow: none;
@@ -283,6 +282,24 @@ span.ols-aio-card-stat-number {
 .ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__title,
 .ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__action {
   align-self: center;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+  white-space: nowrap;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert-time {
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert-severity-icon {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* OpenShift-style alert summary: icon in gutter; name, date, and message share one text column. */

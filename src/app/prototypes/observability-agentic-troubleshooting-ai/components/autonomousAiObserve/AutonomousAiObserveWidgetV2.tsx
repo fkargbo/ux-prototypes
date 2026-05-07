@@ -32,9 +32,10 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
+  InfoCircleIcon,
 } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
+import type { AgentPulseStatus, AwayDigestItem, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
   ALERTS,
   AWAY_DIGEST_ITEMS,
@@ -106,6 +107,19 @@ function alertingHref(options: {
 /** Firing alert rows attributed to a cluster (`ALERTS` plus fleet-wide ingress synthetic attribution when applicable). */
 function clusterFireCount(clusterId: string): number {
   return ALERTS.filter((a) => a.clusterId === clusterId).length + fleetWideCriticalAddsForCluster(clusterId);
+}
+
+function awayDigestSeverityIcon(tone: AwayDigestItem['tone']): React.ReactNode {
+  if (tone === 'danger') {
+    return <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />;
+  }
+  if (tone === 'warning') {
+    return <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)' }} />;
+  }
+  if (tone === 'success') {
+    return <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />;
+  }
+  return <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />;
 }
 
 type ObserveMetricStatCardProps = {
@@ -536,6 +550,12 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                 className="ols-aio-away-alert"
                                 title={item.text}
                                 toggleAriaLabel={`Toggle details: ${item.text}`}
+                                customIcon={
+                                  <span className="ols-aio-away-alert-icon-wrap" aria-hidden="true">
+                                    <span className="ols-aio-away-alert-time">{item.timestamp}</span>
+                                    <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
+                                  </span>
+                                }
                                 actionClose={
                                   <AlertActionCloseButton
                                     onClose={() => dismissFleetAwayDigest(item.text)}
@@ -783,6 +803,12 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                 className="ols-aio-away-alert"
                                 title={item.text}
                                 toggleAriaLabel={`Toggle details: ${item.text}`}
+                                customIcon={
+                                  <span className="ols-aio-away-alert-icon-wrap" aria-hidden="true">
+                                    <span className="ols-aio-away-alert-time">{item.timestamp}</span>
+                                    <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
+                                  </span>
+                                }
                                 actionClose={
                                   <AlertActionCloseButton
                                     onClose={() => dismissClusterAwayDigest(selectedClusterId, item.text)}
