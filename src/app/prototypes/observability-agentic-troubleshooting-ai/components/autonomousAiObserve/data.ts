@@ -590,25 +590,25 @@ export const AWAY_DIGEST_ITEMS: Array<{
 }> = [
   {
     tone: 'danger',
-    timestamp: '13:48 UTC',
+    timestamp: formatLocalDigestTimeFromUtcClock('13:48'),
     text: '3 new critical alerts fired',
     meta: 'RegionalIngressFailure (fleet) · PaymentsAPI5xxSurge · EtcdDiskPressureOnMaster2',
   },
   {
     tone: 'success',
-    timestamp: '13:52 UTC',
+    timestamp: formatLocalDigestTimeFromUtcClock('13:52'),
     text: 'Agent auto-remediated 3 incidents',
     meta: 'checkout-svc HPA · ingress restart · pod evict',
   },
   {
     tone: 'warning',
-    timestamp: '13:56 UTC',
+    timestamp: formatLocalDigestTimeFromUtcClock('13:56'),
     text: '1 cluster degraded → recovered',
     meta: 'prod-eu-west-1 · 6m downtime',
   },
   {
     tone: 'info',
-    timestamp: '14:01 UTC',
+    timestamp: formatLocalDigestTimeFromUtcClock('14:01'),
     text: 'Fleet alerts went 0 → 4 since last visit',
     meta: 'first event at 13:48 UTC',
   },
@@ -622,19 +622,31 @@ export type AwayDigestItem = {
   meta: string;
 };
 
-/** 24h UTC timestamp used by away-digest rows (aligns with simulation timeline copy). */
-function formatUtcDigestTimestamp(iso: string): string {
+/** Viewer-local digest timestamp (24h clock + local timezone abbreviation). */
+function formatLocalDigestTimestamp(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) {
     return 'recent';
   }
-  const hhmm = d.toLocaleTimeString('en-US', {
+  const hhmm = d.toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-    timeZone: 'UTC',
   });
-  return `${hhmm} UTC`;
+  const tzName = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' })
+    .formatToParts(d)
+    .find((part) => part.type === 'timeZoneName')?.value;
+  return tzName ? `${hhmm} ${tzName}` : hhmm;
+}
+
+/** Helper for fixed fleet digest rows authored in UTC clock time (HH:MM) but displayed in viewer-local time. */
+function formatLocalDigestTimeFromUtcClock(utcClock: `${string}:${string}`): string {
+  const today = new Date();
+  const [hh, mm] = utcClock.split(':');
+  const utcIso = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}-${String(
+    today.getUTCDate()
+  ).padStart(2, '0')}T${hh}:${mm}:00.000Z`;
+  return formatLocalDigestTimestamp(utcIso);
 }
 
 export function getClusterById(id: string): ClusterRecord | undefined {
@@ -786,13 +798,13 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
     }
     return latest;
   }, null);
-  const latestClusterTimestamp = latestClusterAlertIso ? formatUtcDigestTimestamp(latestClusterAlertIso) : 'recent';
+  const latestClusterTimestamp = latestClusterAlertIso ? formatLocalDigestTimestamp(latestClusterAlertIso) : 'recent';
 
   if (fleetWideCriticalAddsForCluster(clusterId) > 0) {
     const summary = FLEET_WIDE_REGIONAL_INGRESS.aiInsight.narrative ?? FLEET_WIDE_REGIONAL_INGRESS.aiInsight.evidence;
     items.push({
       tone: 'danger',
-      timestamp: formatUtcDigestTimestamp(FLEET_WIDE_REGIONAL_INGRESS.firedAt),
+      timestamp: formatLocalDigestTimestamp(FLEET_WIDE_REGIONAL_INGRESS.firedAt),
       text: `Fleet incident: ${FLEET_WIDE_REGIONAL_INGRESS.title}`,
       meta: summary.length > 140 ? `${summary.slice(0, 140)}…` : summary,
     });
@@ -810,7 +822,7 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
     }, null);
     items.push({
       tone: 'danger',
-      timestamp: latestCritIso ? formatUtcDigestTimestamp(latestCritIso) : latestClusterTimestamp,
+      timestamp: latestCritIso ? formatLocalDigestTimestamp(latestCritIso) : latestClusterTimestamp,
       text: `${crit.length} critical firing alert${crit.length !== 1 ? 's' : ''}`,
       meta: crit.map((a) => a.title).join(' · '),
     });
@@ -824,7 +836,7 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
     }, null);
     items.push({
       tone: 'warning',
-      timestamp: latestWarnIso ? formatUtcDigestTimestamp(latestWarnIso) : latestClusterTimestamp,
+      timestamp: latestWarnIso ? formatLocalDigestTimestamp(latestWarnIso) : latestClusterTimestamp,
       text: `${warn.length} warning alert${warn.length !== 1 ? 's' : ''}`,
       meta: warn.map((a) => a.title).join(' · '),
     });
