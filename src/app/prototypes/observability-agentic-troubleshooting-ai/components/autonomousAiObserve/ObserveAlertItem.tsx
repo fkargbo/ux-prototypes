@@ -30,7 +30,6 @@ import {
   InfoCircleIcon,
   NetworkIcon,
   SearchIcon,
-  StarIcon,
   TerminalIcon,
   WrenchIcon,
 } from '@patternfly/react-icons';
@@ -318,7 +317,6 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                       gap={{ default: 'gapSm' }}
                       style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
                     >
-                      <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
                       <Button
                         variant="secondary"
                         onClick={() =>
@@ -398,38 +396,28 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                   <pre className="ols-aio-code-block" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     {alert.remediationCommands}
                   </pre>
-                  {onDiscussWithLightspeed ? (
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      gap={{ default: 'gapSm' }}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                    >
-                      <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
-                      <Button
-                        variant="secondary"
-                        onClick={() =>
-                          onDiscussWithLightspeed({
-                            alertId: alert.id,
-                            cardId: 'remediation',
-                            diagnosisName: 'Remediation plan',
-                          })
-                        }
-                      >
-                        Discuss with Lightspeed
-                      </Button>
-                    </Flex>
-                  ) : null}
                   <Flex>
                     <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
                       <Button variant="primary">
                         Apply Fix (Autonomous)
                       </Button>
                     </FlexItem>
-                    <FlexItem>
-                      <Button variant="secondary">
-                        Escalate to human
-                      </Button>
-                    </FlexItem>
+                    {onDiscussWithLightspeed ? (
+                      <FlexItem>
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            onDiscussWithLightspeed({
+                              alertId: alert.id,
+                              cardId: 'remediation',
+                              diagnosisName: 'Remediation plan',
+                            })
+                          }
+                        >
+                          Discuss with Lightspeed
+                        </Button>
+                      </FlexItem>
+                    ) : null}
                   </Flex>
                 </div>
               </ExpandableSection>
