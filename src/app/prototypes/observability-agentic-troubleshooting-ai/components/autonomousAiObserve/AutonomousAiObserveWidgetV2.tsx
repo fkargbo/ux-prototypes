@@ -195,6 +195,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   const [fleetSummaryPage, setFleetSummaryPage] = useState(1);
   const [fleetSummaryPerPage, setFleetSummaryPerPage] = useState(10);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
+  const [remediationScope, setRemediationScope] = useState<'fleet' | 'cluster'>('cluster');
   const fleetAwayDigestItems = useMemo(() => AWAY_DIGEST_ITEMS, []);
 
   const fleetWhileYouWereAwayChipLabel = useMemo(() => awayDigestNewEventsLabel(CLUSTERS.length), []);
@@ -221,20 +222,25 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
 
   const clusterAlerts = useMemo(() => getAlertsForCluster(selectedClusterId), [selectedClusterId]);
 
+  const topAlertsRemediationsAlerts = useMemo(
+    () => (remediationScope === 'fleet' ? ALERTS : clusterAlerts),
+    [remediationScope, clusterAlerts]
+  );
+
   const simulationAlerts = useMemo(
-    () => (showFleetOverview ? ALERTS : clusterAlerts),
-    [showFleetOverview, clusterAlerts]
+    () => (showFleetOverview ? ALERTS : topAlertsRemediationsAlerts),
+    [showFleetOverview, topAlertsRemediationsAlerts]
   );
 
   const [expandedAlerts, setExpandedAlerts] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const next: Record<string, boolean> = {};
-    clusterAlerts.forEach((a, index) => {
+    topAlertsRemediationsAlerts.forEach((a, index) => {
       next[a.id] = index === 0;
     });
     setExpandedAlerts(next);
-  }, [clusterAlerts]);
+  }, [topAlertsRemediationsAlerts]);
 
   const toggleAlert = useCallback((id: string, open: boolean) => {
     setExpandedAlerts((prev) => ({ ...prev, [id]: open }));
@@ -260,7 +266,17 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   );
 
   const drillIntoClusterFromFleetOverview = useCallback((clusterId: string) => {
+    setRemediationScope('cluster');
     setSelectedClusterId(clusterId);
+    if (fleetClusterDrillDownProp === undefined) {
+      setFleetClusterDrillDownInternal(true);
+    }
+    onFleetDrillDownChange?.(true);
+  }, [fleetClusterDrillDownProp, onFleetDrillDownChange]);
+
+  const openFleetWideRemediations = useCallback(() => {
+    setRemediationScope('fleet');
+    setCAlertsOpen(true);
     if (fleetClusterDrillDownProp === undefined) {
       setFleetClusterDrillDownInternal(true);
     }
@@ -467,10 +483,19 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                       <div className="ols-aio-away-card-footer">
                         <Button
                           variant="primary"
-                          onClick={() => navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }))}
-                          aria-label={`Open recommended remediations, ${fleetRecommendedRemediationCount} suggested`}
+                          onClick={openFleetWideRemediations}
+                          aria-label={`View remediations, ${fleetRecommendedRemediationCount} suggested`}
                         >
-                          Recommended remediations ({fleetRecommendedRemediationCount})
+                          <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
+                            <img
+                              src={AI_EXPERIENCE_ICON_DATA_URL}
+                              alt=""
+                              width={16}
+                              height={16}
+                              style={{ display: 'block', flexShrink: 0, filter: 'brightness(0) invert(1)' }}
+                            />
+                          </span>
+                          View remediations
                         </Button>
                       </div>
                     </CardBody>
@@ -649,26 +674,30 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                         </Title>
                       </FlexItem>
                       <Label color="grey" variant="outline" isCompact>
-                        {clusterAlerts.length} on {selectedCluster.name}
+                        {remediationScope === 'fleet'
+                          ? `${topAlertsRemediationsAlerts.length} fleet-wide`
+                          : `${topAlertsRemediationsAlerts.length} on ${selectedCluster.name}`}
                       </Label>
                     </Flex>
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
-                      {clusterAlerts.length === 0 ? (
+                      {topAlertsRemediationsAlerts.length === 0 ? (
                         <EmptyState variant={EmptyStateVariant.lg}>
                           <EmptyStateBody>
                             <Title headingLevel="h4" size="lg">
                               No active alerts
                             </Title>
                             <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}>
-                              Agent is idle on {selectedCluster.name}.
+                              {remediationScope === 'fleet'
+                                ? 'Agent is idle across the fleet.'
+                                : `Agent is idle on ${selectedCluster.name}.`}
                             </Content>
                           </EmptyStateBody>
                         </EmptyState>
                       ) : (
                         <Stack hasGutter>
-                          {clusterAlerts.map((a) => (
+                          {topAlertsRemediationsAlerts.map((a) => (
                             <ObserveAlertItem
                               key={a.id}
                               alert={a}
