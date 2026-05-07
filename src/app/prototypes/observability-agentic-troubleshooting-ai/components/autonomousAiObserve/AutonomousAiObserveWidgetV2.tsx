@@ -21,6 +21,8 @@ import {
   Grid,
   GridItem,
   Label,
+  Pagination,
+  PaginationVariant,
   Stack,
   StackItem,
   Title,
@@ -279,6 +281,12 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   }, [activePerspective, selectedClusterId]);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
+  const [fleetSummarySortBy, setFleetSummarySortBy] = useState<{ index: number; direction: 'asc' | 'desc' }>({
+    index: 0,
+    direction: 'asc',
+  });
+  const [fleetSummaryPage, setFleetSummaryPage] = useState(1);
+  const [fleetSummaryPerPage, setFleetSummaryPerPage] = useState(10);
   const [cAwayOpen, setCAwayOpen] = useState(true);
   const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
@@ -369,6 +377,86 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
     setSelectedClusterId(clusterId);
     setFleetClusterDrillDown(true);
   }, []);
+
+  const fleetSummaryRows = useMemo(
+    () =>
+      CLUSTERS.map((c) => ({
+        cluster: c,
+        alertAmount: clusterFireCount(c.id),
+        statusText: clusterHealthLabelText(c.health),
+        statusRank: c.health === 'critical' ? 0 : c.health === 'degraded' ? 1 : 2,
+      })),
+    []
+  );
+
+  const fleetSummarySortedRows = useMemo(() => {
+    const sorted = [...fleetSummaryRows];
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      switch (fleetSummarySortBy.index) {
+        case 0:
+          comparison = a.cluster.name.localeCompare(b.cluster.name);
+          break;
+        case 1:
+          comparison = a.statusRank - b.statusRank;
+          break;
+        case 2:
+          comparison = a.cluster.provider.localeCompare(b.cluster.provider);
+          break;
+        case 3:
+          comparison = a.alertAmount - b.alertAmount;
+          break;
+        case 4:
+          comparison = a.cluster.region.localeCompare(b.cluster.region);
+          break;
+        case 5:
+          comparison = a.cluster.nodes - b.cluster.nodes;
+          break;
+        case 6:
+          comparison = a.cluster.version.localeCompare(b.cluster.version, undefined, { numeric: true });
+          break;
+        default:
+          comparison = 0;
+      }
+      return fleetSummarySortBy.direction === 'asc' ? comparison : -comparison;
+    });
+    return sorted;
+  }, [fleetSummaryRows, fleetSummarySortBy]);
+
+  const fleetSummaryPaginatedRows = useMemo(() => {
+    const start = (fleetSummaryPage - 1) * fleetSummaryPerPage;
+    return fleetSummarySortedRows.slice(start, start + fleetSummaryPerPage);
+  }, [fleetSummaryPage, fleetSummaryPerPage, fleetSummarySortedRows]);
+
+  const onFleetSummarySort = useCallback(
+    (_event: React.MouseEvent, columnIndex: number, direction: 'asc' | 'desc') => {
+      setFleetSummarySortBy({ index: columnIndex, direction });
+      setFleetSummaryPage(1);
+    },
+    []
+  );
+
+  const onFleetSummarySetPage = useCallback(
+    (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
+      setFleetSummaryPage(newPage);
+    },
+    []
+  );
+
+  const onFleetSummaryPerPageSelect = useCallback(
+    (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPerPage: number, newPage: number) => {
+      setFleetSummaryPerPage(newPerPage);
+      setFleetSummaryPage(newPage);
+    },
+    []
+  );
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(fleetSummarySortedRows.length / fleetSummaryPerPage));
+    if (fleetSummaryPage > maxPage) {
+      setFleetSummaryPage(maxPage);
+    }
+  }, [fleetSummaryPage, fleetSummaryPerPage, fleetSummarySortedRows.length]);
 
   return (
     <SimulationProvider>
@@ -539,20 +627,51 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
+                      <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                        <Pagination
+                          itemCount={fleetSummarySortedRows.length}
+                          page={fleetSummaryPage}
+                          perPage={fleetSummaryPerPage}
+                          perPageOptions={[
+                            { title: '5', value: 5 },
+                            { title: '10', value: 10 },
+                            { title: '20', value: 20 },
+                          ]}
+                          onSetPage={onFleetSummarySetPage}
+                          onPerPageSelect={onFleetSummaryPerPageSelect}
+                          variant={PaginationVariant.top}
+                          isCompact
+                        />
+                      </Flex>
                       <Table aria-label="Fleet summary by cluster" variant="compact" borders gridBreakPoint="">
                         <Thead>
                           <Tr>
-                            <Th modifier="wrap">Cluster</Th>
-                            <Th modifier="wrap">Cluster status</Th>
-                            <Th modifier="wrap">Provider</Th>
-                            <Th modifier="nowrap">Alert amount</Th>
-                            <Th modifier="wrap">Region</Th>
-                            <Th modifier="nowrap">Total nodes</Th>
-                            <Th modifier="nowrap">Version</Th>
+                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 0 }} modifier="wrap">
+                              Cluster
+                            </Th>
+                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 1 }} modifier="wrap">
+                              Cluster status
+                            </Th>
+                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 2 }} modifier="wrap">
+                              Provider
+                            </Th>
+                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 3 }} modifier="nowrap">
+                              Alert amount
+                            </Th>
+                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 4 }} modifier="wrap">
+                              Region
+                            </Th>
+                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 5 }} modifier="nowrap">
+                              Total nodes
+                            </Th>
+                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 6 }} modifier="nowrap">
+                              Version
+                            </Th>
                           </Tr>
                         </Thead>
                         <Tbody>
-                          {CLUSTERS.map((c) => {
+                          {fleetSummaryPaginatedRows.map((row) => {
+                            const c = row.cluster;
                             const healthIcon =
                               c.health === 'healthy' ? (
                                 <CheckCircleIcon />
@@ -584,7 +703,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                   </Flex>
                                 </Td>
                                 <Td>{c.provider}</Td>
-                                <Td>{clusterFireCount(c.id)}</Td>
+                                <Td>{row.alertAmount}</Td>
                                 <Td>{c.region}</Td>
                                 <Td>{c.nodes}</Td>
                                 <Td modifier="nowrap">v{c.version}</Td>
@@ -593,6 +712,22 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                           })}
                         </Tbody>
                       </Table>
+                      <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                        <Pagination
+                          itemCount={fleetSummarySortedRows.length}
+                          page={fleetSummaryPage}
+                          perPage={fleetSummaryPerPage}
+                          perPageOptions={[
+                            { title: '5', value: 5 },
+                            { title: '10', value: 10 },
+                            { title: '20', value: 20 },
+                          ]}
+                          onSetPage={onFleetSummarySetPage}
+                          onPerPageSelect={onFleetSummaryPerPageSelect}
+                          variant={PaginationVariant.bottom}
+                          isCompact
+                        />
+                      </Flex>
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
