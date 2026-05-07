@@ -263,15 +263,25 @@ span.ols-aio-card-stat-number {
 
 /* "While you were away" alerts: expandable by default-collapsed, neutral background, no colored borders. */
 .ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline {
+  --pf-v6-c-alert--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-alert--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
   --pf-v6-c-alert__toggle--MarginBlockStart: 0;
   --pf-v6-c-alert__toggle--MarginBlockEnd: 0;
   --pf-v6-c-alert__action--MarginBlockStart: 0;
   --pf-v6-c-alert__action--MarginBlockEnd: 0;
   --pf-v6-c-alert__action--MarginInlineEnd: 0;
+  --pf-v6-c-alert__icon--MarginBlockStart: 0;
   background-color: #f2f2f2;
   border: 0;
   border-inline-start: 0;
   box-shadow: none;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__toggle,
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__icon,
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__title,
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__action {
+  align-self: center;
 }
 
 /* OpenShift-style alert summary: icon in gutter; name, date, and message share one text column. */
