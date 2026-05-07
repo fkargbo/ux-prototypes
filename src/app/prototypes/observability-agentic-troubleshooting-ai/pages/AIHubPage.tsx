@@ -60,7 +60,7 @@ export const AIHubPage: React.FC = () => {
             <AiExperienceIcon size={40} />
             <div className="ols-ai-hub-page-header-copy">
               <Title headingLevel="h1" size="2xl">
-                AI Troubleshooting Hub
+                AI Troubleshooting Hub (Conceptual design)
               </Title>
               <Content
                 component="p"
@@ -91,7 +91,7 @@ export const AIHubPage: React.FC = () => {
         </div>
       </div>
 
-      <div id="ols-ai-hub-main" role="main" aria-label="AI Troubleshooting Hub content" style={mainStyle}>
+      <div id="ols-ai-hub-main" role="main" aria-label="AI Troubleshooting Hub (Conceptual design) content" style={mainStyle}>
         <div
           style={{
             padding: '24px',
@@ -109,9 +109,9 @@ export const AIHubPage: React.FC = () => {
                       variant="link"
                       isInline
                       onClick={() => setFleetClusterDrillDown(false)}
-                      aria-label="Return to AI Troubleshooting Hub fleet overview"
+                      aria-label="Return to AI Troubleshooting Hub (Conceptual design) fleet overview"
                     >
-                      AI Troubleshooting Hub
+                      AI Troubleshooting Hub (Conceptual design)
                     </Button>
                   </BreadcrumbItem>
                   <BreadcrumbItem isActive>{focusedCluster?.name ?? 'Cluster'}</BreadcrumbItem>

@@ -27,7 +27,7 @@ export const routes: RouteConfig[] = [
   {
     path: '/',
     element: <Navigate to="/core/observe/ai-hub" replace />,
-    title: 'AI Troubleshooting Hub',
+    title: 'AI Troubleshooting Hub (Conceptual design)',
   },
   {
     path: '/core/home/overview',
@@ -42,8 +42,8 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/ai-hub',
     element: <AIHubPage />,
-    label: 'AI Troubleshooting Hub',
-    title: 'AI Troubleshooting Hub',
+    label: 'AI Troubleshooting Hub (Conceptual design)',
+    title: 'AI Troubleshooting Hub (Conceptual design)',
     navigation: {
       group: 'Home',
       order: 2,

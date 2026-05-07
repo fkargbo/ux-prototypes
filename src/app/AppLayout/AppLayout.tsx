@@ -500,7 +500,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
         <MastheadBrand>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <img src={redHatOpenShiftLogo} alt="Red Hat OpenShift" style={{ height: '40px' }} />
-            <Label color="orange" isCompact>UXD prototype - work in progress</Label>
+            <Label color="orange" isCompact>UXD prototype - Conceptual Design</Label>
             <span style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>
               Contact: {useCaseTitle && useCaseTitle.trim() !== ''
                 ? useCaseTitle

@@ -42,9 +42,9 @@ import {
   DEFAULT_CORE_PLATFORMS_CLUSTER_ID,
   FLEET_WIDE_REGIONAL_INGRESS,
   fleetWideCriticalAddsForCluster,
-  firstFleetAlertRecordForRuleTitle,
   getAlertsForCluster,
   getClusterById,
+  resolveFleetRemediationDrillTarget,
 } from './data';
 import { FleetWideObserveIncident } from './FleetWideObserveIncident';
 import { ObserveAlertItem } from './ObserveAlertItem';
@@ -67,6 +67,24 @@ import {
 } from './remediationDrillSession';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget-v2';
+const TOP_ALERTS_CARD_DOM_ID = `${WIDGET_ID}-c-alerts`;
+
+function scrollDrillToTopAlertsSection(innerTargetId: string) {
+  document.getElementById(TOP_ALERTS_CARD_DOM_ID)?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  });
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        document.getElementById(innerTargetId)?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }, 120);
+    });
+  });
+}
 
 /** Multi-cluster Alerting deep-link with optional `cluster`, `severity`, `scope=ai-hub` (see `MultiClusterAlertsPage`). */
 function alertingHref(options: {
@@ -205,9 +223,9 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   const [cAlertsOpen, setCAlertsOpen] = useState(false);
   const [remediationScope, setRemediationScope] = useState<'fleet' | 'cluster'>('cluster');
   const [fleetIncidentExpanded, setFleetIncidentExpanded] = useState(false);
-  /** Drill from Top firing alerts “View remediation”: expand Remediation Hub inside fleet incident card. */
-  const [expandFleetRemediationFromDrill, setExpandFleetRemediationFromDrill] = useState(false);
-  /** Drill target alert row — expands outer card + Remediation Hub for that `ObserveAlertItem`. */
+  /** Drill from Top firing alerts “View remediation”: expand Chain, RCA, and Remediation inside fleet incident card. */
+  const [expandFleetDrillAllInnerSections, setExpandFleetDrillAllInnerSections] = useState(false);
+  /** Drill target alert row — expands outer card + all inner sections for that `ObserveAlertItem`. */
   const [expandObserveRemediationAlertId, setExpandObserveRemediationAlertId] = useState<string | null>(null);
   const [pendingRemediationRuleTitle, setPendingRemediationRuleTitle] = useState<string | null>(null);
   const skipExpandedAlertsResetRef = useRef(false);
@@ -247,9 +265,21 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     [remediationScope, clusterAlerts]
   );
 
+  /** When drilling to a fleet alert row, show that row first so “same cluster” siblings stay collapsed below. */
+  const alertsForTopAlertsCard = useMemo(() => {
+    if (remediationScope !== 'fleet' || !expandObserveRemediationAlertId) {
+      return topAlertsRemediationsAlerts;
+    }
+    const hit = topAlertsRemediationsAlerts.find((a) => a.id === expandObserveRemediationAlertId);
+    if (!hit) {
+      return topAlertsRemediationsAlerts;
+    }
+    return [hit, ...topAlertsRemediationsAlerts.filter((a) => a.id !== expandObserveRemediationAlertId)];
+  }, [remediationScope, topAlertsRemediationsAlerts, expandObserveRemediationAlertId]);
+
   const simulationAlerts = useMemo(
-    () => (showFleetOverview ? ALERTS : topAlertsRemediationsAlerts),
-    [showFleetOverview, topAlertsRemediationsAlerts]
+    () => (showFleetOverview ? ALERTS : alertsForTopAlertsCard),
+    [showFleetOverview, alertsForTopAlertsCard]
   );
 
   const [expandedAlerts, setExpandedAlerts] = useState<Record<string, boolean>>({});
@@ -262,38 +292,32 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
 
     if (pendingRemediationRuleTitle && remediationScope === 'fleet') {
       const title = pendingRemediationRuleTitle;
+      const target = resolveFleetRemediationDrillTarget(title);
 
-      if (title === FLEET_WIDE_REGIONAL_INGRESS.title) {
+      if (target?.kind === 'fleet-incident') {
         setFleetIncidentExpanded(true);
-        setExpandFleetRemediationFromDrill(true);
+        setExpandFleetDrillAllInnerSections(true);
         setExpandObserveRemediationAlertId(null);
         const next: Record<string, boolean> = {};
         topAlertsRemediationsAlerts.forEach((a) => {
           next[a.id] = false;
         });
         setExpandedAlerts(next);
-        window.setTimeout(() => {
-          document.getElementById(FLEET_WIDE_REGIONAL_INGRESS.id)?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-          });
-        }, 0);
-      } else {
-        const match = firstFleetAlertRecordForRuleTitle(title);
-        if (match) {
-          setFleetIncidentExpanded(false);
-          setExpandFleetRemediationFromDrill(false);
-          const next: Record<string, boolean> = {};
-          topAlertsRemediationsAlerts.forEach((a) => {
-            next[a.id] = a.id === match.id;
-          });
-          setExpandedAlerts(next);
-          setExpandObserveRemediationAlertId(match.id);
-          window.setTimeout(() => {
-            document.getElementById(match.id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }, 0);
-        }
+        scrollDrillToTopAlertsSection(target.incidentId);
+      } else if (target?.kind === 'alert') {
+        setFleetIncidentExpanded(false);
+        setExpandFleetDrillAllInnerSections(false);
+        const next: Record<string, boolean> = {};
+        topAlertsRemediationsAlerts.forEach((a) => {
+          next[a.id] = a.id === target.alertId;
+        });
+        setExpandedAlerts(next);
+        setExpandObserveRemediationAlertId(target.alertId);
+        scrollDrillToTopAlertsSection(target.alertId);
       }
+
+      /** Avoid stale session + duplicate drill when `fleetClusterDrillDown` toggles; clear even if rule did not resolve. */
+      clearRemediationDrillSession();
 
       setPendingRemediationRuleTitle(null);
       skipExpandedAlertsResetRef.current = true;
@@ -306,23 +330,31 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     });
     setExpandedAlerts(next);
     setExpandObserveRemediationAlertId(null);
-    setExpandFleetRemediationFromDrill(false);
+    setExpandFleetDrillAllInnerSections(false);
   }, [topAlertsRemediationsAlerts, remediationScope, pendingRemediationRuleTitle]);
 
+  /**
+   * SPA handoff only (mount). Must not re-run when `fleetClusterDrillDown` toggles — otherwise session storage
+   * still holds the rule after `dispatchRemediationDrill` and we re-apply stale state (and previously reset
+   * `fleetIncidentExpanded`, breaking RegionalIngress drills).
+   */
   useEffect(() => {
     const stored = readRemediationDrillSession();
-    if (stored?.alertRuleTitle) {
-      clearRemediationDrillSession();
-      setPendingRemediationRuleTitle(stored.alertRuleTitle);
-      setRemediationScope('fleet');
-      setCAlertsOpen(true);
-      setFleetIncidentExpanded(false);
-      if (fleetClusterDrillDownProp === undefined) {
-        setFleetClusterDrillDownInternal(true);
-      }
-      onFleetDrillDownChange?.(true);
+    if (!stored?.alertRuleTitle) {
+      return;
     }
+    clearRemediationDrillSession();
+    setPendingRemediationRuleTitle(stored.alertRuleTitle);
+    setRemediationScope('fleet');
+    setCAlertsOpen(true);
+    if (fleetClusterDrillDownProp === undefined) {
+      setFleetClusterDrillDownInternal(true);
+    }
+    onFleetDrillDownChange?.(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-time hydration from sessionStorage
+  }, []);
 
+  useEffect(() => {
     const onRemediationDrill = (event: Event) => {
       const detail = (event as CustomEvent<{ alertRuleTitle: string }>).detail;
       if (!detail?.alertRuleTitle) {
@@ -370,6 +402,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   const drillIntoClusterFromFleetOverview = useCallback((clusterId: string) => {
     setRemediationScope('cluster');
     setSelectedClusterId(clusterId);
+    setCAlertsOpen(true);
     if (fleetClusterDrillDownProp === undefined) {
       setFleetClusterDrillDownInternal(true);
     }
@@ -380,7 +413,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     setRemediationScope('fleet');
     setCAlertsOpen(true);
     setFleetIncidentExpanded(false);
-    setExpandFleetRemediationFromDrill(false);
+    setExpandFleetDrillAllInnerSections(false);
     setExpandObserveRemediationAlertId(null);
     if (fleetClusterDrillDownProp === undefined) {
       setFleetClusterDrillDownInternal(true);
@@ -797,21 +830,21 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                               onToggle={(open) => {
                                 setFleetIncidentExpanded(open);
                                 if (!open) {
-                                  setExpandFleetRemediationFromDrill(false);
+                                  setExpandFleetDrillAllInnerSections(false);
                                 }
                               }}
-                              expandRemediationInitially={expandFleetRemediationFromDrill}
+                              expandAllInnerSectionsInitially={expandFleetDrillAllInnerSections}
                               onDiscussWithLightspeed={discussLightspeed}
                             />
                           ) : null}
-                          {topAlertsRemediationsAlerts.map((a) => (
+                          {alertsForTopAlertsCard.map((a) => (
                             <ObserveAlertItem
                               key={a.id}
                               alert={a}
                               isExpanded={expandedAlerts[a.id] ?? false}
                               onToggle={(open) => toggleAlert(a.id, open)}
                               onDiscussWithLightspeed={discussLightspeed}
-                              expandRemediationInitially={expandObserveRemediationAlertId === a.id}
+                              expandAllInnerSectionsInitially={expandObserveRemediationAlertId === a.id}
                             />
                           ))}
                         </Stack>

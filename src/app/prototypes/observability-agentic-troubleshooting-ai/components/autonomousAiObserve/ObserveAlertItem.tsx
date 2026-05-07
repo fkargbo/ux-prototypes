@@ -113,8 +113,8 @@ export interface ObserveAlertItemProps {
   onToggle: (next: boolean) => void;
   /** Opens OLS with this alert’s diagnosis card context (RCA / remediation). */
   onDiscussWithLightspeed?: (payload: { alertId: string; cardId: string; diagnosisName: string }) => void;
-  /** When true, expands the Remediation Hub subsection (e.g. drill from Top firing alerts). */
-  expandRemediationInitially?: boolean;
+  /** When true, expands Active Reasoning Chain, RCA, and Remediation Hub (e.g. drill from Top firing alerts). */
+  expandAllInnerSectionsInitially?: boolean;
 }
 
 export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
@@ -122,17 +122,19 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
   isExpanded,
   onToggle,
   onDiscussWithLightspeed,
-  expandRemediationInitially,
+  expandAllInnerSectionsInitially,
 }) => {
   const [openChain, setOpenChain] = useState(false);
   const [openRca, setOpenRca] = useState(false);
   const [openRem, setOpenRem] = useState(false);
 
   useEffect(() => {
-    if (expandRemediationInitially) {
+    if (expandAllInnerSectionsInitially) {
+      setOpenChain(true);
+      setOpenRca(true);
       setOpenRem(true);
     }
-  }, [expandRemediationInitially]);
+  }, [expandAllInnerSectionsInitially]);
 
   const onCardExpand = useCallback(
     (_e: React.MouseEvent, _id: string) => {

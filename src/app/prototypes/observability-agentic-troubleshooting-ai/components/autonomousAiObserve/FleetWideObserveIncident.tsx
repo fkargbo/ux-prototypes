@@ -84,8 +84,8 @@ export interface FleetWideObserveIncidentProps {
   isExpanded: boolean;
   onToggle: (next: boolean) => void;
   onDiscussWithLightspeed?: (payload: { alertId: string; cardId: string; diagnosisName: string }) => void;
-  /** Expands Remediation Hub when drilling from Top firing alerts. */
-  expandRemediationInitially?: boolean;
+  /** Expands Active Reasoning Chain, RCA, and Remediation Hub when drilling from Top firing alerts. */
+  expandAllInnerSectionsInitially?: boolean;
 }
 
 export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> = ({
@@ -94,17 +94,19 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
   isExpanded,
   onToggle,
   onDiscussWithLightspeed,
-  expandRemediationInitially,
+  expandAllInnerSectionsInitially,
 }) => {
   const [openChain, setOpenChain] = useState(false);
   const [openRca, setOpenRca] = useState(false);
   const [openRem, setOpenRem] = useState(false);
 
   useEffect(() => {
-    if (expandRemediationInitially) {
+    if (expandAllInnerSectionsInitially) {
+      setOpenChain(true);
+      setOpenRca(true);
       setOpenRem(true);
     }
-  }, [expandRemediationInitially]);
+  }, [expandAllInnerSectionsInitially]);
 
   const onCardExpand = useCallback(
     (_e: React.MouseEvent, _id: string) => {
