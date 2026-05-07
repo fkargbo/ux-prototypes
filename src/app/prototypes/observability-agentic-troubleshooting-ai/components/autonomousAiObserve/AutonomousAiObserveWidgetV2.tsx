@@ -279,7 +279,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   }, [activePerspective, selectedClusterId]);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
-  const [clustersOpen, setClustersOpen] = useState(true);
   const [cAwayOpen, setCAwayOpen] = useState(true);
   const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
@@ -509,157 +508,94 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
               </StackItem>
 
               <StackItem>
-                <Grid hasGutter className="ols-aio-gutter-24 ols-aio-fleet-summary-clusters-grid">
-                  <GridItem span={12} lg={6} className="ols-aio-fleet-summary-clusters-item">
-                    <Card className="ols-aio-subcard" isCompact isExpanded={fleetSummaryOpen} id={`${WIDGET_ID}-fleet-summary`}>
-                      <CardHeader
-                        onExpand={() => setFleetSummaryOpen((o) => !o)}
-                        toggleButtonProps={{
-                          id: `${WIDGET_ID}-fleet-summary-toggle`,
-                          'aria-label': 'Toggle Fleet Summary section',
-                        }}
-                        actions={{
-                          actions: (
-                            <Button
-                              variant="link"
-                              isInline
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }));
-                              }}
-                              aria-label="Open Alerting Fleet overview filtered to currently surfaced Autonomous analysis alerts"
-                            >
-                              View alerts
-                            </Button>
-                          ),
-                        }}
-                      >
-                        <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                          <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
-                            Fleet Summary
-                          </CardTitle>
-                        </Flex>
-                      </CardHeader>
-                      <CardExpandableContent>
-                        <CardBody>
-                          <Table
-                            aria-label="Fleet summary by cluster"
-                            variant="compact"
-                            borders
-                            gridBreakPoint=""
-                          >
-                            <Thead>
-                              <Tr>
-                                <Th modifier="wrap">Cluster</Th>
-                                <Th modifier="wrap">Provider</Th>
-                                <Th modifier="nowrap">Total nodes</Th>
-                                <Th modifier="wrap">Cluster status</Th>
-                                <Th modifier="nowrap">Version</Th>
+                <Card className="ols-aio-subcard" isCompact isExpanded={fleetSummaryOpen} id={`${WIDGET_ID}-fleet-summary`}>
+                  <CardHeader
+                    onExpand={() => setFleetSummaryOpen((o) => !o)}
+                    toggleButtonProps={{
+                      id: `${WIDGET_ID}-fleet-summary-toggle`,
+                      'aria-label': 'Toggle Fleet Summary section',
+                    }}
+                    actions={{
+                      actions: (
+                        <Button
+                          variant="link"
+                          isInline
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }));
+                          }}
+                          aria-label="Open Alerting Fleet overview filtered to currently surfaced Autonomous analysis alerts"
+                        >
+                          View alerts
+                        </Button>
+                      ),
+                    }}
+                  >
+                    <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                      <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
+                        Fleet Summary
+                      </CardTitle>
+                    </Flex>
+                  </CardHeader>
+                  <CardExpandableContent>
+                    <CardBody>
+                      <Table aria-label="Fleet summary by cluster" variant="compact" borders gridBreakPoint="">
+                        <Thead>
+                          <Tr>
+                            <Th modifier="wrap">Cluster</Th>
+                            <Th modifier="wrap">Provider</Th>
+                            <Th modifier="nowrap">Alert amount</Th>
+                            <Th modifier="wrap">Region</Th>
+                            <Th modifier="nowrap">Total nodes</Th>
+                            <Th modifier="wrap">Cluster status</Th>
+                            <Th modifier="nowrap">Version</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {CLUSTERS.map((c) => {
+                            const healthIcon =
+                              c.health === 'healthy' ? (
+                                <CheckCircleIcon />
+                              ) : c.health === 'degraded' ? (
+                                <ExclamationTriangleIcon />
+                              ) : (
+                                <ExclamationCircleIcon />
+                              );
+                            const healthColor =
+                              c.health === 'healthy'
+                                ? 'var(--pf-t--global--color--status--success--default)'
+                                : c.health === 'degraded'
+                                  ? 'var(--pf-t--global--color--status--warning--default)'
+                                  : 'var(--pf-t--global--color--status--danger--default)';
+                            return (
+                              <Tr
+                                key={c.id}
+                                isClickable
+                                isRowSelected={selectedClusterId === c.id}
+                                onRowClick={() => drillIntoClusterFromFleetOverview(c.id)}
+                              >
+                                <Td>{c.name}</Td>
+                                <Td>{c.provider}</Td>
+                                <Td>{clusterFireCount(c.id)}</Td>
+                                <Td>{c.region}</Td>
+                                <Td>{c.nodes}</Td>
+                                <Td>
+                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                    <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true" style={{ color: healthColor }}>
+                                      {healthIcon}
+                                    </span>
+                                    <span>{clusterHealthLabelText(c.health)}</span>
+                                  </Flex>
+                                </Td>
+                                <Td modifier="nowrap">v{c.version}</Td>
                               </Tr>
-                            </Thead>
-                            <Tbody>
-                              {CLUSTERS.map((c) => {
-                                const healthIcon =
-                                  c.health === 'healthy' ? (
-                                    <CheckCircleIcon />
-                                  ) : c.health === 'degraded' ? (
-                                    <ExclamationTriangleIcon />
-                                  ) : (
-                                    <ExclamationCircleIcon />
-                                  );
-                                const healthColor =
-                                  c.health === 'healthy'
-                                    ? 'var(--pf-t--global--color--status--success--default)'
-                                    : c.health === 'degraded'
-                                      ? 'var(--pf-t--global--color--status--warning--default)'
-                                      : 'var(--pf-t--global--color--status--danger--default)';
-                                return (
-                                  <Tr
-                                    key={c.id}
-                                    isClickable
-                                    isRowSelected={selectedClusterId === c.id}
-                                    onRowClick={() => drillIntoClusterFromFleetOverview(c.id)}
-                                  >
-                                    <Td>{c.name}</Td>
-                                    <Td>{c.provider}</Td>
-                                    <Td>{c.nodes}</Td>
-                                    <Td>
-                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                        <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true" style={{ color: healthColor }}>
-                                          {healthIcon}
-                                        </span>
-                                        <span>{clusterHealthLabelText(c.health)}</span>
-                                      </Flex>
-                                    </Td>
-                                    <Td modifier="nowrap">v{c.version}</Td>
-                                  </Tr>
-                                );
-                              })}
-                            </Tbody>
-                          </Table>
-                        </CardBody>
-                      </CardExpandableContent>
-                    </Card>
-                  </GridItem>
-                  <GridItem span={12} lg={6} className="ols-aio-fleet-summary-clusters-item">
-                    <Card className="ols-aio-subcard" isCompact isExpanded={clustersOpen} id={`${WIDGET_ID}-clusters`}>
-                      <CardHeader
-                        onExpand={() => setClustersOpen((o) => !o)}
-                        toggleButtonProps={{
-                          id: `${WIDGET_ID}-clusters-toggle`,
-                          'aria-label': 'Toggle Clusters section',
-                        }}
-                      >
-                        <Stack>
-                          <StackItem>
-                            <CardTitle component="h3" className="ols-aio-fleet-subcard-title" style={{ marginBottom: 0 }}>
-                              Clusters
-                            </CardTitle>
-                          </StackItem>
-                          <StackItem>
-                            <Content
-                              component="p"
-                              style={{
-                                margin: 0,
-                                fontSize: '14px',
-                                color: 'var(--pf-t--global--text--color--subtle)',
-                              }}
-                            >
-                              Click any cluster row to drill in.
-                            </Content>
-                          </StackItem>
-                        </Stack>
-                      </CardHeader>
-                      <CardExpandableContent>
-                        <CardBody>
-                          <Table aria-label="Clusters" variant="compact" borders gridBreakPoint="">
-                            <Thead>
-                              <Tr>
-                                <Th modifier="wrap">Cluster name</Th>
-                                <Th modifier="nowrap">Alert amount</Th>
-                                <Th modifier="wrap">Region</Th>
-                              </Tr>
-                            </Thead>
-                            <Tbody>
-                              {CLUSTERS.map((c) => (
-                                <Tr
-                                  key={c.id}
-                                  isClickable
-                                  isRowSelected={selectedClusterId === c.id}
-                                  onRowClick={() => drillIntoClusterFromFleetOverview(c.id)}
-                                >
-                                  <Td>{c.name}</Td>
-                                  <Td>{clusterFireCount(c.id)}</Td>
-                                  <Td>{c.region}</Td>
-                                </Tr>
-                              ))}
-                            </Tbody>
-                          </Table>
-                        </CardBody>
-                      </CardExpandableContent>
-                    </Card>
-                  </GridItem>
-                </Grid>
+                            );
+                          })}
+                        </Tbody>
+                      </Table>
+                    </CardBody>
+                  </CardExpandableContent>
+                </Card>
               </StackItem>
             </Stack>
           ) : selectedCluster ? (
