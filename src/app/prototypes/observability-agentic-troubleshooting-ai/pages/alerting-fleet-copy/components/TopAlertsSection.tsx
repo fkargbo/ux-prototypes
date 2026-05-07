@@ -21,11 +21,18 @@ import {
 import type { LightspeedInvestigateContext } from './OpenShiftLightspeedPanel';
 
 type SeverityKey = 'Critical' | 'Warning' | 'Info';
+type SeverityLabelStatus = 'danger' | 'warning' | 'info';
 
 const SEVERITY_ICONS: Record<SeverityKey, React.ReactNode> = {
   Critical: <ExclamationCircleIcon />,
   Warning: <ExclamationTriangleIcon />,
   Info: <InfoCircleIcon />,
+};
+
+const SEVERITY_LABEL_STATUS: Record<SeverityKey, SeverityLabelStatus> = {
+  Critical: 'danger',
+  Warning: 'warning',
+  Info: 'info',
 };
 
 export interface AlertRuleRow {
@@ -117,9 +124,16 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <Label
                       isCompact
-                      color={
-                        dominantSeverity === 'Critical' ? 'red' : dominantSeverity === 'Warning' ? 'orange' : 'purple'
-                      }
+                      {...(alertActionsLayout === 'ai-hub'
+                        ? { status: SEVERITY_LABEL_STATUS[dominantSeverity] }
+                        : {
+                            color:
+                              dominantSeverity === 'Critical'
+                                ? 'red'
+                                : dominantSeverity === 'Warning'
+                                  ? 'orange'
+                                  : 'purple',
+                          })}
                       icon={SEVERITY_ICONS[dominantSeverity]}
                     >
                       {dominantSeverity}
