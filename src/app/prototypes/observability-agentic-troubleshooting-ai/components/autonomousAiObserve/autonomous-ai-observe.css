@@ -318,6 +318,16 @@ span.ols-aio-card-stat-number {
   padding-bottom: 2px;
 }
 
+.ols-autonomous-ai-observe-widget .ols-aio-away-card-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--pf-t--global--spacer--sm);
+  background-color: var(--pf-t--global--background--color--primary--default);
+  box-shadow: 0 -1px 0 var(--pf-t--global--border--color--default);
+}
+
 /* OpenShift-style alert summary: icon in gutter; name, date, and message share one text column. */
 .ols-aio-alert-summary {
   display: grid;

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, CardBody, CardExpandableContent, CardHeader, CardTitle } from '@patternfly/react-core';
+import { Button, Card, CardBody, CardExpandableContent, CardHeader, CardTitle, Label } from '@patternfly/react-core';
 import {
   buildFleetTopFiringAlertRuleRows,
   fleetHubTotalFiringAlertsCount,
@@ -110,9 +110,14 @@ export const TopFiringAlertsCard: React.FC = () => {
               : undefined
           }
         >
-          <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
-            Top firing alerts
-          </CardTitle>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
+            <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
+              Top firing alerts
+            </CardTitle>
+            <Label color="blue" isCompact>
+              {alertRuleData.length} top firing alert{alertRuleData.length === 1 ? '' : 's'}
+            </Label>
+          </div>
         </CardHeader>
         <CardExpandableContent>
           <CardBody>

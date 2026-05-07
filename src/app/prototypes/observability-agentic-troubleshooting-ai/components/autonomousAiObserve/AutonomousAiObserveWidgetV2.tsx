@@ -300,6 +300,14 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
     () => awayDigestClusterEventCountLabel(clusterAwayDigestItems.length),
     [clusterAwayDigestItems.length]
   );
+  const fleetRecommendedRemediationCount = useMemo(
+    () => fleetAwayDigestItems.filter((item) => item.tone === 'danger' || item.tone === 'warning').length,
+    [fleetAwayDigestItems]
+  );
+  const clusterRecommendedRemediationCount = useMemo(
+    () => clusterAwayDigestItems.filter((item) => item.tone === 'danger' || item.tone === 'warning').length,
+    [clusterAwayDigestItems]
+  );
 
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
 
@@ -601,6 +609,15 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                           </Stack>
                         )}
                       </div>
+                      <div className="ols-aio-away-card-footer">
+                        <Button
+                          variant="primary"
+                          onClick={() => navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }))}
+                          aria-label={`Open recommended remediations, ${fleetRecommendedRemediationCount} suggested`}
+                        >
+                          Recommended remediations ({fleetRecommendedRemediationCount})
+                        </Button>
+                      </div>
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
@@ -851,6 +868,23 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                             ))}
                           </Stack>
                         )}
+                      </div>
+                      <div className="ols-aio-away-card-footer">
+                        <Button
+                          variant="primary"
+                          onClick={() =>
+                            navigate(
+                              alertingHref({
+                                tab: 'alerts',
+                                clusterId: selectedClusterId,
+                                aiHubFleetScope: true,
+                              })
+                            )
+                          }
+                          aria-label={`Open recommended remediations for ${selectedCluster.name}, ${clusterRecommendedRemediationCount} suggested`}
+                        >
+                          Recommended remediations ({clusterRecommendedRemediationCount})
+                        </Button>
                       </div>
                     </CardBody>
                   </CardExpandableContent>
