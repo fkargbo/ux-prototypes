@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Button,
   Card,
@@ -84,6 +84,8 @@ export interface FleetWideObserveIncidentProps {
   isExpanded: boolean;
   onToggle: (next: boolean) => void;
   onDiscussWithLightspeed?: (payload: { alertId: string; cardId: string; diagnosisName: string }) => void;
+  /** Expands Remediation Hub when drilling from Top firing alerts. */
+  expandRemediationInitially?: boolean;
 }
 
 export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> = ({
@@ -92,10 +94,17 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
   isExpanded,
   onToggle,
   onDiscussWithLightspeed,
+  expandRemediationInitially,
 }) => {
   const [openChain, setOpenChain] = useState(false);
   const [openRca, setOpenRca] = useState(false);
   const [openRem, setOpenRem] = useState(false);
+
+  useEffect(() => {
+    if (expandRemediationInitially) {
+      setOpenRem(true);
+    }
+  }, [expandRemediationInitially]);
 
   const onCardExpand = useCallback(
     (_e: React.MouseEvent, _id: string) => {

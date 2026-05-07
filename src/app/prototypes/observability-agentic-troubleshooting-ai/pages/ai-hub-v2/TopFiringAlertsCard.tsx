@@ -11,6 +11,7 @@ import {
 import { TopAlertsSection } from '../alerting-fleet-copy/components/TopAlertsSection';
 import type { LightspeedInvestigateContext } from '../alerting-fleet-copy/components/OpenShiftLightspeedPanel';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
+import { dispatchRemediationDrill } from '../../components/autonomousAiObserve/remediationDrillSession';
 
 const TOP_FIRING_CARD_ID = 'ols-ai-hub-top-firing-alerts';
 
@@ -47,6 +48,10 @@ export const TopFiringAlertsCard: React.FC = () => {
     navigate(alertingHref({ tab: 'fleet-overview' }));
   }, [navigate]);
 
+  const onViewRemediation = useCallback((ruleName: string) => {
+    dispatchRemediationDrill({ alertRuleTitle: ruleName });
+  }, []);
+
   const onOpenLightspeed = useCallback((ctx: LightspeedInvestigateContext) => {
     const directAlert = ALERTS.find((a) => a.title === ctx.sourceName);
     const fleetWideMatch = FLEET_WIDE_REGIONAL_INGRESS.title === ctx.sourceName ? FLEET_WIDE_REGIONAL_INGRESS : null;
@@ -72,13 +77,14 @@ export const TopFiringAlertsCard: React.FC = () => {
       hasAlertData,
       onAlertRuleClick,
       onOpenLightspeed,
+      onViewRemediation,
       onViewAllFiringAlerts,
       showSectionHeading: false as const,
       getAiInsightCopy: getFleetTopAlertInsightDisplay,
       alertActionsLayout: 'ai-hub' as const,
       showViewAllFiringAlertsFooter: false as const,
     }),
-    [alertRuleData, totalFiringAlertsCount, hasAlertData, onAlertRuleClick, onOpenLightspeed, onViewAllFiringAlerts]
+    [alertRuleData, totalFiringAlertsCount, hasAlertData, onAlertRuleClick, onOpenLightspeed, onViewRemediation, onViewAllFiringAlerts]
   );
 
   return (

@@ -2,7 +2,7 @@
  * v2.0 iteration surface — edit this file for new work; v1.0 uses `AutonomousAiObserveWidget.tsx`.
  * Shared imports (`ObserveAlertItem`, `data.ts`, CSS) still affect both until forked.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -42,6 +42,7 @@ import {
   DEFAULT_CORE_PLATFORMS_CLUSTER_ID,
   FLEET_WIDE_REGIONAL_INGRESS,
   fleetWideCriticalAddsForCluster,
+  firstFleetAlertRecordForRuleTitle,
   getAlertsForCluster,
   getClusterById,
 } from './data';
@@ -59,6 +60,11 @@ import {
   readFocusedClusterIdFromSession,
   writeFocusedClusterIdToSession,
 } from './focusClusterSession';
+import {
+  REMEDIATION_DRILL_EVENT,
+  clearRemediationDrillSession,
+  readRemediationDrillSession,
+} from './remediationDrillSession';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget-v2';
 
@@ -199,6 +205,12 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   const [cAlertsOpen, setCAlertsOpen] = useState(false);
   const [remediationScope, setRemediationScope] = useState<'fleet' | 'cluster'>('cluster');
   const [fleetIncidentExpanded, setFleetIncidentExpanded] = useState(false);
+  /** Drill from Top firing alerts “View remediation”: expand Remediation Hub inside fleet incident card. */
+  const [expandFleetRemediationFromDrill, setExpandFleetRemediationFromDrill] = useState(false);
+  /** Drill target alert row — expands outer card + Remediation Hub for that `ObserveAlertItem`. */
+  const [expandObserveRemediationAlertId, setExpandObserveRemediationAlertId] = useState<string | null>(null);
+  const [pendingRemediationRuleTitle, setPendingRemediationRuleTitle] = useState<string | null>(null);
+  const skipExpandedAlertsResetRef = useRef(false);
   const fleetAwayDigestItems = useMemo(() => AWAY_DIGEST_ITEMS, []);
 
   const fleetWhileYouWereAwayChipLabel = useMemo(() => awayDigestNewEventsLabel(CLUSTERS.length), []);
@@ -243,16 +255,98 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   const [expandedAlerts, setExpandedAlerts] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    if (skipExpandedAlertsResetRef.current) {
+      skipExpandedAlertsResetRef.current = false;
+      return;
+    }
+
+    if (pendingRemediationRuleTitle && remediationScope === 'fleet') {
+      const title = pendingRemediationRuleTitle;
+
+      if (title === FLEET_WIDE_REGIONAL_INGRESS.title) {
+        setFleetIncidentExpanded(true);
+        setExpandFleetRemediationFromDrill(true);
+        setExpandObserveRemediationAlertId(null);
+        const next: Record<string, boolean> = {};
+        topAlertsRemediationsAlerts.forEach((a) => {
+          next[a.id] = false;
+        });
+        setExpandedAlerts(next);
+        window.setTimeout(() => {
+          document.getElementById(FLEET_WIDE_REGIONAL_INGRESS.id)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+          });
+        }, 0);
+      } else {
+        const match = firstFleetAlertRecordForRuleTitle(title);
+        if (match) {
+          setFleetIncidentExpanded(false);
+          setExpandFleetRemediationFromDrill(false);
+          const next: Record<string, boolean> = {};
+          topAlertsRemediationsAlerts.forEach((a) => {
+            next[a.id] = a.id === match.id;
+          });
+          setExpandedAlerts(next);
+          setExpandObserveRemediationAlertId(match.id);
+          window.setTimeout(() => {
+            document.getElementById(match.id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 0);
+        }
+      }
+
+      setPendingRemediationRuleTitle(null);
+      skipExpandedAlertsResetRef.current = true;
+      return;
+    }
+
     const next: Record<string, boolean> = {};
     topAlertsRemediationsAlerts.forEach((a) => {
       next[a.id] = false;
     });
     setExpandedAlerts(next);
-  }, [topAlertsRemediationsAlerts]);
+    setExpandObserveRemediationAlertId(null);
+    setExpandFleetRemediationFromDrill(false);
+  }, [topAlertsRemediationsAlerts, remediationScope, pendingRemediationRuleTitle]);
+
+  useEffect(() => {
+    const stored = readRemediationDrillSession();
+    if (stored?.alertRuleTitle) {
+      clearRemediationDrillSession();
+      setPendingRemediationRuleTitle(stored.alertRuleTitle);
+      setRemediationScope('fleet');
+      setCAlertsOpen(true);
+      setFleetIncidentExpanded(false);
+      if (fleetClusterDrillDownProp === undefined) {
+        setFleetClusterDrillDownInternal(true);
+      }
+      onFleetDrillDownChange?.(true);
+    }
+
+    const onRemediationDrill = (event: Event) => {
+      const detail = (event as CustomEvent<{ alertRuleTitle: string }>).detail;
+      if (!detail?.alertRuleTitle) {
+        return;
+      }
+      setPendingRemediationRuleTitle(detail.alertRuleTitle);
+      setRemediationScope('fleet');
+      setCAlertsOpen(true);
+      if (fleetClusterDrillDownProp === undefined) {
+        setFleetClusterDrillDownInternal(true);
+      }
+      onFleetDrillDownChange?.(true);
+    };
+
+    window.addEventListener(REMEDIATION_DRILL_EVENT, onRemediationDrill);
+    return () => window.removeEventListener(REMEDIATION_DRILL_EVENT, onRemediationDrill);
+  }, [fleetClusterDrillDownProp, onFleetDrillDownChange]);
 
   const toggleAlert = useCallback((id: string, open: boolean) => {
     setExpandedAlerts((prev) => ({ ...prev, [id]: open }));
-  }, []);
+    if (!open && expandObserveRemediationAlertId === id) {
+      setExpandObserveRemediationAlertId(null);
+    }
+  }, [expandObserveRemediationAlertId]);
 
   useEffect(() => {
     syncObserveSimulationState({
@@ -286,6 +380,8 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     setRemediationScope('fleet');
     setCAlertsOpen(true);
     setFleetIncidentExpanded(false);
+    setExpandFleetRemediationFromDrill(false);
+    setExpandObserveRemediationAlertId(null);
     if (fleetClusterDrillDownProp === undefined) {
       setFleetClusterDrillDownInternal(true);
     }
@@ -698,7 +794,13 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                               incident={FLEET_WIDE_REGIONAL_INGRESS}
                               affectedClusters={fleetIncidentClusters}
                               isExpanded={fleetIncidentExpanded}
-                              onToggle={setFleetIncidentExpanded}
+                              onToggle={(open) => {
+                                setFleetIncidentExpanded(open);
+                                if (!open) {
+                                  setExpandFleetRemediationFromDrill(false);
+                                }
+                              }}
+                              expandRemediationInitially={expandFleetRemediationFromDrill}
                               onDiscussWithLightspeed={discussLightspeed}
                             />
                           ) : null}
@@ -709,6 +811,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                               isExpanded={expandedAlerts[a.id] ?? false}
                               onToggle={(open) => toggleAlert(a.id, open)}
                               onDiscussWithLightspeed={discussLightspeed}
+                              expandRemediationInitially={expandObserveRemediationAlertId === a.id}
                             />
                           ))}
                         </Stack>

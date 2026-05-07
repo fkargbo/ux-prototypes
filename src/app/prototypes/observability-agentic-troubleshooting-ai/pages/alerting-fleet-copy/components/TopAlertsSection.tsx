@@ -49,6 +49,8 @@ export interface TopAlertsSectionProps {
   hasAlertData: boolean;
   onAlertRuleClick: (name: string) => void;
   onOpenLightspeed: (ctx: LightspeedInvestigateContext) => void;
+  /** AI Hub: jump to fleet remediation drill-down for this rule, expanded. */
+  onViewRemediation?: (ruleName: string) => void;
   onViewAllFiringAlerts?: () => void;
   /** When false, omit the internal “Top alerts” heading (e.g. card supplies its own title). */
   showSectionHeading?: boolean;
@@ -75,6 +77,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
   hasAlertData,
   onAlertRuleClick,
   onOpenLightspeed,
+  onViewRemediation,
   onViewAllFiringAlerts,
   showSectionHeading = true,
   getAiInsightCopy,
@@ -144,20 +147,14 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                     </span>
                   </Flex>
                 </FlexItem>
-                {alertActionsLayout === 'ai-hub' ? (
+                {alertActionsLayout === 'ai-hub' && onViewRemediation ? (
                   <FlexItem style={{ flexShrink: 0 }}>
                     <Button
                       variant="link"
                       isInline
                       style={INSIGHTS_LINK}
                       className="pf-v6-u-font-size-sm"
-                      onClick={() =>
-                        onOpenLightspeed({
-                          sourceType: 'alert',
-                          sourceName: rule.name,
-                          aiInsightText: insightCopy,
-                        })
-                      }
+                      onClick={() => onViewRemediation(rule.name)}
                     >
                       <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
                         <img

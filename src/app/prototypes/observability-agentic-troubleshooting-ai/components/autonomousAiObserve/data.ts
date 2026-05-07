@@ -1184,6 +1184,18 @@ export function sortAlertsBySeverityPriority(alerts: AlertRecord[]): AlertRecord
   );
 }
 
+/**
+ * First alert row for a rule title (severity-priority). Fleet ingress critical is modeled separately
+ * (`FLEET_WIDE_REGIONAL_INGRESS`), not as `ALERTS` rows — callers should branch on title first.
+ */
+export function firstFleetAlertRecordForRuleTitle(ruleTitle: string): AlertRecord | undefined {
+  const matches = ALERTS.filter((a) => a.title === ruleTitle);
+  if (matches.length === 0) {
+    return undefined;
+  }
+  return sortAlertsBySeverityPriority(matches)[0];
+}
+
 /** Display suffix after `AI insight ·` for KPI tooltips and summaries. */
 export function aiInsightCategoryShort(categoryLabel: string): string {
   const trimmed = categoryLabel.trim();
