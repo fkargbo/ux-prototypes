@@ -6,7 +6,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
-  AlertActionCloseButton,
   Button,
   Card,
   CardBody,
@@ -62,14 +61,6 @@ import {
 } from './focusClusterSession';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget-v2';
-
-function fleetAwayDismissKey(text: string): string {
-  return `fleet:${text}`;
-}
-
-function clusterAwayDismissKey(clusterId: string, text: string): string {
-  return `cluster:${clusterId}:${text}`;
-}
 
 /** Chip label for cluster-scoped digest rows (non-dismissed count). */
 function awayDigestClusterEventCountLabel(visibleCount: number): string {
@@ -303,54 +294,15 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   const [cAwayOpen, setCAwayOpen] = useState(true);
   const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
-  /** Fleet digest rows use `fleet:${text}`; cluster rows use `cluster:${clusterId}:${text}`. */
-  const [dismissedAwayKeys, setDismissedAwayKeys] = useState<Set<string>>(() => new Set());
-
-  const visibleFleetAwayDigestItems = useMemo(
-    () => AWAY_DIGEST_ITEMS.filter((item) => !dismissedAwayKeys.has(fleetAwayDismissKey(item.text))),
-    [dismissedAwayKeys]
-  );
-
-  const visibleClusterAwayDigestItems = useMemo(() => {
-    return buildClusterAwayDigestItems(selectedClusterId).filter(
-      (item) => !dismissedAwayKeys.has(clusterAwayDismissKey(selectedClusterId, item.text))
-    );
-  }, [dismissedAwayKeys, selectedClusterId]);
+  const fleetAwayDigestItems = useMemo(() => AWAY_DIGEST_ITEMS, []);
+  const clusterAwayDigestItems = useMemo(() => buildClusterAwayDigestItems(selectedClusterId), [selectedClusterId]);
 
   const fleetWhileYouWereAwayChipLabel = useMemo(() => awayDigestNewEventsLabel(CLUSTERS.length), []);
 
   const clusterWhileYouWereAwayChipLabel = useMemo(
-    () => awayDigestClusterEventCountLabel(visibleClusterAwayDigestItems.length),
-    [visibleClusterAwayDigestItems.length]
+    () => awayDigestClusterEventCountLabel(clusterAwayDigestItems.length),
+    [clusterAwayDigestItems.length]
   );
-
-  const dismissFleetAwayDigest = useCallback((text: string) => {
-    setDismissedAwayKeys((prev) => new Set(prev).add(fleetAwayDismissKey(text)));
-  }, []);
-
-  const dismissClusterAwayDigest = useCallback(
-    (clusterId: string, text: string) => {
-      setDismissedAwayKeys((prev) => new Set(prev).add(clusterAwayDismissKey(clusterId, text)));
-    },
-    []
-  );
-
-  const dismissAllFleetAwayDigests = useCallback(() => {
-    setDismissedAwayKeys((prev) => {
-      const next = new Set(prev);
-      AWAY_DIGEST_ITEMS.forEach((i) => next.add(fleetAwayDismissKey(i.text)));
-      return next;
-    });
-  }, []);
-
-  const dismissAllClusterAwayDigests = useCallback((clusterId: string) => {
-    const rows = buildClusterAwayDigestItems(clusterId);
-    setDismissedAwayKeys((prev) => {
-      const next = new Set(prev);
-      rows.forEach((r) => next.add(clusterAwayDismissKey(clusterId, r.text)));
-      return next;
-    });
-  }, []);
 
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
 
@@ -502,30 +454,18 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                       </StackItem>
                       <StackItem style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
                         <Flex
-                          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                          justifyContent={{ default: 'justifyContentFlexStart' }}
                           alignItems={{ default: 'alignItemsCenter' }}
                           flexWrap={{ default: 'wrap' }}
                         >
                           <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
-                          <Button
-                            variant="link"
-                            isInline
-                            isDisabled={visibleFleetAwayDigestItems.length === 0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              dismissAllFleetAwayDigests();
-                            }}
-                            aria-label="Dismiss all digest alerts"
-                          >
-                            Dismiss all
-                          </Button>
                         </Flex>
                       </StackItem>
                     </Stack>
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
-                      {visibleFleetAwayDigestItems.length === 0 ? (
+                      {fleetAwayDigestItems.length === 0 ? (
                         <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           <EmptyStateBody>
                             <Title headingLevel="h4" size="lg">
@@ -541,7 +481,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                         </EmptyState>
                       ) : (
                         <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                          {visibleFleetAwayDigestItems.map((item) => (
+                          {fleetAwayDigestItems.map((item) => (
                             <StackItem key={item.text}>
                               <Alert
                                 isInline
@@ -555,12 +495,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                     <span className="ols-aio-away-alert-time">{item.timestamp}</span>
                                     <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
                                   </span>
-                                }
-                                actionClose={
-                                  <AlertActionCloseButton
-                                    onClose={() => dismissFleetAwayDigest(item.text)}
-                                    aria-label={`Dismiss: ${item.text}`}
-                                  />
                                 }
                               >
                                 <Content
@@ -755,30 +689,18 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                       </StackItem>
                       <StackItem style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
                         <Flex
-                          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                          justifyContent={{ default: 'justifyContentFlexStart' }}
                           alignItems={{ default: 'alignItemsCenter' }}
                           flexWrap={{ default: 'wrap' }}
                         >
                           <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
-                          <Button
-                            variant="link"
-                            isInline
-                            isDisabled={visibleClusterAwayDigestItems.length === 0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              dismissAllClusterAwayDigests(selectedClusterId);
-                            }}
-                            aria-label="Dismiss all digest alerts for this cluster"
-                          >
-                            Dismiss all
-                          </Button>
                         </Flex>
                       </StackItem>
                     </Stack>
                   </CardHeader>
                   <CardExpandableContent>
                     <CardBody>
-                      {visibleClusterAwayDigestItems.length === 0 ? (
+                      {clusterAwayDigestItems.length === 0 ? (
                         <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           <EmptyStateBody>
                             <Title headingLevel="h4" size="lg">
@@ -794,8 +716,8 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                         </EmptyState>
                       ) : (
                         <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                          {visibleClusterAwayDigestItems.map((item) => (
-                            <StackItem key={clusterAwayDismissKey(selectedClusterId, item.text)}>
+                          {clusterAwayDigestItems.map((item) => (
+                            <StackItem key={item.text}>
                               <Alert
                                 isInline
                                 isExpandable
@@ -808,12 +730,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                     <span className="ols-aio-away-alert-time">{item.timestamp}</span>
                                     <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
                                   </span>
-                                }
-                                actionClose={
-                                  <AlertActionCloseButton
-                                    onClose={() => dismissClusterAwayDigest(selectedClusterId, item.text)}
-                                    aria-label={`Dismiss: ${item.text}`}
-                                  />
                                 }
                               >
                                 <Content
