@@ -1507,9 +1507,18 @@ export function buildFleetTopFiringAlertRuleRows(): FleetTopAlertRuleRow[] {
     });
   }
 
-  return Object.values(byTitle)
-    .sort((a, b) => b.critical + b.warning + b.info - (a.critical + a.warning + a.info))
-    .slice(0, TOP_FLEET_ALERTS_DISPLAY_MAX);
+  const sorted = Object.values(byTitle).sort(
+    (a, b) => b.critical + b.warning + b.info - (a.critical + a.warning + a.info)
+  );
+
+  const ingressTitle = FLEET_WIDE_REGIONAL_INGRESS.title;
+  const ingressIdx = sorted.findIndex((r) => r.name === ingressTitle);
+  const ingressRow = ingressIdx >= 0 ? sorted[ingressIdx] : undefined;
+  const withoutIngress = ingressRow ? sorted.filter((_, i) => i !== ingressIdx) : sorted;
+
+  /** Fleet ingress incident row pinned first on “Top firing alerts”; remainder sorted by volume. */
+  const ordered = ingressRow ? [ingressRow, ...withoutIngress] : sorted;
+  return ordered.slice(0, TOP_FLEET_ALERTS_DISPLAY_MAX);
 }
 
 /** Aligns with Fleet Summary firing totals (`computeFleetStats` / fleet ingress attribution). */
