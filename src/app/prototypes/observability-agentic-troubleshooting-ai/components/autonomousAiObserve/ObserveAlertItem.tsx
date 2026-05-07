@@ -320,8 +320,7 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                     >
                       <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
                       <Button
-                        variant="link"
-                        isInline
+                        variant="secondary"
                         onClick={() =>
                           onDiscussWithLightspeed({
                             alertId: alert.id,
@@ -407,8 +406,7 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                     >
                       <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
                       <Button
-                        variant="link"
-                        isInline
+                        variant="secondary"
                         onClick={() =>
                           onDiscussWithLightspeed({
                             alertId: alert.id,

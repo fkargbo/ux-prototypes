@@ -273,8 +273,7 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                     >
                       <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
                       <Button
-                        variant="link"
-                        isInline
+                        variant="secondary"
                         onClick={() =>
                           onDiscussWithLightspeed({
                             alertId: incident.id,
@@ -331,8 +330,7 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                     >
                       <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
                       <Button
-                        variant="link"
-                        isInline
+                        variant="secondary"
                         onClick={() =>
                           onDiscussWithLightspeed({
                             alertId: incident.id,
