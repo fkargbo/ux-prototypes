@@ -7,13 +7,14 @@ import {
   getFleetTopAlertInsightDisplay,
 } from '../../components/autonomousAiObserve/data';
 import { TopAlertsSection } from '../alerting-fleet-copy/components/TopAlertsSection';
-import { OpenShiftLightspeedPanel, type LightspeedInvestigateContext } from '../alerting-fleet-copy/components/OpenShiftLightspeedPanel';
+import type { LightspeedInvestigateContext } from '../alerting-fleet-copy/components/OpenShiftLightspeedPanel';
+import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 
 const TOP_FIRING_CARD_ID = 'ols-ai-hub-top-firing-alerts';
 
-function alertingFleetOverviewHref(options: { alertName?: string }): string {
+function alertingHref(options: { tab: 'alerts' | 'fleet-overview'; alertName?: string }): string {
   const params = new URLSearchParams();
-  params.set('tab', 'fleet-overview');
+  params.set('tab', options.tab);
   params.set('scope', 'ai-hub');
   if (options.alertName) {
     params.set('alertName', options.alertName);
@@ -35,25 +36,17 @@ export const TopFiringAlertsCard: React.FC = () => {
 
   const onAlertRuleClick = useCallback(
     (alertName: string) => {
-      navigate(alertingFleetOverviewHref({ alertName }));
+      navigate(alertingHref({ tab: 'alerts', alertName }));
     },
     [navigate]
   );
 
   const onViewAllFiringAlerts = useCallback(() => {
-    navigate(alertingFleetOverviewHref({}));
+    navigate(alertingHref({ tab: 'fleet-overview' }));
   }, [navigate]);
 
-  const [lightspeedOpen, setLightspeedOpen] = useState(false);
-  const [lightspeedContext, setLightspeedContext] = useState<LightspeedInvestigateContext | null>(null);
-
   const onOpenLightspeed = useCallback((ctx: LightspeedInvestigateContext) => {
-    setLightspeedContext(ctx);
-    setLightspeedOpen(true);
-  }, []);
-
-  const closeLightspeed = useCallback(() => {
-    setLightspeedOpen(false);
+    agenticGlobalAiApi.startTroubleshootingForAlert?.(ctx.sourceName);
   }, []);
 
   const sectionProps = useMemo(
@@ -74,7 +67,6 @@ export const TopFiringAlertsCard: React.FC = () => {
 
   return (
     <>
-      <OpenShiftLightspeedPanel isOpen={lightspeedOpen} onClose={closeLightspeed} context={lightspeedContext} />
       <Card
         className="ols-aio-subcard ols-aio-fleet-pair-card ols-ai-hub-top-firing-alerts-card"
         isCompact
