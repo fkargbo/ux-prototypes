@@ -543,11 +543,11 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                         <Thead>
                           <Tr>
                             <Th modifier="wrap">Cluster</Th>
+                            <Th modifier="wrap">Cluster status</Th>
                             <Th modifier="wrap">Provider</Th>
                             <Th modifier="nowrap">Alert amount</Th>
                             <Th modifier="wrap">Region</Th>
                             <Th modifier="nowrap">Total nodes</Th>
-                            <Th modifier="wrap">Cluster status</Th>
                             <Th modifier="nowrap">Version</Th>
                           </Tr>
                         </Thead>
@@ -575,10 +575,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                 onRowClick={() => drillIntoClusterFromFleetOverview(c.id)}
                               >
                                 <Td>{c.name}</Td>
-                                <Td>{c.provider}</Td>
-                                <Td>{clusterFireCount(c.id)}</Td>
-                                <Td>{c.region}</Td>
-                                <Td>{c.nodes}</Td>
                                 <Td>
                                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                                     <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true" style={{ color: healthColor }}>
@@ -587,6 +583,10 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                     <span>{clusterHealthLabelText(c.health)}</span>
                                   </Flex>
                                 </Td>
+                                <Td>{c.provider}</Td>
+                                <Td>{clusterFireCount(c.id)}</Td>
+                                <Td>{c.region}</Td>
+                                <Td>{c.nodes}</Td>
                                 <Td modifier="nowrap">v{c.version}</Td>
                               </Tr>
                             );
