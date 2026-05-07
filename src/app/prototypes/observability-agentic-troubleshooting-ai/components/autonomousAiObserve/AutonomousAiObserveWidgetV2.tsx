@@ -26,10 +26,8 @@ import {
   Stack,
   StackItem,
   Title,
-  Tooltip,
 } from '@patternfly/react-core';
 import {
-  ArrowLeftIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
@@ -40,15 +38,12 @@ import type { AgentPulseStatus, AwayDigestItem, ClusterHealth, ClusterRecord, Vi
 import {
   ALERTS,
   AWAY_DIGEST_ITEMS,
-  buildClusterAwayDigestItems,
-  buildClusterSeverityBreakdown,
   CLUSTERS,
   DEFAULT_CORE_PLATFORMS_CLUSTER_ID,
   fleetWideCriticalAddsForCluster,
   getAlertsForCluster,
   getClusterById,
 } from './data';
-import { AlertKpiTooltip } from './AlertKpiTooltip';
 import { ObserveAlertItem } from './ObserveAlertItem';
 import { AI_EXPERIENCE_ICON_DATA_URL } from './aiExperienceIconUrl';
 import './autonomous-ai-observe.css';
@@ -64,17 +59,6 @@ import {
 } from './focusClusterSession';
 
 const WIDGET_ID = 'ols-autonomous-ai-observe-widget-v2';
-
-/** Chip label for cluster-scoped digest rows (non-dismissed count). */
-function awayDigestClusterEventCountLabel(visibleCount: number): string {
-  if (visibleCount <= 0) {
-    return '0 new events';
-  }
-  if (visibleCount === 1) {
-    return '1 new event';
-  }
-  return `${visibleCount} new events`;
-}
 
 /** Multi-cluster Alerting deep-link with optional `cluster`, `severity`, `scope=ai-hub` (see `MultiClusterAlertsPage`). */
 function alertingHref(options: {
@@ -116,95 +100,9 @@ function awayDigestSeverityIcon(tone: AwayDigestItem['tone']): React.ReactNode {
   return <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />;
 }
 
-type ObserveMetricStatCardProps = {
-  /** Row label in `CardHeader` (same pattern as Fleet summary KPI tiles). */
-  cardTitle: string;
-  /** Status / severity icon shown before the linked statistic in `CardBody`. */
-  titleIcon?: React.ReactNode;
-  statistic: React.ReactNode;
-  statisticAriaLabel: string;
-  onStatisticClick: () => void;
-  caption: React.ReactNode;
-  /** When false, the KPI is display-only. */
-  statisticInteractive?: boolean;
-  /** Hover breakdown (PatternFly `Tooltip`); omit when not applicable. */
-  statisticTooltip?: React.ReactNode;
-};
-
-/**
- * Nested compact metric card: `CardTitle` in header; body row is icon + KPI value (link drill or plain text).
- * Used for Fleet summary and Cluster health tiles.
- */
-const ObserveMetricStatCard: React.FC<ObserveMetricStatCardProps> = ({
-  cardTitle,
-  titleIcon,
-  statistic,
-  statisticAriaLabel,
-  onStatisticClick,
-  caption,
-  statisticInteractive = true,
-  statisticTooltip,
-}) => {
-  const statisticTrigger =
-    statisticInteractive ? (
-      <Button
-        variant="link"
-        isInline
-        className="ols-aio-card-stat-number--drill"
-        onClick={onStatisticClick}
-        aria-label={statisticAriaLabel}
-      >
-        {statistic}
-      </Button>
-    ) : (
-      <span className="ols-aio-card-stat-number--readonly" aria-label={statisticAriaLabel}>
-        {statistic}
-      </span>
-    );
-
-  const statisticNode =
-    statisticTooltip !== undefined && statisticTooltip !== null ? (
-      <Tooltip
-        content={statisticTooltip}
-        position="top"
-        isContentLeftAligned
-        maxWidth="min(600px, 92vw)"
-      >
-        {statisticTrigger}
-      </Tooltip>
-    ) : (
-      statisticTrigger
-    );
-
-  return (
-  <Card isCompact>
-    <CardHeader>
-      <CardTitle component="h4">{cardTitle}</CardTitle>
-    </CardHeader>
-    <CardBody>
-      <div className="ols-aio-stat-figure">
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-          {titleIcon ? (
-            <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true">
-              {titleIcon}
-            </span>
-          ) : null}
-          {statisticNode}
-        </Flex>
-      </div>
-      <Content
-        component="p"
-        className="ols-aio-text-subtle-sm"
-        style={{
-          marginTop: 'var(--pf-t--global--spacer--xs)',
-          marginBottom: 0,
-        }}
-      >
-        {caption}
-      </Content>
-    </CardBody>
-  </Card>
-  );
+type AutonomousAiObserveWidgetV2Props = {
+  fleetClusterDrillDown?: boolean;
+  onFleetDrillDownChange?: (isDrillDown: boolean) => void;
 };
 
 function fleetAgentStatus(clusters: ClusterRecord[]): AgentPulseStatus {
@@ -243,12 +141,16 @@ function awayDigestNewEventsLabel(clusterCount: number): string {
   return `New events across ${clusterCount} clusters`;
 }
 
-export const AutonomousAiObserveWidgetV2: React.FC = () => {
+export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Props> = ({
+  fleetClusterDrillDown: fleetClusterDrillDownProp,
+  onFleetDrillDownChange,
+}) => {
   const navigate = useNavigate();
   const { activePerspective } = useActivePerspective();
   const isMultiCluster = CLUSTERS.length > 1;
   /** In Fleet management only: drill into one cluster without leaving the perspective (vs Core platforms). */
-  const [fleetClusterDrillDown, setFleetClusterDrillDown] = useState(false);
+  const [fleetClusterDrillDownInternal, setFleetClusterDrillDownInternal] = useState(false);
+  const fleetClusterDrillDown = fleetClusterDrillDownProp ?? fleetClusterDrillDownInternal;
   const prevPerspectiveRef = React.useRef(activePerspective);
 
   const showFleetOverview = useMemo(
@@ -267,9 +169,13 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
     const prev = prevPerspectiveRef.current;
     prevPerspectiveRef.current = activePerspective;
     if (activePerspective === 'Fleet management' && prev === 'Core platforms') {
-      setFleetClusterDrillDown(false);
+      if (fleetClusterDrillDownProp === undefined) {
+        setFleetClusterDrillDownInternal(false);
+      } else {
+        onFleetDrillDownChange?.(false);
+      }
     }
-  }, [activePerspective]);
+  }, [activePerspective, fleetClusterDrillDownProp, onFleetDrillDownChange]);
 
   React.useEffect(() => {
     if (activePerspective !== 'Core platforms') {
@@ -288,25 +194,14 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   });
   const [fleetSummaryPage, setFleetSummaryPage] = useState(1);
   const [fleetSummaryPerPage, setFleetSummaryPerPage] = useState(10);
-  const [cAwayOpen, setCAwayOpen] = useState(true);
-  const [cHealthOpen, setCHealthOpen] = useState(true);
   const [cAlertsOpen, setCAlertsOpen] = useState(true);
   const fleetAwayDigestItems = useMemo(() => AWAY_DIGEST_ITEMS, []);
-  const clusterAwayDigestItems = useMemo(() => buildClusterAwayDigestItems(selectedClusterId), [selectedClusterId]);
 
   const fleetWhileYouWereAwayChipLabel = useMemo(() => awayDigestNewEventsLabel(CLUSTERS.length), []);
 
-  const clusterWhileYouWereAwayChipLabel = useMemo(
-    () => awayDigestClusterEventCountLabel(clusterAwayDigestItems.length),
-    [clusterAwayDigestItems.length]
-  );
   const fleetRecommendedRemediationCount = useMemo(
     () => fleetAwayDigestItems.filter((item) => item.tone === 'danger' || item.tone === 'warning').length,
     [fleetAwayDigestItems]
-  );
-  const clusterRecommendedRemediationCount = useMemo(
-    () => clusterAwayDigestItems.filter((item) => item.tone === 'danger' || item.tone === 'warning').length,
-    [clusterAwayDigestItems]
   );
 
   const fleetPulse = useMemo(() => fleetAgentStatus(CLUSTERS), []);
@@ -323,12 +218,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
       clearFocusedClusterSession();
     }
   }, [selectedClusterId]);
-
-  useEffect(() => {
-    if (fleetClusterDrillDown) {
-      setCAwayOpen(false);
-    }
-  }, [fleetClusterDrillDown]);
 
   const clusterAlerts = useMemo(() => getAlertsForCluster(selectedClusterId), [selectedClusterId]);
 
@@ -370,22 +259,13 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
     []
   );
 
-  const criticalOnCluster = clusterAlerts.filter((a) => a.severity === 'critical').length;
-  const warningOnCluster = clusterAlerts.filter((a) => a.severity === 'warning').length;
-
-  const clusterCriticalBreakdown = useMemo(
-    () => (selectedClusterId ? buildClusterSeverityBreakdown(selectedClusterId, 'critical') : []),
-    [selectedClusterId]
-  );
-  const clusterWarningBreakdown = useMemo(
-    () => (selectedClusterId ? buildClusterSeverityBreakdown(selectedClusterId, 'warning') : []),
-    [selectedClusterId]
-  );
-
   const drillIntoClusterFromFleetOverview = useCallback((clusterId: string) => {
     setSelectedClusterId(clusterId);
-    setFleetClusterDrillDown(true);
-  }, []);
+    if (fleetClusterDrillDownProp === undefined) {
+      setFleetClusterDrillDownInternal(true);
+    }
+    onFleetDrillDownChange?.(true);
+  }, [fleetClusterDrillDownProp, onFleetDrillDownChange]);
 
   const fleetSummaryRows = useMemo(
     () =>
@@ -470,31 +350,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   return (
     <SimulationProvider>
     <>
-      {/* Fleet management drill-down: return to fleet overview (cluster switcher removed for now). */}
-      {isMultiCluster && activePerspective === 'Fleet management' && fleetClusterDrillDown ? (
-        <Flex
-          className="ols-aio-context-selectors"
-          alignItems={{ default: 'alignItemsCenter' }}
-          flexWrap={{ default: 'wrap' }}
-          gap={{ default: 'gapMd' }}
-          style={{
-            width: '100%',
-            marginBottom: 'var(--pf-t--global--spacer--md)',
-          }}
-        >
-          <FlexItem>
-            <Button
-              variant="link"
-              icon={<ArrowLeftIcon />}
-              onClick={() => setFleetClusterDrillDown(false)}
-              aria-label="Return to full fleet Autonomous analysis view"
-            >
-              Back to fleet overview
-            </Button>
-          </FlexItem>
-        </Flex>
-      ) : null}
-
       <div id={WIDGET_ID} className="ols-autonomous-ai-observe-widget">
         <div className="ols-aio-widget-main">
           {showFleetOverview ? (
@@ -777,216 +632,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
             </Stack>
           ) : selectedCluster ? (
             <Stack hasGutter>
-              <StackItem>
-                <Card className="ols-aio-subcard" isCompact isExpanded={cAwayOpen} id={`${WIDGET_ID}-c-away`}>
-                  <CardHeader
-                    onExpand={() => setCAwayOpen((o) => !o)}
-                    toggleButtonProps={{
-                      id: `${WIDGET_ID}-c-away-toggle`,
-                      'aria-label': 'Toggle While you were away section',
-                    }}
-                  >
-                    <Stack>
-                      <StackItem>
-                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-                          <CardTitle component="h3">
-                            {isMultiCluster ? `While you were away — ${selectedCluster.name}` : 'While you were away'}
-                          </CardTitle>
-                          <Label color="blue" isCompact>
-                            {clusterWhileYouWereAwayChipLabel}
-                          </Label>
-                        </Flex>
-                      </StackItem>
-                      <StackItem style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                        <Flex
-                          justifyContent={{ default: 'justifyContentFlexStart' }}
-                          alignItems={{ default: 'alignItemsCenter' }}
-                          flexWrap={{ default: 'wrap' }}
-                        >
-                          <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
-                        </Flex>
-                      </StackItem>
-                    </Stack>
-                  </CardHeader>
-                  <CardExpandableContent>
-                    <CardBody className="ols-aio-away-card-body">
-                      <div className="ols-aio-away-scroll-region">
-                        {clusterAwayDigestItems.length === 0 ? (
-                          <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                            <EmptyStateBody>
-                              <Title headingLevel="h4" size="lg">
-                                You&apos;re all caught up
-                              </Title>
-                              <Content
-                                component="p"
-                                style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}
-                              >
-                                There are currently no active digest items for {selectedCluster.name}.
-                              </Content>
-                            </EmptyStateBody>
-                          </EmptyState>
-                        ) : (
-                          <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                            {clusterAwayDigestItems.map((item) => (
-                              <StackItem key={item.text}>
-                                <Alert
-                                  isInline
-                                  isExpandable
-                                  variant={item.tone}
-                                  className="ols-aio-away-alert"
-                                  title={item.text}
-                                  toggleAriaLabel={`Toggle details: ${item.text}`}
-                                  customIcon={
-                                    <span className="ols-aio-away-alert-icon-wrap" aria-hidden="true">
-                                      <span className="ols-aio-away-alert-time">{item.timestamp}</span>
-                                      <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
-                                    </span>
-                                  }
-                                >
-                                  <Content
-                                    component="p"
-                                    className="ols-aio-text-subtle-sm"
-                                    style={{
-                                      marginTop: 0,
-                                      marginBottom: 0,
-                                    }}
-                                  >
-                                    <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
-                                      <img
-                                        src={AI_EXPERIENCE_ICON_DATA_URL}
-                                        alt=""
-                                        width={16}
-                                        height={16}
-                                        style={{ display: 'block', flexShrink: 0 }}
-                                      />
-                                    </span>
-                                    <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
-                                    <span>{item.meta}</span>
-                                  </Content>
-                                </Alert>
-                              </StackItem>
-                            ))}
-                          </Stack>
-                        )}
-                      </div>
-                      <div className="ols-aio-away-card-footer">
-                        <Button
-                          variant="primary"
-                          onClick={() =>
-                            navigate(
-                              alertingHref({
-                                tab: 'alerts',
-                                clusterId: selectedClusterId,
-                                aiHubFleetScope: true,
-                              })
-                            )
-                          }
-                          aria-label={`Open recommended remediations for ${selectedCluster.name}, ${clusterRecommendedRemediationCount} suggested`}
-                        >
-                          Recommended remediations ({clusterRecommendedRemediationCount})
-                        </Button>
-                      </div>
-                    </CardBody>
-                  </CardExpandableContent>
-                </Card>
-              </StackItem>
-
-              <StackItem>
-                <Card className="ols-aio-subcard" isCompact isExpanded={cHealthOpen} id={`${WIDGET_ID}-c-health`}>
-                  <CardHeader
-                    onExpand={() => setCHealthOpen((o) => !o)}
-                    toggleButtonProps={{
-                      id: `${WIDGET_ID}-c-health-toggle`,
-                      'aria-label': 'Toggle cluster health section',
-                    }}
-                  >
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                      <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
-                        <Title headingLevel="h3" size="lg">
-                          Cluster health
-                        </Title>
-                      </FlexItem>
-                      <Label color="grey" variant="outline" isCompact>
-                        {selectedCluster.name}
-                      </Label>
-                    </Flex>
-                  </CardHeader>
-                  <CardExpandableContent>
-                    <CardBody>
-                      <Grid hasGutter>
-                        <GridItem span={12} md={4}>
-                          <ObserveMetricStatCard
-                            cardTitle="Critical alerts"
-                            titleIcon={
-                              <ExclamationCircleIcon
-                                style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
-                              />
-                            }
-                            statistic={criticalOnCluster}
-                            statisticAriaLabel={`Open Alerting Alerts tab, critical filter, for ${selectedCluster.name}`}
-                            onStatisticClick={() =>
-                              navigate(
-                                alertingHref({
-                                  tab: 'alerts',
-                                  severity: 'critical',
-                                  clusterId: selectedCluster.id,
-                                  aiHubFleetScope: true,
-                                })
-                              )
-                            }
-                            statisticInteractive
-                            statisticTooltip={
-                              <AlertKpiTooltip bucketLabel="Critical alerts" rows={clusterCriticalBreakdown} />
-                            }
-                            caption={`on ${selectedCluster.name}`}
-                          />
-                        </GridItem>
-                        <GridItem span={12} md={4}>
-                          <ObserveMetricStatCard
-                            cardTitle="Warning alerts"
-                            titleIcon={
-                              <ExclamationTriangleIcon
-                                style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
-                              />
-                            }
-                            statistic={warningOnCluster}
-                            statisticAriaLabel={`Open Alerting Alerts tab, warning filter, for ${selectedCluster.name}`}
-                            onStatisticClick={() =>
-                              navigate(
-                                alertingHref({
-                                  tab: 'alerts',
-                                  severity: 'warning',
-                                  clusterId: selectedCluster.id,
-                                  aiHubFleetScope: true,
-                                })
-                              )
-                            }
-                            statisticInteractive
-                            statisticTooltip={
-                              <AlertKpiTooltip bucketLabel="Warning alerts" rows={clusterWarningBreakdown} />
-                            }
-                            caption={`on ${selectedCluster.name}`}
-                          />
-                        </GridItem>
-                        <GridItem span={12} md={4}>
-                          <ObserveMetricStatCard
-                            cardTitle="Nodes / Version"
-                            statistic={
-                              <>
-                                {selectedCluster.nodes} / {selectedCluster.version}
-                              </>
-                            }
-                            statisticAriaLabel={`Nodes and version for ${selectedCluster.name}`}
-                            onStatisticClick={() => {}}
-                            statisticInteractive={false}
-                            caption={`${selectedCluster.provider} · ${selectedCluster.region}`}
-                          />
-                        </GridItem>
-                      </Grid>
-                    </CardBody>
-                  </CardExpandableContent>
-                </Card>
-              </StackItem>
 
               <StackItem>
                 <Card className="ols-aio-subcard" isCompact isExpanded={cAlertsOpen} id={`${WIDGET_ID}-c-alerts`}>
