@@ -402,6 +402,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   const drillIntoClusterFromFleetOverview = useCallback((clusterId: string) => {
     setRemediationScope('cluster');
     setSelectedClusterId(clusterId);
+    setCAlertsOpen(true);
     if (fleetClusterDrillDownProp === undefined) {
       setFleetClusterDrillDownInternal(true);
     }
