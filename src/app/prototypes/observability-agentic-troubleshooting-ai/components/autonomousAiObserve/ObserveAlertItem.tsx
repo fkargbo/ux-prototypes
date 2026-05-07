@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Button,
   Card,
@@ -30,7 +30,6 @@ import {
   InfoCircleIcon,
   NetworkIcon,
   SearchIcon,
-  StarIcon,
   TerminalIcon,
   WrenchIcon,
 } from '@patternfly/react-icons';
@@ -114,6 +113,8 @@ export interface ObserveAlertItemProps {
   onToggle: (next: boolean) => void;
   /** Opens OLS with this alert’s diagnosis card context (RCA / remediation). */
   onDiscussWithLightspeed?: (payload: { alertId: string; cardId: string; diagnosisName: string }) => void;
+  /** When true, expands the Remediation Hub subsection (e.g. drill from Top firing alerts). */
+  expandRemediationInitially?: boolean;
 }
 
 export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
@@ -121,10 +122,17 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
   isExpanded,
   onToggle,
   onDiscussWithLightspeed,
+  expandRemediationInitially,
 }) => {
-  const [openChain, setOpenChain] = useState(true);
-  const [openRca, setOpenRca] = useState(true);
-  const [openRem, setOpenRem] = useState(true);
+  const [openChain, setOpenChain] = useState(false);
+  const [openRca, setOpenRca] = useState(false);
+  const [openRem, setOpenRem] = useState(false);
+
+  useEffect(() => {
+    if (expandRemediationInitially) {
+      setOpenRem(true);
+    }
+  }, [expandRemediationInitially]);
 
   const onCardExpand = useCallback(
     (_e: React.MouseEvent, _id: string) => {
@@ -318,10 +326,8 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                       gap={{ default: 'gapSm' }}
                       style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
                     >
-                      <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
                       <Button
-                        variant="link"
-                        isInline
+                        variant="secondary"
                         onClick={() =>
                           onDiscussWithLightspeed({
                             alertId: alert.id,
@@ -399,39 +405,28 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                   <pre className="ols-aio-code-block" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     {alert.remediationCommands}
                   </pre>
-                  {onDiscussWithLightspeed ? (
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      gap={{ default: 'gapSm' }}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                    >
-                      <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
-                      <Button
-                        variant="link"
-                        isInline
-                        onClick={() =>
-                          onDiscussWithLightspeed({
-                            alertId: alert.id,
-                            cardId: 'remediation',
-                            diagnosisName: 'Remediation plan',
-                          })
-                        }
-                      >
-                        Discuss with Lightspeed
-                      </Button>
-                    </Flex>
-                  ) : null}
                   <Flex>
                     <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
                       <Button variant="primary">
                         Apply Fix (Autonomous)
                       </Button>
                     </FlexItem>
-                    <FlexItem>
-                      <Button variant="secondary">
-                        Escalate to human
-                      </Button>
-                    </FlexItem>
+                    {onDiscussWithLightspeed ? (
+                      <FlexItem>
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            onDiscussWithLightspeed({
+                              alertId: alert.id,
+                              cardId: 'remediation',
+                              diagnosisName: 'Remediation plan',
+                            })
+                          }
+                        >
+                          Discuss with Lightspeed
+                        </Button>
+                      </FlexItem>
+                    ) : null}
                   </Flex>
                 </div>
               </ExpandableSection>

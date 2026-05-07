@@ -1,11 +1,13 @@
 import React from 'react';
-import { Content, Stack, StackItem, Title } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Button, Content, Stack, StackItem, Title } from '@patternfly/react-core';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
 import { AutonomousAiObserveWidgetV2 } from '../components/autonomousAiObserve/AutonomousAiObserveWidgetV2';
+import { getClusterById } from '../components/autonomousAiObserve/data';
 import { config as prototypeConfig } from '../prototype.config';
 import { AgentTokenCounter, AiExperienceIcon, ClusterInventoryBar, FleetInventoryBar } from './ai-hub-v2';
+import { useFocusedClusterId } from './ai-hub-v2/useFocusedClusterId';
 import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
@@ -15,8 +17,13 @@ export const AIHubPage: React.FC = () => {
   );
   const { activePerspective } = useActivePerspective();
   const isHubV2 = bannerVersionKey === 'v2';
-  const showFleetInventory = isHubV2 && activePerspective === 'Fleet management';
-  const showClusterInventory = isHubV2 && activePerspective === 'Core platforms';
+  const [fleetClusterDrillDown, setFleetClusterDrillDown] = React.useState(false);
+  const focusedClusterId = useFocusedClusterId();
+  const focusedCluster = React.useMemo(() => getClusterById(focusedClusterId), [focusedClusterId]);
+  const showFleetBreadcrumb = isHubV2 && activePerspective === 'Fleet management' && fleetClusterDrillDown;
+  const showFleetInventory = isHubV2 && activePerspective === 'Fleet management' && !fleetClusterDrillDown;
+  const showClusterSummary =
+    isHubV2 && (activePerspective === 'Core platforms' || (activePerspective === 'Fleet management' && fleetClusterDrillDown));
 
   const rootStyle: React.CSSProperties = isHubV2
     ? {
@@ -55,9 +62,13 @@ export const AIHubPage: React.FC = () => {
               <Title headingLevel="h1" size="2xl">
                 AI Troubleshooting Hub
               </Title>
-              <Content component="p" style={{ marginTop: '8px', marginBottom: 0, color: '#6a6e73' }}>
-                Coordinate autonomous AI investigations, evidence collection, and guided remediation workflows for
-                observability incidents from one hub.
+              <Content
+                component="p"
+                className="ols-ai-hub-page-subtitle"
+                style={{ marginTop: '8px', marginBottom: 0, color: '#6a6e73' }}
+              >
+                Accelerate incident response with autonomous investigations, automated evidence gathering, and guided
+                fixes.
               </Content>
               <Content
                 component="p"
@@ -89,19 +100,43 @@ export const AIHubPage: React.FC = () => {
             boxSizing: 'border-box',
           }}
         >
-          <Stack hasGutter>
+          <Stack hasGutter className="ols-ai-hub-main-stack">
+            {showFleetBreadcrumb ? (
+              <StackItem>
+                <Breadcrumb>
+                  <BreadcrumbItem>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => setFleetClusterDrillDown(false)}
+                      aria-label="Return to AI Troubleshooting Hub fleet overview"
+                    >
+                      AI Troubleshooting Hub
+                    </Button>
+                  </BreadcrumbItem>
+                  <BreadcrumbItem isActive>{focusedCluster?.name ?? 'Cluster'}</BreadcrumbItem>
+                </Breadcrumb>
+              </StackItem>
+            ) : null}
             {showFleetInventory ? (
               <StackItem>
                 <FleetInventoryBar />
               </StackItem>
             ) : null}
-            {showClusterInventory ? (
+            {showClusterSummary ? (
               <StackItem>
-                <ClusterInventoryBar />
+                <ClusterInventoryBar title="Cluster summary" />
               </StackItem>
             ) : null}
             <StackItem>
-              {bannerVersionKey === 'v2' ? <AutonomousAiObserveWidgetV2 /> : <AutonomousAiObserveWidget />}
+              {bannerVersionKey === 'v2' ? (
+                <AutonomousAiObserveWidgetV2
+                  fleetClusterDrillDown={fleetClusterDrillDown}
+                  onFleetDrillDownChange={setFleetClusterDrillDown}
+                />
+              ) : (
+                <AutonomousAiObserveWidget />
+              )}
             </StackItem>
           </Stack>
         </div>

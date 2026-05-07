@@ -1,19 +1,23 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, CardBody, CardExpandableContent, CardHeader, CardTitle } from '@patternfly/react-core';
+import { Button, Card, CardBody, CardExpandableContent, CardHeader, CardTitle, Label } from '@patternfly/react-core';
 import {
+  ALERTS,
+  FLEET_WIDE_REGIONAL_INGRESS,
   buildFleetTopFiringAlertRuleRows,
   fleetHubTotalFiringAlertsCount,
   getFleetTopAlertInsightDisplay,
 } from '../../components/autonomousAiObserve/data';
 import { TopAlertsSection } from '../alerting-fleet-copy/components/TopAlertsSection';
-import { OpenShiftLightspeedPanel, type LightspeedInvestigateContext } from '../alerting-fleet-copy/components/OpenShiftLightspeedPanel';
+import type { LightspeedInvestigateContext } from '../alerting-fleet-copy/components/OpenShiftLightspeedPanel';
+import { agenticGlobalAiApi } from '../../persesAgenticBridge';
+import { dispatchRemediationDrill } from '../../components/autonomousAiObserve/remediationDrillSession';
 
 const TOP_FIRING_CARD_ID = 'ols-ai-hub-top-firing-alerts';
 
-function alertingFleetOverviewHref(options: { alertName?: string }): string {
+function alertingHref(options: { tab: 'alerts' | 'fleet-overview'; alertName?: string }): string {
   const params = new URLSearchParams();
-  params.set('tab', 'fleet-overview');
+  params.set('tab', options.tab);
   params.set('scope', 'ai-hub');
   if (options.alertName) {
     params.set('alertName', options.alertName);
@@ -35,25 +39,35 @@ export const TopFiringAlertsCard: React.FC = () => {
 
   const onAlertRuleClick = useCallback(
     (alertName: string) => {
-      navigate(alertingFleetOverviewHref({ alertName }));
+      navigate(alertingHref({ tab: 'alerts', alertName }));
     },
     [navigate]
   );
 
   const onViewAllFiringAlerts = useCallback(() => {
-    navigate(alertingFleetOverviewHref({}));
+    navigate(alertingHref({ tab: 'fleet-overview' }));
   }, [navigate]);
 
-  const [lightspeedOpen, setLightspeedOpen] = useState(false);
-  const [lightspeedContext, setLightspeedContext] = useState<LightspeedInvestigateContext | null>(null);
-
-  const onOpenLightspeed = useCallback((ctx: LightspeedInvestigateContext) => {
-    setLightspeedContext(ctx);
-    setLightspeedOpen(true);
+  const onViewRemediation = useCallback((ruleName: string) => {
+    dispatchRemediationDrill({ alertRuleTitle: ruleName });
   }, []);
 
-  const closeLightspeed = useCallback(() => {
-    setLightspeedOpen(false);
+  const onOpenLightspeed = useCallback((ctx: LightspeedInvestigateContext) => {
+    const directAlert = ALERTS.find((a) => a.title === ctx.sourceName);
+    const fleetWideMatch = FLEET_WIDE_REGIONAL_INGRESS.title === ctx.sourceName ? FLEET_WIDE_REGIONAL_INGRESS : null;
+    const alertId = directAlert?.id ?? fleetWideMatch?.id ?? null;
+
+    if (alertId) {
+      agenticGlobalAiApi.openDiscussWithLightspeed?.({
+        alertId,
+        cardId: 'rca',
+        diagnosisName: 'Root cause analysis',
+      });
+      return;
+    }
+
+    // Fallback for unexpected rows so the CTA still opens AI assistance.
+    agenticGlobalAiApi.startTroubleshootingForAlert?.(ctx.sourceName);
   }, []);
 
   const sectionProps = useMemo(
@@ -63,18 +77,18 @@ export const TopFiringAlertsCard: React.FC = () => {
       hasAlertData,
       onAlertRuleClick,
       onOpenLightspeed,
+      onViewRemediation,
       onViewAllFiringAlerts,
       showSectionHeading: false as const,
       getAiInsightCopy: getFleetTopAlertInsightDisplay,
       alertActionsLayout: 'ai-hub' as const,
       showViewAllFiringAlertsFooter: false as const,
     }),
-    [alertRuleData, totalFiringAlertsCount, hasAlertData, onAlertRuleClick, onOpenLightspeed, onViewAllFiringAlerts]
+    [alertRuleData, totalFiringAlertsCount, hasAlertData, onAlertRuleClick, onOpenLightspeed, onViewRemediation, onViewAllFiringAlerts]
   );
 
   return (
     <>
-      <OpenShiftLightspeedPanel isOpen={lightspeedOpen} onClose={closeLightspeed} context={lightspeedContext} />
       <Card
         className="ols-aio-subcard ols-aio-fleet-pair-card ols-ai-hub-top-firing-alerts-card"
         isCompact
@@ -110,9 +124,14 @@ export const TopFiringAlertsCard: React.FC = () => {
               : undefined
           }
         >
-          <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
-            Top firing alerts
-          </CardTitle>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
+            <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
+              Top firing alerts
+            </CardTitle>
+            <Label color="blue" isCompact>
+              {alertRuleData.length} top firing alert{alertRuleData.length === 1 ? '' : 's'}
+            </Label>
+          </div>
         </CardHeader>
         <CardExpandableContent>
           <CardBody>

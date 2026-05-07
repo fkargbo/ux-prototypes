@@ -21,11 +21,18 @@ import {
 import type { LightspeedInvestigateContext } from './OpenShiftLightspeedPanel';
 
 type SeverityKey = 'Critical' | 'Warning' | 'Info';
+type SeverityLabelStatus = 'danger' | 'warning' | 'info';
 
 const SEVERITY_ICONS: Record<SeverityKey, React.ReactNode> = {
   Critical: <ExclamationCircleIcon />,
   Warning: <ExclamationTriangleIcon />,
   Info: <InfoCircleIcon />,
+};
+
+const SEVERITY_LABEL_STATUS: Record<SeverityKey, SeverityLabelStatus> = {
+  Critical: 'danger',
+  Warning: 'warning',
+  Info: 'info',
 };
 
 export interface AlertRuleRow {
@@ -42,6 +49,8 @@ export interface TopAlertsSectionProps {
   hasAlertData: boolean;
   onAlertRuleClick: (name: string) => void;
   onOpenLightspeed: (ctx: LightspeedInvestigateContext) => void;
+  /** AI Hub: jump to fleet remediation drill-down for this rule, expanded. */
+  onViewRemediation?: (ruleName: string) => void;
   onViewAllFiringAlerts?: () => void;
   /** When false, omit the internal “Top alerts” heading (e.g. card supplies its own title). */
   showSectionHeading?: boolean;
@@ -51,8 +60,8 @@ export interface TopAlertsSectionProps {
    */
   getAiInsightCopy?: (ruleName: string) => string;
   /**
-   * `fleet-insights` — actions on the title row; Investigate with AI inline after insight copy (Alerting Fleet Insights).
-   * `ai-hub` — View alert → Investigate with AI → View Runbook on one line below the AI insight block (AI Hub Top firing alerts).
+   * `fleet-insights` — actions on the title row; Discuss with AI inline after insight copy (Alerting Fleet Insights).
+   * `ai-hub` — View alert → Discuss with AI → View Runbook on one line below the AI insight block (AI Hub Top firing alerts).
    */
   alertActionsLayout?: 'fleet-insights' | 'ai-hub';
   /** When false, do not render the footer “View all firing alerts” row (e.g. card header supplies it). */
@@ -68,6 +77,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
   hasAlertData,
   onAlertRuleClick,
   onOpenLightspeed,
+  onViewRemediation,
   onViewAllFiringAlerts,
   showSectionHeading = true,
   getAiInsightCopy,
@@ -107,19 +117,26 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                 alignItems={{ default: 'alignItemsCenter' }}
                 justifyContent={
                   alertActionsLayout === 'ai-hub'
-                    ? { default: 'justifyContentFlexStart' }
+                    ? { default: 'justifyContentSpaceBetween' }
                     : { default: 'justifyContentSpaceBetween' }
                 }
                 flexWrap={{ default: 'wrap' }}
                 gap={{ default: 'gapSm' }}
               >
-                <FlexItem style={{ flexShrink: 0 }}>
+                <FlexItem style={{ flexShrink: 1, minWidth: 0, flex: '1 1 auto' }}>
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <Label
                       isCompact
-                      color={
-                        dominantSeverity === 'Critical' ? 'red' : dominantSeverity === 'Warning' ? 'orange' : 'purple'
-                      }
+                      {...(alertActionsLayout === 'ai-hub'
+                        ? { status: SEVERITY_LABEL_STATUS[dominantSeverity], variant: 'outline' as const }
+                        : {
+                            color:
+                              dominantSeverity === 'Critical'
+                                ? 'red'
+                                : dominantSeverity === 'Warning'
+                                  ? 'orange'
+                                  : 'purple',
+                          })}
                       icon={SEVERITY_ICONS[dominantSeverity]}
                     >
                       {dominantSeverity}
@@ -130,6 +147,28 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                     </span>
                   </Flex>
                 </FlexItem>
+                {alertActionsLayout === 'ai-hub' && onViewRemediation ? (
+                  <FlexItem style={{ flexShrink: 0 }}>
+                    <Button
+                      variant="link"
+                      isInline
+                      style={INSIGHTS_LINK}
+                      className="pf-v6-u-font-size-sm"
+                      onClick={() => onViewRemediation(rule.name)}
+                    >
+                      <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
+                        <img
+                          src={AI_EXPERIENCE_ICON_DATA_URL}
+                          alt=""
+                          width={16}
+                          height={16}
+                          style={{ display: 'block', flexShrink: 0 }}
+                        />
+                      </span>
+                      View remediation
+                    </Button>
+                  </FlexItem>
+                ) : null}
                 {alertActionsLayout === 'fleet-insights' ? (
                   <FlexItem style={{ flexShrink: 0 }}>
                     <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -200,7 +239,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                           })
                         }
                       >
-                        Investigate with AI
+                        Discuss with AI
                       </Button>
                     </>
                   ) : null}
@@ -240,7 +279,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                       })
                     }
                   >
-                    Investigate with AI
+                    Discuss with AI
                   </Button>
                   <Button
                     variant="link"

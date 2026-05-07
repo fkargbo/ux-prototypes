@@ -12,7 +12,7 @@ type KpiItem = {
 };
 
 /** v2 hub only — banner version v2 (see `AIHubPage`). */
-export const ClusterInventoryBar: React.FC = () => {
+export const ClusterInventoryBar: React.FC<{ title?: string }> = ({ title = 'Cluster inventory' }) => {
   const clusterId = useFocusedClusterId();
   const metrics = useMemo(() => getClusterInventoryMetrics(clusterId), [clusterId]);
 
@@ -63,7 +63,7 @@ export const ClusterInventoryBar: React.FC = () => {
       <Card className="ols-ai-hub-cluster-inventory-card" isCompact isPlain component="section">
         <CardBody>
           <Title headingLevel="h2" size="lg" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            Cluster inventory
+            {title}
           </Title>
           <Content component="p" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
             No cluster context available.
@@ -80,11 +80,11 @@ export const ClusterInventoryBar: React.FC = () => {
       className="ols-ai-hub-cluster-inventory-card"
       isCompact
       component="section"
-      aria-label={`Cluster inventory for ${cluster.name}`}
+      aria-label={`${title} for ${cluster.name}`}
     >
       <CardBody>
         <Title headingLevel="h2" size="lg" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-          Cluster inventory
+          {title}
         </Title>
         <Flex
           alignItems={{ default: 'alignItemsFlexStart' }}

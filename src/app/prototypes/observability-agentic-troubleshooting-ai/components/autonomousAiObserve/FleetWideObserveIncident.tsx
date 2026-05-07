@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Button,
   Card,
@@ -26,7 +26,6 @@ import {
   ExclamationTriangleIcon,
   NetworkIcon,
   SearchIcon,
-  StarIcon,
   TerminalIcon,
   WrenchIcon,
 } from '@patternfly/react-icons';
@@ -85,6 +84,8 @@ export interface FleetWideObserveIncidentProps {
   isExpanded: boolean;
   onToggle: (next: boolean) => void;
   onDiscussWithLightspeed?: (payload: { alertId: string; cardId: string; diagnosisName: string }) => void;
+  /** Expands Remediation Hub when drilling from Top firing alerts. */
+  expandRemediationInitially?: boolean;
 }
 
 export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> = ({
@@ -93,10 +94,17 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
   isExpanded,
   onToggle,
   onDiscussWithLightspeed,
+  expandRemediationInitially,
 }) => {
-  const [openChain, setOpenChain] = useState(true);
-  const [openRca, setOpenRca] = useState(true);
-  const [openRem, setOpenRem] = useState(true);
+  const [openChain, setOpenChain] = useState(false);
+  const [openRca, setOpenRca] = useState(false);
+  const [openRem, setOpenRem] = useState(false);
+
+  useEffect(() => {
+    if (expandRemediationInitially) {
+      setOpenRem(true);
+    }
+  }, [expandRemediationInitially]);
 
   const onCardExpand = useCallback(
     (_e: React.MouseEvent, _id: string) => {
@@ -271,10 +279,8 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                       gap={{ default: 'gapSm' }}
                       style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
                     >
-                      <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
                       <Button
-                        variant="link"
-                        isInline
+                        variant="secondary"
                         onClick={() =>
                           onDiscussWithLightspeed({
                             alertId: incident.id,
@@ -323,35 +329,26 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                   >
                     {incident.riskAssessment}
                   </Content>
-                  {onDiscussWithLightspeed ? (
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      gap={{ default: 'gapSm' }}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                    >
-                      <StarIcon style={{ color: 'var(--pf-t--global--icon--color--favorite--default)' }} aria-hidden />
-                      <Button
-                        variant="link"
-                        isInline
-                        onClick={() =>
-                          onDiscussWithLightspeed({
-                            alertId: incident.id,
-                            cardId: 'fleet-remediation',
-                            diagnosisName: 'Remediation plan',
-                          })
-                        }
-                      >
-                        Discuss with Lightspeed
-                      </Button>
-                    </Flex>
-                  ) : null}
                   <Flex>
                     <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
                       <Button variant="primary">Apply Fix (Autonomous)</Button>
                     </FlexItem>
-                    <FlexItem>
-                      <Button variant="secondary">Escalate to human</Button>
-                    </FlexItem>
+                    {onDiscussWithLightspeed ? (
+                      <FlexItem>
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            onDiscussWithLightspeed({
+                              alertId: incident.id,
+                              cardId: 'fleet-remediation',
+                              diagnosisName: 'Remediation plan',
+                            })
+                          }
+                        >
+                          Discuss with Lightspeed
+                        </Button>
+                      </FlexItem>
+                    ) : null}
                   </Flex>
                 </div>
               </ExpandableSection>

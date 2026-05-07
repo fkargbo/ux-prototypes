@@ -163,6 +163,498 @@ export const CLUSTERS: ClusterRecord[] = [
     health: 'healthy',
     agentStatus: 'idle',
   },
+  {
+    id: 'prod-us-east-1',
+    name: 'prod-us-east-1',
+    region: 'us-east-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.9',
+    nodes: 22,
+    health: 'critical',
+    agentStatus: 'investigating',
+  },
+  {
+    id: 'prod-us-east-1b',
+    name: 'prod-us-east-1b',
+    region: 'us-east-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.9',
+    nodes: 20,
+    health: 'degraded',
+    agentStatus: 'remediating',
+  },
+  {
+    id: 'prod-us-east-1c',
+    name: 'prod-us-east-1c',
+    region: 'us-east-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.8',
+    nodes: 19,
+    health: 'healthy',
+    agentStatus: 'idle',
+  },
+  {
+    id: 'prod-us-west-1',
+    name: 'prod-us-west-1',
+    region: 'us-west-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.8',
+    nodes: 17,
+    health: 'critical',
+    agentStatus: 'investigating',
+  },
+  {
+    id: 'prod-ca-central-1',
+    name: 'prod-ca-central-1',
+    region: 'ca-central-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.8',
+    nodes: 14,
+    health: 'degraded',
+    agentStatus: 'investigating',
+  },
+  {
+    id: 'prod-eu-central-1',
+    name: 'prod-eu-central-1',
+    region: 'eu-central-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.16.0',
+    nodes: 21,
+    health: 'critical',
+    agentStatus: 'escalated',
+  },
+  {
+    id: 'prod-eu-north-1',
+    name: 'prod-eu-north-1',
+    region: 'eu-north-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.16.0',
+    nodes: 15,
+    health: 'healthy',
+    agentStatus: 'idle',
+  },
+  {
+    id: 'prod-ap-south-1',
+    name: 'prod-ap-south-1',
+    region: 'ap-south-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.7',
+    nodes: 18,
+    health: 'critical',
+    agentStatus: 'investigating',
+  },
+  {
+    id: 'prod-ap-northeast-1',
+    name: 'prod-ap-northeast-1',
+    region: 'ap-northeast-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.7',
+    nodes: 13,
+    health: 'degraded',
+    agentStatus: 'remediating',
+  },
+  {
+    id: 'prod-sa-east-1',
+    name: 'prod-sa-east-1',
+    region: 'sa-east-1',
+    provider: 'AWS',
+    env: 'prod',
+    version: '4.15.9',
+    nodes: 16,
+    health: 'critical',
+    agentStatus: 'investigating',
+  },
+  {
+    id: 'stg-eu-central',
+    name: 'stg-eu-central',
+    region: 'eu-central-1',
+    provider: 'GCP',
+    env: 'staging',
+    version: '4.16.1',
+    nodes: 9,
+    health: 'degraded',
+    agentStatus: 'investigating',
+  },
+  {
+    id: 'stg-us-west',
+    name: 'stg-us-west',
+    region: 'us-west2',
+    provider: 'GCP',
+    env: 'staging',
+    version: '4.16.1',
+    nodes: 11,
+    health: 'healthy',
+    agentStatus: 'idle',
+  },
+  {
+    id: 'dev-us-east',
+    name: 'dev-us-east',
+    region: 'us-east4',
+    provider: 'GCP',
+    env: 'dev',
+    version: '4.16.2',
+    nodes: 6,
+    health: 'degraded',
+    agentStatus: 'investigating',
+  },
+  {
+    id: 'dev-eu-west',
+    name: 'dev-eu-west',
+    region: 'europe-west2',
+    provider: 'GCP',
+    env: 'dev',
+    version: '4.16.2',
+    nodes: 5,
+    health: 'healthy',
+    agentStatus: 'idle',
+  },
+  {
+    id: 'edge-emea-1',
+    name: 'edge-emea-1',
+    region: 'westeurope',
+    provider: 'Azure',
+    env: 'prod',
+    version: '4.15.6',
+    nodes: 10,
+    health: 'degraded',
+    agentStatus: 'investigating',
+  },
+];
+
+type SyntheticAlertInput = {
+  id: string;
+  clusterId: string;
+  severity: AlertSeverity;
+  title: string;
+  service: string;
+  age: string;
+  firedAt: string;
+  message: string;
+  rootCauseRef: string;
+  rootCauseTail: string;
+  estimatedRecovery?: string;
+  agentStatus?: AgentPulseStatus;
+  confidence?: number;
+  category?: string;
+  headline?: string;
+  narrative?: string;
+};
+
+function buildSyntheticAlert(input: SyntheticAlertInput): AlertRecord {
+  const status = input.agentStatus ?? 'investigating';
+  const category = input.category ?? 'AI insight · Correlation';
+  const headline = input.headline ?? `Prioritized ${input.title} for ${input.clusterId}`;
+  const narrative =
+    input.narrative ??
+    `Autonomous analysis correlated cluster telemetry and event timelines to rank ${input.title} as high-impact for ${input.clusterId}.`;
+  return {
+    id: input.id,
+    clusterId: input.clusterId,
+    severity: input.severity,
+    title: input.title,
+    service: input.service,
+    age: input.age,
+    firedAt: input.firedAt,
+    message: input.message,
+    agentStatus: status,
+    steps: [
+      {
+        id: `${input.id}-s1`,
+        time: '14:31:00',
+        status: 'done',
+        title: 'Detected correlated anomaly',
+        detail: `${input.title} fired with sustained signal overlap`,
+        icon: 'exclamation',
+      },
+      {
+        id: `${input.id}-s2`,
+        time: '14:31:10',
+        status: 'done',
+        title: 'Collected supporting metrics',
+        detail: `Cross-checked service metrics for ${input.clusterId}`,
+        icon: 'database',
+      },
+      {
+        id: `${input.id}-s3`,
+        time: '14:31:22',
+        status: 'active',
+        title: 'Scoring remediation options',
+        detail: 'Prioritizing low-risk mitigation first',
+        icon: 'search',
+      },
+      {
+        id: `${input.id}-s4`,
+        status: 'pending',
+        title: 'Publish recommended fix path',
+        icon: 'check',
+      },
+    ],
+    rcaSummary: `${input.title} is amplified by ${input.rootCauseTail} in ${input.clusterId}.`,
+    rootCauseRef: input.rootCauseRef,
+    rootCauseTail: input.rootCauseTail,
+    confidence: input.confidence ?? 79,
+    logLines: `W 14:31:02 ${input.title} threshold exceeded\nI 14:31:08 evaluating ${input.rootCauseRef}\nI 14:31:17 impact scored for ${input.clusterId}`,
+    blastRadius: [input.clusterId, input.service],
+    remediationSummary: `Apply targeted remediation on ${input.clusterId} to reduce ${input.title} impact while preserving service availability.`,
+    remediationCommands: `$ oc -n ${input.service.split(' / ')[0]} rollout restart deploy/${input.service.split(' / ')[1] || 'workload'}\n$ oc adm top pods -A | head`,
+    estimatedRecovery: input.estimatedRecovery ?? '~2m',
+    remediationRiskSummary:
+      'Medium — remediation touches production traffic path; execute in rolling mode and verify canary health.',
+    agentInvestigationNarrative: narrative,
+    aiInsight: {
+      categoryLabel: category,
+      headline,
+      evidence: `${input.title} co-occurs with ${input.rootCauseRef} across dependent services.`,
+      narrative,
+    },
+  };
+}
+
+const SYNTHETIC_FLEET_ALERTS: AlertRecord[] = [
+  buildSyntheticAlert({
+    id: 'alrt-9001',
+    clusterId: 'prod-us-east-1',
+    severity: 'critical',
+    title: 'PaymentsAPI5xxSurge',
+    service: 'payments / payments-api',
+    age: '7m',
+    firedAt: '2026-04-29T18:25:00.000Z',
+    message: 'Correlated payment failures point to the same request path currently ranked as top-firing.',
+    rootCauseRef: 'payments-egress-v3',
+    rootCauseTail: 'redis timeout fan-out',
+    estimatedRecovery: '~90s',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9002',
+    clusterId: 'prod-us-east-1b',
+    severity: 'critical',
+    title: 'PaymentsAPI5xxSurge',
+    service: 'payments / payments-api',
+    age: '9m',
+    firedAt: '2026-04-29T18:23:00.000Z',
+    message: '5xx errors mirror top-firing PaymentsAPI pattern and share dependency saturation symptoms.',
+    rootCauseRef: 'payments-egress-v3',
+    rootCauseTail: 'upstream redis pressure',
+    estimatedRecovery: '~2m',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9003',
+    clusterId: 'prod-us-west-1',
+    severity: 'critical',
+    title: 'PaymentsAPI5xxSurge',
+    service: 'payments / payments-api',
+    age: '6m',
+    firedAt: '2026-04-29T18:26:00.000Z',
+    message: 'Top-firing payment error signature detected with elevated checkout failures.',
+    rootCauseRef: 'payments-egress-v3',
+    rootCauseTail: 'cache egress deny',
+    estimatedRecovery: '~90s',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9004',
+    clusterId: 'prod-ca-central-1',
+    severity: 'critical',
+    title: 'PaymentsAPI5xxSurge',
+    service: 'payments / payments-api',
+    age: '8m',
+    firedAt: '2026-04-29T18:24:00.000Z',
+    message: 'Cluster shows the same top-firing payment failure envelope and degraded checkout success.',
+    rootCauseRef: 'payments-egress-v3',
+    rootCauseTail: 'redis connect timeout',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9005',
+    clusterId: 'prod-eu-central-1',
+    severity: 'critical',
+    title: 'PaymentsAPI5xxSurge',
+    service: 'payments / payments-api',
+    age: '12m',
+    firedAt: '2026-04-29T18:20:00.000Z',
+    message: 'Payment API 5xx surge is now spread to eu-central and remains in top-firing priority.',
+    rootCauseRef: 'payments-egress-v3',
+    rootCauseTail: 'cache connection collapse',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9006',
+    clusterId: 'prod-ap-south-1',
+    severity: 'critical',
+    title: 'EtcdDiskPressureOnMaster2',
+    service: 'openshift-etcd / etcd-master-2',
+    age: '14m',
+    firedAt: '2026-04-29T18:18:00.000Z',
+    message: 'Control-plane disk pressure follows the same high-risk etcd pattern in top-firing alerts.',
+    rootCauseRef: 'etcd-master-2',
+    rootCauseTail: 'wal growth',
+    estimatedRecovery: '~4m',
+    category: 'AI insight · Capacity',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9007',
+    clusterId: 'prod-sa-east-1',
+    severity: 'critical',
+    title: 'EtcdDiskPressureOnMaster2',
+    service: 'openshift-etcd / etcd-master-2',
+    age: '10m',
+    firedAt: '2026-04-29T18:22:00.000Z',
+    message: 'etcd pressure trend matches top-firing control-plane risk profile.',
+    rootCauseRef: 'etcd-master-2',
+    rootCauseTail: 'compaction lag',
+    estimatedRecovery: '~3m',
+    category: 'AI insight · Capacity',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9008',
+    clusterId: 'prod-eu-central-1',
+    severity: 'critical',
+    title: 'EtcdDiskPressureOnMaster2',
+    service: 'openshift-etcd / etcd-master-2',
+    age: '16m',
+    firedAt: '2026-04-29T18:16:00.000Z',
+    message: 'Persistent etcd pressure could cascade into API latency if not remediated quickly.',
+    rootCauseRef: 'etcd-master-2',
+    rootCauseTail: 'quota exceeded',
+    estimatedRecovery: '~5m',
+    category: 'AI insight · Capacity',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9009',
+    clusterId: 'prod-us-east-1',
+    severity: 'warning',
+    title: 'CheckoutSvcCPUThrottling',
+    service: 'payments / checkout-svc',
+    age: '20m',
+    firedAt: '2026-04-29T18:12:00.000Z',
+    message: 'Secondary warning likely to improve once top-firing payment path is stabilized.',
+    rootCauseRef: 'checkout-hpa-cap',
+    rootCauseTail: 'cpu saturation',
+    category: 'AI insight · Performance',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9010',
+    clusterId: 'prod-us-east-1b',
+    severity: 'warning',
+    title: 'CheckoutSvcCPUThrottling',
+    service: 'payments / checkout-svc',
+    age: '19m',
+    firedAt: '2026-04-29T18:13:00.000Z',
+    message: 'Checkout throttling appears as a dependent symptom of payment-tier instability.',
+    rootCauseRef: 'checkout-hpa-cap',
+    rootCauseTail: 'max replicas reached',
+    category: 'AI insight · Performance',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9011',
+    clusterId: 'stg-eu-central',
+    severity: 'warning',
+    title: 'IngressTLSCertExpiresIn36h',
+    service: 'openshift-ingress / router-default',
+    age: '5m',
+    firedAt: '2026-04-29T18:27:00.000Z',
+    message: 'Non-top warning: cert expiry issue is important but lower immediate blast radius.',
+    rootCauseRef: 'wildcard-stg-eu',
+    rootCauseTail: 'renewBefore window',
+    category: 'AI insight · Security posture',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9012',
+    clusterId: 'dev-us-east',
+    severity: 'critical',
+    title: 'NodeFilesystemAlmostFull',
+    service: 'openshift-node / kubelet',
+    age: '17m',
+    firedAt: '2026-04-29T18:15:00.000Z',
+    message: 'Critical but isolated to dev node pool; not ranked in top-firing fleet blast radius.',
+    rootCauseRef: 'worker-disk-95pct',
+    rootCauseTail: '/var/lib/containers',
+    category: 'AI insight · Capacity',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9013',
+    clusterId: 'edge-emea-1',
+    severity: 'critical',
+    title: 'NodeFilesystemAlmostFull',
+    service: 'openshift-node / kubelet',
+    age: '21m',
+    firedAt: '2026-04-29T18:11:00.000Z',
+    message: 'Edge node filesystem pressure is critical locally but lower fleet-wide dependency impact.',
+    rootCauseRef: 'edge-cache-growth',
+    rootCauseTail: '/var/lib/containers',
+    category: 'AI insight · Capacity',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9014',
+    clusterId: 'prod-ap-northeast-1',
+    severity: 'warning',
+    title: 'ImageRegistryPersistentVolumeFull',
+    service: 'openshift-image-registry / image-registry',
+    age: '28m',
+    firedAt: '2026-04-29T18:04:00.000Z',
+    message: 'Registry growth warning may clear after payload cleanup; not currently top-firing.',
+    rootCauseRef: 'registry-pv-growth',
+    rootCauseTail: 'unused image layers',
+    category: 'AI insight · Hygiene',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9015',
+    clusterId: 'prod-eu-north-1',
+    severity: 'warning',
+    title: 'APIIngressLatencySpike',
+    service: 'openshift-ingress / router-default',
+    age: '13m',
+    firedAt: '2026-04-29T18:19:00.000Z',
+    message: 'Latency spike is correlated but below top-firing impact threshold so ranked lower.',
+    rootCauseRef: 'router-queue-latency',
+    rootCauseTail: 'retry amplification',
+    category: 'AI insight · Correlation',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9016',
+    clusterId: 'prod-us-east-1c',
+    severity: 'warning',
+    title: 'APIIngressLatencySpike',
+    service: 'openshift-ingress / router-default',
+    age: '12m',
+    firedAt: '2026-04-29T18:20:00.000Z',
+    message: 'Related ingress latency warning likely to reduce if top-firing ingress path is stabilized.',
+    rootCauseRef: 'router-queue-latency',
+    rootCauseTail: 'downstream backpressure',
+    category: 'AI insight · Correlation',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9017',
+    clusterId: 'stg-us-west',
+    severity: 'info',
+    title: 'ControlPlaneNodeNotReadyFlap',
+    service: 'openshift-control-plane / kube-controller-manager',
+    age: '31m',
+    firedAt: '2026-04-29T18:01:00.000Z',
+    message: 'Intermittent control-plane flap observed in staging; monitored but not top-firing.',
+    rootCauseRef: 'transient-provider-reset',
+    rootCauseTail: 'single node flap',
+    category: 'AI insight · Monitoring',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9018',
+    clusterId: 'dev-eu-west',
+    severity: 'warning',
+    title: 'MDSCacheUsageHigh',
+    service: 'odf / ceph-mds',
+    age: '26m',
+    firedAt: '2026-04-29T18:06:00.000Z',
+    message: 'Storage warning is unrelated to top-firing payment/ingress paths and ranked lower.',
+    rootCauseRef: 'ceph-mds-cache',
+    rootCauseTail: 'cache pressure',
+    category: 'AI insight · Storage',
+  }),
 ];
 
 export const ALERTS: AlertRecord[] = [
@@ -454,6 +946,7 @@ $ oc delete certificaterequest -l cert=wildcard-apac`,
         "I'm driving an immediate CertificateRequest so ingress reload happens before the 36h cut-off.",
     },
   },
+  ...SYNTHETIC_FLEET_ALERTS,
 ];
 
 /** Fleet-wide critical: regional ingress — causal grouping, aggregated RCA, governor remediation (fleet view only). */
@@ -463,15 +956,15 @@ export const FLEET_WIDE_REGIONAL_INGRESS: FleetWideCriticalIncident = {
   severity: 'critical',
   firedAt: '2026-04-29T15:05:00.000Z',
   agentStatus: 'investigating',
-  affectedClusterIds: ['prod-east-2', 'prod-eu-west-1', 'stg-central'],
-  correlatedAlertCount: 112,
+  affectedClusterIds: ['prod-east-2', 'prod-eu-west-1', 'stg-central', 'prod-us-east-1', 'prod-us-east-1b'],
+  correlatedAlertCount: 148,
   aiInsight: {
     categoryLabel: 'AI insight · Fleet correlation',
     headline: 'Anchored blast to ingress dataplane',
     evidence:
       'OpenShift Ingress metrics show coordinated drop across prod-east-2, prod-eu-west-1, and stg-central',
     narrative:
-      'I have correlated 112 alerts across prod-east-2, prod-eu-west-1, and stg-central. All symptoms point to a total loss of Ingress-to-Workload communication starting at 10:05 AM.',
+      'I have correlated 148 alerts across prod-east-2, prod-eu-west-1, stg-central, prod-us-east-1, and prod-us-east-1b. All symptoms point to a total loss of Ingress-to-Workload communication starting at 10:05 AM.',
   },
   symptomStartedDisplay: '10:05 AM',
   steps: [
@@ -480,7 +973,7 @@ export const FLEET_WIDE_REGIONAL_INGRESS: FleetWideCriticalIncident = {
       time: '10:04',
       status: 'done',
       title: 'Grouped fleet alerts by ingress symptom',
-      detail: '112 firing alerts share 502/503 at router → Service hop within a 6-minute window',
+      detail: '148 firing alerts share 502/503 at router → Service hop within a 6-minute window',
       icon: 'database',
     },
     {
@@ -488,7 +981,7 @@ export const FLEET_WIDE_REGIONAL_INGRESS: FleetWideCriticalIncident = {
       time: '10:05',
       status: 'done',
       title: 'Anchored blast to ingress dataplane',
-      detail: 'OpenShift Ingress metrics show coordinated drop across prod-east-2, prod-eu-west-1, and stg-central',
+      detail: 'OpenShift Ingress metrics show coordinated drop across prod-east-2, prod-eu-west-1, stg-central, prod-us-east-1, and prod-us-east-1b',
       icon: 'network',
     },
     {
@@ -584,37 +1077,94 @@ export function buildFleetWideIngressAlertRecordForCluster(clusterId: string): A
 /** Digest rows for “While you were away” — fixed copy per spec */
 export const AWAY_DIGEST_ITEMS: Array<{
   tone: 'danger' | 'success' | 'warning' | 'info';
+  timestamp: string;
   text: string;
   meta: string;
 }> = [
   {
     tone: 'danger',
+    timestamp: formatLocalDigestTimeFromUtcClock('13:48'),
     text: '3 new critical alerts fired',
     meta: 'RegionalIngressFailure (fleet) · PaymentsAPI5xxSurge · EtcdDiskPressureOnMaster2',
   },
   {
     tone: 'success',
+    timestamp: formatLocalDigestTimeFromUtcClock('13:52'),
     text: 'Agent auto-remediated 3 incidents',
     meta: 'checkout-svc HPA · ingress restart · pod evict',
   },
   {
     tone: 'warning',
+    timestamp: formatLocalDigestTimeFromUtcClock('13:56'),
     text: '1 cluster degraded → recovered',
     meta: 'prod-eu-west-1 · 6m downtime',
   },
   {
     tone: 'info',
+    timestamp: formatLocalDigestTimeFromUtcClock('14:01'),
     text: 'Fleet alerts went 0 → 4 since last visit',
     meta: 'first event at 13:48 UTC',
+  },
+  {
+    tone: 'danger',
+    timestamp: formatLocalDigestTimeFromUtcClock('14:06'),
+    text: 'PaymentsAPI5xxSurge spread to 5 additional clusters',
+    meta: 'prod-us-east-1 · prod-us-east-1b · prod-us-west-1 · prod-ca-central-1 · prod-eu-central-1',
+  },
+  {
+    tone: 'warning',
+    timestamp: formatLocalDigestTimeFromUtcClock('14:09'),
+    text: '6 dependent warnings correlated to top-firing alerts',
+    meta: 'checkout CPU throttling · ingress latency spikes likely to recover after top-firing remediation',
+  },
+  {
+    tone: 'info',
+    timestamp: formatLocalDigestTimeFromUtcClock('14:12'),
+    text: '3 non-top critical alerts detected outside main blast radius',
+    meta: 'NodeFilesystemAlmostFull on dev-us-east and edge-emea-1; isolated impact assessed',
+  },
+  {
+    tone: 'success',
+    timestamp: formatLocalDigestTimeFromUtcClock('14:15'),
+    text: 'Autonomous agent pre-ranked remediation dependencies',
+    meta: 'Prioritized PaymentsAPI and etcd fixes to reduce 11 secondary alerts across the fleet',
   },
 ];
 
 /** Shape shared by fleet mock digest rows and cluster-scoped digest rows. */
 export type AwayDigestItem = {
   tone: 'danger' | 'success' | 'warning' | 'info';
+  timestamp: string;
   text: string;
   meta: string;
 };
+
+/** Viewer-local digest timestamp (24h clock + local timezone abbreviation). */
+function formatLocalDigestTimestamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return 'recent';
+  }
+  const hhmm = d.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const tzName = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' })
+    .formatToParts(d)
+    .find((part) => part.type === 'timeZoneName')?.value;
+  return tzName ? `${hhmm} ${tzName}` : hhmm;
+}
+
+/** Helper for fixed fleet digest rows authored in UTC clock time (HH:MM) but displayed in viewer-local time. */
+function formatLocalDigestTimeFromUtcClock(utcClock: `${string}:${string}`): string {
+  const today = new Date();
+  const [hh, mm] = utcClock.split(':');
+  const utcIso = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}-${String(
+    today.getUTCDate()
+  ).padStart(2, '0')}T${hh}:${mm}:00.000Z`;
+  return formatLocalDigestTimestamp(utcIso);
+}
 
 export function getClusterById(id: string): ClusterRecord | undefined {
   return CLUSTERS.find((c) => c.id === id);
@@ -632,6 +1182,18 @@ export function sortAlertsBySeverityPriority(alerts: AlertRecord[]): AlertRecord
   return [...alerts].sort(
     (a, b) => ALERT_SEVERITY_SORT_ORDER[a.severity] - ALERT_SEVERITY_SORT_ORDER[b.severity]
   );
+}
+
+/**
+ * First alert row for a rule title (severity-priority). Fleet ingress critical is modeled separately
+ * (`FLEET_WIDE_REGIONAL_INGRESS`), not as `ALERTS` rows — callers should branch on title first.
+ */
+export function firstFleetAlertRecordForRuleTitle(ruleTitle: string): AlertRecord | undefined {
+  const matches = ALERTS.filter((a) => a.title === ruleTitle);
+  if (matches.length === 0) {
+    return undefined;
+  }
+  return sortAlertsBySeverityPriority(matches)[0];
 }
 
 /** Display suffix after `AI insight ·` for KPI tooltips and summaries. */
@@ -759,11 +1321,19 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   const perClusterAlerts = sortAlertsBySeverityPriority(
     ALERTS.filter((a) => a.clusterId === clusterId)
   );
+  const latestClusterAlertIso = perClusterAlerts.reduce<string | null>((latest, a) => {
+    if (!latest || a.firedAt > latest) {
+      return a.firedAt;
+    }
+    return latest;
+  }, null);
+  const latestClusterTimestamp = latestClusterAlertIso ? formatLocalDigestTimestamp(latestClusterAlertIso) : 'recent';
 
   if (fleetWideCriticalAddsForCluster(clusterId) > 0) {
     const summary = FLEET_WIDE_REGIONAL_INGRESS.aiInsight.narrative ?? FLEET_WIDE_REGIONAL_INGRESS.aiInsight.evidence;
     items.push({
       tone: 'danger',
+      timestamp: formatLocalDigestTimestamp(FLEET_WIDE_REGIONAL_INGRESS.firedAt),
       text: `Fleet incident: ${FLEET_WIDE_REGIONAL_INGRESS.title}`,
       meta: summary.length > 140 ? `${summary.slice(0, 140)}…` : summary,
     });
@@ -773,15 +1343,29 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   const warn = perClusterAlerts.filter((a) => a.severity === 'warning');
 
   if (crit.length > 0) {
+    const latestCritIso = crit.reduce<string | null>((latest, a) => {
+      if (!latest || a.firedAt > latest) {
+        return a.firedAt;
+      }
+      return latest;
+    }, null);
     items.push({
       tone: 'danger',
+      timestamp: latestCritIso ? formatLocalDigestTimestamp(latestCritIso) : latestClusterTimestamp,
       text: `${crit.length} critical firing alert${crit.length !== 1 ? 's' : ''}`,
       meta: crit.map((a) => a.title).join(' · '),
     });
   }
   if (warn.length > 0) {
+    const latestWarnIso = warn.reduce<string | null>((latest, a) => {
+      if (!latest || a.firedAt > latest) {
+        return a.firedAt;
+      }
+      return latest;
+    }, null);
     items.push({
       tone: 'warning',
+      timestamp: latestWarnIso ? formatLocalDigestTimestamp(latestWarnIso) : latestClusterTimestamp,
       text: `${warn.length} warning alert${warn.length !== 1 ? 's' : ''}`,
       meta: warn.map((a) => a.title).join(' · '),
     });
@@ -790,6 +1374,7 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   if (cluster.agentStatus !== 'idle') {
     items.push({
       tone: cluster.agentStatus === 'escalated' ? 'danger' : 'info',
+      timestamp: latestClusterTimestamp,
       text: `Agent status: ${cluster.agentStatus}`,
       meta: `Single-cluster context · ${cluster.name}`,
     });
@@ -798,6 +1383,7 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   if (cluster.health !== 'healthy') {
     items.push({
       tone: cluster.health === 'critical' ? 'danger' : 'warning',
+      timestamp: latestClusterTimestamp,
       text: `Cluster health is ${cluster.health}`,
       meta: `${cluster.nodes} nodes · ${cluster.provider} · ${cluster.region}`,
     });
@@ -806,6 +1392,7 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   if (items.length === 0) {
     items.push({
       tone: 'success',
+      timestamp: 'recent',
       text: `No new issues on ${cluster.name}`,
       meta: 'Agent idle · monitoring continues',
     });
