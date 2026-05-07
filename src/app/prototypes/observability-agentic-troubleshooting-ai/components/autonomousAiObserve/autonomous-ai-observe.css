@@ -599,7 +599,6 @@ span.ols-aio-card-stat-number {
 }
 
 .ols-aio-rca-box {
-  border: 1px solid var(--pf-t--global--border--color--default);
   border-radius: var(--pf-t--global--border--radius--default);
   padding: var(--pf-t--global--spacer--md);
 }
@@ -629,7 +628,6 @@ span.ols-aio-card-stat-number {
 }
 
 .ols-aio-remediation-box {
-  border: 1px solid var(--pf-t--global--border--color--default);
   border-radius: var(--pf-t--global--border--radius--default);
   padding: var(--pf-t--global--spacer--md);
   background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 5%, transparent);
