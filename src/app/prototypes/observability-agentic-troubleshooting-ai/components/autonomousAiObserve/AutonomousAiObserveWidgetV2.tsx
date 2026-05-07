@@ -217,17 +217,6 @@ function fleetAgentStatus(clusters: ClusterRecord[]): AgentPulseStatus {
   return 'idle';
 }
 
-/** Maps cluster health to PatternFly `Label` status (semantic color + icon). */
-function healthToLabelStatus(health: ClusterHealth): 'success' | 'warning' | 'danger' {
-  if (health === 'healthy') {
-    return 'success';
-  }
-  if (health === 'degraded') {
-    return 'warning';
-  }
-  return 'danger';
-}
-
 function capitalizeLabelWord(value: string): string {
   if (!value) {
     return value;
@@ -570,7 +559,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                             </Thead>
                             <Tbody>
                               {CLUSTERS.map((c) => {
-                                const healthStatus = healthToLabelStatus(c.health);
                                 const healthIcon =
                                   c.health === 'healthy' ? (
                                     <CheckCircleIcon />
@@ -579,6 +567,12 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                   ) : (
                                     <ExclamationCircleIcon />
                                   );
+                                const healthColor =
+                                  c.health === 'healthy'
+                                    ? 'var(--pf-t--global--color--status--success--default)'
+                                    : c.health === 'degraded'
+                                      ? 'var(--pf-t--global--color--status--warning--default)'
+                                      : 'var(--pf-t--global--color--status--danger--default)';
                                 return (
                                   <Tr
                                     key={c.id}
@@ -590,9 +584,12 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                     <Td>{c.provider}</Td>
                                     <Td>{c.nodes}</Td>
                                     <Td>
-                                      <Label status={healthStatus} icon={healthIcon} isCompact>
-                                        {clusterHealthLabelText(c.health)}
-                                      </Label>
+                                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                        <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true" style={{ color: healthColor }}>
+                                          {healthIcon}
+                                        </span>
+                                        <span>{clusterHealthLabelText(c.health)}</span>
+                                      </Flex>
                                     </Td>
                                     <Td modifier="nowrap">v{c.version}</Td>
                                   </Tr>
