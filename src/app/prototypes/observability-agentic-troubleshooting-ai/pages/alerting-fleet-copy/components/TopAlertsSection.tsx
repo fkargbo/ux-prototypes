@@ -125,7 +125,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                     <Label
                       isCompact
                       {...(alertActionsLayout === 'ai-hub'
-                        ? { status: SEVERITY_LABEL_STATUS[dominantSeverity] }
+                        ? { status: SEVERITY_LABEL_STATUS[dominantSeverity], variant: 'outline' as const }
                         : {
                             color:
                               dominantSeverity === 'Critical'
