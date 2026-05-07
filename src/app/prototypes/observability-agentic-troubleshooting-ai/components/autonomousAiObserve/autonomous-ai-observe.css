@@ -227,6 +227,7 @@ span.ols-aio-card-stat-number {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  height: 378px;
   min-height: 0;
   width: 100%;
 }
@@ -260,7 +261,6 @@ span.ols-aio-card-stat-number {
 
 /* "While you were away" alerts: expandable by default-collapsed, neutral background, no colored borders. */
 .ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline {
-  background-color: var(--pf-t--global--background--color--secondary--default);
   border: 0;
   border-inline-start: 0;
   box-shadow: none;

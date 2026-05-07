@@ -523,7 +523,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                           </EmptyStateBody>
                         </EmptyState>
                       ) : (
-                        <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                        <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           {visibleFleetAwayDigestItems.map((item) => (
                             <StackItem key={item.text}>
                               <Alert
@@ -773,7 +773,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                           </EmptyStateBody>
                         </EmptyState>
                       ) : (
-                        <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                        <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                           {visibleClusterAwayDigestItems.map((item) => (
                             <StackItem key={clusterAwayDismissKey(selectedClusterId, item.text)}>
                               <Alert
