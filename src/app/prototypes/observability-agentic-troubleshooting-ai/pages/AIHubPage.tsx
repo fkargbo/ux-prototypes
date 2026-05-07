@@ -55,7 +55,11 @@ export const AIHubPage: React.FC = () => {
               <Title headingLevel="h1" size="2xl">
                 AI Troubleshooting Hub
               </Title>
-              <Content component="p" style={{ marginTop: '8px', marginBottom: 0, color: '#6a6e73' }}>
+              <Content
+                component="p"
+                className="ols-ai-hub-page-subtitle"
+                style={{ marginTop: '8px', marginBottom: 0, color: '#6a6e73' }}
+              >
                 Accelerate incident response with autonomous investigations, automated evidence gathering, and guided
                 fixes.
               </Content>

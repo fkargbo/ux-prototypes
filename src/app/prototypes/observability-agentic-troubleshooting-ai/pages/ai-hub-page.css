@@ -8,7 +8,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--pf-t--global--spacer--md);
   width: 100%;
   box-sizing: border-box;
@@ -27,7 +27,14 @@
 }
 
 .ols-ai-hub-page-header-aside {
+  margin-left: auto;
   flex-shrink: 0;
+}
+
+/* Keep subtitle readable in very narrow viewports. */
+.ols-ai-hub-page-subtitle {
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 /*
