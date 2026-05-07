@@ -50,6 +50,7 @@ import {
 } from './data';
 import { AlertKpiTooltip } from './AlertKpiTooltip';
 import { ObserveAlertItem } from './ObserveAlertItem';
+import { AI_EXPERIENCE_ICON_DATA_URL } from './aiExperienceIconUrl';
 import './autonomous-ai-observe.css';
 import { SimulationProvider } from '../../simulation/SimulationProvider';
 import { syncObserveSimulationState } from '../../simulation/simulationStore';
@@ -282,7 +283,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
   const [fleetSummarySortBy, setFleetSummarySortBy] = useState<{ index: number; direction: 'asc' | 'desc' }>({
-    index: 0,
+    index: 1,
     direction: 'asc',
   });
   const [fleetSummaryPage, setFleetSummaryPage] = useState(1);
@@ -582,7 +583,17 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                       marginBottom: 0,
                                     }}
                                   >
-                                    {item.meta}
+                                    <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
+                                      <img
+                                        src={AI_EXPERIENCE_ICON_DATA_URL}
+                                        alt=""
+                                        width={16}
+                                        height={16}
+                                        style={{ display: 'block', flexShrink: 0 }}
+                                      />
+                                    </span>
+                                    <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
+                                    <span>{item.meta}</span>
                                   </Content>
                                 </Alert>
                               </StackItem>
@@ -695,7 +706,19 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                 isRowSelected={selectedClusterId === c.id}
                                 onRowClick={() => drillIntoClusterFromFleetOverview(c.id)}
                               >
-                                <Td>{c.name}</Td>
+                                <Td>
+                                  <Button
+                                    variant="link"
+                                    isInline
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      drillIntoClusterFromFleetOverview(c.id);
+                                    }}
+                                    aria-label={`Open ${c.name} details`}
+                                  >
+                                    {c.name}
+                                  </Button>
+                                </Td>
                                 <Td>
                                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                                     <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true" style={{ color: healthColor }}>
@@ -811,7 +834,17 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                                       marginBottom: 0,
                                     }}
                                   >
-                                    {item.meta}
+                                    <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
+                                      <img
+                                        src={AI_EXPERIENCE_ICON_DATA_URL}
+                                        alt=""
+                                        width={16}
+                                        height={16}
+                                        style={{ display: 'block', flexShrink: 0 }}
+                                      />
+                                    </span>
+                                    <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
+                                    <span>{item.meta}</span>
                                   </Content>
                                 </Alert>
                               </StackItem>
