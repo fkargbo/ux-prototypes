@@ -1196,6 +1196,37 @@ export function firstFleetAlertRecordForRuleTitle(ruleTitle: string): AlertRecor
   return sortAlertsBySeverityPriority(matches)[0];
 }
 
+/** Drill target for AI Hub “View remediation” — fleet ingress incident vs a concrete `AlertRecord` row. */
+export type FleetRemediationDrillTarget =
+  | { kind: 'fleet-incident'; incidentId: string }
+  | { kind: 'alert'; alertId: string };
+
+/**
+ * Maps Top firing alert rule name → remediation drill-down target.
+ * Fleet ingress is modeled only as `FLEET_WIDE_REGIONAL_INGRESS`, not as rows in `ALERTS`.
+ */
+export function resolveFleetRemediationDrillTarget(alertRuleTitle: string): FleetRemediationDrillTarget | null {
+  if (alertRuleTitle === FLEET_WIDE_REGIONAL_INGRESS.title) {
+    return { kind: 'fleet-incident', incidentId: FLEET_WIDE_REGIONAL_INGRESS.id };
+  }
+  const alert = firstFleetAlertRecordForRuleTitle(alertRuleTitle);
+  if (!alert) {
+    return null;
+  }
+  return { kind: 'alert', alertId: alert.id };
+}
+
+/** QA: every rule shown in `buildFleetTopFiringAlertRuleRows()` must resolve (otherwise “View remediation” is a no-op). */
+export function fleetTopFiringRulesMissingRemediationTarget(): string[] {
+  const missing: string[] = [];
+  for (const row of buildFleetTopFiringAlertRuleRows()) {
+    if (!resolveFleetRemediationDrillTarget(row.name)) {
+      missing.push(row.name);
+    }
+  }
+  return missing;
+}
+
 /** Display suffix after `AI insight ·` for KPI tooltips and summaries. */
 export function aiInsightCategoryShort(categoryLabel: string): string {
   const trimmed = categoryLabel.trim();

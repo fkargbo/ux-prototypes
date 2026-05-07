@@ -42,9 +42,9 @@ import {
   DEFAULT_CORE_PLATFORMS_CLUSTER_ID,
   FLEET_WIDE_REGIONAL_INGRESS,
   fleetWideCriticalAddsForCluster,
-  firstFleetAlertRecordForRuleTitle,
   getAlertsForCluster,
   getClusterById,
+  resolveFleetRemediationDrillTarget,
 } from './data';
 import { FleetWideObserveIncident } from './FleetWideObserveIncident';
 import { ObserveAlertItem } from './ObserveAlertItem';
@@ -262,8 +262,9 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
 
     if (pendingRemediationRuleTitle && remediationScope === 'fleet') {
       const title = pendingRemediationRuleTitle;
+      const target = resolveFleetRemediationDrillTarget(title);
 
-      if (title === FLEET_WIDE_REGIONAL_INGRESS.title) {
+      if (target?.kind === 'fleet-incident') {
         setFleetIncidentExpanded(true);
         setExpandFleetRemediationFromDrill(true);
         setExpandObserveRemediationAlertId(null);
@@ -273,26 +274,23 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
         });
         setExpandedAlerts(next);
         window.setTimeout(() => {
-          document.getElementById(FLEET_WIDE_REGIONAL_INGRESS.id)?.scrollIntoView({
+          document.getElementById(target.incidentId)?.scrollIntoView({
             behavior: 'smooth',
             block: 'nearest',
           });
         }, 0);
-      } else {
-        const match = firstFleetAlertRecordForRuleTitle(title);
-        if (match) {
-          setFleetIncidentExpanded(false);
-          setExpandFleetRemediationFromDrill(false);
-          const next: Record<string, boolean> = {};
-          topAlertsRemediationsAlerts.forEach((a) => {
-            next[a.id] = a.id === match.id;
-          });
-          setExpandedAlerts(next);
-          setExpandObserveRemediationAlertId(match.id);
-          window.setTimeout(() => {
-            document.getElementById(match.id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }, 0);
-        }
+      } else if (target?.kind === 'alert') {
+        setFleetIncidentExpanded(false);
+        setExpandFleetRemediationFromDrill(false);
+        const next: Record<string, boolean> = {};
+        topAlertsRemediationsAlerts.forEach((a) => {
+          next[a.id] = a.id === target.alertId;
+        });
+        setExpandedAlerts(next);
+        setExpandObserveRemediationAlertId(target.alertId);
+        window.setTimeout(() => {
+          document.getElementById(target.alertId)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 0);
       }
 
       setPendingRemediationRuleTitle(null);
