@@ -316,6 +316,9 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
         scrollDrillToTopAlertsSection(target.alertId);
       }
 
+      /** Avoid stale session + duplicate drill when `fleetClusterDrillDown` toggles; clear even if rule did not resolve. */
+      clearRemediationDrillSession();
+
       setPendingRemediationRuleTitle(null);
       skipExpandedAlertsResetRef.current = true;
       return;
@@ -330,20 +333,28 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     setExpandFleetDrillAllInnerSections(false);
   }, [topAlertsRemediationsAlerts, remediationScope, pendingRemediationRuleTitle]);
 
+  /**
+   * SPA handoff only (mount). Must not re-run when `fleetClusterDrillDown` toggles — otherwise session storage
+   * still holds the rule after `dispatchRemediationDrill` and we re-apply stale state (and previously reset
+   * `fleetIncidentExpanded`, breaking RegionalIngress drills).
+   */
   useEffect(() => {
     const stored = readRemediationDrillSession();
-    if (stored?.alertRuleTitle) {
-      clearRemediationDrillSession();
-      setPendingRemediationRuleTitle(stored.alertRuleTitle);
-      setRemediationScope('fleet');
-      setCAlertsOpen(true);
-      setFleetIncidentExpanded(false);
-      if (fleetClusterDrillDownProp === undefined) {
-        setFleetClusterDrillDownInternal(true);
-      }
-      onFleetDrillDownChange?.(true);
+    if (!stored?.alertRuleTitle) {
+      return;
     }
+    clearRemediationDrillSession();
+    setPendingRemediationRuleTitle(stored.alertRuleTitle);
+    setRemediationScope('fleet');
+    setCAlertsOpen(true);
+    if (fleetClusterDrillDownProp === undefined) {
+      setFleetClusterDrillDownInternal(true);
+    }
+    onFleetDrillDownChange?.(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-time hydration from sessionStorage
+  }, []);
 
+  useEffect(() => {
     const onRemediationDrill = (event: Event) => {
       const detail = (event as CustomEvent<{ alertRuleTitle: string }>).detail;
       if (!detail?.alertRuleTitle) {

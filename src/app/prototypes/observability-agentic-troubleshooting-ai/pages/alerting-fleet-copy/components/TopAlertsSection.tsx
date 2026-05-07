@@ -154,7 +154,11 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                       isInline
                       style={INSIGHTS_LINK}
                       className="pf-v6-u-font-size-sm"
-                      onClick={() => onViewRemediation(rule.name)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onViewRemediation(rule.name);
+                      }}
                     >
                       <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
                         <img
