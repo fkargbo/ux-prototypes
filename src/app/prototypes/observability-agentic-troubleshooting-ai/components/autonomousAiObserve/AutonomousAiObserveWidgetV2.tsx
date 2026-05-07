@@ -528,8 +528,11 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                             <StackItem key={item.text}>
                               <Alert
                                 isInline
-                                variant={item.tone}
+                                isExpandable
+                                variant="custom"
+                                className="ols-aio-away-alert"
                                 title={item.text}
+                                toggleAriaLabel={`Toggle details: ${item.text}`}
                                 actionClose={
                                   <AlertActionCloseButton
                                     onClose={() => dismissFleetAwayDigest(item.text)}
@@ -775,8 +778,11 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                             <StackItem key={clusterAwayDismissKey(selectedClusterId, item.text)}>
                               <Alert
                                 isInline
-                                variant={item.tone}
+                                isExpandable
+                                variant="custom"
+                                className="ols-aio-away-alert"
                                 title={item.text}
+                                toggleAriaLabel={`Toggle details: ${item.text}`}
                                 actionClose={
                                   <AlertActionCloseButton
                                     onClose={() => dismissClusterAwayDigest(selectedClusterId, item.text)}

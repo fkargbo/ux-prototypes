@@ -258,6 +258,14 @@ span.ols-aio-card-stat-number {
   transform-origin: center;
 }
 
+/* "While you were away" alerts: expandable by default-collapsed, neutral background, no colored borders. */
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  border: 0;
+  border-inline-start: 0;
+  box-shadow: none;
+}
+
 /* OpenShift-style alert summary: icon in gutter; name, date, and message share one text column. */
 .ols-aio-alert-summary {
   display: grid;
