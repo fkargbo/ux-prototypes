@@ -12,26 +12,21 @@ import {
   Label,
   Progress,
   ProgressSize,
-  Spinner,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
 import {
   BullseyeIcon,
-  CheckCircleIcon,
   CodeBranchIcon,
-  DatabaseIcon,
   ExclamationCircleIcon,
-  ExclamationTriangleIcon,
-  NetworkIcon,
-  SearchIcon,
   TerminalIcon,
   WrenchIcon,
 } from '@patternfly/react-icons';
-import type { ClusterRecord, FleetWideCriticalIncident, ReasoningStep, ReasoningStepStatus } from './data';
+import type { ClusterRecord, FleetWideCriticalIncident } from './data';
 import { AgentPulseLabel } from './AgentPulseLabel';
 import { AiInsightLede } from './AiInsightCategoryRow';
+import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from './reasoningChainTimeline';
 import './autonomous-ai-observe.css';
 
 function formatConsoleAlertFiredAt(iso: string): string {
@@ -46,36 +41,6 @@ function formatConsoleAlertFiredAt(iso: string): string {
     hour: 'numeric',
     minute: '2-digit',
   });
-}
-
-function stepGlyph(step: ReasoningStep, status: ReasoningStepStatus): React.ReactNode {
-  if (status === 'active') {
-    return <Spinner size="sm" />;
-  }
-  if (status === 'done') {
-    return (
-      <span style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>
-        <CheckCircleIcon />
-      </span>
-    );
-  }
-  if (status === 'pending') {
-    if (step.icon === 'database') {
-      return <DatabaseIcon />;
-    }
-    if (step.icon === 'network') {
-      return <NetworkIcon />;
-    }
-    if (step.icon === 'search') {
-      return <SearchIcon />;
-    }
-    return <CheckCircleIcon />;
-  }
-  return (
-    <span style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>
-      <ExclamationTriangleIcon />
-    </span>
-  );
 }
 
 export interface FleetWideObserveIncidentProps {
@@ -197,7 +162,9 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                 <ol className="ols-aio-reasoning-timeline">
                   {incident.steps.map((step) => (
                     <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                      <span className="ols-aio-reasoning-timeline__node">{stepGlyph(step, step.status)}</span>
+                      <span className="ols-aio-reasoning-timeline__node">
+                        <ReasoningChainStepGlyph step={step} />
+                      </span>
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
                         <FlexItem>
                           <Flex
@@ -209,7 +176,7 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                               className="ols-aio-text-subtle-sm"
                               style={{ fontVariantNumeric: 'tabular-nums' }}
                             >
-                              {step.time ?? '—'}
+                              {formatReasoningStepDisplayTime(step)}
                             </span>
                             {step.status === 'active' ? (
                               <Label color="blue" variant="outline" isCompact>

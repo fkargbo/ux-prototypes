@@ -14,28 +14,24 @@ import {
   Label,
   Progress,
   ProgressSize,
-  Spinner,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
 import {
   BullseyeIcon,
-  CheckCircleIcon,
   CodeBranchIcon,
-  DatabaseIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   FileAltIcon,
   InfoCircleIcon,
-  NetworkIcon,
-  SearchIcon,
   TerminalIcon,
   WrenchIcon,
 } from '@patternfly/react-icons';
-import type { AlertRecord, AlertSeverity, ReasoningStep, ReasoningStepStatus } from './data';
+import type { AlertRecord, AlertSeverity } from './data';
 import { AgentPulseLabel } from './AgentPulseLabel';
 import { AiInsightLede } from './AiInsightCategoryRow';
+import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from './reasoningChainTimeline';
 import './autonomous-ai-observe.css';
 
 /** OpenShift console–style: e.g. Apr 27, 2026, 1:39 PM */
@@ -72,39 +68,6 @@ function rcaBoxClass(sev: AlertSeverity): string {
     return 'ols-aio-rca-box ols-aio-rca-box--warning';
   }
   return 'ols-aio-rca-box ols-aio-rca-box--info';
-}
-
-function stepGlyph(
-  step: ReasoningStep,
-  status: ReasoningStepStatus
-): React.ReactNode {
-  if (status === 'active') {
-    return <Spinner size="sm" />;
-  }
-  if (status === 'done') {
-    return (
-      <span style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>
-        <CheckCircleIcon />
-      </span>
-    );
-  }
-  if (status === 'pending') {
-    if (step.icon === 'database') {
-      return <DatabaseIcon />;
-    }
-    if (step.icon === 'network') {
-      return <NetworkIcon />;
-    }
-    if (step.icon === 'search') {
-      return <SearchIcon />;
-    }
-    return <CheckCircleIcon />;
-  }
-  return (
-    <span style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>
-      <ExclamationTriangleIcon />
-    </span>
-  );
 }
 
 export interface ObserveAlertItemProps {
@@ -229,7 +192,9 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                 <ol className="ols-aio-reasoning-timeline">
                   {alert.steps.map((step) => (
                     <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                      <span className="ols-aio-reasoning-timeline__node">{stepGlyph(step, step.status)}</span>
+                      <span className="ols-aio-reasoning-timeline__node">
+                        <ReasoningChainStepGlyph step={step} />
+                      </span>
                       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
                         <FlexItem>
                           <Flex
@@ -241,7 +206,7 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                               className="ols-aio-text-subtle-sm"
                               style={{ fontVariantNumeric: 'tabular-nums' }}
                             >
-                              {step.time ?? '—'}
+                              {formatReasoningStepDisplayTime(step)}
                             </span>
                             {step.status === 'active' ? (
                               <Label color="blue" variant="outline" isCompact>

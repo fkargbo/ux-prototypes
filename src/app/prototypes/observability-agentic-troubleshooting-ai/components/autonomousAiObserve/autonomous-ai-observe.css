@@ -323,7 +323,7 @@ span.ols-aio-card-stat-number {
   bottom: 0;
   display: flex;
   justify-content: flex-end;
-  padding-top: var(--pf-t--global--spacer--sm);
+  padding-top: 12px;
   background-color: var(--pf-t--global--background--color--primary--default);
   box-shadow: 0 -1px 0 var(--pf-t--global--border--color--default);
 }
@@ -599,7 +599,6 @@ span.ols-aio-card-stat-number {
 }
 
 .ols-aio-rca-box {
-  border: 1px solid var(--pf-t--global--border--color--default);
   border-radius: var(--pf-t--global--border--radius--default);
   padding: var(--pf-t--global--spacer--md);
 }
@@ -629,7 +628,6 @@ span.ols-aio-card-stat-number {
 }
 
 .ols-aio-remediation-box {
-  border: 1px solid var(--pf-t--global--border--color--default);
   border-radius: var(--pf-t--global--border--radius--default);
   padding: var(--pf-t--global--spacer--md);
   background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 5%, transparent);

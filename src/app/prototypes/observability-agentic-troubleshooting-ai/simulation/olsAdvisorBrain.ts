@@ -1,5 +1,6 @@
 import type { SimulationAlertBrief, SimulationHandoff, SimulationSnapshot } from './simulationTypes';
 import { getConversationMemory, recordAdvisorTurn, type AdvisorTurnIntent } from './olsConversationMemory';
+import { FLEET_WIDE_REGIONAL_INGRESS } from '../components/autonomousAiObserve/data';
 
 /**
  * Red Hat OpenShift Lightspeed — official conversation & usage patterns (tone, follow-ups, scope).
@@ -113,6 +114,51 @@ function primaryAlert(snap: SimulationSnapshot): SimulationAlertBrief | undefine
   return snap.alerts[0];
 }
 
+/**
+ * Fleet-wide ingress is modeled as `FLEET_WIDE_REGIONAL_INGRESS`, not a row in `snap.alerts`
+ * (`syncObserveSimulationState` only maps `AlertRecord`s). Discuss-with-AI passes that incident id.
+ */
+function simulationBriefFromFleetRegionalIngress(): SimulationAlertBrief {
+  const fw = FLEET_WIDE_REGIONAL_INGRESS;
+  return {
+    id: fw.id,
+    title: fw.title,
+    severity: fw.severity,
+    service: 'openshift-ingress / fleet-correlated',
+    firedAt: fw.firedAt,
+    message: fw.aiInsight.narrative ?? fw.aiInsight.evidence,
+    agentStatus: fw.agentStatus,
+    rcaSummary: `${fw.aggregatedFinding} ${fw.rootCauseNarrative}`.trim(),
+    rootCauseRef: 'cluster-gitops-policies',
+    rootCauseTail: fw.rootCauseNarrative.slice(0, 120),
+    remediationSummary: fw.remediationProposal,
+    remediationCommands:
+      'Use Remediation hub in Fleet management for governor-approved rollback across affected clusters.',
+    remediationRiskSummary: fw.riskAssessment,
+    agentInvestigationNarrative: fw.aiInsight.narrative ?? fw.aiInsight.evidence,
+    confidence: 94,
+    steps: fw.steps.map((s) => ({
+      id: s.id,
+      time: s.time,
+      title: s.title,
+      status: s.status,
+      detail: s.detail,
+    })),
+  };
+}
+
+/** Resolve an alert id against the snapshot plus fleet ingress (same id as `openDiscussWithLightspeed` from Top firing alerts). */
+function simulationBriefForAlertId(snap: SimulationSnapshot, alertId: string): SimulationAlertBrief | undefined {
+  const fromSnap = snap.alerts.find((a) => a.id === alertId);
+  if (fromSnap) {
+    return fromSnap;
+  }
+  if (alertId === FLEET_WIDE_REGIONAL_INGRESS.id) {
+    return simulationBriefFromFleetRegionalIngress();
+  }
+  return undefined;
+}
+
 /** After Observe → chat handoff injects the opening bot message. */
 export function seedAdvisorMemoryFromSnapshot(snap: SimulationSnapshot): void {
   const p = primaryAlert(snap);
@@ -201,7 +247,7 @@ function resolveFocusedAlert(
   mem: ReturnType<typeof getConversationMemory>
 ): SimulationAlertBrief | undefined {
   if (mem.lastFocusedAlertId) {
-    const hit = snap.alerts.find((a) => a.id === mem.lastFocusedAlertId);
+    const hit = simulationBriefForAlertId(snap, mem.lastFocusedAlertId);
     if (hit) return hit;
   }
   return primaryAlert(snap);
@@ -264,7 +310,8 @@ export function buildDiscussOpening(
   snap: SimulationSnapshot,
   handoff: SimulationHandoff
 ): string {
-  const alert = snap.alerts.find((a) => a.id === handoff.alertId) ?? primaryAlert(snap);
+  const alert =
+    simulationBriefForAlertId(snap, handoff.alertId) ?? primaryAlert(snap);
   const title = alert?.title ?? 'this incident';
   const scope = handoff.cardId === 'remediation' ? 'remediation path' : 'root cause analysis';
 
@@ -401,7 +448,7 @@ export function composeAdvisorReply(
 
   if (/\b(ambient|sparkle|pre-?analyzed|causal chain)\b/.test(q)) {
     const aid = snap.ambientIndicatorAlertId;
-    const target = aid ? snap.alerts.find((a) => a.id === aid) : primaryAlert(snap);
+    const target = aid ? simulationBriefForAlertId(snap, aid) : primaryAlert(snap);
     if (!target) {
       return reply(
         'ambient',

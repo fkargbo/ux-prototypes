@@ -109,9 +109,9 @@ export const AIHubPage: React.FC = () => {
                       variant="link"
                       isInline
                       onClick={() => setFleetClusterDrillDown(false)}
-                      aria-label="Return to AI Troubleshooting Hub (Conceptual design) fleet overview"
+                      aria-label="Return to AI Troubleshooting Hub fleet overview"
                     >
-                      AI Troubleshooting Hub (Conceptual design)
+                      AI Troubleshooting Hub
                     </Button>
                   </BreadcrumbItem>
                   <BreadcrumbItem isActive>{focusedCluster?.name ?? 'Cluster'}</BreadcrumbItem>
