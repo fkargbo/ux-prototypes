@@ -114,13 +114,13 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                 alignItems={{ default: 'alignItemsCenter' }}
                 justifyContent={
                   alertActionsLayout === 'ai-hub'
-                    ? { default: 'justifyContentFlexStart' }
+                    ? { default: 'justifyContentSpaceBetween' }
                     : { default: 'justifyContentSpaceBetween' }
                 }
                 flexWrap={{ default: 'wrap' }}
                 gap={{ default: 'gapSm' }}
               >
-                <FlexItem style={{ flexShrink: 0 }}>
+                <FlexItem style={{ flexShrink: 1, minWidth: 0, flex: '1 1 auto' }}>
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <Label
                       isCompact
@@ -144,6 +144,34 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                     </span>
                   </Flex>
                 </FlexItem>
+                {alertActionsLayout === 'ai-hub' ? (
+                  <FlexItem style={{ flexShrink: 0 }}>
+                    <Button
+                      variant="link"
+                      isInline
+                      style={INSIGHTS_LINK}
+                      className="pf-v6-u-font-size-sm"
+                      onClick={() =>
+                        onOpenLightspeed({
+                          sourceType: 'alert',
+                          sourceName: rule.name,
+                          aiInsightText: insightCopy,
+                        })
+                      }
+                    >
+                      <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
+                        <img
+                          src={AI_EXPERIENCE_ICON_DATA_URL}
+                          alt=""
+                          width={16}
+                          height={16}
+                          style={{ display: 'block', flexShrink: 0 }}
+                        />
+                      </span>
+                      View remediation
+                    </Button>
+                  </FlexItem>
+                ) : null}
                 {alertActionsLayout === 'fleet-insights' ? (
                   <FlexItem style={{ flexShrink: 0 }}>
                     <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
