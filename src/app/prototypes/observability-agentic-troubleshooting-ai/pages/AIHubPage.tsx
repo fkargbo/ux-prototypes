@@ -56,8 +56,8 @@ export const AIHubPage: React.FC = () => {
                 AI Troubleshooting Hub
               </Title>
               <Content component="p" style={{ marginTop: '8px', marginBottom: 0, color: '#6a6e73' }}>
-                Coordinate autonomous AI investigations, evidence collection, and guided remediation workflows for
-                observability incidents from one hub.
+                Accelerate incident response with autonomous investigations, automated evidence gathering, and guided
+                fixes.
               </Content>
               <Content
                 component="p"
