@@ -529,7 +529,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                               <Alert
                                 isInline
                                 isExpandable
-                                variant="custom"
+                                variant={item.tone}
                                 className="ols-aio-away-alert"
                                 title={item.text}
                                 toggleAriaLabel={`Toggle details: ${item.text}`}
@@ -779,7 +779,7 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                               <Alert
                                 isInline
                                 isExpandable
-                                variant="custom"
+                                variant={item.tone}
                                 className="ols-aio-away-alert"
                                 title={item.text}
                                 toggleAriaLabel={`Toggle details: ${item.text}`}
