@@ -2,6 +2,8 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, CardBody, CardExpandableContent, CardHeader, CardTitle, Label } from '@patternfly/react-core';
 import {
+  ALERTS,
+  FLEET_WIDE_REGIONAL_INGRESS,
   buildFleetTopFiringAlertRuleRows,
   fleetHubTotalFiringAlertsCount,
   getFleetTopAlertInsightDisplay,
@@ -46,6 +48,20 @@ export const TopFiringAlertsCard: React.FC = () => {
   }, [navigate]);
 
   const onOpenLightspeed = useCallback((ctx: LightspeedInvestigateContext) => {
+    const directAlert = ALERTS.find((a) => a.title === ctx.sourceName);
+    const fleetWideMatch = FLEET_WIDE_REGIONAL_INGRESS.title === ctx.sourceName ? FLEET_WIDE_REGIONAL_INGRESS : null;
+    const alertId = directAlert?.id ?? fleetWideMatch?.id ?? null;
+
+    if (alertId) {
+      agenticGlobalAiApi.openDiscussWithLightspeed?.({
+        alertId,
+        cardId: 'rca',
+        diagnosisName: 'Root cause analysis',
+      });
+      return;
+    }
+
+    // Fallback for unexpected rows so the CTA still opens AI assistance.
     agenticGlobalAiApi.startTroubleshootingForAlert?.(ctx.sourceName);
   }, []);
 
