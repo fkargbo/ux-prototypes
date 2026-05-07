@@ -656,6 +656,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     const urlTab = searchParams.get('tab');
     const urlCluster = searchParams.get('cluster');
     const urlComponent = searchParams.get('component');
+    const urlAlertName = searchParams.get('alertName');
     const urlScope = searchParams.get('scope');
     const aiHubScopedTab =
       urlScope === 'ai-hub' &&
@@ -702,6 +703,13 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       setMainComponentFilter(null);
     }
 
+    // Sync alert-name filter with URL so deep links can isolate one alert row.
+    if (urlAlertName && mainAlertNameFilter !== urlAlertName) {
+      setMainAlertNameFilter(urlAlertName);
+    } else if (!urlAlertName && mainAlertNameFilter) {
+      setMainAlertNameFilter(null);
+    }
+
     // Sync Alerts tab severity from URL (e.g. Observe Fleet Summary / Cluster health KPI drill-down)
     const urlSeverity = searchParams.get('severity');
     if (
@@ -729,7 +737,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         setSeverityFilter(['Info']);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, mainAlertNameFilter, mainComponentFilter]);
 
   // Get unique filter options (canonical fleet labels; cloud IDs merged via mock cluster build)
   const regions = React.useMemo(
