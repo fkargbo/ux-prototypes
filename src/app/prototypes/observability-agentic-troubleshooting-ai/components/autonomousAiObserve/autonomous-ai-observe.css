@@ -230,6 +230,7 @@ span.ols-aio-card-stat-number {
   height: 378px;
   min-height: 0;
   width: 100%;
+  overflow: hidden;
 }
 
 .ols-autonomous-ai-observe-widget .ols-aio-fleet-pair-card > .pf-v6-c-card__expandable-content {
@@ -261,6 +262,7 @@ span.ols-aio-card-stat-number {
 
 /* "While you were away" alerts: expandable by default-collapsed, neutral background, no colored borders. */
 .ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline {
+  background-color: #f2f2f2;
   border: 0;
   border-inline-start: 0;
   box-shadow: none;
