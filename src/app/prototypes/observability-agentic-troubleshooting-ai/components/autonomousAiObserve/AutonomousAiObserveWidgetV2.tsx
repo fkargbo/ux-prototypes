@@ -451,6 +451,9 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
               <StackItem>
                 <Grid hasGutter className="ols-aio-fleet-pair-grid ols-aio-gutter-24">
                   <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
+                    <TopFiringAlertsCard />
+                  </GridItem>
+                  <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
                 <Card
                   className="ols-aio-subcard ols-aio-fleet-pair-card"
                   isCompact
@@ -558,9 +561,6 @@ export const AutonomousAiObserveWidgetV2: React.FC = () => {
                     </CardBody>
                   </CardExpandableContent>
                 </Card>
-                  </GridItem>
-                  <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
-                    <TopFiringAlertsCard />
                   </GridItem>
                 </Grid>
               </StackItem>
