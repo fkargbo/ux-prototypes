@@ -100,7 +100,7 @@ export const AIHubPage: React.FC = () => {
             boxSizing: 'border-box',
           }}
         >
-          <Stack hasGutter>
+          <Stack hasGutter className="ols-ai-hub-main-stack">
             {showFleetBreadcrumb ? (
               <StackItem>
                 <Breadcrumb>

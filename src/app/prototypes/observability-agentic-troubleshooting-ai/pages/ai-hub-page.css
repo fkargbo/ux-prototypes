@@ -37,6 +37,11 @@
   word-break: normal;
 }
 
+/* Increase vertical spacing between inventory bar and widget cards. */
+.ols-ai-hub-main-stack.pf-v6-l-stack.pf-m-gutter {
+  gap: 24px;
+}
+
 /*
  * v2.0 hub: single vertical scrollbar. `dashboards-perses.css` (pulled in with agentic chrome) sets
  * `overflow-y: auto` on `.pf-v6-c-page__main-container` — the hub must not add a second scroller on `#ols-ai-hub-main`.

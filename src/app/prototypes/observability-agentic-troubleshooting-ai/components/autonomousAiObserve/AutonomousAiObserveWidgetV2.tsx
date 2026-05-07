@@ -194,7 +194,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   });
   const [fleetSummaryPage, setFleetSummaryPage] = useState(1);
   const [fleetSummaryPerPage, setFleetSummaryPerPage] = useState(10);
-  const [cAlertsOpen, setCAlertsOpen] = useState(true);
+  const [cAlertsOpen, setCAlertsOpen] = useState(false);
   const [remediationScope, setRemediationScope] = useState<'fleet' | 'cluster'>('cluster');
   const fleetAwayDigestItems = useMemo(() => AWAY_DIGEST_ITEMS, []);
 
@@ -236,8 +236,8 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
 
   useEffect(() => {
     const next: Record<string, boolean> = {};
-    topAlertsRemediationsAlerts.forEach((a, index) => {
-      next[a.id] = index === 0;
+    topAlertsRemediationsAlerts.forEach((a) => {
+      next[a.id] = false;
     });
     setExpandedAlerts(next);
   }, [topAlertsRemediationsAlerts]);

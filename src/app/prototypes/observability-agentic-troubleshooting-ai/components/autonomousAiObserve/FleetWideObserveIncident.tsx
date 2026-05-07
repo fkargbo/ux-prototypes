@@ -93,9 +93,9 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
   onToggle,
   onDiscussWithLightspeed,
 }) => {
-  const [openChain, setOpenChain] = useState(true);
-  const [openRca, setOpenRca] = useState(true);
-  const [openRem, setOpenRem] = useState(true);
+  const [openChain, setOpenChain] = useState(false);
+  const [openRca, setOpenRca] = useState(false);
+  const [openRem, setOpenRem] = useState(false);
 
   const onCardExpand = useCallback(
     (_e: React.MouseEvent, _id: string) => {
