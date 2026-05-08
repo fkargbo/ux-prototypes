@@ -53,7 +53,7 @@ export const AIHubPage: React.FC = () => {
       };
 
   return (
-    <div className={`ols-ai-hub-page ols-ai-hub-page--glass${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`} style={rootStyle}>
+    <div className={`ols-ai-hub-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`} style={rootStyle}>
       <div className="create-policy-header">
         <div className="ols-ai-hub-page-header-inner">
           <div className="ols-ai-hub-page-header-primary">
