@@ -90,10 +90,6 @@ body,
   background-color: var(--uxd-dashboard-surface-main);
 }
 
-.uxd-dashboard-shell .pf-v6-c-masthead {
-  border-bottom: 1px solid var(--uxd-dashboard-border);
-}
-
 .uxd-dashboard-shell .pf-v6-c-toolbar,
 .uxd-dashboard-shell .pf-v6-c-masthead,
 .uxd-dashboard-shell .pf-v6-c-page__main,
@@ -206,6 +202,30 @@ body,
   --pf-t--global--border--color--default: #3c3f44;
 }
 
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-page__main .pf-v6-c-page__main-section,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-page__main-container,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-page__main,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-page__sidebar-body,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-masthead {
+  background-color: #15171a !important;
+  color: #f0f0f0 !important;
+}
+
+.uxd-dashboard-shell--scheme-dark .create-policy-header,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-card,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-expandable-section,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-table {
+  background-color: #1f2126 !important;
+  color: #f0f0f0 !important;
+}
+
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-page__sidebar-body a,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-nav__link,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-title,
+.uxd-dashboard-shell--scheme-dark .pf-v6-c-content {
+  color: #f0f0f0 !important;
+}
+
 .uxd-dashboard-shell--contrast-high-contrast {
   --uxd-dashboard-border: #111111;
   --pf-t--global--border--color--default: #111111;
@@ -216,10 +236,33 @@ body,
   background-color: color-mix(in srgb, var(--uxd-dashboard-menu-bg) 85%, transparent);
 }
 
+.uxd-dashboard-shell--contrast-glass .pf-v6-c-page__main .pf-v6-c-page__main-section,
+.uxd-dashboard-shell--contrast-glass .pf-v6-c-card,
+.uxd-dashboard-shell--contrast-glass .create-policy-header {
+  background-color: color-mix(in srgb, var(--uxd-dashboard-surface-main) 82%, transparent) !important;
+  backdrop-filter: blur(6px);
+}
+
 .uxd-dashboard-shell--scheme-dark .pf-v6-c-button.pf-m-primary,
 .uxd-dashboard-shell--scheme-light .pf-v6-c-button.pf-m-primary {
   background-color: var(--uxd-dashboard-accent);
   border-color: var(--uxd-dashboard-accent);
+}
+
+.uxd-dashboard-shell .pf-v6-c-button.pf-m-primary,
+.uxd-dashboard-shell .pf-v6-c-button.pf-m-link {
+  color: var(--uxd-dashboard-accent);
+}
+
+.uxd-dashboard-shell .pf-v6-c-button.pf-m-primary {
+  color: #fff;
+}
+
+.uxd-dashboard-shell .pf-v6-c-menu-toggle,
+.uxd-dashboard-shell .pf-v6-c-form-control,
+.uxd-dashboard-shell .pf-v6-c-card,
+.uxd-dashboard-shell .pf-v6-c-table {
+  border-color: var(--uxd-dashboard-border) !important;
 }
 
 /* Perspective selector */
