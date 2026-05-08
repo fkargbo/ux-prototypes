@@ -29,7 +29,7 @@ export const AIHubPage: React.FC = () => {
     ? {
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: 'transparent',
+        backgroundColor: '#f5f5f5',
         boxSizing: 'border-box',
       }
     : {
@@ -44,7 +44,7 @@ export const AIHubPage: React.FC = () => {
         flex: 1,
         minHeight: 0,
         overflow: 'visible',
-        backgroundColor: 'transparent',
+        backgroundColor: '#ffffff',
       }
     : {
         flex: 1,
