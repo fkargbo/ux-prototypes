@@ -51,3 +51,55 @@
 .pf-v6-c-page__main-container:has(.ols-ai-hub-page--v2) {
   min-height: 0;
 }
+
+/* Glass-only mode for this prototype (reference: PF dashboard utility "Glass" contrast mode). */
+.ols-ai-hub-page--glass {
+  --ols-glass-bg: color-mix(in srgb, #ffffff 62%, transparent);
+  --ols-glass-bg-strong: color-mix(in srgb, #ffffff 78%, transparent);
+  --ols-glass-border: color-mix(in srgb, #ffffff 40%, #b9c5d6 60%);
+  --ols-glass-shadow: 0 8px 24px rgba(3, 3, 3, 0.14);
+}
+
+.pf-v6-c-page:has(.ols-ai-hub-page--glass) {
+  --ols-glass-bg: color-mix(in srgb, #ffffff 62%, transparent);
+  --ols-glass-bg-strong: color-mix(in srgb, #ffffff 78%, transparent);
+  --ols-glass-border: color-mix(in srgb, #ffffff 40%, #b9c5d6 60%);
+  --ols-glass-shell-shadow: 0 6px 18px rgba(3, 3, 3, 0.12);
+}
+
+.ols-ai-hub-page--glass,
+.ols-ai-hub-page--glass #ols-ai-hub-main {
+  background:
+    radial-gradient(1200px 700px at 15% -10%, rgba(126, 200, 255, 0.22), transparent 58%),
+    radial-gradient(900px 500px at 95% 0%, rgba(194, 165, 255, 0.2), transparent 56%),
+    #eaf2f9 !important;
+}
+
+.pf-v6-c-page:has(.ols-ai-hub-page--glass) .pf-v6-c-page__sidebar-body,
+.pf-v6-c-page:has(.ols-ai-hub-page--glass) .pf-v6-c-page__main-container,
+.pf-v6-c-page:has(.ols-ai-hub-page--glass) .pf-v6-c-page__main {
+  background: var(--ols-glass-bg-strong) !important;
+  border-color: var(--ols-glass-border) !important;
+  box-shadow: var(--ols-glass-shell-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.pf-v6-c-page:has(.ols-ai-hub-page--glass) .pf-v6-c-page__sidebar-body {
+  border-inline-end: 1px solid var(--ols-glass-border);
+}
+
+.ols-ai-hub-page--glass .create-policy-header,
+.ols-ai-hub-page--glass .pf-v6-c-card,
+.ols-ai-hub-page--glass .pf-v6-c-page__main-section,
+.ols-ai-hub-page--glass .pf-v6-c-expandable-section {
+  background: var(--ols-glass-bg) !important;
+  border: 1px solid var(--ols-glass-border) !important;
+  box-shadow: var(--ols-glass-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.ols-ai-hub-page--glass .create-policy-header {
+  background: var(--ols-glass-bg-strong) !important;
+}

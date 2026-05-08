@@ -29,7 +29,7 @@ export const AIHubPage: React.FC = () => {
     ? {
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: 'transparent',
         boxSizing: 'border-box',
       }
     : {
@@ -44,7 +44,7 @@ export const AIHubPage: React.FC = () => {
         flex: 1,
         minHeight: 0,
         overflow: 'visible',
-        backgroundColor: '#ffffff',
+        backgroundColor: 'transparent',
       }
     : {
         flex: 1,
@@ -53,7 +53,7 @@ export const AIHubPage: React.FC = () => {
       };
 
   return (
-    <div className={`ols-ai-hub-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`} style={rootStyle}>
+    <div className={`ols-ai-hub-page ols-ai-hub-page--glass${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`} style={rootStyle}>
       <div className="create-policy-header">
         <div className="ols-ai-hub-page-header-inner">
           <div className="ols-ai-hub-page-header-primary">
@@ -141,6 +141,7 @@ export const AIHubPage: React.FC = () => {
           </Stack>
         </div>
       </div>
+
     </div>
   );
 };

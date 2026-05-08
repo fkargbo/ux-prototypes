@@ -158,7 +158,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
   const navigate = useNavigate();
   const hasNavigatedRef = React.useRef(false);
   const hasShownModalRef = React.useRef(false);
-  const showDashboardAppearanceControls = currentPrototypeId === 'observability-agentic-troubleshooting-ai';
+  const showDashboardAppearanceControls = false;
 
   React.useEffect(() => {
     window.localStorage.setItem(SHELL_THEME_KEY, shellThemeMode);
@@ -194,7 +194,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
 
   React.useEffect(() => {
     if (!showDashboardAppearanceControls) {
-      document.documentElement.setAttribute('dir', 'ltr');
       return;
     }
     document.documentElement.setAttribute('dir', isShellRtl ? 'rtl' : 'ltr');
@@ -1430,27 +1429,29 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
       ) : null}
 
       {/* Floating Action Button */}
-      <Button
-        variant="primary"
-        onClick={() => setIsTaskModalOpen(true)}
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          padding: '0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          zIndex: 1000,
-        }}
-        aria-label="View task details"
-      >
-        <InfoCircleIcon />
-      </Button>
+      {!showDashboardAppearanceControls ? (
+        <Button
+          variant="primary"
+          onClick={() => setIsTaskModalOpen(true)}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            padding: '0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            zIndex: 1000,
+          }}
+          aria-label="View task details"
+        >
+          <InfoCircleIcon />
+        </Button>
+      ) : null}
 
       {/* Task Details Modal */}
       <Modal

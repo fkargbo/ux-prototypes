@@ -178,6 +178,15 @@ body,
   --uxd-dashboard-accent: #8a1538;
   --pf-t--global--link--color--default: #8a1538;
   --pf-t--global--color--brand--default: #8a1538;
+  --uxd-dashboard-menu-shadow: 0 8px 24px rgba(138, 21, 56, 0.25);
+}
+
+.uxd-dashboard-shell--theme-project-felt .create-policy-header {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, #8a1538 12%, transparent),
+    color-mix(in srgb, #8a1538 2%, transparent)
+  ) !important;
 }
 
 .uxd-dashboard-shell--scheme-light {
@@ -229,6 +238,7 @@ body,
 .uxd-dashboard-shell--contrast-high-contrast {
   --uxd-dashboard-border: #111111;
   --pf-t--global--border--color--default: #111111;
+  --uxd-dashboard-menu-shadow: 0 0 0 2px #111111, 0 8px 24px rgba(0, 0, 0, 0.24);
 }
 
 .uxd-dashboard-shell--contrast-glass .ws-full-page-utils__menu {
@@ -263,6 +273,12 @@ body,
 .uxd-dashboard-shell .pf-v6-c-card,
 .uxd-dashboard-shell .pf-v6-c-table {
   border-color: var(--uxd-dashboard-border) !important;
+}
+
+.uxd-dashboard-shell .pf-v6-c-label.pf-m-orange {
+  background-color: color-mix(in srgb, var(--uxd-dashboard-accent) 12%, transparent);
+  color: var(--uxd-dashboard-accent);
+  border-color: color-mix(in srgb, var(--uxd-dashboard-accent) 45%, transparent);
 }
 
 /* Perspective selector */
