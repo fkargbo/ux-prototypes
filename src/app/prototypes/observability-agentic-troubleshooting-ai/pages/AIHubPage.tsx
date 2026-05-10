@@ -6,7 +6,6 @@ import {
   Content,
   Divider,
   Dropdown,
-  Flex,
   Icon,
   MenuToggle,
   Stack,
@@ -253,11 +252,16 @@ export const AIHubPage: React.FC = () => {
 
   const isGlassContrast = themeContrastMode === 'contrast-glass';
 
-  const positionActions: Array<{ id: UtilityPosition; label: string; icon: React.ReactNode }> = [
-    { id: 'pf-m-top-left', label: 'Move to the top left corner', icon: <ArrowCircleUpIcon /> },
-    { id: 'pf-m-top-right', label: 'Move to the top right corner', icon: <ArrowCircleRightIcon /> },
-    { id: 'pf-m-bottom-left', label: 'Move to the bottom left corner', icon: <ArrowCircleLeftIcon /> },
-    { id: 'pf-m-bottom-right', label: 'Move to the bottom right corner', icon: <ArrowCircleDownIcon /> },
+  const positionActions: Array<{
+    id: UtilityPosition;
+    corner: 'tl' | 'tr' | 'bl' | 'br';
+    label: string;
+    icon: React.ReactNode;
+  }> = [
+    { id: 'pf-m-top-left', corner: 'tl', label: 'Pin to the top left corner', icon: <ArrowCircleUpIcon /> },
+    { id: 'pf-m-top-right', corner: 'tr', label: 'Pin to the top right corner', icon: <ArrowCircleRightIcon /> },
+    { id: 'pf-m-bottom-left', corner: 'bl', label: 'Pin to the bottom left corner', icon: <ArrowCircleLeftIcon /> },
+    { id: 'pf-m-bottom-right', corner: 'br', label: 'Pin to the bottom right corner', icon: <ArrowCircleDownIcon /> },
   ];
 
   const rootStyle: React.CSSProperties = isHubV2
@@ -377,159 +381,159 @@ export const AIHubPage: React.FC = () => {
         </div>
       </div>
 
-      <Flex
-        direction={{ default: 'column' }}
-        gap={{ default: 'gapSm' }}
+      <div
         className={['ws-full-page-utils', isRtl ? 'pf-v6-m-dir-rtl' : 'pf-v6-m-dir-ltr', utilityPosition].join(' ')}
       >
-        <Dropdown
-          className="ws-full-page-utils__dropdown"
-          isOpen={isThemeMenuOpen}
-          onOpenChange={(open) => setIsThemeMenuOpen(open)}
-          shouldFocusToggleOnSelect={false}
-          popperProps={{
-            placement: 'top-end',
-            enableFlip: true,
-            distance: 8,
-            appendTo: () => document.body,
-          }}
-          zIndex={13000}
-          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-            <MenuToggle
-              ref={toggleRef}
-              variant="secondary"
-              className="ws-full-page-utils__trigger"
-              icon={<Icon size="lg">{triggerIcon}</Icon>}
-              onClick={() => setIsThemeMenuOpen((current) => !current)}
-              isExpanded={isThemeMenuOpen}
-              aria-label={themeTriggerAriaLabel}
+        <div className="ws-full-page-utils__panel">
+          <div className="ws-full-page-utils__center-stack">
+            <Dropdown
+              className="ws-full-page-utils__dropdown"
+              isOpen={isThemeMenuOpen}
+              onOpenChange={(open) => setIsThemeMenuOpen(open)}
+              shouldFocusToggleOnSelect={false}
+              popperProps={{
+                placement: 'top-end',
+                enableFlip: true,
+                distance: 8,
+                appendTo: () => document.body,
+                minWidth: '17rem',
+                maxWidth: '23.75rem',
+              }}
+              zIndex={13000}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  variant="secondary"
+                  className="ws-full-page-utils__trigger"
+                  icon={<Icon size="lg">{triggerIcon}</Icon>}
+                  onClick={() => setIsThemeMenuOpen((current) => !current)}
+                  isExpanded={isThemeMenuOpen}
+                  aria-label={themeTriggerAriaLabel}
+                />
+              )}
+            >
+              <div className="ws-full-page-utils__menu-inner" role="dialog" aria-label="Theme utility menu">
+                <div className="pf-v6-c-menu__group-title" id="theme-selector-variant-title">
+                  Theme
+                </div>
+                <ToggleGroup aria-labelledby="theme-selector-variant-title" className="ws-full-page-utils__toggle-group">
+                  <ToggleGroupItem
+                    text="Default"
+                    buttonId="theme-default"
+                    isSelected={themeVariantMode === 'theme-default'}
+                    onChange={(_event, selected) => {
+                      if (selected) {
+                        setThemeVariantMode('theme-default');
+                      }
+                    }}
+                  />
+                  <ToggleGroupItem
+                    text="Project Felt"
+                    buttonId="theme-felt"
+                    isSelected={themeVariantMode === 'theme-felt'}
+                    onChange={(_event, selected) => {
+                      if (selected) {
+                        setThemeVariantMode('theme-felt');
+                      }
+                    }}
+                  />
+                </ToggleGroup>
+                <Divider />
+                <div className="pf-v6-c-menu__group-title" id="theme-selector-color-scheme-title">
+                  Color scheme
+                </div>
+                <ToggleGroup
+                  aria-labelledby="theme-selector-color-scheme-title"
+                  className="ws-full-page-utils__toggle-group"
+                >
+                  <ToggleGroupItem
+                    text="System"
+                    buttonId="color-system"
+                    isSelected={themeColorMode === 'system'}
+                    onChange={(_event, selected) => {
+                      if (selected) {
+                        setThemeColorMode('system');
+                      }
+                    }}
+                  />
+                  <ToggleGroupItem
+                    text="Light"
+                    buttonId="color-light"
+                    isSelected={themeColorMode === 'light'}
+                    onChange={(_event, selected) => {
+                      if (selected) {
+                        setThemeColorMode('light');
+                      }
+                    }}
+                  />
+                  <ToggleGroupItem
+                    text="Dark"
+                    buttonId="color-dark"
+                    isSelected={themeColorMode === 'dark'}
+                    onChange={(_event, selected) => {
+                      if (selected) {
+                        setThemeColorMode('dark');
+                      }
+                    }}
+                  />
+                </ToggleGroup>
+                <Divider />
+                <div className="pf-v6-c-menu__group-title" id="theme-selector-contrast-title">
+                  Contrast mode
+                </div>
+                <ToggleGroup aria-labelledby="theme-selector-contrast-title" className="ws-full-page-utils__toggle-group">
+                  <ToggleGroupItem
+                    text="System"
+                    buttonId="contrast-system"
+                    isSelected={themeContrastMode === 'contrast-system'}
+                    onChange={(_event, selected) => {
+                      if (selected) {
+                        setThemeContrastMode('contrast-system');
+                      }
+                    }}
+                  />
+                  <ToggleGroupItem
+                    text="Default"
+                    buttonId="contrast-default"
+                    isSelected={themeContrastMode === 'contrast-default'}
+                    onChange={(_event, selected) => {
+                      if (selected) {
+                        setThemeContrastMode('contrast-default');
+                      }
+                    }}
+                  />
+                  <ToggleGroupItem
+                    text="High contrast"
+                    buttonId="contrast-high"
+                    isSelected={themeContrastMode === 'contrast-high'}
+                    onChange={(_event, selected) => {
+                      if (selected) {
+                        setThemeContrastMode('contrast-high');
+                      }
+                    }}
+                  />
+                  <ToggleGroupItem
+                    text="Glass"
+                    buttonId="contrast-glass"
+                    isSelected={themeContrastMode === 'contrast-glass'}
+                    onChange={(_event, selected) => {
+                      if (selected) {
+                        setThemeContrastMode('contrast-glass');
+                      }
+                    }}
+                  />
+                </ToggleGroup>
+              </div>
+            </Dropdown>
+            <Switch
+              id="ws-example-rtl-switch"
+              label="RTL"
+              isChecked={isRtl}
+              className="ws-full-page-utils__rtl-switch"
+              onChange={(_event, checked) => setIsRtl(checked)}
+              aria-label="Toggle RTL mode"
             />
-          )}
-        >
-          <div className="ws-full-page-utils__menu-inner" role="dialog" aria-label="Theme utility menu">
-            <div className="pf-v6-c-menu__group-title" id="theme-selector-variant-title">
-              Theme
-            </div>
-            <ToggleGroup aria-labelledby="theme-selector-variant-title" className="ws-full-page-utils__toggle-group">
-              <ToggleGroupItem
-                text="Default"
-                buttonId="theme-default"
-                isSelected={themeVariantMode === 'theme-default'}
-                onChange={(_event, selected) => {
-                  if (selected) {
-                    setThemeVariantMode('theme-default');
-                  }
-                }}
-              />
-              <ToggleGroupItem
-                text="Project Felt"
-                buttonId="theme-felt"
-                isSelected={themeVariantMode === 'theme-felt'}
-                onChange={(_event, selected) => {
-                  if (selected) {
-                    setThemeVariantMode('theme-felt');
-                  }
-                }}
-              />
-            </ToggleGroup>
-            <Divider />
-            <div className="pf-v6-c-menu__group-title" id="theme-selector-color-scheme-title">
-              Color scheme
-            </div>
-            <ToggleGroup aria-labelledby="theme-selector-color-scheme-title" className="ws-full-page-utils__toggle-group">
-              <ToggleGroupItem
-                text="System"
-                buttonId="color-system"
-                isSelected={themeColorMode === 'system'}
-                onChange={(_event, selected) => {
-                  if (selected) {
-                    setThemeColorMode('system');
-                  }
-                }}
-              />
-              <ToggleGroupItem
-                text="Light"
-                buttonId="color-light"
-                isSelected={themeColorMode === 'light'}
-                onChange={(_event, selected) => {
-                  if (selected) {
-                    setThemeColorMode('light');
-                  }
-                }}
-              />
-              <ToggleGroupItem
-                text="Dark"
-                buttonId="color-dark"
-                isSelected={themeColorMode === 'dark'}
-                onChange={(_event, selected) => {
-                  if (selected) {
-                    setThemeColorMode('dark');
-                  }
-                }}
-              />
-            </ToggleGroup>
-            <Divider />
-            <div className="pf-v6-c-menu__group-title" id="theme-selector-contrast-title">
-              Contrast mode
-            </div>
-            <ToggleGroup aria-labelledby="theme-selector-contrast-title" className="ws-full-page-utils__toggle-group">
-              <ToggleGroupItem
-                text="System"
-                buttonId="contrast-system"
-                isSelected={themeContrastMode === 'contrast-system'}
-                onChange={(_event, selected) => {
-                  if (selected) {
-                    setThemeContrastMode('contrast-system');
-                  }
-                }}
-              />
-              <ToggleGroupItem
-                text="Default"
-                buttonId="contrast-default"
-                isSelected={themeContrastMode === 'contrast-default'}
-                onChange={(_event, selected) => {
-                  if (selected) {
-                    setThemeContrastMode('contrast-default');
-                  }
-                }}
-              />
-              <ToggleGroupItem
-                text="High contrast"
-                buttonId="contrast-high"
-                isSelected={themeContrastMode === 'contrast-high'}
-                onChange={(_event, selected) => {
-                  if (selected) {
-                    setThemeContrastMode('contrast-high');
-                  }
-                }}
-              />
-              <ToggleGroupItem
-                text="Glass"
-                buttonId="contrast-glass"
-                isSelected={themeContrastMode === 'contrast-glass'}
-                onChange={(_event, selected) => {
-                  if (selected) {
-                    setThemeContrastMode('contrast-glass');
-                  }
-                }}
-              />
-            </ToggleGroup>
           </div>
-        </Dropdown>
-        <Switch
-          id="ws-example-rtl-switch"
-          label="RTL"
-          isChecked={isRtl}
-          className="ws-full-page-utils__rtl-switch"
-          onChange={(_event, checked) => setIsRtl(checked)}
-          aria-label="Toggle RTL mode"
-        />
-        <Flex
-          direction={{ default: 'row' }}
-          justifyContent={{ default: 'justifyContentFlexEnd' }}
-          gap={{ default: 'gapXs' }}
-          className="ws-full-page-utils__position-row"
-        >
           {positionActions.map((positionAction) => {
             const isSelected = utilityPosition === positionAction.id;
             return (
@@ -539,7 +543,7 @@ export const AIHubPage: React.FC = () => {
                   size="sm"
                   className={[
                     'ws-full-page-utils-position-btn',
-                    positionAction.id,
+                    `ws-full-page-utils__corner--${positionAction.corner}`,
                     isSelected ? 'ws-full-page-utils-position-btn--selected' : '',
                   ]
                     .filter(Boolean)
@@ -551,8 +555,8 @@ export const AIHubPage: React.FC = () => {
               </Tooltip>
             );
           })}
-        </Flex>
-      </Flex>
+        </div>
+      </div>
     </div>
   );
 };

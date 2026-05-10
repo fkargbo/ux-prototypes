@@ -55,6 +55,54 @@
 .ws-full-page-utils {
   position: fixed;
   z-index: 1200;
+  /* Prevent column stretch so the MenuToggle is not viewport-wide (Popper uses trigger width by default). */
+  width: max-content;
+  max-width: min(100vw - var(--pf-t--global--spacer--xl), 26rem);
+  box-sizing: border-box;
+}
+
+.ws-full-page-utils__panel {
+  position: relative;
+  display: block;
+  padding: var(--pf-t--global--spacer--sm);
+  box-sizing: border-box;
+}
+
+.ws-full-page-utils__center-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+  position: relative;
+  z-index: 1;
+}
+
+.ws-full-page-utils .ws-full-page-utils__corner--tl,
+.ws-full-page-utils .ws-full-page-utils__corner--tr,
+.ws-full-page-utils .ws-full-page-utils__corner--bl,
+.ws-full-page-utils .ws-full-page-utils__corner--br {
+  position: absolute;
+  z-index: 2;
+}
+
+.ws-full-page-utils .ws-full-page-utils__corner--tl {
+  top: 0;
+  inset-inline-start: 0;
+}
+
+.ws-full-page-utils .ws-full-page-utils__corner--tr {
+  top: 0;
+  inset-inline-end: 0;
+}
+
+.ws-full-page-utils .ws-full-page-utils__corner--bl {
+  bottom: 0;
+  inset-inline-start: 0;
+}
+
+.ws-full-page-utils .ws-full-page-utils__corner--br {
+  bottom: 0;
+  inset-inline-end: 0;
 }
 
 .ws-full-page-utils.pf-m-top-left {
@@ -92,20 +140,16 @@
   background-color: var(--pf-t--global--color--brand--default);
 }
 
-/* Nested Flex for corner controls; layout comes from Flex props in TSX. */
-.ws-full-page-utils__position-row {
-  align-items: center;
-}
-
 .ws-full-page-utils__rtl-switch.pf-v6-c-switch {
-  align-self: flex-end;
   margin-top: calc(var(--pf-t--global--spacer--2xs) * -1);
 }
 
-/* Theme menu: content sits inside PatternFly Dropdown → Menu → MenuContent (Popper-positioned). */
+/* Theme menu: Popper width uses popperProps (PatternFly dashboard utility panel ~380px max). */
 .ws-full-page-utils__dropdown.pf-v6-c-menu {
-  min-width: 17rem;
-  max-width: min(17rem, calc(100vw - var(--pf-t--global--spacer--2xl)));
+  width: 100%;
+  min-width: 0;
+  max-width: 23.75rem;
+  box-sizing: border-box;
 }
 
 .ws-full-page-utils__dropdown .pf-v6-c-menu__content {
@@ -122,6 +166,8 @@
 
 .ws-full-page-utils__toggle-group {
   margin-top: var(--pf-t--global--spacer--xs);
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 .ws-full-page-utils__toggle-group .pf-v6-c-toggle-group__button {
