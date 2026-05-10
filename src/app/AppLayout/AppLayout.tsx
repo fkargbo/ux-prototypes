@@ -32,7 +32,6 @@ import {
   Content,
   Form,
   FormGroup,
-  Switch,
   TextInput,
   TextArea,
   Alert,
@@ -72,7 +71,6 @@ import {
   BellIcon,
   EllipsisVIcon,
   InfoCircleIcon,
-  SunIcon,
 } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { useImpersonation } from '@app/shared/contexts/ImpersonationContext';
@@ -96,38 +94,6 @@ interface IAppLayout {
   currentPrototypeId?: string; // Current prototype ID for conditional navigation
 }
 
-type ShellThemeMode = 'default' | 'project-felt';
-type ShellColorScheme = 'system' | 'light' | 'dark';
-type ShellContrastMode = 'system' | 'default' | 'high-contrast' | 'glass';
-
-const SHELL_THEME_KEY = 'uxd.dashboard.shell.theme';
-const SHELL_SCHEME_KEY = 'uxd.dashboard.shell.scheme';
-const SHELL_CONTRAST_KEY = 'uxd.dashboard.shell.contrast';
-
-function readShellThemeMode(): ShellThemeMode {
-  if (typeof window === 'undefined') {
-    return 'default';
-  }
-  const raw = window.localStorage.getItem(SHELL_THEME_KEY);
-  return raw === 'default' || raw === 'project-felt' ? raw : 'default';
-}
-
-function readShellColorScheme(): ShellColorScheme {
-  if (typeof window === 'undefined') {
-    return 'system';
-  }
-  const raw = window.localStorage.getItem(SHELL_SCHEME_KEY);
-  return raw === 'system' || raw === 'light' || raw === 'dark' ? raw : 'system';
-}
-
-function readShellContrastMode(): ShellContrastMode {
-  if (typeof window === 'undefined') {
-    return 'system';
-  }
-  const raw = window.localStorage.getItem(SHELL_CONTRAST_KEY);
-  return raw === 'system' || raw === 'default' || raw === 'high-contrast' || raw === 'glass' ? raw : 'system';
-}
-
 // Custom Core Platforms icon component
 const CorePlatformsIcon: React.FC<{ size?: string }> = ({ size = '20px' }) => (
   <svg 
@@ -148,56 +114,11 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
   const [perspectiveOpen, setPerspectiveOpen] = React.useState(false);
   const [activePerspective, setActivePerspective] = React.useState('Fleet management');
   const [isTaskModalOpen, setIsTaskModalOpen] = React.useState(false);
-  const [shellThemeMode, setShellThemeMode] = React.useState<ShellThemeMode>(() => readShellThemeMode());
-  const [shellColorScheme, setShellColorScheme] = React.useState<ShellColorScheme>(() => readShellColorScheme());
-  const [shellContrastMode, setShellContrastMode] = React.useState<ShellContrastMode>(() => readShellContrastMode());
-  const [isShellUtilsMenuOpen, setIsShellUtilsMenuOpen] = React.useState(false);
-  const [isShellRtl, setIsShellRtl] = React.useState(false);
   const { impersonatingUser, impersonatingGroups, isLoading, stopImpersonation } = useImpersonation();
   const { useCase } = useUseCaseContext();
   const navigate = useNavigate();
   const hasNavigatedRef = React.useRef(false);
   const hasShownModalRef = React.useRef(false);
-  const showDashboardAppearanceControls = false;
-
-  React.useEffect(() => {
-    window.localStorage.setItem(SHELL_THEME_KEY, shellThemeMode);
-  }, [shellThemeMode]);
-
-  React.useEffect(() => {
-    window.localStorage.setItem(SHELL_SCHEME_KEY, shellColorScheme);
-  }, [shellColorScheme]);
-
-  React.useEffect(() => {
-    window.localStorage.setItem(SHELL_CONTRAST_KEY, shellContrastMode);
-  }, [shellContrastMode]);
-
-  const effectiveShellScheme: Exclude<ShellColorScheme, 'system'> = React.useMemo(() => {
-    if (shellColorScheme !== 'system') {
-      return shellColorScheme;
-    }
-    if (typeof window === 'undefined' || !window.matchMedia) {
-      return 'light';
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }, [shellColorScheme]);
-
-  const effectiveShellContrast: Exclude<ShellContrastMode, 'system'> = React.useMemo(() => {
-    if (shellContrastMode !== 'system') {
-      return shellContrastMode;
-    }
-    if (typeof window === 'undefined' || !window.matchMedia) {
-      return 'default';
-    }
-    return window.matchMedia('(prefers-contrast: more)').matches ? 'high-contrast' : 'default';
-  }, [shellContrastMode]);
-
-  React.useEffect(() => {
-    if (!showDashboardAppearanceControls) {
-      return;
-    }
-    document.documentElement.setAttribute('dir', isShellRtl ? 'rtl' : 'ltr');
-  }, [showDashboardAppearanceControls, isShellRtl]);
 
   // Responsive sidebar: automatically close on small screens (mobile)
   React.useEffect(() => {
@@ -1267,19 +1188,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
     <>
     {topBanner && topBanner}
     <UseCaseBanner />
-    <div
-      className={
-        showDashboardAppearanceControls
-          ? [
-              'uxd-dashboard-shell',
-              `uxd-dashboard-shell--theme-${shellThemeMode}`,
-              `uxd-dashboard-shell--scheme-${effectiveShellScheme}`,
-              `uxd-dashboard-shell--contrast-${effectiveShellContrast}`,
-            ].join(' ')
-          : undefined
-      }
-      style={{ paddingTop: useCase ? '48px' : '0' }}
-    >
+    <div style={{ paddingTop: useCase ? '48px' : '0' }}>
     <Page
       mainContainerId={pageId}
       masthead={masthead}
@@ -1313,145 +1222,28 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
       )}
     </Page>
 
-      {showDashboardAppearanceControls ? (
-        <div
-          className={[
-            'pf-v6-l-flex',
-            'pf-m-column',
-            'pf-m-gap-sm',
-            'ws-full-page-utils',
-            isShellRtl ? 'pf-v6-m-dir-rtl' : 'pf-v6-m-dir-ltr',
-            'pf-m-bottom-right',
-          ].join(' ')}
-        >
-          <Button
-            variant="secondary"
-            className="ws-full-page-utils__trigger"
-            icon={<SunIcon />}
-            iconPosition="left"
-            onClick={() => setIsShellUtilsMenuOpen((open) => !open)}
-            aria-expanded={isShellUtilsMenuOpen}
-            aria-label="Open theming utility menu"
-          >
-            <CaretDownIcon />
-          </Button>
-          <div className="ws-full-page-utils__rtl-row">
-            <Switch
-              id="ws-full-page-utils-rtl"
-              isChecked={isShellRtl}
-              onChange={(_event, checked) => setIsShellRtl(checked)}
-              aria-label="Toggle RTL mode"
-            />
-            <span className="ws-full-page-utils__rtl-label">RTL</span>
-          </div>
-          {isShellUtilsMenuOpen ? (
-            <div className="ws-full-page-utils__menu" role="dialog" aria-label="Theme utility menu">
-              <div className="ws-full-page-utils__section">
-                <Title headingLevel="h3" size="md">
-                  Theme
-                </Title>
-                <div className="ws-full-page-utils__segment-row">
-                  <Button
-                    variant={shellThemeMode === 'default' ? 'primary' : 'secondary'}
-                    onClick={() => setShellThemeMode('default')}
-                  >
-                    Default
-                  </Button>
-                  <Button
-                    variant={shellThemeMode === 'project-felt' ? 'primary' : 'secondary'}
-                    onClick={() => setShellThemeMode('project-felt')}
-                  >
-                    Project Felt
-                  </Button>
-                </div>
-              </div>
-              <Divider />
-              <div className="ws-full-page-utils__section">
-                <Title headingLevel="h3" size="md">
-                  Color scheme
-                </Title>
-                <div className="ws-full-page-utils__segment-row">
-                  <Button
-                    variant={shellColorScheme === 'system' ? 'primary' : 'secondary'}
-                    onClick={() => setShellColorScheme('system')}
-                  >
-                    System
-                  </Button>
-                  <Button
-                    variant={shellColorScheme === 'light' ? 'primary' : 'secondary'}
-                    onClick={() => setShellColorScheme('light')}
-                  >
-                    Light
-                  </Button>
-                  <Button
-                    variant={shellColorScheme === 'dark' ? 'primary' : 'secondary'}
-                    onClick={() => setShellColorScheme('dark')}
-                  >
-                    Dark
-                  </Button>
-                </div>
-              </div>
-              <Divider />
-              <div className="ws-full-page-utils__section">
-                <Title headingLevel="h3" size="md">
-                  Contrast mode
-                </Title>
-                <div className="ws-full-page-utils__segment-row">
-                  <Button
-                    variant={shellContrastMode === 'system' ? 'primary' : 'secondary'}
-                    onClick={() => setShellContrastMode('system')}
-                  >
-                    System
-                  </Button>
-                  <Button
-                    variant={shellContrastMode === 'default' ? 'primary' : 'secondary'}
-                    onClick={() => setShellContrastMode('default')}
-                  >
-                    Default
-                  </Button>
-                  <Button
-                    variant={shellContrastMode === 'high-contrast' ? 'primary' : 'secondary'}
-                    onClick={() => setShellContrastMode('high-contrast')}
-                  >
-                    High contrast
-                  </Button>
-                  <Button
-                    variant={shellContrastMode === 'glass' ? 'primary' : 'secondary'}
-                    onClick={() => setShellContrastMode('glass')}
-                  >
-                    Glass
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
       {/* Floating Action Button */}
-      {!showDashboardAppearanceControls ? (
-        <Button
-          variant="primary"
-          onClick={() => setIsTaskModalOpen(true)}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            padding: '0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            zIndex: 1000,
-          }}
-          aria-label="View task details"
-        >
-          <InfoCircleIcon />
-        </Button>
-      ) : null}
+      <Button
+        variant="primary"
+        onClick={() => setIsTaskModalOpen(true)}
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          padding: '0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          zIndex: 1000,
+        }}
+        aria-label="View task details"
+      >
+        <InfoCircleIcon />
+      </Button>
 
       {/* Task Details Modal */}
       <Modal

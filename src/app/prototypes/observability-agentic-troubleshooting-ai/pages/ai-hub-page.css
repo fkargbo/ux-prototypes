@@ -51,3 +51,115 @@
 .pf-v6-c-page__main-container:has(.ols-ai-hub-page--v2) {
   min-height: 0;
 }
+
+.ws-full-page-utils {
+  position: fixed;
+  z-index: 1200;
+}
+
+.ws-full-page-utils.pf-m-top-left {
+  top: var(--pf-t--global--spacer--lg);
+  left: var(--pf-t--global--spacer--lg);
+}
+
+.ws-full-page-utils.pf-m-top-right {
+  top: var(--pf-t--global--spacer--lg);
+  right: var(--pf-t--global--spacer--lg);
+}
+
+.ws-full-page-utils.pf-m-bottom-left {
+  left: var(--pf-t--global--spacer--lg);
+  bottom: var(--pf-t--global--spacer--lg);
+}
+
+.ws-full-page-utils.pf-m-bottom-right {
+  right: var(--pf-t--global--spacer--lg);
+  bottom: var(--pf-t--global--spacer--lg);
+}
+
+.ws-full-page-utils__trigger.pf-v6-c-button {
+  min-width: 5.1rem;
+  min-height: 2rem;
+  padding-inline: var(--pf-t--global--spacer--sm);
+  justify-content: space-between;
+}
+
+.ws-full-page-utils-position-btn {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: var(--pf-t--global--border--radius--pill);
+  color: var(--pf-t--global--icon--color--subtle);
+  padding: 0;
+}
+
+.ws-full-page-utils-position-btn--selected {
+  color: var(--pf-t--global--text--color--on-primary);
+  background-color: var(--pf-t--global--color--brand--default);
+}
+
+.ws-full-page-utils__position-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pf-t--global--spacer--2xs);
+}
+
+.ws-full-page-utils__rtl-switch.pf-v6-c-switch {
+  align-self: flex-end;
+  margin-top: calc(var(--pf-t--global--spacer--2xs) * -1);
+}
+
+.ws-full-page-utils__menu {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-end: calc(100% + var(--pf-t--global--spacer--sm));
+  width: 17rem;
+  padding: var(--pf-t--global--spacer--md);
+  border: var(--pf-t--global--border--width--regular) solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--medium);
+  background-color: var(--pf-t--global--background--color--primary--default);
+  box-shadow: var(--pf-t--global--box-shadow--md);
+}
+
+.ws-full-page-utils__menu .pf-v6-c-divider {
+  margin-block: var(--pf-t--global--spacer--sm);
+}
+
+.ws-full-page-utils__toggle-group {
+  margin-top: var(--pf-t--global--spacer--xs);
+}
+
+.ws-full-page-utils__toggle-group .pf-v6-c-toggle-group__button {
+  min-height: 1.5rem;
+  padding-inline: var(--pf-t--global--spacer--sm);
+  font-size: var(--pf-t--global--font--size--body--sm);
+}
+
+.ws-full-page-utils__menu .pf-v6-c-menu__group-title {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  margin-bottom: var(--pf-t--global--spacer--2xs);
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page {
+  background:
+    radial-gradient(circle at 14% 16%, color-mix(in srgb, var(--pf-t--global--palette--blue-100) 22%, transparent), transparent 48%),
+    radial-gradient(circle at 86% 82%, color-mix(in srgb, var(--pf-t--global--palette--blue-100) 16%, transparent), transparent 40%),
+    var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .create-policy-header,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-expandable-section,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
+  background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
+  border-color: var(--pf-t--global--border--color--glass--default) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+}
+
+:root.pf-v6-theme-glass .ws-full-page-utils__menu,
+:root.pf-v6-theme-glass .ws-full-page-utils__trigger.pf-v6-c-button {
+  background-color: var(--pf-t--global--background--color--glass--primary--default);
+  border-color: var(--pf-t--global--border--color--glass--default);
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+}
