@@ -420,11 +420,11 @@ body:has(.ols-ai-hub-page),
   background: transparent;
 }
 
-/* Page title band: no border — only nested PatternFly components (cards, etc.) get chrome borders. */
+/* Page title band: opaque surface (0% transparency); nested panels keep frosted chrome. */
 :root.pf-v6-theme-glass .ols-ai-hub-page .create-policy-header {
-  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
   border: none !important;
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+  backdrop-filter: none !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card,
