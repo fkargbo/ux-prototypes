@@ -246,15 +246,17 @@
   margin-bottom: var(--pf-t--global--spacer--2xs);
 }
 
-/* Let Glass show through the app shell behind this prototype (global page sections use solid greys). */
-:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page),
-:root.pf-v6-theme-glass .pf-v6-c-page__main-container:has(.ols-ai-hub-page),
-:root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
-  background-color: transparent !important;
-}
-
-:root.pf-v6-theme-glass .ols-ai-hub-page {
-  background:
+/*
+ * Glass + AI Hub: align with PatternFly dashboard glass chrome — page canvas, then three distinct
+ * glass regions (masthead, sidebar, main) with inset gutters. Scoped with :has(.ols-ai-hub-page).
+ * Uses !important to win over app.css global Page zeroing.
+ */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
+  box-sizing: border-box !important;
+  padding: var(--pf-t--global--spacer--md) !important;
+  row-gap: var(--pf-t--global--spacer--md) !important;
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  background-image:
     radial-gradient(
       circle at 14% 16%,
       color-mix(in srgb, var(--pf-t--global--color--brand--default) 14%, transparent),
@@ -269,7 +271,70 @@
       165deg,
       color-mix(in srgb, var(--pf-t--global--color--brand--default) 8%, var(--pf-t--global--background--color--secondary--default)),
       var(--pf-t--global--background--color--secondary--default)
-    );
+    ) !important;
+}
+
+@media (min-width: 75rem) {
+  :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
+    padding: var(--pf-t--global--spacer--inset--page-chrome) !important;
+    row-gap: calc(var(--pf-t--global--spacer--inset--page-chrome) / 2) !important;
+  }
+}
+
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
+  background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
+  border: 1px solid var(--pf-t--global--border--color--glass--default) !important;
+  border-radius: var(--pf-t--global--border--radius--medium) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  box-shadow: var(--pf-t--global--box-shadow--md) !important;
+}
+
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar {
+  background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
+  border: 1px solid var(--pf-t--global--border--color--glass--default) !important;
+  border-radius: var(--pf-t--global--border--radius--medium) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  box-shadow: var(--pf-t--global--box-shadow--md) !important;
+  /* Single glass card; drop default divider border between sidebar and main (gutter comes from PF margin). */
+  --pf-v6-c-page__sidebar--BorderInlineEndWidth: 0 !important;
+}
+
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__main-container {
+  background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
+  border: 1px solid var(--pf-t--global--border--color--glass--default) !important;
+  border-radius: var(--pf-t--global--border--radius--medium) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  box-shadow: var(--pf-t--global--box-shadow--md) !important;
+  /* Override app.css; restore PatternFly page gutters (see page.css main-container insets). */
+  --pf-v6-c-page__main-container--BorderBlockStartWidth: 0 !important;
+  --pf-v6-c-page__main-container--BorderBlockEndWidth: 0 !important;
+  --pf-v6-c-page__main-container--BorderInlineStartWidth: 0 !important;
+  --pf-v6-c-page__main-container--BorderInlineEndWidth: 0 !important;
+  margin-inline-start: var(--pf-t--global--spacer--inset--page-chrome) !important;
+  margin-inline-end: var(--pf-t--global--spacer--inset--page-chrome) !important;
+}
+
+@media (min-width: 75rem) {
+  :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar:not(.pf-m-collapsed) + .pf-v6-c-page__main-container {
+    margin-inline-start: 0 !important;
+    margin-inline-end: var(--pf-t--global--spacer--inset--page-chrome) !important;
+  }
+}
+
+@media (max-width: calc(48rem - 1px)) {
+  :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__main-container {
+    margin-inline-start: 0 !important;
+    margin-inline-end: 0 !important;
+  }
+}
+
+:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page),
+:root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page {
+  background: transparent;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .create-policy-header,
