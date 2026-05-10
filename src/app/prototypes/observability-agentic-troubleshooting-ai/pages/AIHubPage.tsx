@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -381,12 +382,20 @@ export const AIHubPage: React.FC = () => {
         </div>
       </div>
 
-      <div
-        className={['ws-full-page-utils', isRtl ? 'pf-v6-m-dir-rtl' : 'pf-v6-m-dir-ltr', utilityPosition].join(' ')}
-      >
-        <div className="ws-full-page-utils__panel">
-          <div className="ws-full-page-utils__center-stack">
-            <Dropdown
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className={[
+              'ws-full-page-utils',
+              'ols-ai-hub-full-page-utils',
+              isRtl ? 'pf-v6-m-dir-rtl' : 'pf-v6-m-dir-ltr',
+              utilityPosition,
+            ].join(' ')}
+          >
+            <div className="ws-full-page-utils__shell" aria-label="Page utility controls">
+              <div className="ws-full-page-utils__panel">
+                <div className="ws-full-page-utils__center-stack">
+                  <Dropdown
               className="ws-full-page-utils__dropdown"
               isOpen={isThemeMenuOpen}
               onOpenChange={(open) => setIsThemeMenuOpen(open)}
@@ -524,39 +533,48 @@ export const AIHubPage: React.FC = () => {
                   />
                 </ToggleGroup>
               </div>
-            </Dropdown>
-            <Switch
-              id="ws-example-rtl-switch"
-              label="RTL"
-              isChecked={isRtl}
-              className="ws-full-page-utils__rtl-switch"
-              onChange={(_event, checked) => setIsRtl(checked)}
-              aria-label="Toggle RTL mode"
-            />
-          </div>
-          {positionActions.map((positionAction) => {
-            const isSelected = utilityPosition === positionAction.id;
-            return (
-              <Tooltip key={positionAction.id} content={positionAction.label}>
-                <Button
-                  variant="plain"
-                  size="sm"
-                  className={[
-                    'ws-full-page-utils-position-btn',
-                    `ws-full-page-utils__corner--${positionAction.corner}`,
-                    isSelected ? 'ws-full-page-utils-position-btn--selected' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  aria-label={`${positionAction.label}${isSelected ? ', selected' : ''}`}
-                  onClick={() => setUtilityPosition(positionAction.id)}
-                  icon={positionAction.icon}
-                />
-              </Tooltip>
-            );
-          })}
-        </div>
-      </div>
+                  </Dropdown>
+                  <Switch
+                    id="ws-example-rtl-switch"
+                    label="RTL"
+                    isChecked={isRtl}
+                    className="ws-full-page-utils__rtl-switch"
+                    onChange={(_event, checked) => setIsRtl(checked)}
+                    aria-label="Toggle RTL mode"
+                  />
+                </div>
+                {positionActions.map((positionAction) => {
+                  const isSelected = utilityPosition === positionAction.id;
+                  return (
+                    <div
+                      key={positionAction.id}
+                      className={['ws-full-page-utils__pin', `ws-full-page-utils__pin--${positionAction.corner}`].join(
+                        ' '
+                      )}
+                    >
+                      <Tooltip content={positionAction.label}>
+                        <Button
+                          variant="plain"
+                          size="sm"
+                          className={[
+                            'ws-full-page-utils-position-btn',
+                            isSelected ? 'ws-full-page-utils-position-btn--selected' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                          aria-label={`${positionAction.label}${isSelected ? ', selected' : ''}`}
+                          onClick={() => setUtilityPosition(positionAction.id)}
+                          icon={positionAction.icon}
+                        />
+                      </Tooltip>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

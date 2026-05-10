@@ -59,12 +59,26 @@
   width: max-content;
   max-width: min(100vw - var(--pf-t--global--spacer--xl), 26rem);
   box-sizing: border-box;
+  /* Render above app chrome when portaled to document.body */
+  pointer-events: auto;
+}
+
+/* Visible frame around theme + RTL + corner pins (PatternFly dashboard full-page utility). */
+.ws-full-page-utils__shell {
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--large);
+  box-shadow: var(--pf-t--global--box-shadow--md);
+  box-sizing: border-box;
 }
 
 .ws-full-page-utils__panel {
   position: relative;
   display: block;
-  padding: var(--pf-t--global--spacer--sm);
+  /* Room for corner pin controls */
+  padding: var(--pf-t--global--spacer--lg);
+  min-width: 7.75rem;
+  min-height: 6.75rem;
   box-sizing: border-box;
 }
 
@@ -77,32 +91,32 @@
   z-index: 1;
 }
 
-.ws-full-page-utils .ws-full-page-utils__corner--tl,
-.ws-full-page-utils .ws-full-page-utils__corner--tr,
-.ws-full-page-utils .ws-full-page-utils__corner--bl,
-.ws-full-page-utils .ws-full-page-utils__corner--br {
+.ws-full-page-utils__pin {
   position: absolute;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.ws-full-page-utils .ws-full-page-utils__corner--tl {
-  top: 0;
-  inset-inline-start: 0;
+.ws-full-page-utils__pin--tl {
+  top: var(--pf-t--global--spacer--xs);
+  inset-inline-start: var(--pf-t--global--spacer--xs);
 }
 
-.ws-full-page-utils .ws-full-page-utils__corner--tr {
-  top: 0;
-  inset-inline-end: 0;
+.ws-full-page-utils__pin--tr {
+  top: var(--pf-t--global--spacer--xs);
+  inset-inline-end: var(--pf-t--global--spacer--xs);
 }
 
-.ws-full-page-utils .ws-full-page-utils__corner--bl {
-  bottom: 0;
-  inset-inline-start: 0;
+.ws-full-page-utils__pin--bl {
+  bottom: var(--pf-t--global--spacer--xs);
+  inset-inline-start: var(--pf-t--global--spacer--xs);
 }
 
-.ws-full-page-utils .ws-full-page-utils__corner--br {
-  bottom: 0;
-  inset-inline-end: 0;
+.ws-full-page-utils__pin--br {
+  bottom: var(--pf-t--global--spacer--xs);
+  inset-inline-end: var(--pf-t--global--spacer--xs);
 }
 
 .ws-full-page-utils.pf-m-top-left {
@@ -131,13 +145,30 @@
   width: 1.35rem;
   height: 1.35rem;
   border-radius: var(--pf-t--global--border--radius--pill);
-  color: var(--pf-t--global--icon--color--subtle);
   padding: 0;
+  /* Match PatternFly dashboard utility: light chip + hairline border + dark glyph */
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  color: var(--pf-t--global--icon--color--regular);
+}
+
+.ws-full-page-utils-position-btn:hover {
+  border-color: var(--pf-t--global--border--color--strong);
+  color: var(--pf-t--global--icon--color--strong, var(--pf-t--global--icon--color--regular));
 }
 
 .ws-full-page-utils-position-btn--selected {
-  color: var(--pf-t--global--text--color--on-primary);
-  background-color: var(--pf-t--global--color--brand--default);
+  /* Same gray “pressed” treatment as PatternFly plain action controls (e.g. menu-toggle plain expanded). */
+  background-color: var(--pf-t--global--background--color--action--plain--clicked);
+  border-color: var(--pf-t--global--border--color--default);
+  color: var(--pf-t--global--icon--color--regular);
+  box-shadow: none;
+}
+
+.ws-full-page-utils-position-btn--selected:hover {
+  background-color: var(--pf-t--global--background--color--action--plain--clicked);
+  border-color: var(--pf-t--global--border--color--strong);
+  color: var(--pf-t--global--icon--color--strong, var(--pf-t--global--icon--color--regular));
 }
 
 .ws-full-page-utils__rtl-switch.pf-v6-c-switch {
@@ -215,6 +246,13 @@
   background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
   border-color: var(--pf-t--global--border--color--glass--default) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+}
+
+:root.pf-v6-theme-glass .ws-full-page-utils__shell {
+  background-color: var(--pf-t--global--background--color--glass--primary--default);
+  border-color: var(--pf-t--global--border--color--glass--default);
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+  box-shadow: var(--pf-t--global--box-shadow--md);
 }
 
 :root.pf-v6-theme-glass .ws-full-page-utils__dropdown.pf-v6-c-menu {
