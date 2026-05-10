@@ -265,6 +265,41 @@ export const AIHubPage: React.FC = () => {
     { id: 'pf-m-bottom-right', corner: 'br', label: 'Pin to the bottom right corner', icon: <OutlinedArrowAltCircleDownIcon /> },
   ];
 
+  /** Corner-aware Popper placement: wide menu + default `top-end` clips off-screen top-left; flip to `bottom-*` clips bottom-right. */
+  const themeMenuPopperProps = React.useMemo(
+    () =>
+      utilityPosition === 'pf-m-top-left'
+        ? {
+            placement: 'bottom-start' as const,
+            enableFlip: true,
+            preventOverflow: true,
+            distance: 8,
+            appendTo: () => document.body,
+            minWidth: '17rem',
+            maxWidth: '23.75rem',
+          }
+        : utilityPosition === 'pf-m-bottom-right'
+          ? {
+              placement: 'top-end' as const,
+              enableFlip: false,
+              preventOverflow: true,
+              distance: 8,
+              appendTo: () => document.body,
+              minWidth: '17rem',
+              maxWidth: '23.75rem',
+            }
+          : {
+              placement: 'top-end' as const,
+              enableFlip: true,
+              preventOverflow: true,
+              distance: 8,
+              appendTo: () => document.body,
+              minWidth: '17rem',
+              maxWidth: '23.75rem',
+            },
+    [utilityPosition]
+  );
+
   const rootStyle: React.CSSProperties = isHubV2
     ? {
         display: 'flex',
@@ -400,14 +435,7 @@ export const AIHubPage: React.FC = () => {
               isOpen={isThemeMenuOpen}
               onOpenChange={(open) => setIsThemeMenuOpen(open)}
               shouldFocusToggleOnSelect={false}
-              popperProps={{
-                placement: 'top-end',
-                enableFlip: true,
-                distance: 8,
-                appendTo: () => document.body,
-                minWidth: '17rem',
-                maxWidth: '23.75rem',
-              }}
+              popperProps={themeMenuPopperProps}
               zIndex={13000}
               toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                 <MenuToggle
