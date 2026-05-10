@@ -384,6 +384,10 @@ body:has(.ols-ai-hub-page),
 /*
  * Sidebar shell: structural only (same grid slot as page.css `.pf-v6-c-page__sidebar`). Frost + elevation live on
  * `.pf-v6-c-page__sidebar-body` to mirror `.pf-v6-c-page__main-container` + `.pf-v6-c-page__main`.
+ *
+ * PatternFly `page.css` sets `.pf-v6-c-page__sidebar { overflow-x: hidden; overflow-y: auto; }` — that clips
+ * `box-shadow` on child `.pf-v6-c-page__sidebar-body` (only a bottom sliver may show). Override to
+ * `overflow: visible` here and move scrolling onto `.pf-v6-c-page__sidebar-body` below.
  */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar {
   background-color: transparent !important;
@@ -391,14 +395,16 @@ body:has(.ols-ai-hub-page),
   border-radius: 0 !important;
   backdrop-filter: none !important;
   box-shadow: none !important;
+  overflow: visible !important;
   /* Single glass card; drop default divider border between sidebar and main (gutter = grid column-gap). */
   --pf-v6-c-page__sidebar--BorderInlineEndWidth: 0 !important;
   margin-inline-end: 0 !important;
 }
 
 /*
- * Sidebar body: same frosted surface + `--pf-t--global--box-shadow--lg` as `.pf-v6-c-page__main-container`.
- * No border on this div (removes gray chrome around nav).
+ * Sidebar body: same frosted surface + `--pf-t--global--box-shadow--lg` as `.pf-v6-c-page__main-container`
+ * (see base.css `--pf-t--global--box-shadow--lg` composite shadow).
+ * Scroll container moved here from `.pf-v6-c-page__sidebar` so elevation isn’t clipped.
  */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
   background-color: var(--ols-ai-hub-glass-surface-tint) !important;
@@ -407,9 +413,13 @@ body:has(.ols-ai-hub-page),
   border-radius: var(--pf-t--global--border--radius--medium) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
   box-shadow: var(--pf-t--global--box-shadow--lg);
-  /* Fill sidebar column when nav is short */
   flex: 1 1 auto;
   min-height: 0;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: var(--pf-t--global--z-index--xs);
 }
 
 /* Sidebar body: remove gray frame from inline perspective control (AppLayout). */
