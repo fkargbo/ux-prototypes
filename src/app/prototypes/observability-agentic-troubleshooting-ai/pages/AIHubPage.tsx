@@ -19,12 +19,12 @@ import {
 } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import {
-  ArrowCircleDownIcon,
-  ArrowCircleLeftIcon,
-  ArrowCircleRightIcon,
-  ArrowCircleUpIcon,
   DesktopIcon,
   MoonIcon,
+  OutlinedArrowAltCircleDownIcon,
+  OutlinedArrowAltCircleLeftIcon,
+  OutlinedArrowAltCircleRightIcon,
+  OutlinedArrowAltCircleUpIcon,
   SunIcon,
 } from '@patternfly/react-icons';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
@@ -259,10 +259,10 @@ export const AIHubPage: React.FC = () => {
     label: string;
     icon: React.ReactNode;
   }> = [
-    { id: 'pf-m-top-left', corner: 'tl', label: 'Pin to the top left corner', icon: <ArrowCircleUpIcon /> },
-    { id: 'pf-m-top-right', corner: 'tr', label: 'Pin to the top right corner', icon: <ArrowCircleRightIcon /> },
-    { id: 'pf-m-bottom-left', corner: 'bl', label: 'Pin to the bottom left corner', icon: <ArrowCircleLeftIcon /> },
-    { id: 'pf-m-bottom-right', corner: 'br', label: 'Pin to the bottom right corner', icon: <ArrowCircleDownIcon /> },
+    { id: 'pf-m-top-left', corner: 'tl', label: 'Pin to the top left corner', icon: <OutlinedArrowAltCircleUpIcon /> },
+    { id: 'pf-m-top-right', corner: 'tr', label: 'Pin to the top right corner', icon: <OutlinedArrowAltCircleRightIcon /> },
+    { id: 'pf-m-bottom-left', corner: 'bl', label: 'Pin to the bottom left corner', icon: <OutlinedArrowAltCircleLeftIcon /> },
+    { id: 'pf-m-bottom-right', corner: 'br', label: 'Pin to the bottom right corner', icon: <OutlinedArrowAltCircleDownIcon /> },
   ];
 
   const rootStyle: React.CSSProperties = isHubV2
