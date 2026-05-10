@@ -351,14 +351,17 @@ body:has(.ols-ai-hub-page),
   }
 }
 
-/* Masthead: edge-to-edge horizontally; no corner radius; no divider under brand/toolbar (see masthead.css). */
+/*
+ * Masthead: edge-to-edge horizontally (see masthead.css).
+ * Dropdown / expandable toolbar shadow: masthead.css sets
+ * `--pf-v6-c-masthead__expandable-content--BoxShadow` → `--pf-t--global--box-shadow--md--bottom` on
+ * `.pf-v6-c-masthead .pf-v6-c-toolbar__expandable-content` — restore by not forcing BoxShadow/border to none.
+ */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
   --pf-v6-c-masthead--BorderWidth: 0 !important;
   --pf-v6-c-masthead__brand--BorderBlockEnd: 0 !important;
   --pf-v6-c-masthead--m-display-stack__brand--BorderBlockEnd: 0 !important;
   --pf-v6-c-masthead--m-display-inline__brand--BorderBlockEnd: 0 !important;
-  --pf-v6-c-masthead__expandable-content--BorderBlockStart: 0 !important;
-  --pf-v6-c-masthead__expandable-content--BoxShadow: none !important;
   margin-inline: calc(-1 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
   width: calc(100% + 2 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
   max-width: none !important;
@@ -368,32 +371,56 @@ body:has(.ols-ai-hub-page),
   border-radius: 0 !important;
   border-block-end: none !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
-  box-shadow: none !important;
+  /* Elevated chrome like dashboard glass panels */
+  box-shadow: var(--pf-t--global--box-shadow--sm--bottom);
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead .pf-v6-c-toolbar__expandable-content {
-  border-block-start: none !important;
-  box-shadow: none !important;
+  /* masthead.css: border-block-start + box-shadow from --pf-v6-c-masthead__expandable-content--BoxShadow */
+  border-block-start: var(--pf-v6-c-masthead__expandable-content--BorderBlockStart);
+  box-shadow: var(--pf-v6-c-masthead__expandable-content--BoxShadow);
 }
 
+/*
+ * Sidebar shell: structural only (same grid slot as page.css `.pf-v6-c-page__sidebar`). Frost + elevation live on
+ * `.pf-v6-c-page__sidebar-body` to mirror `.pf-v6-c-page__main-container` + `.pf-v6-c-page__main`.
+ */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar {
-  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
-  border: var(--ols-ai-hub-glass-chrome-border-width) solid var(--ols-ai-hub-glass-chrome-border-color) !important;
-  border-radius: var(--pf-t--global--border--radius--medium) !important;
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
   box-shadow: none !important;
   /* Single glass card; drop default divider border between sidebar and main (gutter = grid column-gap). */
   --pf-v6-c-page__sidebar--BorderInlineEndWidth: 0 !important;
   margin-inline-end: 0 !important;
 }
 
+/*
+ * Sidebar body: same frosted surface + `--pf-t--global--box-shadow--lg` as `.pf-v6-c-page__main-container`.
+ * No border on this div (removes gray chrome around nav).
+ */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border: none !important;
+  outline: none !important;
+  border-radius: var(--pf-t--global--border--radius--medium) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  box-shadow: var(--pf-t--global--box-shadow--lg);
+  /* Fill sidebar column when nav is short */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Sidebar body: remove gray frame from inline perspective control (AppLayout). */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body .perspective-selector button {
+  border: none !important;
   background: transparent !important;
 }
 
 /*
- * Main region: frosted fill only — no stroke on the outer shell (matches PF dashboard glass: borders on
- * cards/panels inside main, not on .pf-v6-c-page__main-container).
+ * Main region: frosted fill — elevated shell (same token family as dropdown / menu surfaces:
+ * `--pf-t--global--box-shadow--lg`).
  */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__main-container {
   background-color: var(--ols-ai-hub-glass-surface-tint) !important;
@@ -401,7 +428,7 @@ body:has(.ols-ai-hub-page),
   border-radius: var(--pf-t--global--border--radius--medium) !important;
   outline: none !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
-  box-shadow: none !important;
+  box-shadow: var(--pf-t--global--box-shadow--lg);
   /* Override app.css + PF main-container frame; inner cards carry borders. */
   --pf-v6-c-page__main-container--BorderBlockStartWidth: 0 !important;
   --pf-v6-c-page__main-container--BorderBlockEndWidth: 0 !important;
