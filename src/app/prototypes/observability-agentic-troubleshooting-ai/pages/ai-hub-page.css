@@ -321,15 +321,6 @@ body:has(.ols-ai-hub-page),
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
   --ols-ai-hub-glass-chrome-gutter: 24px;
   --ols-ai-hub-glass-surface-tint: rgb(255 255 255 / 50%);
-  /*
-   * Solid fill matching the frosted tint stack (50% white over workspace secondary) without alpha —
-   * avoids stark primary white while keeping transparency at 0% on the title band.
-   */
-  --ols-ai-hub-header-opaque-fill: color-mix(
-    in srgb,
-    rgb(255 255 255) 50%,
-    var(--pf-t--global--background--color--secondary--default) 50%
-  );
   /* Same tokens as PF Page glass sidebar-main / panels (dashboard basic demo). */
   --ols-ai-hub-glass-chrome-border-color: var(
     --pf-t--global--border--color--glass--default,
@@ -429,9 +420,14 @@ body:has(.ols-ai-hub-page),
   background: transparent;
 }
 
-/* Page title band: fully opaque (no translucency), tinted like frosted chrome — not flat primary white. */
+/*
+ * Title band: same stacking as `.pf-v6-c-page__main-section` in the glass dashboard demo — transparent so
+ * the frosted `.pf-v6-c-page__main-container` layer provides the glass effect (see PF dashboard basic demo).
+ * https://pf-core-staging.patternfly.org/patterns/dashboard/html-demos/basic/
+ */
 :root.pf-v6-theme-glass .ols-ai-hub-page .create-policy-header {
-  background-color: var(--ols-ai-hub-header-opaque-fill) !important;
+  background-color: transparent !important;
+  background-image: none !important;
   border: none !important;
   backdrop-filter: none !important;
 }
