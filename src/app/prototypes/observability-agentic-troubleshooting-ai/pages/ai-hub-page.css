@@ -120,6 +120,15 @@
   inset-inline-end: var(--pf-t--global--spacer--xs);
 }
 
+/*
+ * ArrowCircle* icons are 90° apart (up / right / down / left). A uniform -45° rotation
+ * aims each toward its corner: NW / NE / SE / SW respectively.
+ */
+.ws-full-page-utils__pin .ws-full-page-utils-position-btn svg {
+  transform: rotate(-45deg);
+  transform-origin: center;
+}
+
 .ws-full-page-utils.pf-m-top-left {
   top: var(--pf-t--global--spacer--lg);
   left: var(--pf-t--global--spacer--lg);
