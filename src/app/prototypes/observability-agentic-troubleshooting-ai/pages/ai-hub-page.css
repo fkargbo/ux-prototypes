@@ -247,31 +247,53 @@
 }
 
 /*
- * Glass + AI Hub: match PatternFly dashboard glass (e.g. basic demo) — body canvas background,
- * transparent Page, masthead full-bleed top, sidebar + main inset. Scoped with :has(.ols-ai-hub-page).
- * Body background sizing matches PatternFly core: fixed, center, cover
- * (see patternfly.scss under :root:where(.pf-v6-theme-glass)).
- * Uses !important to win over app.css global Page zeroing.
+ * AI Hub workspace background — matches PatternFly glass dashboard canvas (patternfly.scss): SVGs on
+ * the viewport, fixed + cover. SVGs live under `bgimages/` so webpack emits inline data URLs (see
+ * webpack rule for bgimages); URLs in plain `assets/` resolve as raw SVG and break `background-image`.
+ * Theme classes live on <html>; paint on html so it shows through transparent body / #root / Page.
  */
-:root.pf-v6-theme-glass body:has(.ols-ai-hub-page) {
-  background-image: url('../assets/patternfly-bkg/PF-Bkg-Generic-Light.svg');
+html:has(.ols-ai-hub-page) {
+  min-height: 100%;
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  background-image: url('../bgimages/patternfly-bkg/PF-Bkg-Generic-Light.svg');
   background-repeat: no-repeat;
   background-attachment: fixed;
   background-position: center;
   background-size: cover;
 }
 
-:root.pf-v6-theme-glass.pf-v6-theme-dark body:has(.ols-ai-hub-page) {
-  background-image: url('../assets/patternfly-bkg/PF-Bkg-Generic-Dark.svg');
+html.pf-v6-theme-dark:has(.ols-ai-hub-page) {
+  background-image: url('../bgimages/patternfly-bkg/PF-Bkg-Generic-Dark.svg');
 }
 
-:root.pf-v6-theme-glass.pf-v6-theme-felt body:has(.ols-ai-hub-page) {
-  background-image: url('../assets/patternfly-bkg/Felt-Bkg-Generic-Light.svg');
+html.pf-v6-theme-felt:has(.ols-ai-hub-page) {
+  background-image: url('../bgimages/patternfly-bkg/Felt-Bkg-Generic-Light.svg');
 }
 
-:root.pf-v6-theme-glass.pf-v6-theme-felt.pf-v6-theme-dark body:has(.ols-ai-hub-page) {
-  background-image: url('../assets/patternfly-bkg/Felt-Bkg-Generic-Dark.svg');
+html.pf-v6-theme-felt.pf-v6-theme-dark:has(.ols-ai-hub-page) {
+  background-image: url('../bgimages/patternfly-bkg/Felt-Bkg-Generic-Dark.svg');
 }
+
+/* Let the html canvas show through the React tree (app has no explicit #root fill, but be explicit). */
+body:has(.ols-ai-hub-page),
+#root:has(.ols-ai-hub-page) {
+  background: transparent !important;
+}
+
+/* app.css paints main-section grey — clear it so the workspace image is visible in the content column. */
+.pf-v6-c-page:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+}
+
+/*
+ * Glass + AI Hub: transparent Page, masthead full-bleed top, sidebar + main inset. Scoped with :has(.ols-ai-hub-page).
+ * Uses !important to win over app.css global Page zeroing.
+ */
 
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
   --ols-ai-hub-glass-chrome-gutter: 24px;
@@ -299,7 +321,7 @@
   }
 }
 
-/* Masthead: edge-to-edge horizontally, square along viewport top; radius only on bottom like PF dashboard glass. */
+/* Masthead: edge-to-edge horizontally; no corner radius. */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
   margin-inline: calc(-1 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
   width: calc(100% + 2 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
@@ -307,7 +329,7 @@
   box-sizing: border-box !important;
   background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
   border: 1px solid var(--pf-t--global--border--color--glass--default) !important;
-  border-radius: 0 0 var(--pf-t--global--border--radius--medium) var(--pf-t--global--border--radius--medium) !important;
+  border-radius: 0 !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
   box-shadow: var(--pf-t--global--box-shadow--md) !important;
 }
