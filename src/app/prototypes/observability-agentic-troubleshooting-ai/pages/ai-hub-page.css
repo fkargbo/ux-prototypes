@@ -252,11 +252,11 @@
  * Uses !important to win over app.css global Page zeroing.
  */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
+  --ols-ai-hub-glass-chrome-gutter: 24px;
   box-sizing: border-box !important;
-  /* Canvas insets: match PatternFly page chrome token (same as --pf-v6-c-page--inset). */
-  padding: var(--pf-t--global--spacer--md) !important;
-  /* Vertical gutter header ↔ content: matches page main-section row rhythm (see page.css --pf-v6-c-page__main-container--MaxHeight uses spacer--lg). */
-  row-gap: var(--pf-t--global--spacer--lg) !important;
+  /* Canvas + gutters: 24px between masthead, sidebar, main and from viewport edges. */
+  padding: var(--ols-ai-hub-glass-chrome-gutter) !important;
+  row-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
   background-image:
     radial-gradient(
@@ -278,13 +278,9 @@
 
 @media (min-width: 75rem) {
   :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
-    padding: var(--pf-t--global--spacer--inset--page-chrome) !important;
-    row-gap: var(--pf-t--global--spacer--lg) !important;
-    /*
-     * Sidebar ↔ main: use grid column-gap (reliable) with PatternFly’s half–page-inset gutter
-     * (see page.css --pf-v6-c-page__sidebar--MarginInlineEnd).
-     */
-    column-gap: calc(var(--pf-t--global--spacer--inset--page-chrome) / 2) !important;
+    padding: var(--ols-ai-hub-glass-chrome-gutter) !important;
+    row-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
+    column-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
   }
 
   :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page):has(> .pf-v6-c-page__sidebar.pf-m-collapsed) {
