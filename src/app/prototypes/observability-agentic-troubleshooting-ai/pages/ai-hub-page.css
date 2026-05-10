@@ -247,38 +247,49 @@
 }
 
 /*
- * Glass + AI Hub: align with PatternFly dashboard glass chrome — page canvas, then three distinct
- * glass regions (masthead, sidebar, main) with inset gutters. Scoped with :has(.ols-ai-hub-page).
+ * Glass + AI Hub: match PatternFly dashboard glass (e.g. basic demo) — body canvas background,
+ * transparent Page, masthead full-bleed top, sidebar + main inset. Scoped with :has(.ols-ai-hub-page).
+ * Body background sizing matches PatternFly core: fixed, center, cover
+ * (see patternfly.scss under :root:where(.pf-v6-theme-glass)).
  * Uses !important to win over app.css global Page zeroing.
  */
+:root.pf-v6-theme-glass body:has(.ols-ai-hub-page) {
+  background-image: url('../assets/patternfly-bkg/PF-Bkg-Generic-Light.svg');
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center;
+  background-size: cover;
+}
+
+:root.pf-v6-theme-glass.pf-v6-theme-dark body:has(.ols-ai-hub-page) {
+  background-image: url('../assets/patternfly-bkg/PF-Bkg-Generic-Dark.svg');
+}
+
+:root.pf-v6-theme-glass.pf-v6-theme-felt body:has(.ols-ai-hub-page) {
+  background-image: url('../assets/patternfly-bkg/Felt-Bkg-Generic-Light.svg');
+}
+
+:root.pf-v6-theme-glass.pf-v6-theme-felt.pf-v6-theme-dark body:has(.ols-ai-hub-page) {
+  background-image: url('../assets/patternfly-bkg/Felt-Bkg-Generic-Dark.svg');
+}
+
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
   --ols-ai-hub-glass-chrome-gutter: 24px;
   box-sizing: border-box !important;
-  /* Canvas + gutters: 24px between masthead, sidebar, main and from viewport edges. */
-  padding: var(--ols-ai-hub-glass-chrome-gutter) !important;
+  /* Masthead flush to viewport top; 24px inset sides + bottom; gutter below masthead and between columns. */
+  padding-top: 0 !important;
+  padding-inline: var(--ols-ai-hub-glass-chrome-gutter) !important;
+  padding-bottom: var(--ols-ai-hub-glass-chrome-gutter) !important;
   row-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
-  background-color: var(--pf-t--global--background--color--secondary--default) !important;
-  background-image:
-    radial-gradient(
-      circle at 14% 16%,
-      color-mix(in srgb, var(--pf-t--global--color--brand--default) 14%, transparent),
-      transparent 48%
-    ),
-    radial-gradient(
-      circle at 86% 82%,
-      color-mix(in srgb, var(--pf-t--global--color--brand--default) 10%, transparent),
-      transparent 40%
-    ),
-    linear-gradient(
-      165deg,
-      color-mix(in srgb, var(--pf-t--global--color--brand--default) 8%, var(--pf-t--global--background--color--secondary--default)),
-      var(--pf-t--global--background--color--secondary--default)
-    ) !important;
+  background-color: transparent !important;
+  background-image: none !important;
 }
 
 @media (min-width: 75rem) {
   :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
-    padding: var(--ols-ai-hub-glass-chrome-gutter) !important;
+    padding-top: 0 !important;
+    padding-inline: var(--ols-ai-hub-glass-chrome-gutter) !important;
+    padding-bottom: var(--ols-ai-hub-glass-chrome-gutter) !important;
     row-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
     column-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
   }
@@ -288,10 +299,15 @@
   }
 }
 
+/* Masthead: edge-to-edge horizontally, square along viewport top; radius only on bottom like PF dashboard glass. */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
+  margin-inline: calc(-1 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
+  width: calc(100% + 2 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
   background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
   border: 1px solid var(--pf-t--global--border--color--glass--default) !important;
-  border-radius: var(--pf-t--global--border--radius--medium) !important;
+  border-radius: 0 0 var(--pf-t--global--border--radius--medium) var(--pf-t--global--border--radius--medium) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
   box-shadow: var(--pf-t--global--box-shadow--md) !important;
 }
