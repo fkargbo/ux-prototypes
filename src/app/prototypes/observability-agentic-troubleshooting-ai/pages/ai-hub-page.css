@@ -248,12 +248,12 @@
 }
 
 /*
- * AI Hub workspace background — matches PatternFly glass dashboard canvas (patternfly.scss): SVGs on
- * the viewport, fixed + cover. SVGs live under `bgimages/` so webpack emits inline data URLs (see
- * webpack rule for bgimages); URLs in plain `assets/` resolve as raw SVG and break `background-image`.
- * Theme classes live on <html>; paint on html so it shows through transparent body / #root / Page.
+ * AI Hub workspace background — only when Glass contrast is on (`pf-v6-theme-glass` on <html>).
+ * Otherwise Default contrast keeps a flat secondary canvas so app.css main-container margin-right
+ * and page gutters do not reveal artwork (matches standard PF page, not the glass dashboard demo).
+ * SVGs live under `bgimages/` so webpack emits inline data URLs.
  */
-html:has(.ols-ai-hub-page) {
+html.pf-v6-theme-glass:has(.ols-ai-hub-page) {
   min-height: 100%;
   background-color: var(--pf-t--global--background--color--secondary--default);
   background-image: url('../bgimages/patternfly-bkg/PF-Bkg-Generic-Light.svg');
@@ -263,32 +263,53 @@ html:has(.ols-ai-hub-page) {
   background-size: cover;
 }
 
-html.pf-v6-theme-dark:has(.ols-ai-hub-page) {
+html.pf-v6-theme-glass.pf-v6-theme-dark:has(.ols-ai-hub-page) {
   background-image: url('../bgimages/patternfly-bkg/PF-Bkg-Generic-Dark.svg');
 }
 
-html.pf-v6-theme-felt:has(.ols-ai-hub-page) {
+html.pf-v6-theme-glass.pf-v6-theme-felt:has(.ols-ai-hub-page) {
   background-image: url('../bgimages/patternfly-bkg/Felt-Bkg-Generic-Light.svg');
 }
 
-html.pf-v6-theme-felt.pf-v6-theme-dark:has(.ols-ai-hub-page) {
+html.pf-v6-theme-glass.pf-v6-theme-felt.pf-v6-theme-dark:has(.ols-ai-hub-page) {
   background-image: url('../bgimages/patternfly-bkg/Felt-Bkg-Generic-Dark.svg');
 }
 
-/* Let the html canvas show through the React tree (app has no explicit #root fill, but be explicit). */
+/* Default / non-glass: flat canvas only — no workspace image */
+html:not(.pf-v6-theme-glass):has(.ols-ai-hub-page) {
+  background-image: none !important;
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* Glass: let html canvas show through transparent body / #root / Page */
 body:has(.ols-ai-hub-page),
 #root:has(.ols-ai-hub-page) {
   background: transparent !important;
 }
 
-/* app.css paints main-section grey — clear it so the workspace image is visible in the content column. */
-.pf-v6-c-page:has(.ols-ai-hub-page) {
+/* Glass: transparent page shell so workspace shows in gutters */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
   background-color: transparent !important;
   background-image: none !important;
 }
 
-.pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+:root.pf-v6-theme-glass .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
+}
+
+/* Non-glass: restore opaque regions so margins/gaps match normal app shell (see app.css). */
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  background-image: none !important;
+}
+
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+/* Non-glass: main region reads as standard Page main (primary fill), not transparent over html */
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
 }
 
 /*
