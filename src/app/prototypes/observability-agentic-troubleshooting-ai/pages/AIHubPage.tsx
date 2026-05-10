@@ -5,7 +5,9 @@ import {
   Button,
   Content,
   Divider,
+  Dropdown,
   Icon,
+  MenuToggle,
   Stack,
   StackItem,
   Switch,
@@ -14,12 +16,12 @@ import {
   ToggleGroupItem,
   Tooltip,
 } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import {
   ArrowCircleDownIcon,
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
   ArrowCircleUpIcon,
-  CaretDownIcon,
   DesktopIcon,
   MoonIcon,
   SunIcon,
@@ -103,7 +105,6 @@ export const AIHubPage: React.FC = () => {
   const [isThemeMenuOpen, setIsThemeMenuOpen] = React.useState(false);
   const [utilityPosition, setUtilityPosition] = React.useState<UtilityPosition>(() => readUtilityPosition());
   const [systemPrefsVersion, setSystemPrefsVersion] = React.useState(0);
-  const utilityRef = React.useRef<HTMLDivElement>(null);
   const initialHtmlStateRef = React.useRef<{
     dark: boolean;
     felt: boolean;
@@ -166,18 +167,6 @@ export const AIHubPage: React.FC = () => {
     return () => {
       darkQuery.removeListener(onSystemPrefChange);
       contrastQuery.removeListener(onSystemPrefChange);
-    };
-  }, []);
-
-  React.useEffect(() => {
-    const onPointerDown = (event: MouseEvent) => {
-      if (!utilityRef.current?.contains(event.target as Node)) {
-        setIsThemeMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown);
     };
   }, []);
 
@@ -249,6 +238,18 @@ export const AIHubPage: React.FC = () => {
     return <DesktopIcon />;
   }, [resolvedColorMode]);
 
+  const themeTriggerAriaLabel = React.useMemo(() => {
+    const scheme =
+      themeColorMode === 'system'
+        ? 'System'
+        : themeColorMode === 'light'
+          ? 'Light'
+          : 'Dark';
+    return `Theme selection, current: ${scheme}`;
+  }, [themeColorMode]);
+
+  const isGlassContrast = themeContrastMode === 'contrast-glass';
+
   const positionActions: Array<{ id: UtilityPosition; label: string; icon: React.ReactNode }> = [
     { id: 'pf-m-top-left', label: 'Move to the top left corner', icon: <ArrowCircleUpIcon /> },
     { id: 'pf-m-top-right', label: 'Move to the top right corner', icon: <ArrowCircleRightIcon /> },
@@ -260,14 +261,14 @@ export const AIHubPage: React.FC = () => {
     ? {
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: isGlassContrast ? 'transparent' : '#f5f5f5',
         boxSizing: 'border-box',
       }
     : {
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: isGlassContrast ? 'transparent' : '#f5f5f5',
       };
 
   const mainStyle: React.CSSProperties = isHubV2
@@ -275,12 +276,12 @@ export const AIHubPage: React.FC = () => {
         flex: 1,
         minHeight: 0,
         overflow: 'visible',
-        backgroundColor: '#ffffff',
+        backgroundColor: isGlassContrast ? 'transparent' : '#ffffff',
       }
     : {
         flex: 1,
         overflow: 'auto',
-        backgroundColor: '#ffffff',
+        backgroundColor: isGlassContrast ? 'transparent' : '#ffffff',
       };
 
   return (
@@ -373,25 +374,145 @@ export const AIHubPage: React.FC = () => {
         </div>
       </div>
 
-      <div
-        ref={utilityRef}
-        className={['ws-full-page-utils', 'pf-v6-l-flex', 'pf-m-column', 'pf-m-gap-sm', utilityPosition].join(' ')}
-      >
-        <Button
-          variant="secondary"
-          className="ws-full-page-utils__trigger"
-          icon={
-            <Icon size="lg" status="info">
-              {triggerIcon}
-            </Icon>
-          }
-          iconPosition="left"
-          aria-label={`Theme selection, current: ${resolvedColorMode === 'dark' ? 'Dark' : 'Light'}`}
-          aria-expanded={isThemeMenuOpen}
-          onClick={() => setIsThemeMenuOpen((current) => !current)}
+      <div className={['ws-full-page-utils', 'pf-v6-l-flex', 'pf-m-column', 'pf-m-gap-sm', utilityPosition].join(' ')}>
+        <Dropdown
+          className="ws-full-page-utils__dropdown"
+          isOpen={isThemeMenuOpen}
+          onOpenChange={(open) => setIsThemeMenuOpen(open)}
+          shouldFocusToggleOnSelect={false}
+          popperProps={{
+            placement: 'top-end',
+            enableFlip: true,
+            distance: 8,
+            appendTo: () => document.body,
+          }}
+          zIndex={13000}
+          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+            <MenuToggle
+              ref={toggleRef}
+              variant="secondary"
+              className="ws-full-page-utils__trigger"
+              icon={
+                <Icon size="lg" status="info">
+                  {triggerIcon}
+                </Icon>
+              }
+              onClick={() => setIsThemeMenuOpen((current) => !current)}
+              isExpanded={isThemeMenuOpen}
+              aria-label={themeTriggerAriaLabel}
+            />
+          )}
         >
-          <CaretDownIcon />
-        </Button>
+          <div className="ws-full-page-utils__menu-inner" role="dialog" aria-label="Theme utility menu">
+            <div className="pf-v6-c-menu__group-title" id="theme-selector-variant-title">
+              Theme
+            </div>
+            <ToggleGroup aria-labelledby="theme-selector-variant-title" className="ws-full-page-utils__toggle-group">
+              <ToggleGroupItem
+                text="Default"
+                buttonId="theme-default"
+                isSelected={themeVariantMode === 'theme-default'}
+                onChange={(_event, selected) => {
+                  if (selected) {
+                    setThemeVariantMode('theme-default');
+                  }
+                }}
+              />
+              <ToggleGroupItem
+                text="Project Felt"
+                buttonId="theme-felt"
+                isSelected={themeVariantMode === 'theme-felt'}
+                onChange={(_event, selected) => {
+                  if (selected) {
+                    setThemeVariantMode('theme-felt');
+                  }
+                }}
+              />
+            </ToggleGroup>
+            <Divider />
+            <div className="pf-v6-c-menu__group-title" id="theme-selector-color-scheme-title">
+              Color scheme
+            </div>
+            <ToggleGroup aria-labelledby="theme-selector-color-scheme-title" className="ws-full-page-utils__toggle-group">
+              <ToggleGroupItem
+                text="System"
+                buttonId="color-system"
+                isSelected={themeColorMode === 'system'}
+                onChange={(_event, selected) => {
+                  if (selected) {
+                    setThemeColorMode('system');
+                  }
+                }}
+              />
+              <ToggleGroupItem
+                text="Light"
+                buttonId="color-light"
+                isSelected={themeColorMode === 'light'}
+                onChange={(_event, selected) => {
+                  if (selected) {
+                    setThemeColorMode('light');
+                  }
+                }}
+              />
+              <ToggleGroupItem
+                text="Dark"
+                buttonId="color-dark"
+                isSelected={themeColorMode === 'dark'}
+                onChange={(_event, selected) => {
+                  if (selected) {
+                    setThemeColorMode('dark');
+                  }
+                }}
+              />
+            </ToggleGroup>
+            <Divider />
+            <div className="pf-v6-c-menu__group-title" id="theme-selector-contrast-title">
+              Contrast mode
+            </div>
+            <ToggleGroup aria-labelledby="theme-selector-contrast-title" className="ws-full-page-utils__toggle-group">
+              <ToggleGroupItem
+                text="System"
+                buttonId="contrast-system"
+                isSelected={themeContrastMode === 'contrast-system'}
+                onChange={(_event, selected) => {
+                  if (selected) {
+                    setThemeContrastMode('contrast-system');
+                  }
+                }}
+              />
+              <ToggleGroupItem
+                text="Default"
+                buttonId="contrast-default"
+                isSelected={themeContrastMode === 'contrast-default'}
+                onChange={(_event, selected) => {
+                  if (selected) {
+                    setThemeContrastMode('contrast-default');
+                  }
+                }}
+              />
+              <ToggleGroupItem
+                text="High contrast"
+                buttonId="contrast-high"
+                isSelected={themeContrastMode === 'contrast-high'}
+                onChange={(_event, selected) => {
+                  if (selected) {
+                    setThemeContrastMode('contrast-high');
+                  }
+                }}
+              />
+              <ToggleGroupItem
+                text="Glass"
+                buttonId="contrast-glass"
+                isSelected={themeContrastMode === 'contrast-glass'}
+                onChange={(_event, selected) => {
+                  if (selected) {
+                    setThemeContrastMode('contrast-glass');
+                  }
+                }}
+              />
+            </ToggleGroup>
+          </div>
+        </Dropdown>
         <Switch
           id="ws-example-rtl-switch"
           label="RTL"
@@ -417,81 +538,6 @@ export const AIHubPage: React.FC = () => {
             );
           })}
         </div>
-        {isThemeMenuOpen ? (
-          <div className="ws-full-page-utils__menu" role="dialog" aria-label="Theme utility menu">
-            <div className="pf-v6-c-menu__group-title" id="theme-selector-variant-title">
-              Theme
-            </div>
-            <ToggleGroup aria-labelledby="theme-selector-variant-title" className="ws-full-page-utils__toggle-group">
-              <ToggleGroupItem
-                text="Default"
-                buttonId="theme-default"
-                isSelected={themeVariantMode === 'theme-default'}
-                onChange={() => setThemeVariantMode('theme-default')}
-              />
-              <ToggleGroupItem
-                text="Project Felt"
-                buttonId="theme-felt"
-                isSelected={themeVariantMode === 'theme-felt'}
-                onChange={() => setThemeVariantMode('theme-felt')}
-              />
-            </ToggleGroup>
-            <Divider />
-            <div className="pf-v6-c-menu__group-title" id="theme-selector-color-scheme-title">
-              Color scheme
-            </div>
-            <ToggleGroup aria-labelledby="theme-selector-color-scheme-title" className="ws-full-page-utils__toggle-group">
-              <ToggleGroupItem
-                text="System"
-                buttonId="color-system"
-                isSelected={themeColorMode === 'system'}
-                onChange={() => setThemeColorMode('system')}
-              />
-              <ToggleGroupItem
-                text="Light"
-                buttonId="color-light"
-                isSelected={themeColorMode === 'light'}
-                onChange={() => setThemeColorMode('light')}
-              />
-              <ToggleGroupItem
-                text="Dark"
-                buttonId="color-dark"
-                isSelected={themeColorMode === 'dark'}
-                onChange={() => setThemeColorMode('dark')}
-              />
-            </ToggleGroup>
-            <Divider />
-            <div className="pf-v6-c-menu__group-title" id="theme-selector-contrast-title">
-              Contrast mode
-            </div>
-            <ToggleGroup aria-labelledby="theme-selector-contrast-title" className="ws-full-page-utils__toggle-group">
-              <ToggleGroupItem
-                text="System"
-                buttonId="contrast-system"
-                isSelected={themeContrastMode === 'contrast-system'}
-                onChange={() => setThemeContrastMode('contrast-system')}
-              />
-              <ToggleGroupItem
-                text="Default"
-                buttonId="contrast-default"
-                isSelected={themeContrastMode === 'contrast-default'}
-                onChange={() => setThemeContrastMode('contrast-default')}
-              />
-              <ToggleGroupItem
-                text="High contrast"
-                buttonId="contrast-high"
-                isSelected={themeContrastMode === 'contrast-high'}
-                onChange={() => setThemeContrastMode('contrast-high')}
-              />
-              <ToggleGroupItem
-                text="Glass"
-                buttonId="contrast-glass"
-                isSelected={themeContrastMode === 'contrast-glass'}
-                onChange={() => setThemeContrastMode('contrast-glass')}
-              />
-            </ToggleGroup>
-          </div>
-        ) : null}
       </div>
     </div>
   );
