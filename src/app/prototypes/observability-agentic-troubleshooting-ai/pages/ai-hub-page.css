@@ -1,6 +1,7 @@
-/* AI Hub only: remove global `create-policy-header` top border from app.css */
+/* AI Hub only: remove global `create-policy-header` borders from app.css */
 .ols-ai-hub-page div.create-policy-header {
   border-top: none !important;
+  border-bottom: none !important;
 }
 
 /* Page header: plain layout (avoid PF Flex layout classes on this row). */
@@ -292,11 +293,13 @@ body:has(.ols-ai-hub-page),
 
 /*
  * Glass + AI Hub: transparent Page, masthead full-bleed top, sidebar + main inset. Scoped with :has(.ols-ai-hub-page).
+ * Frosted panels: 50% white over workspace + blur (align with PF dashboard glass demo).
  * Uses !important to win over app.css global Page zeroing.
  */
 
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
   --ols-ai-hub-glass-chrome-gutter: 24px;
+  --ols-ai-hub-glass-surface-tint: rgb(255 255 255 / 50%);
   box-sizing: border-box !important;
   /* Masthead flush to viewport top; 24px inset sides + bottom; gutter below masthead and between columns. */
   padding-top: 0 !important;
@@ -321,36 +324,52 @@ body:has(.ols-ai-hub-page),
   }
 }
 
-/* Masthead: edge-to-edge horizontally; no corner radius. */
+/* Masthead: edge-to-edge horizontally; no corner radius; no divider under brand/toolbar (see masthead.css). */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
+  --pf-v6-c-masthead--BorderWidth: 0 !important;
+  --pf-v6-c-masthead__brand--BorderBlockEnd: 0 !important;
+  --pf-v6-c-masthead--m-display-stack__brand--BorderBlockEnd: 0 !important;
+  --pf-v6-c-masthead--m-display-inline__brand--BorderBlockEnd: 0 !important;
+  --pf-v6-c-masthead__expandable-content--BorderBlockStart: 0 !important;
+  --pf-v6-c-masthead__expandable-content--BoxShadow: none !important;
   margin-inline: calc(-1 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
   width: calc(100% + 2 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
   max-width: none !important;
   box-sizing: border-box !important;
-  background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
-  border: 1px solid var(--pf-t--global--border--color--glass--default) !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border: none !important;
   border-radius: 0 !important;
+  border-block-end: none !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
-  box-shadow: var(--pf-t--global--box-shadow--md) !important;
+  box-shadow: none !important;
+}
+
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead .pf-v6-c-toolbar__expandable-content {
+  border-block-start: none !important;
+  box-shadow: none !important;
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar {
-  background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
-  border: 1px solid var(--pf-t--global--border--color--glass--default) !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--glass--default) 35%, transparent) !important;
   border-radius: var(--pf-t--global--border--radius--medium) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
-  box-shadow: var(--pf-t--global--box-shadow--md) !important;
+  box-shadow: none !important;
   /* Single glass card; drop default divider border between sidebar and main (gutter = grid column-gap). */
   --pf-v6-c-page__sidebar--BorderInlineEndWidth: 0 !important;
   margin-inline-end: 0 !important;
 }
 
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+  background: transparent !important;
+}
+
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__main-container {
-  background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
-  border: 1px solid var(--pf-t--global--border--color--glass--default) !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--glass--default) 35%, transparent) !important;
   border-radius: var(--pf-t--global--border--radius--medium) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
-  box-shadow: var(--pf-t--global--box-shadow--md) !important;
+  box-shadow: none !important;
   /* Override app.css; drop default main “frame” borders (we use glass border). */
   --pf-v6-c-page__main-container--BorderBlockStartWidth: 0 !important;
   --pf-v6-c-page__main-container--BorderBlockEndWidth: 0 !important;
@@ -375,9 +394,13 @@ body:has(.ols-ai-hub-page),
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-expandable-section,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
-  background-color: var(--pf-t--global--background--color--glass--primary--default) !important;
-  border-color: var(--pf-t--global--border--color--glass--default) !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border-color: color-mix(in srgb, var(--pf-t--global--border--color--glass--default) 45%, transparent) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .create-policy-header {
+  border-bottom: none !important;
 }
 
 /*
