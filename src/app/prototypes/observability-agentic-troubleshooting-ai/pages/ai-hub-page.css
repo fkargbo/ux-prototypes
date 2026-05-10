@@ -95,11 +95,9 @@
   background-color: var(--pf-t--global--color--brand--default);
 }
 
+/* Nested Flex for corner controls; layout comes from Flex props in TSX. */
 .ws-full-page-utils__position-row {
-  display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--pf-t--global--spacer--2xs);
 }
 
 .ws-full-page-utils__rtl-switch.pf-v6-c-switch {

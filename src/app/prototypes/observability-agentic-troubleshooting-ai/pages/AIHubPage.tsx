@@ -6,6 +6,7 @@ import {
   Content,
   Divider,
   Dropdown,
+  Flex,
   Icon,
   MenuToggle,
   Stack,
@@ -374,7 +375,11 @@ export const AIHubPage: React.FC = () => {
         </div>
       </div>
 
-      <div className={['ws-full-page-utils', 'pf-v6-l-flex', 'pf-m-column', 'pf-m-gap-sm', utilityPosition].join(' ')}>
+      <Flex
+        direction={{ default: 'column' }}
+        gap={{ default: 'gapSm' }}
+        className={['ws-full-page-utils', isRtl ? 'pf-v6-m-dir-rtl' : 'pf-v6-m-dir-ltr', utilityPosition].join(' ')}
+      >
         <Dropdown
           className="ws-full-page-utils__dropdown"
           isOpen={isThemeMenuOpen}
@@ -521,7 +526,12 @@ export const AIHubPage: React.FC = () => {
           onChange={(_event, checked) => setIsRtl(checked)}
           aria-label="Toggle RTL mode"
         />
-        <div className="ws-full-page-utils__position-row">
+        <Flex
+          direction={{ default: 'row' }}
+          justifyContent={{ default: 'justifyContentFlexEnd' }}
+          gap={{ default: 'gapXs' }}
+          className="ws-full-page-utils__position-row"
+        >
           {positionActions.map((positionAction) => {
             const isSelected = utilityPosition === positionAction.id;
             return (
@@ -529,7 +539,13 @@ export const AIHubPage: React.FC = () => {
                 <Button
                   variant="plain"
                   size="sm"
-                  className={`ws-full-page-utils-position-btn ${isSelected ? 'ws-full-page-utils-position-btn--selected' : ''}`}
+                  className={[
+                    'ws-full-page-utils-position-btn',
+                    positionAction.id,
+                    isSelected ? 'ws-full-page-utils-position-btn--selected' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   aria-label={`${positionAction.label}${isSelected ? ', selected' : ''}`}
                   onClick={() => setUtilityPosition(positionAction.id)}
                   icon={positionAction.icon}
@@ -537,8 +553,8 @@ export const AIHubPage: React.FC = () => {
               </Tooltip>
             );
           })}
-        </div>
-      </div>
+        </Flex>
+      </Flex>
     </div>
   );
 };
