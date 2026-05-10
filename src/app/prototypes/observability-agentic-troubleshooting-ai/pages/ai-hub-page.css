@@ -314,14 +314,13 @@ body:has(.ols-ai-hub-page),
 
 /*
  * Glass + AI Hub: transparent Page, masthead full-bleed top, sidebar + main inset. Scoped with :has(.ols-ai-hub-page).
- * Shell = frosted glass token; inner main content = fully opaque primary (0% transparency) per PF components.
+ * Frosted panels: 50% white over workspace + blur (align with PF dashboard glass demo).
  * Uses !important to win over app.css global Page zeroing.
  */
 
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
   --ols-ai-hub-glass-chrome-gutter: 24px;
-  --ols-ai-hub-glass-shell-fill: var(--pf-t--global--background--color--glass--primary--default);
-  --ols-ai-hub-glass-content-fill: var(--pf-t--global--background--color--primary--default);
+  --ols-ai-hub-glass-surface-tint: rgb(255 255 255 / 50%);
   /* Same tokens as PF Page glass sidebar-main / panels (dashboard basic demo). */
   --ols-ai-hub-glass-chrome-border-color: var(
     --pf-t--global--border--color--glass--default,
@@ -364,7 +363,7 @@ body:has(.ols-ai-hub-page),
   width: calc(100% + 2 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
   max-width: none !important;
   box-sizing: border-box !important;
-  background-color: var(--ols-ai-hub-glass-shell-fill) !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
   border: none !important;
   border-radius: 0 !important;
   border-block-end: none !important;
@@ -378,7 +377,7 @@ body:has(.ols-ai-hub-page),
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar {
-  background-color: var(--ols-ai-hub-glass-shell-fill) !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
   border: var(--ols-ai-hub-glass-chrome-border-width) solid var(--ols-ai-hub-glass-chrome-border-color) !important;
   border-radius: var(--pf-t--global--border--radius--medium) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
@@ -397,7 +396,7 @@ body:has(.ols-ai-hub-page),
  * cards/panels inside main, not on .pf-v6-c-page__main-container).
  */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__main-container {
-  background-color: var(--ols-ai-hub-glass-shell-fill) !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
   border: none !important;
   border-radius: var(--pf-t--global--border--radius--medium) !important;
   outline: none !important;
@@ -421,43 +420,20 @@ body:has(.ols-ai-hub-page),
   background: transparent;
 }
 
-/* Page title band: no fill — workspace shows through (no white / frosted strip). */
+/* Page title band: no border — only nested PatternFly components (cards, etc.) get chrome borders. */
 :root.pf-v6-theme-glass .ols-ai-hub-page .create-policy-header {
-  background-color: transparent !important;
-  background-image: none !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
   border: none !important;
-  backdrop-filter: none !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
 }
 
-/* Opaque surfaces inside main (cards, tables, toolbars): solid primary, no glass blur stacking. */
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-expandable-section,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
-  background-color: var(--ols-ai-hub-glass-content-fill) !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
   border-color: var(--ols-ai-hub-glass-chrome-border-color) !important;
-  backdrop-filter: none !important;
-}
-
-/*
- * Inline expandable alerts: stop glass blur / parent tint from washing the surface; keep PatternFly
- * variant backgrounds (danger / warning / …) from the component.
- */
-:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline {
-  isolation: isolate;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Table header row: solid primary (matches standard PF table chrome). */
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead,
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table__thead {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
-}
-
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table .pf-v6-c-table__thead .pf-v6-c-table__th,
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead .pf-v6-c-table__th {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
 }
 
 /*
