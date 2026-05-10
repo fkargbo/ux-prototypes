@@ -432,7 +432,15 @@ body:has(.ols-ai-hub-page),
   backdrop-filter: none !important;
 }
 
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card,
+/*
+ * Frosted surfaces. Cards keep PatternFly Card border tokens (`--pf-v6-c-card--BorderColor` / width on ::before),
+ * matching the dashboard glass demo — do not force `--ols-ai-hub-glass-chrome-border-color` on `.pf-v6-c-card`.
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card {
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+}
+
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-expandable-section,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
