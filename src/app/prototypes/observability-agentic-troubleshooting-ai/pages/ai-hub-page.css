@@ -280,6 +280,15 @@
   :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
     padding: var(--pf-t--global--spacer--inset--page-chrome) !important;
     row-gap: var(--pf-t--global--spacer--lg) !important;
+    /*
+     * Sidebar ↔ main: use grid column-gap (reliable) with PatternFly’s half–page-inset gutter
+     * (see page.css --pf-v6-c-page__sidebar--MarginInlineEnd).
+     */
+    column-gap: calc(var(--pf-t--global--spacer--inset--page-chrome) / 2) !important;
+  }
+
+  :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page):has(> .pf-v6-c-page__sidebar.pf-m-collapsed) {
+    column-gap: 0 !important;
   }
 }
 
@@ -297,13 +306,8 @@
   border-radius: var(--pf-t--global--border--radius--medium) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
   box-shadow: var(--pf-t--global--box-shadow--md) !important;
-  /* Single glass card; drop default divider border between sidebar and main (gutter comes from PF margin). */
+  /* Single glass card; drop default divider border between sidebar and main (gutter = grid column-gap). */
   --pf-v6-c-page__sidebar--BorderInlineEndWidth: 0 !important;
-  /* page.css: gutter between sidebar and main = half page inset (not full inset). */
-  margin-inline-end: calc(var(--pf-t--global--spacer--inset--page-chrome) / 2) !important;
-}
-
-:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar.pf-m-collapsed {
   margin-inline-end: 0 !important;
 }
 
@@ -342,15 +346,74 @@
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
 }
 
-:root.pf-v6-theme-glass .ws-full-page-utils__shell {
-  background-color: var(--pf-t--global--background--color--glass--primary--default);
-  border-color: var(--pf-t--global--border--color--glass--default);
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
-  box-shadow: var(--pf-t--global--box-shadow--md);
+/*
+ * Theme / contrast utility (portaled): decouple from global html theme tokens so applying
+ * theme variant, color scheme, or contrast in the menu does not restyle this control cluster.
+ * Uses fixed light surfaces (not theme CSS variables that track pf-v6-theme-* on <html>).
+ */
+.ols-ai-hub-full-page-utils {
+  color-scheme: light;
+  isolation: isolate;
 }
 
-:root.pf-v6-theme-glass .ws-full-page-utils__dropdown.pf-v6-c-menu {
-  background-color: var(--pf-t--global--background--color--glass--primary--default);
-  border-color: var(--pf-t--global--border--color--glass--default);
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+.ols-ai-hub-full-page-utils .ws-full-page-utils__shell {
+  background-color: #fff !important;
+  border-color: #c6c6c6 !important;
+  box-shadow: var(--pf-t--global--box-shadow--md) !important;
+  backdrop-filter: none !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils__trigger.pf-v6-c-menu-toggle.pf-m-secondary {
+  --pf-v6-c-menu-toggle--m-secondary--BackgroundColor: #fff;
+  --pf-v6-c-menu-toggle--m-secondary--Color: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary--BorderColor: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary--hover--Color: #004080;
+  --pf-v6-c-menu-toggle--m-secondary--hover--BorderColor: #004080;
+  --pf-v6-c-menu-toggle--m-secondary--expanded--Color: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary--expanded--BorderColor: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary__toggle-icon--Color: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary--hover__toggle-icon--Color: #004080;
+  --pf-v6-c-menu-toggle--m-secondary--expanded__toggle-icon--Color: #0066cc;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn {
+  background-color: #fff !important;
+  color: #6a6e73 !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn:hover {
+  color: #4a4a4a !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn--selected {
+  background-color: #e8e8e8 !important;
+  color: #4a4a4a !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn--selected:hover {
+  background-color: #e8e8e8 !important;
+  color: #151515 !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn.pf-v6-c-button.pf-m-plain {
+  --pf-v6-c-button--m-plain__icon--Color: #6a6e73;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn.pf-v6-c-button.pf-m-plain:hover {
+  --pf-v6-c-button--m-plain__icon--Color: #4a4a4a;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn--selected.pf-v6-c-button.pf-m-plain,
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn--selected.pf-v6-c-button.pf-m-plain:hover {
+  --pf-v6-c-button--m-plain__icon--Color: #4a4a4a;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils__dropdown.pf-v6-c-menu {
+  background-color: #fff !important;
+  border-color: #c6c6c6 !important;
+  backdrop-filter: none !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils__menu-inner {
+  color: #151515;
 }
