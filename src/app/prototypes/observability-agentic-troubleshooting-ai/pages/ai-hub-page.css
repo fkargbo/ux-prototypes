@@ -67,7 +67,7 @@
 .ws-full-page-utils__shell {
   background-color: var(--pf-t--global--background--color--primary--default);
   border: 1px solid var(--pf-t--global--border--color--default);
-  border-radius: var(--pf-t--global--border--radius--large);
+  border-radius: var(--pf-t--global--border--radius--small);
   box-shadow: var(--pf-t--global--box-shadow--md);
   box-sizing: border-box;
 }
@@ -75,6 +75,7 @@
 .ws-full-page-utils__panel {
   position: relative;
   display: block;
+  border-radius: var(--pf-t--global--border--radius--small);
   /* Room for corner pin controls */
   padding: var(--pf-t--global--spacer--lg);
   min-width: 7.75rem;
