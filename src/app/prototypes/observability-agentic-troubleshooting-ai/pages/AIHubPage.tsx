@@ -70,17 +70,17 @@ function readThemeVariant(): ThemeVariantMode {
 
 function readContrastMode(): ThemeContrastMode {
   if (typeof window === 'undefined') {
-    return 'contrast-system';
+    return 'contrast-default';
   }
   const value = window.localStorage.getItem(CONTRAST_PREFERENCE_KEY);
   return value === 'contrast-system' || value === 'contrast-default' || value === 'contrast-high' || value === 'contrast-glass'
     ? value
-    : 'contrast-system';
+    : 'contrast-default';
 }
 
 function readUtilityPosition(): UtilityPosition {
   if (typeof window === 'undefined') {
-    return 'pf-m-bottom-right';
+    return 'pf-m-bottom-left';
   }
   const value = window.localStorage.getItem(POSITION_PREFERENCE_KEY);
   return value === 'pf-m-top-left' ||
@@ -88,7 +88,7 @@ function readUtilityPosition(): UtilityPosition {
     value === 'pf-m-bottom-left' ||
     value === 'pf-m-bottom-right'
     ? value
-    : 'pf-m-bottom-right';
+    : 'pf-m-bottom-left';
 }
 
 export const AIHubPage: React.FC = () => {
