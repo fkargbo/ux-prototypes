@@ -77,10 +77,7 @@
   bottom: var(--pf-t--global--spacer--lg);
 }
 
-.ws-full-page-utils__trigger.pf-v6-c-menu-toggle {
-  min-width: 5.5rem;
-  min-height: 2rem;
-}
+/* Theme trigger: unstyled beyond `ws-full-page-utils__trigger` — use PatternFly menu-toggle.css (pf-v6-c-menu-toggle.pf-m-secondary). */
 
 .ws-full-page-utils-position-btn {
   width: 1.35rem;
@@ -174,8 +171,7 @@
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
 }
 
-:root.pf-v6-theme-glass .ws-full-page-utils__dropdown.pf-v6-c-menu,
-:root.pf-v6-theme-glass .ws-full-page-utils__trigger.pf-v6-c-menu-toggle {
+:root.pf-v6-theme-glass .ws-full-page-utils__dropdown.pf-v6-c-menu {
   background-color: var(--pf-t--global--background--color--glass--primary--default);
   border-color: var(--pf-t--global--border--color--glass--default);
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);

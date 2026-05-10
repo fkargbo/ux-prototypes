@@ -35,6 +35,8 @@ import { getClusterById } from '../components/autonomousAiObserve/data';
 import { config as prototypeConfig } from '../prototype.config';
 import { AgentTokenCounter, AiExperienceIcon, ClusterInventoryBar, FleetInventoryBar } from './ai-hub-v2';
 import { useFocusedClusterId } from './ai-hub-v2/useFocusedClusterId';
+import '@patternfly/react-styles/css/components/Menu/menu.css';
+import '@patternfly/react-styles/css/components/MenuToggle/menu-toggle.css';
 import './ai-hub-page.css';
 
 type ThemeColorMode = 'system' | 'light' | 'dark';
@@ -397,11 +399,7 @@ export const AIHubPage: React.FC = () => {
               ref={toggleRef}
               variant="secondary"
               className="ws-full-page-utils__trigger"
-              icon={
-                <Icon size="lg" status="info">
-                  {triggerIcon}
-                </Icon>
-              }
+              icon={<Icon size="lg">{triggerIcon}</Icon>}
               onClick={() => setIsThemeMenuOpen((current) => !current)}
               isExpanded={isThemeMenuOpen}
               aria-label={themeTriggerAriaLabel}
