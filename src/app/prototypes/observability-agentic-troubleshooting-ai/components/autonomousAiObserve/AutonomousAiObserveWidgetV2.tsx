@@ -515,7 +515,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                   </GridItem>
                   <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
                 <Card
-                  className="ols-aio-subcard ols-aio-fleet-pair-card"
+                  className="ols-aio-subcard ols-aio-fleet-pair-card ols-autonomous-ai-observe-widget-v2-away"
                   isCompact
                   isExpanded={awayOpen}
                   id={`${WIDGET_ID}-away`}
@@ -644,7 +644,12 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
               </StackItem>
 
               <StackItem>
-                <Card className="ols-aio-subcard" isCompact isExpanded={fleetSummaryOpen} id={`${WIDGET_ID}-fleet-summary`}>
+                <Card
+                  className="ols-aio-subcard ols-autonomous-ai-observe-widget-v2-fleet-summary"
+                  isCompact
+                  isExpanded={fleetSummaryOpen}
+                  id={`${WIDGET_ID}-fleet-summary`}
+                >
                   <CardHeader
                     onExpand={() => setFleetSummaryOpen((o) => !o)}
                     toggleButtonProps={{

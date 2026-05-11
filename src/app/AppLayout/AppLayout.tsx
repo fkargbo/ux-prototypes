@@ -524,7 +524,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
                 </ToolbarItem>
               </ToolbarGroup>
             )}
-            
+
             <ToolbarGroup align={{ default: 'alignEnd' }}>
               <ToolbarItem>
                 <Button variant="plain" aria-label="Settings">
@@ -549,7 +549,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
               </ToolbarItem>
               <ToolbarItem>
                 <Button variant="plain" aria-label="User menu">
-                  <span style={{ color: '#000000' }}>
+                  <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>
                     {useCasePersona && useCasePersona.trim() !== ''
                       ? useCasePersona
                       : useCase === 'use-case-1' 
