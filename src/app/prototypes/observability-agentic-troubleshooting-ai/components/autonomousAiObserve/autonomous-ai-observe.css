@@ -424,6 +424,17 @@ span.ols-aio-card-stat-number {
   background-color: transparent !important;
 }
 
+/*
+ * AI Hub glass (`ai-hub-page.css`) sets every `.ols-ai-hub-page .pf-v6-c-table` to
+ * `background-color: var(--ols-ai-hub-glass-surface-tint)` (50% white) plus `backdrop-filter`.
+ * That stacks a second frosted sheet on the already-glass Card and reads as a faint white slab.
+ * Higher specificity + same longhands so this wins over that page rule regardless of import order.
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+}
+
 /* Header + body cells at rest (beats app.css #fff on thead tr/th and tbody tr) */
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table thead,
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__thead,
