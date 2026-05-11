@@ -90,7 +90,7 @@ export const TopFiringAlertsCard: React.FC = () => {
   return (
     <>
       <Card
-        className="ols-aio-subcard ols-aio-fleet-pair-card ols-ai-hub-top-firing-alerts-card"
+        className="ols-aio-subcard ols-aio-fleet-pair-card ols-ai-hub-top-firing-alerts-card ols-autonomous-ai-observe-widget-v2-top-firing"
         isCompact
         component="section"
         isExpanded={expanded}

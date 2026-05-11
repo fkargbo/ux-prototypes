@@ -329,16 +329,58 @@ span.ols-aio-card-stat-number {
 }
 
 /*
- * "While you were away" (v2): inner blocks that resolve to opaque primary (typically white in light theme)
- * clash with a translucent card — make those surfaces fully transparent so the card reads as one layer.
+ * v2 fleet hub cards (While you were away / Top firing alerts / Fleet summary): inner blocks that resolve to
+ * opaque primary (typically white in light theme) clash with a translucent card — transparent so one layer reads through.
  */
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-away .pf-v6-c-card__expandable-content,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-away .pf-v6-c-card__body,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-away .ols-aio-away-card-body,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-away .ols-aio-away-scroll-region,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-away .ols-aio-away-card-footer,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-away .pf-v6-c-empty-state,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-away .pf-v6-c-empty-state__body {
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .pf-v6-c-card__expandable-content,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .pf-v6-c-card__body,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .ols-aio-away-card-body,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .ols-aio-away-scroll-region,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .ols-aio-away-card-footer,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .pf-v6-c-empty-state,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .pf-v6-c-empty-state__body {
   background-color: transparent !important;
   background-image: none !important;
 }
