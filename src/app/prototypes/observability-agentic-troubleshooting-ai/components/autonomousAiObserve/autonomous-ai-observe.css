@@ -396,6 +396,49 @@ span.ols-aio-card-stat-number {
   background-color: transparent !important;
 }
 
+/*
+ * Top firing alerts: `TopAlertsSection` applies INSIGHTS_LIST_WRAPPER / INSIGHTS_LIST_ITEM inline backgrounds
+ * (primary + secondary from fleetInsightsConfig). `!important` wins over inline for translucent card parity.
+ */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-top-firing .ols-aio-top-firing-translucent-scope > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-top-firing .ols-aio-top-firing-translucent-scope > div > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/*
+ * Fleet summary: PatternFly Table + pagination use primary / clicked surfaces — clear for translucent card.
+ */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table {
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--m-selected--BackgroundColor: transparent;
+  --pf-v6-c-table__tbody--m-selected--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--m-ghost-row--BackgroundColor: transparent;
+  background-color: transparent !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table thead,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__thead,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__tbody,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tr,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__tr,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table th,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__th,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table td,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__td {
+  background-color: transparent !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-pagination,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-card__body > .pf-v6-l-flex {
+  background-color: transparent !important;
+}
+
 /* OpenShift-style alert summary: icon in gutter; name, date, and message share one text column. */
 .ols-aio-alert-summary {
   display: grid;

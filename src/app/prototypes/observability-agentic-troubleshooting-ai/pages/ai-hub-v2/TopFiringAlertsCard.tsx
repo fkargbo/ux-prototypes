@@ -135,7 +135,13 @@ export const TopFiringAlertsCard: React.FC = () => {
         </CardHeader>
         <CardExpandableContent>
           <CardBody>
-            <TopAlertsSection {...sectionProps} />
+            {/*
+              Scope for autonomous-ai-observe.css: TopAlertsSection uses inline primary/secondary backgrounds
+              from fleetInsightsConfig — override to transparent inside translucent v2 cards.
+            */}
+            <div className="ols-aio-top-firing-translucent-scope">
+              <TopAlertsSection {...sectionProps} />
+            </div>
           </CardBody>
         </CardExpandableContent>
       </Card>
