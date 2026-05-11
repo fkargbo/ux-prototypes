@@ -411,56 +411,61 @@ span.ols-aio-card-stat-number {
 }
 
 /*
- * Fleet summary: strip opaque layers so the translucent card does not stack on white.
- * - PatternFly: table + clickable row hover + sort buttons + pagination modifiers.
- * - app.css: global `.pf-v6-c-table thead tr|th`, `tbody tr`, `tbody tr:hover` use `#fff` / `#f8f9fa` !important —
- *   these selectors add `.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary` so
- *   specificity wins without changing shared app.css.
+ * Fleet summary: remove stacked *static* white (table chrome + app.css #fff rows) over the translucent card.
+ * Keep PatternFly interaction surfaces: clickable row hover, selected row, sort :hover/:focus, pagination controls.
+ * app.css uses `.pf-v6-c-table thead tr|th`, `tbody tr`, `tbody tr:hover` with #fff / #f8f9fa !important — beat
+ * those only for default/rest; restore PF vars for row hover / selection and do not strip button/pagination hovers.
  */
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table {
   --pf-v6-c-table--BackgroundColor: transparent;
-  --pf-v6-c-table__tr--m-selected--BackgroundColor: transparent;
-  --pf-v6-c-table__tbody--m-selected--BackgroundColor: transparent;
   --pf-v6-c-table__tr--m-ghost-row--BackgroundColor: transparent;
-  --pf-v6-c-table__tr--m-clickable--BackgroundColor: transparent;
-  --pf-v6-c-table__tr--m-clickable--hover--BackgroundColor: transparent;
-  --pf-v6-c-table__tbody--m-clickable--BackgroundColor: transparent;
-  --pf-v6-c-table__tbody--m-clickable--hover--BackgroundColor: transparent;
-  --pf-v6-c-table__tbody--m-clickable--m-expanded--BackgroundColor: transparent;
+  /* At-rest sort control fill only — hover uses table.css defaults via --pf-v6-c-table__button--hover--BackgroundColor */
+  --pf-v6-c-table__button--BackgroundColor: transparent;
   background-color: transparent !important;
 }
 
+/* Header + body cells at rest (beats app.css #fff on thead tr/th and tbody tr) */
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table thead,
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__thead,
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table thead tr,
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody,
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__tbody,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tr,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__tr,
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table th,
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__th,
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table td,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__td,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody tr:hover {
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__td {
   background-color: transparent !important;
 }
 
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__button {
-  --pf-v6-c-table__button--BackgroundColor: transparent;
-  --pf-v6-c-table__button--hover--BackgroundColor: transparent;
+/* Data rows at rest — beats app.css #fff on tbody tr */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody tr,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr {
   background-color: transparent !important;
 }
 
+/* Non-clickable tbody row hover (if any): stay transparent so app.css #f8f9fa does not stack */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody tr:not(.pf-m-clickable):hover,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr:not(.pf-m-clickable):hover {
+  background-color: transparent !important;
+}
+
+/* Selected row (Tr isRowSelected → pf-m-selected, see @patternfly/react-table Tr.js) */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody tr.pf-m-selected,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr.pf-m-selected {
+  background-color: var(--pf-v6-c-table__tr--m-selected--BackgroundColor) !important;
+}
+
+/* Clickable row hover after selected so pointer feedback still applies on selected rows */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody tr.pf-m-clickable:hover,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr.pf-m-clickable:hover {
+  background-color: var(--pf-v6-c-table__tr--m-clickable--hover--BackgroundColor) !important;
+}
+
+/* Pagination bar: transparent at rest (stacked white); do not strip control hovers — no !important on menu-toggle / input */
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-pagination,
 .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-pagination.pf-m-bottom {
   --pf-v6-c-pagination--m-bottom--BackgroundColor: transparent;
   --pf-v6-c-pagination--m-sticky--BackgroundColor: transparent;
-  background-color: transparent !important;
-  box-shadow: none !important;
-}
-
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-pagination .pf-v6-c-menu-toggle,
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-pagination .pf-v6-c-form-control {
   background-color: transparent !important;
 }
 
