@@ -36,6 +36,7 @@
     "dist",
     "**/*.bundle.js",
     "**/*.map",
-    "src/app/prototypes/shiri-alerting-ui-v2/data/monitoring-plugin"
+    "src/app/prototypes/shiri-alerting-ui-v2/data/monitoring-plugin",
+    "exp-lab"
   ]
 }
