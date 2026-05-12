@@ -570,6 +570,16 @@ body:has(.ols-ai-hub-page),
   border-color: var(--pf-t--global--border--color--default) !important;
 }
 
+/* FormGroup section headings — explicit text color on white popper */
+.ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__label {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* FormGroup already spaces label from control; avoid stacking extra toggle-group offset */
+.ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__group .ws-full-page-utils__toggle-group {
+  margin-top: 0;
+}
+
 .ols-ai-hub-banner-appearance__rtl-row {
   margin-top: var(--pf-t--global--spacer--xs);
 }
