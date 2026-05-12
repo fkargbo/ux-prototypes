@@ -3,9 +3,10 @@ import { GITHUB_PAGES_BASENAME } from '@app/core/deepLinkUtils';
 const SCRIPT_ID = 'exp-lab-feedback-layer-script';
 
 /**
- * URL for the ExP-Lab IIFE bundle.
+ * URL for the ExP-Lab IIFE bundle (source: git submodule `exp-lab` → github.com/fkargbo/exp-lab;
+ * see `guides/exp-lab-hpux-prototypes.md`).
  *
- * Local dev: run `cd exp-lab && npm run build` — webpack-dev-server also serves `exp-lab/dist/`
+ * Local dev: `cd exp-lab && npm run build` — webpack-dev-server serves `exp-lab/dist/` at `/feedback-layer.js`
  * (see root `webpack.dev.js`). Optionally copy `feedback-layer.js` into root `dist/` instead.
  */
 export function getExpLabFeedbackScriptUrl(): string {
