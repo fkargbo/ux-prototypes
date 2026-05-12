@@ -172,6 +172,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
         </FlexItem>
         
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          {prototype.bannerBeforeVersionPicker ? <FlexItem>{prototype.bannerBeforeVersionPicker}</FlexItem> : null}
           {/* Version Selector or Display */}
           {hasVersions ? (
             <FlexItem>
@@ -185,6 +186,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
                     onClick={() => setIsVersionOpen(!isVersionOpen)}
                     isExpanded={isVersionOpen}
                     variant="secondary"
+                    size="sm"
                   >
                     Version: {prototype.config.version}
                   </MenuToggle>
@@ -215,6 +217,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
                     onClick={() => setIsBannerPickerOpen(!isBannerPickerOpen)}
                     isExpanded={isBannerPickerOpen}
                     variant="secondary"
+                    size="sm"
                   >
                     Version: {bannerPickerDisplayLabel}
                   </MenuToggle>
@@ -254,6 +257,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
                     onClick={() => setIsUseCaseOpen(!isUseCaseOpen)}
                     isExpanded={isUseCaseOpen}
                     variant="secondary"
+                    size="sm"
                   >
                     Use Case: {prototype.config.name}
                   </MenuToggle>
