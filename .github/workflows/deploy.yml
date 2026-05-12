@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -35,6 +37,14 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+
+      - name: Build ExP-Lab feedback layer and copy to dist
+        run: |
+          cd exp-lab
+          npm ci
+          npm run build
+          cd ..
+          cp -f exp-lab/dist/feedback-layer.js dist/feedback-layer.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
