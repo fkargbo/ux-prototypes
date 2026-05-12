@@ -22,6 +22,9 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const currentPrototypeRef = useRef<PrototypeModule | null>(null);
+  currentPrototypeRef.current = currentPrototype;
+
   /**
    * Load a prototype by ID
    */
@@ -38,11 +41,13 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
         throw new Error(`Prototype with ID "${id}" not found in registry`);
       }
 
+      const previous = currentPrototypeRef.current;
+
       // Run previous prototype teardown when switching without going through the launcher
-      if (currentPrototype && currentPrototype.config.id !== id) {
-        console.log(`👋 Deactivating previous prototype: ${currentPrototype.config.id}`);
-        if (currentPrototype.onDeactivate) {
-          await currentPrototype.onDeactivate();
+      if (previous && previous.config.id !== id) {
+        console.log(`👋 Deactivating previous prototype: ${previous.config.id}`);
+        if (previous.onDeactivate) {
+          await previous.onDeactivate();
         }
       }
 
@@ -64,7 +69,7 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, [currentPrototype]);
+  }, []);
 
   const loadPrototypeRef = useRef(loadPrototype);
   loadPrototypeRef.current = loadPrototype;
@@ -106,6 +111,9 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
 
         const prototypes = prototypeRegistry.getAll();
         console.log(`📦 Loaded ${prototypes.length} prototypes`, prototypes.map((p) => p.config.id));
+        if (cancelled) {
+          return;
+        }
         setAvailablePrototypes(prototypes);
 
         const params = new URLSearchParams(window.location.search);
@@ -121,6 +129,9 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
           }
         }
 
+        if (cancelled) {
+          return;
+        }
         if (prototypeId && prototypeRegistry.get(prototypeId)) {
           await loadPrototypeRef.current(prototypeId);
         } else {
@@ -128,7 +139,9 @@ export const PrototypeProvider: React.FC<PrototypeProviderProps> = ({ children }
         }
       } catch (err) {
         console.error('❌ Failed to initialize prototype system:', err);
-        setError(err as Error);
+        if (!cancelled) {
+          setError(err as Error);
+        }
       } finally {
         if (!cancelled) {
           setIsBootstrapping(false);

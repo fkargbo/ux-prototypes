@@ -131,15 +131,26 @@ const routes: AppRouteConfig[] = [
 // Additional routes without navigation labels (won't appear in sidebar)
 const hiddenRoutes: IAppRoute[] = [];
 
+/** Expand nested sidebar `routes` into leaf entries for `<Routes>` (parent-only nodes are not routable). */
+function flattenLeafRoutes(route: IAppRoute): IAppRoute[] {
+  if (route.routes?.length) {
+    return route.routes.flatMap(flattenLeafRoutes);
+  }
+  return [route];
+}
+
 const flattenedRoutes: IAppRoute[] = [
   ...routes.reduce((flattened, route): IAppRoute[] => {
-    // `IAppRouteGroup` has child `routes` but no `path`; `IAppRoute` may also have nested `routes` for sidebar only.
+    // `IAppRouteGroup` has child `routes` but no `path`; `IAppRoute` may also have nested `routes` for sidebar nesting.
     if ('routes' in route && route.routes && !('path' in route)) {
-      return [...flattened, ...route.routes];
+      return [...flattened, ...route.routes.flatMap(flattenLeafRoutes)];
     }
-    return [...flattened, route as IAppRoute];
+    if ('path' in route) {
+      return [...flattened, ...flattenLeafRoutes(route as IAppRoute)];
+    }
+    return flattened;
   }, [] as IAppRoute[]),
-  ...hiddenRoutes,
+  ...hiddenRoutes.flatMap(flattenLeafRoutes),
 ];
 
 const AppRoutes = (): React.ReactElement => (
