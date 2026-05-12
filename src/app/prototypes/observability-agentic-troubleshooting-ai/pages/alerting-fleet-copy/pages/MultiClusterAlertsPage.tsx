@@ -737,7 +737,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         setSeverityFilter(['Info']);
       }
     }
-  }, [searchParams, mainAlertNameFilter, mainComponentFilter]);
+    // Depend only on `searchParams` so in-app filter updates (state without URL) do not re-run this
+    // effect and overwrite user selections when the URL still omits `component` / `alertName`.
+  }, [searchParams]);
 
   // Get unique filter options (canonical fleet labels; cloud IDs merged via mock cluster build)
   const regions = React.useMemo(
