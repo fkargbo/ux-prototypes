@@ -143,6 +143,16 @@ export interface PrototypeModule {
   component?: React.ComponentType; // React component wrapper for the prototype
   onActivate?: () => void;
   onDeactivate?: () => void;
+  /**
+   * Optional node rendered in the prototype banner toolbar immediately before the version control.
+   * Supply via the prototype `routes` module export `bannerBeforeVersionPicker`.
+   */
+  bannerBeforeVersionPicker?: React.ReactNode;
+  /**
+   * Optional wrapper around the entire prototype shell (e.g. React context). Supply via the prototype
+   * `routes` module export `prototypeRootWrapper`.
+   */
+  prototypeRootWrapper?: React.ComponentType<{ children: React.ReactNode }>;
 }
 
 /**

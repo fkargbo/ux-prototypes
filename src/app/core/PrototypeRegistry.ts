@@ -257,10 +257,14 @@ export async function discoverPrototypes(): Promise<void> {
         // Try to load routes and navigation
         let routes = [];
         let navigation;
+        let bannerBeforeVersionPicker: React.ReactNode | undefined;
+        let prototypeRootWrapper: React.ComponentType<{ children: React.ReactNode }> | undefined;
 
         try {
           const routesModule = await import(`../prototypes/${prototypePath}/routes`);
           routes = routesModule.routes || routesModule.default || [];
+          bannerBeforeVersionPicker = routesModule.bannerBeforeVersionPicker;
+          prototypeRootWrapper = routesModule.prototypeRootWrapper;
         } catch (e) {
           console.warn(`⚠️  No routes found for prototype: ${config.id}`);
         }
@@ -284,19 +288,21 @@ export async function discoverPrototypes(): Promise<void> {
 
         // Import PrototypeLayout dynamically to avoid circular dependencies
         const { PrototypeLayout } = await import('./PrototypeLayout');
-        
-        // Create a component wrapper for this prototype using React.createElement
-        const PrototypeComponent = () => 
-          React.createElement(PrototypeLayout, { prototype: { config, routes, navigation } });
 
-        // Create prototype module
         const prototypeModule: PrototypeModule = {
           config,
           routes,
           navigation,
-          component: PrototypeComponent,
+          bannerBeforeVersionPicker,
+          prototypeRootWrapper,
           onActivate,
           onDeactivate,
+        };
+
+        prototypeModule.component = () => {
+          const layout = React.createElement(PrototypeLayout, { prototype: prototypeModule });
+          const W = prototypeModule.prototypeRootWrapper;
+          return W ? React.createElement(W, { children: layout }) : layout;
         };
 
         // Register it

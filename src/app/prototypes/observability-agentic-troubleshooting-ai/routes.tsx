@@ -12,6 +12,8 @@ import {
   CreateSilenceFleetManagementGate,
 } from './pages/AlertingFleetManagementGate';
 import { Content, PageSection } from '@patternfly/react-core';
+import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
+import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 
 const ObserveNavPlaceholder: React.FC = () => (
   <PageSection>
@@ -156,3 +158,9 @@ export const routes: RouteConfig[] = [
     title: 'Pod detail',
   },
 ];
+
+/** Wraps prototype shell so banner appearance controls share theme state with AI Hub page. */
+export const prototypeRootWrapper = AiHubAppearanceProvider;
+
+/** Banner toolbar: before version picker (see `PrototypeLayout`). */
+export const bannerBeforeVersionPicker = <AiHubBannerAppearanceSettings />;

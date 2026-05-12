@@ -557,3 +557,24 @@ body:has(.ols-ai-hub-page),
 .ols-ai-hub-full-page-utils .ws-full-page-utils__menu-inner {
   color: #151515;
 }
+
+/* Banner toolbar appearance menu (before version picker) */
+.ols-ai-hub-banner-appearance {
+  display: flex;
+  align-items: center;
+}
+
+.ols-ai-hub-banner-appearance__dropdown.pf-v6-c-menu {
+  color-scheme: light;
+  background-color: #fff !important;
+  border-color: var(--pf-t--global--border--color--default) !important;
+}
+
+.ols-ai-hub-banner-appearance__rtl-row {
+  margin-top: var(--pf-t--global--spacer--xs);
+}
+
+/* Legacy portaled full-page utils panel — superseded by banner control */
+.ws-full-page-utils.ols-ai-hub-full-page-utils {
+  display: none !important;
+}

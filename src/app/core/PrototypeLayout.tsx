@@ -172,6 +172,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
         </FlexItem>
         
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          {prototype.bannerBeforeVersionPicker ? <FlexItem>{prototype.bannerBeforeVersionPicker}</FlexItem> : null}
           {/* Version Selector or Display */}
           {hasVersions ? (
             <FlexItem>
