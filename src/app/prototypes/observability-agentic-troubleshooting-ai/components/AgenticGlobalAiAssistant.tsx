@@ -149,6 +149,19 @@ const OLS_AI_PROTOTYPE_DRAWER_H_VAR = '--ols-ai-prototype-drawer-h';
 /** Popper tooltip above `.ols-ai-chrome-dock` (dock `z-index` is 10000). */
 const OLS_LAUNCHER_TOOLTIP_ZINDEX = 10050;
 
+/**
+ * Header icon tooltips must sit above the chrome dock (10000) and the launcher tooltip (10050);
+ * default PF Tooltip z-index (9999) leaves them invisible behind the drawer.
+ */
+const OLS_HEADER_ACTION_TOOLTIP_PROPS = {
+  position: 'bottom' as const,
+  zIndex: 10060,
+  appendTo: () => document.body,
+  entryDelay: 450,
+  exitDelay: 120,
+  enableFlip: true,
+};
+
 /** PatternFly `Masthead` root in AppLayout — `top` of the fixed chat aligns to this element’s bottom edge. */
 const OLS_PAGE_MASTHEAD_SELECTOR = '.pf-v6-c-masthead';
 /** If masthead markup differs, fall back to the page header region that wraps it. */
@@ -1200,7 +1213,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                   </ChatbotHeaderTitle>
                 </ChatbotHeaderMain>
                 <ChatbotHeaderActions className="lightspeed-header-actions">
-                  <Tooltip content="Clear chat history">
+                  <Tooltip content="Clear chat history" {...OLS_HEADER_ACTION_TOOLTIP_PROPS}>
                     <Button
                       variant="plain"
                       aria-label="Clear chat history"
@@ -1208,7 +1221,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                       onClick={handleClearChat}
                     />
                   </Tooltip>
-                  <Tooltip content="Minimize">
+                  <Tooltip content="Minimize" {...OLS_HEADER_ACTION_TOOLTIP_PROPS}>
                     <Button
                       variant="plain"
                       aria-label="Minimize assistant"
@@ -1216,7 +1229,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                       onClick={() => setIsDrawerOpen(false)}
                     />
                   </Tooltip>
-                  <Tooltip content="Open in console (prototype)">
+                  <Tooltip content="Open in console (prototype)" {...OLS_HEADER_ACTION_TOOLTIP_PROPS}>
                     <Button
                       variant="plain"
                       aria-label="Expand or pop out assistant"
