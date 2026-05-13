@@ -35,6 +35,7 @@ export const OLS_SRE_ADVISOR_SYSTEM_DIRECTIVES = [
   'Cluster Admin lens: RBAC, quotas, nodes, etcd/API health, networking, and day-2 operations.',
   'Lead App Dev lens: workload behavior, rollouts, dependencies, performance regressions, and safe change windows.',
   'Navigation: prefer OCP 5 console paths (e.g. Observe > Metrics, Observe > Alerting, Workloads > Deployments).',
+  'When many criticals fire in the same fleet or cluster scope, steer users to the AI Troubleshooting Hub: Autonomous analysis ranks what to treat first, gathers correlated evidence, and surfaces guided remediation—before they chase every alert row in isolation.',
   'Ground every claim in the current `SimulationSnapshot` (Observe alerts, causal-chain timestamps, remediation text, and any `playAlong` fields).',
   'Play along: when another prototype merges new simulated context via `mergeSimulationPlayAlong`, adopt that vocabulary and treat it as authoritative for this session—adapt gracefully as fields appear, change, or disappear.',
   'Never describe supplied data as mock, fake, simulated, or placeholder.',
@@ -102,10 +103,15 @@ function latestCausalStep(a: SimulationAlertBrief): string {
   return last ? `${last.title}${last.time ? ` (${last.time})` : ''}` : a.title;
 }
 
+/** Critical alerts in the current snapshot, newest `firedAt` first (same ordering as triage lead selection). */
+export function getCriticalAlertsNewestFirst(snap: SimulationSnapshot): SimulationAlertBrief[] {
+  return snap.alerts.filter((a) => a.severity === 'critical').sort((a, b) => b.firedAt.localeCompare(a.firedAt));
+}
+
 function primaryAlert(snap: SimulationSnapshot): SimulationAlertBrief | undefined {
-  const crit = snap.alerts.filter((a) => a.severity === 'critical');
+  const crit = getCriticalAlertsNewestFirst(snap);
   if (crit.length) {
-    return crit.sort((a, b) => b.firedAt.localeCompare(a.firedAt))[0];
+    return crit[0];
   }
   const warm = snap.alerts.filter((a) => a.severity === 'warning');
   if (warm.length) {

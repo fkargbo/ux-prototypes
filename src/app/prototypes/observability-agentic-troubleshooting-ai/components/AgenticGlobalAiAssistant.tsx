@@ -125,6 +125,7 @@ import {
   buildRecentTurnsForAdvisor,
   buildSituationBriefing,
   composeAdvisorReply,
+  getCriticalAlertsNewestFirst,
   seedAdvisorMemoryFromHandoffAlert,
   seedAdvisorMemoryFromSnapshot,
 } from '../simulation/olsAdvisorBrain';
@@ -1121,6 +1122,69 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
   const situationLine = useMemo(() => buildSituationBriefing(simulation), [simulation]);
 
+  /** Empty-state copy: critical count + top signals + why AI Troubleshooting Hub / Autonomous analysis matter. */
+  const hubPriorityEmptyIntro = useMemo(() => {
+    const criticals = getCriticalAlertsNewestFirst(simulation);
+    if (criticals.length === 0) {
+      return null;
+    }
+    const isFleet = simulation.isMultiCluster && simulation.viewMode === 'fleet';
+    const scopeWhere = isFleet
+      ? 'in this fleet view'
+      : simulation.selectedClusterName
+        ? `on cluster ${simulation.selectedClusterName}`
+        : 'in this Observe scope';
+    const top = criticals.slice(0, 3);
+    const lead = criticals[0];
+    const because =
+      criticals.length === 1 ? (
+        <>
+          Start with <strong>{lead.title}</strong> because Autonomous analysis is already anchored on that critical
+          while the hub collects correlated evidence and guided next steps.
+        </>
+      ) : (
+        <>
+          Start with <strong>{lead.title}</strong> first because it is the newest critical signal in this
+          simulation—the hub uses that ordering to stack-rank triage, then widens to dependent paths as evidence
+          lands.
+        </>
+      );
+
+    return (
+      <div className="lightspeed-empty-intro-priority">
+        <p>
+          There <strong>{criticals.length === 1 ? 'is' : 'are'}</strong> <strong>{criticals.length}</strong> critical
+          alert(s) {scopeWhere}. When several criticals fire together, it is difficult to know which deserves attention
+          first.
+        </p>
+        <p>
+          The <strong>AI Troubleshooting Hub</strong> is where this experience surfaces what should top your list:{' '}
+          <strong>Autonomous analysis</strong> runs investigations, pulls automated evidence, and proposes guided
+          fixes so you work in priority order instead of treating every firing rule as equally urgent.
+        </p>
+        <p>
+          {criticals.length > 1 ? (
+            <>
+              Here are the top <strong>{top.length}</strong> you should focus on in this view (newest criticals
+              first):
+            </>
+          ) : (
+            <>The critical Autonomous analysis is leading with in this view:</>
+          )}
+        </p>
+        <ol className="lightspeed-empty-intro-priority-list">
+          {top.map((a) => (
+            <li key={a.id}>
+              <strong>{a.title}</strong>
+              <span className="lightspeed-empty-intro-priority-meta"> — {a.service}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="lightspeed-empty-intro-priority-because">{because}</p>
+      </div>
+    );
+  }, [simulation]);
+
   const handleClearChat = useCallback(() => {
     setMessages([]);
     resetConversationMemory();
@@ -1258,6 +1322,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                             Use follow-up questions in this chat to refine answers; specific wording (namespace, workload,
                             console page) improves results, as described in the OpenShift Lightspeed documentation.
                           </p>
+                          {hubPriorityEmptyIntro}
                         </Content>
                         <Alert
                           variant="info"

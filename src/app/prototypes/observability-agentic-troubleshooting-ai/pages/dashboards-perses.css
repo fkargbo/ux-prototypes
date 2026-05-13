@@ -624,6 +624,35 @@ button[aria-label="View task details"] {
   margin-top: var(--pf-t--global--spacer--md);
 }
 
+/* OLS empty state: critical count + hub prioritization cue */
+.lightspeed-empty-intro-priority {
+  margin-top: var(--pf-t--global--spacer--md);
+  padding-top: var(--pf-t--global--spacer--md);
+  border-top: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
+}
+
+.ols-prototype-ai-drawer .lightspeed-empty-intro-priority p {
+  margin: 0 0 var(--pf-t--global--spacer--sm);
+}
+
+.ols-prototype-ai-drawer .lightspeed-empty-intro-priority p:last-child {
+  margin-bottom: 0;
+}
+
+.ols-prototype-ai-drawer .lightspeed-empty-intro-priority-list {
+  margin: 0 0 var(--pf-t--global--spacer--sm);
+  padding-left: var(--pf-t--global--spacer--lg);
+}
+
+.ols-prototype-ai-drawer .lightspeed-empty-intro-priority-meta {
+  color: var(--pf-t--global--text--color--subtle, #6a6e73);
+  font-weight: var(--pf-t--global--font--weight--body--default, 400);
+}
+
+.ols-prototype-ai-drawer .lightspeed-empty-intro-priority-because {
+  font-size: var(--pf-t--global--FontSize--sm, 0.875rem);
+}
+
 .lightspeed-empty-intro {
   padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md) 0;
 }
