@@ -39,6 +39,10 @@ jobs:
           NODE_ENV: production
 
       - name: Build ExP-Lab feedback layer and copy to dist
+        env:
+          # Optional: if unset, exp-lab builds in local-only mode (browser storage only on Pages).
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
           cd exp-lab
           npm ci
