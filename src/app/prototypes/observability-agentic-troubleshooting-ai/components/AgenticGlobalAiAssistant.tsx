@@ -106,6 +106,7 @@ import ChatbotFooter, { ChatbotFootnote } from '@patternfly/chatbot/dist/dynamic
 import ChatbotToggle from '@patternfly/chatbot/dist/dynamic/ChatbotToggle';
 import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
+import type { MessageBoxHandle } from '@patternfly/chatbot/dist/esm/MessageBox/MessageBox';
 import Message, { MessageProps } from '@patternfly/chatbot/dist/dynamic/Message';
 import ChatbotHeader, { ChatbotHeaderMain, ChatbotHeaderTitle, ChatbotHeaderActions } from '@patternfly/chatbot/dist/esm/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
@@ -124,6 +125,8 @@ import {
   buildRecentTurnsForAdvisor,
   buildSituationBriefing,
   composeAdvisorReply,
+  getCriticalPriorityShowcaseItems,
+  getScopeCriticalCountIncludingFleet,
   seedAdvisorMemoryFromHandoffAlert,
   seedAdvisorMemoryFromSnapshot,
 } from '../simulation/olsAdvisorBrain';
@@ -148,6 +151,19 @@ const OLS_AI_PROTOTYPE_DRAWER_H_VAR = '--ols-ai-prototype-drawer-h';
 
 /** Popper tooltip above `.ols-ai-chrome-dock` (dock `z-index` is 10000). */
 const OLS_LAUNCHER_TOOLTIP_ZINDEX = 10050;
+
+/**
+ * Header icon tooltips must sit above the chrome dock (10000) and the launcher tooltip (10050);
+ * default PF Tooltip z-index (9999) leaves them invisible behind the drawer.
+ */
+const OLS_HEADER_ACTION_TOOLTIP_PROPS = {
+  position: 'bottom' as const,
+  zIndex: 10060,
+  appendTo: () => document.body,
+  entryDelay: 450,
+  exitDelay: 120,
+  enableFlip: true,
+};
 
 /** PatternFly `Masthead` root in AppLayout — `top` of the fixed chat aligns to this element’s bottom edge. */
 const OLS_PAGE_MASTHEAD_SELECTOR = '.pf-v6-c-masthead';
@@ -395,13 +411,20 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageBoxRef = useRef<MessageBoxHandle | null>(null);
+  /** Bumps when the user clears chat so the empty intro + welcome prompts remount cleanly. */
+  const [emptyIntroMountKey, setEmptyIntroMountKey] = useState(0);
+  /**
+   * After the first in-thread action from the empty state (e.g. “Summarize incident context” or sending a message),
+   * keep the intro + welcome prompts in the same scrollable MessageBox above messages so the thread grows downward
+   * instead of replacing the “landing” view.
+   */
+  const [persistEmptyIntroInScroll, setPersistEmptyIntroInScroll] = useState(false);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const olsChromeDockRef = useRef<HTMLDivElement>(null);
   const olsLauncherStackRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
-  /** Suppress duplicate Autonomous analysis → OLS intro when the drawer is reopened. */
-  const observeIntroHandoffShownRef = useRef(false);
 
   const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
     setSelectedQuickResponses((prev) => {
@@ -618,6 +641,14 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     }
   }, [messages]);
 
+  /** After clear (or first open on empty thread), show the default intro from the top of the scroll region. */
+  useLayoutEffect(() => {
+    if (!isDrawerOpen || messages.length > 0) {
+      return;
+    }
+    messageBoxRef.current?.scrollToTop?.({ behavior: 'auto' });
+  }, [isDrawerOpen, messages.length, emptyIntroMountKey]);
+
   // Generate unique ID for messages
   const generateId = () => {
     const id = Date.now() + Math.random();
@@ -641,6 +672,10 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const handleSendMessage = useCallback((message: string | number) => {
     const messageText = String(message);
     if (!messageText.trim()) return;
+
+    if (messagesRef.current.length === 0) {
+      setPersistEmptyIntroInScroll(true);
+    }
 
     // Rejection trigger: respond with disclaimer + manual steps (CodeBlock).
     if (isRejectionTrigger(messageText)) {
@@ -770,9 +805,9 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
     setIsDrawerOpen(true);
 
-    observeIntroHandoffShownRef.current = false;
     setMessages([]);
     resetConversationMemory();
+    setPersistEmptyIntroInScroll(false);
 
     workflowStageRef.current = 'stage1';
     
@@ -1099,52 +1134,108 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
   const situationLine = useMemo(() => buildSituationBriefing(simulation), [simulation]);
 
+  /** Empty-state copy: critical count + top signals + why AI Troubleshooting Hub / Autonomous analysis matter. */
+  const hubPriorityEmptyIntro = useMemo(() => {
+    const scopeCriticalTotal = getScopeCriticalCountIncludingFleet(simulation);
+    const showcase = getCriticalPriorityShowcaseItems(simulation);
+    if (scopeCriticalTotal === 0 || showcase.length === 0) {
+      return null;
+    }
+    const isFleet = simulation.isMultiCluster && simulation.viewMode === 'fleet';
+    const scopeWhere = isFleet
+      ? 'in this fleet view'
+      : simulation.selectedClusterName
+        ? `on cluster ${simulation.selectedClusterName}`
+        : 'in this Observe scope';
+    const lead = showcase[0];
+    const because = lead.isFleetWide ? (
+      <>
+        Start with <strong>{lead.title}</strong> first because it is a fleet-wide incident spanning multiple
+        clusters—the hub aggregates blast radius and correlated ingress evidence before deeper per-cluster work.
+      </>
+    ) : scopeCriticalTotal === 1 ? (
+      <>
+        Start with <strong>{lead.title}</strong> because Autonomous analysis is already anchored on that critical
+        while the hub collects correlated evidence and guided next steps.
+      </>
+    ) : (
+      <>
+        Start with <strong>{lead.title}</strong> first because it is the highest-priority distinct critical signal in
+        this view—the hub uses that ordering to stack-rank triage, then widens to dependent paths as evidence lands.
+      </>
+    );
+
+    return (
+      <div className="lightspeed-empty-intro-priority">
+        <p>
+          There <strong>{scopeCriticalTotal === 1 ? 'is' : 'are'}</strong> <strong>{scopeCriticalTotal}</strong>{' '}
+          critical alert(s) {scopeWhere}. When several criticals fire together, it is difficult to know which deserves
+          attention first.
+        </p>
+        <p>
+          The <strong>AI Troubleshooting Hub</strong> is where this experience surfaces what should top your list:{' '}
+          <strong>Autonomous analysis</strong> runs investigations, pulls automated evidence, and proposes guided
+          fixes so you work in priority order instead of treating every firing rule as equally urgent.
+        </p>
+        <p>
+          {scopeCriticalTotal > 1 ? (
+            <>
+              Here are up to <strong>{showcase.length}</strong> distinct signals to focus on in this view (fleet-wide
+              first in fleet scope, then newest rule family per title):
+            </>
+          ) : (
+            <>The critical Autonomous analysis is leading with in this view:</>
+          )}
+        </p>
+        <ol className="lightspeed-empty-intro-priority-list">
+          {showcase.map((a) => (
+            <li key={a.id}>
+              <strong>{a.title}</strong>
+              <span className="lightspeed-empty-intro-priority-meta"> — {a.service}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="lightspeed-empty-intro-priority-because">{because}</p>
+      </div>
+    );
+  }, [simulation]);
+
   const handleClearChat = useCallback(() => {
     setMessages([]);
     resetConversationMemory();
     setSelectedQuickResponses([]);
     workflowStageRef.current = 'idle';
-    observeIntroHandoffShownRef.current = false;
     setAnnouncement(undefined);
+    setPersistEmptyIntroInScroll(false);
+    setEmptyIntroMountKey((k) => k + 1);
   }, []);
 
   const toggleChatDrawer = useCallback(() => {
-    setIsDrawerOpen((prev) => {
-      const next = !prev;
-      if (next) {
-        queueMicrotask(() => {
-          if (observeIntroHandoffShownRef.current) {
-            return;
-          }
-          const snap = getSimulationSnapshot();
-          if (!snap.isIncidentActive) {
-            return;
-          }
-          if (messagesRef.current.length > 0) {
-            return;
-          }
-          observeIntroHandoffShownRef.current = true;
-          const ts = new Date().toLocaleString();
-          setMessages([
-            {
-              id: generateId(),
-              role: 'bot',
-              content: buildObserveToChatHandoff(snap),
-              name: BOT_DISPLAY_NAME,
-              avatar: botAvatarSrc,
-              timestamp: ts,
-            },
-          ]);
-          seedAdvisorMemoryFromSnapshot(snap);
-          setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Autonomous analysis handoff.`);
-        });
-      }
-      return next;
-    });
+    setIsDrawerOpen((prev) => !prev);
+  }, []);
+
+  /** From empty state: load the same briefing that used to auto-inject on first open with an active incident. */
+  const handleLoadIncidentBriefingFromEmptyIntro = useCallback(() => {
+    const snap = getSimulationSnapshot();
+    if (!snap.isIncidentActive) {
+      return;
+    }
+    const ts = new Date().toLocaleString();
+    const briefing: MessageProps = {
+      id: `${Date.now()}-${Math.random()}`,
+      role: 'bot',
+      content: buildObserveToChatHandoff(snap),
+      name: BOT_DISPLAY_NAME,
+      avatar: botAvatarSrc,
+      timestamp: ts,
+    };
+    setPersistEmptyIntroInScroll(true);
+    setMessages((prev) => [...prev, briefing]);
+    seedAdvisorMemoryFromSnapshot(snap);
+    setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Autonomous analysis incident briefing.`);
   }, []);
 
   const handleOpenDiscussWithLightspeed = useCallback((ctx: DiscussLightspeedContext) => {
-    observeIntroHandoffShownRef.current = true;
     const snap = getSimulationSnapshot();
     const handoff: SimulationHandoff = {
       source: ctx.cardId === 'remediation' ? 'discuss-remediation' : 'discuss-rca',
@@ -1161,6 +1252,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       avatar: botAvatarSrc,
       timestamp: ts,
     };
+    setPersistEmptyIntroInScroll(false);
     setMessages([opening]);
     seedAdvisorMemoryFromHandoffAlert(ctx.alertId);
     setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: ${ctx.diagnosisName} context.`);
@@ -1200,7 +1292,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                   </ChatbotHeaderTitle>
                 </ChatbotHeaderMain>
                 <ChatbotHeaderActions className="lightspeed-header-actions">
-                  <Tooltip content="Clear chat history">
+                  <Tooltip content="Clear chat history" {...OLS_HEADER_ACTION_TOOLTIP_PROPS}>
                     <Button
                       variant="plain"
                       aria-label="Clear chat history"
@@ -1208,7 +1300,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                       onClick={handleClearChat}
                     />
                   </Tooltip>
-                  <Tooltip content="Minimize">
+                  <Tooltip content="Minimize" {...OLS_HEADER_ACTION_TOOLTIP_PROPS}>
                     <Button
                       variant="plain"
                       aria-label="Minimize assistant"
@@ -1216,7 +1308,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                       onClick={() => setIsDrawerOpen(false)}
                     />
                   </Tooltip>
-                  <Tooltip content="Open in console (prototype)">
+                  <Tooltip content="Open in console (prototype)" {...OLS_HEADER_ACTION_TOOLTIP_PROPS}>
                     <Button
                       variant="plain"
                       aria-label="Expand or pop out assistant"
@@ -1229,9 +1321,13 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                 </ChatbotHeaderActions>
               </ChatbotHeader>
               <ChatbotContent style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-                <MessageBox announcement={announcement} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}>
-                  {messages.length === 0 && (
-                    <>
+                <MessageBox
+                  ref={messageBoxRef}
+                  announcement={announcement}
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}
+                >
+                  {(messages.length === 0 || persistEmptyIntroInScroll) && (
+                    <React.Fragment key={`ols-empty-intro-${emptyIntroMountKey}`}>
                       <div className="lightspeed-empty-intro">
                         <div className="lightspeed-empty-mark" aria-hidden>
                           <LightspeedHeaderMark />
@@ -1239,13 +1335,11 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                         <Content>
                           <p>
                             Ask questions in natural language about OpenShift and Kubernetes for this console scope.
-                            Context from <strong>Autonomous analysis</strong> is available here:
-                            {simulation.isIncidentActive
-                              ? ` active incident view — ${situationLine}`
-                              : ` ${situationLine}`}{' '}
+                            Context from <strong>Autonomous analysis</strong> for this scope: {situationLine}{' '}
                             Use follow-up questions in this chat to refine answers; specific wording (namespace, workload,
                             console page) improves results, as described in the OpenShift Lightspeed documentation.
                           </p>
+                          {hubPriorityEmptyIntro}
                         </Content>
                         <Alert
                           variant="info"
@@ -1256,6 +1350,24 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                           This tool uses AI-generated responses. Avoid pasting secrets, credentials, or regulated data.
                           Always review output before acting on it.
                         </Alert>
+                        {simulation.isIncidentActive ? (
+                          <Alert
+                            variant="warning"
+                            isInline
+                            title="Active incident in this scope"
+                            className="lightspeed-active-incident-alert"
+                            actionLinks={
+                              <Button variant="link" isInline onClick={handleLoadIncidentBriefingFromEmptyIntro}>
+                                Summarize incident context
+                              </Button>
+                            }
+                          >
+                            Autonomous analysis shows active investigations in the current Observe scope. If you would
+                            like a concise briefing grounded in the leading alert and causal chain, use the action
+                            above—or type your own question (for example, name a firing alert or ask what is happening
+                            right now).
+                          </Alert>
+                        ) : null}
                       </div>
                       <ChatbotWelcomePrompt
                         className="lightspeed-welcome-prompt--prompts-only"
@@ -1263,7 +1375,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                         description=""
                         prompts={welcomePrompts}
                       />
-                    </>
+                    </React.Fragment>
                   )}
                   {messages.map((message, index) => {
                     const msg = message as MessageWithCustomPills;

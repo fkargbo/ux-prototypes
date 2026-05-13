@@ -35,6 +35,7 @@ export const OLS_SRE_ADVISOR_SYSTEM_DIRECTIVES = [
   'Cluster Admin lens: RBAC, quotas, nodes, etcd/API health, networking, and day-2 operations.',
   'Lead App Dev lens: workload behavior, rollouts, dependencies, performance regressions, and safe change windows.',
   'Navigation: prefer OCP 5 console paths (e.g. Observe > Metrics, Observe > Alerting, Workloads > Deployments).',
+  'When many criticals fire in the same fleet or cluster scope, steer users to the AI Troubleshooting Hub: Autonomous analysis ranks what to treat first, gathers correlated evidence, and surfaces guided remediation—before they chase every alert row in isolation.',
   'Ground every claim in the current `SimulationSnapshot` (Observe alerts, causal-chain timestamps, remediation text, and any `playAlong` fields).',
   'Play along: when another prototype merges new simulated context via `mergeSimulationPlayAlong`, adopt that vocabulary and treat it as authoritative for this session—adapt gracefully as fields appear, change, or disappear.',
   'Never describe supplied data as mock, fake, simulated, or placeholder.',
@@ -102,10 +103,64 @@ function latestCausalStep(a: SimulationAlertBrief): string {
   return last ? `${last.title}${last.time ? ` (${last.time})` : ''}` : a.title;
 }
 
+/** Critical alerts in the current snapshot, newest `firedAt` first (same ordering as triage lead selection). */
+export function getCriticalAlertsNewestFirst(snap: SimulationSnapshot): SimulationAlertBrief[] {
+  return snap.alerts.filter((a) => a.severity === 'critical').sort((a, b) => b.firedAt.localeCompare(a.firedAt));
+}
+
+/**
+ * Rows for empty-state “top focus” copy: up to three **distinct rule titles**, newest cluster alerts first,
+ * with the fleet-wide ingress incident prepended in fleet view (it is not stored on `snap.alerts`).
+ */
+export type PriorityShowcaseItem = {
+  id: string;
+  title: string;
+  service: string;
+  /** True when this row is `FLEET_WIDE_REGIONAL_INGRESS`, not a `snap.alerts` row. */
+  isFleetWide?: boolean;
+};
+
+/** Critical firing rows in `snap.alerts` plus one when fleet-wide ingress is active in fleet scope. */
+export function getScopeCriticalCountIncludingFleet(snap: SimulationSnapshot): number {
+  const rows = getCriticalAlertsNewestFirst(snap).length;
+  const isFleet = snap.isMultiCluster && snap.viewMode === 'fleet';
+  if (isFleet && FLEET_WIDE_REGIONAL_INGRESS.severity === 'critical') {
+    return rows + 1;
+  }
+  return rows;
+}
+
+export function getCriticalPriorityShowcaseItems(snap: SimulationSnapshot): PriorityShowcaseItem[] {
+  const isFleet = snap.isMultiCluster && snap.viewMode === 'fleet';
+  const out: PriorityShowcaseItem[] = [];
+  const seenTitles = new Set<string>();
+
+  if (isFleet && FLEET_WIDE_REGIONAL_INGRESS.severity === 'critical') {
+    const fw = FLEET_WIDE_REGIONAL_INGRESS;
+    out.push({
+      id: fw.id,
+      title: fw.title,
+      service: `Fleet — ${fw.affectedClusterIds.length} clusters`,
+      isFleetWide: true,
+    });
+    seenTitles.add(fw.title);
+  }
+
+  const criticals = getCriticalAlertsNewestFirst(snap);
+  for (const a of criticals) {
+    if (out.length >= 3) break;
+    if (seenTitles.has(a.title)) continue;
+    seenTitles.add(a.title);
+    out.push({ id: a.id, title: a.title, service: a.service });
+  }
+
+  return out;
+}
+
 function primaryAlert(snap: SimulationSnapshot): SimulationAlertBrief | undefined {
-  const crit = snap.alerts.filter((a) => a.severity === 'critical');
+  const crit = getCriticalAlertsNewestFirst(snap);
   if (crit.length) {
-    return crit.sort((a, b) => b.firedAt.localeCompare(a.firedAt))[0];
+    return crit[0];
   }
   const warm = snap.alerts.filter((a) => a.severity === 'warning');
   if (warm.length) {
@@ -253,6 +308,81 @@ function resolveFocusedAlert(
   return primaryAlert(snap);
 }
 
+/** Split alert titles like `EtcdDiskPressureOnMaster2` into meaningful lowercase tokens for fuzzy mention matching. */
+function splitMeaningfulTitleTerms(title: string): string[] {
+  const spaced = title
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return spaced
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 2);
+}
+
+/**
+ * If the user names an alert title or id in the current snapshot, use that row for scripted replies.
+ * Without this, answers default to `primaryAlert` (newest critical by time), which misattributes questions
+ * when several criticals fire (e.g. Payments vs etcd).
+ */
+export function findAlertMentionedInMessage(
+  message: string,
+  alerts: ReadonlyArray<SimulationAlertBrief>
+): SimulationAlertBrief | undefined {
+  if (!alerts.length || !message.trim()) {
+    return undefined;
+  }
+  const raw = message.trim();
+  const lower = raw.toLowerCase();
+
+  for (const a of alerts) {
+    if (raw.includes(a.id)) {
+      return a;
+    }
+  }
+
+  type Scored = { brief: SimulationAlertBrief; score: number };
+  const scored: Scored[] = [];
+  const seenTitle = new Set<string>();
+
+  for (const a of alerts) {
+    if (seenTitle.has(a.title)) continue;
+    seenTitle.add(a.title);
+
+    const tl = a.title.toLowerCase();
+    if (tl.length >= 5 && lower.includes(tl)) {
+      scored.push({ brief: a, score: 1000 + tl.length });
+      continue;
+    }
+
+    const parts = splitMeaningfulTitleTerms(a.title);
+    if (parts.length < 2) continue;
+    const hits = parts.filter((p) => lower.includes(p));
+    const ratio = hits.length / parts.length;
+    if (hits.length >= 3 && ratio >= 0.66) {
+      scored.push({ brief: a, score: 200 + hits.length * 15 + ratio * 20 });
+    }
+  }
+
+  if (!scored.length) {
+    return undefined;
+  }
+  scored.sort((u, v) => v.score - u.score || v.brief.title.length - u.brief.title.length);
+  const winnerTitle = scored[0].brief.title;
+  return alerts.find((x) => x.title === winnerTitle);
+}
+
+function pickGroundingAlert(
+  userMessage: string,
+  snap: SimulationSnapshot,
+  mem: ReturnType<typeof getConversationMemory>
+): SimulationAlertBrief | undefined {
+  return (
+    findAlertMentionedInMessage(userMessage, snap.alerts) ??
+    resolveFocusedAlert(snap, mem) ??
+    primaryAlert(snap)
+  );
+}
+
 function buildDefaultAlertBlock(p: SimulationAlertBrief, snap: SimulationSnapshot, wordCount: number): string {
   const specificityHint =
     wordCount <= 3
@@ -271,7 +401,11 @@ function buildDefaultAlertBlock(p: SimulationAlertBrief, snap: SimulationSnapsho
   return pl ? `${core}\n\n${pl}` : core;
 }
 
-export function buildSituationBriefing(snap: SimulationSnapshot): string {
+export function buildSituationBriefing(
+  snap: SimulationSnapshot,
+  /** When set (e.g. user named an alert or Discuss handoff), lead with this signal instead of newest critical. */
+  leadAlert?: SimulationAlertBrief
+): string {
   const playAlong = formatPlayAlongContext(snap);
   const head = snap.isMultiCluster && snap.viewMode === 'fleet'
     ? `Fleet scope (${snap.alerts.length} tracked alert(s) across clusters).`
@@ -284,7 +418,7 @@ export function buildSituationBriefing(snap: SimulationSnapshot): string {
     return `${head} No firing alerts in this scope—capacity and error budgets look quiet from Observe.`;
   }
 
-  const p = primaryAlert(snap);
+  const p = leadAlert ?? primaryAlert(snap);
   if (!p) {
     const tail = `${head} Review Observe > Alerting for any silenced or routed signals.`;
     return playAlong ? `${tail}\n\n${playAlong}` : tail;
@@ -298,8 +432,8 @@ export function buildSituationBriefing(snap: SimulationSnapshot): string {
   return playAlong ? `${core}\n\n${playAlong}` : core;
 }
 
-function buildRightNowAnswerBody(snap: SimulationSnapshot): string {
-  return `${buildSituationBriefing(snap)}\n\n${rightNowNextSteps(snap)}`;
+function buildRightNowAnswerBody(snap: SimulationSnapshot, leadAlert?: SimulationAlertBrief): string {
+  return `${buildSituationBriefing(snap, leadAlert)}\n\n${rightNowNextSteps(snap)}`;
 }
 
 export function buildRightNowAnswer(snap: SimulationSnapshot): string {
@@ -353,7 +487,7 @@ export function composeAdvisorReply(
   const q = userMessage.toLowerCase().trim();
   const wc = userMessage.trim().split(/\s+/).filter(Boolean).length;
   const mem = getConversationMemory();
-  const focused = resolveFocusedAlert(snap, mem);
+  const grounding = pickGroundingAlert(userMessage, snap, mem);
 
   const continuationThanks = /^(thanks|thank you|thx|much appreciated|appreciate it|got it|perfect)\b/i.test(q);
   const continuationAffirm =
@@ -382,7 +516,7 @@ export function composeAdvisorReply(
   }
 
   if ((continuationAffirm || continuationMore) && recentTurns.length > 0) {
-    const a = focused ?? primaryAlert(snap);
+    const a = grounding;
     if (a) {
       return reply('continuation_deep', a.id, buildDeepDiveForAlert(a));
     }
@@ -394,22 +528,22 @@ export function composeAdvisorReply(
   }
 
   if (continuationWhy && recentTurns.some((r) => r.role === 'bot')) {
-    const a = focused ?? primaryAlert(snap);
+    const a = grounding;
     if (a) {
       return reply('continuation_why', a.id, buildWhyForAlert(a));
     }
   }
 
   if (continuationWhatNext && recentTurns.some((r) => r.role === 'bot')) {
-    const a = focused ?? primaryAlert(snap);
+    const a = grounding;
     if (a) {
       return reply('continuation_next', a.id, buildWhatNextForAlert(a, snap));
     }
   }
 
   if (wantsOtherAlert && snap.alerts.length > 1) {
-    const prim = primaryAlert(snap);
-    const other = snap.alerts.find((a) => a.id !== prim?.id) ?? snap.alerts[1];
+    const cur = grounding ?? primaryAlert(snap);
+    const other = snap.alerts.find((a) => a.id !== cur?.id) ?? snap.alerts[1];
     if (other) {
       const prefix = 'Shifting focus to another firing signal in this scope:\n\n';
       return reply(
@@ -430,19 +564,17 @@ export function composeAdvisorReply(
   }
 
   if (/\b(right now|currently|happening now|status)\b/.test(q) || (q.includes('what') && q.includes('happening'))) {
-    const p = primaryAlert(snap);
-    return reply('right_now', p?.id ?? null, buildRightNowAnswerBody(snap));
+    return reply('right_now', grounding?.id ?? null, buildRightNowAnswerBody(snap, grounding));
   }
 
   if (/\b(navigate|where do i|console|menu|ocp)\b/.test(q)) {
-    const p = primaryAlert(snap);
     const prefix = buildContinuityPrefix(userMessage, recentTurns);
     return reply(
       'navigate',
-      p?.id ?? null,
+      grounding?.id ?? null,
       prefix +
         'In the **Administrator** perspective, use **Observe > Alerting** (rules and firing alerts), **Observe > Metrics** (Prometheus explorer), **Observe > Dashboards** (saved views), and **Observe > Targets** for scrape health. ' +
-        buildSituationBriefing(snap)
+        buildSituationBriefing(snap, grounding)
     );
   }
 
@@ -465,7 +597,7 @@ export function composeAdvisorReply(
     );
   }
 
-  const p = primaryAlert(snap);
+  const p = grounding;
   if (!p) {
     const pl = formatPlayAlongContext(snap);
     if (pl) {
