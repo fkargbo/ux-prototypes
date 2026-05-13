@@ -414,6 +414,12 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const messageBoxRef = useRef<MessageBoxHandle | null>(null);
   /** Bumps when the user clears chat so the empty intro + welcome prompts remount cleanly. */
   const [emptyIntroMountKey, setEmptyIntroMountKey] = useState(0);
+  /**
+   * After the first in-thread action from the empty state (e.g. “Summarize incident context” or sending a message),
+   * keep the intro + welcome prompts in the same scrollable MessageBox above messages so the thread grows downward
+   * instead of replacing the “landing” view.
+   */
+  const [persistEmptyIntroInScroll, setPersistEmptyIntroInScroll] = useState(false);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const olsChromeDockRef = useRef<HTMLDivElement>(null);
   const olsLauncherStackRef = useRef<HTMLDivElement>(null);
@@ -667,6 +673,10 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     const messageText = String(message);
     if (!messageText.trim()) return;
 
+    if (messagesRef.current.length === 0) {
+      setPersistEmptyIntroInScroll(true);
+    }
+
     // Rejection trigger: respond with disclaimer + manual steps (CodeBlock).
     if (isRejectionTrigger(messageText)) {
       const date = new Date();
@@ -797,6 +807,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
     setMessages([]);
     resetConversationMemory();
+    setPersistEmptyIntroInScroll(false);
 
     workflowStageRef.current = 'stage1';
     
@@ -1195,6 +1206,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     setSelectedQuickResponses([]);
     workflowStageRef.current = 'idle';
     setAnnouncement(undefined);
+    setPersistEmptyIntroInScroll(false);
     setEmptyIntroMountKey((k) => k + 1);
   }, []);
 
@@ -1209,16 +1221,16 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       return;
     }
     const ts = new Date().toLocaleString();
-    setMessages([
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        role: 'bot',
-        content: buildObserveToChatHandoff(snap),
-        name: BOT_DISPLAY_NAME,
-        avatar: botAvatarSrc,
-        timestamp: ts,
-      },
-    ]);
+    const briefing: MessageProps = {
+      id: `${Date.now()}-${Math.random()}`,
+      role: 'bot',
+      content: buildObserveToChatHandoff(snap),
+      name: BOT_DISPLAY_NAME,
+      avatar: botAvatarSrc,
+      timestamp: ts,
+    };
+    setPersistEmptyIntroInScroll(true);
+    setMessages((prev) => [...prev, briefing]);
     seedAdvisorMemoryFromSnapshot(snap);
     setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Autonomous analysis incident briefing.`);
   }, []);
@@ -1240,6 +1252,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       avatar: botAvatarSrc,
       timestamp: ts,
     };
+    setPersistEmptyIntroInScroll(false);
     setMessages([opening]);
     seedAdvisorMemoryFromHandoffAlert(ctx.alertId);
     setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: ${ctx.diagnosisName} context.`);
@@ -1313,7 +1326,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                   announcement={announcement}
                   style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}
                 >
-                  {messages.length === 0 && (
+                  {(messages.length === 0 || persistEmptyIntroInScroll) && (
                     <React.Fragment key={`ols-empty-intro-${emptyIntroMountKey}`}>
                       <div className="lightspeed-empty-intro">
                         <div className="lightspeed-empty-mark" aria-hidden>
