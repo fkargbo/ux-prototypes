@@ -395,10 +395,14 @@ button[aria-label="View task details"] {
   visibility: visible !important;
 }
 
-/* Ensure message avatars are visible and properly sized */
-.ols-prototype-ai-drawer .pf-v6-c-message__avatar,
-.ols-prototype-ai-drawer .pf-v6-c-avatar {
-  display: flex !important;
+/*
+ * Chatbot message avatars are <img class="pf-chatbot__message-avatar pf-v6-c-avatar">.
+ * Do not use display:flex on <img> — it breaks intrinsic image painting in several engines.
+ * Scope to message avatars only (not every .pf-v6-c-avatar in the drawer).
+ */
+.ols-prototype-ai-drawer .pf-chatbot__message-avatar.pf-v6-c-avatar {
+  display: block !important;
+  box-sizing: border-box !important;
   visibility: visible !important;
   opacity: 1 !important;
   width: 48px !important;
@@ -408,6 +412,7 @@ button[aria-label="View task details"] {
   max-width: 48px !important;
   max-height: 48px !important;
   flex-shrink: 0 !important;
+  object-fit: cover !important;
 }
 
 /* Launcher host: laid out inside `.ols-ai-chrome-dock` (relative + flex); not viewport-fixed here. */
