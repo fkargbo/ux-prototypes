@@ -619,6 +619,11 @@ button[aria-label="View task details"] {
   margin-top: var(--pf-t--global--spacer--md);
 }
 
+/* Empty-state: optional warning when Observe scope has an active incident (user opts in via link) */
+.ols-prototype-ai-drawer .lightspeed-active-incident-alert.pf-v6-c-alert {
+  margin-top: var(--pf-t--global--spacer--md);
+}
+
 .lightspeed-empty-intro {
   padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md) 0;
 }

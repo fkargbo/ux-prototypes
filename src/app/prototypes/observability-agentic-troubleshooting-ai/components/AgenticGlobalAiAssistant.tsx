@@ -106,6 +106,7 @@ import ChatbotFooter, { ChatbotFootnote } from '@patternfly/chatbot/dist/dynamic
 import ChatbotToggle from '@patternfly/chatbot/dist/dynamic/ChatbotToggle';
 import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
+import type { MessageBoxHandle } from '@patternfly/chatbot/dist/esm/MessageBox/MessageBox';
 import Message, { MessageProps } from '@patternfly/chatbot/dist/dynamic/Message';
 import ChatbotHeader, { ChatbotHeaderMain, ChatbotHeaderTitle, ChatbotHeaderActions } from '@patternfly/chatbot/dist/esm/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
@@ -408,13 +409,14 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const [isSendButtonDisabled, setIsSendButtonDisabled] = useState(false);
   const [announcement, setAnnouncement] = useState<string>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageBoxRef = useRef<MessageBoxHandle | null>(null);
+  /** Bumps when the user clears chat so the empty intro + welcome prompts remount cleanly. */
+  const [emptyIntroMountKey, setEmptyIntroMountKey] = useState(0);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const olsChromeDockRef = useRef<HTMLDivElement>(null);
   const olsLauncherStackRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
-  /** Suppress duplicate Autonomous analysis → OLS intro when the drawer is reopened. */
-  const observeIntroHandoffShownRef = useRef(false);
 
   const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
     setSelectedQuickResponses((prev) => {
@@ -631,6 +633,14 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     }
   }, [messages]);
 
+  /** After clear (or first open on empty thread), show the default intro from the top of the scroll region. */
+  useLayoutEffect(() => {
+    if (!isDrawerOpen || messages.length > 0) {
+      return;
+    }
+    messageBoxRef.current?.scrollToTop?.({ behavior: 'auto' });
+  }, [isDrawerOpen, messages.length, emptyIntroMountKey]);
+
   // Generate unique ID for messages
   const generateId = () => {
     const id = Date.now() + Math.random();
@@ -783,7 +793,6 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
     setIsDrawerOpen(true);
 
-    observeIntroHandoffShownRef.current = false;
     setMessages([]);
     resetConversationMemory();
 
@@ -1117,47 +1126,36 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     resetConversationMemory();
     setSelectedQuickResponses([]);
     workflowStageRef.current = 'idle';
-    observeIntroHandoffShownRef.current = false;
     setAnnouncement(undefined);
+    setEmptyIntroMountKey((k) => k + 1);
   }, []);
 
   const toggleChatDrawer = useCallback(() => {
-    setIsDrawerOpen((prev) => {
-      const next = !prev;
-      if (next) {
-        queueMicrotask(() => {
-          if (observeIntroHandoffShownRef.current) {
-            return;
-          }
-          const snap = getSimulationSnapshot();
-          if (!snap.isIncidentActive) {
-            return;
-          }
-          if (messagesRef.current.length > 0) {
-            return;
-          }
-          observeIntroHandoffShownRef.current = true;
-          const ts = new Date().toLocaleString();
-          setMessages([
-            {
-              id: generateId(),
-              role: 'bot',
-              content: buildObserveToChatHandoff(snap),
-              name: BOT_DISPLAY_NAME,
-              avatar: botAvatarSrc,
-              timestamp: ts,
-            },
-          ]);
-          seedAdvisorMemoryFromSnapshot(snap);
-          setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Autonomous analysis handoff.`);
-        });
-      }
-      return next;
-    });
+    setIsDrawerOpen((prev) => !prev);
+  }, []);
+
+  /** From empty state: load the same briefing that used to auto-inject on first open with an active incident. */
+  const handleLoadIncidentBriefingFromEmptyIntro = useCallback(() => {
+    const snap = getSimulationSnapshot();
+    if (!snap.isIncidentActive) {
+      return;
+    }
+    const ts = new Date().toLocaleString();
+    setMessages([
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        role: 'bot',
+        content: buildObserveToChatHandoff(snap),
+        name: BOT_DISPLAY_NAME,
+        avatar: botAvatarSrc,
+        timestamp: ts,
+      },
+    ]);
+    seedAdvisorMemoryFromSnapshot(snap);
+    setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Autonomous analysis incident briefing.`);
   }, []);
 
   const handleOpenDiscussWithLightspeed = useCallback((ctx: DiscussLightspeedContext) => {
-    observeIntroHandoffShownRef.current = true;
     const snap = getSimulationSnapshot();
     const handoff: SimulationHandoff = {
       source: ctx.cardId === 'remediation' ? 'discuss-remediation' : 'discuss-rca',
@@ -1242,9 +1240,13 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                 </ChatbotHeaderActions>
               </ChatbotHeader>
               <ChatbotContent style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-                <MessageBox announcement={announcement} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}>
+                <MessageBox
+                  ref={messageBoxRef}
+                  announcement={announcement}
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}
+                >
                   {messages.length === 0 && (
-                    <>
+                    <React.Fragment key={`ols-empty-intro-${emptyIntroMountKey}`}>
                       <div className="lightspeed-empty-intro">
                         <div className="lightspeed-empty-mark" aria-hidden>
                           <LightspeedHeaderMark />
@@ -1252,10 +1254,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                         <Content>
                           <p>
                             Ask questions in natural language about OpenShift and Kubernetes for this console scope.
-                            Context from <strong>Autonomous analysis</strong> is available here:
-                            {simulation.isIncidentActive
-                              ? ` active incident view — ${situationLine}`
-                              : ` ${situationLine}`}{' '}
+                            Context from <strong>Autonomous analysis</strong> for this scope: {situationLine}{' '}
                             Use follow-up questions in this chat to refine answers; specific wording (namespace, workload,
                             console page) improves results, as described in the OpenShift Lightspeed documentation.
                           </p>
@@ -1269,6 +1268,24 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                           This tool uses AI-generated responses. Avoid pasting secrets, credentials, or regulated data.
                           Always review output before acting on it.
                         </Alert>
+                        {simulation.isIncidentActive ? (
+                          <Alert
+                            variant="warning"
+                            isInline
+                            title="Active incident in this scope"
+                            className="lightspeed-active-incident-alert"
+                            actionLinks={
+                              <Button variant="link" isInline onClick={handleLoadIncidentBriefingFromEmptyIntro}>
+                                Summarize incident context
+                              </Button>
+                            }
+                          >
+                            Autonomous analysis shows active investigations in the current Observe scope. If you would
+                            like a concise briefing grounded in the leading alert and causal chain, use the action
+                            above—or type your own question (for example, name a firing alert or ask what is happening
+                            right now).
+                          </Alert>
+                        ) : null}
                       </div>
                       <ChatbotWelcomePrompt
                         className="lightspeed-welcome-prompt--prompts-only"
@@ -1276,7 +1293,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                         description=""
                         prompts={welcomePrompts}
                       />
-                    </>
+                    </React.Fragment>
                   )}
                   {messages.map((message, index) => {
                     const msg = message as MessageWithCustomPills;
