@@ -125,7 +125,8 @@ import {
   buildRecentTurnsForAdvisor,
   buildSituationBriefing,
   composeAdvisorReply,
-  getCriticalAlertsNewestFirst,
+  getCriticalPriorityShowcaseItems,
+  getScopeCriticalCountIncludingFleet,
   seedAdvisorMemoryFromHandoffAlert,
   seedAdvisorMemoryFromSnapshot,
 } from '../simulation/olsAdvisorBrain';
@@ -1124,8 +1125,9 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
 
   /** Empty-state copy: critical count + top signals + why AI Troubleshooting Hub / Autonomous analysis matter. */
   const hubPriorityEmptyIntro = useMemo(() => {
-    const criticals = getCriticalAlertsNewestFirst(simulation);
-    if (criticals.length === 0) {
+    const scopeCriticalTotal = getScopeCriticalCountIncludingFleet(simulation);
+    const showcase = getCriticalPriorityShowcaseItems(simulation);
+    if (scopeCriticalTotal === 0 || showcase.length === 0) {
       return null;
     }
     const isFleet = simulation.isMultiCluster && simulation.viewMode === 'fleet';
@@ -1134,28 +1136,30 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       : simulation.selectedClusterName
         ? `on cluster ${simulation.selectedClusterName}`
         : 'in this Observe scope';
-    const top = criticals.slice(0, 3);
-    const lead = criticals[0];
-    const because =
-      criticals.length === 1 ? (
-        <>
-          Start with <strong>{lead.title}</strong> because Autonomous analysis is already anchored on that critical
-          while the hub collects correlated evidence and guided next steps.
-        </>
-      ) : (
-        <>
-          Start with <strong>{lead.title}</strong> first because it is the newest critical signal in this
-          simulation—the hub uses that ordering to stack-rank triage, then widens to dependent paths as evidence
-          lands.
-        </>
-      );
+    const lead = showcase[0];
+    const because = lead.isFleetWide ? (
+      <>
+        Start with <strong>{lead.title}</strong> first because it is a fleet-wide incident spanning multiple
+        clusters—the hub aggregates blast radius and correlated ingress evidence before deeper per-cluster work.
+      </>
+    ) : scopeCriticalTotal === 1 ? (
+      <>
+        Start with <strong>{lead.title}</strong> because Autonomous analysis is already anchored on that critical
+        while the hub collects correlated evidence and guided next steps.
+      </>
+    ) : (
+      <>
+        Start with <strong>{lead.title}</strong> first because it is the highest-priority distinct critical signal in
+        this view—the hub uses that ordering to stack-rank triage, then widens to dependent paths as evidence lands.
+      </>
+    );
 
     return (
       <div className="lightspeed-empty-intro-priority">
         <p>
-          There <strong>{criticals.length === 1 ? 'is' : 'are'}</strong> <strong>{criticals.length}</strong> critical
-          alert(s) {scopeWhere}. When several criticals fire together, it is difficult to know which deserves attention
-          first.
+          There <strong>{scopeCriticalTotal === 1 ? 'is' : 'are'}</strong> <strong>{scopeCriticalTotal}</strong>{' '}
+          critical alert(s) {scopeWhere}. When several criticals fire together, it is difficult to know which deserves
+          attention first.
         </p>
         <p>
           The <strong>AI Troubleshooting Hub</strong> is where this experience surfaces what should top your list:{' '}
@@ -1163,17 +1167,17 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
           fixes so you work in priority order instead of treating every firing rule as equally urgent.
         </p>
         <p>
-          {criticals.length > 1 ? (
+          {scopeCriticalTotal > 1 ? (
             <>
-              Here are the top <strong>{top.length}</strong> you should focus on in this view (newest criticals
-              first):
+              Here are up to <strong>{showcase.length}</strong> distinct signals to focus on in this view (fleet-wide
+              first in fleet scope, then newest rule family per title):
             </>
           ) : (
             <>The critical Autonomous analysis is leading with in this view:</>
           )}
         </p>
         <ol className="lightspeed-empty-intro-priority-list">
-          {top.map((a) => (
+          {showcase.map((a) => (
             <li key={a.id}>
               <strong>{a.title}</strong>
               <span className="lightspeed-empty-intro-priority-meta"> — {a.service}</span>

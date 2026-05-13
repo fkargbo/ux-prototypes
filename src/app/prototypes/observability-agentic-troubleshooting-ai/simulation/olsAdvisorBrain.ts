@@ -108,6 +108,55 @@ export function getCriticalAlertsNewestFirst(snap: SimulationSnapshot): Simulati
   return snap.alerts.filter((a) => a.severity === 'critical').sort((a, b) => b.firedAt.localeCompare(a.firedAt));
 }
 
+/**
+ * Rows for empty-state “top focus” copy: up to three **distinct rule titles**, newest cluster alerts first,
+ * with the fleet-wide ingress incident prepended in fleet view (it is not stored on `snap.alerts`).
+ */
+export type PriorityShowcaseItem = {
+  id: string;
+  title: string;
+  service: string;
+  /** True when this row is `FLEET_WIDE_REGIONAL_INGRESS`, not a `snap.alerts` row. */
+  isFleetWide?: boolean;
+};
+
+/** Critical firing rows in `snap.alerts` plus one when fleet-wide ingress is active in fleet scope. */
+export function getScopeCriticalCountIncludingFleet(snap: SimulationSnapshot): number {
+  const rows = getCriticalAlertsNewestFirst(snap).length;
+  const isFleet = snap.isMultiCluster && snap.viewMode === 'fleet';
+  if (isFleet && FLEET_WIDE_REGIONAL_INGRESS.severity === 'critical') {
+    return rows + 1;
+  }
+  return rows;
+}
+
+export function getCriticalPriorityShowcaseItems(snap: SimulationSnapshot): PriorityShowcaseItem[] {
+  const isFleet = snap.isMultiCluster && snap.viewMode === 'fleet';
+  const out: PriorityShowcaseItem[] = [];
+  const seenTitles = new Set<string>();
+
+  if (isFleet && FLEET_WIDE_REGIONAL_INGRESS.severity === 'critical') {
+    const fw = FLEET_WIDE_REGIONAL_INGRESS;
+    out.push({
+      id: fw.id,
+      title: fw.title,
+      service: `Fleet — ${fw.affectedClusterIds.length} clusters`,
+      isFleetWide: true,
+    });
+    seenTitles.add(fw.title);
+  }
+
+  const criticals = getCriticalAlertsNewestFirst(snap);
+  for (const a of criticals) {
+    if (out.length >= 3) break;
+    if (seenTitles.has(a.title)) continue;
+    seenTitles.add(a.title);
+    out.push({ id: a.id, title: a.title, service: a.service });
+  }
+
+  return out;
+}
+
 function primaryAlert(snap: SimulationSnapshot): SimulationAlertBrief | undefined {
   const crit = getCriticalAlertsNewestFirst(snap);
   if (crit.length) {
