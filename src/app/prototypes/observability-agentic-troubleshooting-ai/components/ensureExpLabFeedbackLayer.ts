@@ -6,11 +6,19 @@ const SCRIPT_ID = 'exp-lab-feedback-layer-script';
  * URL for the ExP-Lab IIFE bundle (source: git submodule `exp-lab` → github.com/fkargbo/exp-lab;
  * see `guides/exp-lab-hpux-prototypes.md`).
  *
+ * **Production override:** set `EXP_LAB_FEEDBACK_SCRIPT_URL` at **webpack build time** (root `.env` or
+ * GitHub Actions env, e.g. `https://fkargbo.github.io/exp-lab/feedback-layer.js`) to load the layer from
+ * your own Pages build (with Supabase env baked in there) instead of same-origin `…/HPUX-Prototypes/feedback-layer.js`.
+ *
  * Local dev: `cd exp-lab && npm run build` — webpack-dev-server serves `exp-lab/dist/` at `/feedback-layer.js`
  * (see root `webpack.dev.js`). Optionally copy `feedback-layer.js` into root `dist/` instead.
  */
 export function getExpLabFeedbackScriptUrl(): string {
+  const buildTimeOverride = String(process.env.EXP_LAB_FEEDBACK_SCRIPT_URL ?? '').trim();
   if (process.env.NODE_ENV === 'production') {
+    if (buildTimeOverride) {
+      return buildTimeOverride;
+    }
     return `${window.location.origin}${GITHUB_PAGES_BASENAME}/feedback-layer.js`;
   }
   return `${window.location.origin}/feedback-layer.js`;

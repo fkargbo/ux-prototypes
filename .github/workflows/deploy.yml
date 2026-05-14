@@ -37,6 +37,8 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+          # Optional: full URL to feedback-layer.js (e.g. fkargbo Pages build with Supabase). Repo → Settings → Variables.
+          EXP_LAB_FEEDBACK_SCRIPT_URL: ${{ vars.EXP_LAB_FEEDBACK_SCRIPT_URL }}
 
       - name: Build ExP-Lab feedback layer and copy to dist
         env:
