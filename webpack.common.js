@@ -6,8 +6,23 @@ import CopyPlugin from 'copy-webpack-plugin';
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 import Dotenv from 'dotenv-webpack';
 const BG_IMAGES_DIRNAME = 'bgimages';
-// In development, use root path '/'. In production, use GitHub Pages path '/HPUX-Prototypes/'
-const ASSET_PATH = process.env.ASSET_PATH || (process.env.NODE_ENV === 'production' ? '/HPUX-Prototypes/' : '/');
+
+/** GitHub project pages live at https://<user>.github.io/<repo>/ — basename is `/<repo>` (no trailing slash). */
+function githubPagesBasenameNoSlash() {
+  if (process.env.NODE_ENV !== 'production') {
+    return '';
+  }
+  const raw = String(process.env.GITHUB_PAGES_BASENAME || '/ux-prototypes').trim();
+  const trimmed = raw.replace(/\/+$/, '');
+  if (!trimmed) {
+    return '/ux-prototypes';
+  }
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
+
+const ghPagesBasePath = githubPagesBasenameNoSlash();
+const ASSET_PATH =
+  process.env.ASSET_PATH || (process.env.NODE_ENV === 'production' ? `${ghPagesBasePath}/` : '/');
 
 export default (env) => {
   return {
@@ -100,7 +115,7 @@ export default (env) => {
     plugins: [
       new HtmlWebpackPlugin({
         template: path.resolve('./src', 'index.html'),
-        base: process.env.NODE_ENV === 'production' ? '/acm-user-interface/' : '/',
+        base: process.env.NODE_ENV === 'production' ? `${ghPagesBasePath}/` : '/',
       }),
       new Dotenv({
         systemvars: true,

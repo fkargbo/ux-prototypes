@@ -26,6 +26,8 @@ export default merge(common('production'), {
     /** Bakes `EXP_LAB_FEEDBACK_SCRIPT_URL` from the build environment (e.g. GitHub Actions vars) into the client bundle. */
     new webpack.EnvironmentPlugin({
       EXP_LAB_FEEDBACK_SCRIPT_URL: '',
+      /** Must match GitHub project repo name segment (see webpack.common.js `githubPagesBasenameNoSlash`). */
+      GITHUB_PAGES_BASENAME: '/ux-prototypes',
     }),
     new MiniCssExtractPlugin({
       filename: '[name].css',

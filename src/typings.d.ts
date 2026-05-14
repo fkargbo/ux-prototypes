@@ -1,3 +1,9 @@
+declare namespace NodeJS {
+  interface ProcessEnv {
+    GITHUB_PAGES_BASENAME?: string;
+  }
+}
+
 declare module '*.png';
 declare module '*.jpg';
 declare module '*.jpeg';

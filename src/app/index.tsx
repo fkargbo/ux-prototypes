@@ -45,8 +45,11 @@ const AppContent: React.FunctionComponent = () => {
 const App: React.FunctionComponent = () => {
   console.log('App component rendering');
   
-  // Set basename for GitHub Pages in production
-  const basename = process.env.NODE_ENV === 'production' ? '/HPUX-Prototypes' : '/';
+  // GitHub project pages: https://<user>.github.io/<repo>/ — basename is `/<repo>` (set at build via webpack).
+  const basename =
+    process.env.NODE_ENV === 'production'
+      ? String(process.env.GITHUB_PAGES_BASENAME || '/ux-prototypes').replace(/\/$/, '')
+      : '/';
   
   return (
     <Router basename={basename}>
