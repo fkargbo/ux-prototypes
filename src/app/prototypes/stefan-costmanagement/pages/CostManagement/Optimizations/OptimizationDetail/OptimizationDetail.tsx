@@ -199,7 +199,7 @@ const OptimizationDetail: React.FunctionComponent = () => {
                   Current configuration
                 </Title>
                 <CodeBlock>
-                  <CodeBlockCode style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                  <CodeBlockCode style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.875rem' }}>
                     {currentConfigCode}
                   </CodeBlockCode>
                 </CodeBlock>
@@ -220,7 +220,7 @@ const OptimizationDetail: React.FunctionComponent = () => {
                   </Button>
                 </Flex>
                 <CodeBlock>
-                  <CodeBlockCode style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                  <CodeBlockCode style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.875rem' }}>
                     {recommendedConfigCode}
                   </CodeBlockCode>
                 </CodeBlock>

@@ -26,8 +26,8 @@ export const config: PrototypeConfig = {
   version: 'v1.0',
   versionLabel: 'Initial Design',
   
-  // Status: 'draft' | 'in-progress' | 'done' | 'paused' | 'archived'
-  status: 'in-progress',
+  // Status: 'draft' | 'in-progress' | 'in-review' | 'done' | 'paused' | 'archived'
+  status: 'archived',
   
   // User persona for this prototype
   persona: {

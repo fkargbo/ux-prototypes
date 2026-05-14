@@ -280,7 +280,7 @@ changed: [linuxvm-web-prod-01]`,
                   <div style={{
                     backgroundColor: '#1e1e1e',
                     color: '#d4d4d4',
-                    fontFamily: 'monospace',
+                    fontFamily: 'var(--pf-t--global--font--family--mono)',
                     fontSize: '12px',
                     padding: '16px',
                     borderRadius: '4px',

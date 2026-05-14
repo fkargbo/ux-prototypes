@@ -379,7 +379,7 @@ export const QuotaDetail: React.FC = () => {
         {activeTabKey === 1 && (
           <Card style={{ backgroundColor: '#ffffff', border: '1px solid #d2d2d2' }}>
             <CardBody>
-              <pre style={{ fontFamily: 'monospace', fontSize: '14px' }}>
+              <pre style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '14px' }}>
                 {`apiVersion: quota.openshift.io/v1
 kind: ApplicationAwareClusterResourceQuota
 metadata:

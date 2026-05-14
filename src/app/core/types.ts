@@ -7,7 +7,7 @@ import React from 'react';
 /**
  * Prototype status in its lifecycle
  */
-export type PrototypeStatus = 'draft' | 'in-progress' | 'done' | 'paused' | 'archived';
+export type PrototypeStatus = 'draft' | 'in-progress' | 'in-review' | 'done' | 'paused' | 'archived';
 
 /**
  * Available perspectives in the application
@@ -61,6 +61,14 @@ export interface PrototypeConfig {
   versionGroup?: string; // Groups related versions together (e.g., 'fleet-admin-rbac')
   version: string;       // Version identifier (e.g., 'v1', 'v2', 'final', '1.0.0')
   versionLabel?: string; // Optional display label (e.g., 'Initial Design', 'Iteration 2')
+  /**
+   * Optional banner “Version” dropdown for the same prototype module (vs. separate registry entries via `versionGroup`).
+   * Selection is stored under `hpux.bannerVersion.${id}`; listen via `useBannerVersionSelection` or the `hpux-banner-version-change` event.
+   */
+  bannerVersionPicker?: {
+    options: Array<{ key: string; label: string }>;
+    defaultKey?: string;
+  };
   
   // Ownership
   owner: PrototypeOwner;
@@ -100,6 +108,10 @@ export interface RouteConfig {
     group: string;
     order?: number;
     icon?: React.ComponentType;
+    /** Optional second-level label under `group` (e.g. Observe → AI Hub → …). */
+    subMenu?: string;
+    /** Order among siblings inside the same `subMenu`. */
+    subMenuOrder?: number;
   };
 }
 
@@ -131,6 +143,16 @@ export interface PrototypeModule {
   component?: React.ComponentType; // React component wrapper for the prototype
   onActivate?: () => void;
   onDeactivate?: () => void;
+  /**
+   * Optional node rendered in the prototype banner toolbar immediately before the version control.
+   * Supply via the prototype `routes` module export `bannerBeforeVersionPicker`.
+   */
+  bannerBeforeVersionPicker?: React.ReactNode;
+  /**
+   * Optional wrapper around the entire prototype shell (e.g. React context). Supply via the prototype
+   * `routes` module export `prototypeRootWrapper`.
+   */
+  prototypeRootWrapper?: React.ComponentType<{ children: React.ReactNode }>;
 }
 
 /**
@@ -161,6 +183,8 @@ export interface PrototypeContextType {
   loadPrototype: (id: string) => Promise<void>;
   unloadPrototype: () => void;
   isLoading: boolean;
+  /** True until registry init finishes and optional deep-link prototype load completes */
+  isBootstrapping: boolean;
   error: Error | null;
 }
 

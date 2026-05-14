@@ -17,6 +17,9 @@ import {
   MenuToggle,
   MenuToggleElement,
   PageSection,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
 import { AppLayout } from '@app/AppLayout/AppLayout';
@@ -24,6 +27,11 @@ import { PrototypeModule } from './types';
 import { QuotasProvider } from '@app/shared/contexts/QuotasContext';
 import { usePrototype } from './PrototypeContext';
 import { prototypeRegistry } from './PrototypeRegistry';
+import { GITHUB_PAGES_BASENAME } from './deepLinkUtils';
+import {
+  BANNER_VERSION_CHANGE_EVENT,
+  getBannerVersionStorageKey,
+} from './bannerVersionPicker';
 
 interface PrototypeLayoutProps {
   prototype: PrototypeModule;
@@ -34,7 +42,28 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   const navigate = useNavigate();
   const location = useLocation();
   const [isVersionOpen, setIsVersionOpen] = useState(false);
+  const [isBannerPickerOpen, setIsBannerPickerOpen] = useState(false);
   const [isUseCaseOpen, setIsUseCaseOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const sharePageUrl = React.useMemo(() => {
+    const base = process.env.NODE_ENV === 'production' ? GITHUB_PAGES_BASENAME : '';
+    const u = new URL(`${base}${location.pathname}${location.search}${location.hash}`, window.location.origin);
+    u.searchParams.set('prototype', prototype.config.id);
+    return u.toString();
+  }, [prototype.config.id, location.pathname, location.search, location.hash]);
+
+  const handleCopyShareLink = React.useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(sharePageUrl);
+      setLinkCopied(true);
+      setIsShareOpen(false);
+      window.setTimeout(() => setLinkCopied(false), 2500);
+    } catch {
+      window.prompt('Copy this link:', sharePageUrl);
+    }
+  }, [sharePageUrl]);
   
   // Check if this prototype has versions (siblings with same versionGroup)
   const allPrototypes = prototypeRegistry.getAll();
@@ -71,6 +100,45 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   
   const hasVersions = versions.length > 1;
   const hasUseCases = siblings.length > 1;
+
+  const bannerPickerCfg = prototype.config.bannerVersionPicker;
+  const bannerPickerOptions = bannerPickerCfg?.options ?? [];
+  const showBannerVersionPicker = bannerPickerOptions.length > 1;
+  const defaultBannerPickerKey =
+    bannerPickerCfg?.defaultKey ?? bannerPickerOptions[0]?.key ?? '';
+
+  const [bannerPickerKey, setBannerPickerKey] = useState(() => {
+    if (!showBannerVersionPicker) {
+      return defaultBannerPickerKey;
+    }
+    try {
+      const raw = sessionStorage.getItem(getBannerVersionStorageKey(prototype.config.id));
+      if (raw && bannerPickerOptions.some((o) => o.key === raw)) {
+        return raw;
+      }
+    } catch {
+      /* ignore */
+    }
+    return defaultBannerPickerKey;
+  });
+
+  const bannerPickerDisplayLabel =
+    bannerPickerOptions.find((o) => o.key === bannerPickerKey)?.label ?? prototype.config.version;
+
+  const handleBannerPickerSelect = (key: string) => {
+    setBannerPickerKey(key);
+    try {
+      sessionStorage.setItem(getBannerVersionStorageKey(prototype.config.id), key);
+    } catch {
+      /* ignore */
+    }
+    window.dispatchEvent(
+      new CustomEvent(BANNER_VERSION_CHANGE_EVENT, {
+        detail: { prototypeId: prototype.config.id, key },
+      })
+    );
+    setIsBannerPickerOpen(false);
+  };
   
   const handleBackToLauncher = () => {
     unloadPrototype();
@@ -104,6 +172,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
         </FlexItem>
         
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          {prototype.bannerBeforeVersionPicker ? <FlexItem>{prototype.bannerBeforeVersionPicker}</FlexItem> : null}
           {/* Version Selector or Display */}
           {hasVersions ? (
             <FlexItem>
@@ -117,6 +186,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
                     onClick={() => setIsVersionOpen(!isVersionOpen)}
                     isExpanded={isVersionOpen}
                     variant="secondary"
+                    size="sm"
                   >
                     Version: {prototype.config.version}
                   </MenuToggle>
@@ -130,6 +200,37 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
                       isSelected={version.config.id === prototype.config.id}
                     >
                       {version.config.version}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </FlexItem>
+          ) : showBannerVersionPicker ? (
+            <FlexItem>
+              <Select
+                isOpen={isBannerPickerOpen}
+                onSelect={(_, value) => handleBannerPickerSelect(value as string)}
+                onOpenChange={(open) => setIsBannerPickerOpen(open)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsBannerPickerOpen(!isBannerPickerOpen)}
+                    isExpanded={isBannerPickerOpen}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Version: {bannerPickerDisplayLabel}
+                  </MenuToggle>
+                )}
+              >
+                <SelectList>
+                  {bannerPickerOptions.map((opt) => (
+                    <SelectOption
+                      key={opt.key}
+                      value={opt.key}
+                      isSelected={opt.key === bannerPickerKey}
+                    >
+                      {opt.label}
                     </SelectOption>
                   ))}
                 </SelectList>
@@ -156,6 +257,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
                     onClick={() => setIsUseCaseOpen(!isUseCaseOpen)}
                     isExpanded={isUseCaseOpen}
                     variant="secondary"
+                    size="sm"
                   >
                     Use Case: {prototype.config.name}
                   </MenuToggle>
@@ -175,6 +277,37 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
               </Select>
             </FlexItem>
           )}
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+              <Dropdown
+                isOpen={isShareOpen}
+                onSelect={() => setIsShareOpen(false)}
+                onOpenChange={(open) => setIsShareOpen(open)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsShareOpen(!isShareOpen)}
+                    isExpanded={isShareOpen}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Share
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem key="copy-link" onClick={() => void handleCopyShareLink()}>
+                    Copy link
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+              {linkCopied && (
+                <span style={{ color: 'var(--pf-v5-global--active-color--400)', fontSize: 'var(--pf-global--FontSize--sm)' }}>
+                  Copied
+                </span>
+              )}
+            </Flex>
+          </FlexItem>
         </Flex>
       </Flex>
     </Banner>

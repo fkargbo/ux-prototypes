@@ -1,11 +1,19 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
+import fs from 'fs';
 import path from 'path';
 import { merge } from 'webpack-merge';
 import common from './webpack.common.js';
 import { stylePaths } from './stylePaths.js';
 const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT || '3000';
+
+/** Serve ExP-Lab `feedback-layer.js` without copying into root `dist/` (after `cd exp-lab && npm run build`). */
+const expLabDistPath = path.resolve('./exp-lab/dist');
+const devStaticDirectories = [path.resolve('./dist')];
+if (fs.existsSync(expLabDistPath)) {
+  devStaticDirectories.unshift(expLabDistPath);
+}
 
 export default merge(common('development'), {
   mode: 'development',
@@ -15,9 +23,7 @@ export default merge(common('development'), {
     port: PORT,
     historyApiFallback: true,
     open: true,
-    static: {
-      directory: path.resolve('./dist'),
-    },
+    static: devStaticDirectories,
     client: {
       overlay: true,
     },

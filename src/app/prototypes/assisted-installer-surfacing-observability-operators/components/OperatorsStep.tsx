@@ -774,7 +774,7 @@ export const OperatorsStep: React.FC<OperatorsStepProps> = ({
                                               fontSize: '11px', 
                                               fontWeight: 'bold',
                                               lineHeight: '1',
-                                              fontFamily: 'sans-serif'
+                                              fontFamily: 'var(--pf-t--global--font--family--body)'
                                             }}>
                                               i
                                             </span>

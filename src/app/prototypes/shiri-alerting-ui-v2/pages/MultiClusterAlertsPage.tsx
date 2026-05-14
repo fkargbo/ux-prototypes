@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { getPatternFlyBodyFontFamily } from '@app/chartFontFamily';
 import ReactECharts from 'echarts-for-react';
 import {
   PageSection,
@@ -196,31 +197,31 @@ import type {
   ColumnConfig, SavedFilter, ToastNotification,
   AlertRuleState, AlertRuleSource, AlertRuleActiveAlert, AlertRuleModification, AlertRule,
   EnvironmentCategory, TeamCategory,
-} from './types';
+} from '../data/types';
 import {
   getClusterAlertStatus, getStatusBackgroundColor, getSeverityLabelColor,
   getStatusLabelColor, getSeverityIcon, getUniqueValues, getAllLabels,
   getAllNamespaces, getAllAlerts, getTileValue,
-} from './utils';
-import { AllAlertsCard } from './AllAlertsCard';
-import { FilterPanel } from './FilterPanel';
-import { AlertTimelineVisualization } from './AlertTimelineVisualization';
-import { AlertDetailDrawer } from './AlertDetailDrawer';
-import { AlertRuleDrawer } from './AlertRuleDrawer';
-import { ClusterComponentsHealth } from './ClusterComponentsHealth';
-import { AlertsTimelineCard } from './AlertsTimelineCard';
-import { CrossClusterInsightsCards } from './CrossClusterInsightsCards';
-
-
-import { TreemapHeatmap } from './TreemapHeatmap';
-import { ManagementTab } from './ManagementTab';
-import { SettingsModals } from './SettingsModals';
-import { SavedFiltersModals } from './SavedFiltersModals';
-import { DrillDownContent } from './DrillDownContent';
-import { FleetOverviewTab } from './FleetOverviewTab';
-import { FleetOverviewToolbar } from './FleetOverviewToolbar';
-import { AlertsTabFleetOverviewContent } from './AlertsTabFleetOverviewContent';
-import { mockAlertRules, mockTrendData, mockClusters } from './mockData';
+} from '../data/utils';
+import { AllAlertsCard } from '../components/AllAlertsCard';
+import { FilterPanel } from '../components/FilterPanel';
+import { AlertTimelineVisualization } from '../components/AlertTimelineVisualization';
+import { AlertDetailDrawer } from '../components/AlertDetailDrawer';
+import { AlertRuleDrawer } from '../components/AlertRuleDrawer';
+import { ClusterComponentsHealth } from '../components/ClusterComponentsHealth';
+import { AlertsTimelineCard } from '../components/AlertsTimelineCard';
+import { CrossClusterInsightsCards } from '../components/CrossClusterInsightsCards';
+import { TreemapHeatmap } from '../components/TreemapHeatmap';
+import { ManagementTab } from '../components/ManagementTab';
+import { SettingsModals } from '../components/SettingsModals';
+import { EditAlertRuleLabelsModal } from '../components/EditAlertRuleLabelsModal';
+import { ChangeAlertRuleComponentModal } from '../components/ChangeAlertRuleComponentModal';
+import { SavedFiltersModals } from '../components/SavedFiltersModals';
+import { DrillDownContent } from '../components/DrillDownContent';
+import { FleetOverviewTab } from '../components/FleetOverviewTab';
+import { FleetOverviewToolbar } from '../components/FleetOverviewToolbar';
+import { AlertsTabFleetOverviewContent } from '../components/AlertsTabFleetOverviewContent';
+import { mockAlertRules, mockTrendData, mockClusters } from '../data/mockData';
 
 
 // ========================================
@@ -299,6 +300,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setMainPageTab('fleet-overview');
     setCameFromFleetOverview(false);
     setClusterFilter([]);
+    setAlertsTabClusterFilter([]);
     setMainComponentFilter(null);
     setMainAlertNameFilter(null);
     setSelectedClusterForAlerts(null);
@@ -499,7 +501,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         }
       } else {
         const maxPriority = prevConfigs.length > 0 ? Math.max(...prevConfigs.map(c => c.priority)) : 0;
-        return [...prevConfigs, { column, direction: 'asc' as SortDirection, priority: maxPriority + 1 }];
+        const defaultDirection: SortDirection = column === 'total' ? 'desc' : 'asc';
+        return [...prevConfigs, { column, direction: defaultDirection, priority: maxPriority + 1 }];
       }
     });
     setDrillDownPage(1);
@@ -559,6 +562,11 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Disable Alert Rule Modal state
   const [isDisableAlertRuleModalOpen, setIsDisableAlertRuleModalOpen] = React.useState(false);
   const [alertRulesToDisable, setAlertRulesToDisable] = React.useState<AlertRule[]>([]);
+  // Bulk edit alert rule labels modal
+  const [isEditAlertRuleLabelsModalOpen, setIsEditAlertRuleLabelsModalOpen] = React.useState(false);
+  const [alertRulesForLabelEdit, setAlertRulesForLabelEdit] = React.useState<AlertRule[]>([]);
+  const [isChangeAlertRuleComponentModalOpen, setIsChangeAlertRuleComponentModalOpen] = React.useState(false);
+  const [alertRulesForComponentEdit, setAlertRulesForComponentEdit] = React.useState<AlertRule[]>([]);
   const [disableAlertRuleExpandedIds, setDisableAlertRuleExpandedIds] = React.useState<string[]>([]);
 
   // Toast notifications
@@ -571,6 +579,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Alert-specific filters for firing alerts view
   const [alertStateFilter, setAlertStateFilter] = React.useState<string[]>([]);
   const [alertSourceFilter, setAlertSourceFilter] = React.useState<string[]>([]);
+  const [contributingAlertsFilter, setContributingAlertsFilter] = React.useState<string[]>([]);
 
   // Last refresh
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
@@ -614,6 +623,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       const cluster = mockClusters.find(c => c.name === urlCluster);
       if (cluster && clusterFilter[0] !== urlCluster) {
         setClusterFilter([urlCluster]);
+        setAlertsTabClusterFilter([urlCluster]);
         setSelectedClusterForAlerts(cluster);
         setFiringAlertsCardView('single-cluster');
       }
@@ -679,7 +689,25 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     return counts;
   }, []);
 
-  // Filter clusters
+  // Helper: check if an alert falls within a time range
+  const isAlertInTimeRange = React.useCallback((alert: typeof mockClusters[0]['alerts'][0], fromDate?: string, fromTime?: string, toDate?: string, toTime?: string) => {
+    if (!fromDate && !fromTime && !toDate && !toTime) return true;
+    const alertDate = alert.lastFiredTimestamp instanceof Date ? alert.lastFiredTimestamp : new Date(alert.lastFiredTimestamp);
+    if (isNaN(alertDate.getTime())) return true;
+    if (fromDate || fromTime) {
+      const fd = fromDate || new Date().toISOString().split('T')[0];
+      const ft = fromTime || '00:00';
+      if (alertDate < new Date(`${fd}T${ft}`)) return false;
+    }
+    if (toDate || toTime) {
+      const td = toDate || new Date().toISOString().split('T')[0];
+      const tt = toTime || '23:59';
+      if (alertDate > new Date(`${td}T${tt}`)) return false;
+    }
+    return true;
+  }, []);
+
+  // Filter clusters (current state — no time filtering, used by Treemap and cluster metrics)
   const filteredClusters = React.useMemo(() => {
     return mockClusters.filter(cluster => {
       if (regionFilter.length > 0 && !regionFilter.includes(cluster.region)) return false;
@@ -690,7 +718,6 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         const hasMatchingAlert = cluster.alerts.some(a => a.status === 'firing' && severityFilter.includes(a.severity));
         if (!hasMatchingAlert && cluster.alerts.filter(a => a.status === 'firing').length > 0) return false;
       }
-      // Component filter: if components are selected, only show clusters with alerts for those components
       if (componentFilter.length > 0) {
         const hasMatchingComponentAlert = cluster.alerts.some(a => 
           a.status === 'firing' && componentFilter.includes(a.component)
@@ -700,6 +727,17 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       return true;
     });
   }, [regionFilter, clusterFilter, namespaceFilter, searchValue, severityFilter, componentFilter]);
+
+  // Time-filtered clusters (alerts scoped to selected time window, used by Insights cards)
+  const timeFilteredClusters = React.useMemo(() => {
+    if (!triggeredFromDate && !triggeredFromTime && !triggeredToDate && !triggeredToTime) return filteredClusters;
+    return filteredClusters.map(cluster => ({
+      ...cluster,
+      alerts: cluster.alerts.filter(a =>
+        isAlertInTimeRange(a, triggeredFromDate, triggeredFromTime, triggeredToDate, triggeredToTime)
+      ),
+    }));
+  }, [filteredClusters, triggeredFromDate, triggeredFromTime, triggeredToDate, triggeredToTime, isAlertInTimeRange]);
 
   // Sort clusters - supports both legacy sortBy and table column sorting
   const sortedClusters = React.useMemo(() => {
@@ -872,6 +910,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setFiringAlertsCardView('single-cluster');
     // Sync with filter panel - replace cluster filter with this cluster only
     setClusterFilter([cluster.name]);
+    setAlertsTabClusterFilter([cluster.name]);
     // Update URL with tab and cluster params (enables browser back button)
     const newParams = new URLSearchParams(searchParams);
     newParams.set('tab', 'alerts');
@@ -899,6 +938,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setCameFromFleetOverview(true);
     // Sync with filter panel - replace cluster filter
     setClusterFilter([cluster.name]);
+    setAlertsTabClusterFilter([cluster.name]);
     // Trigger animation to highlight the filtered view
     setShowFilterAnimation(true);
     setTimeout(() => setShowFilterAnimation(false), 1500);
@@ -920,6 +960,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setFiringAlertsCardView('single-cluster');
     // Sync with filter panel - replace cluster filter
     setClusterFilter([cluster.name]);
+    setAlertsTabClusterFilter([cluster.name]);
   };
 
   // V2: Back to all clusters alerts view
@@ -1031,6 +1072,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     setFiringAlertsCardView('all-clusters');
     setMainComponentFilter(null);
     setMainAlertNameFilter(null);
+    setAlertStateFilter([]);
+    setAlertSourceFilter([]);
+    setContributingAlertsFilter([]);
   };
 
   const handleRefresh = () => {
@@ -1088,7 +1132,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const hasAlertsTabGroupFilterChanges = !isAlertsTabGlobalView;
   const hasAlertsTabActiveFilters = alertsTabRegionFilter.length > 0 || alertsTabClusterFilter.length > 0 || alertsTabNamespaceFilter.length > 0 || 
     alertsTabLabelFilter.length > 0 || alertsTabSeverityFilter.length > 0 || hasAlertsTabGroupFilterChanges || alertsTabComponentFilter.length > 0 || alertsTabSearchValue.length > 0 ||
-    mainComponentFilter !== null || mainAlertNameFilter !== null;
+    mainComponentFilter !== null || mainAlertNameFilter !== null || alertStateFilter.length > 0 || alertSourceFilter.length > 0 || contributingAlertsFilter.length > 0;
 
   // Filtered clusters for Alerts tab (uses alerts-tab-specific filters)
   const filteredClustersForAlerts = React.useMemo(() => {
@@ -1118,20 +1162,19 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Size by options based on role
   const sizeByOptions = userRole === 'admin' 
     ? [
-        { value: 'none', label: 'None (Equal size)' },
-        { value: 'nodeCount', label: 'Number of Nodes' },
-        { value: 'cpuCores', label: 'Total CPU Cores' },
-        { value: 'totalMemory', label: 'Total Memory' },
-        { value: 'podCount', label: 'Total Pods' },
-        { value: 'vmCount', label: 'Total VMs' },
-        { value: 'totalAlerts', label: 'Total Alerts' },
+        { value: 'none', label: 'None (equal size)' },
+        { value: 'nodeCount', label: 'Number of nodes' },
+        { value: 'cpuCores', label: 'Total CPU cores' },
+        { value: 'totalMemory', label: 'Total memory (GiB)' },
+        { value: 'podCount', label: 'Total pods' },
+        { value: 'totalAlerts', label: 'Total alerts' },
       ]
     : [
-        { value: 'none', label: 'None (Equal size)' },
-        { value: 'podCount', label: 'Total Pods' },
-        { value: 'cpuRequests', label: 'Total CPU Requests' },
-        { value: 'memoryRequests', label: 'Total Memory Requests' },
-        { value: 'totalAlerts', label: 'Total Alerts' },
+        { value: 'none', label: 'None (equal size)' },
+        { value: 'podCount', label: 'Total pods' },
+        { value: 'cpuRequests', label: 'Total CPU requests' },
+        { value: 'memoryRequests', label: 'Total memory requests' },
+        { value: 'totalAlerts', label: 'Total alerts' },
       ];
 
   // ========================================
@@ -1221,12 +1264,37 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     { value: 300, label: '5 minutes' },
   ];
 
+  const isDevBuild = process.env.NODE_ENV !== 'production';
+  const [showAlertingDevHint, setShowAlertingDevHint] = React.useState(
+    () => isDevBuild && typeof sessionStorage !== 'undefined' && sessionStorage.getItem('hideAlertingDevHint') !== '1'
+  );
 
   // ========================================
   // MAIN VIEW (Multi-cluster Alerting Page)
   // ========================================
   return (
     <div className="alerting-page-container" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 76px)', overflow: 'hidden', position: 'relative', padding: '0px' }}>
+      {isDevBuild && showAlertingDevHint && (
+        <div style={{ padding: '8px 16px 0', flexShrink: 0 }}>
+          <PfAlert
+            variant="info"
+            isInline
+            title="Development server"
+            actionClose={
+              <AlertActionCloseButton
+                onClose={() => {
+                  setShowAlertingDevHint(false);
+                  sessionStorage.setItem('hideAlertingDevHint', '1');
+                }}
+              />
+            }
+          >
+            Open the <strong>Fleet overview</strong> tab: the cluster card title should be <strong>Fleet alerts</strong> (see also{' '}
+            <code data-testid="fleet-alerts-card-title-hint">data-testid=&quot;fleet-alerts-card-title&quot;</code>
+            ). If your source edits never show up, confirm you are on the webpack dev server (<code>npm start</code> / <code>npm run start:dev</code>, port 3000) and hard-refresh. To preview the last production bundle from <code>dist/</code> instead, run <code>npm run build</code> then <code>npm run serve:dist</code> (port 8080).
+          </PfAlert>
+        </div>
+      )}
       {/* Header + Toolbar Section - Show for main tab views */}
       {(navigationView === 'fleet-overview' || mainPageTab === 'incidents' || mainPageTab === 'management') && (
       <div style={{ 
@@ -1241,9 +1309,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
             {/* Breadcrumbs - above page header (direct children required for separator arrows) */}
             <div style={{ marginBottom: '8px' }}>
               <Breadcrumb aria-label="Breadcrumb">
-                <BreadcrumbItem component="button" onClick={() => handleMainTabChange('fleet-overview')}>
-                  Multi-cluster alerting
-                </BreadcrumbItem>
+                <BreadcrumbItem>Observe</BreadcrumbItem>
+                <BreadcrumbItem>Multi-cluster alerting</BreadcrumbItem>
                 {mainPageTab === 'fleet-overview' && <BreadcrumbItem isActive>Fleet overview</BreadcrumbItem>}
                 {mainPageTab === 'alerts' && cameFromFleetOverview && (
                   <BreadcrumbItem component="button" onClick={handleBackToFleetOverview}>
@@ -1579,11 +1646,25 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         onViewAllClusters={() => {
           setMainPageTab('alerts');
           setCameFromFleetOverview(true);
+          setAlertsGroupBy('component');
           const newParams = new URLSearchParams(searchParams);
           newParams.set('tab', 'alerts');
           newParams.delete('cluster');
           navigate(`?${newParams.toString()}`, { replace: false });
         }}
+        onViewContributingAlerts={(alertNames) => {
+          setContributingAlertsFilter(alertNames);
+          setMainPageTab('alerts');
+          setCameFromFleetOverview(true);
+          const newParams = new URLSearchParams(searchParams);
+          newParams.set('tab', 'alerts');
+          navigate(`?${newParams.toString()}`, { replace: false });
+        }}
+        triggeredFromDate={triggeredFromDate}
+        triggeredFromTime={triggeredFromTime}
+        triggeredToDate={triggeredToDate}
+        triggeredToTime={triggeredToTime}
+        timeFilteredClusters={timeFilteredClusters}
       />
       )}
 
@@ -1630,6 +1711,8 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           setAlertStateFilter={setAlertStateFilter}
           alertSourceFilter={alertSourceFilter}
           setAlertSourceFilter={setAlertSourceFilter}
+          contributingAlertsFilter={contributingAlertsFilter}
+          setContributingAlertsFilter={setContributingAlertsFilter}
           regions={regions}
           clusterNames={clusterNames}
           clusters={mockClusters}
@@ -1702,6 +1785,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
             flexShrink: 0,
           }}>
             <Breadcrumb>
+              <BreadcrumbItem>Observe</BreadcrumbItem>
               <BreadcrumbItem>
                 <Button variant="link" isInline onClick={handleBackToFleet}>
                   All Clusters (Treemap)
@@ -1835,18 +1919,18 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           <Card>
             <CardBody>
               <EmptyState 
-                titleText="Automated Incident Detection" 
+                titleText="Automated visibility across your fleet" 
                 headingLevel="h4" 
                 icon={PortIcon}
                 variant="lg"
               >
                 <EmptyStateBody>
                   Gain better visibility into your cluster health with automated incident detection. 
-                  By installing the Red Hat OpenShift incident detection operator, you can use analytics 
+                  By installing the Red Hat OpenShift incident detection Operator, you can use analytics 
                   to quickly identify and troubleshoot potential problems before they affect your users.
                 </EmptyStateBody>
-                <EmptyStateActions>
-                  <Button variant="primary" icon={<PlusIcon />}>Install operator</Button>
+                <EmptyStateActions style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                  <Button variant="primary" icon={<PlusIcon />}>Install Operator</Button>
                 </EmptyStateActions>
               </EmptyState>
             </CardBody>
@@ -1885,6 +1969,10 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           setIsBulkActionsMenuOpen={setIsBulkActionsMenuOpen}
           setAlertRulesToDisable={setAlertRulesToDisable}
           setIsDisableAlertRuleModalOpen={setIsDisableAlertRuleModalOpen}
+          setAlertRulesForLabelEdit={setAlertRulesForLabelEdit}
+          setIsEditAlertRuleLabelsModalOpen={setIsEditAlertRuleLabelsModalOpen}
+          setAlertRulesForComponentEdit={setAlertRulesForComponentEdit}
+          setIsChangeAlertRuleComponentModalOpen={setIsChangeAlertRuleComponentModalOpen}
           setSelectedAlertRule={setSelectedAlertRule}
           setIsAlertRuleDrawerOpen={setIsAlertRuleDrawerOpen}
           setAlertRuleDrawerTab={setAlertRuleDrawerTab}
@@ -1935,6 +2023,30 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         editingFilterName={editingFilterName}
         setEditingFilterName={setEditingFilterName}
         selectedSavedFilter={selectedSavedFilter}
+        onEditFilterSelection={(filter) => {
+          setSelectedSavedFilter(filter);
+          if (mainPageTab === 'alerts') {
+            setAlertsTabSeverityFilter(filter.filters.severity as AlertSeverity[]);
+            setAlertsTabGroupFilter(filter.filters.group as AlertGroup[]);
+            setAlertsTabComponentFilter(filter.filters.component as AlertComponent[]);
+            setAlertsTabRegionFilter(filter.filters.region || []);
+            setAlertsTabClusterFilter(filter.filters.cluster || []);
+            setAlertsTabNamespaceFilter(filter.filters.namespace || []);
+            setAlertsTabLabelFilter(filter.filters.label || []);
+            setAlertsTabSearchValue(filter.filters.searchValue || '');
+            setAlertsTabIsFilterPanelOpen(true);
+          } else {
+            setSeverityFilter(filter.filters.severity as AlertSeverity[]);
+            setGroupFilter(filter.filters.group as AlertGroup[]);
+            setComponentFilter(filter.filters.component as AlertComponent[]);
+            setRegionFilter(filter.filters.region || []);
+            setClusterFilter(filter.filters.cluster || []);
+            setNamespaceFilter(filter.filters.namespace || []);
+            setLabelFilter(filter.filters.label || []);
+            setSearchValue(filter.filters.searchValue || '');
+            setIsFilterPanelOpen(true);
+          }
+        }}
       />
 
       <AlertDetailDrawer
@@ -1970,6 +2082,40 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         onTimelineRangeChange={setAlertRuleTimelineRange}
         isTimelineRangeOpen={isAlertRuleTimelineRangeOpen}
         onTimelineRangeOpenChange={setIsAlertRuleTimelineRangeOpen}
+      />
+
+      <EditAlertRuleLabelsModal
+        isOpen={isEditAlertRuleLabelsModalOpen}
+        onClose={() => {
+          setIsEditAlertRuleLabelsModalOpen(false);
+          setAlertRulesForLabelEdit([]);
+        }}
+        rules={alertRulesForLabelEdit}
+        allAlertRules={mockAlertRules}
+        onApply={(labels) => {
+          addToast(
+            `Labels applied to ${alertRulesForLabelEdit.length} alert rule${alertRulesForLabelEdit.length === 1 ? '' : 's'}`,
+            'success',
+            labels.length > 0 ? labels.join(', ') : 'No label chips selected.',
+          );
+          setSelectedAlertRuleIds([]);
+        }}
+      />
+
+      <ChangeAlertRuleComponentModal
+        isOpen={isChangeAlertRuleComponentModalOpen}
+        onClose={() => {
+          setIsChangeAlertRuleComponentModalOpen(false);
+          setAlertRulesForComponentEdit([]);
+        }}
+        rules={alertRulesForComponentEdit}
+        onConfirm={({ group, component }) => {
+          addToast(
+            `Component set to ${component} (${group} scope) for ${alertRulesForComponentEdit.length} alert rule${alertRulesForComponentEdit.length === 1 ? '' : 's'}`,
+            'success',
+          );
+          setSelectedAlertRuleIds([]);
+        }}
       />
 
       <SettingsModals

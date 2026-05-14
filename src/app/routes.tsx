@@ -21,8 +21,9 @@ export interface IAppRoute {
   exact?: boolean;
   path: string;
   title: string;
-  routes?: undefined;
   disabled?: boolean;
+  /** When set, sidebar renders this entry as a nested expandable (sub-menu) with these child links. */
+  routes?: IAppRoute[];
 }
 
 export interface IAppRouteGroup {
@@ -130,12 +131,26 @@ const routes: AppRouteConfig[] = [
 // Additional routes without navigation labels (won't appear in sidebar)
 const hiddenRoutes: IAppRoute[] = [];
 
+/** Expand nested sidebar `routes` into leaf entries for `<Routes>` (parent-only nodes are not routable). */
+function flattenLeafRoutes(route: IAppRoute): IAppRoute[] {
+  if (route.routes?.length) {
+    return route.routes.flatMap(flattenLeafRoutes);
+  }
+  return [route];
+}
+
 const flattenedRoutes: IAppRoute[] = [
-  ...routes.reduce(
-    (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
-    [] as IAppRoute[],
-  ),
-  ...hiddenRoutes,
+  ...routes.reduce((flattened, route): IAppRoute[] => {
+    // `IAppRouteGroup` has child `routes` but no `path`; `IAppRoute` may also have nested `routes` for sidebar nesting.
+    if ('routes' in route && route.routes && !('path' in route)) {
+      return [...flattened, ...route.routes.flatMap(flattenLeafRoutes)];
+    }
+    if ('path' in route) {
+      return [...flattened, ...flattenLeafRoutes(route as IAppRoute)];
+    }
+    return flattened;
+  }, [] as IAppRoute[]),
+  ...hiddenRoutes.flatMap(flattenLeafRoutes),
 ];
 
 const AppRoutes = (): React.ReactElement => (
