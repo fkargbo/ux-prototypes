@@ -216,7 +216,7 @@ import { DrillDownContent } from '../components/DrillDownContent';
 import { FleetOverviewTab } from '../components/FleetOverviewTab';
 import { FleetOverviewToolbar } from '../components/FleetOverviewToolbar';
 import { AlertsTabFleetOverviewContent } from '../components/AlertsTabFleetOverviewContent';
-import { mockAlertRules, mockTrendData, mockClusters } from '../data/mockData';
+import { mockAlertRules, mockTrendData, buildAlertingFleetMockClusters } from '../data/mockData';
 import { CLUSTERS } from '../../../components/autonomousAiObserve/data';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 
@@ -631,6 +631,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
 
   // Last refresh
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
+
+  /** Rebuild on load / refresh so alert timestamps stay inside default “Last 6h” (module-level mock is frozen at build time). */
+  const mockClusters = React.useMemo(() => buildAlertingFleetMockClusters(new Date()), [lastRefresh]);
 
   // Sync clusterFilter clearing with in-card view states
   // Only reset views when clusterFilter is completely cleared
@@ -1617,6 +1620,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       {/* Scrollable Content Area - Fleet Overview - Clusters Health Sub-tab */}
       {mainPageTab === 'fleet-overview' && navigationView === 'fleet-overview' && (
       <FleetOverviewTab
+        baseClusters={mockClusters}
         isFilterPanelOpen={isFilterPanelOpen}
         setIsFilterPanelOpen={setIsFilterPanelOpen}
         regionFilter={regionFilter}
