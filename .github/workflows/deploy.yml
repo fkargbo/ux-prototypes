@@ -37,6 +37,8 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+          # GitHub project pages URL is /<repo-name>/ — keep assets and router in sync with the repo.
+          GITHUB_PAGES_BASENAME: "/${{ github.event.repository.name }}"
           # Optional: full URL to feedback-layer.js (e.g. fkargbo Pages build with Supabase). Repo → Settings → Variables.
           EXP_LAB_FEEDBACK_SCRIPT_URL: ${{ vars.EXP_LAB_FEEDBACK_SCRIPT_URL }}
 

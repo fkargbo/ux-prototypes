@@ -1,8 +1,11 @@
 import { matchPath } from 'react-router-dom';
 import { prototypeRegistry } from './PrototypeRegistry';
 
-/** Must match `basename` in `src/app/index.tsx` for production GitHub Pages. */
-export const GITHUB_PAGES_BASENAME = '/HPUX-Prototypes';
+/** Must match `basename` in `src/app/index.tsx` for production GitHub Pages (injected via webpack `EnvironmentPlugin`). */
+export const GITHUB_PAGES_BASENAME =
+  process.env.NODE_ENV === 'production'
+    ? String(process.env.GITHUB_PAGES_BASENAME || '/ux-prototypes').replace(/\/$/, '')
+    : '';
 
 /**
  * React Router `pathname` (no basename). Uses `window.location` so this can run
