@@ -1,4 +1,4 @@
-import { GITHUB_PAGES_BASENAME } from '@app/core/deepLinkUtils';
+import { getGithubPagesBasenameNoSlash } from '@app/core/githubPagesBase';
 
 const SCRIPT_ID = 'exp-lab-feedback-layer-script';
 
@@ -19,7 +19,7 @@ export function getExpLabFeedbackScriptUrl(): string {
     if (buildTimeOverride) {
       return buildTimeOverride;
     }
-    return `${window.location.origin}${GITHUB_PAGES_BASENAME}/feedback-layer.js`;
+    return `${window.location.origin}${getGithubPagesBasenameNoSlash()}/feedback-layer.js`;
   }
   return `${window.location.origin}/feedback-layer.js`;
 }

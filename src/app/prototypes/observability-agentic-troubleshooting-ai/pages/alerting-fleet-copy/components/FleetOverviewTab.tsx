@@ -72,7 +72,7 @@ import { FilterPanel } from './FilterPanel';
 import { TreemapHeatmap } from './TreemapHeatmap';
 import { AlertsTimelineCard } from './AlertsTimelineCard';
 import { CrossClusterInsightsCards } from './CrossClusterInsightsCards';
-import { mockTrendData, mockClusters } from '../data/mockData';
+import { mockTrendData } from '../data/mockData';
 import { AlertKpiTooltip } from '../../../components/autonomousAiObserve/AlertKpiTooltip';
 import '../../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { buildFleetAlertKpiRows, FLEET_ALERT_KPI_TOOLTIP_PROPS } from '../utils/alertKpiBreakdown';
@@ -157,6 +157,8 @@ export interface FleetOverviewTabProps {
   setPerPage: (v: number) => void;
 
   // Data
+  /** Full cluster list (same reference as MultiClusterAlertsPage mock dataset) for filter panels. */
+  baseClusters: ClusterData[];
   filteredClusters: ClusterData[];
   sortedClusters: ClusterData[];
   clustersForDisplay: ClusterData[];
@@ -251,6 +253,7 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
     setPage,
     perPage,
     setPerPage,
+    baseClusters,
     filteredClusters,
     sortedClusters,
     clustersForDisplay,
@@ -306,7 +309,7 @@ export const FleetOverviewTab: React.FunctionComponent<FleetOverviewTabProps> = 
             setComponentFilter={setComponentFilter}
             regions={regions}
             clusterNames={clusterNames}
-            clusters={mockClusters}
+            clusters={baseClusters}
             namespaces={namespaces}
             availableLabels={availableLabels}
             regionCounts={regionCounts}

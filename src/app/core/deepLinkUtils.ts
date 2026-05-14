@@ -1,11 +1,6 @@
 import { matchPath } from 'react-router-dom';
 import { prototypeRegistry } from './PrototypeRegistry';
-
-/** Must match `basename` in `src/app/index.tsx` for production GitHub Pages (injected via webpack `EnvironmentPlugin`). */
-export const GITHUB_PAGES_BASENAME =
-  process.env.NODE_ENV === 'production'
-    ? String(process.env.GITHUB_PAGES_BASENAME || '/ux-prototypes').replace(/\/$/, '')
-    : '';
+import { getGithubPagesBasenameNoSlash } from './githubPagesBase';
 
 /**
  * React Router `pathname` (no basename). Uses `window.location` so this can run
@@ -16,8 +11,9 @@ export function getRouterPathname(): string {
     return '/';
   }
   let p = window.location.pathname;
-  if (process.env.NODE_ENV === 'production' && p.startsWith(GITHUB_PAGES_BASENAME)) {
-    p = p.slice(GITHUB_PAGES_BASENAME.length) || '/';
+  const ghBase = getGithubPagesBasenameNoSlash();
+  if (process.env.NODE_ENV === 'production' && ghBase && p.startsWith(ghBase)) {
+    p = p.slice(ghBase.length) || '/';
   }
   if (!p || p === '') {
     return '/';

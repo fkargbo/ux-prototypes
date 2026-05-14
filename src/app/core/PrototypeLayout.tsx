@@ -27,7 +27,7 @@ import { PrototypeModule } from './types';
 import { QuotasProvider } from '@app/shared/contexts/QuotasContext';
 import { usePrototype } from './PrototypeContext';
 import { prototypeRegistry } from './PrototypeRegistry';
-import { GITHUB_PAGES_BASENAME } from './deepLinkUtils';
+import { getGithubPagesBasenameNoSlash } from './githubPagesBase';
 import {
   BANNER_VERSION_CHANGE_EVENT,
   getBannerVersionStorageKey,
@@ -48,7 +48,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   const [linkCopied, setLinkCopied] = useState(false);
 
   const sharePageUrl = React.useMemo(() => {
-    const base = process.env.NODE_ENV === 'production' ? GITHUB_PAGES_BASENAME : '';
+    const base = process.env.NODE_ENV === 'production' ? getGithubPagesBasenameNoSlash() : '';
     const u = new URL(`${base}${location.pathname}${location.search}${location.hash}`, window.location.origin);
     u.searchParams.set('prototype', prototype.config.id);
     return u.toString();

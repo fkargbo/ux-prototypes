@@ -4,6 +4,7 @@ import '@patternfly/react-styles/css/components/Wizard/wizard.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { PrototypeProvider, usePrototype } from '@app/core/PrototypeContext';
 import PrototypeLauncher from '@app/core/PrototypeLauncher';
+import { getGithubPagesBasenameNoSlash } from '@app/core/githubPagesBase';
 import '@app/app.css';
 
 const AppContent: React.FunctionComponent = () => {
@@ -45,11 +46,8 @@ const AppContent: React.FunctionComponent = () => {
 const App: React.FunctionComponent = () => {
   console.log('App component rendering');
   
-  // GitHub project pages: https://<user>.github.io/<repo>/ — basename is `/<repo>` (set at build via webpack).
-  const basename =
-    process.env.NODE_ENV === 'production'
-      ? String(process.env.GITHUB_PAGES_BASENAME || '/ux-prototypes').replace(/\/$/, '')
-      : '/';
+  // Prefer env at build time; fall back to <base href> so routes match on GitHub Pages.
+  const basename = process.env.NODE_ENV === 'production' ? getGithubPagesBasenameNoSlash() : '/';
   
   return (
     <Router basename={basename}>

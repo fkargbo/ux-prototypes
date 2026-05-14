@@ -358,7 +358,8 @@ function relativeLastFired(from: Date, base: Date): string {
  * Canonical clusters + firing alerts from AI Hub (`components/autonomousAiObserve/data.ts`)
  * plus the fleet-wide ingress incident for a seamless prototype story.
  */
-function buildAiHubAlignedClusters(baseTime: Date): ClusterData[] {
+/** Build fleet mock clusters with alert `lastFiredTimestamp` anchored to `baseTime` (use current time on each page load). */
+export function buildAiHubAlignedClusters(baseTime: Date): ClusterData[] {
   const byId = new Map<string, ClusterData>();
 
   for (const c of CLUSTERS) {
@@ -595,4 +596,10 @@ export const generateMockFillerClusters = (): ClusterData[] => {
   return clusters;
 };
 
-export const mockClusters: ClusterData[] = [...buildAiHubAlignedClusters(now), ...generateMockFillerClusters()];
+/** Full fleet dataset: AI Hub–aligned clusters (timestamps from `baseTime`) + synthetic fillers. */
+export function buildAlertingFleetMockClusters(baseTime: Date = new Date()): ClusterData[] {
+  return [...buildAiHubAlignedClusters(baseTime), ...generateMockFillerClusters()];
+}
+
+/** Snapshot at module load — prefer `buildAlertingFleetMockClusters(new Date())` in UI so time filters stay aligned. */
+export const mockClusters: ClusterData[] = buildAlertingFleetMockClusters(now);

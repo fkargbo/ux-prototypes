@@ -88,6 +88,7 @@ import {
   getSeverityLabelColor,
   getStatusLabelColor,
   getSeverityIcon,
+  formatLocalDateYmd,
 } from '../data/utils';
 import { AlertsTableContent } from './AlertsTableContent';
 
@@ -542,8 +543,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
   // Filter aggregated alerts
   const filteredAggregatedAlerts = React.useMemo(() => {
+    const nameFilter = alertNameFilter?.trim() || null;
     const filtered = aggregatedAlerts.filter(alert => {
-      if (alertNameFilter && alert.alertName !== alertNameFilter) return false;
+      if (nameFilter && alert.alertName.trim() !== nameFilter) return false;
       if (alertNamesFilter.length > 0 && !alertNamesFilter.includes(alert.alertName)) return false;
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
@@ -555,29 +557,29 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
         if (componentImpactGroup && !groupFilter.includes(componentImpactGroup)) return false;
       }
       
-      // Filter by triggered date/time range using lastFiredTimestamp
+      // Filter by triggered date/time range — any cluster instance in window keeps the row
       if (triggeredFromDate || triggeredFromTime || triggeredToDate || triggeredToTime) {
-        const firstCluster = alert.clusters[0];
-        if (firstCluster && firstCluster.lastFiredTimestamp) {
-          const alertDate = firstCluster.lastFiredTimestamp instanceof Date
-            ? firstCluster.lastFiredTimestamp
-            : new Date(firstCluster.lastFiredTimestamp);
-          if (isNaN(alertDate.getTime())) return true;
-          
+        const inWindow = (d: Date) => {
+          if (isNaN(d.getTime())) return true;
           if (triggeredFromDate || triggeredFromTime) {
-            const fromDateStr = triggeredFromDate || new Date().toISOString().split('T')[0];
+            const fromDateStr = triggeredFromDate || formatLocalDateYmd(new Date());
             const fromTimeStr = triggeredFromTime || '00:00';
-            const fromDateTime = new Date(`${fromDateStr}T${fromTimeStr}`);
-            if (alertDate < fromDateTime) return false;
+            if (d < new Date(`${fromDateStr}T${fromTimeStr}`)) return false;
           }
-          
           if (triggeredToDate || triggeredToTime) {
-            const toDateStr = triggeredToDate || new Date().toISOString().split('T')[0];
+            const toDateStr = triggeredToDate || formatLocalDateYmd(new Date());
             const toTimeStr = triggeredToTime || '23:59';
-            const toDateTime = new Date(`${toDateStr}T${toTimeStr}`);
-            if (alertDate > toDateTime) return false;
+            if (d > new Date(`${toDateStr}T${toTimeStr}`)) return false;
           }
-        }
+          return true;
+        };
+        const anyClusterInWindow = alert.clusters.some((c) => {
+          if (!c.lastFiredTimestamp) return false;
+          const alertDate =
+            c.lastFiredTimestamp instanceof Date ? c.lastFiredTimestamp : new Date(c.lastFiredTimestamp);
+          return inWindow(alertDate);
+        });
+        if (!anyClusterInWindow) return false;
       }
       
       return true;
@@ -597,8 +599,9 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
 
   // Filter and sort individual alerts (for non-aggregated view)
   const filteredAlerts = React.useMemo(() => {
+    const nameFilter = alertNameFilter?.trim() || null;
     const filtered = allAlerts.filter(alert => {
-      if (alertNameFilter && alert.alertName !== alertNameFilter) return false;
+      if (nameFilter && alert.alertName.trim() !== nameFilter) return false;
       if (alertNamesFilter.length > 0 && !alertNamesFilter.includes(alert.alertName)) return false;
       if (componentFilter && alert.component !== componentFilter) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(alert.severity)) return false;
@@ -612,12 +615,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
           : new Date(alert.lastFiredTimestamp);
         if (!isNaN(alertDate.getTime())) {
           if (triggeredFromDate || triggeredFromTime) {
-            const fromDateStr = triggeredFromDate || new Date().toISOString().split('T')[0];
+            const fromDateStr = triggeredFromDate || formatLocalDateYmd(new Date());
             const fromTimeStr = triggeredFromTime || '00:00';
             if (alertDate < new Date(`${fromDateStr}T${fromTimeStr}`)) return false;
           }
           if (triggeredToDate || triggeredToTime) {
-            const toDateStr = triggeredToDate || new Date().toISOString().split('T')[0];
+            const toDateStr = triggeredToDate || formatLocalDateYmd(new Date());
             const toTimeStr = triggeredToTime || '23:59';
             if (alertDate > new Date(`${toDateStr}T${toTimeStr}`)) return false;
           }

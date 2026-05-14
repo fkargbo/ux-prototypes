@@ -199,6 +199,7 @@ import {
   getClusterAlertStatus, getStatusBackgroundColor, getSeverityLabelColor,
   getStatusLabelColor, getSeverityIcon, getUniqueValues, getAllLabels,
   getAllNamespaces, getAllAlerts, getTileValue, sortFleetRegionFilterLabels,
+  formatLocalDateYmd, formatLocalTimeHHmm,
 } from '../data/utils';
 import { AllAlertsCard } from '../components/AllAlertsCard';
 import { FilterPanel } from '../components/FilterPanel';
@@ -216,7 +217,7 @@ import { DrillDownContent } from '../components/DrillDownContent';
 import { FleetOverviewTab } from '../components/FleetOverviewTab';
 import { FleetOverviewToolbar } from '../components/FleetOverviewToolbar';
 import { AlertsTabFleetOverviewContent } from '../components/AlertsTabFleetOverviewContent';
-import { mockAlertRules, mockTrendData, mockClusters } from '../data/mockData';
+import { mockAlertRules, mockTrendData, buildAlertingFleetMockClusters } from '../data/mockData';
 import { CLUSTERS } from '../../../components/autonomousAiObserve/data';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 
@@ -632,6 +633,9 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Last refresh
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
 
+  /** Rebuild on load / refresh so alert timestamps stay inside default “Last 6h” (module-level mock is frozen at build time). */
+  const mockClusters = React.useMemo(() => buildAlertingFleetMockClusters(new Date()), [lastRefresh]);
+
   // Sync clusterFilter clearing with in-card view states
   // Only reset views when clusterFilter is completely cleared
   React.useEffect(() => {
@@ -802,12 +806,12 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
     const alertDate = alert.lastFiredTimestamp instanceof Date ? alert.lastFiredTimestamp : new Date(alert.lastFiredTimestamp);
     if (isNaN(alertDate.getTime())) return true;
     if (fromDate || fromTime) {
-      const fd = fromDate || new Date().toISOString().split('T')[0];
+      const fd = fromDate || formatLocalDateYmd(new Date());
       const ft = fromTime || '00:00';
       if (alertDate < new Date(`${fd}T${ft}`)) return false;
     }
     if (toDate || toTime) {
-      const td = toDate || new Date().toISOString().split('T')[0];
+      const td = toDate || formatLocalDateYmd(new Date());
       const tt = toTime || '23:59';
       if (alertDate > new Date(`${td}T${tt}`)) return false;
     }
@@ -833,7 +837,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       }
       return true;
     });
-  }, [regionFilter, clusterFilter, namespaceFilter, searchValue, severityFilter, componentFilter]);
+  }, [mockClusters, regionFilter, clusterFilter, namespaceFilter, searchValue, severityFilter, componentFilter]);
 
   // Time-filtered clusters (alerts scoped to selected time window, used by Insights cards)
   const timeFilteredClusters = React.useMemo(() => {
@@ -1273,7 +1277,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       }
       return true;
     });
-  }, [alertsTabRegionFilter, alertsTabClusterFilter, alertsTabNamespaceFilter, alertsTabSearchValue, alertsTabSeverityFilter, alertsTabComponentFilter]);
+  }, [mockClusters, alertsTabRegionFilter, alertsTabClusterFilter, alertsTabNamespaceFilter, alertsTabSearchValue, alertsTabSeverityFilter, alertsTabComponentFilter]);
 
   const hasDrillDownActiveFilters = drillDownSeverityFilter.length > 0 || drillDownGroupFilter.length > 0 || 
     drillDownComponentFilter.length > 0 || drillDownSourceFilter.length > 0 || drillDownStateFilter.length > 0 ||
@@ -1315,10 +1319,10 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         const now = new Date();
         const fromDate = new Date(now.getTime() - option.minutes * 60 * 1000);
         
-        setTriggeredFromDate(fromDate.toISOString().split('T')[0]);
-        setTriggeredFromTime(fromDate.toTimeString().slice(0, 5));
-        setTriggeredToDate(now.toISOString().split('T')[0]);
-        setTriggeredToTime(now.toTimeString().slice(0, 5));
+        setTriggeredFromDate(formatLocalDateYmd(fromDate));
+        setTriggeredFromTime(formatLocalTimeHHmm(fromDate));
+        setTriggeredToDate(formatLocalDateYmd(now));
+        setTriggeredToTime(formatLocalTimeHHmm(now));
       }
     }
   }, [quickTimeRange]);
@@ -1331,10 +1335,10 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
         const now = new Date();
         const fromDate = new Date(now.getTime() - option.minutes * 60 * 1000);
         
-        setAlertsTabTriggeredFromDate(fromDate.toISOString().split('T')[0]);
-        setAlertsTabTriggeredFromTime(fromDate.toTimeString().slice(0, 5));
-        setAlertsTabTriggeredToDate(now.toISOString().split('T')[0]);
-        setAlertsTabTriggeredToTime(now.toTimeString().slice(0, 5));
+        setAlertsTabTriggeredFromDate(formatLocalDateYmd(fromDate));
+        setAlertsTabTriggeredFromTime(formatLocalTimeHHmm(fromDate));
+        setAlertsTabTriggeredToDate(formatLocalDateYmd(now));
+        setAlertsTabTriggeredToTime(formatLocalTimeHHmm(now));
       }
     }
   }, [alertsTabQuickTimeRange]);
@@ -1617,6 +1621,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       {/* Scrollable Content Area - Fleet Overview - Clusters Health Sub-tab */}
       {mainPageTab === 'fleet-overview' && navigationView === 'fleet-overview' && (
       <FleetOverviewTab
+        baseClusters={mockClusters}
         isFilterPanelOpen={isFilterPanelOpen}
         setIsFilterPanelOpen={setIsFilterPanelOpen}
         regionFilter={regionFilter}
