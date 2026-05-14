@@ -44,6 +44,16 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
+          if [ -z "${VITE_SUPABASE_URL}" ]; then
+            echo "::warning::VITE_SUPABASE_URL is empty — add Repository secret VITE_SUPABASE_URL on THIS repo (the one running Actions), then re-run deploy."
+          else
+            echo "VITE_SUPABASE_URL is set (value hidden)."
+          fi
+          if [ -z "${VITE_SUPABASE_ANON_KEY}" ]; then
+            echo "::warning::VITE_SUPABASE_ANON_KEY is empty — add Repository secret VITE_SUPABASE_ANON_KEY, then re-run deploy."
+          else
+            echo "VITE_SUPABASE_ANON_KEY is set (value hidden)."
+          fi
           cd exp-lab
           npm ci
           npm run build
