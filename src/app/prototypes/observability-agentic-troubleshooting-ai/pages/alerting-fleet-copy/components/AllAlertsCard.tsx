@@ -88,6 +88,7 @@ import {
   getSeverityLabelColor,
   getStatusLabelColor,
   getSeverityIcon,
+  formatLocalDateYmd,
 } from '../data/utils';
 import { AlertsTableContent } from './AlertsTableContent';
 
@@ -561,12 +562,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
         const inWindow = (d: Date) => {
           if (isNaN(d.getTime())) return true;
           if (triggeredFromDate || triggeredFromTime) {
-            const fromDateStr = triggeredFromDate || new Date().toISOString().split('T')[0];
+            const fromDateStr = triggeredFromDate || formatLocalDateYmd(new Date());
             const fromTimeStr = triggeredFromTime || '00:00';
             if (d < new Date(`${fromDateStr}T${fromTimeStr}`)) return false;
           }
           if (triggeredToDate || triggeredToTime) {
-            const toDateStr = triggeredToDate || new Date().toISOString().split('T')[0];
+            const toDateStr = triggeredToDate || formatLocalDateYmd(new Date());
             const toTimeStr = triggeredToTime || '23:59';
             if (d > new Date(`${toDateStr}T${toTimeStr}`)) return false;
           }
@@ -614,12 +615,12 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
           : new Date(alert.lastFiredTimestamp);
         if (!isNaN(alertDate.getTime())) {
           if (triggeredFromDate || triggeredFromTime) {
-            const fromDateStr = triggeredFromDate || new Date().toISOString().split('T')[0];
+            const fromDateStr = triggeredFromDate || formatLocalDateYmd(new Date());
             const fromTimeStr = triggeredFromTime || '00:00';
             if (alertDate < new Date(`${fromDateStr}T${fromTimeStr}`)) return false;
           }
           if (triggeredToDate || triggeredToTime) {
-            const toDateStr = triggeredToDate || new Date().toISOString().split('T')[0];
+            const toDateStr = triggeredToDate || formatLocalDateYmd(new Date());
             const toTimeStr = triggeredToTime || '23:59';
             if (alertDate > new Date(`${toDateStr}T${toTimeStr}`)) return false;
           }

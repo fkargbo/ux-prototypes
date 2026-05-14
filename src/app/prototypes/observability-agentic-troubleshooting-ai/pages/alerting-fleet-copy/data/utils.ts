@@ -174,3 +174,21 @@ export const getTileValue = (cluster: ClusterData, sizing: ImportanceSizing, sev
     default: return cluster.nodeCount;
   }
 };
+
+/**
+ * Local `YYYY-MM-DD` / `HH:mm` for custom and quick time ranges.
+ * Mixing `toISOString().split('T')[0]` (UTC calendar day) with `toTimeString()` (local clock)
+ * skews `new Date(\`${date}T${time}\`)` and can hide every alert near local midnight.
+ */
+export function formatLocalDateYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function formatLocalTimeHHmm(d: Date): string {
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${min}`;
+}
