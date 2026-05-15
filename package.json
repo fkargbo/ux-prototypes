@@ -25,6 +25,7 @@
     "bundle-profile:analyze": "npm run build:bundle-profile && webpack-bundle-analyzer ./stats.json",
     "clean": "rimraf dist",
     "deploy": "npm run build && gh-pages -d dist --add",
+    "install-git-hooks": "bash scripts/install-git-hooks.sh",
     "create-prototype": "node scripts/create-prototype.cjs",
     "create-draft": "node scripts/create-prototype.cjs",
     "new-prototype": "node scripts/create-prototype.cjs"
