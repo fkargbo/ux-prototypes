@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Reject parent-repo pushes when a submodule gitlink points at a commit that does not exist on
+# the submodule's origin yet (prevents "upload-pack: not our ref" on GitHub PR merge / CI).
+#
+# Install once from repo root: ./scripts/install-git-hooks.sh
+# Emergency bypass: SKIP_SUBMODULE_PRE_PUSH=1 git push ...
+
+set -euo pipefail
+
+if [[ -n "${SKIP_SUBMODULE_PRE_PUSH:-}" ]]; then
+  exit 0
+fi
+
+check_submodules_for_commit() {
+  local tip="$1"
+  if [[ -z "$tip" || "$tip" == "0000000000000000000000000000000000000000" ]]; then
+    return 0
+  fi
+
+  while IFS=$'\t' read -r meta path; do
+    [[ "$meta" == 160000\ commit\ * ]] || continue
+    local sha="${meta##* }"
+    [[ -n "$sha" && -n "$path" ]] || continue
+
+    if [[ ! -d "$path" ]]; then
+      echo "pre-push: submodule path '$path' missing — run: git submodule update --init" >&2
+      return 1
+    fi
+
+    (
+      cd "$path"
+      if ! git fetch -q origin 2>/dev/null; then
+        echo "pre-push: warning: could not git fetch in submodule '$path' (offline?). Skipping remote check for $sha." >&2
+        exit 0
+      fi
+      if ! git branch -r --contains "$sha" 2>/dev/null | grep -q .; then
+        echo "pre-push: BLOCKED — submodule '$path' commit $sha is not on origin yet." >&2
+        echo "  Push the submodule first:" >&2
+        echo "    cd $path && git push origin \"\$(git rev-parse --abbrev-ref HEAD)\"" >&2
+        exit 2
+      fi
+    )
+  done < <(git ls-tree -r "$tip")
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [[ -n "$local_sha" ]] || continue
+  if [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then
+    continue
+  fi
+
+  check_submodules_for_commit "$local_sha"
+done
+
+exit 0
