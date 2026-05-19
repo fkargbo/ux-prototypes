@@ -41,9 +41,11 @@ import {
   CLUSTERS,
   DEFAULT_CORE_PLATFORMS_CLUSTER_ID,
   FLEET_WIDE_REGIONAL_INGRESS,
+  buildClusterAwayDigestItems,
   fleetWideCriticalAddsForCluster,
   getAlertsForCluster,
   getClusterById,
+  resolveClusterRemediationDrillTarget,
   resolveFleetRemediationDrillTarget,
 } from './data';
 import { FleetWideObserveIncident } from './FleetWideObserveIncident';
@@ -55,6 +57,7 @@ import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { TopFiringAlertsCard } from '../../pages/ai-hub-v2/TopFiringAlertsCard';
+import { WhileYouWereAwayCard } from '../../pages/ai-hub-v2/WhileYouWereAwayCard';
 import {
   clearFocusedClusterSession,
   readFocusedClusterIdFromSession,
@@ -184,6 +187,11 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     [isMultiCluster, activePerspective, fleetClusterDrillDown]
   );
 
+  const showCorePlatformInsightCards = useMemo(
+    () => activePerspective === 'Core platforms' && !showFleetOverview,
+    [activePerspective, showFleetOverview]
+  );
+
   const viewMode: ViewMode = useMemo(() => (showFleetOverview ? 'fleet' : 'cluster'), [showFleetOverview]);
 
   /** Restores session handoff; Core platforms applies `DEFAULT_CORE_PLATFORMS_CLUSTER_ID` when still empty. */
@@ -212,6 +220,12 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     }
     setSelectedClusterId(DEFAULT_CORE_PLATFORMS_CLUSTER_ID);
   }, [activePerspective, selectedClusterId]);
+
+  React.useEffect(() => {
+    if (activePerspective === 'Core platforms') {
+      setCAlertsOpen(true);
+    }
+  }, [activePerspective]);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
   const [fleetSummarySortBy, setFleetSummarySortBy] = useState<{ index: number; direction: 'asc' | 'desc' }>({
@@ -220,7 +234,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   });
   const [fleetSummaryPage, setFleetSummaryPage] = useState(1);
   const [fleetSummaryPerPage, setFleetSummaryPerPage] = useState(10);
-  const [cAlertsOpen, setCAlertsOpen] = useState(false);
+  const [cAlertsOpen, setCAlertsOpen] = useState(activePerspective === 'Core platforms');
   const [remediationScope, setRemediationScope] = useState<'fleet' | 'cluster'>('cluster');
   const [fleetIncidentExpanded, setFleetIncidentExpanded] = useState(false);
   /** Drill from Top firing alerts “View remediation”: expand Chain, RCA, and Remediation inside fleet incident card. */
@@ -290,6 +304,27 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
       return;
     }
 
+    if (pendingRemediationRuleTitle && remediationScope === 'cluster' && selectedClusterId) {
+      const title = pendingRemediationRuleTitle;
+      const target = resolveClusterRemediationDrillTarget(title, selectedClusterId);
+
+      if (target?.kind === 'alert') {
+        const next: Record<string, boolean> = {};
+        clusterAlerts.forEach((a) => {
+          next[a.id] = a.id === target.alertId;
+        });
+        setExpandedAlerts(next);
+        setExpandObserveRemediationAlertId(target.alertId);
+        setCAlertsOpen(true);
+        scrollDrillToTopAlertsSection(target.alertId);
+      }
+
+      clearRemediationDrillSession();
+      setPendingRemediationRuleTitle(null);
+      skipExpandedAlertsResetRef.current = true;
+      return;
+    }
+
     if (pendingRemediationRuleTitle && remediationScope === 'fleet') {
       const title = pendingRemediationRuleTitle;
       const target = resolveFleetRemediationDrillTarget(title);
@@ -331,7 +366,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     setExpandedAlerts(next);
     setExpandObserveRemediationAlertId(null);
     setExpandFleetDrillAllInnerSections(false);
-  }, [topAlertsRemediationsAlerts, remediationScope, pendingRemediationRuleTitle]);
+  }, [topAlertsRemediationsAlerts, remediationScope, pendingRemediationRuleTitle, selectedClusterId, clusterAlerts]);
 
   /**
    * SPA handoff only (mount). Must not re-run when `fleetClusterDrillDown` toggles — otherwise session storage
@@ -361,17 +396,21 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
         return;
       }
       setPendingRemediationRuleTitle(detail.alertRuleTitle);
-      setRemediationScope('fleet');
       setCAlertsOpen(true);
-      if (fleetClusterDrillDownProp === undefined) {
-        setFleetClusterDrillDownInternal(true);
+      if (activePerspective === 'Core platforms') {
+        setRemediationScope('cluster');
+      } else {
+        setRemediationScope('fleet');
+        if (fleetClusterDrillDownProp === undefined) {
+          setFleetClusterDrillDownInternal(true);
+        }
+        onFleetDrillDownChange?.(true);
       }
-      onFleetDrillDownChange?.(true);
     };
 
     window.addEventListener(REMEDIATION_DRILL_EVENT, onRemediationDrill);
     return () => window.removeEventListener(REMEDIATION_DRILL_EVENT, onRemediationDrill);
-  }, [fleetClusterDrillDownProp, onFleetDrillDownChange]);
+  }, [activePerspective, fleetClusterDrillDownProp, onFleetDrillDownChange]);
 
   const toggleAlert = useCallback((id: string, open: boolean) => {
     setExpandedAlerts((prev) => ({ ...prev, [id]: open }));
@@ -420,6 +459,23 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     }
     onFleetDrillDownChange?.(true);
   }, [fleetClusterDrillDownProp, onFleetDrillDownChange]);
+
+  const clusterAwayDigestItems = useMemo(
+    () => (selectedClusterId ? buildClusterAwayDigestItems(selectedClusterId) : []),
+    [selectedClusterId]
+  );
+
+  const clusterRecommendedRemediationCount = useMemo(
+    () => clusterAwayDigestItems.filter((item) => item.tone === 'danger' || item.tone === 'warning').length,
+    [clusterAwayDigestItems]
+  );
+
+  const openClusterRemediations = useCallback(() => {
+    setRemediationScope('cluster');
+    setCAlertsOpen(true);
+    setExpandObserveRemediationAlertId(null);
+    setExpandFleetDrillAllInnerSections(false);
+  }, []);
 
   const fleetSummaryRows = useMemo(
     () =>
@@ -800,6 +856,22 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
             </Stack>
           ) : selectedCluster ? (
             <Stack hasGutter>
+              {showCorePlatformInsightCards ? (
+                <StackItem>
+                  <Grid hasGutter className="ols-aio-fleet-pair-grid ols-aio-gutter-24">
+                    <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
+                      <TopFiringAlertsCard clusterId={selectedClusterId} />
+                    </GridItem>
+                    <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
+                      <WhileYouWereAwayCard
+                        clusterId={selectedClusterId}
+                        onViewRemediations={openClusterRemediations}
+                        recommendedRemediationCount={clusterRecommendedRemediationCount}
+                      />
+                    </GridItem>
+                  </Grid>
+                </StackItem>
+              ) : null}
 
               <StackItem>
                 <Card className="ols-aio-subcard" isCompact isExpanded={cAlertsOpen} id={`${WIDGET_ID}-c-alerts`}>

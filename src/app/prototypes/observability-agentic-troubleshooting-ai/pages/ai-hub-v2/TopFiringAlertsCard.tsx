@@ -4,7 +4,9 @@ import { Button, Card, CardBody, CardExpandableContent, CardHeader, CardTitle, L
 import {
   ALERTS,
   FLEET_WIDE_REGIONAL_INGRESS,
+  buildClusterTopFiringAlertRuleRows,
   buildFleetTopFiringAlertRuleRows,
+  clusterHubTotalFiringAlertsCount,
   fleetHubTotalFiringAlertsCount,
   getFleetTopAlertInsightDisplay,
 } from '../../components/autonomousAiObserve/data';
@@ -15,38 +17,56 @@ import { dispatchRemediationDrill } from '../../components/autonomousAiObserve/r
 
 const TOP_FIRING_CARD_ID = 'ols-ai-hub-top-firing-alerts';
 
-function alertingHref(options: { tab: 'alerts' | 'fleet-overview'; alertName?: string }): string {
+function alertingHref(options: {
+  tab: 'alerts' | 'fleet-overview';
+  alertName?: string;
+  clusterId?: string;
+}): string {
   const params = new URLSearchParams();
   params.set('tab', options.tab);
   params.set('scope', 'ai-hub');
   if (options.alertName) {
     params.set('alertName', options.alertName);
   }
+  if (options.clusterId) {
+    params.set('cluster', options.clusterId);
+  }
   return `/core/observe/alerting?${params.toString()}`;
 }
 
+export type TopFiringAlertsCardProps = {
+  /** When set, rows and counts are scoped to this cluster (Core platforms hub). */
+  clusterId?: string;
+};
+
 /**
- * v2 fleet hub — same aggregate alert scope as Fleet Summary (`ALERTS` + fleet-wide ingress attributions).
+ * v2 AI Hub — fleet scope matches Fleet Summary; cluster scope uses `getAlertsForCluster` attribution.
  */
-export const TopFiringAlertsCard: React.FC = () => {
+export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ clusterId }) => {
   const navigate = useNavigate();
 
   const [expanded, setExpanded] = useState(true);
 
-  const alertRuleData = useMemo(() => buildFleetTopFiringAlertRuleRows(), []);
-  const totalFiringAlertsCount = useMemo(() => fleetHubTotalFiringAlertsCount(), []);
+  const alertRuleData = useMemo(
+    () => (clusterId ? buildClusterTopFiringAlertRuleRows(clusterId) : buildFleetTopFiringAlertRuleRows()),
+    [clusterId]
+  );
+  const totalFiringAlertsCount = useMemo(
+    () => (clusterId ? clusterHubTotalFiringAlertsCount(clusterId) : fleetHubTotalFiringAlertsCount()),
+    [clusterId]
+  );
   const hasAlertData = totalFiringAlertsCount > 0;
 
   const onAlertRuleClick = useCallback(
     (alertName: string) => {
-      navigate(alertingHref({ tab: 'alerts', alertName }));
+      navigate(alertingHref({ tab: 'alerts', alertName, clusterId }));
     },
-    [navigate]
+    [navigate, clusterId]
   );
 
   const onViewAllFiringAlerts = useCallback(() => {
-    navigate(alertingHref({ tab: 'fleet-overview' }));
-  }, [navigate]);
+    navigate(alertingHref({ tab: clusterId ? 'alerts' : 'fleet-overview', clusterId }));
+  }, [navigate, clusterId]);
 
   const onViewRemediation = useCallback((ruleName: string) => {
     dispatchRemediationDrill({ alertRuleTitle: ruleName });
