@@ -58,6 +58,7 @@ import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { TopFiringAlertsCard } from '../../pages/ai-hub-v2/TopFiringAlertsCard';
 import { WhileYouWereAwayCard } from '../../pages/ai-hub-v2/WhileYouWereAwayCard';
+import { NodeComponentSummary } from '../../pages/ai-hub-v2/NodeComponentSummary';
 import {
   clearFocusedClusterSession,
   readFocusedClusterIdFromSession,
@@ -870,6 +871,12 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                       />
                     </GridItem>
                   </Grid>
+                </StackItem>
+              ) : null}
+
+              {showCorePlatformInsightCards ? (
+                <StackItem>
+                  <NodeComponentSummary />
                 </StackItem>
               ) : null}
 

@@ -1,0 +1,86 @@
+/* Node & component summary — Core platforms AI Hub */
+
+.ols-node-summary-card-body {
+  padding-top: var(--pf-t--global--spacer--sm);
+}
+
+.ols-node-summary-intro {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--sm);
+  margin-bottom: 0;
+}
+
+.ols-node-summary-table-wrap {
+  overflow-x: auto;
+}
+
+.ols-node-summary-type-icon {
+  color: var(--pf-t--global--icon--color--subtle);
+  width: 1rem;
+  height: 1rem;
+}
+
+.ols-node-summary-name-link {
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  text-align: left;
+}
+
+.ols-node-summary-allocation {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--pf-t--global--font--size--sm);
+  margin-bottom: 0;
+}
+
+.ols-node-summary-allocation-rec {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--xs);
+}
+
+.ols-node-summary-investigation-idle {
+  color: var(--pf-t--global--text--color--disabled);
+  margin-bottom: 0;
+}
+
+.ols-node-summary-investigation-link {
+  font-size: var(--pf-t--global--font--size--sm);
+  text-align: left;
+  white-space: normal;
+  color: var(--pf-t--global--color--brand--100, #3e8635);
+}
+
+.ols-node-summary-row--investigating {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  box-shadow: inset 3px 0 0 var(--pf-t--global--color--brand--default);
+}
+
+.ols-node-summary-alert-badge--firing {
+  --pf-v6-c-badge--BackgroundColor: var(--pf-t--global--color--status--warning--default);
+  --pf-v6-c-badge--Color: var(--pf-t--global--color--status--warning--on-warning);
+}
+
+.ols-node-summary-alert-badge--firing.pf-m-danger,
+.ols-node-summary-row--investigating .ols-node-summary-alert-badge--firing {
+  --pf-v6-c-badge--BackgroundColor: var(--pf-t--global--color--status--danger--default);
+  --pf-v6-c-badge--Color: var(--pf-t--global--color--status--danger--on-danger);
+}
+
+.ols-node-summary-drawer-body {
+  padding: var(--pf-t--global--spacer--lg);
+  overflow-y: auto;
+}
+
+.ols-node-summary-drawer-dl {
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+
+.ols-node-summary-drawer-metrics {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--sm);
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+
+.ols-node-summary-drawer-section-title {
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}

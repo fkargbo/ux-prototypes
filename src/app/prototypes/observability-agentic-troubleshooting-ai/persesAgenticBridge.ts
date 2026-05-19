@@ -23,7 +23,14 @@ export type DiscussLightspeedContext = {
   diagnosisName: string;
 };
 
+export type NodeInvestigationLightspeedContext = {
+  assetName: string;
+  investigationSummary: string;
+};
+
 export const agenticGlobalAiApi = {
   startTroubleshootingForAlert: null as null | ((alertName: string) => void),
   openDiscussWithLightspeed: null as null | ((ctx: DiscussLightspeedContext) => void),
+  /** Core platforms Node & component summary → OLS chat handoff. */
+  openLightspeedFromNodeInvestigation: null as null | ((ctx: NodeInvestigationLightspeedContext) => void),
 };
