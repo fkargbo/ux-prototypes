@@ -1521,6 +1521,100 @@ export function buildFleetTopFiringAlertRuleRows(): FleetTopAlertRuleRow[] {
   return ordered.slice(0, TOP_FLEET_ALERTS_DISPLAY_MAX);
 }
 
+/**
+ * First alert on a cluster for a rule title (severity-priority). Fleet ingress on that cluster is
+ * modeled via `buildFleetWideIngressAlertRecordForCluster`, not `ALERTS` rows.
+ */
+export function firstClusterAlertRecordForRuleTitle(
+  clusterId: string,
+  ruleTitle: string
+): AlertRecord | undefined {
+  const matches = ALERTS.filter((a) => a.title === ruleTitle && a.clusterId === clusterId);
+  if (matches.length === 0) {
+    return undefined;
+  }
+  return sortAlertsBySeverityPriority(matches)[0];
+}
+
+/**
+ * Maps Top firing alert rule name → remediation drill-down for a single cluster (Core platforms hub).
+ */
+export function resolveClusterRemediationDrillTarget(
+  alertRuleTitle: string,
+  clusterId: string
+): FleetRemediationDrillTarget | null {
+  if (
+    alertRuleTitle === FLEET_WIDE_REGIONAL_INGRESS.title &&
+    fleetWideCriticalAddsForCluster(clusterId) > 0
+  ) {
+    const fleetRow = buildFleetWideIngressAlertRecordForCluster(clusterId);
+    if (fleetRow) {
+      return { kind: 'alert', alertId: fleetRow.id };
+    }
+    return { kind: 'fleet-incident', incidentId: FLEET_WIDE_REGIONAL_INGRESS.id };
+  }
+  const alert = firstClusterAlertRecordForRuleTitle(clusterId, alertRuleTitle);
+  if (!alert) {
+    return null;
+  }
+  return { kind: 'alert', alertId: alert.id };
+}
+
+/**
+ * Core platforms hub “Top firing alerts” — aggregates firing rules on one cluster (includes fleet
+ * ingress attribution when that cluster is in the blast radius).
+ */
+export function buildClusterTopFiringAlertRuleRows(clusterId: string): FleetTopAlertRuleRow[] {
+  const cluster = getClusterById(clusterId);
+  const clusterName = cluster?.name ?? clusterId;
+  const byTitle: Record<string, FleetTopAlertRuleRow> = {};
+
+  for (const a of ALERTS.filter((alert) => alert.clusterId === clusterId)) {
+    const key = a.title;
+    if (!byTitle[key]) {
+      byTitle[key] = { name: key, critical: 0, warning: 0, info: 0, clusters: [clusterName] };
+    }
+    const row = byTitle[key];
+    if (a.severity === 'critical') {
+      row.critical++;
+    } else if (a.severity === 'warning') {
+      row.warning++;
+    } else {
+      row.info++;
+    }
+  }
+
+  if (fleetWideCriticalAddsForCluster(clusterId) > 0) {
+    const fw = FLEET_WIDE_REGIONAL_INGRESS;
+    const key = fw.title;
+    if (!byTitle[key]) {
+      byTitle[key] = { name: key, critical: 0, warning: 0, info: 0, clusters: [clusterName] };
+    }
+    byTitle[key].critical += fleetWideCriticalAddsForCluster(clusterId);
+  }
+
+  const sorted = Object.values(byTitle).sort(
+    (a, b) => b.critical + b.warning + b.info - (a.critical + a.warning + a.info)
+  );
+
+  const ingressTitle = FLEET_WIDE_REGIONAL_INGRESS.title;
+  const ingressIdx = sorted.findIndex((r) => r.name === ingressTitle);
+  const ingressRow = ingressIdx >= 0 ? sorted[ingressIdx] : undefined;
+  const withoutIngress = ingressRow ? sorted.filter((_, i) => i !== ingressIdx) : sorted;
+  const ordered = ingressRow ? [ingressRow, ...withoutIngress] : sorted;
+  return ordered.slice(0, TOP_FLEET_ALERTS_DISPLAY_MAX);
+}
+
+/** Firing alert count for one cluster (matches `getAlertsForCluster` / cluster KPI scope). */
+export function clusterHubTotalFiringAlertsCount(clusterId: string): number {
+  const perCluster = ALERTS.filter((a) => a.clusterId === clusterId);
+  const critical =
+    perCluster.filter((a) => a.severity === 'critical').length + fleetWideCriticalAddsForCluster(clusterId);
+  const warning = perCluster.filter((a) => a.severity === 'warning').length;
+  const info = perCluster.filter((a) => a.severity === 'info').length;
+  return critical + warning + info;
+}
+
 /** Aligns with Fleet Summary firing totals (`computeFleetStats` / fleet ingress attribution). */
 export function fleetHubTotalFiringAlertsCount(): number {
   const critical =

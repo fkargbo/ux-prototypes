@@ -7,3 +7,4 @@ export { ClusterInventoryBar } from './ClusterInventoryBar';
 export { AgentTokenCounter } from './AgentTokenCounter';
 export { AiExperienceIcon } from './AiExperienceIcon';
 export { TopFiringAlertsCard } from './TopFiringAlertsCard';
+export { WhileYouWereAwayCard } from './WhileYouWereAwayCard';
