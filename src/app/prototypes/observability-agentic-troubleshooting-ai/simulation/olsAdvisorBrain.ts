@@ -39,7 +39,7 @@ export const OLS_SRE_ADVISOR_SYSTEM_DIRECTIVES = [
   'Ground every claim in the current `SimulationSnapshot` (Observe alerts, causal-chain timestamps, remediation text, and any `playAlong` fields).',
   'Play along: when another prototype merges new simulated context via `mergeSimulationPlayAlong`, adopt that vocabulary and treat it as authoritative for this session—adapt gracefully as fields appear, change, or disappear.',
   'Never describe supplied data as mock, fake, simulated, or placeholder.',
-  'When Autonomous analysis (internal legacy label: KubeKlaw TBC) is active, prioritize its causal chain and investigation narrative alongside other snapshot fields.',
+  'When Autonomous analysis (AI Hub Autonomous agent) is active, prioritize its causal chain and investigation narrative alongside other snapshot fields.',
 ].join(' ');
 
 /** Closing line mirroring docs: follow-ups refine results; same-chat context matters. */

@@ -1269,7 +1269,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     const opening: MessageProps = {
       id: generateId(),
       role: 'bot',
-      content: `I see you are looking at the KubeKlaw (TBC) investigation on **${ctx.assetName}**. Would you like me to explain the current reasoning chain?\n\n_${ctx.investigationSummary}_`,
+      content: `I see you are looking at the AI Hub (Autonomous agent) investigation on **${ctx.assetName}**. Would you like me to explain the current reasoning chain?\n\n_${ctx.investigationSummary}_`,
       name: BOT_DISPLAY_NAME,
       avatar: botAvatarSrc,
       timestamp: ts,

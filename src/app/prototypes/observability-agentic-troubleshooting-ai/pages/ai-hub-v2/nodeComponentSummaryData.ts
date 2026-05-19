@@ -116,7 +116,7 @@ function buildNodeRows(clusterId: string, snap: SimulationSnapshot): NodeCompone
       memUtilPct: 48 + i * 9,
       memRecommendedPct: 55,
       investigation: investigating
-        ? { summary: 'KubeKlaw (TBC) correlating node pressure with ingress timeouts' }
+        ? { summary: 'AI Hub (Autonomous agent) correlating node pressure with ingress timeouts' }
         : null,
       alertCount: status === 'NotReady' || status === 'SchedulingDisabled' ? 2 : 0,
       zone: zones[i % zones.length],
@@ -183,12 +183,12 @@ function buildComponentRows(clusterId: string, snap: SimulationSnapshot): NodeCo
     let investigation: NodeComponentInvestigation | null = null;
     if (agentActive && primary) {
       if (def.key === 'ingress' || def.key === 'router') {
-        investigation = { summary: 'KubeKlaw (TBC) diagnosing API latency on ingress dataplane' };
+        investigation = { summary: 'AI Hub (Autonomous agent) diagnosing API latency on ingress dataplane' };
       } else if (def.key === 'etcd') {
-        investigation = { summary: 'KubeKlaw (TBC) analyzing WAL growth and compaction lag' };
+        investigation = { summary: 'AI Hub (Autonomous agent) analyzing WAL growth and compaction lag' };
       }
     } else if (snap.selectedClusterAgentStatus === 'remediating' && def.key === 'etcd') {
-      investigation = { summary: 'KubeKlaw (TBC) validating etcd defrag and quota recovery' };
+      investigation = { summary: 'AI Hub (Autonomous agent) validating etcd defrag and quota recovery' };
     }
 
     const cpuUtil = 28 + index * 9 + (hasCritical ? 22 : 0);

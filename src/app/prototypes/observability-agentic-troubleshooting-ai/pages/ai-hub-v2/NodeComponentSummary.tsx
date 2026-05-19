@@ -9,10 +9,9 @@ import {
   CardTitle,
   Content,
   Flex,
-  FlexItem,
   Label,
 } from '@patternfly/react-core';
-import { CubesIcon, ServerIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { useSimulation } from '../../simulation/SimulationProvider';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
@@ -27,22 +26,40 @@ import './node-component-summary.css';
 
 const CARD_ID = 'ols-ai-hub-node-component-summary';
 
-function statusLabelProps(status: NodeComponentStatusLabel): {
-  color: 'green' | 'red' | 'orange' | 'blue';
-  icon?: React.ReactNode;
-} {
+function statusToLabelStatus(status: NodeComponentStatusLabel): 'success' | 'warning' | 'danger' {
   switch (status) {
     case 'Ready':
     case 'Healthy':
-      return { color: 'green' };
+      return 'success';
+    case 'SchedulingDisabled':
+      return 'warning';
     case 'NotReady':
     case 'Degraded':
-      return { color: 'red' };
-    case 'SchedulingDisabled':
-      return { color: 'orange' };
     default:
-      return { color: 'blue' };
+      return 'danger';
   }
+}
+
+function statusDisplayText(status: NodeComponentStatusLabel): string {
+  switch (status) {
+    case 'NotReady':
+      return 'Not ready';
+    case 'SchedulingDisabled':
+      return 'Scheduling disabled';
+    default:
+      return status;
+  }
+}
+
+function statusIcon(status: NodeComponentStatusLabel): React.ReactNode {
+  const labelStatus = statusToLabelStatus(status);
+  if (labelStatus === 'success') {
+    return <CheckCircleIcon aria-hidden />;
+  }
+  if (labelStatus === 'warning') {
+    return <ExclamationTriangleIcon aria-hidden />;
+  }
+  return <ExclamationCircleIcon aria-hidden />;
 }
 
 function ResourceAllocationCell({ row }: { row: NodeComponentSummaryRow }) {
@@ -117,7 +134,7 @@ export const NodeComponentSummary: React.FC = () => {
   const handleInvestigationClick = useCallback((row: NodeComponentSummaryRow) => {
     agenticGlobalAiApi.openLightspeedFromNodeInvestigation?.({
       assetName: row.name,
-      investigationSummary: row.investigation?.summary ?? 'KubeKlaw (TBC) investigation',
+      investigationSummary: row.investigation?.summary ?? 'AI Hub (Autonomous agent) investigation',
     });
   }, []);
 
@@ -173,30 +190,18 @@ export const NodeComponentSummary: React.FC = () => {
                 </Thead>
                 <Tbody>
                   {rows.map((row) => {
-                    const statusProps = statusLabelProps(row.status);
                     const rowClass = row.investigation ? 'ols-node-summary-row--investigating' : undefined;
                     return (
                       <Tr key={row.id} className={rowClass}>
                         <Td dataLabel="Name" modifier="breakWord">
-                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                            <FlexItem>
-                              {row.kind === 'node' ? (
-                                <ServerIcon aria-hidden className="ols-node-summary-type-icon" />
-                              ) : (
-                                <CubesIcon aria-hidden className="ols-node-summary-type-icon" />
-                              )}
-                            </FlexItem>
-                            <FlexItem>
-                              <Button
-                                variant="link"
-                                isInline
-                                onClick={() => openDrawer(row)}
-                                className="ols-node-summary-name-link"
-                              >
-                                {row.name}
-                              </Button>
-                            </FlexItem>
-                          </Flex>
+                          <Button
+                            variant="link"
+                            isInline
+                            onClick={() => openDrawer(row)}
+                            className="ols-node-summary-name-link"
+                          >
+                            {row.name}
+                          </Button>
                         </Td>
                         <Td dataLabel="Type" modifier="nowrap">
                           <Label color="grey" variant="outline" isCompact>
@@ -204,8 +209,8 @@ export const NodeComponentSummary: React.FC = () => {
                           </Label>
                         </Td>
                         <Td dataLabel="Status" modifier="nowrap">
-                          <Label color={statusProps.color} isCompact>
-                            {row.status}
+                          <Label status={statusToLabelStatus(row.status)} icon={statusIcon(row.status)} isCompact>
+                            {statusDisplayText(row.status)}
                           </Label>
                         </Td>
                         <Td dataLabel="AI resource allocation">
