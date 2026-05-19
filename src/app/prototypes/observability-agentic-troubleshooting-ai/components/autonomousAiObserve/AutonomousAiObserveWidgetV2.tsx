@@ -220,6 +220,12 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
     }
     setSelectedClusterId(DEFAULT_CORE_PLATFORMS_CLUSTER_ID);
   }, [activePerspective, selectedClusterId]);
+
+  React.useEffect(() => {
+    if (activePerspective === 'Core platforms') {
+      setCAlertsOpen(true);
+    }
+  }, [activePerspective]);
   const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
   const [fleetSummarySortBy, setFleetSummarySortBy] = useState<{ index: number; direction: 'asc' | 'desc' }>({
@@ -228,7 +234,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   });
   const [fleetSummaryPage, setFleetSummaryPage] = useState(1);
   const [fleetSummaryPerPage, setFleetSummaryPerPage] = useState(10);
-  const [cAlertsOpen, setCAlertsOpen] = useState(false);
+  const [cAlertsOpen, setCAlertsOpen] = useState(activePerspective === 'Core platforms');
   const [remediationScope, setRemediationScope] = useState<'fleet' | 'cluster'>('cluster');
   const [fleetIncidentExpanded, setFleetIncidentExpanded] = useState(false);
   /** Drill from Top firing alerts “View remediation”: expand Chain, RCA, and Remediation inside fleet incident card. */
