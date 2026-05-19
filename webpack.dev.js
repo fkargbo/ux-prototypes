@@ -8,11 +8,19 @@ import { stylePaths } from './stylePaths.js';
 const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT || '3000';
 
-/** Serve ExP-Lab `feedback-layer.js` without copying into root `dist/` (after `cd exp-lab && npm run build`). */
+/**
+ * Serve ExP-Lab `feedback-layer.js` from the submodule build.
+ * Do not add root `dist/` here — after `npm run build`, stale production assets can
+ * shadow webpack-dev-server's in-memory bundles (broken images, wrong hashes).
+ */
 const expLabDistPath = path.resolve('./exp-lab/dist');
-const devStaticDirectories = [path.resolve('./dist')];
+const devStaticDirectories = [];
 if (fs.existsSync(expLabDistPath)) {
-  devStaticDirectories.unshift(expLabDistPath);
+  devStaticDirectories.push({
+    directory: expLabDistPath,
+    publicPath: '/',
+    watch: true,
+  });
 }
 
 export default merge(common('development'), {
