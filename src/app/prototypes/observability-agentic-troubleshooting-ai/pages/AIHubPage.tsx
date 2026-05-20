@@ -103,6 +103,7 @@ export const AIHubPage: React.FC = () => {
 
       <div id="ols-ai-hub-main" role="main" aria-label="AI Troubleshooting Hub (Conceptual design) content" style={mainStyle}>
         <div
+          data-exp-lab-annotation-root
           style={{
             padding: '24px',
             maxWidth: '1200px',
