@@ -4,6 +4,8 @@ import {
   BreadcrumbItem,
   Button,
   Content,
+  Flex,
+  FlexItem,
   Stack,
   StackItem,
   Title,
@@ -35,70 +37,81 @@ export const AIHubPage: React.FC = () => {
   const showClusterSummary =
     isHubV2 && (activePerspective === 'Core platforms' || (activePerspective === 'Fleet management' && fleetClusterDrillDown));
 
+  const hubSurfaceMain = isGlassContrast ? 'transparent' : '#ffffff';
+  const hubSurfaceRoot = isGlassContrast ? 'transparent' : '#f5f5f5';
+
   const rootStyle: React.CSSProperties = isHubV2
     ? {
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: isGlassContrast ? 'transparent' : '#f5f5f5',
+        flex: 1,
+        minHeight: 0,
+        backgroundColor: hubSurfaceRoot,
         boxSizing: 'border-box',
       }
     : {
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        backgroundColor: isGlassContrast ? 'transparent' : '#f5f5f5',
+        backgroundColor: hubSurfaceRoot,
       };
 
-  const mainStyle: React.CSSProperties = isHubV2
-    ? {
-        flex: 1,
-        minHeight: 0,
-        overflow: 'visible',
-        backgroundColor: isGlassContrast ? 'transparent' : '#ffffff',
-      }
-    : {
-        flex: 1,
-        overflow: 'auto',
-        backgroundColor: isGlassContrast ? 'transparent' : '#ffffff',
-      };
+  /** Scroll lives here so the title row (PF Flex in create-policy-header) stays put and snaps back at scroll top. */
+  const mainStyle: React.CSSProperties = {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'auto',
+    backgroundColor: hubSurfaceMain,
+  };
 
   return (
     <div className={`ols-ai-hub-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`} style={rootStyle}>
       <div className="create-policy-header">
-        <div className="ols-ai-hub-page-header-inner">
-          <div className="ols-ai-hub-page-header-primary">
-            <AiExperienceIcon size={40} />
-            <div className="ols-ai-hub-page-header-copy">
-              <Title headingLevel="h1" size="2xl">
-                AI Troubleshooting Hub (Conceptual design)
-              </Title>
-              <Content
-                component="p"
-                className="ols-ai-hub-page-subtitle"
-                style={{ marginTop: '8px', marginBottom: 0, color: '#6a6e73' }}
-              >
-                Accelerate incident response with autonomous investigations, automated evidence gathering, and guided
-                fixes.
-              </Content>
-              <Content
-                component="p"
-                style={{
-                  marginTop: 'var(--pf-t--global--spacer--xs)',
-                  marginBottom: 0,
-                  fontSize: '12px',
-                  color: '#4D4D4D',
-                }}
-              >
-                Always review AI-generated content prior to use.
-              </Content>
-            </div>
-          </div>
+        <Flex
+          className="ols-ai-hub-page-header-inner"
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapMd' }}
+          flexWrap={{ default: 'nowrap' }}
+          style={{ width: '100%' }}
+        >
+          <FlexItem className="ols-ai-hub-page-header-primary" style={{ minWidth: 0, flex: '1 1 auto' }}>
+            <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapSm' }}>
+              <FlexItem flexShrink={{ default: 0 }}>
+                <AiExperienceIcon size={40} />
+              </FlexItem>
+              <FlexItem className="ols-ai-hub-page-header-copy" style={{ minWidth: 0 }}>
+                <Title headingLevel="h1" size="2xl">
+                  AI Troubleshooting Hub (Conceptual design)
+                </Title>
+                <Content
+                  component="p"
+                  className="ols-ai-hub-page-subtitle"
+                  style={{ marginTop: '8px', marginBottom: 0, color: '#6a6e73' }}
+                >
+                  Accelerate incident response with autonomous investigations, automated evidence gathering, and guided
+                  fixes.
+                </Content>
+                <Content
+                  component="p"
+                  style={{
+                    marginTop: 'var(--pf-t--global--spacer--xs)',
+                    marginBottom: 0,
+                    fontSize: '12px',
+                    color: '#4D4D4D',
+                  }}
+                >
+                  Always review AI-generated content prior to use.
+                </Content>
+              </FlexItem>
+            </Flex>
+          </FlexItem>
           {isHubV2 ? (
-            <div className="ols-ai-hub-page-header-aside">
+            <FlexItem className="ols-ai-hub-page-header-aside" flexShrink={{ default: 0 }}>
               <AgentTokenCounter />
-            </div>
+            </FlexItem>
           ) : null}
-        </div>
+        </Flex>
       </div>
 
       <div id="ols-ai-hub-main" role="main" aria-label="AI Troubleshooting Hub (Conceptual design) content" style={mainStyle}>
