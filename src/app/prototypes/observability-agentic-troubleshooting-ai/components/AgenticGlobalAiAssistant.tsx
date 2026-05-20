@@ -115,7 +115,12 @@ import '../pages/dashboards-perses.css';
 // Import custom profile images
 import userProfilePicUrl from '../assets/user-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
-import { persesAgenticBridge, agenticGlobalAiApi, type DiscussLightspeedContext } from '../persesAgenticBridge';
+import {
+  persesAgenticBridge,
+  agenticGlobalAiApi,
+  type DiscussLightspeedContext,
+  type NodeInvestigationLightspeedContext,
+} from '../persesAgenticBridge';
 import { useSimulation } from '../simulation/SimulationProvider';
 import { getSimulationSnapshot } from '../simulation/simulationStore';
 import type { SimulationHandoff } from '../simulation/simulationTypes';
@@ -1259,14 +1264,32 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     setIsDrawerOpen(true);
   }, []);
 
+  const handleOpenLightspeedFromNodeInvestigation = useCallback((ctx: NodeInvestigationLightspeedContext) => {
+    const ts = new Date().toLocaleString();
+    const opening: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: `I see you are looking at the AI Hub (Autonomous agent) investigation on **${ctx.assetName}**. Would you like me to explain the current reasoning chain?\n\n_${ctx.investigationSummary}_`,
+      name: BOT_DISPLAY_NAME,
+      avatar: botAvatarSrc,
+      timestamp: ts,
+    };
+    setPersistEmptyIntroInScroll(false);
+    setMessages([opening]);
+    setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: investigation on ${ctx.assetName}.`);
+    setIsDrawerOpen(true);
+  }, []);
+
   useEffect(() => {
     agenticGlobalAiApi.startTroubleshootingForAlert = handleStartTroubleshooting;
     agenticGlobalAiApi.openDiscussWithLightspeed = handleOpenDiscussWithLightspeed;
+    agenticGlobalAiApi.openLightspeedFromNodeInvestigation = handleOpenLightspeedFromNodeInvestigation;
     return () => {
       agenticGlobalAiApi.startTroubleshootingForAlert = null;
       agenticGlobalAiApi.openDiscussWithLightspeed = null;
+      agenticGlobalAiApi.openLightspeedFromNodeInvestigation = null;
     };
-  }, [handleStartTroubleshooting, handleOpenDiscussWithLightspeed]);
+  }, [handleStartTroubleshooting, handleOpenDiscussWithLightspeed, handleOpenLightspeedFromNodeInvestigation]);
 
   const olsChromeDockClassName = `ols-ai-chrome-dock${isDrawerOpen ? ' ols-ai-chrome-dock--chat-open' : ''}`;
 
