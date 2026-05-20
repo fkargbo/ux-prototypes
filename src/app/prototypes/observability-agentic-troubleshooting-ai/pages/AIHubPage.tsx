@@ -77,7 +77,7 @@ export const AIHubPage: React.FC = () => {
         >
           <FlexItem className="ols-ai-hub-page-header-primary" style={{ minWidth: 0, flex: '1 1 auto' }}>
             <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapSm' }}>
-              <FlexItem flexShrink={{ default: 0 }}>
+              <FlexItem style={{ flexShrink: 0 }}>
                 <AiExperienceIcon size={40} />
               </FlexItem>
               <FlexItem className="ols-ai-hub-page-header-copy" style={{ minWidth: 0 }}>
@@ -107,7 +107,7 @@ export const AIHubPage: React.FC = () => {
             </Flex>
           </FlexItem>
           {isHubV2 ? (
-            <FlexItem className="ols-ai-hub-page-header-aside" flexShrink={{ default: 0 }}>
+            <FlexItem className="ols-ai-hub-page-header-aside" style={{ flexShrink: 0 }}>
               <AgentTokenCounter />
             </FlexItem>
           ) : null}
