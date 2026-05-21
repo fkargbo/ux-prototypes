@@ -1,29 +1,45 @@
 /*
- * Collapsible prototype navigation banner (pf-v6-c-banner in PrototypeLayout).
- * Matches the templates-page pattern: compact strip when collapsed, full toolbar when expanded.
+ * Prototype navigation banner (pf-v6-c-banner): dedicated snap scroller — same pattern as
+ * `.ols-fps-template__header-scroller` on the AI Hub templates page. Scroll to hide/show; no toggle control.
  */
 
-.ux-prototype-nav-banner.pf-v6-c-banner {
+.hpux-prototype-nav-banner-scroller {
+  flex: 0 0 auto;
+  height: var(--hpux-prototype-nav-banner-h, auto);
+  max-height: var(--hpux-prototype-nav-banner-h, none);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  box-sizing: border-box;
+}
+
+.hpux-prototype-nav-banner-scroller:focus-visible {
+  outline: 2px solid var(--pf-t--global--color--brand--default, #0066cc);
+  outline-offset: -2px;
+}
+
+.hpux-prototype-nav-banner-snap {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
   flex-shrink: 0;
 }
 
-.ux-prototype-nav-banner__inner {
+.hpux-prototype-nav-banner-snap .pf-v6-c-banner {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.hpux-prototype-nav-banner__inner {
   width: 100%;
 }
 
-.ux-prototype-nav-banner__controls {
-  overflow: hidden;
-  transition: max-height 0.2s ease, opacity 0.2s ease;
-  max-height: 5rem;
-  opacity: 1;
-}
-
-.ux-prototype-nav-banner.ux-prototype-nav-banner--collapsed .ux-prototype-nav-banner__controls {
-  max-height: 0;
-  opacity: 0;
+.hpux-prototype-nav-banner-spacer {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  height: var(--hpux-prototype-nav-banner-h, 0);
+  flex-shrink: 0;
   pointer-events: none;
-}
-
-.ux-prototype-nav-banner.ux-prototype-nav-banner--collapsed {
-  padding-block: var(--pf-t--global--spacer--xs);
 }

@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
 import './ols-full-page-scroll-template.css';
 
@@ -7,7 +7,7 @@ const SCROLL_LOCK_CLASS = 'ols-fps-scroll-locked';
 export type OlsFullPageScrollTemplateProps = {
   /** Applied to the page root (e.g. `ols-ai-hub-page ols-ai-hub-page--v2`). */
   pageClassName?: string;
-  /** Inner scroller id — use for annotation roots or scroll helpers. */
+  /** Main content scroller id (annotation root, etc.). */
   scrollerId?: string;
   /** Snap header band (PF Flex row inside `create-policy-header`). */
   header: React.ReactNode;
@@ -18,8 +18,8 @@ export type OlsFullPageScrollTemplateProps = {
 };
 
 /**
- * OpenShift-style full page: fixed Page chrome (masthead/sidebar), one inner scroller. The title
- * Flex row is the first scroll-snap stop (hides on scroll down, snaps back when scrolling up).
+ * Masthead/sidebar stay fixed. Only the title Flex band scrolls away (dedicated snap scroller);
+ * hub content scrolls in a separate region below.
  */
 export const OlsFullPageScrollTemplate: React.FC<OlsFullPageScrollTemplateProps> = ({
   pageClassName,
@@ -29,6 +29,21 @@ export const OlsFullPageScrollTemplate: React.FC<OlsFullPageScrollTemplateProps>
   children,
   bodyStyle,
 }) => {
+  const templateRef = useRef<HTMLDivElement>(null);
+  const headerMeasureRef = useRef<HTMLDivElement>(null);
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+
+  const syncHeaderHeight = useCallback(() => {
+    const headerEl = headerMeasureRef.current;
+    const templateEl = templateRef.current;
+    if (!headerEl || !templateEl) {
+      return;
+    }
+    const height = headerEl.offsetHeight;
+    templateEl.style.setProperty('--ols-fps-header-h', `${height}px`);
+  }, []);
+
   useLayoutEffect(() => {
     const root = document.documentElement;
     root.classList.add(SCROLL_LOCK_CLASS);
@@ -41,18 +56,55 @@ export const OlsFullPageScrollTemplate: React.FC<OlsFullPageScrollTemplateProps>
     };
   }, []);
 
+  useLayoutEffect(() => {
+    syncHeaderHeight();
+    const headerEl = headerMeasureRef.current;
+    if (!headerEl || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    const observer = new ResizeObserver(() => syncHeaderHeight());
+    observer.observe(headerEl);
+    return () => observer.disconnect();
+  }, [header, syncHeaderHeight]);
+
+  const handleMainScroll = useCallback(() => {
+    const main = mainScrollRef.current;
+    const headerScroller = headerScrollRef.current;
+    if (!main || !headerScroller || main.scrollTop > 0) {
+      return;
+    }
+    if (headerScroller.scrollTop > 0) {
+      headerScroller.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
   return (
-    <div className={['ols-fps-template', 'ols-fps-template-page', pageClassName].filter(Boolean).join(' ')}>
-      <div id={scrollerId} className="ols-fps-template__scroller">
-        <div className="create-policy-header ols-fps-template__header">{header}</div>
-        <div
-          className="ols-fps-template__body"
-          role="main"
-          aria-label={mainAriaLabel}
-          style={bodyStyle}
-        >
-          {children}
+    <div
+      ref={templateRef}
+      className={['ols-fps-template', 'ols-fps-template-page', pageClassName].filter(Boolean).join(' ')}
+    >
+      <div
+        ref={headerScrollRef}
+        className="ols-fps-template__header-scroller"
+        aria-label="Page title — scroll to hide or show"
+        tabIndex={0}
+      >
+        <div ref={headerMeasureRef} className="ols-fps-template__header-snap">
+          <div className="create-policy-header ols-fps-template__header">{header}</div>
         </div>
+        <div className="ols-fps-template__header-scroll-spacer" aria-hidden="true" />
+      </div>
+
+      <div
+        id={scrollerId}
+        ref={mainScrollRef}
+        className="ols-fps-template__main"
+        role="main"
+        aria-label={mainAriaLabel}
+        style={bodyStyle}
+        onScroll={handleMainScroll}
+      >
+        {children}
       </div>
     </div>
   );

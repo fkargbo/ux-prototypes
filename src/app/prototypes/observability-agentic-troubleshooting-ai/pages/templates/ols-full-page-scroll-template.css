@@ -1,9 +1,10 @@
 /*
- * Full-page scroll template: document and PatternFly Page shell do not scroll (masthead stays
- * fixed). Only `.ols-fps-template__scroller` scrolls; the PF Flex title row is the first snap stop.
+ * Full-page scroll template (below masthead):
+ * - Document + Page shell: no scroll (masthead fixed).
+ * - Title band only: `.ols-fps-template__header-scroller` — scroll to hide/show the PF Flex row (snap).
+ * - Hub content: `.ols-fps-template__main` — separate scroll region.
  */
 
-/* Lock document scroll while a template page is mounted (class toggled from TS). */
 html.ols-fps-scroll-locked,
 html.ols-fps-scroll-locked body {
   overflow: hidden !important;
@@ -17,7 +18,6 @@ html.ols-fps-scroll-locked #root {
   overflow: hidden !important;
 }
 
-/* PatternFly Page fills the viewport below the fixed use-case strip (48px in AppLayout). */
 html.ols-fps-scroll-locked .pf-v6-c-page:has(.ols-fps-template) {
   height: calc(100dvh - 48px);
   max-height: calc(100dvh - 48px);
@@ -30,7 +30,6 @@ html.ols-fps-scroll-locked .pf-v6-c-page:has(.ols-fps-template) > .pf-v6-c-page_
   flex-shrink: 0;
 }
 
-/* Beat dashboards-perses.css global `overflow-y: auto` on main-container. */
 html.ols-fps-scroll-locked .pf-v6-c-page__main-container:has(.ols-fps-template),
 .pf-v6-c-page__main-container:has(.ols-fps-template) {
   display: flex !important;
@@ -67,24 +66,38 @@ html.ols-fps-scroll-locked .pf-v6-c-page__main-section:has(.ols-fps-template),
   height: 100%;
   max-height: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-.ols-fps-template__scroller {
-  flex: 1 1 auto;
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
+.ols-fps-template__header-scroller {
+  flex: 0 0 auto;
+  height: var(--ols-fps-header-h, auto);
+  max-height: var(--ols-fps-header-h, none);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  background-color: var(--pf-t--global--background--color--primary--default, #fff);
+  border-block-end: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
+  box-sizing: border-box;
+}
+
+.ols-fps-template__header-scroller:focus-visible {
+  outline: 2px solid var(--pf-t--global--color--brand--default, #0066cc);
+  outline-offset: -2px;
+}
+
+.ols-fps-template__header-snap {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  flex-shrink: 0;
 }
 
 .ols-fps-template__header.create-policy-header {
   flex-shrink: 0;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  margin: 0;
 }
 
 .ols-fps-template__header-row {
@@ -92,10 +105,20 @@ html.ols-fps-scroll-locked .pf-v6-c-page__main-section:has(.ols-fps-template),
   box-sizing: border-box;
 }
 
-.ols-fps-template__body {
-  flex: 1 0 auto;
+.ols-fps-template__header-scroll-spacer {
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  min-height: 100%;
+  height: var(--ols-fps-header-h, 0);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.ols-fps-template__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }

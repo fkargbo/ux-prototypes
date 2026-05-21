@@ -1,25 +1,7 @@
-import React, { useCallback, useState } from 'react';
-import { Banner, Button, Flex, FlexItem } from '@patternfly/react-core';
-import { AngleDownIcon, AngleUpIcon } from '@patternfly/react-icons';
+import React, { useCallback, useLayoutEffect, useRef } from 'react';
+import { Banner, Flex, FlexItem } from '@patternfly/react-core';
 import './prototype-navigation-banner.css';
-
-const STORAGE_KEY = 'hpux.prototypeNavBanner.collapsed';
-
-function readCollapsedPreference(): boolean {
-  try {
-    return sessionStorage.getItem(STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function writeCollapsedPreference(collapsed: boolean): void {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
-  } catch {
-    /* ignore quota / private mode */
-  }
-}
+import { usePrototypeNavBannerScrollChain } from './usePrototypeNavBannerScrollChain';
 
 export type CollapsibleNavigationBannerProps = {
   backToLauncher: React.ReactNode;
@@ -27,57 +9,63 @@ export type CollapsibleNavigationBannerProps = {
 };
 
 /**
- * Prototype navigation strip above the masthead. Collapses to back + expand control
- * (same interaction model as the templates page header band).
+ * Prototype navigation strip (`pf-v6-c-banner`) above the masthead. Uses a dedicated scroll-snap
+ * scroller (templates / AI Hub pattern): scroll down to hide, scroll up at page top to snap back.
  */
 export const CollapsibleNavigationBanner: React.FC<CollapsibleNavigationBannerProps> = ({
   backToLauncher,
   toolbar,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(readCollapsedPreference);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
 
-  const toggleCollapsed = useCallback(() => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      writeCollapsedPreference(next);
-      return next;
-    });
+  const syncBannerHeight = useCallback(() => {
+    const measureEl = measureRef.current;
+    const scrollerEl = scrollerRef.current;
+    if (!measureEl || !scrollerEl) {
+      return;
+    }
+    scrollerEl.style.setProperty('--hpux-prototype-nav-banner-h', `${measureEl.offsetHeight}px`);
   }, []);
 
-  return (
-    <Banner
-      className={[
-        'ux-prototype-nav-banner',
-        isCollapsed ? 'ux-prototype-nav-banner--collapsed' : undefined,
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <Flex
-        className="ux-prototype-nav-banner__inner"
-        alignItems={{ default: 'alignItemsCenter' }}
-        spaceItems={{ default: 'spaceItemsMd' }}
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-      >
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-          <FlexItem>
-            <Button
-              variant="plain"
-              aria-label={isCollapsed ? 'Expand prototype navigation banner' : 'Collapse prototype navigation banner'}
-              aria-expanded={!isCollapsed}
-              icon={isCollapsed ? <AngleDownIcon /> : <AngleUpIcon />}
-              onClick={toggleCollapsed}
-            />
-          </FlexItem>
-          <FlexItem>{backToLauncher}</FlexItem>
-        </Flex>
+  useLayoutEffect(() => {
+    syncBannerHeight();
+    const measureEl = measureRef.current;
+    if (!measureEl || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    const observer = new ResizeObserver(() => syncBannerHeight());
+    observer.observe(measureEl);
+    return () => observer.disconnect();
+  }, [backToLauncher, toolbar, syncBannerHeight]);
 
-        <FlexItem className="ux-prototype-nav-banner__controls">
-          <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-            {toolbar}
+  usePrototypeNavBannerScrollChain(scrollerRef);
+
+  return (
+    <div
+      ref={scrollerRef}
+      className="hpux-prototype-nav-banner-scroller"
+      aria-label="Prototype navigation — scroll to hide or show"
+      tabIndex={0}
+    >
+      <div ref={measureRef} className="hpux-prototype-nav-banner-snap">
+        <Banner className="hpux-prototype-nav-banner">
+          <Flex
+            className="hpux-prototype-nav-banner__inner"
+            alignItems={{ default: 'alignItemsCenter' }}
+            spaceItems={{ default: 'spaceItemsMd' }}
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          >
+            <FlexItem>{backToLauncher}</FlexItem>
+            <FlexItem>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                {toolbar}
+              </Flex>
+            </FlexItem>
           </Flex>
-        </FlexItem>
-      </Flex>
-    </Banner>
+        </Banner>
+      </div>
+      <div className="hpux-prototype-nav-banner-spacer" aria-hidden="true" />
+    </div>
   );
 };
