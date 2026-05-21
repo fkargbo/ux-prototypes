@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useLayoutEffect } from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
 import './ols-full-page-scroll-template.css';
+
+const SCROLL_LOCK_CLASS = 'ols-fps-scroll-locked';
 
 export type OlsFullPageScrollTemplateProps = {
   /** Applied to the page root (e.g. `ols-ai-hub-page ols-ai-hub-page--v2`). */
@@ -16,8 +18,8 @@ export type OlsFullPageScrollTemplateProps = {
 };
 
 /**
- * OpenShift-style full page: fixed Page chrome, one inner scroller. The title Flex row is the
- * first scroll-snap stop (hides on scroll down, snaps back when scrolling up).
+ * OpenShift-style full page: fixed Page chrome (masthead/sidebar), one inner scroller. The title
+ * Flex row is the first scroll-snap stop (hides on scroll down, snaps back when scrolling up).
  */
 export const OlsFullPageScrollTemplate: React.FC<OlsFullPageScrollTemplateProps> = ({
   pageClassName,
@@ -26,21 +28,35 @@ export const OlsFullPageScrollTemplate: React.FC<OlsFullPageScrollTemplateProps>
   mainAriaLabel,
   children,
   bodyStyle,
-}) => (
-  <div className={['ols-fps-template', pageClassName].filter(Boolean).join(' ')}>
-    <div id={scrollerId} className="ols-fps-template__scroller">
-      <div className="create-policy-header ols-fps-template__header">{header}</div>
-      <div
-        className="ols-fps-template__body"
-        role="main"
-        aria-label={mainAriaLabel}
-        style={bodyStyle}
-      >
-        {children}
+}) => {
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.classList.add(SCROLL_LOCK_CLASS);
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      root.classList.remove(SCROLL_LOCK_CLASS);
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
+
+  return (
+    <div className={['ols-fps-template', 'ols-fps-template-page', pageClassName].filter(Boolean).join(' ')}>
+      <div id={scrollerId} className="ols-fps-template__scroller">
+        <div className="create-policy-header ols-fps-template__header">{header}</div>
+        <div
+          className="ols-fps-template__body"
+          role="main"
+          aria-label={mainAriaLabel}
+          style={bodyStyle}
+        >
+          {children}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export type OlsFullPageScrollHeaderRowProps = {
   primary: React.ReactNode;

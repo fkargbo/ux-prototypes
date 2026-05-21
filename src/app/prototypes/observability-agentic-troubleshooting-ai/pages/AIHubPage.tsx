@@ -42,7 +42,7 @@ export const AIHubPage: React.FC = () => {
 
   return (
     <OlsFullPageScrollTemplate
-      pageClassName={`ols-ai-hub-page ols-fps-template-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`}
+      pageClassName={`ols-ai-hub-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`}
       scrollerId="ols-ai-hub-scroller"
       mainAriaLabel="AI Troubleshooting Hub (Conceptual design) content"
       bodyStyle={{ backgroundColor: hubSurfaceMain }}

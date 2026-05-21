@@ -1,29 +1,62 @@
 /*
- * Full-page scroll template: the PatternFly Page shell does not scroll. One inner scroller
- * holds the snap header row (create-policy-header) and body; only the header band scrolls off
- * and snaps back when scrolling toward the top.
+ * Full-page scroll template: document and PatternFly Page shell do not scroll (masthead stays
+ * fixed). Only `.ols-fps-template__scroller` scrolls; the PF Flex title row is the first snap stop.
  */
 
+/* Lock document scroll while a template page is mounted (class toggled from TS). */
+html.ols-fps-scroll-locked,
+html.ols-fps-scroll-locked body {
+  overflow: hidden !important;
+  height: 100%;
+  max-height: 100dvh;
+}
+
+html.ols-fps-scroll-locked #root {
+  height: 100%;
+  max-height: 100dvh;
+  overflow: hidden !important;
+}
+
+/* PatternFly Page fills the viewport below the fixed use-case strip (48px in AppLayout). */
+html.ols-fps-scroll-locked .pf-v6-c-page:has(.ols-fps-template) {
+  height: calc(100dvh - 48px);
+  max-height: calc(100dvh - 48px);
+  overflow: hidden !important;
+  box-sizing: border-box;
+}
+
+html.ols-fps-scroll-locked .pf-v6-c-page:has(.ols-fps-template) > .pf-v6-c-masthead,
+html.ols-fps-scroll-locked .pf-v6-c-page:has(.ols-fps-template) > .pf-v6-c-page__sidebar {
+  flex-shrink: 0;
+}
+
+/* Beat dashboards-perses.css global `overflow-y: auto` on main-container. */
+html.ols-fps-scroll-locked .pf-v6-c-page__main-container:has(.ols-fps-template),
 .pf-v6-c-page__main-container:has(.ols-fps-template) {
-  display: flex;
-  flex-direction: column;
-  overflow-y: hidden !important;
-  min-height: 0;
-}
-
-.pf-v6-c-page__main:has(.ols-fps-template) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.pf-v6-c-page__main-section:has(.ols-fps-template) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
   min-height: 0 !important;
-  overflow: visible !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+html.ols-fps-scroll-locked .pf-v6-c-page__main:has(.ols-fps-template),
+.pf-v6-c-page__main:has(.ols-fps-template) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html.ols-fps-scroll-locked .pf-v6-c-page__main-section:has(.ols-fps-template),
+.pf-v6-c-page__main-section:has(.ols-fps-template) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
 }
 
 .ols-fps-template {
@@ -31,12 +64,16 @@
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   box-sizing: border-box;
 }
 
 .ols-fps-template__scroller {
   flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
@@ -59,7 +96,6 @@
   flex: 1 0 auto;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  /* At least one viewport of the scroller so the body snap point can sit below the header band. */
   min-height: 100%;
   box-sizing: border-box;
 }
