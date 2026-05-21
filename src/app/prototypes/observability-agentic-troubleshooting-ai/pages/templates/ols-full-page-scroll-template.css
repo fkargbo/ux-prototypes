@@ -1,0 +1,65 @@
+/*
+ * Full-page scroll template: the PatternFly Page shell does not scroll. One inner scroller
+ * holds the snap header row (create-policy-header) and body; only the header band scrolls off
+ * and snaps back when scrolling toward the top.
+ */
+
+.pf-v6-c-page__main-container:has(.ols-fps-template) {
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden !important;
+  min-height: 0;
+}
+
+.pf-v6-c-page__main:has(.ols-fps-template) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pf-v6-c-page__main-section:has(.ols-fps-template) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+.ols-fps-template {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.ols-fps-template__scroller {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ols-fps-template__header.create-policy-header {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.ols-fps-template__header-row {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ols-fps-template__body {
+  flex: 1 0 auto;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  /* At least one viewport of the scroller so the body snap point can sit below the header band. */
+  min-height: 100%;
+  box-sizing: border-box;
+}

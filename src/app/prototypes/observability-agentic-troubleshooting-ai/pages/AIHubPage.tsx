@@ -19,6 +19,7 @@ import { config as prototypeConfig } from '../prototype.config';
 import { useAiHubAppearance } from '../context/AiHubAppearanceContext';
 import { AgentTokenCounter, AiExperienceIcon, ClusterInventoryBar, FleetInventoryBar } from './ai-hub-v2';
 import { useFocusedClusterId } from './ai-hub-v2/useFocusedClusterId';
+import { OlsFullPageScrollHeaderRow, OlsFullPageScrollTemplate } from './templates';
 import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
@@ -38,44 +39,16 @@ export const AIHubPage: React.FC = () => {
     isHubV2 && (activePerspective === 'Core platforms' || (activePerspective === 'Fleet management' && fleetClusterDrillDown));
 
   const hubSurfaceMain = isGlassContrast ? 'transparent' : '#ffffff';
-  const hubSurfaceRoot = isGlassContrast ? 'transparent' : '#f5f5f5';
-
-  const rootStyle: React.CSSProperties = isHubV2
-    ? {
-        display: 'flex',
-        flexDirection: 'column',
-        flex: 1,
-        minHeight: 0,
-        backgroundColor: hubSurfaceRoot,
-        boxSizing: 'border-box',
-      }
-    : {
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        backgroundColor: hubSurfaceRoot,
-      };
-
-  /** Scroll lives here so the title row (PF Flex in create-policy-header) stays put and snaps back at scroll top. */
-  const mainStyle: React.CSSProperties = {
-    flex: 1,
-    minHeight: 0,
-    overflow: 'auto',
-    backgroundColor: hubSurfaceMain,
-  };
 
   return (
-    <div className={`ols-ai-hub-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`} style={rootStyle}>
-      <div className="create-policy-header">
-        <Flex
-          className="ols-ai-hub-page-header-inner"
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapMd' }}
-          flexWrap={{ default: 'nowrap' }}
-          style={{ width: '100%' }}
-        >
-          <FlexItem className="ols-ai-hub-page-header-primary" style={{ minWidth: 0, flex: '1 1 auto' }}>
+    <OlsFullPageScrollTemplate
+      pageClassName={`ols-ai-hub-page ols-fps-template-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`}
+      scrollerId="ols-ai-hub-scroller"
+      mainAriaLabel="AI Troubleshooting Hub (Conceptual design) content"
+      bodyStyle={{ backgroundColor: hubSurfaceMain }}
+      header={
+        <OlsFullPageScrollHeaderRow
+          primary={
             <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapSm' }}>
               <FlexItem style={{ flexShrink: 0 }}>
                 <AiExperienceIcon size={40} />
@@ -105,66 +78,61 @@ export const AIHubPage: React.FC = () => {
                 </Content>
               </FlexItem>
             </Flex>
-          </FlexItem>
-          {isHubV2 ? (
-            <FlexItem className="ols-ai-hub-page-header-aside" style={{ flexShrink: 0 }}>
-              <AgentTokenCounter />
-            </FlexItem>
-          ) : null}
-        </Flex>
-      </div>
-
-      <div id="ols-ai-hub-main" role="main" aria-label="AI Troubleshooting Hub (Conceptual design) content" style={mainStyle}>
-        <div
-          data-exp-lab-annotation-root
-          style={{
-            padding: '24px',
-            maxWidth: '1200px',
-            margin: '0 auto',
-            boxSizing: 'border-box',
-          }}
-        >
-          <Stack hasGutter className="ols-ai-hub-main-stack">
-            {showFleetBreadcrumb ? (
-              <StackItem>
-                <Breadcrumb>
-                  <BreadcrumbItem>
-                    <Button
-                      variant="link"
-                      isInline
-                      onClick={() => setFleetClusterDrillDown(false)}
-                      aria-label="Return to AI Troubleshooting Hub fleet overview"
-                    >
-                      AI Troubleshooting Hub
-                    </Button>
-                  </BreadcrumbItem>
-                  <BreadcrumbItem isActive>{focusedCluster?.name ?? 'Cluster'}</BreadcrumbItem>
-                </Breadcrumb>
-              </StackItem>
-            ) : null}
-            {showFleetInventory ? (
-              <StackItem>
-                <FleetInventoryBar />
-              </StackItem>
-            ) : null}
-            {showClusterSummary ? (
-              <StackItem>
-                <ClusterInventoryBar title="Cluster summary" />
-              </StackItem>
-            ) : null}
+          }
+          aside={isHubV2 ? <AgentTokenCounter /> : undefined}
+        />
+      }
+    >
+      <div
+        data-exp-lab-annotation-root
+        className="ols-ai-hub-page-content"
+        style={{
+          padding: '24px',
+          maxWidth: '1200px',
+          margin: '0 auto',
+          boxSizing: 'border-box',
+        }}
+      >
+        <Stack hasGutter className="ols-ai-hub-main-stack">
+          {showFleetBreadcrumb ? (
             <StackItem>
-              {bannerVersionKey === 'v2' ? (
-                <AutonomousAiObserveWidgetV2
-                  fleetClusterDrillDown={fleetClusterDrillDown}
-                  onFleetDrillDownChange={setFleetClusterDrillDown}
-                />
-              ) : (
-                <AutonomousAiObserveWidget />
-              )}
+              <Breadcrumb>
+                <BreadcrumbItem>
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => setFleetClusterDrillDown(false)}
+                    aria-label="Return to AI Troubleshooting Hub fleet overview"
+                  >
+                    AI Troubleshooting Hub
+                  </Button>
+                </BreadcrumbItem>
+                <BreadcrumbItem isActive>{focusedCluster?.name ?? 'Cluster'}</BreadcrumbItem>
+              </Breadcrumb>
             </StackItem>
-          </Stack>
-        </div>
+          ) : null}
+          {showFleetInventory ? (
+            <StackItem>
+              <FleetInventoryBar />
+            </StackItem>
+          ) : null}
+          {showClusterSummary ? (
+            <StackItem>
+              <ClusterInventoryBar title="Cluster summary" />
+            </StackItem>
+          ) : null}
+          <StackItem>
+            {bannerVersionKey === 'v2' ? (
+              <AutonomousAiObserveWidgetV2
+                fleetClusterDrillDown={fleetClusterDrillDown}
+                onFleetDrillDownChange={setFleetClusterDrillDown}
+              />
+            ) : (
+              <AutonomousAiObserveWidget />
+            )}
+          </StackItem>
+        </Stack>
       </div>
-    </div>
+    </OlsFullPageScrollTemplate>
   );
 };

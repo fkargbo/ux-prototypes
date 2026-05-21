@@ -24,51 +24,7 @@
   gap: 24px;
 }
 
-/*
- * v2 hub: scroll only on `#ols-ai-hub-main` so the title Flex row stays visible; scrolling back to top
- * snaps the content band below the header (proximity snap). Page main-container must not scroll or the
- * header scrolls away with no snap-back.
- */
-.pf-v6-c-page__main-container:has(.ols-ai-hub-page--v2) {
-  display: flex;
-  flex-direction: column;
-  overflow-y: hidden !important;
-  min-height: 0;
-}
-
-.pf-v6-c-page__main:has(.ols-ai-hub-page--v2) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.pf-v6-c-page__main-section:has(.ols-ai-hub-page--v2) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
-
-.ols-ai-hub-page--v2 {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.ols-ai-hub-page--v2 .create-policy-header {
-  flex-shrink: 0;
-}
-
-.ols-ai-hub-page--v2 #ols-ai-hub-main {
-  scroll-snap-type: y proximity;
-  -webkit-overflow-scrolling: touch;
-}
-
-.ols-ai-hub-page--v2 #ols-ai-hub-main > * {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-}
+/* Hub scroll/snap layout: see `pages/templates/ols-full-page-scroll-template.css`. */
 
 .ws-full-page-utils {
   position: fixed;
