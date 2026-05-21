@@ -43,7 +43,15 @@
   gap: 24px;
 }
 
-/* Hub scroll/snap layout: see `pages/templates/ols-full-page-scroll-template.css`. */
+/*
+ * v2.0 hub: single vertical scrollbar. `dashboards-perses.css` (pulled in with agentic chrome) sets
+ * `overflow-y: auto` on `.pf-v6-c-page__main-container` — the hub must not add a second scroller on `#ols-ai-hub-main`.
+ * Dropping `height: 100vh` on the hub root avoids a viewport-tall block inside the page main region.
+ */
+.pf-v6-c-page__main:has(.ols-ai-hub-page--v2),
+.pf-v6-c-page__main-container:has(.ols-ai-hub-page--v2) {
+  min-height: 0;
+}
 
 .ws-full-page-utils {
   position: fixed;
