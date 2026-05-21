@@ -70,7 +70,7 @@ button[aria-label="View task details"] {
 }
 
 /* Ensure page container handles scrolling properly - prevent double scrollbars */
-.pf-v6-c-page__main-container {
+.pf-v6-c-page__main-container:not(:has(.ols-ai-hub-page)) {
   overflow-y: auto !important;
   overflow-x: hidden !important;
 }

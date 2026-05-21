@@ -44,13 +44,43 @@
 }
 
 /*
- * v2.0 hub: single vertical scrollbar. `dashboards-perses.css` (pulled in with agentic chrome) sets
- * `overflow-y: auto` on `.pf-v6-c-page__main-container` — the hub must not add a second scroller on `#ols-ai-hub-main`.
- * Dropping `height: 100vh` on the hub root avoids a viewport-tall block inside the page main region.
+ * AI Hub scroll shell (same contract as Observability overview): fixed `create-policy-header`,
+ * single inner scroller on `#ols-ai-hub-main`. Overrides `dashboards-perses.css` main-container scroll.
  */
-.pf-v6-c-page__main:has(.ols-ai-hub-page--v2),
-.pf-v6-c-page__main-container:has(.ols-ai-hub-page--v2) {
+.pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.pf-v6-c-page__main:has(.ols-ai-hub-page),
+.pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.ols-ai-hub-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
+  max-height: 100%;
+  box-sizing: border-box;
+}
+
+.ols-ai-hub-page__main,
+#ols-ai-hub-main.ols-ai-hub-page__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ws-full-page-utils {

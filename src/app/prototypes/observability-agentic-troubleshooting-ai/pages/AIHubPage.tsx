@@ -35,35 +35,14 @@ export const AIHubPage: React.FC = () => {
   const showClusterSummary =
     isHubV2 && (activePerspective === 'Core platforms' || (activePerspective === 'Fleet management' && fleetClusterDrillDown));
 
-  const rootStyle: React.CSSProperties = isHubV2
-    ? {
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: isGlassContrast ? 'transparent' : '#f5f5f5',
-        boxSizing: 'border-box',
-      }
-    : {
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        backgroundColor: isGlassContrast ? 'transparent' : '#f5f5f5',
-      };
-
-  const mainStyle: React.CSSProperties = isHubV2
-    ? {
-        flex: 1,
-        minHeight: 0,
-        overflow: 'visible',
-        backgroundColor: isGlassContrast ? 'transparent' : '#ffffff',
-      }
-    : {
-        flex: 1,
-        overflow: 'auto',
-        backgroundColor: isGlassContrast ? 'transparent' : '#ffffff',
-      };
+  const pageBackground = isGlassContrast ? 'transparent' : '#f5f5f5';
+  const mainBackground = isGlassContrast ? 'transparent' : '#ffffff';
 
   return (
-    <div className={`ols-ai-hub-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`} style={rootStyle}>
+    <div
+      className={`ols-ai-hub-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`}
+      style={{ backgroundColor: pageBackground }}
+    >
       <div className="create-policy-header">
         <div className="ols-ai-hub-page-header-inner">
           <div className="ols-ai-hub-page-header-primary">
@@ -101,7 +80,13 @@ export const AIHubPage: React.FC = () => {
         </div>
       </div>
 
-      <div id="ols-ai-hub-main" role="main" aria-label="AI Troubleshooting Hub (Conceptual design) content" style={mainStyle}>
+      <div
+        id="ols-ai-hub-main"
+        className="ols-ai-hub-page__main"
+        role="main"
+        aria-label="AI Troubleshooting Hub (Conceptual design) content"
+        style={{ backgroundColor: mainBackground }}
+      >
         <div
           data-exp-lab-annotation-root
           style={{
