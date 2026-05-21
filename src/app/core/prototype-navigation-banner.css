@@ -1,0 +1,29 @@
+/*
+ * Collapsible prototype navigation banner (pf-v6-c-banner in PrototypeLayout).
+ * Matches the templates-page pattern: compact strip when collapsed, full toolbar when expanded.
+ */
+
+.ux-prototype-nav-banner.pf-v6-c-banner {
+  flex-shrink: 0;
+}
+
+.ux-prototype-nav-banner__inner {
+  width: 100%;
+}
+
+.ux-prototype-nav-banner__controls {
+  overflow: hidden;
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+  max-height: 5rem;
+  opacity: 1;
+}
+
+.ux-prototype-nav-banner.ux-prototype-nav-banner--collapsed .ux-prototype-nav-banner__controls {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ux-prototype-nav-banner.ux-prototype-nav-banner--collapsed {
+  padding-block: var(--pf-t--global--spacer--xs);
+}

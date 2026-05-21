@@ -7,7 +7,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { 
-  Banner, 
   Flex, 
   FlexItem, 
   Button,
@@ -32,6 +31,7 @@ import {
   BANNER_VERSION_CHANGE_EVENT,
   getBannerVersionStorageKey,
 } from './bannerVersionPicker';
+import { CollapsibleNavigationBanner } from './CollapsibleNavigationBanner';
 
 interface PrototypeLayoutProps {
   prototype: PrototypeModule;
@@ -155,25 +155,15 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   };
 
   const navigationBanner = (
-    <Banner>
-      <Flex 
-        alignItems={{ default: 'alignItemsCenter' }} 
-        spaceItems={{ default: 'spaceItemsMd' }}
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-      >
-        <FlexItem>
-          <Button
-            variant="link"
-            icon={<ArrowLeftIcon />}
-            onClick={handleBackToLauncher}
-          >
-            Back to Launcher
-          </Button>
-        </FlexItem>
-        
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+    <CollapsibleNavigationBanner
+      backToLauncher={
+        <Button variant="link" icon={<ArrowLeftIcon />} onClick={handleBackToLauncher}>
+          Back to Launcher
+        </Button>
+      }
+      toolbar={
+        <>
           {prototype.bannerBeforeVersionPicker ? <FlexItem>{prototype.bannerBeforeVersionPicker}</FlexItem> : null}
-          {/* Version Selector or Display */}
           {hasVersions ? (
             <FlexItem>
               <Select
@@ -193,7 +183,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
                 )}
               >
                 <SelectList>
-                  {versions.map(version => (
+                  {versions.map((version) => (
                     <SelectOption
                       key={version.config.id}
                       value={version.config.id}
@@ -243,8 +233,6 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
               </span>
             </FlexItem>
           )}
-          
-          {/* Use Case Selector (if has siblings) */}
           {hasUseCases && (
             <FlexItem>
               <Select
@@ -264,7 +252,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
                 )}
               >
                 <SelectList>
-                  {siblings.map(sibling => (
+                  {siblings.map((sibling) => (
                     <SelectOption
                       key={sibling.config.id}
                       value={sibling.config.id}
@@ -308,9 +296,9 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
               )}
             </Flex>
           </FlexItem>
-        </Flex>
-      </Flex>
-    </Banner>
+        </>
+      }
+    />
   );
 
   // Format owner name with slack handle if available

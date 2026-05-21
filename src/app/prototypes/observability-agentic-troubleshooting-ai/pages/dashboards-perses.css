@@ -69,11 +69,8 @@ button[aria-label="View task details"] {
   text-align: center !important;
 }
 
-/*
- * Default main scroll for Perses/dashboard routes. Pages using `OlsFullPageScrollTemplate`
- * (`.ols-fps-template` inside main-container) own scrolling on `.ols-fps-template__scroller` instead.
- */
-.pf-v6-c-page__main-container:not(:has(.ols-fps-template)) {
+/* Ensure page container handles scrolling properly - prevent double scrollbars */
+.pf-v6-c-page__main-container {
   overflow-y: auto !important;
   overflow-x: hidden !important;
 }

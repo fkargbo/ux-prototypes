@@ -4,13 +4,32 @@
   border-bottom: none !important;
 }
 
-/* Page header: PF Flex supplies layout classes; keep copy/aside helpers only. */
+/* Page header: plain layout (avoid PF Flex layout classes on this row). */
+.ols-ai-hub-page-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: var(--pf-t--global--spacer--md);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ols-ai-hub-page-header-primary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pf-t--global--spacer--sm);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .ols-ai-hub-page-header-copy {
   min-width: 0;
 }
 
 .ols-ai-hub-page-header-aside {
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 /* Keep subtitle readable in very narrow viewports. */
@@ -24,7 +43,15 @@
   gap: 24px;
 }
 
-/* Hub scroll/snap layout: see `pages/templates/ols-full-page-scroll-template.css`. */
+/*
+ * v2.0 hub: single vertical scrollbar. `dashboards-perses.css` (pulled in with agentic chrome) sets
+ * `overflow-y: auto` on `.pf-v6-c-page__main-container` — the hub must not add a second scroller on `#ols-ai-hub-main`.
+ * Dropping `height: 100vh` on the hub root avoids a viewport-tall block inside the page main region.
+ */
+.pf-v6-c-page__main:has(.ols-ai-hub-page--v2),
+.pf-v6-c-page__main-container:has(.ols-ai-hub-page--v2) {
+  min-height: 0;
+}
 
 .ws-full-page-utils {
   position: fixed;
