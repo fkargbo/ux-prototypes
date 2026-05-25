@@ -14,6 +14,7 @@ import {
 import { Content, PageSection } from '@patternfly/react-core';
 import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
+import { OlsPrototypeChromeScroll } from './components/OlsPrototypeChromeScroll';
 
 const ObserveNavPlaceholder: React.FC = () => (
   <PageSection>
@@ -159,8 +160,13 @@ export const routes: RouteConfig[] = [
   },
 ];
 
-/** Wraps prototype shell so banner appearance controls share theme state with AI Hub page. */
-export const prototypeRootWrapper = AiHubAppearanceProvider;
+/** Wraps prototype shell: theme state + document scroll chaining for the prototype nav banner. */
+export const prototypeRootWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <AiHubAppearanceProvider>
+    <OlsPrototypeChromeScroll />
+    {children}
+  </AiHubAppearanceProvider>
+);
 
 /** Banner toolbar: before version picker (see `PrototypeLayout`). */
 export const bannerBeforeVersionPicker = <AiHubBannerAppearanceSettings />;

@@ -32,9 +32,6 @@ import {
   BANNER_VERSION_CHANGE_EVENT,
   getBannerVersionStorageKey,
 } from './bannerVersionPicker';
-import { CollapsibleNavigationBanner } from './CollapsibleNavigationBanner';
-
-const OLS_AGENTIC_PROTOTYPE_ID = 'observability-agentic-troubleshooting-ai';
 
 interface PrototypeLayoutProps {
   prototype: PrototypeModule;
@@ -304,23 +301,20 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
     </>
   );
 
-  const navigationBanner =
-    prototype.config.id === OLS_AGENTIC_PROTOTYPE_ID ? (
-      <CollapsibleNavigationBanner backToLauncher={backToLauncher} toolbar={bannerToolbar} />
-    ) : (
-      <Banner>
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          spaceItems={{ default: 'spaceItemsMd' }}
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        >
-          <FlexItem>{backToLauncher}</FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-            {bannerToolbar}
-          </Flex>
+  const navigationBanner = (
+    <Banner className="hpux-prototype-top-banner">
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        spaceItems={{ default: 'spaceItemsMd' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+      >
+        <FlexItem>{backToLauncher}</FlexItem>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          {bannerToolbar}
         </Flex>
-      </Banner>
-    );
+      </Flex>
+    </Banner>
+  );
 
   // Format owner name with slack handle if available
   const ownerDisplayName = prototype.config.owner.slack

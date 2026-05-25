@@ -1,8 +1,36 @@
 /*
- * OLS Observe pages (overview + AI Hub): PF Page masthead stays fixed; only the inner
- * `#ols-*-main` region scrolls. Matches Observability overview behavior and prevents
- * scrolling past the masthead when `dashboards-perses.css` would scroll `.pf-v6-c-page__main-container`.
+ * OLS Observe pages (overview + AI Hub): masthead stays put (`position: sticky` on Page);
+ * prototype `pf-v6-c-banner` hides via document scroll (no banner scroller / scrollbar);
+ * only `#ols-*-main` scrolls page content.
  */
+
+html:has(.ols-observe-overview-page),
+html:has(.ols-ai-hub-page) {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-y: auto !important;
+}
+
+html:has(.ols-observe-overview-page) body,
+html:has(.ols-ai-hub-page) body {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-y: auto !important;
+}
+
+html:has(.ols-observe-overview-page) #root,
+html:has(.ols-ai-hub-page) #root {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+.pf-v6-c-page:has(.ols-observe-overview-page),
+.pf-v6-c-page:has(.ols-ai-hub-page) {
+  position: sticky !important;
+  top: 0 !important;
+  align-self: start !important;
+}
 
 .pf-v6-c-page__main-container:has(.ols-observe-overview-page),
 .pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
