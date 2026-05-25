@@ -238,7 +238,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
   const [cAlertsOpen, setCAlertsOpen] = useState(activePerspective === 'Core platforms');
   const [remediationScope, setRemediationScope] = useState<'fleet' | 'cluster'>('cluster');
   const [fleetIncidentExpanded, setFleetIncidentExpanded] = useState(false);
-  /** Drill from Top firing alerts “View remediation”: expand Chain, RCA, and Remediation inside fleet incident card. */
+  /** Drill from Top firing alerts “Investigate with AI”: expand Chain, RCA, and Remediation inside fleet incident card. */
   const [expandFleetDrillAllInnerSections, setExpandFleetDrillAllInnerSections] = useState(false);
   /** Drill target alert row — expands outer card + all inner sections for that `ObserveAlertItem`. */
   const [expandObserveRemediationAlertId, setExpandObserveRemediationAlertId] = useState<string | null>(null);

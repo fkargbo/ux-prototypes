@@ -60,8 +60,8 @@ export interface TopAlertsSectionProps {
    */
   getAiInsightCopy?: (ruleName: string) => string;
   /**
-   * `fleet-insights` — actions on the title row; Discuss with AI inline after insight copy (Alerting Fleet Insights).
-   * `ai-hub` — View alert → Discuss with AI → View Runbook on one line below the AI insight block (AI Hub Top firing alerts).
+   * `fleet-insights` — actions on the title row; Discuss with Lightspeed inline after insight copy (Alerting Fleet Insights).
+   * `ai-hub` — View alert → Discuss with Lightspeed → View Runbook on one line below the AI insight block (AI Hub Top firing alerts).
    */
   alertActionsLayout?: 'fleet-insights' | 'ai-hub';
   /** When false, do not render the footer “View all firing alerts” row (e.g. card header supplies it). */
@@ -169,7 +169,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                           style={{ display: 'block', flexShrink: 0 }}
                         />
                       </span>
-                      View remediation
+                      Investigate with AI
                     </Button>
                   </FlexItem>
                 ) : null}
@@ -243,7 +243,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                           })
                         }
                       >
-                        Discuss with AI
+                        Discuss with Lightspeed
                       </Button>
                     </>
                   ) : null}
@@ -283,7 +283,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                       })
                     }
                   >
-                    Discuss with AI
+                    Discuss with Lightspeed
                   </Button>
                   <Button
                     variant="link"
