@@ -1,0 +1,155 @@
+/*
+ * v3 fleet hub cards (While you were away / Top firing alerts / Fleet summary): inner blocks that resolve to
+ * opaque primary (typically white in light theme) clash with a translucent card — transparent so one layer reads through.
+ */
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v3-away,
+    .ols-autonomous-ai-observe-widget-v3-top-firing,
+    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+  )
+  .pf-v6-c-card__expandable-content,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v3-away,
+    .ols-autonomous-ai-observe-widget-v3-top-firing,
+    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+  )
+  .pf-v6-c-card__body,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v3-away,
+    .ols-autonomous-ai-observe-widget-v3-top-firing,
+    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+  )
+  .ols-aio-away-card-body,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v3-away,
+    .ols-autonomous-ai-observe-widget-v3-top-firing,
+    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+  )
+  .ols-aio-away-scroll-region,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v3-away,
+    .ols-autonomous-ai-observe-widget-v3-top-firing,
+    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+  )
+  .ols-aio-away-card-footer,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v3-away,
+    .ols-autonomous-ai-observe-widget-v3-top-firing,
+    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+  )
+  .pf-v6-c-empty-state,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v3-away,
+    .ols-autonomous-ai-observe-widget-v3-top-firing,
+    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+  )
+  .pf-v6-c-empty-state__body {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-away .ols-aio-away-card-footer {
+  box-shadow: none;
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-away .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline {
+  --pf-v6-c-alert--BackgroundColor: transparent;
+  --pf-v6-c-alert--m-inline--BackgroundColor: transparent;
+  background-color: transparent !important;
+}
+
+/*
+ * Top firing alerts: `TopAlertsSection` applies INSIGHTS_LIST_WRAPPER / INSIGHTS_LIST_ITEM inline backgrounds
+ * (primary + secondary from fleetInsightsConfig). `!important` wins over inline for translucent card parity.
+ */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-top-firing .ols-aio-top-firing-translucent-scope > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-top-firing .ols-aio-top-firing-translucent-scope > div > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/*
+ * Fleet summary: remove stacked *static* white (table chrome + app.css #fff rows) over the translucent card.
+ * Keep PatternFly interaction surfaces: clickable row hover, selected row, sort :hover/:focus, pagination controls.
+ * app.css uses `.pf-v6-c-table thead tr|th`, `tbody tr`, `tbody tr:hover` with #fff / #f8f9fa !important — beat
+ * those only for default/rest; restore PF vars for row hover / selection and do not strip button/pagination hovers.
+ */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table {
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--m-ghost-row--BackgroundColor: transparent;
+  /* At-rest sort control fill only — hover uses table.css defaults via --pf-v6-c-table__button--hover--BackgroundColor */
+  --pf-v6-c-table__button--BackgroundColor: transparent;
+  background-color: transparent !important;
+}
+
+/*
+ * AI Hub glass (`ai-hub-page.css`) sets every `.ols-ai-hub-page .pf-v6-c-table` to
+ * `background-color: var(--ols-ai-hub-glass-surface-tint)` (50% white) plus `backdrop-filter`.
+ * That stacks a second frosted sheet on the already-glass Card and reads as a faint white slab.
+ * Higher specificity + same longhands so this wins over that page rule regardless of import order.
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* Header + body cells at rest (beats app.css #fff on thead tr/th and tbody tr) */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table thead,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table .pf-v6-c-table__thead,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table thead tr,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table tbody,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table .pf-v6-c-table__tbody,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table th,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table .pf-v6-c-table__th,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table td,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table .pf-v6-c-table__td {
+  background-color: transparent !important;
+}
+
+/* Data rows at rest — beats app.css #fff on tbody tr */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table tbody tr,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr {
+  background-color: transparent !important;
+}
+
+/* Non-clickable tbody row hover (if any): stay transparent so app.css #f8f9fa does not stack */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table tbody tr:not(.pf-m-clickable):hover,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr:not(.pf-m-clickable):hover {
+  background-color: transparent !important;
+}
+
+/* Selected row (Tr isRowSelected → pf-m-selected, see @patternfly/react-table Tr.js) */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table tbody tr.pf-m-selected,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr.pf-m-selected {
+  background-color: var(--pf-v6-c-table__tr--m-selected--BackgroundColor) !important;
+}
+
+/* Clickable row hover after selected so pointer feedback still applies on selected rows */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table tbody tr.pf-m-clickable:hover,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr.pf-m-clickable:hover {
+  background-color: var(--pf-v6-c-table__tr--m-clickable--hover--BackgroundColor) !important;
+}
+
+/* Pagination bar: transparent at rest (stacked white); do not strip control hovers — no !important on menu-toggle / input */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-pagination,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-pagination.pf-m-bottom {
+  --pf-v6-c-pagination--m-bottom--BackgroundColor: transparent;
+  --pf-v6-c-pagination--m-sticky--BackgroundColor: transparent;
+  background-color: transparent !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-card__body > .pf-v6-l-flex {
+  background-color: transparent !important;
+}
