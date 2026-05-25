@@ -29,6 +29,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import {
+  AngleDownIcon,
+  AngleRightIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
@@ -703,42 +705,42 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
               </StackItem>
 
               <StackItem>
-                <Card
-                  className="ols-aio-subcard ols-autonomous-ai-observe-widget-v3-fleet-summary"
-                  isCompact
-                  isExpanded={fleetSummaryOpen}
+                <section
+                  className="ols-aio-fleet-summary-section ols-autonomous-ai-observe-widget-v3-fleet-summary"
                   id={`${WIDGET_ID}-fleet-summary`}
+                  aria-label="Fleet Summary"
                 >
-                  <CardHeader
-                    onExpand={() => setFleetSummaryOpen((o) => !o)}
-                    toggleButtonProps={{
-                      id: `${WIDGET_ID}-fleet-summary-toggle`,
-                      'aria-label': 'Toggle Fleet Summary section',
-                    }}
-                    actions={{
-                      actions: (
-                        <Button
-                          variant="link"
-                          isInline
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }));
-                          }}
-                          aria-label="Open Alerting Fleet overview filtered to currently surfaced Autonomous analysis alerts"
-                        >
-                          View alerts
-                        </Button>
-                      ),
-                    }}
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    flexWrap={{ default: 'wrap' }}
+                    gap={{ default: 'gapSm' }}
+                    className="ols-aio-fleet-summary-section__header"
                   >
-                    <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                      <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                      <Button
+                        id={`${WIDGET_ID}-fleet-summary-toggle`}
+                        variant="plain"
+                        aria-expanded={fleetSummaryOpen}
+                        aria-label="Toggle Fleet Summary section"
+                        onClick={() => setFleetSummaryOpen((open) => !open)}
+                        icon={fleetSummaryOpen ? <AngleDownIcon /> : <AngleRightIcon />}
+                      />
+                      <Title headingLevel="h3" size="lg" className="ols-aio-fleet-subcard-title">
                         Fleet Summary
-                      </CardTitle>
+                      </Title>
                     </Flex>
-                  </CardHeader>
-                  <CardExpandableContent>
-                    <CardBody>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }))}
+                      aria-label="Open Alerting Fleet overview filtered to currently surfaced Autonomous analysis alerts"
+                    >
+                      View alerts
+                    </Button>
+                  </Flex>
+                  {fleetSummaryOpen ? (
+                    <div className="ols-aio-fleet-summary-section__body">
                       <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                         <Pagination
                           itemCount={fleetSummarySortedRows.length}
@@ -852,9 +854,9 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                           isCompact
                         />
                       </Flex>
-                    </CardBody>
-                  </CardExpandableContent>
-                </Card>
+                    </div>
+                  ) : null}
+                </section>
               </StackItem>
             </Stack>
           ) : selectedCluster ? (

@@ -1,54 +1,47 @@
 /*
- * v3 fleet hub cards (While you were away / Top firing alerts / Fleet summary): inner blocks that resolve to
+ * v3 fleet hub cards (While you were away / Top firing alerts): inner blocks that resolve to
  * opaque primary (typically white in light theme) clash with a translucent card — transparent so one layer reads through.
  */
 .ols-autonomous-ai-observe-widget
   :is(
     .ols-autonomous-ai-observe-widget-v3-away,
-    .ols-autonomous-ai-observe-widget-v3-top-firing,
-    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+    .ols-autonomous-ai-observe-widget-v3-top-firing
   )
   .pf-v6-c-card__expandable-content,
 .ols-autonomous-ai-observe-widget
   :is(
     .ols-autonomous-ai-observe-widget-v3-away,
-    .ols-autonomous-ai-observe-widget-v3-top-firing,
-    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+    .ols-autonomous-ai-observe-widget-v3-top-firing
   )
   .pf-v6-c-card__body,
 .ols-autonomous-ai-observe-widget
   :is(
     .ols-autonomous-ai-observe-widget-v3-away,
-    .ols-autonomous-ai-observe-widget-v3-top-firing,
-    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+    .ols-autonomous-ai-observe-widget-v3-top-firing
   )
   .ols-aio-away-card-body,
 .ols-autonomous-ai-observe-widget
   :is(
     .ols-autonomous-ai-observe-widget-v3-away,
-    .ols-autonomous-ai-observe-widget-v3-top-firing,
-    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+    .ols-autonomous-ai-observe-widget-v3-top-firing
   )
   .ols-aio-away-scroll-region,
 .ols-autonomous-ai-observe-widget
   :is(
     .ols-autonomous-ai-observe-widget-v3-away,
-    .ols-autonomous-ai-observe-widget-v3-top-firing,
-    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+    .ols-autonomous-ai-observe-widget-v3-top-firing
   )
   .ols-aio-away-card-footer,
 .ols-autonomous-ai-observe-widget
   :is(
     .ols-autonomous-ai-observe-widget-v3-away,
-    .ols-autonomous-ai-observe-widget-v3-top-firing,
-    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+    .ols-autonomous-ai-observe-widget-v3-top-firing
   )
   .pf-v6-c-empty-state,
 .ols-autonomous-ai-observe-widget
   :is(
     .ols-autonomous-ai-observe-widget-v3-away,
-    .ols-autonomous-ai-observe-widget-v3-top-firing,
-    .ols-autonomous-ai-observe-widget-v3-fleet-summary
+    .ols-autonomous-ai-observe-widget-v3-top-firing
   )
   .pf-v6-c-empty-state__body {
   background-color: transparent !important;
@@ -80,8 +73,12 @@
   background: transparent !important;
 }
 
+.ols-aio-fleet-summary-section__header {
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+
 /*
- * Fleet summary: remove stacked *static* white (table chrome + app.css #fff rows) over the translucent card.
+ * Fleet summary table (plain section, not a card): beat stacked whites from app.css on at-rest cells.
  * Keep PatternFly interaction surfaces: clickable row hover, selected row, sort :hover/:focus, pagination controls.
  * app.css uses `.pf-v6-c-table thead tr|th`, `tbody tr`, `tbody tr:hover` with #fff / #f8f9fa !important — beat
  * those only for default/rest; restore PF vars for row hover / selection and do not strip button/pagination hovers.
@@ -150,6 +147,3 @@
   background-color: transparent !important;
 }
 
-.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v3-fleet-summary .pf-v6-c-card__body > .pf-v6-l-flex {
-  background-color: transparent !important;
-}
