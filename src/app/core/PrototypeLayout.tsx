@@ -302,7 +302,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   );
 
   const navigationBanner = (
-    <Banner className="hpux-prototype-top-banner">
+    <Banner>
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
         spaceItems={{ default: 'spaceItemsMd' }}

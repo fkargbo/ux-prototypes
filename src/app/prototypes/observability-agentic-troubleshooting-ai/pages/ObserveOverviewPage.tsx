@@ -51,6 +51,7 @@ export const ObserveOverviewPage: React.FC = () => {
       style={{
         display: 'flex',
         flexDirection: 'column',
+        height: '100vh',
         backgroundColor: '#f5f5f5',
       }}
     >
@@ -92,7 +93,11 @@ export const ObserveOverviewPage: React.FC = () => {
         id="ols-observe-overview-main"
         role="main"
         aria-label="Observability overview content"
-        style={{ backgroundColor: '#ffffff' }}
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          backgroundColor: '#ffffff',
+        }}
       >
         <div
           style={{
