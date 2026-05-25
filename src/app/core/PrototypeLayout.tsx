@@ -33,6 +33,8 @@ import {
   getBannerVersionStorageKey,
 } from './bannerVersionPicker';
 
+const OLS_AGENTIC_PROTOTYPE_ID = 'observability-agentic-troubleshooting-ai';
+
 interface PrototypeLayoutProps {
   prototype: PrototypeModule;
 }
@@ -301,8 +303,8 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
     </>
   );
 
-  const navigationBanner = (
-    <Banner>
+  const navigationBannerInner = (
+    <Banner className="hpux-prototype-top-banner">
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
         spaceItems={{ default: 'spaceItemsMd' }}
@@ -315,6 +317,13 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
       </Flex>
     </Banner>
   );
+
+  const navigationBanner =
+    prototype.config.id === OLS_AGENTIC_PROTOTYPE_ID ? (
+      <div className="hpux-prototype-banner-slot">{navigationBannerInner}</div>
+    ) : (
+      navigationBannerInner
+    );
 
   // Format owner name with slack handle if available
   const ownerDisplayName = prototype.config.owner.slack

@@ -1,0 +1,94 @@
+/*
+ * OLS observe pages: viewport-locked chrome.
+ * - Only the prototype `pf-v6-c-banner` slot collapses (no banner scrollbar).
+ * - `.pf-v6-c-page` + masthead stay in the viewport; `.ols-*-page` is the only page scroller.
+ */
+
+html:has(.ols-ai-hub-page),
+html:has(.ols-observe-overview-page) {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+html:has(.ols-ai-hub-page) body,
+html:has(.ols-observe-overview-page) body,
+html:has(.ols-ai-hub-page) #root,
+html:has(.ols-observe-overview-page) #root {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* Prototype nav banner: clip height (wheel-driven via --hpux-prototype-banner-visible-h). No overflow scroll. */
+.hpux-prototype-banner-slot {
+  flex: 0 0 auto;
+  overflow: hidden;
+  max-height: var(--hpux-prototype-banner-visible-h, 9999px);
+}
+
+.hpux-prototype-banner-slot .hpux-prototype-top-banner {
+  margin: 0;
+}
+
+/* AppLayout wrapper around PatternFly Page */
+#root:has(.ols-ai-hub-page) > div:has(> .pf-v6-c-page),
+#root:has(.ols-observe-overview-page) > div:has(> .pf-v6-c-page) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+#root:has(.ols-ai-hub-page) .pf-v6-c-page,
+#root:has(.ols-observe-overview-page) .pf-v6-c-page {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.pf-v6-c-page__main-container:has(.ols-ai-hub-page),
+.pf-v6-c-page__main-container:has(.ols-observe-overview-page) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.pf-v6-c-page__main:has(.ols-ai-hub-page),
+.pf-v6-c-page__main:has(.ols-observe-overview-page),
+.pf-v6-c-page__main-section:has(.ols-ai-hub-page),
+.pf-v6-c-page__main-section:has(.ols-observe-overview-page) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.ols-ai-hub-page,
+.ols-observe-overview-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#ols-ai-hub-main,
+#ols-observe-overview-main {
+  flex: 0 0 auto;
+  min-height: 0;
+}
