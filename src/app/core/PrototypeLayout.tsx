@@ -398,6 +398,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
         topBanner={navigationBanner}
         enabledPerspectives={prototype.config.perspectives}
         currentPrototypeId={prototype.config.id}
+        chromeScrollWithStickyMasthead={prototype.config.id === OLS_AGENTIC_PROTOTYPE_ID}
       >
         <Routes>
           {prototype.routes.map((route, index) => (

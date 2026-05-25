@@ -1,4 +1,5 @@
 import React from 'react';
+import './pages/ols-prototype-chrome-scroll.css';
 import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
 import { OverviewPage } from './pages/OverviewPage';
@@ -14,7 +15,6 @@ import {
 import { Content, PageSection } from '@patternfly/react-core';
 import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
-import { OlsPrototypeChromeScroll } from './components/OlsPrototypeChromeScroll';
 
 const ObserveNavPlaceholder: React.FC = () => (
   <PageSection>
@@ -160,13 +160,8 @@ export const routes: RouteConfig[] = [
   },
 ];
 
-/** Theme state + OLS chrome scroll (banner collapse, masthead fixed). */
-export const prototypeRootWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <AiHubAppearanceProvider>
-    <OlsPrototypeChromeScroll />
-    {children}
-  </AiHubAppearanceProvider>
-);
+/** Theme state for AI Hub banner appearance controls. */
+export const prototypeRootWrapper = AiHubAppearanceProvider;
 
 /** Banner toolbar: before version picker (see `PrototypeLayout`). */
 export const bannerBeforeVersionPicker = <AiHubBannerAppearanceSettings />;
