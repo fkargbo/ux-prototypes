@@ -41,7 +41,12 @@ export const AIHubPage: React.FC = () => {
   return (
     <div
       className={`ols-ai-hub-page${isHubV2 ? ' ols-ai-hub-page--v2' : ''}`}
-      style={{ backgroundColor: pageBackground }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        backgroundColor: pageBackground,
+      }}
     >
       <div className="create-policy-header">
         <div className="ols-ai-hub-page-header-inner">
@@ -85,7 +90,11 @@ export const AIHubPage: React.FC = () => {
         className="ols-ai-hub-page__main"
         role="main"
         aria-label="AI Troubleshooting Hub (Conceptual design) content"
-        style={{ backgroundColor: mainBackground }}
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          backgroundColor: mainBackground,
+        }}
       >
         <div
           data-exp-lab-annotation-root
