@@ -347,7 +347,7 @@ body:has(.ols-ai-hub-page),
  * `--pf-v6-c-masthead__expandable-content--BoxShadow` → `--pf-t--global--box-shadow--md--bottom` on
  * `.pf-v6-c-masthead .pf-v6-c-toolbar__expandable-content` — restore by not forcing BoxShadow/border to none.
  */
-:root.pf-v6-theme-glass .hpux-prototype-chrome-scroll .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
+:root.pf-v6-theme-glass .hpux-prototype-app-shell .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
   --pf-v6-c-masthead--BorderWidth: 0 !important;
   --pf-v6-c-masthead__brand--BorderBlockEnd: 0 !important;
   --pf-v6-c-masthead--m-display-stack__brand--BorderBlockEnd: 0 !important;

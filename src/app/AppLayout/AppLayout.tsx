@@ -1503,7 +1503,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
       {chromeScrollWithStickyMasthead ? (
         <div className="hpux-prototype-chrome-scroll">
           {topBanner}
-          {appBody}
+          <div className="hpux-prototype-app-shell">{appBody}</div>
         </div>
       ) : (
         <>

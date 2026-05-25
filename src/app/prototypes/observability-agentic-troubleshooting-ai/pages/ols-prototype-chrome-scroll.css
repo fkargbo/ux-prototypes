@@ -1,7 +1,7 @@
 /*
- * OLS observe pages: viewport-locked shell with one chrome scroller.
- * - Prototype `pf-v6-c-banner` scrolls away with the page (natural scroll, not clipped in place).
- * - Masthead sticks to the top once the banner has left the viewport.
+ * OLS observe pages: banner scrolls away; app shell stays viewport-locked.
+ * - Outer `.hpux-prototype-chrome-scroll` only scrolls the prototype banner off-screen.
+ * - Sticky `.hpux-prototype-app-shell` keeps masthead + sidebar fixed; main content scrolls inside.
  */
 
 html:has(.hpux-prototype-chrome-scroll) {
@@ -19,7 +19,7 @@ html:has(.hpux-prototype-chrome-scroll) #root {
   box-sizing: border-box !important;
 }
 
-/* Sole vertical scroller: prototype banner + PatternFly Page */
+/* Scrollport: banner height only (app shell is sticky below). */
 .hpux-prototype-chrome-scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -37,21 +37,43 @@ html:has(.hpux-prototype-chrome-scroll) #root {
   margin: 0;
 }
 
-.hpux-prototype-chrome-scroll > div:has(> .pf-v6-c-page) {
-  display: block;
-  box-sizing: border-box;
-}
-
-.hpux-prototype-chrome-scroll .pf-v6-c-page {
-  height: auto !important;
-  max-height: none !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
-
-.hpux-prototype-chrome-scroll .pf-v6-c-page > .pf-v6-c-masthead {
+/*
+ * Sticky viewport frame: banner scrolls above this; masthead + sidebar stay put.
+ * Page main region scrolls internally (see `.ols-*-page` below).
+ */
+.hpux-prototype-app-shell {
   position: sticky;
   top: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+.hpux-prototype-app-shell > div:has(> .pf-v6-c-page) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.hpux-prototype-app-shell .pf-v6-c-page {
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.hpux-prototype-app-shell .pf-v6-c-page > .pf-v6-c-masthead {
+  flex: 0 0 auto;
+  position: relative;
   z-index: var(--pf-v6-c-page--masthead--ZIndex, 200);
   background-color: var(
     --pf-v6-c-masthead--BackgroundColor,
@@ -59,18 +81,51 @@ html:has(.hpux-prototype-chrome-scroll) #root {
   );
 }
 
-.hpux-prototype-chrome-scroll .pf-v6-c-page__main-container,
-.hpux-prototype-chrome-scroll .pf-v6-c-page__main,
-.hpux-prototype-chrome-scroll .pf-v6-c-page__main-section {
-  overflow: visible !important;
+.hpux-prototype-app-shell .pf-v6-c-page > .pf-v6-c-page__sidebar,
+.hpux-prototype-app-shell .pf-v6-c-page > .pf-v6-c-page__main-container {
   min-height: 0;
+  overflow: hidden;
+}
+
+.hpux-prototype-app-shell .pf-v6-c-page > .pf-v6-c-page__sidebar {
+  position: relative;
+  z-index: var(--pf-t--global--z-index--sm, 100);
+}
+
+.hpux-prototype-app-shell .pf-v6-c-page > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hpux-prototype-app-shell .pf-v6-c-page__main-container {
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.hpux-prototype-app-shell .pf-v6-c-page__main,
+.hpux-prototype-app-shell .pf-v6-c-page__main-section {
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.hpux-prototype-app-shell .pf-v6-c-page__main .pf-v6-c-page__main-section {
+  min-height: 0 !important;
 }
 
 .ols-ai-hub-page,
 .ols-observe-overview-page {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 #ols-ai-hub-main,
