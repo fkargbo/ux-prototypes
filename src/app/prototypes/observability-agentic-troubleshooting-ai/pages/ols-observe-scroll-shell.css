@@ -1,0 +1,52 @@
+/*
+ * OLS Observe pages (overview + AI Hub): PF Page masthead stays fixed; only the inner
+ * `#ols-*-main` region scrolls. Matches Observability overview behavior and prevents
+ * scrolling past the masthead when `dashboards-perses.css` would scroll `.pf-v6-c-page__main-container`.
+ */
+
+.pf-v6-c-page__main-container:has(.ols-observe-overview-page),
+.pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.pf-v6-c-page__main:has(.ols-observe-overview-page),
+.pf-v6-c-page__main:has(.ols-ai-hub-page),
+.pf-v6-c-page__main-section:has(.ols-observe-overview-page),
+.pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.ols-observe-overview-page,
+.ols-ai-hub-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  box-sizing: border-box;
+}
+
+#ols-observe-overview-main,
+#ols-ai-hub-main.ols-ai-hub-page__main,
+.ols-ai-hub-page__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Glass hub: keep PF Page viewport height; padding must not grow past 100dvh. */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}

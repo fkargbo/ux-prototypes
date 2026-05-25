@@ -32,6 +32,9 @@ import {
   BANNER_VERSION_CHANGE_EVENT,
   getBannerVersionStorageKey,
 } from './bannerVersionPicker';
+import { CollapsibleNavigationBanner } from './CollapsibleNavigationBanner';
+
+const OLS_AGENTIC_PROTOTYPE_ID = 'observability-agentic-troubleshooting-ai';
 
 interface PrototypeLayoutProps {
   prototype: PrototypeModule;
@@ -154,25 +157,15 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
     setIsUseCaseOpen(false);
   };
 
-  const navigationBanner = (
-    <Banner>
-      <Flex 
-        alignItems={{ default: 'alignItemsCenter' }} 
-        spaceItems={{ default: 'spaceItemsMd' }}
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-      >
-        <FlexItem>
-          <Button
-            variant="link"
-            icon={<ArrowLeftIcon />}
-            onClick={handleBackToLauncher}
-          >
-            Back to Launcher
-          </Button>
-        </FlexItem>
-        
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-          {prototype.bannerBeforeVersionPicker ? <FlexItem>{prototype.bannerBeforeVersionPicker}</FlexItem> : null}
+  const backToLauncher = (
+    <Button variant="link" icon={<ArrowLeftIcon />} onClick={handleBackToLauncher}>
+      Back to Launcher
+    </Button>
+  );
+
+  const bannerToolbar = (
+    <>
+      {prototype.bannerBeforeVersionPicker ? <FlexItem>{prototype.bannerBeforeVersionPicker}</FlexItem> : null}
           {/* Version Selector or Display */}
           {hasVersions ? (
             <FlexItem>
@@ -308,10 +301,26 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
               )}
             </Flex>
           </FlexItem>
-        </Flex>
-      </Flex>
-    </Banner>
+    </>
   );
+
+  const navigationBanner =
+    prototype.config.id === OLS_AGENTIC_PROTOTYPE_ID ? (
+      <CollapsibleNavigationBanner backToLauncher={backToLauncher} toolbar={bannerToolbar} />
+    ) : (
+      <Banner>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          spaceItems={{ default: 'spaceItemsMd' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        >
+          <FlexItem>{backToLauncher}</FlexItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+            {bannerToolbar}
+          </Flex>
+        </Flex>
+      </Banner>
+    );
 
   // Format owner name with slack handle if available
   const ownerDisplayName = prototype.config.owner.slack
