@@ -679,7 +679,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                         <Button
                           variant="primary"
                           onClick={openFleetWideRemediations}
-                          aria-label={`View remediations, ${fleetRecommendedRemediationCount} suggested`}
+                          aria-label={`View AI investigations, ${fleetRecommendedRemediationCount} suggested`}
                         >
                           <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
                             <img
@@ -690,7 +690,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                               style={{ display: 'block', flexShrink: 0, filter: 'brightness(0) invert(1)' }}
                             />
                           </span>
-                          View remediations
+                          View AI investigations
                         </Button>
                       </div>
                     </CardBody>

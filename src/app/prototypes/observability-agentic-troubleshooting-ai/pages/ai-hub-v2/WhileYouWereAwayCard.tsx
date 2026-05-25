@@ -218,7 +218,7 @@ const AwayDigestFooter: React.FC<{
       variant="primary"
       onClick={onViewRemediations}
       isDisabled={!onViewRemediations}
-      aria-label={`View remediations, ${recommendedRemediationCount} suggested`}
+      aria-label={`View AI investigations, ${recommendedRemediationCount} suggested`}
     >
       <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
         <img
@@ -229,7 +229,7 @@ const AwayDigestFooter: React.FC<{
           style={{ display: 'block', flexShrink: 0, filter: 'brightness(0) invert(1)' }}
         />
       </span>
-      View remediations
+      View AI investigations
     </Button>
   </div>
 );
