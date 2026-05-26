@@ -18,9 +18,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Build runs without the `github-pages` environment so pushes are not blocked by deployment
-    # approval / environment setup failures. ExP-Lab Supabase keys: use repository secrets, or
-    # duplicate them on the github-pages environment and pass via the deploy job only.
+    # ExP-Lab bakes VITE_* at build time. Secrets on the `github-pages` environment (or duplicate
+    # them as repository Actions secrets) are required for Supabase sync on Pages — not local-only.
+    environment:
+      name: github-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,12 +56,14 @@ jobs:
           VITE_OAUTH_REDIRECT_ORIGIN: ${{ vars.VITE_OAUTH_REDIRECT_ORIGIN }}
         run: |
           if [ -z "${VITE_SUPABASE_URL}" ]; then
-            echo "::warning::VITE_SUPABASE_URL is empty — add it under Settings → Secrets and variables → Actions (repository secret), then re-run deploy."
+            echo "::error::VITE_SUPABASE_URL is empty — add it under Settings → Environments → github-pages → Environment secrets (or repository Actions secrets), then re-run deploy."
+            exit 1
           else
             echo "VITE_SUPABASE_URL is set (value hidden)."
           fi
           if [ -z "${VITE_SUPABASE_ANON_KEY}" ]; then
-            echo "::warning::VITE_SUPABASE_ANON_KEY is empty — add it as a repository secret (Settings → Secrets and variables → Actions), then re-run deploy."
+            echo "::error::VITE_SUPABASE_ANON_KEY is empty — add it the same way as VITE_SUPABASE_URL, then re-run deploy."
+            exit 1
           else
             echo "VITE_SUPABASE_ANON_KEY is set (value hidden)."
           fi
