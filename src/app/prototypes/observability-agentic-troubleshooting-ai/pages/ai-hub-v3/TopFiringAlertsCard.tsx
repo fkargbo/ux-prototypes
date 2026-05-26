@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, CardBody, CardExpandableContent, CardHeader, CardTitle, Label } from '@patternfly/react-core';
+import { Button, Card, CardBody, CardHeader, CardTitle, Label } from '@patternfly/react-core';
 import {
   ALERTS,
   FLEET_WIDE_REGIONAL_INGRESS,
@@ -45,8 +45,6 @@ export type TopFiringAlertsCardProps = {
 export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ clusterId }) => {
   const navigate = useNavigate();
 
-  const [expanded, setExpanded] = useState(true);
-
   const alertRuleData = useMemo(
     () => (clusterId ? buildClusterTopFiringAlertRuleRows(clusterId) : buildFleetTopFiringAlertRuleRows()),
     [clusterId]
@@ -86,7 +84,6 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ cluste
       return;
     }
 
-    // Fallback for unexpected rows so the CTA still opens AI assistance.
     agenticGlobalAiApi.startTroubleshootingForAlert?.(ctx.sourceName);
   }, []);
 
@@ -108,63 +105,46 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ cluste
   );
 
   return (
-    <>
-      <Card
-        className="ols-aio-subcard ols-aio-fleet-pair-card ols-ai-hub-top-firing-alerts-card ols-autonomous-ai-observe-widget-v3-top-firing"
-        isCompact
-        component="section"
-        isExpanded={expanded}
-        id={TOP_FIRING_CARD_ID}
-        aria-label="Top firing alerts"
-        style={{ boxSizing: 'border-box' }}
+    <Card
+      className="ols-aio-subcard ols-aio-fleet-pair-card ols-ai-hub-top-firing-alerts-card ols-autonomous-ai-observe-widget-v3-top-firing"
+      isCompact
+      component="section"
+      id={TOP_FIRING_CARD_ID}
+      aria-label="Top firing alerts"
+      style={{ boxSizing: 'border-box' }}
+    >
+      <CardHeader
+        actions={
+          totalFiringAlertsCount > 0
+            ? {
+                actions: (
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={onViewAllFiringAlerts}
+                    aria-label={`View all firing alerts, ${totalFiringAlertsCount} total`}
+                  >
+                    View all firing alerts ({totalFiringAlertsCount})
+                  </Button>
+                ),
+              }
+            : undefined
+        }
       >
-        <CardHeader
-          onExpand={() => setExpanded((v) => !v)}
-          toggleButtonProps={{
-            id: `${TOP_FIRING_CARD_ID}-toggle`,
-            'aria-label': 'Toggle Top firing alerts section',
-          }}
-          actions={
-            totalFiringAlertsCount > 0
-              ? {
-                  actions: (
-                    <Button
-                      variant="link"
-                      isInline
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewAllFiringAlerts();
-                      }}
-                      aria-label={`View all firing alerts, ${totalFiringAlertsCount} total`}
-                    >
-                      View all firing alerts ({totalFiringAlertsCount})
-                    </Button>
-                  ),
-                }
-              : undefined
-          }
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
-            <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
-              Top firing alerts
-            </CardTitle>
-            <Label color="blue" isCompact>
-              {alertRuleData.length} top firing alert{alertRuleData.length === 1 ? '' : 's'}
-            </Label>
-          </div>
-        </CardHeader>
-        <CardExpandableContent>
-          <CardBody>
-            {/*
-              Scope for autonomous-ai-observe.css: TopAlertsSection uses inline primary/secondary backgrounds
-              from fleetInsightsConfig — override to transparent inside translucent v3 cards.
-            */}
-            <div className="ols-aio-top-firing-translucent-scope">
-              <TopAlertsSection {...sectionProps} />
-            </div>
-          </CardBody>
-        </CardExpandableContent>
-      </Card>
-    </>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
+          <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
+            Top firing alerts
+          </CardTitle>
+          <Label color="blue" isCompact>
+            {alertRuleData.length} top firing alert{alertRuleData.length === 1 ? '' : 's'}
+          </Label>
+        </div>
+      </CardHeader>
+      <CardBody>
+        <div className="ols-aio-top-firing-translucent-scope">
+          <TopAlertsSection {...sectionProps} />
+        </div>
+      </CardBody>
+    </Card>
   );
 };

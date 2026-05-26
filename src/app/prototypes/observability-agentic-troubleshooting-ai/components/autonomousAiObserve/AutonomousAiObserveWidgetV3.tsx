@@ -6,7 +6,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Alert,
   Button,
   Card,
   CardBody,
@@ -32,10 +31,9 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  InfoCircleIcon,
 } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import type { AgentPulseStatus, AwayDigestItem, ClusterHealth, ClusterRecord, ViewMode } from './data';
+import type { AgentPulseStatus, ClusterHealth, ClusterRecord, ViewMode } from './data';
 import {
   ALERTS,
   AWAY_DIGEST_ITEMS,
@@ -119,19 +117,6 @@ function clusterFireCount(clusterId: string): number {
   return ALERTS.filter((a) => a.clusterId === clusterId).length + fleetWideCriticalAddsForCluster(clusterId);
 }
 
-function awayDigestSeverityIcon(tone: AwayDigestItem['tone']): React.ReactNode {
-  if (tone === 'danger') {
-    return <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />;
-  }
-  if (tone === 'warning') {
-    return <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)' }} />;
-  }
-  if (tone === 'success') {
-    return <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />;
-  }
-  return <InfoCircleIcon style={{ color: 'var(--pf-t--global--color--status--info--default)' }} />;
-}
-
 type AutonomousAiObserveWidgetV3Props = {
   fleetClusterDrillDown?: boolean;
   onFleetDrillDownChange?: (isDrillDown: boolean) => void;
@@ -163,14 +148,6 @@ function clusterHealthLabelText(health: ClusterHealth): string {
     return 'Degraded';
   }
   return capitalizeLabelWord(health);
-}
-
-/** “While you were away” header chip — fleet scope, not tied to dismissed digest rows. */
-function awayDigestNewEventsLabel(clusterCount: number): string {
-  if (clusterCount <= 1) {
-    return 'New events across 1 cluster';
-  }
-  return `New events across ${clusterCount} clusters`;
 }
 
 export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Props> = ({
@@ -229,7 +206,6 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
       setCAlertsOpen(true);
     }
   }, [activePerspective]);
-  const [awayOpen, setAwayOpen] = useState(true);
   const [fleetSummarySortBy, setFleetSummarySortBy] = useState<{ index: number; direction: 'asc' | 'desc' }>({
     index: 1,
     direction: 'asc',
@@ -246,8 +222,6 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
   const [pendingRemediationRuleTitle, setPendingRemediationRuleTitle] = useState<string | null>(null);
   const skipExpandedAlertsResetRef = useRef(false);
   const fleetAwayDigestItems = useMemo(() => AWAY_DIGEST_ITEMS, []);
-
-  const fleetWhileYouWereAwayChipLabel = useMemo(() => awayDigestNewEventsLabel(CLUSTERS.length), []);
 
   const fleetRecommendedRemediationCount = useMemo(
     () => fleetAwayDigestItems.filter((item) => item.tone === 'danger' || item.tone === 'warning').length,
@@ -572,131 +546,10 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                     <TopFiringAlertsCard />
                   </GridItem>
                   <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
-                <Card
-                  className="ols-aio-subcard ols-aio-fleet-pair-card ols-autonomous-ai-observe-widget-v3-away"
-                  isCompact
-                  isExpanded={awayOpen}
-                  id={`${WIDGET_ID}-away`}
-                >
-                  <CardHeader
-                    onExpand={() => setAwayOpen((o) => !o)}
-                    toggleButtonProps={{
-                      id: `${WIDGET_ID}-away-toggle`,
-                      'aria-label': 'Toggle While you were away section',
-                    }}
-                  >
-                    <Stack>
-                      <StackItem>
-                        <Flex
-                          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                          alignItems={{ default: 'alignItemsCenter' }}
-                          flexWrap={{ default: 'wrap' }}
-                        >
-                          <FlexItem>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
-                              <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
-                                While you were away
-                              </CardTitle>
-                              <Label color="blue" isCompact>
-                                {fleetWhileYouWereAwayChipLabel}
-                              </Label>
-                            </Flex>
-                          </FlexItem>
-                        </Flex>
-                      </StackItem>
-                      <StackItem style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                        <Flex
-                          justifyContent={{ default: 'justifyContentFlexStart' }}
-                          alignItems={{ default: 'alignItemsCenter' }}
-                          flexWrap={{ default: 'wrap' }}
-                        >
-                          <span className="ols-aio-text-subtle-sm">Since your last visit · 38m ago</span>
-                        </Flex>
-                      </StackItem>
-                    </Stack>
-                  </CardHeader>
-                  <CardExpandableContent>
-                    <CardBody className="ols-aio-away-card-body">
-                      <div className="ols-aio-away-scroll-region">
-                        {fleetAwayDigestItems.length === 0 ? (
-                          <EmptyState variant={EmptyStateVariant.lg} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                            <EmptyStateBody>
-                              <Title headingLevel="h4" size="lg">
-                                You&apos;re all caught up
-                              </Title>
-                              <Content
-                                component="p"
-                                style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}
-                              >
-                                There are currently no active alerts requiring your attention.
-                              </Content>
-                            </EmptyStateBody>
-                          </EmptyState>
-                        ) : (
-                          <Stack style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                            {fleetAwayDigestItems.map((item) => (
-                              <StackItem key={item.text}>
-                                <Alert
-                                  isInline
-                                  isExpandable
-                                  variant={item.tone}
-                                  className="ols-aio-away-alert"
-                                  title={item.text}
-                                  toggleAriaLabel={`Toggle details: ${item.text}`}
-                                  customIcon={
-                                    <span className="ols-aio-away-alert-icon-wrap" aria-hidden="true">
-                                      <span className="ols-aio-away-alert-time">{item.timestamp}</span>
-                                      <span className="ols-aio-away-alert-severity-icon">{awayDigestSeverityIcon(item.tone)}</span>
-                                    </span>
-                                  }
-                                >
-                                  <Content
-                                    component="p"
-                                    className="ols-aio-text-subtle-sm"
-                                    style={{
-                                      marginTop: 0,
-                                      marginBottom: 0,
-                                    }}
-                                  >
-                                    <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
-                                      <img
-                                        src={AI_EXPERIENCE_ICON_DATA_URL}
-                                        alt=""
-                                        width={16}
-                                        height={16}
-                                        style={{ display: 'block', flexShrink: 0 }}
-                                      />
-                                    </span>
-                                    <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>AI insight: </span>
-                                    <span>{item.meta}</span>
-                                  </Content>
-                                </Alert>
-                              </StackItem>
-                            ))}
-                          </Stack>
-                        )}
-                      </div>
-                      <div className="ols-aio-away-card-footer">
-                        <Button
-                          variant="primary"
-                          onClick={openFleetWideRemediations}
-                          aria-label={`View AI investigations, ${fleetRecommendedRemediationCount} suggested`}
-                        >
-                          <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
-                            <img
-                              src={AI_EXPERIENCE_ICON_DATA_URL}
-                              alt=""
-                              width={16}
-                              height={16}
-                              style={{ display: 'block', flexShrink: 0, filter: 'brightness(0) invert(1)' }}
-                            />
-                          </span>
-                          View AI investigations
-                        </Button>
-                      </div>
-                    </CardBody>
-                  </CardExpandableContent>
-                </Card>
+                    <WhileYouWereAwayCard
+                      onViewRemediations={openFleetWideRemediations}
+                      recommendedRemediationCount={fleetRecommendedRemediationCount}
+                    />
                   </GridItem>
                 </Grid>
               </StackItem>
