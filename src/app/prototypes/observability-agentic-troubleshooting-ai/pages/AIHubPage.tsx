@@ -47,6 +47,7 @@ export const AIHubPage: React.FC = () => {
   return (
     <div
       className={`ols-ai-hub-page${pageVersionClass}`}
+      data-exp-lab-annotation-root
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -98,7 +99,6 @@ export const AIHubPage: React.FC = () => {
         style={{ backgroundColor: mainBackground }}
       >
         <div
-          data-exp-lab-annotation-root
           style={{
             padding: '24px',
             maxWidth: '1200px',
