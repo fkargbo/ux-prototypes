@@ -11,7 +11,6 @@ import {
   CardBody,
   CardExpandableContent,
   CardHeader,
-  CardTitle,
   Content,
   EmptyState,
   EmptyStateBody,
@@ -49,7 +48,6 @@ import {
 } from './data';
 import { FleetWideObserveIncident } from './FleetWideObserveIncident';
 import { ObserveAlertItem } from './ObserveAlertItem';
-import { AI_EXPERIENCE_ICON_DATA_URL } from './aiExperienceIconUrl';
 import './autonomous-ai-observe.css';
 import './autonomous-ai-observe-v3.css';
 import { SimulationProvider } from '../../simulation/SimulationProvider';
