@@ -1196,7 +1196,7 @@ export function firstFleetAlertRecordForRuleTitle(ruleTitle: string): AlertRecor
   return sortAlertsBySeverityPriority(matches)[0];
 }
 
-/** Drill target for AI Hub “View remediation” — fleet ingress incident vs a concrete `AlertRecord` row. */
+/** Drill target for AI Hub “Investigate with AI” — fleet ingress incident vs a concrete `AlertRecord` row. */
 export type FleetRemediationDrillTarget =
   | { kind: 'fleet-incident'; incidentId: string }
   | { kind: 'alert'; alertId: string };
@@ -1216,7 +1216,7 @@ export function resolveFleetRemediationDrillTarget(alertRuleTitle: string): Flee
   return { kind: 'alert', alertId: alert.id };
 }
 
-/** QA: every rule shown in `buildFleetTopFiringAlertRuleRows()` must resolve (otherwise “View remediation” is a no-op). */
+/** QA: every rule shown in `buildFleetTopFiringAlertRuleRows()` must resolve (otherwise “Investigate with AI” is a no-op). */
 export function fleetTopFiringRulesMissingRemediationTarget(): string[] {
   const missing: string[] = [];
   for (const row of buildFleetTopFiringAlertRuleRows()) {

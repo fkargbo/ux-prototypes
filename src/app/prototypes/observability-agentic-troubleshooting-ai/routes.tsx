@@ -1,4 +1,5 @@
 import React from 'react';
+import './pages/ols-prototype-chrome-scroll.css';
 import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
 import { OverviewPage } from './pages/OverviewPage';
@@ -159,7 +160,7 @@ export const routes: RouteConfig[] = [
   },
 ];
 
-/** Wraps prototype shell so banner appearance controls share theme state with AI Hub page. */
+/** Theme state for AI Hub banner appearance controls. */
 export const prototypeRootWrapper = AiHubAppearanceProvider;
 
 /** Banner toolbar: before version picker (see `PrototypeLayout`). */

@@ -1,10 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Alert,
   Button,
   Card,
   CardBody,
-  CardExpandableContent,
   CardHeader,
   CardTitle,
   Content,
@@ -77,7 +76,6 @@ export const WhileYouWereAwayCard: React.FC<WhileYouWereAwayCardProps> = ({
   onViewRemediations,
   recommendedRemediationCount = 0,
 }) => {
-  const [expanded, setExpanded] = useState(true);
   const isClusterScope = Boolean(clusterId);
 
   const digestItems = useMemo(
@@ -98,21 +96,14 @@ export const WhileYouWereAwayCard: React.FC<WhileYouWereAwayCardProps> = ({
 
   return (
     <Card
-      className="ols-aio-subcard ols-aio-fleet-pair-card ols-autonomous-ai-observe-widget-v2-away"
+      className="ols-aio-subcard ols-aio-fleet-pair-card ols-autonomous-ai-observe-widget-v3-away"
       isCompact
-      isExpanded={expanded}
       id={clusterId ? `${AWAY_CARD_ID}-${clusterId}` : AWAY_CARD_ID}
       component="section"
       aria-label="While you were away"
       style={{ boxSizing: 'border-box' }}
     >
-      <CardHeader
-        onExpand={() => setExpanded((v) => !v)}
-        toggleButtonProps={{
-          id: `${AWAY_CARD_ID}-toggle${clusterId ? `-${clusterId}` : ''}`,
-          'aria-label': 'Toggle While you were away section',
-        }}
-      >
+      <CardHeader>
         <Stack>
           <StackItem>
             <Flex
@@ -137,15 +128,13 @@ export const WhileYouWereAwayCard: React.FC<WhileYouWereAwayCardProps> = ({
           </StackItem>
         </Stack>
       </CardHeader>
-      <CardExpandableContent>
-        <CardBody className="ols-aio-away-card-body">
-          <AwayDigestList digestItems={digestItems} />
-          <AwayDigestFooter
-            onViewRemediations={onViewRemediations}
-            recommendedRemediationCount={recommendedRemediationCount}
-          />
-        </CardBody>
-      </CardExpandableContent>
+      <CardBody className="ols-aio-away-card-body">
+        <AwayDigestList digestItems={digestItems} />
+        <AwayDigestFooter
+          onViewRemediations={onViewRemediations}
+          recommendedRemediationCount={recommendedRemediationCount}
+        />
+      </CardBody>
     </Card>
   );
 };

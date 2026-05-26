@@ -92,6 +92,8 @@ interface IAppLayout {
   topBanner?: React.ReactNode; // Banner to show above masthead
   enabledPerspectives?: string[]; // List of enabled perspectives for this prototype
   currentPrototypeId?: string; // Current prototype ID for conditional navigation
+  /** Prototype nav banner scrolls away; masthead stays sticky at top of the chrome scroller. */
+  chromeScrollWithStickyMasthead?: boolean;
 }
 
 // Custom Core Platforms icon component
@@ -109,7 +111,16 @@ const CorePlatformsIcon: React.FC<{ size?: string }> = ({ size = '20px' }) => (
   </svg>
 );
 
-const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolbarItems, useCaseTitle, useCasePersona, topBanner, enabledPerspectives, currentPrototypeId }) => {
+const AppLayout: React.FunctionComponent<IAppLayout> = ({
+  children,
+  customToolbarItems,
+  useCaseTitle,
+  useCasePersona,
+  topBanner,
+  enabledPerspectives,
+  currentPrototypeId,
+  chromeScrollWithStickyMasthead = false,
+}) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [perspectiveOpen, setPerspectiveOpen] = React.useState(false);
   const [activePerspective, setActivePerspective] = React.useState('Fleet management');
@@ -1184,10 +1195,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
     </SkipToContent>
   );
 
-  return (
-    <>
-    {topBanner && topBanner}
-    <UseCaseBanner />
+  const appBody = (
     <div style={{ paddingTop: useCase ? '48px' : '0' }}>
     <Page
       mainContainerId={pageId}
@@ -1487,6 +1495,22 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children, customToolba
         </div>
       </Modal>
     </div>
+  );
+
+  return (
+    <>
+      <UseCaseBanner />
+      {chromeScrollWithStickyMasthead ? (
+        <div className="hpux-prototype-chrome-scroll">
+          {topBanner}
+          <div className="hpux-prototype-app-shell">{appBody}</div>
+        </div>
+      ) : (
+        <>
+          {topBanner}
+          {appBody}
+        </>
+      )}
     </>
   );
 };
