@@ -29,8 +29,6 @@ import {
   Title,
 } from '@patternfly/react-core';
 import {
-  AngleDownIcon,
-  AngleRightIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
@@ -232,7 +230,6 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
     }
   }, [activePerspective]);
   const [awayOpen, setAwayOpen] = useState(true);
-  const [fleetSummaryOpen, setFleetSummaryOpen] = useState(true);
   const [fleetSummarySortBy, setFleetSummarySortBy] = useState<{ index: number; direction: 'asc' | 'desc' }>({
     index: 1,
     direction: 'asc',
@@ -708,7 +705,7 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                 <section
                   className="ols-aio-fleet-summary-section ols-autonomous-ai-observe-widget-v3-fleet-summary"
                   id={`${WIDGET_ID}-fleet-summary`}
-                  aria-label="Fleet Summary"
+                  aria-label="Fleet summary"
                 >
                   <Flex
                     alignItems={{ default: 'alignItemsCenter' }}
@@ -717,19 +714,9 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                     gap={{ default: 'gapSm' }}
                     className="ols-aio-fleet-summary-section__header"
                   >
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                      <Button
-                        id={`${WIDGET_ID}-fleet-summary-toggle`}
-                        variant="plain"
-                        aria-expanded={fleetSummaryOpen}
-                        aria-label="Toggle Fleet Summary section"
-                        onClick={() => setFleetSummaryOpen((open) => !open)}
-                        icon={fleetSummaryOpen ? <AngleDownIcon /> : <AngleRightIcon />}
-                      />
-                      <Title headingLevel="h3" size="lg" className="ols-aio-fleet-subcard-title">
-                        Fleet Summary
-                      </Title>
-                    </Flex>
+                    <Title headingLevel="h3" size="lg" className="ols-aio-fleet-subcard-title">
+                      Fleet summary
+                    </Title>
                     <Button
                       variant="link"
                       isInline
@@ -739,8 +726,7 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                       View alerts
                     </Button>
                   </Flex>
-                  {fleetSummaryOpen ? (
-                    <div className="ols-aio-fleet-summary-section__body">
+                  <div className="ols-aio-fleet-summary-section__body">
                       <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                         <Pagination
                           itemCount={fleetSummarySortedRows.length}
@@ -855,7 +841,6 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                         />
                       </Flex>
                     </div>
-                  ) : null}
                 </section>
               </StackItem>
             </Stack>

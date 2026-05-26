@@ -2,7 +2,7 @@ import { PrototypeConfig } from '@app/core/types';
 
 export const config: PrototypeConfig = {
   id: 'observability-agentic-troubleshooting-ai',
-  name: 'Observability Agentic Troubleshooting (Summit)',
+  name: 'Observability Agentic Troubleshooting',
   description:
     'Prototype for AI-assisted, agent-style troubleshooting flows in cluster observability—guided investigation, evidence gathering, and recommended next steps.',
   owner: {
