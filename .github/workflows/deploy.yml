@@ -18,9 +18,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # ExP-Lab reads VITE_* at bundle time. Secrets stored only on the `github-pages` **environment**
-    # (common with Pages) are not visible to jobs unless they declare this environment — without it,
-    # the shipped feedback-layer.js stays in local-only mode.
+    # ExP-Lab bakes VITE_* at build time. Secrets on the `github-pages` environment (or duplicate
+    # them as repository Actions secrets) are required for Supabase sync on Pages — not local-only.
     environment:
       name: github-pages
     steps:
@@ -57,12 +56,14 @@ jobs:
           VITE_OAUTH_REDIRECT_ORIGIN: ${{ vars.VITE_OAUTH_REDIRECT_ORIGIN }}
         run: |
           if [ -z "${VITE_SUPABASE_URL}" ]; then
-            echo "::warning::VITE_SUPABASE_URL is empty — add it under Settings → Secrets and variables → Actions (repository secret), or under the github-pages environment for this repo, then re-run deploy."
+            echo "::error::VITE_SUPABASE_URL is empty — add it under Settings → Environments → github-pages → Environment secrets (or repository Actions secrets), then re-run deploy."
+            exit 1
           else
             echo "VITE_SUPABASE_URL is set (value hidden)."
           fi
           if [ -z "${VITE_SUPABASE_ANON_KEY}" ]; then
-            echo "::warning::VITE_SUPABASE_ANON_KEY is empty — add it the same way as VITE_SUPABASE_URL, then re-run deploy."
+            echo "::error::VITE_SUPABASE_ANON_KEY is empty — add it the same way as VITE_SUPABASE_URL, then re-run deploy."
+            exit 1
           else
             echo "VITE_SUPABASE_ANON_KEY is set (value hidden)."
           fi
@@ -79,10 +80,10 @@ jobs:
           cp -f exp-lab/dist/feedback-layer.js dist/feedback-layer.js
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: './dist'
 
@@ -95,4 +96,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

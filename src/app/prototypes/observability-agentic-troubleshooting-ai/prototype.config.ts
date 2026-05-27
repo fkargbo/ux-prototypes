@@ -17,7 +17,7 @@ export const config: PrototypeConfig = {
       { key: 'v2', label: 'v2.0' },
       { key: 'v3', label: 'v3.0' },
     ],
-    defaultKey: 'v2',
+    defaultKey: 'v3',
   },
   status: 'in-progress',
   persona: {

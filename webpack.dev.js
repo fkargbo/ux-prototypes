@@ -12,6 +12,8 @@ const PORT = process.env.PORT || '3000';
  * Serve ExP-Lab `feedback-layer.js` from the submodule build.
  * Do not add root `dist/` here — after `npm run build`, stale production assets can
  * shadow webpack-dev-server's in-memory bundles (broken images, wrong hashes).
+ *
+ * `staticOptions.index: false` — exp-lab/dist/index.html must not win over the React app at `/`.
  */
 const expLabDistPath = path.resolve('./exp-lab/dist');
 const devStaticDirectories = [];
@@ -20,6 +22,9 @@ if (fs.existsSync(expLabDistPath)) {
     directory: expLabDistPath,
     publicPath: '/',
     watch: true,
+    staticOptions: {
+      index: false,
+    },
   });
 }
 

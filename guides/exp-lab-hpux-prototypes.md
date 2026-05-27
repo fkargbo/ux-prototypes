@@ -31,6 +31,17 @@ Restart **`npm start`** from the repo root if the dev server was already running
 
 Create **`exp-lab/.env`** from **`exp-lab/.env.example`** (file is gitignored). Rebuild after changing env vars.
 
+### GitHub Pages (Actions)
+
+The **Deploy to GitHub Pages** workflow builds `exp-lab` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from the **`github-pages` environment** (or the same names as **repository** Actions secrets). If those are missing, the shipped `feedback-layer.js` runs in **local-only** mode (browser storage only).
+
+1. Repo → **Settings** → **Environments** → **github-pages** → **Environment secrets**  
+   Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (same values as `exp-lab/.env`).
+2. Or: **Settings** → **Secrets and variables** → **Actions** → **Repository secrets** (same names).
+3. Re-run **Deploy to GitHub Pages** (or push to `ux-prototypes`).
+
+The build job fails fast if either secret is empty, so a local-only bundle is not published by mistake.
+
 ## Production: load the embed from your own Pages URL (optional)
 
 By default, the production bundle loads **`feedback-layer.js` from the same GitHub Pages site** as HPUX-Prototypes (`window.location.origin` + basename). To use a separately hosted build (e.g. **`https://fkargbo.github.io/exp-lab/feedback-layer.js`** with Supabase baked in on **`fkargbo/exp-lab`**):
