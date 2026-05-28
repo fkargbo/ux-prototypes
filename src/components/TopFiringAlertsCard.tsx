@@ -380,36 +380,32 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
                 <Stack hasGutter>
                   <StackItem>
                     <Content component="p">
-                      Instead of just counting alert volume, this card uses AI to rank alert rules by
-                      their systemic risk, helping you focus on stopping the bleeding rather than
-                      chasing symptoms.
+                      This card ranks alert rules by systemic risk so you can focus on high-impact
+                      incidents first.
                     </Content>
                   </StackItem>
                   <StackItem>
                     <Content component="p">
-                      The <strong>Impact Score (0–100)</strong> is calculated using:
+                      The <strong>Impact Score (0–100)</strong> evaluates:
                     </Content>
                     <Content component="ul">
                       <Content component="li">
-                        <strong>Blast radius:</strong> The percentage of your fleet, clusters, or
-                        critical ingress paths actively degraded by the alert.
+                        <strong>Blast radius:</strong> The percentage of your fleet or clusters
+                        degraded by the alert.
                       </Content>
                       <Content component="li">
-                        <strong>Infrastructure topology:</strong> How the alert propagates through
-                        your service dependency graph, flagging upstream root causes over downstream
-                        noise.
+                        <strong>Topology:</strong> Upstream root causes vs. downstream noise in your
+                        service dependency graph.
                       </Content>
                       <Content component="li">
-                        <strong>Historical correlation:</strong> Patterns from past incidents that
-                        match the current behavior of your telemetry.
+                        <strong>History:</strong> Telemetry patterns matching past incident behavior.
                       </Content>
                     </Content>
                   </StackItem>
                   <StackItem>
                     <Content component="p" style={SUBTLE}>
-                      Note: Firing counts represent raw telemetry, while the overall ranking, impact
-                      score, and blast radius percentages are synthesized in real-time by the AI
-                      agent.
+                      Note: Firing counts are raw telemetry. Overall ranking, impact scores, and
+                      blast radius are synthesized by the AI agent.
                     </Content>
                   </StackItem>
                 </Stack>
