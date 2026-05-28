@@ -112,7 +112,6 @@ function severityIcon(severity: Severity): React.ReactNode {
 
 function impactColor(impact: number): string {
   if (impact >= 70) return 'var(--pf-t--global--color--status--danger--default)';
-  if (impact >= 40) return 'var(--pf-t--global--color--status--warning--default)';
   return 'var(--pf-t--global--text--color--regular)';
 }
 
