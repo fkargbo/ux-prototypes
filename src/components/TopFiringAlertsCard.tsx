@@ -14,6 +14,7 @@ import {
   FlexItem,
   Label,
   MenuToggle,
+  Popover,
   Progress,
   ProgressSize,
   Select,
@@ -28,6 +29,7 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
+  HelpIcon,
   InfoCircleIcon,
 } from '@patternfly/react-icons';
 
@@ -370,13 +372,58 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
           <FlexItem>
             <AiBadge icon={aiIconElement} />
           </FlexItem>
-          {statusLabel && (
-            <FlexItem>
-              <Label color="green" isCompact>
-                {statusLabel}
-              </Label>
-            </FlexItem>
-          )}
+          <FlexItem>
+            <Popover
+              aria-label="How priority is measured"
+              headerContent="How priority is measured"
+              bodyContent={
+                <Stack hasGutter>
+                  <StackItem>
+                    <Content component="p">
+                      Instead of just counting alert volume, this card uses AI to rank alert rules by
+                      their systemic risk, helping you focus on stopping the bleeding rather than
+                      chasing symptoms.
+                    </Content>
+                  </StackItem>
+                  <StackItem>
+                    <Content component="p">
+                      The <strong>Impact Score (0–100)</strong> is calculated using:
+                    </Content>
+                    <Content component="ul">
+                      <Content component="li">
+                        <strong>Blast radius:</strong> The percentage of your fleet, clusters, or
+                        critical ingress paths actively degraded by the alert.
+                      </Content>
+                      <Content component="li">
+                        <strong>Infrastructure topology:</strong> How the alert propagates through
+                        your service dependency graph, flagging upstream root causes over downstream
+                        noise.
+                      </Content>
+                      <Content component="li">
+                        <strong>Historical correlation:</strong> Patterns from past incidents that
+                        match the current behavior of your telemetry.
+                      </Content>
+                    </Content>
+                  </StackItem>
+                  <StackItem>
+                    <Content component="p" style={SUBTLE}>
+                      Note: Firing counts represent raw telemetry, while the overall ranking, impact
+                      score, and blast radius percentages are synthesized in real-time by the AI
+                      agent.
+                    </Content>
+                  </StackItem>
+                </Stack>
+              }
+            >
+              <Button
+                variant="plain"
+                aria-label="How alert priority is measured"
+                style={{ padding: 0, lineHeight: 1 }}
+              >
+                <HelpIcon />
+              </Button>
+            </Popover>
+          </FlexItem>
         </Flex>
       </CardHeader>
 

@@ -124,7 +124,6 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ cluste
       alerts={alerts}
       onAlertClick={onAlertClick}
       onViewAll={onViewAll}
-      statusLabel="Storm mitigation active"
       subtitle="AI-ranked by blast radius across your fleet"
       aiIconElement={aiIconElement}
       className="ols-aio-subcard ols-aio-fleet-pair-card ols-autonomous-ai-observe-widget-v3-top-firing"
