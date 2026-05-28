@@ -474,10 +474,10 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
           comparison = a.statusRank - b.statusRank;
           break;
         case 2:
-          comparison = a.cluster.provider.localeCompare(b.cluster.provider);
+          comparison = a.alertAmount - b.alertAmount;
           break;
         case 3:
-          comparison = a.alertAmount - b.alertAmount;
+          comparison = a.cluster.provider.localeCompare(b.cluster.provider);
           break;
         case 4:
           comparison = a.cluster.region.localeCompare(b.cluster.region);
@@ -603,11 +603,11 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                             <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 1 }} modifier="wrap">
                               Cluster status
                             </Th>
-                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 2 }} modifier="wrap">
-                              Provider
-                            </Th>
-                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 3 }} modifier="nowrap">
+                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 2 }} modifier="nowrap">
                               Alert amount
+                            </Th>
+                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 3 }} modifier="wrap">
+                              Provider
                             </Th>
                             <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 4 }} modifier="wrap">
                               Region
@@ -665,8 +665,8 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                                     <span>{clusterHealthLabelText(c.health)}</span>
                                   </Flex>
                                 </Td>
-                                <Td>{c.provider}</Td>
                                 <Td>{row.alertAmount}</Td>
+                                <Td>{c.provider}</Td>
                                 <Td>{c.region}</Td>
                                 <Td>{c.nodes}</Td>
                                 <Td modifier="nowrap">v{c.version}</Td>
