@@ -28,7 +28,6 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  ExternalLinkAltIcon,
   InfoCircleIcon,
 } from '@patternfly/react-icons';
 
@@ -298,7 +297,7 @@ function InlineSelect<T extends string>({
           isExpanded={open}
           onClick={() => setOpen((p) => !p)}
           aria-label={ariaLabel}
-          variant="secondary"
+          variant="plainText"
         >
           {currentLabel}
         </MenuToggle>
@@ -368,8 +367,6 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
                     variant="link"
                     isInline
                     onClick={onViewAll}
-                    icon={<ExternalLinkAltIcon />}
-                    iconPosition="right"
                   >
                     View all
                   </Button>
