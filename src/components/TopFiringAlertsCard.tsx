@@ -406,12 +406,11 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
           {/* ── Sort / Timeframe toolbar ── */}
           <StackItem>
             <Flex
-              justifyContent={{ default: 'justifyContentSpaceBetween' }}
+              justifyContent={{ default: 'justifyContentFlexEnd' }}
               alignItems={{ default: 'alignItemsCenter' }}
               flexWrap={{ default: 'wrap' }}
               gap={{ default: 'gapSm' }}
             >
-              {/* Left: sort + timeframe */}
               <FlexItem>
                 <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
                   <FlexItem>
