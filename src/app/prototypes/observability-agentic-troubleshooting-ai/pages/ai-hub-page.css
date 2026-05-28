@@ -459,6 +459,15 @@ body:has(.ols-ai-hub-page),
   backdrop-filter: none !important;
 }
 
+/* v3 hub: unified light border for all cards and internal dividers. */
+.ols-ai-hub-page--v3 .pf-v6-c-card {
+  --pf-v6-c-card--BorderColor: #f2f2f2;
+}
+
+.ols-ai-hub-page--v3 .pf-v6-c-divider {
+  --pf-v6-c-divider--BackgroundColor: #f2f2f2;
+}
+
 /*
  * Frosted surfaces. Card border is drawn on `::before` via `--pf-v6-c-card--BorderColor` (card.css).
  */
