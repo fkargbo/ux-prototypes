@@ -1,63 +1,72 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CLUSTERS,
   buildClusterTopFiringAlertRuleRows,
-  buildFleetTopFiringAlertRuleRows,
   type FleetTopAlertRuleRow,
 } from '../../components/autonomousAiObserve/data';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import {
   TopFiringAlertsCard as TopFiringAlertsCardBase,
   type AlertRule,
-  type Severity,
 } from '../../../../../components/TopFiringAlertsCard';
 
-// ─── Data adapter ─────────────────────────────────────────────────────────────
+// ─── Fleet aggregated rows (simulation) ───────────────────────────────────────
 
 /**
- * Maps `FleetTopAlertRuleRow` → `AlertRule`.
- *
- * Impact is AI-synthesised: primarily driven by blast-radius percentage
- * (clusters affected ÷ total fleet) with a severity bonus, so that a
- * rule affecting 94 % of production with 3 critical instances scores
- * higher than one with 842 warning instances on 12 % of non-prod nodes.
- * This contrast makes the Impact ↔ Firing-volume sort switch meaningful.
+ * Three aggregated alert rules representing fleet-wide blast-radius rollups.
+ * Impact scores are AI-synthesised: blast radius × severity bonus.
+ * Firing counts aggregate across all affected clusters.
  */
-function adaptRows(rows: FleetTopAlertRuleRow[]): AlertRule[] {
+const FLEET_AGGREGATED_ALERTS: AlertRule[] = [
+  {
+    id: 'api_gateway_down',
+    severity: 'critical',
+    name: 'api_gateway_down',
+    impact: 98,
+    firingInstances: 3,
+    scopeLabel: '94% of production fleet',
+    scopePercent: 94,
+  },
+  {
+    id: 'auth_service_latency_spike',
+    severity: 'critical',
+    name: 'auth_service_latency_spike',
+    impact: 72,
+    firingInstances: 45,
+    scopeLabel: '2 / 3 clusters · US-East',
+    scopePercent: 66,
+  },
+  {
+    id: 'node_disk_near_full',
+    severity: 'warning',
+    name: 'node_disk_near_full',
+    impact: 20,
+    firingInstances: 842,
+    scopeLabel: '12% of non-prod nodes',
+    scopePercent: 12,
+  },
+];
+
+// ─── Cluster adapter (used when scoped to a single cluster) ───────────────────
+
+import { CLUSTERS } from '../../components/autonomousAiObserve/data';
+
+function adaptClusterRows(rows: FleetTopAlertRuleRow[]): AlertRule[] {
   const totalClusters = CLUSTERS.length;
-
-  return rows.map((row) => {
+  return rows.slice(0, 3).map((row) => {
     const firingInstances = row.critical + row.warning + row.info;
-
-    const severity: Severity =
-      row.critical > 0 ? 'critical' : row.warning > 0 ? 'warning' : 'info';
-
-    const scopePercent =
-      totalClusters > 0
-        ? Math.min(100, Math.round((row.clusters.length / totalClusters) * 100))
-        : 0;
-
-    // AI-synthesised score: blast radius is the primary signal; severity adds bonus weight.
+    const severity = row.critical > 0 ? 'critical' as const : row.warning > 0 ? 'warning' as const : 'info' as const;
+    const scopePercent = totalClusters > 0
+      ? Math.min(100, Math.round((row.clusters.length / totalClusters) * 100))
+      : 0;
     const severityBonus = severity === 'critical' ? 25 : severity === 'warning' ? 10 : 0;
     const impact = Math.min(100, Math.round(scopePercent * 0.75 + severityBonus));
-
-    const scopeLabel =
-      row.clusters.length === 0
-        ? 'No clusters'
-        : row.clusters.length === 1
-        ? row.clusters[0]
-        : `${row.clusters.length} of ${totalClusters} clusters`;
-
-    return {
-      id: row.name,
-      severity,
-      name: row.name,
-      impact,
-      firingInstances,
-      scopeLabel,
-      scopePercent,
-    };
+    const scopeLabel = row.clusters.length === 0
+      ? 'No clusters'
+      : row.clusters.length === 1
+      ? row.clusters[0]
+      : `${row.clusters.length} of ${totalClusters} clusters`;
+    return { id: row.name, severity, name: row.name, impact, firingInstances, scopeLabel, scopePercent };
   });
 }
 
@@ -84,15 +93,9 @@ export type TopFiringAlertsCardProps = {
 export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ clusterId }) => {
   const navigate = useNavigate();
 
-  const rawRows = useMemo(
-    () =>
-      clusterId
-        ? buildClusterTopFiringAlertRuleRows(clusterId)
-        : buildFleetTopFiringAlertRuleRows(),
-    [clusterId],
-  );
-
-  const alerts = useMemo(() => adaptRows(rawRows), [rawRows]);
+  const alerts = clusterId
+    ? adaptClusterRows(buildClusterTopFiringAlertRuleRows(clusterId))
+    : FLEET_AGGREGATED_ALERTS;
 
   const onAlertClick = useCallback(
     (id: string) => {
