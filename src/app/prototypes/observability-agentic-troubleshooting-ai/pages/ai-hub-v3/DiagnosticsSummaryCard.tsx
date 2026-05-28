@@ -171,11 +171,7 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
                     <CheckCircleIcon style={{ ...ICON, color: SUCCESS }} aria-hidden="true" />
                   )
                 }
-                valueNode={
-                  <span style={{ color: clustersAtRisk ? DANGER : 'inherit' }}>
-                    {clustersAffected} / {clustersTotal}
-                  </span>
-                }
+                valueNode={`${clustersAffected} / ${clustersTotal}`}
               />
             </GridItem>
 
@@ -190,11 +186,7 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
                     aria-hidden="true"
                   />
                 }
-                valueNode={
-                  <span style={{ color: criticalAlerts > 0 ? DANGER : 'inherit' }}>
-                    {criticalAlerts}
-                  </span>
-                }
+                valueNode={criticalAlerts}
               />
             </GridItem>
 
@@ -219,11 +211,7 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
                     aria-hidden="true"
                   />
                 }
-                valueNode={
-                  <span style={{ color: readyRemediations > 0 ? SUCCESS : 'inherit' }}>
-                    {readyRemediations}
-                  </span>
-                }
+                valueNode={readyRemediations}
               />
             </GridItem>
           </Grid>
