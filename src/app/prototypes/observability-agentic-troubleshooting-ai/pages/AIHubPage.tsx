@@ -126,12 +126,20 @@ export const AIHubPage: React.FC = () => {
             ) : null}
             {showFleetInventory ? (
               <StackItem>
-                <Hub.FleetInventoryBar />
+                {isHubV3 ? (
+                  <HubV3.DiagnosticsSummaryCard viewType="fleet" />
+                ) : (
+                  <Hub.FleetInventoryBar />
+                )}
               </StackItem>
             ) : null}
             {showClusterSummary ? (
               <StackItem>
-                <Hub.ClusterInventoryBar title="Cluster summary" />
+                {isHubV3 ? (
+                  <HubV3.DiagnosticsSummaryCard viewType="cluster" />
+                ) : (
+                  <Hub.ClusterInventoryBar title="Cluster summary" />
+                )}
               </StackItem>
             ) : null}
             <StackItem>

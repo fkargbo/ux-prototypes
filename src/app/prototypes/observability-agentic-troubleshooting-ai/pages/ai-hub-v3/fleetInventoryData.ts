@@ -2,10 +2,14 @@
  * Mock aggregates for v3 AI Hub inventory bars only (`pages/ai-hub-v3/*`).
  * Keeps `components/autonomousAiObserve/data.ts` free of hub-specific totals for cleaner v1 / v2 / v3 separation.
  */
-import type { ClusterRecord } from '../../components/autonomousAiObserve/data';
+import type { ClusterRecord, ClusterHealth } from '../../components/autonomousAiObserve/data';
 import {
   CLUSTERS,
+  ALERTS,
+  FLEET_WIDE_REGIONAL_INGRESS,
   fleetHubTotalFiringAlertsCount,
+  fleetCriticalAttributionCount,
+  fleetWideCriticalAddsForCluster,
   getAlertsForCluster,
   getClusterById,
 } from '../../components/autonomousAiObserve/data';
@@ -60,5 +64,67 @@ export function getClusterInventoryMetrics(clusterId: string): ClusterInventoryM
     criticalAlertCount: alerts.filter((a) => a.severity === 'critical').length,
     warningAlertCount: alerts.filter((a) => a.severity === 'warning').length,
     infoAlertCount: alerts.filter((a) => a.severity === 'info').length,
+  };
+}
+
+// ─── Diagnostics metrics (v3 DiagnosticsSummaryCard) ─────────────────────────
+
+export interface FleetDiagnosticsMetrics {
+  clustersAffected: number;
+  clustersTotal: number;
+  criticalAlerts: number;
+  /** Clusters with agentStatus 'investigating' or 'escalated'. */
+  activeInvestigations: number;
+  /** Clusters with agentStatus 'remediating' — AI fix ready to execute. */
+  readyRemediations: number;
+}
+
+export function getFleetDiagnosticsMetrics(): FleetDiagnosticsMetrics {
+  return {
+    clustersAffected: CLUSTERS.filter((c) => c.health !== 'healthy').length,
+    clustersTotal: CLUSTERS.length,
+    criticalAlerts:
+      ALERTS.filter((a) => a.severity === 'critical').length + fleetCriticalAttributionCount(),
+    activeInvestigations: CLUSTERS.filter(
+      (c) => c.agentStatus === 'investigating' || c.agentStatus === 'escalated',
+    ).length,
+    readyRemediations: CLUSTERS.filter((c) => c.agentStatus === 'remediating').length,
+  };
+}
+
+export interface ClusterDiagnosticsMetrics {
+  clusterName: string;
+  clusterStatus: ClusterHealth;
+  criticalAlerts: number;
+  activeInvestigations: number;
+  readyRemediations: number;
+}
+
+export function getClusterDiagnosticsMetrics(clusterId: string): ClusterDiagnosticsMetrics | null {
+  const cluster = getClusterById(clusterId);
+  if (!cluster) return null;
+  const alerts = getAlertsForCluster(clusterId);
+  const criticalAlerts =
+    alerts.filter((a) => a.severity === 'critical').length +
+    fleetWideCriticalAddsForCluster(clusterId);
+  const fleetWideIsActive =
+    fleetWideCriticalAddsForCluster(clusterId) > 0 &&
+    FLEET_WIDE_REGIONAL_INGRESS.agentStatus !== 'idle';
+  const investigatingFromAlerts =
+    alerts.filter((a) => a.agentStatus === 'investigating' || a.agentStatus === 'escalated')
+      .length + (fleetWideIsActive ? 1 : 0);
+  const remediatingFromAlerts = alerts.filter((a) => a.agentStatus === 'remediating').length;
+  return {
+    clusterName: cluster.name,
+    clusterStatus: cluster.health,
+    criticalAlerts,
+    activeInvestigations: Math.max(
+      investigatingFromAlerts,
+      cluster.agentStatus === 'investigating' || cluster.agentStatus === 'escalated' ? 1 : 0,
+    ),
+    readyRemediations: Math.max(
+      remediatingFromAlerts,
+      cluster.agentStatus === 'remediating' ? 1 : 0,
+    ),
   };
 }
