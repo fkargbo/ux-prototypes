@@ -15,13 +15,13 @@ import {
 // ─── Data adapter ─────────────────────────────────────────────────────────────
 
 /**
- * Maps `FleetTopAlertRuleRow` (internal mock data shape) to the `AlertRule`
- * interface expected by the shared `TopFiringAlertsCard` component.
+ * Maps `FleetTopAlertRuleRow` → `AlertRule`.
  *
- * - `severity` is derived from the highest-priority count present.
- * - `impact` is an AI-proxy score weighted by severity counts (0–100).
- * - `scopePercent` is the real blast-radius percentage: clusters affected / total fleet.
- * - `scopeLabel` is a human-readable cluster summary.
+ * Impact is AI-synthesised: primarily driven by blast-radius percentage
+ * (clusters affected ÷ total fleet) with a severity bonus, so that a
+ * rule affecting 94 % of production with 3 critical instances scores
+ * higher than one with 842 warning instances on 12 % of non-prod nodes.
+ * This contrast makes the Impact ↔ Firing-volume sort switch meaningful.
  */
 function adaptRows(rows: FleetTopAlertRuleRow[]): AlertRule[] {
   const totalClusters = CLUSTERS.length;
@@ -32,12 +32,14 @@ function adaptRows(rows: FleetTopAlertRuleRow[]): AlertRule[] {
     const severity: Severity =
       row.critical > 0 ? 'critical' : row.warning > 0 ? 'warning' : 'info';
 
-    const impact = Math.min(100, row.critical * 15 + row.warning * 6 + row.info * 2);
-
     const scopePercent =
       totalClusters > 0
         ? Math.min(100, Math.round((row.clusters.length / totalClusters) * 100))
         : 0;
+
+    // AI-synthesised score: blast radius is the primary signal; severity adds bonus weight.
+    const severityBonus = severity === 'critical' ? 25 : severity === 'warning' ? 10 : 0;
+    const impact = Math.min(100, Math.round(scopePercent * 0.75 + severityBonus));
 
     const scopeLabel =
       row.clusters.length === 0
@@ -82,7 +84,10 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ cluste
   const navigate = useNavigate();
 
   const rawRows = useMemo(
-    () => (clusterId ? buildClusterTopFiringAlertRuleRows(clusterId) : buildFleetTopFiringAlertRuleRows()),
+    () =>
+      clusterId
+        ? buildClusterTopFiringAlertRuleRows(clusterId)
+        : buildFleetTopFiringAlertRuleRows(),
     [clusterId],
   );
 
@@ -104,6 +109,8 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ cluste
       alerts={alerts}
       onAlertClick={onAlertClick}
       onViewAll={onViewAll}
+      statusLabel="Storm mitigation active"
+      subtitle="AI-ranked by blast radius across your fleet"
       className="ols-aio-subcard ols-aio-fleet-pair-card ols-autonomous-ai-observe-widget-v3-top-firing"
       style={{ boxSizing: 'border-box' }}
     />
