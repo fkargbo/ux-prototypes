@@ -110,15 +110,8 @@ function severityIcon(severity: Severity): React.ReactNode {
   return <InfoCircleIcon aria-hidden="true" />;
 }
 
-function impactColor(impact: number): string {
-  if (impact >= 70) return 'var(--pf-t--global--color--status--danger--default)';
+function impactColor(_impact: number): string {
   return 'var(--pf-t--global--text--color--regular)';
-}
-
-function blastRadiusBarColor(pct: number): string {
-  if (pct >= 75) return 'var(--pf-t--global--color--status--danger--default)';
-  if (pct >= 40) return 'var(--pf-t--global--color--status--warning--default)';
-  return 'var(--pf-t--global--color--status--info--default)';
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -145,7 +138,6 @@ const AiBadge: React.FC<{ label?: string; icon?: React.ReactNode }> = ({
 );
 
 const SUBTLE: React.CSSProperties = { color: 'var(--pf-t--global--text--color--subtle)' };
-const MONO: React.CSSProperties = { fontFamily: 'var(--pf-t--global--font--family--mono)' };
 
 /** Single alert rule row — three-line layout matching the reference design. */
 const AlertRuleRow: React.FC<{
@@ -173,12 +165,11 @@ const AlertRuleRow: React.FC<{
                   variant="link"
                   isInline
                   onClick={() => onAlertClick(rule.id)}
-                  style={MONO}
                 >
                   {rule.name}
                 </Button>
               ) : (
-                <code style={MONO}>{rule.name}</code>
+                <span>{rule.name}</span>
               )}
             </FlexItem>
           </Flex>
@@ -251,9 +242,7 @@ const AlertRuleRow: React.FC<{
             aria-label={`Blast radius: ${rule.scopePercent}% of fleet, AI synthesized`}
             style={
               {
-                '--pf-v6-c-progress__indicator--BackgroundColor': blastRadiusBarColor(
-                  rule.scopePercent,
-                ),
+                '--pf-v6-c-progress__indicator--BackgroundColor': 'var(--pf-t--global--color--brand--default)',
               } as React.CSSProperties
             }
           />
