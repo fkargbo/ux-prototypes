@@ -223,14 +223,6 @@ const AlertRuleRow: React.FC<{
           {rule.firingInstances.toLocaleString()}
         </strong>{' '}
         firing
-        {rule.scopeLabel ? (
-          <>
-            <span aria-hidden="true" style={{ margin: '0 var(--pf-t--global--spacer--xs)' }}>
-              ·
-            </span>
-            {rule.scopeLabel}
-          </>
-        ) : null}
       </Content>
     </StackItem>
 
