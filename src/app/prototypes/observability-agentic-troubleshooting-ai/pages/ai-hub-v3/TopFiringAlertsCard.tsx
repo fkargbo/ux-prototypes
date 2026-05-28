@@ -20,12 +20,21 @@ import {
  * Order: RegionalIngressFailure is pinned first (fleet-wide ingress incident),
  * then ranked by AI impact score descending.
  */
+/**
+ * Firing counts are intentionally skewed vs. impact scores so the
+ * Impact ↔ Firing-volume sort switch produces a meaningfully different
+ * ordering — demonstrating that noisy, low-blast-radius alerts don't
+ * automatically deserve the top slot.
+ *
+ * By impact:  RegionalIngressFailure (94) → PaymentsAPI5xxSurge (72) → EtcdDiskPressureOnMaster2 (43)
+ * By volume:  EtcdDiskPressureOnMaster2 (312) → PaymentsAPI5xxSurge (148) → RegionalIngressFailure (5)
+ */
 const FLEET_AGGREGATED_ALERTS: AlertRule[] = [
   {
     id: 'RegionalIngressFailure',
     severity: 'critical',
     name: 'RegionalIngressFailure',
-    // 5 of 7 clusters affected (prod-east-2, prod-eu-west-1, stg-central, prod-us-east-1, prod-us-east-1b)
+    // 5 of 7 clusters affected — fleet-wide correlated incident, few distinct rule firings
     impact: 94,
     firingInstances: 5,
     scopeLabel: '5 of 7 clusters · US-East',
@@ -35,9 +44,9 @@ const FLEET_AGGREGATED_ALERTS: AlertRule[] = [
     id: 'PaymentsAPI5xxSurge',
     severity: 'critical',
     name: 'PaymentsAPI5xxSurge',
-    // 4 of 7 clusters affected; payments path = high business criticality
+    // 4 of 7 clusters; high business criticality, sustained 5xx across payment path
     impact: 72,
-    firingInstances: 5,
+    firingInstances: 148,
     scopeLabel: '4 of 7 clusters',
     scopePercent: 57,
   },
@@ -45,9 +54,9 @@ const FLEET_AGGREGATED_ALERTS: AlertRule[] = [
     id: 'EtcdDiskPressureOnMaster2',
     severity: 'critical',
     name: 'EtcdDiskPressureOnMaster2',
-    // 3 of 7 clusters; control-plane disk pressure, localized but blocking quorum
+    // 3 of 7 clusters; disk pressure fires constantly per node — noisy but localized
     impact: 43,
-    firingInstances: 3,
+    firingInstances: 312,
     scopeLabel: '3 of 7 clusters',
     scopePercent: 43,
   },
