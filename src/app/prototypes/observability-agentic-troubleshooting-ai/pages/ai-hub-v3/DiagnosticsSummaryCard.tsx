@@ -65,7 +65,7 @@ const CLUSTER_STATUS_LABEL: Record<ClusterHealth, string> = {
 interface KpiCellProps {
   label: string;
   ariaLabel: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   valueNode: React.ReactNode;
 }
 
@@ -79,7 +79,7 @@ const KpiCell: React.FC<KpiCellProps> = ({ label, ariaLabel, icon, valueNode }) 
       gap={{ default: 'gapSm' }}
       aria-label={ariaLabel}
     >
-      <FlexItem>{icon}</FlexItem>
+      {icon && <FlexItem>{icon}</FlexItem>}
       <FlexItem>
         <span className="ols-aio-card-stat-number--readonly">{valueNode}</span>
       </FlexItem>
@@ -161,16 +161,6 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
               <KpiCell
                 label="Clusters affected"
                 ariaLabel={`Clusters affected: ${clustersAffected} of ${clustersTotal}`}
-                icon={
-                  clustersAtRisk ? (
-                    <ExclamationCircleIcon
-                      style={{ ...ICON, color: DANGER }}
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <CheckCircleIcon style={{ ...ICON, color: SUCCESS }} aria-hidden="true" />
-                  )
-                }
                 valueNode={`${clustersAffected} / ${clustersTotal}`}
               />
             </GridItem>
@@ -180,22 +170,15 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
               <KpiCell
                 label="Critical alerts"
                 ariaLabel={`Critical alerts: ${criticalAlerts}`}
-                icon={
-                  <ExclamationCircleIcon
-                    style={{ ...ICON, color: criticalAlerts > 0 ? DANGER : SUBTLE }}
-                    aria-hidden="true"
-                  />
-                }
                 valueNode={criticalAlerts}
               />
             </GridItem>
 
-            {/* KPI 3: Active investigations */}
+            {/* KPI 3: Active AI investigations */}
             <GridItem span={12} sm={6} lg={3} role="listitem">
               <KpiCell
-                label="Active investigations"
+                label="Active AI investigations"
                 ariaLabel={`Active AI investigations: ${activeInvestigations}`}
-                icon={<BoltIcon style={{ ...ICON, color: BRAND }} aria-hidden="true" />}
                 valueNode={activeInvestigations}
               />
             </GridItem>
@@ -205,12 +188,6 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
               <KpiCell
                 label="Ready remediations"
                 ariaLabel={`Ready remediations: ${readyRemediations}`}
-                icon={
-                  <CheckCircleIcon
-                    style={{ ...ICON, color: readyRemediations > 0 ? SUCCESS : SUBTLE }}
-                    aria-hidden="true"
-                  />
-                }
                 valueNode={readyRemediations}
               />
             </GridItem>
@@ -273,10 +250,10 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
             />
           </GridItem>
 
-          {/* KPI 3: Active investigations */}
+          {/* KPI 3: Active AI investigations */}
           <GridItem span={12} sm={6} lg={3} role="listitem">
             <KpiCell
-              label="Active investigations"
+              label="Active AI investigations"
               ariaLabel={`Active AI investigations: ${activeInvestigations}`}
               icon={<BoltIcon style={{ ...ICON, color: BRAND }} aria-hidden="true" />}
               valueNode={activeInvestigations}

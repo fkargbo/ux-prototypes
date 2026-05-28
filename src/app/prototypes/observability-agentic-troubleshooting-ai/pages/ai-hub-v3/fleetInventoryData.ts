@@ -88,7 +88,9 @@ export function getFleetDiagnosticsMetrics(): FleetDiagnosticsMetrics {
     activeInvestigations: CLUSTERS.filter(
       (c) => c.agentStatus === 'investigating' || c.agentStatus === 'escalated',
     ).length,
-    readyRemediations: CLUSTERS.filter((c) => c.agentStatus === 'remediating').length,
+    // Match the fleet investigations panel: all per-cluster ALERTS + 1 for the
+    // fleet-wide regional ingress incident card shown at the top of that panel.
+    readyRemediations: ALERTS.length + 1,
   };
 }
 
