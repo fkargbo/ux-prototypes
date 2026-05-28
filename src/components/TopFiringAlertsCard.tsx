@@ -50,6 +50,10 @@ export interface TopFiringAlertsCardProps {
   onAlertClick?: (id: string) => void;
   /** Called when the "View all" header action is clicked. */
   onViewAll?: () => void;
+  /** Additional CSS class names forwarded to the root Card element. */
+  className?: string;
+  /** Inline styles forwarded to the root Card element. */
+  style?: React.CSSProperties;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -123,6 +127,8 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
   alerts,
   onAlertClick,
   onViewAll,
+  className,
+  style,
 }) => {
   /** Sort by blast radius desc; break ties on impact desc. */
   const sortedAlerts = useMemo(
@@ -131,7 +137,7 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
   );
 
   return (
-    <Card isCompact component="section" aria-label="Top firing alerts">
+    <Card isCompact component="section" aria-label="Top firing alerts" className={className} style={style}>
       <CardHeader
         actions={
           onViewAll

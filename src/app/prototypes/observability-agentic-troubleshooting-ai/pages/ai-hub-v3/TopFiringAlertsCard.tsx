@@ -1,21 +1,62 @@
 import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, CardBody, CardHeader, CardTitle, Label } from '@patternfly/react-core';
 import {
-  ALERTS,
-  FLEET_WIDE_REGIONAL_INGRESS,
+  CLUSTERS,
   buildClusterTopFiringAlertRuleRows,
   buildFleetTopFiringAlertRuleRows,
-  clusterHubTotalFiringAlertsCount,
-  fleetHubTotalFiringAlertsCount,
-  getFleetTopAlertInsightDisplay,
+  type FleetTopAlertRuleRow,
 } from '../../components/autonomousAiObserve/data';
-import { TopAlertsSection } from '../alerting-fleet-copy/components/TopAlertsSection';
-import type { LightspeedInvestigateContext } from '../alerting-fleet-copy/components/OpenShiftLightspeedPanel';
-import { agenticGlobalAiApi } from '../../persesAgenticBridge';
-import { dispatchRemediationDrill } from '../../components/autonomousAiObserve/remediationDrillSession';
+import {
+  TopFiringAlertsCard as TopFiringAlertsCardBase,
+  type AlertRule,
+  type Severity,
+} from '../../../../../components/TopFiringAlertsCard';
 
-const TOP_FIRING_CARD_ID = 'ols-ai-hub-top-firing-alerts';
+// ─── Data adapter ─────────────────────────────────────────────────────────────
+
+/**
+ * Maps `FleetTopAlertRuleRow` (internal mock data shape) to the `AlertRule`
+ * interface expected by the shared `TopFiringAlertsCard` component.
+ *
+ * - `severity` is derived from the highest-priority count present.
+ * - `impact` is an AI-proxy score weighted by severity counts (0–100).
+ * - `scopePercent` is the real blast-radius percentage: clusters affected / total fleet.
+ * - `scopeLabel` is a human-readable cluster summary.
+ */
+function adaptRows(rows: FleetTopAlertRuleRow[]): AlertRule[] {
+  const totalClusters = CLUSTERS.length;
+
+  return rows.map((row) => {
+    const firingInstances = row.critical + row.warning + row.info;
+
+    const severity: Severity =
+      row.critical > 0 ? 'critical' : row.warning > 0 ? 'warning' : 'info';
+
+    const impact = Math.min(100, row.critical * 15 + row.warning * 6 + row.info * 2);
+
+    const scopePercent =
+      totalClusters > 0
+        ? Math.min(100, Math.round((row.clusters.length / totalClusters) * 100))
+        : 0;
+
+    const scopeLabel =
+      row.clusters.length === 0
+        ? 'No clusters'
+        : row.clusters.length === 1
+        ? row.clusters[0]
+        : `${row.clusters.length} of ${totalClusters} clusters`;
+
+    return {
+      id: row.name,
+      severity,
+      name: row.name,
+      impact,
+      firingInstances,
+      scopeLabel,
+      scopePercent,
+    };
+  });
+}
 
 function alertingHref(options: {
   tab: 'alerts' | 'fleet-overview';
@@ -25,126 +66,46 @@ function alertingHref(options: {
   const params = new URLSearchParams();
   params.set('tab', options.tab);
   params.set('scope', 'ai-hub');
-  if (options.alertName) {
-    params.set('alertName', options.alertName);
-  }
-  if (options.clusterId) {
-    params.set('cluster', options.clusterId);
-  }
+  if (options.alertName) params.set('alertName', options.alertName);
+  if (options.clusterId) params.set('cluster', options.clusterId);
   return `/core/observe/alerting?${params.toString()}`;
 }
+
+// ─── v3 wrapper ───────────────────────────────────────────────────────────────
 
 export type TopFiringAlertsCardProps = {
   /** When set, rows and counts are scoped to this cluster (Core platforms hub). */
   clusterId?: string;
 };
 
-/**
- * v3 AI Hub — fleet scope matches Fleet Summary; cluster scope uses `getAlertsForCluster` attribution.
- */
 export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ clusterId }) => {
   const navigate = useNavigate();
 
-  const alertRuleData = useMemo(
+  const rawRows = useMemo(
     () => (clusterId ? buildClusterTopFiringAlertRuleRows(clusterId) : buildFleetTopFiringAlertRuleRows()),
-    [clusterId]
+    [clusterId],
   );
-  const totalFiringAlertsCount = useMemo(
-    () => (clusterId ? clusterHubTotalFiringAlertsCount(clusterId) : fleetHubTotalFiringAlertsCount()),
-    [clusterId]
-  );
-  const hasAlertData = totalFiringAlertsCount > 0;
 
-  const onAlertRuleClick = useCallback(
-    (alertName: string) => {
-      navigate(alertingHref({ tab: 'alerts', alertName, clusterId }));
+  const alerts = useMemo(() => adaptRows(rawRows), [rawRows]);
+
+  const onAlertClick = useCallback(
+    (id: string) => {
+      navigate(alertingHref({ tab: 'alerts', alertName: id, clusterId }));
     },
-    [navigate, clusterId]
+    [navigate, clusterId],
   );
 
-  const onViewAllFiringAlerts = useCallback(() => {
+  const onViewAll = useCallback(() => {
     navigate(alertingHref({ tab: clusterId ? 'alerts' : 'fleet-overview', clusterId }));
   }, [navigate, clusterId]);
 
-  const onViewRemediation = useCallback((ruleName: string) => {
-    dispatchRemediationDrill({ alertRuleTitle: ruleName });
-  }, []);
-
-  const onOpenLightspeed = useCallback((ctx: LightspeedInvestigateContext) => {
-    const directAlert = ALERTS.find((a) => a.title === ctx.sourceName);
-    const fleetWideMatch = FLEET_WIDE_REGIONAL_INGRESS.title === ctx.sourceName ? FLEET_WIDE_REGIONAL_INGRESS : null;
-    const alertId = directAlert?.id ?? fleetWideMatch?.id ?? null;
-
-    if (alertId) {
-      agenticGlobalAiApi.openDiscussWithLightspeed?.({
-        alertId,
-        cardId: 'rca',
-        diagnosisName: 'Root cause analysis',
-      });
-      return;
-    }
-
-    agenticGlobalAiApi.startTroubleshootingForAlert?.(ctx.sourceName);
-  }, []);
-
-  const sectionProps = useMemo(
-    () => ({
-      alertRuleData,
-      totalFiringAlertsCount,
-      hasAlertData,
-      onAlertRuleClick,
-      onOpenLightspeed,
-      onViewRemediation,
-      onViewAllFiringAlerts,
-      showSectionHeading: false as const,
-      getAiInsightCopy: getFleetTopAlertInsightDisplay,
-      alertActionsLayout: 'ai-hub' as const,
-      showViewAllFiringAlertsFooter: false as const,
-    }),
-    [alertRuleData, totalFiringAlertsCount, hasAlertData, onAlertRuleClick, onOpenLightspeed, onViewRemediation, onViewAllFiringAlerts]
-  );
-
   return (
-    <Card
-      className="ols-aio-subcard ols-aio-fleet-pair-card ols-ai-hub-top-firing-alerts-card ols-autonomous-ai-observe-widget-v3-top-firing"
-      isCompact
-      component="section"
-      id={TOP_FIRING_CARD_ID}
-      aria-label="Top firing alerts"
+    <TopFiringAlertsCardBase
+      alerts={alerts}
+      onAlertClick={onAlertClick}
+      onViewAll={onViewAll}
+      className="ols-aio-subcard ols-aio-fleet-pair-card ols-autonomous-ai-observe-widget-v3-top-firing"
       style={{ boxSizing: 'border-box' }}
-    >
-      <CardHeader
-        actions={
-          totalFiringAlertsCount > 0
-            ? {
-                actions: (
-                  <Button
-                    variant="link"
-                    isInline
-                    onClick={onViewAllFiringAlerts}
-                    aria-label={`View all firing alerts, ${totalFiringAlertsCount} total`}
-                  >
-                    View all firing alerts ({totalFiringAlertsCount})
-                  </Button>
-                ),
-              }
-            : undefined
-        }
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
-          <CardTitle component="h3" className="ols-aio-fleet-subcard-title">
-            Top firing alerts
-          </CardTitle>
-          <Label color="blue" isCompact>
-            {alertRuleData.length} top firing alert{alertRuleData.length === 1 ? '' : 's'}
-          </Label>
-        </div>
-      </CardHeader>
-      <CardBody>
-        <div className="ols-aio-top-firing-translucent-scope">
-          <TopAlertsSection {...sectionProps} />
-        </div>
-      </CardBody>
-    </Card>
+    />
   );
 };
