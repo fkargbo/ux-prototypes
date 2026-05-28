@@ -13,37 +13,43 @@ import {
 // ─── Fleet aggregated rows (simulation) ───────────────────────────────────────
 
 /**
- * Three aggregated alert rules representing fleet-wide blast-radius rollups.
- * Impact scores are AI-synthesised: blast radius × severity bonus.
- * Firing counts aggregate across all affected clusters.
+ * Three aggregated alert rules derived from fleet simulation data.
+ * Impact scores are AI-synthesised: blast radius (clusters affected ÷ 7 total)
+ * weighted by severity bonus. Firing counts aggregate across all affected clusters.
+ *
+ * Order: RegionalIngressFailure is pinned first (fleet-wide ingress incident),
+ * then ranked by AI impact score descending.
  */
 const FLEET_AGGREGATED_ALERTS: AlertRule[] = [
   {
-    id: 'api_gateway_down',
+    id: 'RegionalIngressFailure',
     severity: 'critical',
-    name: 'api_gateway_down',
-    impact: 98,
-    firingInstances: 3,
-    scopeLabel: '94% of production fleet',
-    scopePercent: 94,
+    name: 'RegionalIngressFailure',
+    // 5 of 7 clusters affected (prod-east-2, prod-eu-west-1, stg-central, prod-us-east-1, prod-us-east-1b)
+    impact: 94,
+    firingInstances: 5,
+    scopeLabel: '5 of 7 clusters · US-East',
+    scopePercent: 71,
   },
   {
-    id: 'auth_service_latency_spike',
+    id: 'PaymentsAPI5xxSurge',
     severity: 'critical',
-    name: 'auth_service_latency_spike',
+    name: 'PaymentsAPI5xxSurge',
+    // 4 of 7 clusters affected; payments path = high business criticality
     impact: 72,
-    firingInstances: 45,
-    scopeLabel: '2 / 3 clusters · US-East',
-    scopePercent: 66,
+    firingInstances: 5,
+    scopeLabel: '4 of 7 clusters',
+    scopePercent: 57,
   },
   {
-    id: 'node_disk_near_full',
-    severity: 'warning',
-    name: 'node_disk_near_full',
-    impact: 20,
-    firingInstances: 842,
-    scopeLabel: '12% of non-prod nodes',
-    scopePercent: 12,
+    id: 'EtcdDiskPressureOnMaster2',
+    severity: 'critical',
+    name: 'EtcdDiskPressureOnMaster2',
+    // 3 of 7 clusters; control-plane disk pressure, localized but blocking quorum
+    impact: 43,
+    firingInstances: 3,
+    scopeLabel: '3 of 7 clusters',
+    scopePercent: 43,
   },
 ];
 
