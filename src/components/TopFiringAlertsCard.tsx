@@ -424,7 +424,7 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
       </CardHeader>
 
       <CardBody>
-        <Stack hasGutter>
+        <Stack style={{ rowGap: 'var(--pf-t--global--spacer--sm)' }}>
           {/* Subtitle */}
           {subtitle && (
             <StackItem>
@@ -508,18 +508,16 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
             ) : (
               <Stack>
                 {sortedAlerts.map((rule, idx) => (
-                  <StackItem key={rule.id}>
-                    <Stack hasGutter>
+                  <React.Fragment key={rule.id}>
+                    <StackItem style={{ padding: 'var(--pf-t--global--spacer--xs) 0' }}>
+                      <AlertRuleRow rule={rule} onAlertClick={onAlertClick} aiIcon={aiIconElement} />
+                    </StackItem>
+                    {idx < sortedAlerts.length - 1 && (
                       <StackItem>
-                        <AlertRuleRow rule={rule} onAlertClick={onAlertClick} aiIcon={aiIconElement} />
+                        <Divider />
                       </StackItem>
-                      {idx < sortedAlerts.length - 1 && (
-                        <StackItem>
-                          <Divider />
-                        </StackItem>
-                      )}
-                    </Stack>
-                  </StackItem>
+                    )}
+                  </React.Fragment>
                 ))}
               </Stack>
             )}
