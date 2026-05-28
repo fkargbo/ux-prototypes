@@ -461,11 +461,11 @@ body:has(.ols-ai-hub-page),
 
 /* v3 hub: unified light border for all cards and internal dividers. */
 .ols-ai-hub-page--v3 .pf-v6-c-card {
-  --pf-v6-c-card--BorderColor: #f2f2f2;
+  --pf-v6-c-card--BorderColor: #e0e0e0;
 }
 
 .ols-ai-hub-page--v3 .pf-v6-c-divider {
-  --pf-v6-c-divider--BackgroundColor: #f2f2f2;
+  --pf-v6-c-divider--BackgroundColor: #e0e0e0;
 }
 
 /*
