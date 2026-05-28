@@ -174,10 +174,10 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
               />
             </GridItem>
 
-            {/* KPI 3: Active investigations */}
+            {/* KPI 3: Active AI investigations */}
             <GridItem span={12} sm={6} lg={3} role="listitem">
               <KpiCell
-                label="Active investigations"
+                label="Active AI investigations"
                 ariaLabel={`Active AI investigations: ${activeInvestigations}`}
                 valueNode={activeInvestigations}
               />
@@ -250,10 +250,10 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
             />
           </GridItem>
 
-          {/* KPI 3: Active investigations */}
+          {/* KPI 3: Active AI investigations */}
           <GridItem span={12} sm={6} lg={3} role="listitem">
             <KpiCell
-              label="Active investigations"
+              label="Active AI investigations"
               ariaLabel={`Active AI investigations: ${activeInvestigations}`}
               icon={<BoltIcon style={{ ...ICON, color: BRAND }} aria-hidden="true" />}
               valueNode={activeInvestigations}
