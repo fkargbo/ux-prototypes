@@ -70,6 +70,12 @@ export interface TopFiringAlertsCardProps {
    * e.g. "AI-ranked by blast radius across your fleet".
    */
   subtitle?: string;
+  /**
+   * Custom AI experience icon element used wherever AI synthesis is indicated.
+   * Defaults to PatternFly's BoltIcon. Pass an <img> element using the
+   * product's AI branding data URL for visual consistency with the page title.
+   */
+  aiIconElement?: React.ReactNode;
   /** Additional CSS class names forwarded to the root Card element. */
   className?: string;
   /** Inline styles forwarded to the root Card element. */
@@ -125,12 +131,15 @@ const SeverityLabel: React.FC<{ severity: Severity }> = ({ severity }) => (
   </Label>
 );
 
-/** Small "AI" badge with a bolt icon to mark AI-synthesised values. */
-const AiBadge: React.FC<{ label?: string }> = ({ label = 'AI' }) => (
+/** Small "AI" badge to mark AI-synthesised values. Accepts a custom icon element. */
+const AiBadge: React.FC<{ label?: string; icon?: React.ReactNode }> = ({
+  label = 'AI',
+  icon,
+}) => (
   <Label
     color="blue"
     isCompact
-    icon={<BoltIcon aria-hidden="true" />}
+    icon={icon ?? <BoltIcon aria-hidden="true" />}
     aria-label="AI synthesized"
   >
     {label}
@@ -144,7 +153,8 @@ const MONO: React.CSSProperties = { fontFamily: 'var(--pf-t--global--font--famil
 const AlertRuleRow: React.FC<{
   rule: AlertRule;
   onAlertClick?: (id: string) => void;
-}> = ({ rule, onAlertClick }) => (
+  aiIcon?: React.ReactNode;
+}> = ({ rule, onAlertClick, aiIcon }) => (
   <Stack>
     {/* Line 1: severity + name (left) · AI IMPACT score (right) */}
     <StackItem>
@@ -181,10 +191,12 @@ const AlertRuleRow: React.FC<{
             <FlexItem>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
                 <FlexItem>
-                  <BoltIcon
+                  <span
                     aria-hidden="true"
-                    style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--xs)' }}
-                  />
+                    style={{ display: 'inline-flex', alignItems: 'center', opacity: 0.6, fontSize: 'var(--pf-t--global--font--size--xs)' }}
+                  >
+                    {aiIcon ?? <BoltIcon aria-hidden="true" />}
+                  </span>
                 </FlexItem>
                 <FlexItem>
                   <Content
@@ -247,24 +259,6 @@ const AlertRuleRow: React.FC<{
               } as React.CSSProperties
             }
           />
-        </FlexItem>
-        <FlexItem style={{ flexShrink: 0, minWidth: '3.5ch' }}>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-            <FlexItem>
-              <BoltIcon
-                aria-hidden="true"
-                style={{
-                  color: blastRadiusBarColor(rule.scopePercent),
-                  fontSize: 'var(--pf-t--global--font--size--xs)',
-                }}
-              />
-            </FlexItem>
-            <FlexItem>
-              <Content component="small" style={{ fontWeight: 600 }}>
-                {rule.scopePercent}%
-              </Content>
-            </FlexItem>
-          </Flex>
         </FlexItem>
       </Flex>
     </StackItem>
@@ -340,6 +334,7 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
   onViewAll,
   statusLabel,
   subtitle,
+  aiIconElement,
   className,
   style,
 }) => {
@@ -388,7 +383,7 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
             <CardTitle component="h2">Top firing alerts</CardTitle>
           </FlexItem>
           <FlexItem>
-            <AiBadge />
+            <AiBadge icon={aiIconElement} />
           </FlexItem>
           {statusLabel && (
             <FlexItem>
@@ -464,41 +459,6 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
                 </Flex>
               </FlexItem>
 
-              {/* Right: severity legend */}
-              <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                  <FlexItem>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                      <FlexItem>
-                        <ExclamationCircleIcon
-                          aria-hidden="true"
-                          style={{ color: 'var(--pf-t--global--color--status--danger--default)', fontSize: 'var(--pf-t--global--font--size--xs)' }}
-                        />
-                      </FlexItem>
-                      <FlexItem>
-                        <Content component="small" style={SUBTLE}>
-                          Critical
-                        </Content>
-                      </FlexItem>
-                    </Flex>
-                  </FlexItem>
-                  <FlexItem>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                      <FlexItem>
-                        <ExclamationTriangleIcon
-                          aria-hidden="true"
-                          style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontSize: 'var(--pf-t--global--font--size--xs)' }}
-                        />
-                      </FlexItem>
-                      <FlexItem>
-                        <Content component="small" style={SUBTLE}>
-                          Warning
-                        </Content>
-                      </FlexItem>
-                    </Flex>
-                  </FlexItem>
-                </Flex>
-              </FlexItem>
             </Flex>
           </StackItem>
 
@@ -524,7 +484,7 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({
                   <StackItem key={rule.id}>
                     <Stack hasGutter>
                       <StackItem>
-                        <AlertRuleRow rule={rule} onAlertClick={onAlertClick} />
+                        <AlertRuleRow rule={rule} onAlertClick={onAlertClick} aiIcon={aiIconElement} />
                       </StackItem>
                       {idx < sortedAlerts.length - 1 && (
                         <StackItem>

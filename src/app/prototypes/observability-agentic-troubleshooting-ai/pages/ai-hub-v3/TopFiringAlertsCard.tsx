@@ -6,6 +6,7 @@ import {
   buildFleetTopFiringAlertRuleRows,
   type FleetTopAlertRuleRow,
 } from '../../components/autonomousAiObserve/data';
+import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import {
   TopFiringAlertsCard as TopFiringAlertsCardBase,
   type AlertRule,
@@ -104,6 +105,17 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ cluste
     navigate(alertingHref({ tab: clusterId ? 'alerts' : 'fleet-overview', clusterId }));
   }, [navigate, clusterId]);
 
+  const aiIconElement = (
+    <img
+      src={AI_EXPERIENCE_ICON_DATA_URL}
+      alt=""
+      aria-hidden="true"
+      width={14}
+      height={14}
+      style={{ display: 'block', flexShrink: 0 }}
+    />
+  );
+
   return (
     <TopFiringAlertsCardBase
       alerts={alerts}
@@ -111,6 +123,7 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ cluste
       onViewAll={onViewAll}
       statusLabel="Storm mitigation active"
       subtitle="AI-ranked by blast radius across your fleet"
+      aiIconElement={aiIconElement}
       className="ols-aio-subcard ols-aio-fleet-pair-card ols-autonomous-ai-observe-widget-v3-top-firing"
       style={{ boxSizing: 'border-box' }}
     />
