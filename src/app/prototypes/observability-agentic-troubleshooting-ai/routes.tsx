@@ -5,6 +5,7 @@ import { RouteConfig } from '@app/core/types';
 import { OverviewPage } from './pages/OverviewPage';
 import { ObserveOverviewPage } from './pages/ObserveOverviewPage';
 import { AIHubPage } from './pages/AIHubPage';
+import { AIInsightsPage } from './pages/AIInsightsPage';
 import { DashboardsPersesPage } from './pages/DashboardsPersesPage';
 import { PodDetailDashboardPage } from './pages/PodDetailDashboardPage';
 import {
@@ -50,6 +51,16 @@ export const routes: RouteConfig[] = [
     navigation: {
       group: 'Home',
       order: 2,
+    },
+  },
+  {
+    path: '/core/observe/ai-insights',
+    element: <AIInsightsPage />,
+    label: 'AI Insights',
+    title: 'AI Insights',
+    navigation: {
+      group: 'Observe',
+      order: 0,
     },
   },
   {
