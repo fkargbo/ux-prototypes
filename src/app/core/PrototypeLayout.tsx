@@ -28,6 +28,7 @@ import { QuotasProvider } from '@app/shared/contexts/QuotasContext';
 import { usePrototype } from './PrototypeContext';
 import { prototypeRegistry } from './PrototypeRegistry';
 import { getGithubPagesBasenameNoSlash } from './githubPagesBase';
+import { findPrototypeIdForPath } from './deepLinkUtils';
 import {
   BANNER_VERSION_CHANGE_EVENT,
   getBannerVersionStorageKey,
@@ -52,7 +53,12 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
   const sharePageUrl = React.useMemo(() => {
     const base = process.env.NODE_ENV === 'production' ? getGithubPagesBasenameNoSlash() : '';
     const u = new URL(`${base}${location.pathname}${location.search}${location.hash}`, window.location.origin);
-    u.searchParams.set('prototype', prototype.config.id);
+    // Only add ?prototype= when the path alone is ambiguous (e.g. "/" matches no prototype).
+    // When the path already uniquely identifies this prototype, omit the param so the share
+    // link is identical to the direct URL — ensuring feedback pins are visible on both.
+    if (findPrototypeIdForPath(location.pathname) !== prototype.config.id) {
+      u.searchParams.set('prototype', prototype.config.id);
+    }
     return u.toString();
   }, [prototype.config.id, location.pathname, location.search, location.hash]);
 
