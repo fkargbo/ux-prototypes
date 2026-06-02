@@ -8,6 +8,7 @@ import {
   FlexItem,
   Popover,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
@@ -54,6 +55,11 @@ const LEGEND_DATA = [
   { childName: RAW_SERIES_NAME, name: 'Raw ingested signals',  symbol: { fill: RAW_COLOR, type: 'square' as const } },
   { childName: AI_SERIES_NAME,  name: 'AI generated plans *', symbol: { fill: AI_COLOR,  type: 'minus'  as const } },
 ];
+
+// ─── AI icon tooltip ──────────────────────────────────────────────────────────
+
+const AI_ICON_TOOLTIP =
+  'The metrics on this card are a mixture of deterministic telemetry and AI-synthesized inference.';
 
 // ─── Responsive width hook ────────────────────────────────────────────────────
 
@@ -129,16 +135,25 @@ export function SignalCompressionChart() {
     >
       <CardHeader>
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          {/* AI branding — left of title */}
+          {/* AI branding — left of title, with mixed-metrics tooltip */}
           <FlexItem>
-            <img
-              src={AI_EXPERIENCE_ICON_DATA_URL}
-              alt=""
-              aria-hidden="true"
-              width={20}
-              height={20}
-              style={{ display: 'block', flexShrink: 0 }}
-            />
+            <Tooltip content={AI_ICON_TOOLTIP} position="top">
+              <span
+                tabIndex={0}
+                role="img"
+                aria-label="Mixed metrics — AI-synthesized and deterministic telemetry"
+                style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}
+              >
+                <img
+                  src={AI_EXPERIENCE_ICON_DATA_URL}
+                  alt=""
+                  aria-hidden="true"
+                  width={20}
+                  height={20}
+                  style={{ display: 'block', flexShrink: 0 }}
+                />
+              </span>
+            </Tooltip>
           </FlexItem>
 
           <FlexItem>
