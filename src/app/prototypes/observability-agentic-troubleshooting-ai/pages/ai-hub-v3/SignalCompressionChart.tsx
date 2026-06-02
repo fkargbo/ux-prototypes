@@ -201,11 +201,16 @@ export function SignalCompressionChart() {
                   <ChartLegendTooltip
                     legendData={LEGEND_DATA}
                     title={(datum: DataPoint[]) => (datum[0]?.x as string) ?? ''}
+                    flyoutPadding={{ top: 12, bottom: 12, left: 16, right: 16 }}
                   />
                 }
-                mouseFollowTooltips
+                // cursorDimension="x" draws the vertical snap line; without
+                // mouseFollowTooltips the cursor and tooltip both lock onto the
+                // nearest day's x position instead of tracking the mouse freely.
+                cursorDimension="x"
                 voronoiDimension="x"
                 voronoiPadding={50}
+                constrainToVisibleArea
               />
             }
             width={chartWidth}
