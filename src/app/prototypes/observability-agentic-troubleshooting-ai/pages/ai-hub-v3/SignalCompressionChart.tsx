@@ -215,7 +215,7 @@ export function SignalCompressionChart() {
                 labelComponent={
                   <ChartLegendTooltip
                     legendData={LEGEND_DATA}
-                    title={(datum: DataPoint[]) => (datum[0]?.x as string) ?? ''}
+                    title={(datum: any) => (Array.isArray(datum) ? datum[0]?.x : datum?.x) ?? ''}
                     flyoutPadding={{ top: 12, bottom: 12, left: 16, right: 16 }}
                   />
                 }
