@@ -14,6 +14,8 @@ import {
   Chart,
   ChartArea,
   ChartAxis,
+  ChartGroup,
+  ChartLegendTooltip,
   ChartLine,
   ChartVoronoiContainer,
 } from '@patternfly/react-charts/victory';
@@ -32,13 +34,26 @@ type DataPoint = SignalCompressionPoint;
 const RAW_COLOR = '#8a8d90';
 const AI_COLOR = '#0066CC';
 
-const CHART_PADDING = { bottom: 48, left: 56, right: 16, top: 12 };
+// Extra bottom padding to reserve space for the built-in PF legend row.
+const CHART_PADDING = { bottom: 75, left: 56, right: 16, top: 12 };
 
-// Unicode symbols shown in tooltip labels — ▪ mirrors the square swatch, ● mirrors the line dot.
-const TOOLTIP_SYMBOL: Record<string, string> = {
-  'Raw signals': '▪',
-  'AI plans': '●',
-};
+// Series names — must match the `name` prop on ChartArea / ChartLine so that
+// Victory can associate each datum's `childName` with the right legend entry.
+const RAW_SERIES_NAME = 'Raw signals';
+const AI_SERIES_NAME = 'AI plans';
+
+// Shared legend data — drives both the PF ChartLegend (bottom of chart SVG) and
+// the ChartLegendTooltip color swatches so symbols stay in sync with series styles.
+const LEGEND_DATA = [
+  { name: 'Raw ingested signals',  symbol: { fill: RAW_COLOR, type: 'square' as const } },
+  { name: 'AI generated plans *', symbol: { fill: AI_COLOR,  type: 'minus'  as const } },
+];
+
+// Tooltip legend maps by series name (matches name= props on ChartArea / ChartLine).
+const TOOLTIP_LEGEND_DATA = [
+  { name: RAW_SERIES_NAME, symbol: { fill: RAW_COLOR, type: 'square' as const } },
+  { name: AI_SERIES_NAME,  symbol: { fill: AI_COLOR,  type: 'minus'  as const } },
+];
 
 // ─── Responsive width hook ────────────────────────────────────────────────────
 
@@ -175,10 +190,18 @@ export function SignalCompressionChart() {
           <Chart
             ariaDesc="Area chart comparing raw ingested signals against AI-generated plans over 7 days"
             ariaTitle="Signal Compression Ratio"
+            legendData={LEGEND_DATA}
+            legendPosition="bottom"
             containerComponent={
               <ChartVoronoiContainer
                 labels={({ datum }: { datum: DataPoint }) =>
-                  `${TOOLTIP_SYMBOL[datum.name] ?? '•'} ${datum.name}: ${datum.y}`
+                  datum.y !== null ? String(datum.y) : ''
+                }
+                labelComponent={
+                  <ChartLegendTooltip
+                    legendData={TOOLTIP_LEGEND_DATA}
+                    title={(datum: DataPoint[]) => (datum[0]?.x as string) ?? ''}
+                  />
                 }
                 constrainToVisibleArea
                 voronoiDimension="x"
@@ -198,103 +221,37 @@ export function SignalCompressionChart() {
               tickFormat={(y: number) => (y >= 1000 ? `${y / 1000}k` : String(y))}
             />
 
-            {/* Series 1: raw signals — muted area */}
-            <ChartArea
-              data={rawSignalsData}
-              style={{
-                data: {
-                  fill: RAW_COLOR,
-                  fillOpacity: 0.18,
-                  stroke: RAW_COLOR,
-                  strokeWidth: 1.5,
-                },
-              }}
-            />
+            {/* Series wrapped in ChartGroup so Victory assigns childName to each datum */}
+            <ChartGroup>
+              {/* Series 1: raw signals — muted area */}
+              <ChartArea
+                name={RAW_SERIES_NAME}
+                data={rawSignalsData}
+                style={{
+                  data: {
+                    fill: RAW_COLOR,
+                    fillOpacity: 0.18,
+                    stroke: RAW_COLOR,
+                    strokeWidth: 1.5,
+                  },
+                }}
+              />
 
-            {/* Series 2: AI plans — prominent line */}
-            <ChartLine
-              data={aiPlansData}
-              style={{
-                data: {
-                  stroke: AI_COLOR,
-                  strokeWidth: 3,
-                },
-              }}
-            />
+              {/* Series 2: AI plans — prominent line */}
+              <ChartLine
+                name={AI_SERIES_NAME}
+                data={aiPlansData}
+                style={{
+                  data: {
+                    stroke: AI_COLOR,
+                    strokeWidth: 3,
+                  },
+                }}
+              />
+            </ChartGroup>
           </Chart>
         </div>
 
-        {/* Legend */}
-        <Flex
-          gap={{ default: 'gapLg' }}
-          justifyContent={{ default: 'justifyContentCenter' }}
-          style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
-        >
-          {/* Raw signals swatch */}
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-              <FlexItem>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    display: 'inline-block',
-                    width: 14,
-                    height: 14,
-                    background: RAW_COLOR,
-                    opacity: 0.45,
-                    borderRadius: 2,
-                    flexShrink: 0,
-                  }}
-                />
-              </FlexItem>
-              <FlexItem>
-                <Content
-                  component="p"
-                  style={{ margin: 0, fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}
-                >
-                  Raw ingested signals
-                </Content>
-              </FlexItem>
-            </Flex>
-          </FlexItem>
-
-          {/* AI plans swatch */}
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-              <FlexItem>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    display: 'inline-block',
-                    width: 20,
-                    height: 3,
-                    background: AI_COLOR,
-                    borderRadius: 2,
-                    flexShrink: 0,
-                  }}
-                />
-              </FlexItem>
-              <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                  <img
-                    src={AI_EXPERIENCE_ICON_DATA_URL}
-                    alt=""
-                    aria-hidden="true"
-                    width={12}
-                    height={12}
-                    style={{ display: 'block', flexShrink: 0 }}
-                  />
-                  <Content
-                    component="p"
-                    style={{ margin: 0, fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}
-                  >
-                    AI generated plans
-                  </Content>
-                </Flex>
-              </FlexItem>
-            </Flex>
-          </FlexItem>
-        </Flex>
       </CardBody>
     </Card>
   );
