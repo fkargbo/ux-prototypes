@@ -6,9 +6,10 @@ import {
   Content,
   Flex,
   FlexItem,
+  Popover,
   Title,
-  Tooltip,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   Chart,
   ChartArea,
@@ -78,10 +79,29 @@ function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>): number 
   return width;
 }
 
-// ─── AI disclosure ────────────────────────────────────────────────────────────
+// ─── Popover body ─────────────────────────────────────────────────────────────
 
-const AI_TOOLTIP_CONTENT =
-  'This chart compares raw incoming infrastructure alerts to the consolidated resolution plans orchestrated by the AI agent.';
+const PopoverBody = (
+  <Content>
+    <Content component="p">
+      Measures how effectively the AI SRE agent condenses multi-domain operational noise into
+      distinct, actionable remediation strategies.
+    </Content>
+    <Content component="p">
+      <strong>Raw Ingested Signals:</strong> The live, cumulative volume of incoming Prometheus
+      alerts, pipeline blocks, ACS security violations, and GitOps drift.
+    </Content>
+    <Content component="p">
+      <strong>AI Generated Plans*:</strong> The unified, root-cause resolution strategies
+      orchestrated by the agent.
+    </Content>
+    <Content component="p">
+      <strong>How it correlates:</strong> Rather than treating events in isolation, the agent
+      analyzes event timelines (temporal clustering) and cluster infrastructure mapping (topology
+      correlation) to collapse an entire cascading storm of symptoms into a single, verifiable Plan.
+    </Content>
+  </Content>
+);
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -103,26 +123,48 @@ export function SignalCompressionChart() {
     >
       <CardHeader>
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <Title headingLevel="h3" size="md" className="ols-aio-fleet-subcard-title">
-            Signal Compression Ratio
-          </Title>
-          <Tooltip content={AI_TOOLTIP_CONTENT} position="top">
-            <span
-              tabIndex={0}
-              role="img"
-              aria-label="AI-generated chart"
-              style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help', outline: 'none' }}
+          {/* AI branding — left of title */}
+          <FlexItem>
+            <img
+              src={AI_EXPERIENCE_ICON_DATA_URL}
+              alt=""
+              aria-hidden="true"
+              width={20}
+              height={20}
+              style={{ display: 'block', flexShrink: 0 }}
+            />
+          </FlexItem>
+
+          <FlexItem>
+            <Title headingLevel="h3" size="md" className="ols-aio-fleet-subcard-title">
+              Signal Compression Ratio
+            </Title>
+          </FlexItem>
+
+          {/* Popover — end of title row */}
+          <FlexItem>
+            <Popover
+              headerContent="Signal Compression Ratio*"
+              bodyContent={PopoverBody}
+              position="right"
             >
-              <img
-                src={AI_EXPERIENCE_ICON_DATA_URL}
-                alt=""
-                aria-hidden="true"
-                width={16}
-                height={16}
-                style={{ display: 'block' }}
-              />
-            </span>
-          </Tooltip>
+              <button
+                type="button"
+                aria-label="More information about Signal Compression Ratio"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                }}
+              >
+                <OutlinedQuestionCircleIcon />
+              </button>
+            </Popover>
+          </FlexItem>
         </Flex>
         <Content
           component="p"
