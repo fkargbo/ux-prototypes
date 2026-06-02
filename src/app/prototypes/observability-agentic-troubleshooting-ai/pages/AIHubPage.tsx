@@ -60,7 +60,7 @@ export const AIHubPage: React.FC = () => {
             <Hub.AiExperienceIcon size={40} />
             <div className="ols-ai-hub-page-header-copy">
               <Title headingLevel="h1" size="2xl">
-                AI Troubleshooting Hub (Conceptual design)
+                AI Hub (Conceptual design)
               </Title>
               <Content
                 component="p"
@@ -95,7 +95,7 @@ export const AIHubPage: React.FC = () => {
         id="ols-ai-hub-main"
         className="ols-ai-hub-page__main"
         role="main"
-        aria-label="AI Troubleshooting Hub (Conceptual design) content"
+        aria-label="AI Hub (Conceptual design) content"
         style={{ backgroundColor: mainBackground }}
       >
         <div
@@ -115,9 +115,9 @@ export const AIHubPage: React.FC = () => {
                       variant="link"
                       isInline
                       onClick={() => setFleetClusterDrillDown(false)}
-                      aria-label="Return to AI Troubleshooting Hub fleet overview"
+                      aria-label="Return to AI Hub fleet overview"
                     >
-                      AI Troubleshooting Hub
+                      AI Hub
                     </Button>
                   </BreadcrumbItem>
                   <BreadcrumbItem isActive>{focusedCluster?.name ?? 'Cluster'}</BreadcrumbItem>
@@ -147,6 +147,7 @@ export const AIHubPage: React.FC = () => {
                 <AutonomousAiObserveWidgetV3
                   fleetClusterDrillDown={fleetClusterDrillDown}
                   onFleetDrillDownChange={setFleetClusterDrillDown}
+                  showSignalCompressionChart
                 />
               ) : isHubV2 ? (
                 <AutonomousAiObserveWidgetV2

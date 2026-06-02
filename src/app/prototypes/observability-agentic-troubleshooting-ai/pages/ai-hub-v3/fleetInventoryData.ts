@@ -81,12 +81,19 @@ export interface FleetDiagnosticsMetrics {
   estMttrSaved: string;
 }
 
+/**
+ * Total critical alert firing instances across the fleet, derived from
+ * FLEET_AGGREGATED_ALERTS in pages/ai-hub-v3/TopFiringAlertsCard.tsx:
+ *   RegionalIngressFailure (5) + PaymentsAPI5xxSurge (148) + EtcdDiskPressureOnMaster2 (312)
+ * Update this constant whenever FLEET_AGGREGATED_ALERTS firing counts change.
+ */
+export const FLEET_CRITICAL_FIRING_TOTAL = 465;
+
 export function getFleetDiagnosticsMetrics(): FleetDiagnosticsMetrics {
   return {
     clustersAffected: CLUSTERS.filter((c) => c.health !== 'healthy').length,
     clustersTotal: CLUSTERS.length,
-    criticalAlerts:
-      ALERTS.filter((a) => a.severity === 'critical').length + fleetCriticalAttributionCount(),
+    criticalAlerts: FLEET_CRITICAL_FIRING_TOTAL,
     activeInvestigations: CLUSTERS.filter(
       (c) => c.agentStatus === 'investigating' || c.agentStatus === 'escalated',
     ).length,
@@ -135,5 +142,60 @@ export function getClusterDiagnosticsMetrics(clusterId: string): ClusterDiagnost
       cluster.agentStatus === 'remediating' ? 1 : 0,
     ),
     estMttrSaved: activeInvestigations > 0 ? '~1.2 hrs' : '—',
+  };
+}
+
+// ─── Signal Compression Chart data ───────────────────────────────────────────
+
+export interface SignalCompressionPoint {
+  name: string;
+  /** Day-of-week label shown on the x-axis. */
+  x: string;
+  y: number;
+}
+
+/**
+ * Derives 7-day Signal Compression Chart data from live simulation values so the
+ * Wednesday peak always matches the numbers shown in the Fleet health & diagnostics KPI bar:
+ *   - Raw signals peak  = criticalAlerts  (FLEET_CRITICAL_FIRING_TOTAL, currently 465)
+ *   - AI plans peak     = readyRemediations (ALERTS.length + 1, currently 23)
+ *
+ * Mon–Tue are pre-storm baselines; Thu–Sun show post-remediation decay.
+ * All proportions are derived from the peak so the chart stays coherent if
+ * the underlying simulation data ever changes.
+ */
+export function getSignalCompressionChartData(): {
+  rawSignalsData: SignalCompressionPoint[];
+  aiPlansData: SignalCompressionPoint[];
+  wednesdayRaw: number;
+  wednesdayPlans: number;
+} {
+  const { criticalAlerts: wednesdayRaw, readyRemediations: wednesdayPlans } =
+    getFleetDiagnosticsMetrics();
+
+  const raw = (ratio: number) => Math.max(1, Math.round(wednesdayRaw * ratio));
+  const plans = (ratio: number) => Math.max(1, Math.round(wednesdayPlans * ratio));
+
+  return {
+    wednesdayRaw,
+    wednesdayPlans,
+    rawSignalsData: [
+      { name: 'Raw signals', x: 'Mon', y: raw(0.08) },  // ~37  — normal ops
+      { name: 'Raw signals', x: 'Tue', y: raw(0.11) },  // ~51  — early precursors
+      { name: 'Raw signals', x: 'Wed', y: wednesdayRaw }, // 465 — incident storm peak
+      { name: 'Raw signals', x: 'Thu', y: raw(0.22) },  // ~102 — post-storm, remediating
+      { name: 'Raw signals', x: 'Fri', y: raw(0.12) },  // ~56  — recovering
+      { name: 'Raw signals', x: 'Sat', y: raw(0.07) },  // ~33  — near baseline
+      { name: 'Raw signals', x: 'Sun', y: raw(0.08) },  // ~37  — stable
+    ],
+    aiPlansData: [
+      { name: 'AI plans', x: 'Mon', y: plans(0.18) },   // ~4
+      { name: 'AI plans', x: 'Tue', y: plans(0.22) },   // ~5
+      { name: 'AI plans', x: 'Wed', y: wednesdayPlans }, // 23  — peak consolidation
+      { name: 'AI plans', x: 'Thu', y: plans(0.78) },   // ~18 — resolution in progress
+      { name: 'AI plans', x: 'Fri', y: plans(0.52) },   // ~12 — mostly resolved
+      { name: 'AI plans', x: 'Sat', y: plans(0.30) },   // ~7
+      { name: 'AI plans', x: 'Sun', y: plans(0.26) },   // ~6
+    ],
   };
 }

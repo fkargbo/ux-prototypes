@@ -55,6 +55,7 @@ import { syncObserveSimulationState } from '../../simulation/simulationStore';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { TopFiringAlertsCard } from '../../pages/ai-hub-v3/TopFiringAlertsCard';
+import { SignalCompressionChart } from '../../pages/ai-hub-v3/SignalCompressionChart';
 import { WhileYouWereAwayCard } from '../../pages/ai-hub-v3/WhileYouWereAwayCard';
 import { NodeComponentSummary } from '../../pages/ai-hub-v3/NodeComponentSummary';
 import {
@@ -118,6 +119,8 @@ function clusterFireCount(clusterId: string): number {
 type AutonomousAiObserveWidgetV3Props = {
   fleetClusterDrillDown?: boolean;
   onFleetDrillDownChange?: (isDrillDown: boolean) => void;
+  /** When true, replaces the Top Firing Alerts card with the Signal Compression Chart. */
+  showSignalCompressionChart?: boolean;
 };
 
 function fleetAgentStatus(clusters: ClusterRecord[]): AgentPulseStatus {
@@ -151,6 +154,7 @@ function clusterHealthLabelText(health: ClusterHealth): string {
 export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Props> = ({
   fleetClusterDrillDown: fleetClusterDrillDownProp,
   onFleetDrillDownChange,
+  showSignalCompressionChart = false,
 }) => {
   const navigate = useNavigate();
   const { activePerspective } = useActivePerspective();
@@ -541,7 +545,11 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
               <StackItem>
                 <Grid hasGutter className="ols-aio-fleet-pair-grid ols-aio-gutter-24">
                   <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
-                    <TopFiringAlertsCard />
+                    {showSignalCompressionChart ? (
+                      <SignalCompressionChart />
+                    ) : (
+                      <TopFiringAlertsCard />
+                    )}
                   </GridItem>
                   <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
                     <WhileYouWereAwayCard
@@ -701,7 +709,11 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                 <StackItem>
                   <Grid hasGutter className="ols-aio-fleet-pair-grid ols-aio-gutter-24">
                     <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
-                      <TopFiringAlertsCard clusterId={selectedClusterId} />
+                      {showSignalCompressionChart ? (
+                        <SignalCompressionChart />
+                      ) : (
+                        <TopFiringAlertsCard clusterId={selectedClusterId} />
+                      )}
                     </GridItem>
                     <GridItem span={12} lg={6} className="ols-aio-fleet-pair-item">
                       <WhileYouWereAwayCard
