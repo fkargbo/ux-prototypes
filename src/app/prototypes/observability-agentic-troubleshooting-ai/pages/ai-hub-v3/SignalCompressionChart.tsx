@@ -17,13 +17,18 @@ import {
   ChartGroup,
   ChartLegendTooltip,
   ChartLine,
-  ChartVoronoiContainer,
+  createContainer,
 } from '@patternfly/react-charts/victory';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import {
   getSignalCompressionChartData,
   type SignalCompressionPoint,
 } from './fleetInventoryData';
+
+// createContainer must be called outside the component to avoid recreating the
+// component type on every render. 'voronoi' handles tooltip activation; 'cursor'
+// adds the vertical cursor line (same pattern as PF's ChartAreaBottomLegend example).
+const CursorVoronoiContainer = createContainer('voronoi', 'cursor');
 
 // ─── Type alias ───────────────────────────────────────────────────────────────
 
@@ -43,16 +48,11 @@ const RAW_SERIES_NAME = 'Raw signals';
 const AI_SERIES_NAME = 'AI plans';
 
 // Shared legend data — drives both the PF ChartLegend (bottom of chart SVG) and
-// the ChartLegendTooltip color swatches so symbols stay in sync with series styles.
+// the ChartLegendTooltip. The `childName` field is required by ChartLegendTooltip
+// to link each legend entry to the correct series by its `name` prop.
 const LEGEND_DATA = [
-  { name: 'Raw ingested signals',  symbol: { fill: RAW_COLOR, type: 'square' as const } },
-  { name: 'AI generated plans *', symbol: { fill: AI_COLOR,  type: 'minus'  as const } },
-];
-
-// Tooltip legend maps by series name (matches name= props on ChartArea / ChartLine).
-const TOOLTIP_LEGEND_DATA = [
-  { name: RAW_SERIES_NAME, symbol: { fill: RAW_COLOR, type: 'square' as const } },
-  { name: AI_SERIES_NAME,  symbol: { fill: AI_COLOR,  type: 'minus'  as const } },
+  { childName: RAW_SERIES_NAME, name: 'Raw ingested signals',  symbol: { fill: RAW_COLOR, type: 'square' as const } },
+  { childName: AI_SERIES_NAME,  name: 'AI generated plans *', symbol: { fill: AI_COLOR,  type: 'minus'  as const } },
 ];
 
 // ─── Responsive width hook ────────────────────────────────────────────────────
@@ -193,18 +193,19 @@ export function SignalCompressionChart() {
             legendData={LEGEND_DATA}
             legendPosition="bottom"
             containerComponent={
-              <ChartVoronoiContainer
+              <CursorVoronoiContainer
                 labels={({ datum }: { datum: DataPoint }) =>
                   datum.y !== null ? String(datum.y) : ''
                 }
                 labelComponent={
                   <ChartLegendTooltip
-                    legendData={TOOLTIP_LEGEND_DATA}
+                    legendData={LEGEND_DATA}
                     title={(datum: DataPoint[]) => (datum[0]?.x as string) ?? ''}
                   />
                 }
-                constrainToVisibleArea
+                mouseFollowTooltips
                 voronoiDimension="x"
+                voronoiPadding={50}
               />
             }
             width={chartWidth}
