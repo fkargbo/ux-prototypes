@@ -14,7 +14,6 @@ import {
   Chart,
   ChartArea,
   ChartAxis,
-  ChartLegendTooltip,
   ChartLine,
   ChartVoronoiContainer,
 } from '@patternfly/react-charts/victory';
@@ -35,11 +34,11 @@ const AI_COLOR = '#0066CC';
 
 const CHART_PADDING = { bottom: 48, left: 56, right: 16, top: 12 };
 
-// Symbol definitions drive both the tooltip dots and keep them consistent with the legend.
-const TOOLTIP_LEGEND_DATA = [
-  { name: 'Raw signals', symbol: { fill: RAW_COLOR, type: 'square' as const } },
-  { name: 'AI plans',    symbol: { fill: AI_COLOR,  type: 'circle' as const } },
-];
+// Unicode symbols shown in tooltip labels — ▪ mirrors the square swatch, ● mirrors the line dot.
+const TOOLTIP_SYMBOL: Record<string, string> = {
+  'Raw signals': '▪',
+  'AI plans': '●',
+};
 
 // ─── Responsive width hook ────────────────────────────────────────────────────
 
@@ -178,12 +177,8 @@ export function SignalCompressionChart() {
             ariaTitle="Signal Compression Ratio"
             containerComponent={
               <ChartVoronoiContainer
-                labels={({ datum }: { datum: DataPoint }) => `${datum.y}`}
-                labelComponent={
-                  <ChartLegendTooltip
-                    legendData={TOOLTIP_LEGEND_DATA}
-                    title={(data: DataPoint[]) => data[0]?.x ?? ''}
-                  />
+                labels={({ datum }: { datum: DataPoint }) =>
+                  `${TOOLTIP_SYMBOL[datum.name] ?? '•'} ${datum.name}: ${datum.y}`
                 }
                 constrainToVisibleArea
                 voronoiDimension="x"
