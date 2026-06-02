@@ -18,6 +18,34 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
+/* Uppercase treatment for KPI labels in the horizontal diagnostics bar. */
+.ols-ai-diagnostics-kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+/* AI Agentic Insights section — left-border accent + subtle background tint. */
+.ols-ai-diagnostics-ai-section {
+  border-left: 3px solid var(--pf-t--global--color--brand--default);
+  border-radius: 0 var(--pf-t--global--border--radius--small) var(--pf-t--global--border--radius--small) 0;
+  background-color: color-mix(in srgb, var(--pf-t--global--color--brand--default) 4%, transparent);
+  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* AI disclosure icon — wand inline next to the label. */
+.ols-ai-diagnostics-disclosure-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--pf-t--global--color--brand--default);
+  font-size: 0.75em;
+  cursor: help;
+  outline-offset: 2px;
+}
+
 .ols-ai-hub-cluster-inventory-tooltip {
   font-size: var(--pf-t--global--font--size--body--sm);
   text-align: left;

@@ -77,6 +77,8 @@ export interface FleetDiagnosticsMetrics {
   activeInvestigations: number;
   /** Clusters with agentStatus 'remediating' — AI fix ready to execute. */
   readyRemediations: number;
+  /** AI-synthesized estimate of cumulative MTTR reduction across the fleet. */
+  estMttrSaved: string;
 }
 
 export function getFleetDiagnosticsMetrics(): FleetDiagnosticsMetrics {
@@ -91,6 +93,7 @@ export function getFleetDiagnosticsMetrics(): FleetDiagnosticsMetrics {
     // Match the fleet investigations panel: all per-cluster ALERTS + 1 for the
     // fleet-wide regional ingress incident card shown at the top of that panel.
     readyRemediations: ALERTS.length + 1,
+    estMttrSaved: '4.5 hrs',
   };
 }
 
@@ -100,6 +103,8 @@ export interface ClusterDiagnosticsMetrics {
   criticalAlerts: number;
   activeInvestigations: number;
   readyRemediations: number;
+  /** AI-synthesized estimate of MTTR reduction for this cluster. */
+  estMttrSaved: string;
 }
 
 export function getClusterDiagnosticsMetrics(clusterId: string): ClusterDiagnosticsMetrics | null {
@@ -116,17 +121,19 @@ export function getClusterDiagnosticsMetrics(clusterId: string): ClusterDiagnost
     alerts.filter((a) => a.agentStatus === 'investigating' || a.agentStatus === 'escalated')
       .length + (fleetWideIsActive ? 1 : 0);
   const remediatingFromAlerts = alerts.filter((a) => a.agentStatus === 'remediating').length;
+  const activeInvestigations = Math.max(
+    investigatingFromAlerts,
+    cluster.agentStatus === 'investigating' || cluster.agentStatus === 'escalated' ? 1 : 0,
+  );
   return {
     clusterName: cluster.name,
     clusterStatus: cluster.health,
     criticalAlerts,
-    activeInvestigations: Math.max(
-      investigatingFromAlerts,
-      cluster.agentStatus === 'investigating' || cluster.agentStatus === 'escalated' ? 1 : 0,
-    ),
+    activeInvestigations,
     readyRemediations: Math.max(
       remediatingFromAlerts,
       cluster.agentStatus === 'remediating' ? 1 : 0,
     ),
+    estMttrSaved: activeInvestigations > 0 ? '~1.2 hrs' : '—',
   };
 }
