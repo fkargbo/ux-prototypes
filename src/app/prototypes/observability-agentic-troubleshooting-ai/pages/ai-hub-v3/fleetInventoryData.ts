@@ -81,12 +81,19 @@ export interface FleetDiagnosticsMetrics {
   estMttrSaved: string;
 }
 
+/**
+ * Total critical alert firing instances across the fleet, derived from
+ * FLEET_AGGREGATED_ALERTS in pages/ai-hub-v3/TopFiringAlertsCard.tsx:
+ *   RegionalIngressFailure (5) + PaymentsAPI5xxSurge (148) + EtcdDiskPressureOnMaster2 (312)
+ * Update this constant whenever FLEET_AGGREGATED_ALERTS firing counts change.
+ */
+export const FLEET_CRITICAL_FIRING_TOTAL = 465;
+
 export function getFleetDiagnosticsMetrics(): FleetDiagnosticsMetrics {
   return {
     clustersAffected: CLUSTERS.filter((c) => c.health !== 'healthy').length,
     clustersTotal: CLUSTERS.length,
-    criticalAlerts:
-      ALERTS.filter((a) => a.severity === 'critical').length + fleetCriticalAttributionCount(),
+    criticalAlerts: FLEET_CRITICAL_FIRING_TOTAL,
     activeInvestigations: CLUSTERS.filter(
       (c) => c.agentStatus === 'investigating' || c.agentStatus === 'escalated',
     ).length,
