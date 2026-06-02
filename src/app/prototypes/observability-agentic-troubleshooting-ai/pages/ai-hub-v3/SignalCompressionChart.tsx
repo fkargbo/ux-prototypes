@@ -14,38 +14,19 @@ import {
   Chart,
   ChartArea,
   ChartAxis,
+  ChartLegendTooltip,
   ChartLine,
   ChartVoronoiContainer,
 } from '@patternfly/react-charts/victory';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
+import {
+  getSignalCompressionChartData,
+  type SignalCompressionPoint,
+} from './fleetInventoryData';
 
-// ─── Types & mock data ────────────────────────────────────────────────────────
+// ─── Type alias ───────────────────────────────────────────────────────────────
 
-interface DataPoint {
-  name: string;
-  x: string;
-  y: number;
-}
-
-const rawSignalsData: DataPoint[] = [
-  { name: 'Raw signals', x: 'Mon', y: 45 },
-  { name: 'Raw signals', x: 'Tue', y: 52 },
-  { name: 'Raw signals', x: 'Wed', y: 340 }, // Alert storm spike
-  { name: 'Raw signals', x: 'Thu', y: 120 },
-  { name: 'Raw signals', x: 'Fri', y: 60 },
-  { name: 'Raw signals', x: 'Sat', y: 35 },
-  { name: 'Raw signals', x: 'Sun', y: 40 },
-];
-
-const aiPlansData: DataPoint[] = [
-  { name: 'AI plans', x: 'Mon', y: 4 },
-  { name: 'AI plans', x: 'Tue', y: 5 },
-  { name: 'AI plans', x: 'Wed', y: 8 }, // 340 alerts → 8 macro plans
-  { name: 'AI plans', x: 'Thu', y: 6 },
-  { name: 'AI plans', x: 'Fri', y: 5 },
-  { name: 'AI plans', x: 'Sat', y: 3 },
-  { name: 'AI plans', x: 'Sun', y: 3 },
-];
+type DataPoint = SignalCompressionPoint;
 
 // ─── Design constants ─────────────────────────────────────────────────────────
 
@@ -53,6 +34,12 @@ const RAW_COLOR = '#8a8d90';
 const AI_COLOR = '#0066CC';
 
 const CHART_PADDING = { bottom: 48, left: 56, right: 16, top: 12 };
+
+// Symbol definitions drive both the tooltip dots and keep them consistent with the legend.
+const TOOLTIP_LEGEND_DATA = [
+  { name: 'Raw signals', symbol: { fill: RAW_COLOR, type: 'square' as const } },
+  { name: 'AI plans',    symbol: { fill: AI_COLOR,  type: 'circle' as const } },
+];
 
 // ─── Responsive width hook ────────────────────────────────────────────────────
 
@@ -112,6 +99,11 @@ export function SignalCompressionChart() {
   // Maintain a comfortable aspect ratio: chart grows taller as it widens,
   // clamped to a sensible range so it never feels too squat or too tall.
   const chartHeight = Math.min(300, Math.max(180, Math.round(chartWidth * 0.42)));
+
+  // Derive all chart data from live simulation values (Wed = current incident state).
+  const { rawSignalsData, aiPlansData, wednesdayRaw, wednesdayPlans } =
+    getSignalCompressionChartData();
+  const compressionRatio = Math.round(wednesdayRaw / wednesdayPlans);
 
   return (
     <Card
@@ -174,7 +166,7 @@ export function SignalCompressionChart() {
             color: 'var(--pf-t--global--text--color--subtle)',
           }}
         >
-          7-day view &mdash; Wed spike: 340 raw alerts compressed to 8 AI plans (42:1 ratio)
+          7-day view &mdash; Wed spike: {wednesdayRaw} raw alerts compressed to {wednesdayPlans} AI plans ({compressionRatio}:1 ratio)
         </Content>
       </CardHeader>
 
@@ -186,7 +178,13 @@ export function SignalCompressionChart() {
             ariaTitle="Signal Compression Ratio"
             containerComponent={
               <ChartVoronoiContainer
-                labels={({ datum }: { datum: DataPoint }) => `${datum.name}: ${datum.y}`}
+                labels={({ datum }: { datum: DataPoint }) => `${datum.y}`}
+                labelComponent={
+                  <ChartLegendTooltip
+                    legendData={TOOLTIP_LEGEND_DATA}
+                    title={(data: DataPoint[]) => data[0]?.x ?? ''}
+                  />
+                }
                 constrainToVisibleArea
                 voronoiDimension="x"
               />
