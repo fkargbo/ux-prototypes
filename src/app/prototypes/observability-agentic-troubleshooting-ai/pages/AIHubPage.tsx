@@ -147,6 +147,7 @@ export const AIHubPage: React.FC = () => {
                 <AutonomousAiObserveWidgetV3
                   fleetClusterDrillDown={fleetClusterDrillDown}
                   onFleetDrillDownChange={setFleetClusterDrillDown}
+                  showSignalCompressionChart
                 />
               ) : isHubV2 ? (
                 <AutonomousAiObserveWidgetV2
