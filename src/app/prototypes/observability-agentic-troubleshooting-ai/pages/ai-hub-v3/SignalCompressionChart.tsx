@@ -91,7 +91,7 @@ function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>): number 
 const PopoverBody = (
   <Content>
     <Content component="p">
-      Measures how effectively the AI SRE agent condenses multi-domain operational noise into
+      Measures how effectively the AI SRE agent reduces multi-domain operational noise into
       distinct, actionable remediation strategies.
     </Content>
     <Content component="p">
@@ -129,7 +129,7 @@ export function SignalCompressionChart() {
     <Card
       isCompact
       component="section"
-      aria-label="Signal Compression Ratio"
+      aria-label="Noise reduction"
       className="ols-aio-subcard ols-aio-fleet-pair-card ols-autonomous-ai-observe-widget-v3-top-firing"
       style={{ boxSizing: 'border-box' }}
     >
@@ -158,20 +158,20 @@ export function SignalCompressionChart() {
 
           <FlexItem>
             <Title headingLevel="h3" size="md" className="ols-aio-fleet-subcard-title">
-              Signal Compression Ratio
+              Noise reduction
             </Title>
           </FlexItem>
 
           {/* Popover — end of title row */}
           <FlexItem>
             <Popover
-              headerContent="Signal Compression Ratio*"
+              headerContent="Noise reduction*"
               bodyContent={PopoverBody}
               position="right"
             >
               <button
                 type="button"
-                aria-label="More information about Signal Compression Ratio"
+                aria-label="More information about Noise reduction"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -195,7 +195,7 @@ export function SignalCompressionChart() {
             color: 'var(--pf-t--global--text--color--subtle)',
           }}
         >
-          7-day view &mdash; Wed spike: {wednesdayRaw} raw alerts compressed to {wednesdayPlans} AI plans ({compressionRatio}:1 ratio)
+          7-day view &mdash; Wed spike: {wednesdayRaw} raw alerts reduced to {wednesdayPlans} AI plans ({compressionRatio}:1)
         </Content>
       </CardHeader>
 
@@ -204,7 +204,7 @@ export function SignalCompressionChart() {
         <div ref={containerRef} style={{ width: '100%' }}>
           <Chart
             ariaDesc="Area chart comparing raw ingested signals against AI-generated plans over 7 days"
-            ariaTitle="Signal Compression Ratio"
+            ariaTitle="Noise reduction"
             legendData={LEGEND_DATA}
             legendPosition="bottom"
             containerComponent={
