@@ -13,8 +13,8 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  MagicIcon,
 } from '@patternfly/react-icons';
+import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import {
   getFleetDiagnosticsMetrics,
   getClusterDiagnosticsMetrics,
@@ -49,7 +49,14 @@ const AiDisclosureIcon: React.FC = () => (
       aria-label="AI-synthesized metric"
       className="ols-ai-diagnostics-disclosure-icon"
     >
-      <MagicIcon aria-hidden="true" />
+      <img
+        src={AI_EXPERIENCE_ICON_DATA_URL}
+        alt=""
+        aria-hidden="true"
+        width={14}
+        height={14}
+        style={{ display: 'block' }}
+      />
     </span>
   </Tooltip>
 );
@@ -102,8 +109,13 @@ const KpiCell: React.FC<KpiCellProps> = ({
     gap={{ default: 'gapXs' }}
     aria-label={ariaLabel}
   >
-    {/* Label row */}
+    {/* Label row — icon precedes text for AI metrics */}
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+      {isAi && (
+        <FlexItem>
+          <AiDisclosureIcon />
+        </FlexItem>
+      )}
       <Content
         component="p"
         className="ols-ai-hub-fleet-inventory-label ols-ai-diagnostics-kpi-label"
@@ -111,11 +123,6 @@ const KpiCell: React.FC<KpiCellProps> = ({
       >
         {label}
       </Content>
-      {isAi && (
-        <FlexItem>
-          <AiDisclosureIcon />
-        </FlexItem>
-      )}
     </Flex>
 
     {/* Value row */}
@@ -193,16 +200,20 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
             {title}
           </Title>
 
+          {/*
+           * Each telemetry KPI gets flex:1, the AI block gets flex:3 so every
+           * one of the 5 KPIs occupies an equal share of the card width.
+           */}
           <Flex
             direction={{ default: 'row' }}
             flexWrap={{ default: 'wrap' }}
             alignItems={{ default: 'alignItemsCenter' }}
-            gap={{ default: 'gapLg' }}
+            style={{ width: '100%', rowGap: 'var(--pf-t--global--spacer--md)' }}
             role="list"
             aria-label="Fleet health and diagnostics summary"
           >
             {/* ── Deterministic telemetry ──────────────────────────────── */}
-            <FlexItem role="listitem">
+            <FlexItem role="listitem" style={{ flex: '1 1 0', minWidth: 0 }}>
               <KpiCell
                 label="Clusters affected"
                 ariaLabel={`Clusters affected: ${clustersAffected} of ${clustersTotal}`}
@@ -210,7 +221,7 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
               />
             </FlexItem>
 
-            <FlexItem role="listitem">
+            <FlexItem role="listitem" style={{ flex: '1 1 0', minWidth: 0 }}>
               <KpiCell
                 label="Critical alerts"
                 ariaLabel={`Critical alerts: ${criticalAlerts}`}
@@ -222,19 +233,20 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
             {/* ── Visual guardrail ─────────────────────────────────────── */}
             <FlexItem
               alignSelf={{ default: 'alignSelfStretch' }}
-              style={{ display: 'flex', alignItems: 'stretch' }}
+              style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0 }}
               aria-hidden="true"
             >
               <Divider orientation={{ default: 'vertical' }} />
             </FlexItem>
 
-            {/* ── AI Agentic Insights block ────────────────────────────── */}
-            <FlexItem flex={{ default: 'flex_1' }} role="listitem">
+            {/* ── AI Agentic Insights block (3× width = 3 equal KPIs) ──── */}
+            <FlexItem role="listitem" style={{ flex: '3 1 0', minWidth: 0 }}>
               <div className="ols-ai-diagnostics-ai-section">
                 <Flex
                   direction={{ default: 'row' }}
                   flexWrap={{ default: 'wrap' }}
-                  gap={{ default: 'gapLg' }}
+                  justifyContent={{ default: 'justifyContentSpaceAround' }}
+                  style={{ height: '100%' }}
                 >
                   <FlexItem>
                     <KpiCell
@@ -301,12 +313,12 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
           direction={{ default: 'row' }}
           flexWrap={{ default: 'wrap' }}
           alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapLg' }}
+          style={{ width: '100%', rowGap: 'var(--pf-t--global--spacer--md)' }}
           role="list"
           aria-label="Cluster health and diagnostics summary"
         >
           {/* ── Deterministic telemetry ────────────────────────────────── */}
-          <FlexItem role="listitem">
+          <FlexItem role="listitem" style={{ flex: '1 1 0', minWidth: 0 }}>
             <KpiCell
               label="Cluster status"
               ariaLabel={`Cluster status: ${CLUSTER_STATUS_LABEL[clusterStatus]}`}
@@ -319,7 +331,7 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
             />
           </FlexItem>
 
-          <FlexItem role="listitem">
+          <FlexItem role="listitem" style={{ flex: '1 1 0', minWidth: 0 }}>
             <KpiCell
               label="Critical alerts"
               ariaLabel={`Critical alerts: ${criticalAlerts}`}
@@ -331,19 +343,20 @@ export const DiagnosticsSummaryCard: React.FC<DiagnosticsSummaryCardProps> = ({ 
           {/* ── Visual guardrail ───────────────────────────────────────── */}
           <FlexItem
             alignSelf={{ default: 'alignSelfStretch' }}
-            style={{ display: 'flex', alignItems: 'stretch' }}
+            style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0 }}
             aria-hidden="true"
           >
             <Divider orientation={{ default: 'vertical' }} />
           </FlexItem>
 
-          {/* ── AI Agentic Insights block ──────────────────────────────── */}
-          <FlexItem flex={{ default: 'flex_1' }} role="listitem">
+          {/* ── AI Agentic Insights block (3× width = 3 equal KPIs) ──── */}
+          <FlexItem role="listitem" style={{ flex: '3 1 0', minWidth: 0 }}>
             <div className="ols-ai-diagnostics-ai-section">
               <Flex
                 direction={{ default: 'row' }}
                 flexWrap={{ default: 'wrap' }}
-                gap={{ default: 'gapLg' }}
+                justifyContent={{ default: 'justifyContentSpaceAround' }}
+                style={{ height: '100%' }}
               >
                 <FlexItem>
                   <KpiCell
