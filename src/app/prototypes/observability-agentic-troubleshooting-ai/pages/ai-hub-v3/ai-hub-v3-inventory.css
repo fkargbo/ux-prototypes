@@ -26,9 +26,8 @@
   font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
-/* AI Agentic Insights section — left-border accent only. */
+/* AI Agentic Insights section. */
 .ols-ai-diagnostics-ai-section {
-  border-left: 3px solid var(--pf-t--global--color--brand--default);
   padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
   height: 100%;
   box-sizing: border-box;
