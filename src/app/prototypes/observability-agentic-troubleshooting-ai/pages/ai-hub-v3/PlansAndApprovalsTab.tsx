@@ -239,7 +239,6 @@ const AiSparkle: React.FC<{ size?: number }> = ({ size = 14 }) => (
         alignItems: 'center',
         verticalAlign: 'middle',
         cursor: 'help',
-        marginLeft: '3px',
         flexShrink: 0,
       }}
     >
@@ -286,10 +285,10 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
             gap={{ default: 'gapXs' }}
             flexWrap={{ default: 'nowrap' }}
           >
-            <FlexItem>Plan synopsis</FlexItem>
             <FlexItem>
               <AiSparkle />
             </FlexItem>
+            <FlexItem>Plan synopsis</FlexItem>
           </Flex>
         </Th>
         <Th style={{ width: '18%' }}>Consolidation scope</Th>
@@ -308,18 +307,18 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
           <Td dataLabel="Plan synopsis" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
+              gap={{ default: 'gapXs' }}
               flexWrap={{ default: 'nowrap' }}
             >
+              <FlexItem>
+                <AiSparkle />
+              </FlexItem>
               <FlexItem>
                 <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>
                   {row.score}
                 </span>
               </FlexItem>
               <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
-              <FlexItem>
-                <AiSparkle />
-              </FlexItem>
             </Flex>
           </Td>
 
@@ -428,10 +427,10 @@ const AllPlansTable: React.FC = () => {
 // ─── Exported tab content ─────────────────────────────────────────────────────
 
 export const PlansAndApprovalsTab: React.FC = () => (
-  <Stack hasGutter>
+  <Stack hasGutter style={{ rowGap: 'var(--pf-t--global--spacer--xl)' }}>
     <StackItem>
       <SectionHeader
-        title="Top plans | Attention required"
+        title="Top plans"
         threshold={
           <Label color="blue" isCompact>
             <Flex
@@ -439,9 +438,8 @@ export const PlansAndApprovalsTab: React.FC = () => (
               gap={{ default: 'gapXs' }}
               flexWrap={{ default: 'nowrap' }}
             >
-              <FlexItem>Impact score</FlexItem>
               <FlexItem><AiSparkle size={12} /></FlexItem>
-              <FlexItem>&ge;&nbsp;80</FlexItem>
+              <FlexItem>Impact score &ge;&nbsp;80</FlexItem>
             </Flex>
           </Label>
         }
@@ -459,9 +457,8 @@ export const PlansAndApprovalsTab: React.FC = () => (
               gap={{ default: 'gapXs' }}
               flexWrap={{ default: 'nowrap' }}
             >
-              <FlexItem>Impact score</FlexItem>
               <FlexItem><AiSparkle size={12} /></FlexItem>
-              <FlexItem>&lt;&nbsp;80</FlexItem>
+              <FlexItem>Impact score &lt;&nbsp;80</FlexItem>
             </Flex>
           </Label>
         }
