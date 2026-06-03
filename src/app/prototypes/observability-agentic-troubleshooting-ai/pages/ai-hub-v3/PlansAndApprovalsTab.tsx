@@ -278,7 +278,7 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        <Th style={{ width: '7%' }}>Sev</Th>
+        <Th style={{ width: '7%' }}>Severity</Th>
         <Th style={{ width: '10%' }}>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -308,7 +308,7 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
     <Tbody>
       {rows.map((row) => (
         <Tr key={row.id}>
-          <Td dataLabel="Sev">
+          <Td dataLabel="Severity">
             <SeverityBadge severity={row.severity} />
           </Td>
 
