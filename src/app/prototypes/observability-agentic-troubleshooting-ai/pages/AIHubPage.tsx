@@ -197,10 +197,12 @@ export const AIHubPage: React.FC = () => {
                 )}
               </StackItem>
             </Stack>
+          ) : activeTabKey === 1 ? (
+            <HubV3.PlansAndApprovalsTab />
           ) : (
             <EmptyState
               variant="lg"
-              titleText={activeTabKey === 1 ? 'Plans & approvals' : 'Audit & metrics'}
+              titleText="Audit & metrics"
               headingLevel="h2"
               style={{ paddingTop: 'var(--pf-t--global--spacer--3xl)' }}
             >
