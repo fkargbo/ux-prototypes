@@ -21,6 +21,7 @@ import {
   CLUSTERS,
   fleetWideCriticalAddsForCluster,
 } from '../../components/autonomousAiObserve/data';
+import { derivePlanCount } from './fleetInventoryData';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,23 +68,6 @@ function clusterAlertCount(clusterId: string): number {
     ALERTS.filter((a) => a.clusterId === clusterId).length +
     fleetWideCriticalAddsForCluster(clusterId)
   );
-}
-
-/**
- * Plan count per cluster based on the number of independent failure domains.
- *
- * A Plan encapsulates one distinct failure domain (its own Input → Diagnosis → Output).
- * Critical clusters typically exhibit multiple concurrent, independent failures and therefore
- * generate multiple Plans. Escalated clusters are the most severe case.
- *   critical + escalated  → 3 plans (multiple failure domains, agent escalated for human review)
- *   critical + other      → 2 plans (two concurrent independent failure domains)
- *   degraded              → 1 plan  (single degraded failure domain)
- *   healthy               → 0 plans
- */
-function derivePlanCount(c: { health: ClusterHealth; agentStatus: string }): number {
-  if (c.health === 'healthy') return 0;
-  if (c.health === 'critical') return c.agentStatus === 'escalated' ? 3 : 2;
-  return 1;
 }
 
 /**
