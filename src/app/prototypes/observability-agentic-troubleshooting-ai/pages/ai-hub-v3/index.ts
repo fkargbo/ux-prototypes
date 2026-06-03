@@ -11,3 +11,4 @@ export { TopFiringAlertsCard } from './TopFiringAlertsCard';
 export { SignalCompressionChart } from './SignalCompressionChart';
 export { WhileYouWereAwayCard } from './WhileYouWereAwayCard';
 export { NodeComponentSummary } from './NodeComponentSummary';
+export { ActivePlansTable } from './ActivePlansTable';

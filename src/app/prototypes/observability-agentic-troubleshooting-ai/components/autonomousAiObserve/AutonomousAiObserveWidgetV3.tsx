@@ -58,6 +58,7 @@ import { TopFiringAlertsCard } from '../../pages/ai-hub-v3/TopFiringAlertsCard';
 import { SignalCompressionChart } from '../../pages/ai-hub-v3/SignalCompressionChart';
 import { WhileYouWereAwayCard } from '../../pages/ai-hub-v3/WhileYouWereAwayCard';
 import { NodeComponentSummary } from '../../pages/ai-hub-v3/NodeComponentSummary';
+import { ActivePlansTable } from '../../pages/ai-hub-v3/ActivePlansTable';
 import {
   clearFocusedClusterSession,
   readFocusedClusterIdFromSession,
@@ -208,12 +209,6 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
       setCAlertsOpen(true);
     }
   }, [activePerspective]);
-  const [fleetSummarySortBy, setFleetSummarySortBy] = useState<{ index: number; direction: 'asc' | 'desc' }>({
-    index: 1,
-    direction: 'asc',
-  });
-  const [fleetSummaryPage, setFleetSummaryPage] = useState(1);
-  const [fleetSummaryPerPage, setFleetSummaryPerPage] = useState(10);
   const [cAlertsOpen, setCAlertsOpen] = useState(activePerspective === 'Core platforms');
   const [remediationScope, setRemediationScope] = useState<'fleet' | 'cluster'>('cluster');
   const [fleetIncidentExpanded, setFleetIncidentExpanded] = useState(false);
@@ -455,85 +450,6 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
     setExpandFleetDrillAllInnerSections(false);
   }, []);
 
-  const fleetSummaryRows = useMemo(
-    () =>
-      CLUSTERS.map((c) => ({
-        cluster: c,
-        alertAmount: clusterFireCount(c.id),
-        statusText: clusterHealthLabelText(c.health),
-        statusRank: c.health === 'critical' ? 0 : c.health === 'degraded' ? 1 : 2,
-      })),
-    []
-  );
-
-  const fleetSummarySortedRows = useMemo(() => {
-    const sorted = [...fleetSummaryRows];
-    sorted.sort((a, b) => {
-      let comparison = 0;
-      switch (fleetSummarySortBy.index) {
-        case 0:
-          comparison = a.cluster.name.localeCompare(b.cluster.name);
-          break;
-        case 1:
-          comparison = a.statusRank - b.statusRank;
-          break;
-        case 2:
-          comparison = a.alertAmount - b.alertAmount;
-          break;
-        case 3:
-          comparison = a.cluster.provider.localeCompare(b.cluster.provider);
-          break;
-        case 4:
-          comparison = a.cluster.region.localeCompare(b.cluster.region);
-          break;
-        case 5:
-          comparison = a.cluster.nodes - b.cluster.nodes;
-          break;
-        case 6:
-          comparison = a.cluster.version.localeCompare(b.cluster.version, undefined, { numeric: true });
-          break;
-        default:
-          comparison = 0;
-      }
-      return fleetSummarySortBy.direction === 'asc' ? comparison : -comparison;
-    });
-    return sorted;
-  }, [fleetSummaryRows, fleetSummarySortBy]);
-
-  const fleetSummaryPaginatedRows = useMemo(() => {
-    const start = (fleetSummaryPage - 1) * fleetSummaryPerPage;
-    return fleetSummarySortedRows.slice(start, start + fleetSummaryPerPage);
-  }, [fleetSummaryPage, fleetSummaryPerPage, fleetSummarySortedRows]);
-
-  const onFleetSummarySort = useCallback(
-    (_event: React.MouseEvent, columnIndex: number, direction: 'asc' | 'desc') => {
-      setFleetSummarySortBy({ index: columnIndex, direction });
-      setFleetSummaryPage(1);
-    },
-    []
-  );
-
-  const onFleetSummarySetPage = useCallback(
-    (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
-      setFleetSummaryPage(newPage);
-    },
-    []
-  );
-
-  const onFleetSummaryPerPageSelect = useCallback(
-    (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPerPage: number, newPage: number) => {
-      setFleetSummaryPerPage(newPerPage);
-      setFleetSummaryPage(newPage);
-    },
-    []
-  );
-
-  useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil(fleetSummarySortedRows.length / fleetSummaryPerPage));
-    if (fleetSummaryPage > maxPage) {
-      setFleetSummaryPage(maxPage);
-    }
-  }, [fleetSummaryPage, fleetSummaryPerPage, fleetSummarySortedRows.length]);
 
   return (
     <SimulationProvider>
@@ -561,146 +477,12 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
               </StackItem>
 
               <StackItem>
-                <section
-                  className="ols-aio-fleet-summary-section ols-autonomous-ai-observe-widget-v3-fleet-summary"
-                  id={`${WIDGET_ID}-fleet-summary`}
-                  aria-label="Fleet summary"
-                >
-                  <Flex
-                    alignItems={{ default: 'alignItemsCenter' }}
-                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                    flexWrap={{ default: 'wrap' }}
-                    gap={{ default: 'gapSm' }}
-                    className="ols-aio-fleet-summary-section__header"
-                  >
-                    <Title headingLevel="h3" size="lg" className="ols-aio-fleet-subcard-title">
-                      Fleet summary
-                    </Title>
-                    <Button
-                      variant="link"
-                      isInline
-                      onClick={() => navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }))}
-                      aria-label="Open Alerting Fleet overview filtered to currently surfaced Autonomous analysis alerts"
-                    >
-                      View alerts
-                    </Button>
-                  </Flex>
-                  <div className="ols-aio-fleet-summary-section__body">
-                      <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                        <Pagination
-                          itemCount={fleetSummarySortedRows.length}
-                          page={fleetSummaryPage}
-                          perPage={fleetSummaryPerPage}
-                          perPageOptions={[
-                            { title: '5', value: 5 },
-                            { title: '10', value: 10 },
-                            { title: '20', value: 20 },
-                          ]}
-                          onSetPage={onFleetSummarySetPage}
-                          onPerPageSelect={onFleetSummaryPerPageSelect}
-                          variant={PaginationVariant.top}
-                          isCompact
-                        />
-                      </Flex>
-                      <Table aria-label="Fleet summary by cluster" variant="compact" borders gridBreakPoint="">
-                        <Thead>
-                          <Tr>
-                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 0 }} modifier="wrap">
-                              Cluster
-                            </Th>
-                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 1 }} modifier="wrap">
-                              Cluster status
-                            </Th>
-                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 2 }} modifier="nowrap">
-                              Alert amount
-                            </Th>
-                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 3 }} modifier="wrap">
-                              Provider
-                            </Th>
-                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 4 }} modifier="wrap">
-                              Region
-                            </Th>
-                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 5 }} modifier="nowrap">
-                              Total nodes
-                            </Th>
-                            <Th sort={{ sortBy: fleetSummarySortBy, onSort: onFleetSummarySort, columnIndex: 6 }} modifier="nowrap">
-                              Version
-                            </Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {fleetSummaryPaginatedRows.map((row) => {
-                            const c = row.cluster;
-                            const healthIcon =
-                              c.health === 'healthy' ? (
-                                <CheckCircleIcon />
-                              ) : c.health === 'degraded' ? (
-                                <ExclamationTriangleIcon />
-                              ) : (
-                                <ExclamationCircleIcon />
-                              );
-                            const healthColor =
-                              c.health === 'healthy'
-                                ? 'var(--pf-t--global--color--status--success--default)'
-                                : c.health === 'degraded'
-                                  ? 'var(--pf-t--global--color--status--warning--default)'
-                                  : 'var(--pf-t--global--color--status--danger--default)';
-                            return (
-                              <Tr
-                                key={c.id}
-                                isClickable
-                                isRowSelected={selectedClusterId === c.id}
-                                onRowClick={() => drillIntoClusterFromFleetOverview(c.id)}
-                              >
-                                <Td>
-                                  <Button
-                                    variant="link"
-                                    isInline
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      drillIntoClusterFromFleetOverview(c.id);
-                                    }}
-                                    aria-label={`Open ${c.name} details`}
-                                  >
-                                    {c.name}
-                                  </Button>
-                                </Td>
-                                <Td>
-                                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                                    <span className="ols-aio-metric-kpi-stat-icon" aria-hidden="true" style={{ color: healthColor }}>
-                                      {healthIcon}
-                                    </span>
-                                    <span>{clusterHealthLabelText(c.health)}</span>
-                                  </Flex>
-                                </Td>
-                                <Td>{row.alertAmount}</Td>
-                                <Td>{c.provider}</Td>
-                                <Td>{c.region}</Td>
-                                <Td>{c.nodes}</Td>
-                                <Td modifier="nowrap">v{c.version}</Td>
-                              </Tr>
-                            );
-                          })}
-                        </Tbody>
-                      </Table>
-                      <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                        <Pagination
-                          itemCount={fleetSummarySortedRows.length}
-                          page={fleetSummaryPage}
-                          perPage={fleetSummaryPerPage}
-                          perPageOptions={[
-                            { title: '5', value: 5 },
-                            { title: '10', value: 10 },
-                            { title: '20', value: 20 },
-                          ]}
-                          onSetPage={onFleetSummarySetPage}
-                          onPerPageSelect={onFleetSummaryPerPageSelect}
-                          variant={PaginationVariant.bottom}
-                          isCompact
-                        />
-                      </Flex>
-                    </div>
-                </section>
+                <ActivePlansTable
+                  scope="fleet"
+                  onPlanRoute={(_rowId) => { /* TODO: deep-link to Plans tab */ }}
+                  onClusterClick={(clusterId) => drillIntoClusterFromFleetOverview(clusterId)}
+                  onViewAlerts={() => navigate(alertingHref({ tab: 'fleet-overview', aiHubFleetScope: true }))}
+                />
               </StackItem>
             </Stack>
           ) : selectedCluster ? (
