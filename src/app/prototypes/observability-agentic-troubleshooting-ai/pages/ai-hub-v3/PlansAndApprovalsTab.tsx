@@ -278,23 +278,22 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        <Th style={{ width: '8%' }}>Sev</Th>
-        <Th style={{ width: '34%' }}>
+        <Th style={{ width: '7%' }}>Sev</Th>
+        <Th style={{ width: '10%' }}>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             gap={{ default: 'gapXs' }}
             flexWrap={{ default: 'nowrap' }}
           >
-            <FlexItem>
-              <AiSparkle />
-            </FlexItem>
-            <FlexItem>Plan synopsis</FlexItem>
+            <FlexItem><AiSparkle /></FlexItem>
+            <FlexItem>Impact score</FlexItem>
           </Flex>
         </Th>
-        <Th style={{ width: '18%' }}>Consolidation scope</Th>
-        <Th style={{ width: '14%' }}>Blast radius</Th>
+        <Th style={{ width: '25%' }}>Plan summary</Th>
+        <Th style={{ width: '17%' }}>Consolidation scope</Th>
+        <Th style={{ width: '13%' }}>Blast radius</Th>
         <Th style={{ width: '16%' }}>Trigger domains</Th>
-        <Th style={{ width: '10%' }}>Action</Th>
+        <Th style={{ width: '12%' }}>Action</Th>
       </Tr>
     </Thead>
     <Tbody>
@@ -304,7 +303,7 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
             <SeverityBadge severity={row.severity} />
           </Td>
 
-          <Td dataLabel="Plan synopsis" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+          <Td dataLabel="Impact score">
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
               gap={{ default: 'gapXs' }}
@@ -314,12 +313,13 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
                 <AiSparkle />
               </FlexItem>
               <FlexItem>
-                <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>
-                  {row.score}
-                </span>
+                <span style={{ fontWeight: 600 }}>{row.score}</span>
               </FlexItem>
-              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
             </Flex>
+          </Td>
+
+          <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+            {row.synopsis}
           </Td>
 
           <Td dataLabel="Consolidation scope">
