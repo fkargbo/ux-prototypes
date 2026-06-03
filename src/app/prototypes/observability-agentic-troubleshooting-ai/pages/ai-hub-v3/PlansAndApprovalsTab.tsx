@@ -268,19 +268,6 @@ const SeverityBadge: React.FC<{ severity: PlanSeverity }> = ({ severity }) =>
     </Label>
   );
 
-const ScoreBadge: React.FC<{ score: number; severity: PlanSeverity }> = ({ score, severity }) => (
-  <Tooltip content={AI_TOOLTIP} position="top">
-    <Label
-      color={severity === 'critical' ? 'red' : 'yellow'}
-      variant="outline"
-      isCompact
-      style={{ cursor: 'help' }}
-    >
-      {score}
-    </Label>
-  </Tooltip>
-);
-
 // ─── Shared table ─────────────────────────────────────────────────────────────
 
 const SCOPE_STYLE: React.CSSProperties = {
@@ -324,9 +311,6 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
               gap={{ default: 'gapSm' }}
               flexWrap={{ default: 'nowrap' }}
             >
-              <FlexItem>
-                <ScoreBadge score={row.score} severity={row.severity} />
-              </FlexItem>
               <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
               <FlexItem>
                 <AiSparkle />
@@ -444,25 +428,17 @@ export const PlansAndApprovalsTab: React.FC = () => (
       <SectionHeader
         title="Top plans | Attention required"
         threshold={
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            gap={{ default: 'gapXs' }}
-            flexWrap={{ default: 'nowrap' }}
-          >
-            <FlexItem>
-              <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
-                Impact score
-              </span>
-            </FlexItem>
-            <FlexItem>
-              <AiSparkle size={13} />
-            </FlexItem>
-            <FlexItem>
-              <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
-                &ge;&nbsp;80
-              </span>
-            </FlexItem>
-          </Flex>
+          <Label color="blue" isCompact>
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              gap={{ default: 'gapXs' }}
+              flexWrap={{ default: 'nowrap' }}
+            >
+              <FlexItem>Impact score</FlexItem>
+              <FlexItem><AiSparkle size={12} /></FlexItem>
+              <FlexItem>&ge;&nbsp;80</FlexItem>
+            </Flex>
+          </Label>
         }
       />
       <PlansTable rows={TOP_PLANS} ariaLabel="Top plans requiring attention" />
@@ -472,25 +448,17 @@ export const PlansAndApprovalsTab: React.FC = () => (
       <SectionHeader
         title="All plans"
         threshold={
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            gap={{ default: 'gapXs' }}
-            flexWrap={{ default: 'nowrap' }}
-          >
-            <FlexItem>
-              <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
-                Impact score
-              </span>
-            </FlexItem>
-            <FlexItem>
-              <AiSparkle size={13} />
-            </FlexItem>
-            <FlexItem>
-              <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
-                &lt;&nbsp;80
-              </span>
-            </FlexItem>
-          </Flex>
+          <Label color="blue" isCompact>
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              gap={{ default: 'gapXs' }}
+              flexWrap={{ default: 'nowrap' }}
+            >
+              <FlexItem>Impact score</FlexItem>
+              <FlexItem><AiSparkle size={12} /></FlexItem>
+              <FlexItem>&lt;&nbsp;80</FlexItem>
+            </Flex>
+          </Label>
         }
       />
       <AllPlansTable />
