@@ -299,8 +299,8 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
             <FlexItem>Plan summary</FlexItem>
           </Flex>
         </Th>
-        <Th style={{ width: '17%' }}>Consolidation scope</Th>
         <Th style={{ width: '13%' }}>Blast radius</Th>
+        <Th style={{ width: '17%' }}>Consolidation scope</Th>
         <Th style={{ width: '16%' }}>Trigger domains</Th>
         <Th style={{ width: '12%' }}>Action</Th>
       </Tr>
@@ -338,11 +338,11 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
             </Flex>
           </Td>
 
+          <Td dataLabel="Blast radius">{row.blastRadius}</Td>
+
           <Td dataLabel="Consolidation scope">
             <span style={SCOPE_STYLE}>{row.consolidationScope}</span>
           </Td>
-
-          <Td dataLabel="Blast radius">{row.blastRadius}</Td>
 
           <Td dataLabel="Trigger domains">{row.triggerDomains}</Td>
 
