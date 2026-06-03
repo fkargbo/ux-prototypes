@@ -125,8 +125,8 @@ export const AIHubPage: React.FC = () => {
           />
           <Tab
             eventKey={1}
-            title={<TabTitleText>Plans &amp; approval</TabTitleText>}
-            aria-label="Plans and approval tab"
+            title={<TabTitleText>Plans &amp; approvals</TabTitleText>}
+            aria-label="Plans and approvals tab"
           />
           <Tab
             eventKey={2}
@@ -200,7 +200,7 @@ export const AIHubPage: React.FC = () => {
           ) : (
             <EmptyState
               variant="lg"
-              titleText={activeTabKey === 1 ? 'Plans & approval' : 'Audit & metrics'}
+              titleText={activeTabKey === 1 ? 'Plans & approvals' : 'Audit & metrics'}
               headingLevel="h2"
               style={{ paddingTop: 'var(--pf-t--global--spacer--3xl)' }}
             >
