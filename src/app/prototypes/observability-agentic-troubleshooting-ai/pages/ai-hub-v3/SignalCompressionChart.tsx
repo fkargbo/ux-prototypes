@@ -59,7 +59,7 @@ const LEGEND_DATA = [
 // ─── AI icon tooltip ──────────────────────────────────────────────────────────
 
 const AI_ICON_TOOLTIP =
-  'The metrics on this card are a mixture of deterministic telemetry and AI-synthesized inference.';
+  'Blends deterministic telemetry (objective event counts) with AI-synthesized remediation strategies to show how effectively the agent correlates cluster noise into actionable plans.';
 
 // ─── Responsive width hook ────────────────────────────────────────────────────
 
