@@ -6,7 +6,6 @@ import {
   Content,
   EmptyState,
   EmptyStateBody,
-  Label,
   Stack,
   StackItem,
   Tab,
@@ -126,36 +125,12 @@ export const AIHubPage: React.FC = () => {
           />
           <Tab
             eventKey={1}
-            title={
-              <>
-                <TabTitleText>Plans &amp; approval</TabTitleText>
-                <Label
-                  isCompact
-                  color="blue"
-                  variant="outline"
-                  style={{ marginLeft: 'var(--pf-t--global--spacer--xs)', verticalAlign: 'middle' }}
-                >
-                  In development
-                </Label>
-              </>
-            }
+            title={<TabTitleText>Plans &amp; approval</TabTitleText>}
             aria-label="Plans and approval tab"
           />
           <Tab
             eventKey={2}
-            title={
-              <>
-                <TabTitleText>Audit &amp; metrics</TabTitleText>
-                <Label
-                  isCompact
-                  color="blue"
-                  variant="outline"
-                  style={{ marginLeft: 'var(--pf-t--global--spacer--xs)', verticalAlign: 'middle' }}
-                >
-                  In development
-                </Label>
-              </>
-            }
+            title={<TabTitleText>Audit &amp; metrics</TabTitleText>}
             aria-label="Audit and metrics tab"
           />
         </Tabs>
