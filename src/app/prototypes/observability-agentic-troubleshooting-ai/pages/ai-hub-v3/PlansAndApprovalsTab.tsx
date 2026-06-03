@@ -289,7 +289,16 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
             <FlexItem>Impact score</FlexItem>
           </Flex>
         </Th>
-        <Th style={{ width: '25%' }}>Plan summary</Th>
+        <Th style={{ width: '25%' }}>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapXs' }}
+            flexWrap={{ default: 'nowrap' }}
+          >
+            <FlexItem><AiSparkle /></FlexItem>
+            <FlexItem>Plan summary</FlexItem>
+          </Flex>
+        </Th>
         <Th style={{ width: '17%' }}>Consolidation scope</Th>
         <Th style={{ width: '13%' }}>Blast radius</Th>
         <Th style={{ width: '16%' }}>Trigger domains</Th>
@@ -319,7 +328,14 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
           </Td>
 
           <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-            {row.synopsis}
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              gap={{ default: 'gapXs' }}
+              flexWrap={{ default: 'nowrap' }}
+            >
+              <FlexItem><AiSparkle /></FlexItem>
+              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
+            </Flex>
           </Td>
 
           <Td dataLabel="Consolidation scope">
@@ -332,7 +348,7 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
 
           <Td dataLabel="Action">
             <Button variant="secondary" size="sm">
-              Review
+              Review plan
             </Button>
           </Td>
         </Tr>
