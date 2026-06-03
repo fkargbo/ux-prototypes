@@ -327,7 +327,7 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
               <FlexItem>
                 <ScoreBadge score={row.score} severity={row.severity} />
               </FlexItem>
-              <FlexItem isFilled>{row.synopsis}</FlexItem>
+              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
               <FlexItem>
                 <AiSparkle />
               </FlexItem>
