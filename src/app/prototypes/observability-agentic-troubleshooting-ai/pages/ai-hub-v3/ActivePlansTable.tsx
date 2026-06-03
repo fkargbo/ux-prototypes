@@ -392,10 +392,10 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
                         onClick={(e) => { e.stopPropagation(); onClusterClick(row.id); }}
                         aria-label={`Open ${row.clusterName} details`}
                       >
-                        <span style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}>{row.clusterName}</span>
+                        {row.clusterName}
                       </Button>
                     ) : (
-                      <span style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}>{row.clusterName}</span>
+                      row.clusterName
                     )}
                   </Td>
                   <Td><StatusCell status={row.status} /></Td>
@@ -420,9 +420,7 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
             <Tbody>
               {paginatedClusterRows.map((row) => (
                 <Tr key={row.id}>
-                  <Td>
-                    <span style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}>{row.projectName}</span>
-                  </Td>
+                  <Td>{row.projectName}</Td>
                   <Td><StatusCell status={row.status} /></Td>
                   <Td><ActivePlansCell rowId={row.id} planCount={row.planCount} signals={row.signals} onPlanRoute={onPlanRoute} /></Td>
                   <Td><SaturationCell level={row.resourceSaturation.level} text={row.resourceSaturation.text} /></Td>
