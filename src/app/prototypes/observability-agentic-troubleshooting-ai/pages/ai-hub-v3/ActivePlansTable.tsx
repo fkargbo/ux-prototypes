@@ -69,19 +69,59 @@ function clusterAlertCount(clusterId: string): number {
   );
 }
 
+/**
+ * Plan count per cluster based on the number of independent failure domains.
+ *
+ * A Plan encapsulates one distinct failure domain (its own Input → Diagnosis → Output).
+ * Critical clusters typically exhibit multiple concurrent, independent failures and therefore
+ * generate multiple Plans. Escalated clusters are the most severe case.
+ *   critical + escalated  → 3 plans (multiple failure domains, agent escalated for human review)
+ *   critical + other      → 2 plans (two concurrent independent failure domains)
+ *   degraded              → 1 plan  (single degraded failure domain)
+ *   healthy               → 0 plans
+ */
+function derivePlanCount(c: { health: ClusterHealth; agentStatus: string }): number {
+  if (c.health === 'healthy') return 0;
+  if (c.health === 'critical') return c.agentStatus === 'escalated' ? 3 : 2;
+  return 1;
+}
+
+/**
+ * Multi-domain signal breakdown for the Plan's Input pillar.
+ * Signals are split across Prometheus alerts, ACS security violations, GitOps drift,
+ * and pipeline blocks to reflect real-world multi-domain telemetry correlation.
+ * Secondary signal types are varied deterministically by cluster ID.
+ */
+function buildSignalsText(clusterId: string, alertCount: number, health: ClusterHealth): string {
+  if (health === 'healthy' || alertCount === 0) return '0 signals';
+
+  // Deterministic variation so each cluster shows different secondary signal types.
+  const hash = clusterId.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+
+  if (health === 'critical') {
+    const acsViol = Math.max(1, Math.round(alertCount * 0.12));
+    switch (hash % 3) {
+      case 0: return `${alertCount} alerts, ${acsViol} ACS viol., 2 GitOps drift`;
+      case 1: return `${alertCount} alerts, ${acsViol} ACS viol., 1 pipeline block`;
+      default: return `${alertCount} alerts, 2 GitOps drift, 1 pipeline block`;
+    }
+  }
+
+  // degraded — single secondary domain
+  return hash % 2 === 0
+    ? `${alertCount} alerts, 1 ACS viol.`
+    : `${alertCount} alerts, 1 pipeline block`;
+}
+
 function buildFleetRows(): FleetPlanRow[] {
   return CLUSTERS.map((c) => {
     const alertAmount = clusterAlertCount(c.id);
-    const planCount = c.agentStatus !== 'idle' ? 1 : 0;
-    const signals = alertAmount > 0
-      ? `${alertAmount} alert${alertAmount !== 1 ? 's' : ''}`
-      : '0 signals';
     return {
       id: c.id,
       clusterName: c.name,
       status: c.health,
-      planCount,
-      signals,
+      planCount: derivePlanCount(c),
+      signals: buildSignalsText(c.id, alertAmount, c.health),
       regionProvider: `${c.region} / ${c.provider}`,
       version: c.version,
     };
