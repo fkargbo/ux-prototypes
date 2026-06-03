@@ -311,6 +311,11 @@ const PlansTable: React.FC<{ rows: PlanRow[]; ariaLabel: string }> = ({ rows, ar
               gap={{ default: 'gapSm' }}
               flexWrap={{ default: 'nowrap' }}
             >
+              <FlexItem>
+                <span style={{ fontWeight: 600, color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  {row.score}
+                </span>
+              </FlexItem>
               <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
               <FlexItem>
                 <AiSparkle />
