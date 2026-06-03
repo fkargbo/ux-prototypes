@@ -4,8 +4,14 @@ import {
   BreadcrumbItem,
   Button,
   Content,
+  EmptyState,
+  EmptyStateBody,
+  Label,
   Stack,
   StackItem,
+  Tab,
+  Tabs,
+  TabTitleText,
   Title,
 } from '@patternfly/react-core';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
@@ -39,6 +45,11 @@ export const AIHubPage: React.FC = () => {
   const showFleetInventory = isHubModern && activePerspective === 'Fleet management' && !fleetClusterDrillDown;
   const showClusterSummary =
     isHubModern && (activePerspective === 'Core platforms' || (activePerspective === 'Fleet management' && fleetClusterDrillDown));
+
+  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
+  const handleTabClick = (_event: React.MouseEvent<HTMLElement>, tabIndex: string | number) => {
+    setActiveTabKey(tabIndex);
+  };
 
   const pageBackground = isGlassContrast ? 'transparent' : '#f5f5f5';
   const mainBackground = isGlassContrast ? 'transparent' : '#ffffff';
@@ -98,6 +109,57 @@ export const AIHubPage: React.FC = () => {
         aria-label="AI Hub (Conceptual design) content"
         style={{ backgroundColor: mainBackground }}
       >
+        <Tabs
+          activeKey={activeTabKey}
+          onSelect={handleTabClick}
+          aria-label="AI Hub navigation tabs"
+          className="ols-ai-hub-tabs"
+          style={{
+            borderBottom: '1px solid var(--pf-t--global--border--color--default)',
+            paddingInline: '24px',
+          }}
+        >
+          <Tab
+            eventKey={0}
+            title={<TabTitleText>Fleet overview</TabTitleText>}
+            aria-label="Fleet overview tab"
+          />
+          <Tab
+            eventKey={1}
+            title={
+              <>
+                <TabTitleText>Plans &amp; approval</TabTitleText>
+                <Label
+                  isCompact
+                  color="blue"
+                  variant="outline"
+                  style={{ marginLeft: 'var(--pf-t--global--spacer--xs)', verticalAlign: 'middle' }}
+                >
+                  In development
+                </Label>
+              </>
+            }
+            aria-label="Plans and approval tab"
+          />
+          <Tab
+            eventKey={2}
+            title={
+              <>
+                <TabTitleText>Audit &amp; metrics</TabTitleText>
+                <Label
+                  isCompact
+                  color="blue"
+                  variant="outline"
+                  style={{ marginLeft: 'var(--pf-t--global--spacer--xs)', verticalAlign: 'middle' }}
+                >
+                  In development
+                </Label>
+              </>
+            }
+            aria-label="Audit and metrics tab"
+          />
+        </Tabs>
+
         <div
           style={{
             padding: '24px',
@@ -106,59 +168,72 @@ export const AIHubPage: React.FC = () => {
             boxSizing: 'border-box',
           }}
         >
-          <Stack hasGutter className="ols-ai-hub-main-stack">
-            {showFleetBreadcrumb ? (
-              <StackItem>
-                <Breadcrumb>
-                  <BreadcrumbItem>
-                    <Button
-                      variant="link"
-                      isInline
-                      onClick={() => setFleetClusterDrillDown(false)}
-                      aria-label="Return to AI Hub fleet overview"
-                    >
-                      AI Hub
-                    </Button>
-                  </BreadcrumbItem>
-                  <BreadcrumbItem isActive>{focusedCluster?.name ?? 'Cluster'}</BreadcrumbItem>
-                </Breadcrumb>
-              </StackItem>
-            ) : null}
-            {showFleetInventory ? (
+          {activeTabKey === 0 ? (
+            <Stack hasGutter className="ols-ai-hub-main-stack">
+              {showFleetBreadcrumb ? (
+                <StackItem>
+                  <Breadcrumb>
+                    <BreadcrumbItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() => setFleetClusterDrillDown(false)}
+                        aria-label="Return to AI Hub fleet overview"
+                      >
+                        AI Hub
+                      </Button>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem isActive>{focusedCluster?.name ?? 'Cluster'}</BreadcrumbItem>
+                  </Breadcrumb>
+                </StackItem>
+              ) : null}
+              {showFleetInventory ? (
+                <StackItem>
+                  {isHubV3 ? (
+                    <HubV3.DiagnosticsSummaryCard viewType="fleet" />
+                  ) : (
+                    <Hub.FleetInventoryBar />
+                  )}
+                </StackItem>
+              ) : null}
+              {showClusterSummary ? (
+                <StackItem>
+                  {isHubV3 ? (
+                    <HubV3.DiagnosticsSummaryCard viewType="cluster" />
+                  ) : (
+                    <Hub.ClusterInventoryBar title="Cluster summary" />
+                  )}
+                </StackItem>
+              ) : null}
               <StackItem>
                 {isHubV3 ? (
-                  <HubV3.DiagnosticsSummaryCard viewType="fleet" />
+                  <AutonomousAiObserveWidgetV3
+                    fleetClusterDrillDown={fleetClusterDrillDown}
+                    onFleetDrillDownChange={setFleetClusterDrillDown}
+                    showSignalCompressionChart
+                  />
+                ) : isHubV2 ? (
+                  <AutonomousAiObserveWidgetV2
+                    fleetClusterDrillDown={fleetClusterDrillDown}
+                    onFleetDrillDownChange={setFleetClusterDrillDown}
+                  />
                 ) : (
-                  <Hub.FleetInventoryBar />
+                  <AutonomousAiObserveWidget />
                 )}
               </StackItem>
-            ) : null}
-            {showClusterSummary ? (
-              <StackItem>
-                {isHubV3 ? (
-                  <HubV3.DiagnosticsSummaryCard viewType="cluster" />
-                ) : (
-                  <Hub.ClusterInventoryBar title="Cluster summary" />
-                )}
-              </StackItem>
-            ) : null}
-            <StackItem>
-              {isHubV3 ? (
-                <AutonomousAiObserveWidgetV3
-                  fleetClusterDrillDown={fleetClusterDrillDown}
-                  onFleetDrillDownChange={setFleetClusterDrillDown}
-                  showSignalCompressionChart
-                />
-              ) : isHubV2 ? (
-                <AutonomousAiObserveWidgetV2
-                  fleetClusterDrillDown={fleetClusterDrillDown}
-                  onFleetDrillDownChange={setFleetClusterDrillDown}
-                />
-              ) : (
-                <AutonomousAiObserveWidget />
-              )}
-            </StackItem>
-          </Stack>
+            </Stack>
+          ) : (
+            <EmptyState
+              variant="lg"
+              titleText={activeTabKey === 1 ? 'Plans & approval' : 'Audit & metrics'}
+              headingLevel="h2"
+              style={{ paddingTop: 'var(--pf-t--global--spacer--3xl)' }}
+            >
+              <EmptyStateBody>
+                This section is currently in development. Check back soon for updates.
+              </EmptyStateBody>
+            </EmptyState>
+          )}
         </div>
       </div>
     </div>
