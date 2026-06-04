@@ -340,7 +340,7 @@ const ALL_PLANS: PlanRow[] = [
   },
 ];
 
-// ─── Drawer: per-plan data helpers ───────────────────────────────────────────
+// ─── Drawer: per-plan data ────────────────────────────────────────────────────
 
 interface PlanDrawerData {
   steps: ReasoningStep[];
@@ -352,41 +352,16 @@ interface PlanDrawerData {
   confidence: number;
 }
 
-function makeSteps(topic: string, status: PlanStatus): ReasoningStep[] {
-  const inv = status === 'Investigating';
-  return [
-    {
-      id: 's1',
-      status: 'done',
-      time: '00:00:02',
-      icon: 'database',
-      title: 'Ingest & correlate signals',
-      detail: `Correlated ${topic}. Temporal and topological causality graph built.`,
-    },
-    {
-      id: 's2',
-      status: inv ? 'active' : 'done',
-      time: inv ? undefined : '00:00:09',
-      icon: 'search',
-      title: 'Isolate root cause',
-      detail: inv
-        ? 'Root cause isolation in progress — analyzing event causality graph…'
-        : 'Root cause confirmed. Evidence chain locked.',
-    },
-    {
-      id: 's3',
-      status: inv ? 'pending' : 'done',
-      time: inv ? undefined : '00:00:17',
-      icon: inv ? 'search' : 'check',
-      title: 'Synthesize remediation paths',
-      detail: inv ? undefined : 'Remediation proposals assembled and risk-assessed.',
-    },
-  ];
-}
-
 const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
+  // ── Top plans ──────────────────────────────────────────────────────────────
   tp1: {
-    steps: makeSteps('1 ArgoCD drift event and 4 IngressControllerDegraded alerts', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '10:03:12', status: 'done', icon: 'exclamation', title: 'Detected ArgoCD LiveStateOutOfSync event', detail: '4 IngressControllerDegraded alerts firing fleet-wide' },
+      { id: 's2', time: '10:03:25', status: 'done', icon: 'database',   title: 'Fetched GitOps revision history', detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
+      { id: 's3', time: '10:03:41', status: 'done', icon: 'network',    title: 'Diffed live vs. declared NetworkPolicy objects', detail: 'Kustomize overlay conflict found across 4 fleet namespaces' },
+      { id: 's4', time: '10:03:55', status: 'done', icon: 'search',     title: 'Scored blast radius and causal confidence', detail: '4 fleets affected · 94% confidence in GitOps root cause' },
+      { id: 's5',                   status: 'pending', icon: 'check',   title: 'Governor approval for fleet rollback' },
+    ],
     aggregatedFinding: 'ArgoCD revision r4892 applied a malformed ApplicationSet template that mismatched live cluster state across 4 fleets.',
     rootCauseNarrative: 'A faulty Argo CD ApplicationSet push (revision r4892) propagated conflicting Kustomize overlays, causing router → workload traffic mismatches. The drift was confirmed 3 minutes after the sync event triggered 4 IngressControllerDegraded alerts.',
     remediationProposal: 'Revert ArgoCD ApplicationSet to revision r4891 and force a hard sync across all 4 affected fleets.',
@@ -395,7 +370,13 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 94,
   },
   tp2: {
-    steps: makeSteps('14 eBPF Kernel System Call Mutations detected by ACS', 'Investigating'),
+    steps: [
+      { id: 's1', time: '09:47:03', status: 'done',    icon: 'exclamation', title: 'ACS flagged 14 eBPF kernel syscall mutations', detail: 'KernelModuleLoad events detected on 3 cluster nodes' },
+      { id: 's2', time: '09:47:18', status: 'done',    icon: 'database',    title: 'Pulled container runtime audit logs', detail: 'Activity isolated to image digest sha256:a3f1b9d4…' },
+      { id: 's3', time: '09:47:34', status: 'done',    icon: 'network',     title: 'Mapped network egress from affected pods', detail: 'Unexpected outbound connection to 104.21.x.x:443' },
+      { id: 's4',                   status: 'active',  icon: 'search',      title: 'Cross-referencing CVE database and Falco ruleset', detail: 'Matching syscall pattern against known exploit signatures…' },
+      { id: 's5',                   status: 'pending', icon: 'check',       title: 'Assemble quarantine and patch proposal' },
+    ],
     aggregatedFinding: 'Signal correlation complete. 14 eBPF kernel mutations detected across 3 clusters. Root cause isolation in progress.',
     rootCauseNarrative: 'Initial signals indicate a compromised container image exploiting kernel syscall interfaces. Full causality graph is being constructed — root cause pending confirmation.',
     remediationProposal: 'Remediation paths pending root cause confirmation.',
@@ -404,7 +385,13 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 71,
   },
   tp3: {
-    steps: makeSteps('6 OOMKilled events and 2 KubePodCrashLooping alerts', 'Remediating'),
+    steps: [
+      { id: 's1', time: '11:22:08', status: 'done',   icon: 'exclamation', title: 'Kubelet reported 6 OOMKilled events', detail: 'payments-api and auth-svc pods evicted across 1 cluster' },
+      { id: 's2', time: '11:22:19', status: 'done',   icon: 'database',    title: 'Sampled 1-hour container memory metrics', detail: 'Heap growth 40% above configured limits since v2.1.4 deploy' },
+      { id: 's3', time: '11:22:33', status: 'done',   icon: 'search',      title: 'Traced memory growth to allocator regression in v2.1.4', detail: '2 KubePodCrashLooping alarms corroborated at 11:22:28' },
+      { id: 's4', time: '11:22:45', status: 'done',   icon: 'check',       title: 'Remediation plan assembled and approved', detail: 'Memory limit patch (2Gi→4Gi) + HPA scale-out to 3 replicas' },
+      { id: 's5',                   status: 'active', icon: 'search',      title: 'Executing rolling pod restart with patched limits', detail: 'Restarting pods in 3-by-3 cadence to preserve service availability' },
+    ],
     aggregatedFinding: '6 OOMKill evictions across payments and auth pods confirmed via Kubelet. Memory quota exhaustion root cause locked.',
     rootCauseNarrative: 'A recent workload rollout increased container memory usage 40% above configured limits. Kubelet is evicting pods before the HPA can scale replacements, amplifying the crash loop cycle.',
     remediationProposal: 'Increase memory limits on affected deployments by 40% and trigger HPA scale-out to 3 replicas.',
@@ -413,7 +400,13 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 85,
   },
   tp4: {
-    steps: makeSteps('3 CephPoolNearFull and 5 KubePersistentVolumeFillingUp alerts', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '08:11:04', status: 'done',    icon: 'exclamation', title: 'Detected 3 CephPoolNearFull alerts', detail: 'Pool utilization exceeded 80% threshold on 2 production clusters' },
+      { id: 's2', time: '08:11:17', status: 'done',    icon: 'database',    title: 'Queried Ceph OSD write-rate and log volume', detail: 'StatefulSet log emission rate 3× above configured ceiling' },
+      { id: 's3', time: '08:11:30', status: 'done',    icon: 'search',      title: 'Projected storage exhaustion timeline', detail: 'At current fill rate, pool depletion in ~4 hours' },
+      { id: 's4', time: '08:11:42', status: 'done',    icon: 'network',     title: 'Confirmed log rotation absent on 3 StatefulSets', detail: '5 KubePersistentVolumeFillingUp alerts corroborated' },
+      { id: 's5',                   status: 'pending', icon: 'check',       title: 'Awaiting authorized approval for OSD pool expansion' },
+    ],
     aggregatedFinding: '8 Prometheus alerts confirm Ceph pool utilization exceeds 80% on 2 production clusters.',
     rootCauseNarrative: 'Rook-Ceph pool fill rate has accelerated due to unconfigured log rotation on 3 stateful workloads. At current write velocity, storage exhaustion is projected in ~4 hours.',
     remediationProposal: 'Expand Ceph pool capacity by 20% and enforce log rotation on affected StatefulSets.',
@@ -422,7 +415,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 82,
   },
   tp5: {
-    steps: makeSteps('2 etcd fragmentation events (etcd_db_total_size_in_bytes)', 'Completed'),
+    steps: [
+      { id: 's1', time: '07:09:11', status: 'done', icon: 'exclamation', title: 'Detected elevated API server P99 latency', detail: '2 etcd_db_total_size_in_bytes fragmentation events triggered' },
+      { id: 's2', time: '07:09:22', status: 'done', icon: 'database',    title: 'Queried etcd DB size and compaction history', detail: 'Fragmentation at 68% — last auto-compact skipped during upgrade' },
+      { id: 's3', time: '07:09:34', status: 'done', icon: 'search',      title: 'Correlated fragmentation with API write amplification', detail: 'Leader election overhead elevated · P99 latency >1.2s confirmed' },
+      { id: 's4', time: '07:09:46', status: 'done', icon: 'check',       title: 'Defragmentation executed on all 3 control plane members', detail: 'Rolling restart cadence completed · P99 latency restored to 38ms' },
+    ],
     aggregatedFinding: 'etcd database fragmentation (>65%) confirmed as root cause of elevated API server P99 latency.',
     rootCauseNarrative: 'etcd fragmentation exceeded 65% — a known performance threshold — causing API write amplification and increased leader election overhead, driving P99 latency above 1.2s.',
     remediationProposal: 'Execute etcd defragmentation on all 3 control plane members with rolling restart cadence.',
@@ -430,8 +428,15 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: '~45s',
     confidence: 91,
   },
+
+  // ── All plans ──────────────────────────────────────────────────────────────
   ap1: {
-    steps: makeSteps('3 KubePodMemoryUtilizationHigh alarms on dev pods', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '13:41:05', status: 'done',    icon: 'exclamation', title: '3 KubePodMemoryUtilizationHigh alarms fired', detail: 'Dev pods sustaining >85% utilization for >10 minutes' },
+      { id: 's2', time: '13:41:18', status: 'done',    icon: 'database',    title: 'Profiled heap growth over 3-hour window', detail: 'Memory growing 15 MB/min — consistent with GC pressure leak' },
+      { id: 's3', time: '13:41:30', status: 'done',    icon: 'search',      title: 'Attributed leak to v1.8.3 service update', detail: 'Heap profile diff confirms allocator regression in update' },
+      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to apply memory limit patch (2Gi→4Gi)' },
+    ],
     aggregatedFinding: '3 dev pods sustaining >85% memory utilization for >10 minutes, crossing the alert threshold.',
     rootCauseNarrative: 'A memory leak was introduced in a recent service update causing gradual heap growth. Containers are not yet OOMKilled but will exhaust their allocation within ~90 minutes at current growth rate.',
     remediationProposal: 'Apply memory limit patch (2Gi → 4Gi) and redeploy affected pods with the corrected configuration.',
@@ -440,7 +445,13 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 78,
   },
   ap2: {
-    steps: makeSteps('1 PipelineRunFailed block and 2 TektonTaskExecutionStalled alerts', 'Remediating'),
+    steps: [
+      { id: 's1', time: '10:55:03', status: 'done',   icon: 'exclamation', title: 'PipelineRunFailed block detected on 2 clusters', detail: 'All GitOps-triggered pipeline runs blocked' },
+      { id: 's2', time: '10:55:14', status: 'done',   icon: 'database',    title: 'Fetched EventListener admission webhook logs', detail: 'TLS handshake failure — certificate CN mismatch on renewal' },
+      { id: 's3', time: '10:55:26', status: 'done',   icon: 'network',     title: 'Validated ACME DNS-01 challenge reachability', detail: 'Issuer reachable · stale TLS secret confirmed as root cause' },
+      { id: 's4', time: '10:55:38', status: 'done',   icon: 'check',       title: 'TLS rotation plan approved', detail: 'EventListener secret rotation + webhook re-registration' },
+      { id: 's5',                   status: 'active', icon: 'search',      title: 'Rotating EventListener TLS secret', detail: 'Re-registering webhook endpoints on both clusters' },
+    ],
     aggregatedFinding: 'Tekton pipeline webhook blocked on 2 clusters due to EventListener TLS certificate failure.',
     rootCauseNarrative: 'A stale TLS certificate on the Tekton Triggers EventListener caused webhook signature validation failures, blocking all GitOps-triggered pipeline runs.',
     remediationProposal: 'Rotate EventListener TLS secret and force webhook endpoint re-registration on both clusters.',
@@ -449,7 +460,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 75,
   },
   ap3: {
-    steps: makeSteps('1 CertificateExpirationWarning from Kube-Apt-Controller', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '06:30:02', status: 'done',    icon: 'exclamation', title: 'CertificateExpirationWarning flagged by Kube-Apt-Controller', detail: 'IAM client cert expiry in <72 hours' },
+      { id: 's2', time: '06:30:14', status: 'done',    icon: 'database',    title: 'Audited cert-manager rotation job history', detail: 'Auto-rotation script failed silently 30 days ago' },
+      { id: 's3', time: '06:30:28', status: 'done',    icon: 'search',      title: 'Identified missing IAM role binding as root cause', detail: 'Automation account lost delete-certs permission after RBAC audit' },
+      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting authorized approval for emergency cert rotation' },
+    ],
     aggregatedFinding: 'An IAM client certificate expires in <72 hours. Service account authentications will fail upon expiry.',
     rootCauseNarrative: 'The certificate rotation automation script failed silently 30 days ago due to a missing IAM role binding, preventing auto-renewal. The warning only surfaced today as the certificate reached its expiry threshold.',
     remediationProposal: 'Re-bind the IAM automation role and execute emergency certificate rotation.',
@@ -458,7 +474,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 71,
   },
   ap4: {
-    steps: makeSteps('4 CoreDNSLookupLatencyHigh warnings across 3 clusters', 'Investigating'),
+    steps: [
+      { id: 's1', time: '15:14:07', status: 'done',   icon: 'exclamation', title: '4 CoreDNSLookupLatencyHigh warnings detected', detail: 'Average lookup time >200ms across 3 clusters' },
+      { id: 's2', time: '15:14:21', status: 'done',   icon: 'database',    title: 'Sampled CoreDNS pod memory and cache metrics', detail: 'Cache hit rate dropped from 91% to 63% over last 15 minutes' },
+      { id: 's3',                   status: 'active', icon: 'search',      title: 'Correlating cache thrash with recent Corefile change', detail: 'Diffing CoreDNS Corefile edits from last deployment cycle…' },
+      { id: 's4',                   status: 'pending', icon: 'check',      title: 'Assemble DNS tuning remediation proposal' },
+    ],
     aggregatedFinding: 'Signal correlation complete. 4 CoreDNS latency alerts detected across 3 clusters. Root cause analysis in progress.',
     rootCauseNarrative: 'Initial signals suggest CoreDNS pod memory pressure is causing resolver cache thrash. Full topology correlation is pending — root cause not yet confirmed.',
     remediationProposal: 'Remediation paths pending root cause confirmation.',
@@ -467,7 +488,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 58,
   },
   ap5: {
-    steps: makeSteps('2 NodeCPUOvercommitted events and 1 KubeNodeNotReady alert', 'Failed'),
+    steps: [
+      { id: 's1', time: '05:58:11', status: 'done',  icon: 'exclamation', title: '2 NodeCPUOvercommitted events and 1 KubeNodeNotReady alert', detail: 'Baremetal node in partially-registered Metal3 state' },
+      { id: 's2', time: '05:58:24', status: 'done',  icon: 'database',    title: 'Inspected Metal3 BareMetalHost object status', detail: 'Provisioning phase stuck in "inspecting" — stale kubelet lease' },
+      { id: 's3', time: '05:58:37', status: 'done',  icon: 'search',      title: 'Attempted node cordon and graceful drain', detail: 'Drain initiated · PodDisruptionBudget checked' },
+      { id: 's4', time: '05:59:37', status: 'alert', icon: 'exclamation', title: 'Remediation aborted — drain timeout after 300s', detail: 'Cluster state unchanged. No resources were modified.' },
+    ],
     aggregatedFinding: 'CPU overcommitment on a baremetal node detected. Remediation attempt failed during node draining.',
     rootCauseNarrative: 'A Metal3 provisioning anomaly left a baremetal node in a partially-registered state, over-assigning workloads. The remediation script failed during node draining due to a stale kubelet lease.',
     remediationProposal: 'Force-drain node, reset the Metal3 BMH object, and re-provision the node.',
@@ -476,7 +502,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 65,
   },
   ap6: {
-    steps: makeSteps('1 ArgoCD LiveStateOutOfSync event in staging namespace', 'Completed'),
+    steps: [
+      { id: 's1', time: '07:59:03', status: 'done', icon: 'exclamation', title: 'ArgoCD detected LiveStateOutOfSync in staging namespace', detail: 'ConfigMap namespace-config diverged from Git state' },
+      { id: 's2', time: '07:59:14', status: 'done', icon: 'database',    title: 'Fetched kubectl apply audit log', detail: 'Direct apply bypass of GitOps workflow by admin at 07:54' },
+      { id: 's3', time: '07:59:24', status: 'done', icon: 'search',      title: 'Verified no downstream dependency conflicts', detail: 'Hard sync safe — no dependent resources affected' },
+      { id: 's4', time: '07:59:32', status: 'done', icon: 'check',       title: 'ArgoCD hard sync executed successfully', detail: 'Declared state restored · GitOps parity confirmed' },
+    ],
     aggregatedFinding: 'ArgoCD detected a single resource drift in the staging namespace configuration.',
     rootCauseNarrative: 'A direct kubectl apply bypassed the GitOps workflow, creating a single resource divergence. Argo CD detected the discrepancy during its 3-minute sync loop and a hard sync restored declared state.',
     remediationProposal: 'Force ArgoCD hard sync on the staging application to restore GitOps-declared state.',
@@ -485,7 +516,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 92,
   },
   ap7: {
-    steps: makeSteps('2 IngressControllerMinReplicasNotMet alerts', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '12:07:18', status: 'done',    icon: 'exclamation', title: '2 IngressControllerMinReplicasNotMet alerts fired', detail: 'Router replicas: 1 of 3 minimum on 2 clusters' },
+      { id: 's2', time: '12:07:29', status: 'done',    icon: 'database',    title: 'Pulled HPA scaling event history', detail: 'HPA attempted scale-out but was blocked' },
+      { id: 's3', time: '12:07:43', status: 'done',    icon: 'network',     title: 'Inspected PodDisruptionBudget on openshift-ingress', detail: 'maxUnavailable: 0 prevents any pod movement during scale' },
+      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to patch PodDisruptionBudget and scale routers' },
+    ],
     aggregatedFinding: 'Ingress controller replica count dropped below the configured minimum on 2 clusters, degrading load balancing resilience.',
     rootCauseNarrative: 'A node eviction event reduced ingress pod count below the minimum without triggering the HPA correctly. Root cause is a misconfigured PodDisruptionBudget blocking HPA-driven scale-out.',
     remediationProposal: 'Patch the PodDisruptionBudget to allow HPA scale-out and immediately scale ingress routers to the minimum replica count.',
@@ -494,7 +530,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 79,
   },
   ap8: {
-    steps: makeSteps('1 ACS Host Network sharing violation and 3 low-priority alerts', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '09:23:05', status: 'done',    icon: 'exclamation', title: 'ACS flagged hostNetwork: true on production deployment', detail: 'CIS Level 3 violation · node network namespace exposed' },
+      { id: 's2', time: '09:23:18', status: 'done',    icon: 'database',    title: 'Inspected deployment spec and admission audit log', detail: 'Misconfigured hostNetwork added in last rollout by dev team' },
+      { id: 's3', time: '09:23:32', status: 'done',    icon: 'search',      title: 'Confirmed no legitimate use case for host networking', detail: '3 low-priority ACS alerts corroborated the posture violation' },
+      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting authorized approval to patch deployment and apply admission webhook' },
+    ],
     aggregatedFinding: 'ACS detected a host network namespace sharing violation — a CIS benchmark Level 3 non-compliance — on 1 cluster.',
     rootCauseNarrative: 'A new deployment was misconfigured with hostNetwork: true, granting the container direct access to the node network stack. ACS enforcement policy flagged this as a critical security posture violation.',
     remediationProposal: 'Set hostNetwork: false on the offending deployment and apply a network policy admission webhook to prevent recurrence.',
@@ -503,7 +544,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 75,
   },
   ap9: {
-    steps: makeSteps('4 PodSandboxCleanedUpFailed Kubelet log events', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '14:44:07', status: 'done',    icon: 'exclamation', title: '4 PodSandboxCleanedUpFailed log entries on 2 clusters', detail: 'OCI runtime garbage collection backlog accumulating' },
+      { id: 's2', time: '14:44:20', status: 'done',    icon: 'database',    title: 'Queried containerd runtime and overlay disk usage', detail: 'Orphaned container overlays: 2.1 GB on affected nodes' },
+      { id: 's3', time: '14:44:34', status: 'done',    icon: 'search',      title: 'Identified containerd config drift after last node update', detail: 'sandbox_cleanup_interval misconfigured to 0 — disabling GC' },
+      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to run Kubelet GC cycle and fix containerd config' },
+    ],
     aggregatedFinding: '4 pod sandbox cleanup failures logged by Kubelet on 2 clusters, indicating an OCI runtime garbage collection backlog.',
     rootCauseNarrative: 'A containerd runtime configuration change disrupted the sandbox cleanup routine. Orphaned container overlays are accumulating on node disk and will cause disk pressure if unresolved.',
     remediationProposal: 'Execute a graceful Kubelet garbage collection cycle and validate the containerd runtime configuration.',
@@ -512,7 +558,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 72,
   },
   ap10: {
-    steps: makeSteps('1 JenkinsQueueSizeHigh metric threshold breach', 'Completed'),
+    steps: [
+      { id: 's1', time: '06:44:02', status: 'done', icon: 'exclamation', title: 'JenkinsQueueSizeHigh threshold breached', detail: 'Build queue: 57 jobs — all 4 executor slots occupied' },
+      { id: 's2', time: '06:44:13', status: 'done', icon: 'database',    title: 'Identified stalled job monopolizing all executors', detail: 'integration-test-suite-full running 4.2h (expected: 45m)' },
+      { id: 's3', time: '06:44:22', status: 'done', icon: 'search',      title: 'Confirmed stall due to upstream fixture service timeout', detail: 'No watchdog timer configured on long-running test stage' },
+      { id: 's4', time: '06:44:31', status: 'done', icon: 'check',       title: 'Stalled job terminated · executor count raised to 8', detail: 'Queue drained to 0 within 4 minutes' },
+    ],
     aggregatedFinding: 'Jenkins build queue exceeded 50 jobs, halting CI/CD throughput entirely.',
     rootCauseNarrative: 'A long-running integration test job monopolized all executor slots, starving downstream builds. The agent identified and terminated the stalled job, restoring executor availability.',
     remediationProposal: 'Terminate the stalled job and increase the executor count from 4 to 8 to prevent recurrence.',
@@ -521,7 +572,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 88,
   },
   ap11: {
-    steps: makeSteps('1 FailedComputeMetricsReplicas HPA controller event', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '11:37:14', status: 'done',    icon: 'exclamation', title: 'FailedComputeMetricsReplicas event on HPA controller', detail: 'Autoscaling frozen for ~20 minutes' },
+      { id: 's2', time: '11:37:26', status: 'done',    icon: 'database',    title: 'Verified custom metrics adapter connectivity', detail: 'Prometheus scrape endpoint unreachable from adapter pod' },
+      { id: 's3', time: '11:37:39', status: 'done',    icon: 'network',     title: 'Traced network policy blocking adapter → Prometheus path', detail: 'Namespace isolation policy introduced 22 minutes ago' },
+      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to restart adapter and update network policy' },
+    ],
     aggregatedFinding: 'HPA controller failing to compute target replicas, effectively disabling autoscaling.',
     rootCauseNarrative: 'The custom metrics adapter lost connectivity to its Prometheus scrape endpoint, leaving the HPA unable to evaluate scale triggers. Autoscaling has been frozen for approximately 20 minutes.',
     remediationProposal: 'Restart the custom metrics adapter and validate Prometheus scrape endpoint connectivity.',
@@ -530,7 +586,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 76,
   },
   ap12: {
-    steps: makeSteps('5 sustained ErrImagePullBackOff threshold alerts across 4 clusters', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '08:29:11', status: 'done',    icon: 'exclamation', title: '5 sustained ErrImagePullBackOff alerts across 4 clusters', detail: '~30% of container image pulls failing intermittently' },
+      { id: 's2', time: '08:29:24', status: 'done',    icon: 'database',    title: 'Queried cluster DNS resolution for registry FQDN', detail: 'Stale A-record pointing to decommissioned registry mirror' },
+      { id: 's3', time: '08:29:37', status: 'done',    icon: 'network',     title: 'Confirmed DNS propagation lag across 4 cluster resolvers', detail: 'New record not yet reflected in cluster-local CoreDNS caches' },
+      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to flush DNS caches and update mirror config' },
+    ],
     aggregatedFinding: '5 sustained ErrImagePullBackOff alerts across 4 clusters indicating container registry connectivity degradation.',
     rootCauseNarrative: 'A registry DNS record update propagated incorrectly to cluster resolvers, causing intermittent image pull failures. Approximately 30% of pull attempts are failing under the current configuration.',
     remediationProposal: 'Force DNS cache flush on affected nodes and update the registry mirror configuration to bypass the stale record.',
@@ -539,7 +600,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 72,
   },
   ap13: {
-    steps: makeSteps('1 CSI volume throttle event and 2 KubePersistentVolumeResizingStalled alerts', 'Investigating'),
+    steps: [
+      { id: 's1', time: '16:02:08', status: 'done',    icon: 'exclamation', title: 'CSI volume throttling log entry detected', detail: 'Read IOPS exceeded provisioned tier ceiling on 1 cluster' },
+      { id: 's2', time: '16:02:22', status: 'done',    icon: 'database',    title: 'Queried cloud storage IOPS metrics over 1-hour window', detail: 'Actual read IOPS: 3,200/s · provisioned limit: 2,000/s' },
+      { id: 's3',                   status: 'active',  icon: 'search',      title: 'Correlating IOPS spike with workload event log', detail: 'Checking for batch job or backup process causing elevated reads…' },
+      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Assemble storage tier upgrade or rate-limit proposal' },
+    ],
     aggregatedFinding: 'Signal correlation complete. Storage CSI throttling and PV resizing stall detected. Root cause analysis in progress.',
     rootCauseNarrative: 'Initial signals suggest read IOPS are exceeding the provisioned cloud storage tier limits. Full storage topology analysis is pending — root cause not yet confirmed.',
     remediationProposal: 'Remediation paths pending root cause confirmation.',
@@ -548,7 +614,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 58,
   },
   ap14: {
-    steps: makeSteps('3 NodeClockSkewDetected Prometheus system metrics alerts', 'Completed'),
+    steps: [
+      { id: 's1', time: '22:28:04', status: 'done', icon: 'exclamation', title: '3 NodeClockSkewDetected alerts fired', detail: 'Clock skew >10s on 3 nodes · cert validation errors logged' },
+      { id: 's2', time: '22:28:16', status: 'done', icon: 'network',     title: 'Traced NTP sync failure to firewall rule change', detail: 'Upstream corporate NTP pool unreachable since 22:15' },
+      { id: 's3', time: '22:28:30', status: 'done', icon: 'search',      title: 'Validated fallback NTP pool availability', detail: 'pool.ntp.org reachable · firewall exemption path identified' },
+      { id: 's4', time: '22:28:42', status: 'done', icon: 'check',       title: 'chronyd reconfigured and clock sync restored on all 3 nodes', detail: 'Clock skew below 1ms · cert validation errors cleared' },
+    ],
     aggregatedFinding: '3 nodes across clusters reported NTP clock skew >10 seconds, flagging sync failures.',
     rootCauseNarrative: 'An upstream NTP server became unreachable due to a firewall rule change, leaving 3 nodes to drift independently. Clock skew exceeded Kubernetes tolerances, triggering certificate validation errors on some API calls.',
     remediationProposal: 'Reconfigure chronyd to use the corporate NTP pool and restart the clock synchronization service.',
@@ -557,7 +628,12 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 94,
   },
   ap15: {
-    steps: makeSteps('1 PruneImageRegistryManifestsFailed trace from ImageRegistry controller', 'Waiting Approval'),
+    steps: [
+      { id: 's1', time: '07:15:03', status: 'done',    icon: 'exclamation', title: 'PruneImageRegistryManifestsFailed trace detected', detail: 'Scheduled pruning job failed for 2 consecutive runs' },
+      { id: 's2', time: '07:15:17', status: 'done',    icon: 'database',    title: 'Audited registry pruner service account permissions', detail: 'delete-image-manifests permission revoked in RBAC patch v3.12.1' },
+      { id: 's3', time: '07:15:29', status: 'done',    icon: 'search',      title: 'Confirmed no active workloads reference prunable tags', detail: 'Safe to prune 847 MB of unreferenced manifest layers' },
+      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to restore RBAC permissions and trigger manual prune' },
+    ],
     aggregatedFinding: 'ImageRegistry pruning job failed, leaving orphaned image stream tags consuming registry storage.',
     rootCauseNarrative: 'A permissions regression in a recent RBAC update revoked the registry pruner service account access to delete manifests, causing the scheduled pruning job to fail silently.',
     remediationProposal: 'Restore RBAC permissions for the registry pruner service account and trigger a manual prune run.',
