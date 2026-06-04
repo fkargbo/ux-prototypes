@@ -1366,15 +1366,12 @@ const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase
         </div>
 
         {/* ── Scrollable panel body ─────────────────────────────────────── */}
-        <div
-          style={{
-            flex: '1 1 auto',
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            padding: '24px 20px',
-          }}
-        >
-          <RemediationBlueprintPanel plan={plan} />
+        {/* Padding lives on the inner div, not the scroll container, so
+            padding-bottom is included in the scroll extent (browser quirk). */}
+        <div style={{ flex: '1 1 auto', overflowY: 'auto', overflowX: 'hidden' }}>
+          <div style={{ padding: '24px 20px' }}>
+            <RemediationBlueprintPanel plan={plan} />
+          </div>
         </div>
       </div>
     </>
