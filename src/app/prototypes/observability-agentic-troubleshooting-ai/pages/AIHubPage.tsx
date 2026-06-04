@@ -135,15 +135,15 @@ export const AIHubPage: React.FC = () => {
           />
         </Tabs>
 
-        <div
-          style={{
-            padding: '24px',
-            maxWidth: '1200px',
-            margin: '0 auto',
-            boxSizing: 'border-box',
-          }}
-        >
-          {activeTabKey === 0 ? (
+        {activeTabKey === 0 ? (
+          <div
+            style={{
+              padding: '24px',
+              maxWidth: '1200px',
+              margin: '0 auto',
+              boxSizing: 'border-box',
+            }}
+          >
             <Stack hasGutter className="ols-ai-hub-main-stack">
               {showFleetBreadcrumb ? (
                 <StackItem>
@@ -197,9 +197,22 @@ export const AIHubPage: React.FC = () => {
                 )}
               </StackItem>
             </Stack>
-          ) : activeTabKey === 1 ? (
+          </div>
+        ) : activeTabKey === 1 ? (
+          /* Plans & approvals: full-width with own padding so the side panel
+             can anchor to the right viewport edge without layout interference */
+          <div style={{ padding: '24px', boxSizing: 'border-box' }}>
             <HubV3.PlansAndApprovalsTab />
-          ) : (
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: '24px',
+              maxWidth: '1200px',
+              margin: '0 auto',
+              boxSizing: 'border-box',
+            }}
+          >
             <EmptyState
               variant="lg"
               titleText="Audit & metrics"
@@ -210,8 +223,8 @@ export const AIHubPage: React.FC = () => {
                 This section is currently in development. Check back soon for updates.
               </EmptyStateBody>
             </EmptyState>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

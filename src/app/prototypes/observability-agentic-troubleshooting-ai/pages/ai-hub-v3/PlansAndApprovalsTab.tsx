@@ -12,14 +12,6 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   Divider,
-  Drawer,
-  DrawerActions,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerContentBody,
-  DrawerHead,
-  DrawerPanelBody,
-  DrawerPanelContent,
   Flex,
   FlexItem,
   Label,
@@ -33,7 +25,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { LockIcon } from '@patternfly/react-icons';
+import { LockIcon, TimesIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 
@@ -1077,100 +1069,157 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   );
 };
 
+// ─── Fixed-position side panel ────────────────────────────────────────────────
+//
+// Rendered via React portal-like fixed positioning so it always anchors to the
+// right viewport edge and fills the full viewport height — independent of any
+// parent container max-width or padding constraints.
+
+const RemediationSidePanel: React.FC<{ plan: PlanRow; onClose: () => void }> = ({
+  plan,
+  onClose,
+}) => (
+  <>
+    {/* Transparent hit-target scrim — click outside to close */}
+    <div
+      aria-hidden="true"
+      style={{ position: 'fixed', inset: 0, zIndex: 199 }}
+      onClick={onClose}
+    />
+
+    {/* Panel shell */}
+    <div
+      role="complementary"
+      aria-label={`Remediation Blueprint: ${plan.synopsis}`}
+      style={{
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: '35%',
+        minWidth: '420px',
+        maxWidth: '640px',
+        zIndex: 200,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        borderLeft: '1px solid var(--pf-t--global--border--color--default)',
+        boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.12)',
+      }}
+    >
+      {/* ── Panel header ─────────────────────────────────────────────── */}
+      <div
+        style={{
+          flexShrink: 0,
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--pf-t--global--border--color--default)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: '12px',
+        }}
+      >
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapSm' }}
+            flexWrap={{ default: 'nowrap' }}
+          >
+            <FlexItem style={{ flexShrink: 0 }}>
+              <AiIcon size={16} />
+            </FlexItem>
+            <FlexItem style={{ minWidth: 0 }}>
+              <Title
+                headingLevel="h3"
+                size="md"
+                style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
+              >
+                {plan.synopsis}
+              </Title>
+            </FlexItem>
+          </Flex>
+          <div style={{ marginTop: '6px' }}>
+            <StatusLabel status={plan.status} />
+          </div>
+        </div>
+
+        <Button
+          variant="plain"
+          aria-label="Close Remediation Blueprint panel"
+          onClick={onClose}
+          style={{ flexShrink: 0, marginTop: '2px' }}
+        >
+          <TimesIcon />
+        </Button>
+      </div>
+
+      {/* ── Scrollable panel body ─────────────────────────────────────── */}
+      <div
+        style={{
+          flex: '1 1 auto',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '24px 20px',
+        }}
+      >
+        <RemediationBlueprintPanel plan={plan} />
+      </div>
+    </div>
+  </>
+);
+
 // ─── Exported tab content ─────────────────────────────────────────────────────
 
 export const PlansAndApprovalsTab: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<PlanRow | null>(null);
-  const isDrawerOpen = selectedPlan !== null;
 
   const handleReviewPlan = useCallback((plan: PlanRow) => {
     setSelectedPlan(plan);
   }, []);
 
-  const handleCloseDrawer = useCallback(() => {
+  const handleClosePanel = useCallback(() => {
     setSelectedPlan(null);
   }, []);
 
-  const drawerPanelContent = selectedPlan ? (
-    <DrawerPanelContent
-      widths={{ default: 'width_33' }}
-      isResizable
-      style={{ minWidth: '360px' }}
-    >
-      <DrawerHead>
-        <Flex
-          alignItems={{ default: 'alignItemsFlexStart' }}
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          flexWrap={{ default: 'nowrap' }}
-          gap={{ default: 'gapMd' }}
-        >
-          <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-              <FlexItem style={{ flexShrink: 0 }}><AiIcon size={16} /></FlexItem>
-              <FlexItem style={{ minWidth: 0 }}>
-                <Title
-                  headingLevel="h3"
-                  size="md"
-                  style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
-                >
-                  {selectedPlan.synopsis}
-                </Title>
-              </FlexItem>
-            </Flex>
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-              <StatusLabel status={selectedPlan.status} />
-            </div>
-          </FlexItem>
-          <FlexItem style={{ flexShrink: 0 }}>
-            <DrawerActions>
-              <DrawerCloseButton onClick={handleCloseDrawer} />
-            </DrawerActions>
-          </FlexItem>
-        </Flex>
-      </DrawerHead>
-      <DrawerPanelBody style={{ overflowY: 'auto' }}>
-        <RemediationBlueprintPanel plan={selectedPlan} />
-      </DrawerPanelBody>
-    </DrawerPanelContent>
-  ) : undefined;
-
   return (
-    <Drawer isExpanded={isDrawerOpen} position="end" style={{ overflow: 'visible' }}>
-      <DrawerContent panelContent={drawerPanelContent}>
-        <DrawerContentBody style={{ overflowX: 'auto' }}>
-          <Stack hasGutter style={{ rowGap: 'var(--pf-t--global--spacer--xl)' }}>
-            <StackItem>
-              <SectionHeader
-                title="Top plans"
-                threshold={
-                  <Label color="blue" isCompact>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                      <FlexItem><AiSparkle size={12} /></FlexItem>
-                      <FlexItem>Impact score &ge;&nbsp;80</FlexItem>
-                    </Flex>
-                  </Label>
-                }
-              />
-              <TopPlansTable onReviewPlan={handleReviewPlan} />
-            </StackItem>
+    <>
+      <Stack hasGutter style={{ rowGap: 'var(--pf-t--global--spacer--xl)' }}>
+        <StackItem>
+          <SectionHeader
+            title="Top plans"
+            threshold={
+              <Label color="blue" isCompact>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                  <FlexItem><AiSparkle size={12} /></FlexItem>
+                  <FlexItem>Impact score &ge;&nbsp;80</FlexItem>
+                </Flex>
+              </Label>
+            }
+          />
+          <TopPlansTable onReviewPlan={handleReviewPlan} />
+        </StackItem>
 
-            <StackItem>
-              <SectionHeader
-                title="All plans"
-                threshold={
-                  <Label color="blue" isCompact>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                      <FlexItem><AiSparkle size={12} /></FlexItem>
-                      <FlexItem>Impact score &lt;&nbsp;80</FlexItem>
-                    </Flex>
-                  </Label>
-                }
-              />
-              <AllPlansTable onReviewPlan={handleReviewPlan} />
-            </StackItem>
-          </Stack>
-        </DrawerContentBody>
-      </DrawerContent>
-    </Drawer>
+        <StackItem>
+          <SectionHeader
+            title="All plans"
+            threshold={
+              <Label color="blue" isCompact>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                  <FlexItem><AiSparkle size={12} /></FlexItem>
+                  <FlexItem>Impact score &lt;&nbsp;80</FlexItem>
+                </Flex>
+              </Label>
+            }
+          />
+          <AllPlansTable onReviewPlan={handleReviewPlan} />
+        </StackItem>
+      </Stack>
+
+      {/* Fixed-position side panel — rendered above all page chrome */}
+      {selectedPlan && (
+        <RemediationSidePanel plan={selectedPlan} onClose={handleClosePanel} />
+      )}
+    </>
   );
 };
