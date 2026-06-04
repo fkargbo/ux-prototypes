@@ -2,32 +2,27 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
-  CardTitle,
   Content,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   Divider,
+  ExpandableSection,
   Flex,
   FlexItem,
   Label,
   Pagination,
   PaginationVariant,
-  ProgressStep,
-  ProgressStepper,
-  Spinner,
+  Progress,
+  ProgressSize,
   Stack,
   StackItem,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { LockIcon, TimesIcon } from '@patternfly/react-icons';
+import { BullseyeIcon, CodeBranchIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
+import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
+import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
+import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -344,6 +339,233 @@ const ALL_PLANS: PlanRow[] = [
     ],
   },
 ];
+
+// ─── Drawer: per-plan data helpers ───────────────────────────────────────────
+
+interface PlanDrawerData {
+  steps: ReasoningStep[];
+  aggregatedFinding: string;
+  rootCauseNarrative: string;
+  remediationProposal: string;
+  riskAssessment: string;
+  estimatedRecovery: string;
+  confidence: number;
+}
+
+function makeSteps(topic: string, status: PlanStatus): ReasoningStep[] {
+  const inv = status === 'Investigating';
+  return [
+    {
+      id: 's1',
+      status: 'done',
+      time: '00:00:02',
+      icon: 'database',
+      title: 'Ingest & correlate signals',
+      detail: `Correlated ${topic}. Temporal and topological causality graph built.`,
+    },
+    {
+      id: 's2',
+      status: inv ? 'active' : 'done',
+      time: inv ? undefined : '00:00:09',
+      icon: 'search',
+      title: 'Isolate root cause',
+      detail: inv
+        ? 'Root cause isolation in progress — analyzing event causality graph…'
+        : 'Root cause confirmed. Evidence chain locked.',
+    },
+    {
+      id: 's3',
+      status: inv ? 'pending' : 'done',
+      time: inv ? undefined : '00:00:17',
+      icon: inv ? 'search' : 'check',
+      title: 'Synthesize remediation paths',
+      detail: inv ? undefined : 'Remediation proposals assembled and risk-assessed.',
+    },
+  ];
+}
+
+const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
+  tp1: {
+    steps: makeSteps('1 ArgoCD drift event and 4 IngressControllerDegraded alerts', 'Waiting Approval'),
+    aggregatedFinding: 'ArgoCD revision r4892 applied a malformed ApplicationSet template that mismatched live cluster state across 4 fleets.',
+    rootCauseNarrative: 'A faulty Argo CD ApplicationSet push (revision r4892) propagated conflicting Kustomize overlays, causing router → workload traffic mismatches. The drift was confirmed 3 minutes after the sync event triggered 4 IngressControllerDegraded alerts.',
+    remediationProposal: 'Revert ArgoCD ApplicationSet to revision r4891 and force a hard sync across all 4 affected fleets.',
+    riskAssessment: 'Low — GitOps rollback is reversible and non-destructive.',
+    estimatedRecovery: '~45s',
+    confidence: 94,
+  },
+  tp2: {
+    steps: makeSteps('14 eBPF Kernel System Call Mutations detected by ACS', 'Investigating'),
+    aggregatedFinding: 'Signal correlation complete. 14 eBPF kernel mutations detected across 3 clusters. Root cause isolation in progress.',
+    rootCauseNarrative: 'Initial signals indicate a compromised container image exploiting kernel syscall interfaces. Full causality graph is being constructed — root cause pending confirmation.',
+    remediationProposal: 'Remediation paths pending root cause confirmation.',
+    riskAssessment: 'Medium — isolation will require pod eviction, causing brief service disruption.',
+    estimatedRecovery: '~3m',
+    confidence: 71,
+  },
+  tp3: {
+    steps: makeSteps('6 OOMKilled events and 2 KubePodCrashLooping alerts', 'Remediating'),
+    aggregatedFinding: '6 OOMKill evictions across payments and auth pods confirmed via Kubelet. Memory quota exhaustion root cause locked.',
+    rootCauseNarrative: 'A recent workload rollout increased container memory usage 40% above configured limits. Kubelet is evicting pods before the HPA can scale replacements, amplifying the crash loop cycle.',
+    remediationProposal: 'Increase memory limits on affected deployments by 40% and trigger HPA scale-out to 3 replicas.',
+    riskAssessment: 'Low — resource limit adjustments are rolling and reversible.',
+    estimatedRecovery: '~90s',
+    confidence: 85,
+  },
+  tp4: {
+    steps: makeSteps('3 CephPoolNearFull and 5 KubePersistentVolumeFillingUp alerts', 'Waiting Approval'),
+    aggregatedFinding: '8 Prometheus alerts confirm Ceph pool utilization exceeds 80% on 2 production clusters.',
+    rootCauseNarrative: 'Rook-Ceph pool fill rate has accelerated due to unconfigured log rotation on 3 stateful workloads. At current write velocity, storage exhaustion is projected in ~4 hours.',
+    remediationProposal: 'Expand Ceph pool capacity by 20% and enforce log rotation on affected StatefulSets.',
+    riskAssessment: 'Medium — storage expansion requires OSD reconfiguration and a brief I/O suspension period.',
+    estimatedRecovery: '~2m',
+    confidence: 82,
+  },
+  tp5: {
+    steps: makeSteps('2 etcd fragmentation events (etcd_db_total_size_in_bytes)', 'Completed'),
+    aggregatedFinding: 'etcd database fragmentation (>65%) confirmed as root cause of elevated API server P99 latency.',
+    rootCauseNarrative: 'etcd fragmentation exceeded 65% — a known performance threshold — causing API write amplification and increased leader election overhead, driving P99 latency above 1.2s.',
+    remediationProposal: 'Execute etcd defragmentation on all 3 control plane members with rolling restart cadence.',
+    riskAssessment: 'Low — etcd defragmentation is a supported operational procedure.',
+    estimatedRecovery: '~45s',
+    confidence: 91,
+  },
+  ap1: {
+    steps: makeSteps('3 KubePodMemoryUtilizationHigh alarms on dev pods', 'Waiting Approval'),
+    aggregatedFinding: '3 dev pods sustaining >85% memory utilization for >10 minutes, crossing the alert threshold.',
+    rootCauseNarrative: 'A memory leak was introduced in a recent service update causing gradual heap growth. Containers are not yet OOMKilled but will exhaust their allocation within ~90 minutes at current growth rate.',
+    remediationProposal: 'Apply memory limit patch (2Gi → 4Gi) and redeploy affected pods with the corrected configuration.',
+    riskAssessment: 'Low — dev environment, no user-facing impact.',
+    estimatedRecovery: '~30s',
+    confidence: 78,
+  },
+  ap2: {
+    steps: makeSteps('1 PipelineRunFailed block and 2 TektonTaskExecutionStalled alerts', 'Remediating'),
+    aggregatedFinding: 'Tekton pipeline webhook blocked on 2 clusters due to EventListener TLS certificate failure.',
+    rootCauseNarrative: 'A stale TLS certificate on the Tekton Triggers EventListener caused webhook signature validation failures, blocking all GitOps-triggered pipeline runs.',
+    remediationProposal: 'Rotate EventListener TLS secret and force webhook endpoint re-registration on both clusters.',
+    riskAssessment: 'Low — development pipeline only, no production workload impact.',
+    estimatedRecovery: '~1m',
+    confidence: 75,
+  },
+  ap3: {
+    steps: makeSteps('1 CertificateExpirationWarning from Kube-Apt-Controller', 'Waiting Approval'),
+    aggregatedFinding: 'An IAM client certificate expires in <72 hours. Service account authentications will fail upon expiry.',
+    rootCauseNarrative: 'The certificate rotation automation script failed silently 30 days ago due to a missing IAM role binding, preventing auto-renewal. The warning only surfaced today as the certificate reached its expiry threshold.',
+    remediationProposal: 'Re-bind the IAM automation role and execute emergency certificate rotation.',
+    riskAssessment: 'Medium — brief authentication interruption expected during the rotation handoff window.',
+    estimatedRecovery: '~2m',
+    confidence: 71,
+  },
+  ap4: {
+    steps: makeSteps('4 CoreDNSLookupLatencyHigh warnings across 3 clusters', 'Investigating'),
+    aggregatedFinding: 'Signal correlation complete. 4 CoreDNS latency alerts detected across 3 clusters. Root cause analysis in progress.',
+    rootCauseNarrative: 'Initial signals suggest CoreDNS pod memory pressure is causing resolver cache thrash. Full topology correlation is pending — root cause not yet confirmed.',
+    remediationProposal: 'Remediation paths pending root cause confirmation.',
+    riskAssessment: 'TBD — root cause under active investigation.',
+    estimatedRecovery: 'TBD',
+    confidence: 58,
+  },
+  ap5: {
+    steps: makeSteps('2 NodeCPUOvercommitted events and 1 KubeNodeNotReady alert', 'Failed'),
+    aggregatedFinding: 'CPU overcommitment on a baremetal node detected. Remediation attempt failed during node draining.',
+    rootCauseNarrative: 'A Metal3 provisioning anomaly left a baremetal node in a partially-registered state, over-assigning workloads. The remediation script failed during node draining due to a stale kubelet lease.',
+    remediationProposal: 'Force-drain node, reset the Metal3 BMH object, and re-provision the node.',
+    riskAssessment: 'High — force drain may impact in-flight workloads during the procedure.',
+    estimatedRecovery: '~5m',
+    confidence: 65,
+  },
+  ap6: {
+    steps: makeSteps('1 ArgoCD LiveStateOutOfSync event in staging namespace', 'Completed'),
+    aggregatedFinding: 'ArgoCD detected a single resource drift in the staging namespace configuration.',
+    rootCauseNarrative: 'A direct kubectl apply bypassed the GitOps workflow, creating a single resource divergence. Argo CD detected the discrepancy during its 3-minute sync loop and a hard sync restored declared state.',
+    remediationProposal: 'Force ArgoCD hard sync on the staging application to restore GitOps-declared state.',
+    riskAssessment: 'Low — staging environment, non-destructive sync operation.',
+    estimatedRecovery: '~15s',
+    confidence: 92,
+  },
+  ap7: {
+    steps: makeSteps('2 IngressControllerMinReplicasNotMet alerts', 'Waiting Approval'),
+    aggregatedFinding: 'Ingress controller replica count dropped below the configured minimum on 2 clusters, degrading load balancing resilience.',
+    rootCauseNarrative: 'A node eviction event reduced ingress pod count below the minimum without triggering the HPA correctly. Root cause is a misconfigured PodDisruptionBudget blocking HPA-driven scale-out.',
+    remediationProposal: 'Patch the PodDisruptionBudget to allow HPA scale-out and immediately scale ingress routers to the minimum replica count.',
+    riskAssessment: 'Low — router pods scale rolling with no traffic interruption.',
+    estimatedRecovery: '~1m',
+    confidence: 79,
+  },
+  ap8: {
+    steps: makeSteps('1 ACS Host Network sharing violation and 3 low-priority alerts', 'Waiting Approval'),
+    aggregatedFinding: 'ACS detected a host network namespace sharing violation — a CIS benchmark Level 3 non-compliance — on 1 cluster.',
+    rootCauseNarrative: 'A new deployment was misconfigured with hostNetwork: true, granting the container direct access to the node network stack. ACS enforcement policy flagged this as a critical security posture violation.',
+    remediationProposal: 'Set hostNetwork: false on the offending deployment and apply a network policy admission webhook to prevent recurrence.',
+    riskAssessment: 'Medium — policy enforcement will trigger pod restarts on the affected deployment.',
+    estimatedRecovery: '~1m',
+    confidence: 75,
+  },
+  ap9: {
+    steps: makeSteps('4 PodSandboxCleanedUpFailed Kubelet log events', 'Waiting Approval'),
+    aggregatedFinding: '4 pod sandbox cleanup failures logged by Kubelet on 2 clusters, indicating an OCI runtime garbage collection backlog.',
+    rootCauseNarrative: 'A containerd runtime configuration change disrupted the sandbox cleanup routine. Orphaned container overlays are accumulating on node disk and will cause disk pressure if unresolved.',
+    remediationProposal: 'Execute a graceful Kubelet garbage collection cycle and validate the containerd runtime configuration.',
+    riskAssessment: 'Low — housekeeping operation with no workload impact.',
+    estimatedRecovery: '~30s',
+    confidence: 72,
+  },
+  ap10: {
+    steps: makeSteps('1 JenkinsQueueSizeHigh metric threshold breach', 'Completed'),
+    aggregatedFinding: 'Jenkins build queue exceeded 50 jobs, halting CI/CD throughput entirely.',
+    rootCauseNarrative: 'A long-running integration test job monopolized all executor slots, starving downstream builds. The agent identified and terminated the stalled job, restoring executor availability.',
+    remediationProposal: 'Terminate the stalled job and increase the executor count from 4 to 8 to prevent recurrence.',
+    riskAssessment: 'Low — non-critical CI environment with no production dependency.',
+    estimatedRecovery: '~2m',
+    confidence: 88,
+  },
+  ap11: {
+    steps: makeSteps('1 FailedComputeMetricsReplicas HPA controller event', 'Waiting Approval'),
+    aggregatedFinding: 'HPA controller failing to compute target replicas, effectively disabling autoscaling.',
+    rootCauseNarrative: 'The custom metrics adapter lost connectivity to its Prometheus scrape endpoint, leaving the HPA unable to evaluate scale triggers. Autoscaling has been frozen for approximately 20 minutes.',
+    remediationProposal: 'Restart the custom metrics adapter and validate Prometheus scrape endpoint connectivity.',
+    riskAssessment: 'Low — brief adapter restart has no workload impact.',
+    estimatedRecovery: '~45s',
+    confidence: 76,
+  },
+  ap12: {
+    steps: makeSteps('5 sustained ErrImagePullBackOff threshold alerts across 4 clusters', 'Waiting Approval'),
+    aggregatedFinding: '5 sustained ErrImagePullBackOff alerts across 4 clusters indicating container registry connectivity degradation.',
+    rootCauseNarrative: 'A registry DNS record update propagated incorrectly to cluster resolvers, causing intermittent image pull failures. Approximately 30% of pull attempts are failing under the current configuration.',
+    remediationProposal: 'Force DNS cache flush on affected nodes and update the registry mirror configuration to bypass the stale record.',
+    riskAssessment: 'Low — rolling DNS update with no workload eviction required.',
+    estimatedRecovery: '~2m',
+    confidence: 72,
+  },
+  ap13: {
+    steps: makeSteps('1 CSI volume throttle event and 2 KubePersistentVolumeResizingStalled alerts', 'Investigating'),
+    aggregatedFinding: 'Signal correlation complete. Storage CSI throttling and PV resizing stall detected. Root cause analysis in progress.',
+    rootCauseNarrative: 'Initial signals suggest read IOPS are exceeding the provisioned cloud storage tier limits. Full storage topology analysis is pending — root cause not yet confirmed.',
+    remediationProposal: 'Remediation paths pending root cause confirmation.',
+    riskAssessment: 'TBD — storage configuration change scope under investigation.',
+    estimatedRecovery: 'TBD',
+    confidence: 58,
+  },
+  ap14: {
+    steps: makeSteps('3 NodeClockSkewDetected Prometheus system metrics alerts', 'Completed'),
+    aggregatedFinding: '3 nodes across clusters reported NTP clock skew >10 seconds, flagging sync failures.',
+    rootCauseNarrative: 'An upstream NTP server became unreachable due to a firewall rule change, leaving 3 nodes to drift independently. Clock skew exceeded Kubernetes tolerances, triggering certificate validation errors on some API calls.',
+    remediationProposal: 'Reconfigure chronyd to use the corporate NTP pool and restart the clock synchronization service.',
+    riskAssessment: 'Low — NTP reconfiguration has no workload impact.',
+    estimatedRecovery: '~30s',
+    confidence: 94,
+  },
+  ap15: {
+    steps: makeSteps('1 PruneImageRegistryManifestsFailed trace from ImageRegistry controller', 'Waiting Approval'),
+    aggregatedFinding: 'ImageRegistry pruning job failed, leaving orphaned image stream tags consuming registry storage.',
+    rootCauseNarrative: 'A permissions regression in a recent RBAC update revoked the registry pruner service account access to delete manifests, causing the scheduled pruning job to fail silently.',
+    remediationProposal: 'Restore RBAC permissions for the registry pruner service account and trigger a manual prune run.',
+    riskAssessment: 'Low — registry pruning is non-destructive (removes unreferenced tags only).',
+    estimatedRecovery: '~1m',
+    confidence: 80,
+  },
+};
 
 // ─── AI disclosure ────────────────────────────────────────────────────────────
 
@@ -734,243 +956,69 @@ const generateAiInsight = (plan: PlanRow): string =>
   `with a blast radius spanning ${plan.blastRadius}. The agent has isolated the root cause and assembled ` +
   `a verified remediation strategy designed to restore system health with minimal operational risk.`;
 
-// ─── Drawer: Progress stepper step states ────────────────────────────────────
+// ─── Drawer: Remediation Hub action buttons ───────────────────────────────────
 
-interface StepStates {
-  step1Variant: 'success';
-  step2Variant: 'success' | 'info';
-  step2Current: boolean;
-  step3Variant: 'success' | 'info';
-  step3Current: boolean;
-  step3Description: React.ReactNode;
-}
+const RemediationHubActions: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+  const { status, isUnauthorized } = plan;
 
-const getStepStates = (status: PlanStatus): StepStates => {
   if (status === 'Investigating') {
-    return {
-      step1Variant: 'success',
-      step2Variant: 'success',
-      step2Current: false,
-      step3Variant: 'info',
-      step3Current: true,
-      step3Description: (
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <FlexItem><Spinner size="sm" aria-label="Assembling remediation choices" /></FlexItem>
-          <FlexItem>Assembling choices...</FlexItem>
-        </Flex>
-      ),
-    };
+    return (
+      <Content
+        component="p"
+        className="ols-aio-text-subtle-sm"
+        style={{ fontStyle: 'italic', margin: 0 }}
+      >
+        Remediation options will be available after root cause analysis completes.
+      </Content>
+    );
   }
-  return {
-    step1Variant: 'success',
-    step2Variant: 'success',
-    step2Current: false,
-    step3Variant: 'success',
-    step3Current: false,
-    step3Description: '2 remediation paths identified',
-  };
+
+  if (status === 'Completed' || status === 'Failed') {
+    return (
+      <Button variant="link" isInline>
+        View execution log
+      </Button>
+    );
+  }
+
+  if (status === 'Remediating') {
+    return (
+      <Button variant="primary" isDisabled>
+        Applying fix… ⚙
+      </Button>
+    );
+  }
+
+  // Waiting Approval
+  if (isUnauthorized) {
+    return (
+      <Tooltip
+        content="You have Read-Only access to this plan. Authorizing remediation requires elevated cluster privileges."
+        position="top"
+      >
+        <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
+          <Button variant="primary" isDisabled style={{ pointerEvents: 'none' }}>
+            Approve &amp; execute&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
+          </Button>
+        </span>
+      </Tooltip>
+    );
+  }
+
+  return <Button variant="primary">Approve &amp; execute</Button>;
 };
 
-// ─── Drawer: Remediation option cards ────────────────────────────────────────
-
-const RemediationOption1: React.FC<{ plan: PlanRow }> = ({ plan }) => {
-  const canApprove = plan.status === 'Waiting Approval' && !plan.isUnauthorized;
-  const rbacLabel = plan.isUnauthorized
-    ? <Label color="red" isCompact variant="outline"><LockIcon /> Unauthorized</Label>
-    : <Label color="green" isCompact variant="outline">Authorized</Label>;
-
-  return (
-    <Card
-      isCompact
-      style={{
-        borderLeft: '3px solid var(--pf-t--global--color--status--info--default)',
-        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-      }}
-    >
-      <CardHeader>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <FlexItem><AiIcon size={14} /></FlexItem>
-          <FlexItem>
-            <Label color="blue" isCompact>AI recommended</Label>
-          </FlexItem>
-          <FlexItem>
-            <CardTitle>Primary automated fix</CardTitle>
-          </FlexItem>
-        </Flex>
-      </CardHeader>
-      <CardBody>
-        <DescriptionList isCompact isHorizontal columnModifier={{ default: '1Col' }}>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Risk</DescriptionListTerm>
-            <DescriptionListDescription>
-              <Label color="green" isCompact variant="outline">Low risk</Label>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Reversibility</DescriptionListTerm>
-            <DescriptionListDescription>
-              1-click rollback enabled (GitOps sync-back)
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>RBAC validation</DescriptionListTerm>
-            <DescriptionListDescription>{rbacLabel}</DescriptionListDescription>
-          </DescriptionListGroup>
-        </DescriptionList>
-
-        <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-          {plan.isUnauthorized ? (
-            <Tooltip
-              content="You have Read-Only access to this plan. Authorizing remediation requires elevated cluster privileges."
-              position="top"
-            >
-              <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
-                <Button variant="primary" isDisabled style={{ pointerEvents: 'none' }}>
-                  Approve &amp; execute&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
-                </Button>
-              </span>
-            </Tooltip>
-          ) : (
-            <Button variant="primary" isDisabled={!canApprove}>
-              Approve &amp; execute
-            </Button>
-          )}
-        </div>
-      </CardBody>
-    </Card>
-  );
-};
-
-const RemediationOption2: React.FC = () => (
-  <Card
-    isCompact
-    style={{
-      borderLeft: '3px solid var(--pf-t--global--border--color--default)',
-      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-    }}
-  >
-    <CardHeader>
-      <Label color="grey" isCompact>Manual fallback</Label>
-      <span style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}>
-        <CardTitle>Manual workaround script</CardTitle>
-      </span>
-    </CardHeader>
-    <CardBody>
-      <DescriptionList isCompact isHorizontal columnModifier={{ default: '1Col' }}>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Risk</DescriptionListTerm>
-          <DescriptionListDescription>
-            <Label color="orange" isCompact variant="outline">Medium risk</Label>
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Reversibility</DescriptionListTerm>
-          <DescriptionListDescription>
-            Manual rollback required (git commit rebase)
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>RBAC validation</DescriptionListTerm>
-          <DescriptionListDescription>
-            <Label color="red" isCompact variant="outline"><LockIcon /> Unauthorized</Label>
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      </DescriptionList>
-
-      <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-        <Tooltip
-          content="This action requires cluster-admin or operator-lifecycle-manager permissions."
-          position="top"
-        >
-          <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
-            <Button variant="secondary" isDisabled style={{ pointerEvents: 'none' }}>
-              Insufficient privileges&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
-            </Button>
-          </span>
-        </Tooltip>
-      </div>
-    </CardBody>
-  </Card>
-);
-
-// ─── Drawer: Post-mortem summary (Completed | Failed) ────────────────────────
-
-const POST_MORTEM_TIMESTAMPS: Record<string, string> = {
-  tp5: '2026-06-04T07:14:31Z',
-  ap6: '2026-06-04T08:02:55Z',
-  ap10: '2026-06-04T06:47:12Z',
-  ap14: '2026-06-03T22:31:09Z',
-  ap5: '2026-06-04T06:52:17Z',
-};
-
-const PostMortemSummary: React.FC<{ plan: PlanRow }> = ({ plan }) => {
-  const isCompleted = plan.status === 'Completed';
-  const timestamp = POST_MORTEM_TIMESTAMPS[plan.id] ?? '2026-06-04T05:00:00Z';
-
-  return (
-    <Card
-      isCompact
-      style={{
-        borderLeft: `3px solid var(--pf-t--global--color--status--${isCompleted ? 'success' : 'danger'}--default)`,
-      }}
-    >
-      <CardHeader>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <FlexItem>
-            <Label color={isCompleted ? 'green' : 'red'} isCompact>
-              {isCompleted ? 'Execution completed' : 'Execution failed'}
-            </Label>
-          </FlexItem>
-          <FlexItem>
-            <CardTitle>Post-mortem summary</CardTitle>
-          </FlexItem>
-        </Flex>
-      </CardHeader>
-      <CardBody>
-        <DescriptionList isCompact isHorizontal columnModifier={{ default: '1Col' }}>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Timestamp</DescriptionListTerm>
-            <DescriptionListDescription>
-              <code style={{ fontSize: '12px' }}>{timestamp}</code>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          {isCompleted ? (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Outcome</DescriptionListTerm>
-              <DescriptionListDescription>
-                All affected {plan.blastRadius} resources returned to a healthy state. GitOps sync confirmed.
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Error trace</DescriptionListTerm>
-              <DescriptionListDescription>
-                <code
-                  style={{
-                    fontSize: '12px',
-                    color: 'var(--pf-t--global--color--status--danger--default)',
-                    display: 'block',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  ERR_REMEDIATION_ROLLBACK_CONFLICT: Replica set scaling timeout after 300s.
-                  Cluster state unchanged. No resources were modified.
-                </code>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-        </DescriptionList>
-      </CardBody>
-    </Card>
-  );
-};
-
-// ─── Drawer: Remediation Blueprint panel body ─────────────────────────────────
+// ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
 const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
-  const isTerminal = plan.status === 'Completed' || plan.status === 'Failed';
-  const stepStates = getStepStates(plan.status);
+  const [openChain, setOpenChain] = useState(true);
+  const [openRca, setOpenRca] = useState(true);
+  const [openRem, setOpenRem] = useState(true);
+
+  const drawer = PLAN_DRAWER_DATA[plan.id];
+  const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
+
+  if (!drawer) return null;
 
   return (
     <Stack hasGutter>
@@ -994,76 +1042,171 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
       <Divider />
 
-      {/* ── Section B: Diagnostic Lifecycle Flow ──────────────────────── */}
+      {/* ── Section B: Active Reasoning Chain ─────────────────────────── */}
       <StackItem>
-        <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-          Remediation Blueprint
-        </Title>
-        <ProgressStepper isVertical aria-label="Remediation lifecycle steps">
-          <ProgressStep
-            variant={stepStates.step1Variant}
-            id="step-ingestion"
-            titleId="step-ingestion-title"
-            aria-label="Ingestion and Correlation: complete"
-            description={`Ingested ${plan.consolidationScope} from ${plan.triggerDomains}`}
-          >
-            Ingestion &amp; Correlation
-          </ProgressStep>
-
-          <ProgressStep
-            variant={stepStates.step2Variant}
-            isCurrent={stepStates.step2Current}
-            id="step-rca"
-            titleId="step-rca-title"
-            aria-label="Root-Cause Isolation: complete"
-            description={`Root cause isolated across ${plan.blastRadius}`}
-          >
-            Root-Cause Isolation
-          </ProgressStep>
-
-          <ProgressStep
-            variant={stepStates.step3Variant}
-            isCurrent={stepStates.step3Current}
-            id="step-options"
-            titleId="step-options-title"
-            aria-label={
-              stepStates.step3Current
-                ? 'Option Matrix Synthesis: in progress'
-                : 'Option Matrix Synthesis: complete'
-            }
-            description={stepStates.step3Description}
-          >
-            Option Matrix Synthesis
-          </ProgressStep>
-        </ProgressStepper>
+        <ExpandableSection
+          toggleText=""
+          isExpanded={openChain}
+          onToggle={(_e, expanded) => setOpenChain(expanded)}
+          toggleContent={
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+              <FlexItem>
+                <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                  <CodeBranchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
+                  <Title headingLevel="h4" size="md">Active Reasoning Chain</Title>
+                </Flex>
+              </FlexItem>
+              {plan.status === 'Investigating' && (
+                <FlexItem>
+                  <Label color="blue" variant="outline" isCompact>Live</Label>
+                </FlexItem>
+              )}
+            </Flex>
+          }
+        >
+          <ol className="ols-aio-reasoning-timeline">
+            {drawer.steps.map((step) => (
+              <li key={step.id} className="ols-aio-reasoning-timeline__item">
+                <span className="ols-aio-reasoning-timeline__node">
+                  <ReasoningChainStepGlyph step={step} />
+                </span>
+                <Flex
+                  justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                  flexWrap={{ default: 'wrap' }}
+                >
+                  <FlexItem>
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      flexWrap={{ default: 'wrap' }}
+                      gap={{ default: 'gapSm' }}
+                    >
+                      <span
+                        className="ols-aio-text-subtle-sm"
+                        style={{ fontVariantNumeric: 'tabular-nums' }}
+                      >
+                        {formatReasoningStepDisplayTime(step)}
+                      </span>
+                      {step.status === 'active' && (
+                        <Label color="blue" variant="outline" isCompact>In progress</Label>
+                      )}
+                    </Flex>
+                  </FlexItem>
+                </Flex>
+                <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                  {step.title}
+                </Title>
+                {step.detail && (
+                  <Content
+                    component="p"
+                    style={{
+                      marginTop: 'var(--pf-t--global--spacer--xs)',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      marginBottom: 0,
+                    }}
+                  >
+                    {step.detail}
+                  </Content>
+                )}
+              </li>
+            ))}
+          </ol>
+        </ExpandableSection>
       </StackItem>
 
       <Divider />
 
-      {/* ── Section C: Remediation Options or Post-mortem ─────────────── */}
+      {/* ── Section C: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
-        {isTerminal ? (
-          <>
-            <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              Execution summary
-            </Title>
-            <PostMortemSummary plan={plan} />
-          </>
-        ) : (
-          <>
-            <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              Available remediation options
-            </Title>
-            <Stack hasGutter>
-              <StackItem>
-                <RemediationOption1 plan={plan} />
-              </StackItem>
-              <StackItem>
-                <RemediationOption2 />
-              </StackItem>
-            </Stack>
-          </>
-        )}
+        <ExpandableSection
+          toggleText=""
+          isExpanded={openRca}
+          onToggle={(_e, expanded) => setOpenRca(expanded)}
+          toggleContent={
+            <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
+              <Title headingLevel="h4" size="md">Root Cause Analysis (RCA)</Title>
+            </Flex>
+          }
+        >
+          <div className={`ols-aio-rca-box ${rcaVariant}`}>
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+              <span className="ols-aio-text-overline">Detected Root Cause</span>
+            </Flex>
+            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              {drawer.aggregatedFinding}
+            </Content>
+            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              {drawer.rootCauseNarrative}
+            </Content>
+            <Flex
+              justifyContent={{ default: 'justifyContentSpaceBetween' }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+            >
+              <span className="ols-aio-text-overline">Confidence Score</span>
+              <span
+                style={{
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  color: 'var(--pf-t--global--color--status--success--default)',
+                }}
+              >
+                {drawer.confidence}%
+              </span>
+            </Flex>
+            <Progress
+              value={drawer.confidence}
+              title=""
+              size={ProgressSize.sm}
+              measureLocation="none"
+              variant="success"
+            />
+          </div>
+        </ExpandableSection>
+      </StackItem>
+
+      <Divider />
+
+      {/* ── Section D: Remediation Hub ────────────────────────────────── */}
+      <StackItem>
+        <ExpandableSection
+          toggleText=""
+          isExpanded={openRem}
+          onToggle={(_e, expanded) => setOpenRem(expanded)}
+          toggleContent={
+            <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
+              <Title headingLevel="h4" size="md">Remediation Hub</Title>
+            </Flex>
+          }
+        >
+          <div className="ols-aio-remediation-box">
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              <TerminalIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+              <span className="ols-aio-text-overline">Recommended Action</span>
+            </Flex>
+            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              {drawer.remediationProposal}{' '}
+              <span style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>
+                {drawer.estimatedRecovery}
+              </span>
+            </Content>
+            <Content
+              component="p"
+              className="ols-aio-text-subtle-sm"
+              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            >
+              {drawer.riskAssessment}
+            </Content>
+            <RemediationHubActions plan={plan} />
+          </div>
+        </ExpandableSection>
       </StackItem>
     </Stack>
   );
@@ -1152,7 +1295,7 @@ const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase
       {/* Panel shell */}
       <div
         role="complementary"
-        aria-label={`Remediation Blueprint: ${plan.synopsis}`}
+        aria-label={`Plan review: ${plan.synopsis}`}
         style={{
           position: 'fixed',
           top: panelTop,
