@@ -6,7 +6,6 @@ import {
   Label,
   Pagination,
   PaginationVariant,
-  Spinner,
   Stack,
   StackItem,
   Title,
@@ -379,33 +378,13 @@ const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
 
 // ─── RBAC-aware action cell ───────────────────────────────────────────────────
 
-const MUTED_SM: React.CSSProperties = {
-  color: 'var(--pf-t--global--text--color--subtle)',
-  fontSize: 'var(--pf-t--global--font--size--body--sm)',
-  whiteSpace: 'nowrap',
-};
-
 const ActionCell: React.FC<{ status: PlanStatus; isUnauthorized: boolean }> = ({
   status,
   isUnauthorized,
 }) => {
-  if (status === 'Investigating') {
+  if (status === 'Investigating' || status === 'Remediating') {
     return (
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-        <FlexItem><Spinner size="sm" aria-label="Analyzing" /></FlexItem>
-        <FlexItem>
-          <Button variant="secondary" size="sm">Review plan</Button>
-        </FlexItem>
-      </Flex>
-    );
-  }
-
-  if (status === 'Remediating') {
-    return (
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-        <FlexItem><Spinner size="sm" aria-label="Applying fix" /></FlexItem>
-        <FlexItem><span style={MUTED_SM}>Applying fix...</span></FlexItem>
-      </Flex>
+      <Button variant="secondary" size="sm">Review plan</Button>
     );
   }
 
