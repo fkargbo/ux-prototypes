@@ -1080,6 +1080,27 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 //
 // Z-index 150: above the page main content (PF z-index--xs = 100) but safely
 // below the PF sidebar (z-index--sm = 200) and masthead (z-index--md = 300).
+//
+// Animation phase drives a CSS transform slide:
+//   entering  → translateX(100%), no transition  (snap off-screen instantly)
+//   visible   → translateX(0),    ease-out 280ms (decelerate into view)
+//   leaving   → translateX(100%), ease-in  200ms (accelerate off-screen)
+
+type PanelPhase = 'entering' | 'visible' | 'leaving';
+
+const PANEL_TRANSITION: Record<PanelPhase, string> = {
+  entering: 'none',
+  visible:  'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)',
+  leaving:  'transform 200ms cubic-bezier(0.55, 0, 1, 0.45)',
+};
+const PANEL_TRANSFORM: Record<PanelPhase, string> = {
+  entering: 'translateX(100%)',
+  visible:  'translateX(0)',
+  leaving:  'translateX(100%)',
+};
+
+// Exit animation duration in ms (must match the 'leaving' transition above).
+const LEAVE_DURATION_MS = 200;
 
 const usePanelTop = (): number => {
   const [panelTop, setPanelTop] = React.useState<number>(0);
@@ -1100,20 +1121,31 @@ const usePanelTop = (): number => {
   return panelTop;
 };
 
-const RemediationSidePanel: React.FC<{ plan: PlanRow; onClose: () => void }> = ({
-  plan,
-  onClose,
-}) => {
+interface RemediationSidePanelProps {
+  plan: PlanRow;
+  phase: PanelPhase;
+  onClose: () => void;
+}
+
+const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase, onClose }) => {
   const panelTop = usePanelTop();
 
   return (
     <>
       {/* Transparent hit-target scrim — click outside to close.
           z-index 149 keeps it below the panel (150) and below the
-          masthead (300) / sidebar (200). */}
+          masthead (300) / sidebar (200). Fade in/out with the panel. */}
       <div
         aria-hidden="true"
-        style={{ position: 'fixed', inset: 0, zIndex: 149 }}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 149,
+          opacity: phase === 'visible' ? 1 : 0,
+          transition: phase === 'leaving'
+            ? `opacity ${LEAVE_DURATION_MS}ms ease-in`
+            : 'opacity 280ms ease-out',
+        }}
         onClick={onClose}
       />
 
@@ -1135,7 +1167,13 @@ const RemediationSidePanel: React.FC<{ plan: PlanRow; onClose: () => void }> = (
           overflow: 'hidden',
           backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
           borderLeft: '1px solid var(--pf-t--global--border--color--default)',
+          /* Top-left corner radius only — right edge and bottom are flush with viewport */
+          borderTopLeftRadius: '16px',
           boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.12)',
+          /* Slide animation */
+          transform: PANEL_TRANSFORM[phase],
+          transition: PANEL_TRANSITION[phase],
+          willChange: 'transform',
         }}
       >
         {/* ── Panel header ─────────────────────────────────────────────── */}
@@ -1203,15 +1241,45 @@ const RemediationSidePanel: React.FC<{ plan: PlanRow; onClose: () => void }> = (
 // ─── Exported tab content ─────────────────────────────────────────────────────
 
 export const PlansAndApprovalsTab: React.FC = () => {
-  const [selectedPlan, setSelectedPlan] = useState<PlanRow | null>(null);
+  // `displayedPlan` stays populated during the leave animation so the panel
+  // content doesn't vanish before it slides off-screen.
+  const [displayedPlan, setDisplayedPlan] = useState<PlanRow | null>(null);
+  const [panelPhase, setPanelPhase] = useState<PanelPhase>('entering');
+  const leaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleReviewPlan = useCallback((plan: PlanRow) => {
-    setSelectedPlan(plan);
+  const openPanel = useCallback((plan: PlanRow) => {
+    // Cancel any in-flight leave timer
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+
+    // Snap off-screen (no transition), then on the next two frames slide in.
+    setDisplayedPlan(plan);
+    setPanelPhase('entering');
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setPanelPhase('visible');
+      });
+    });
   }, []);
 
-  const handleClosePanel = useCallback(() => {
-    setSelectedPlan(null);
+  const closePanel = useCallback(() => {
+    setPanelPhase('leaving');
+    leaveTimerRef.current = setTimeout(() => {
+      setDisplayedPlan(null);
+      leaveTimerRef.current = null;
+    }, LEAVE_DURATION_MS + 20); // +20 ms buffer for transition completion
   }, []);
+
+  // Clean up on unmount
+  React.useEffect(
+    () => () => {
+      if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+    },
+    [],
+  );
 
   return (
     <>
@@ -1228,7 +1296,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
               </Label>
             }
           />
-          <TopPlansTable onReviewPlan={handleReviewPlan} />
+          <TopPlansTable onReviewPlan={openPanel} />
         </StackItem>
 
         <StackItem>
@@ -1243,13 +1311,17 @@ export const PlansAndApprovalsTab: React.FC = () => {
               </Label>
             }
           />
-          <AllPlansTable onReviewPlan={handleReviewPlan} />
+          <AllPlansTable onReviewPlan={openPanel} />
         </StackItem>
       </Stack>
 
       {/* Fixed-position side panel — rendered above all page chrome */}
-      {selectedPlan && (
-        <RemediationSidePanel plan={selectedPlan} onClose={handleClosePanel} />
+      {displayedPlan && (
+        <RemediationSidePanel
+          plan={displayedPlan}
+          phase={panelPhase}
+          onClose={closePanel}
+        />
       )}
     </>
   );
