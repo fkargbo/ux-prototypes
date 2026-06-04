@@ -359,18 +359,22 @@ const SeverityBadge: React.FC<{ severity: PlanSeverity }> = ({ severity }) =>
     <Label color="yellow" isCompact>Warning</Label>
   );
 
-// ─── Status text ──────────────────────────────────────────────────────────────
+// ─── Status label ─────────────────────────────────────────────────────────────
 
-const STATUS_COLOR: Record<PlanStatus, string> = {
-  'Investigating':    'var(--pf-t--global--color--status--info--default)',
-  'Waiting Approval': 'var(--pf-t--global--color--status--warning--default)',
-  'Remediating':      'var(--pf-t--global--color--status--info--default)',
-  'Completed':        'var(--pf-t--global--color--status--success--default)',
-  'Failed':           'var(--pf-t--global--color--status--danger--default)',
+type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red';
+
+const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
+  'Investigating':    'blue',
+  'Waiting Approval': 'orange',
+  'Remediating':      'teal',
+  'Completed':        'green',
+  'Failed':           'red',
 };
 
-const StatusText: React.FC<{ status: PlanStatus }> = ({ status }) => (
-  <span style={{ color: STATUS_COLOR[status], fontWeight: 500, whiteSpace: 'nowrap' }}>{status}</span>
+const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
+  <Label color={STATUS_LABEL_COLOR[status]} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+    {status}
+  </Label>
 );
 
 // ─── RBAC-aware action cell ───────────────────────────────────────────────────
@@ -389,7 +393,9 @@ const ActionCell: React.FC<{ status: PlanStatus; isUnauthorized: boolean }> = ({
     return (
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
         <FlexItem><Spinner size="sm" aria-label="Analyzing" /></FlexItem>
-        <FlexItem><span style={MUTED_SM}>Analyzing...</span></FlexItem>
+        <FlexItem>
+          <Button variant="secondary" size="sm">Review plan</Button>
+        </FlexItem>
       </Flex>
     );
   }
@@ -475,12 +481,12 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
         {/* Expand toggle column — no visible header */}
         <Th screenReaderText="Row expansion" style={{ width: '4%' }} />
         <Th style={{ width: '6%' }}>Severity</Th>
-        <Th style={{ width: '10%' }}>Status</Th>
         <Th style={{ width: '7%' }}><AiColumnHeader label="Impact score" /></Th>
         <Th style={{ width: '21%' }}><AiColumnHeader label="Plan summary" /></Th>
         <Th style={{ width: '9%' }}>Blast radius</Th>
-        <Th style={{ width: '14%' }}>Consolidation scope</Th>
-        <Th style={{ width: '14%' }}>Trigger domains</Th>
+        <Th style={{ width: '13%' }}>Consolidation scope</Th>
+        <Th style={{ width: '13%' }}>Trigger domains</Th>
+        <Th style={{ width: '12%' }}>Status</Th>
         <Th style={{ width: '15%' }}>Action</Th>
       </Tr>
     </Thead>
@@ -501,10 +507,6 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
             <Td dataLabel="Severity">
               <SeverityBadge severity={row.severity} />
-            </Td>
-
-            <Td dataLabel="Status">
-              <StatusText status={row.status} />
             </Td>
 
             <Td dataLabel="Impact score">
@@ -530,6 +532,10 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             </Td>
 
             <Td dataLabel="Trigger domains">{row.triggerDomains}</Td>
+
+            <Td dataLabel="Status">
+              <StatusLabel status={row.status} />
+            </Td>
 
             <Td dataLabel="Action">
               <ActionCell status={row.status} isUnauthorized={row.isUnauthorized} />
