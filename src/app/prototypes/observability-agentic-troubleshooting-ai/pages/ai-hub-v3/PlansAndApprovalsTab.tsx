@@ -643,6 +643,97 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
   },
 };
 
+// ─── Remediation options data ────────────────────────────────────────────────
+
+type RemediationRisk = 'low' | 'medium' | 'high';
+
+interface RemediationOption {
+  id: string;
+  title: string;
+  description: string;
+  risk: RemediationRisk;
+  reversible: boolean;
+  model: 'smart' | 'fast';
+}
+
+const RISK_COLOR: Record<RemediationRisk, 'green' | 'orange' | 'red'> = {
+  low: 'green', medium: 'orange', high: 'red',
+};
+const RISK_LABEL: Record<RemediationRisk, string> = {
+  low: 'Low risk', medium: 'Medium risk', high: 'High risk',
+};
+
+const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
+  tp1: [
+    { id: 'tp1-o1', title: 'Automated fleet rollback via GitOps controller', description: 'Revert the ApplicationSet to revision r4891 and trigger a fleet-wide hard sync via the ArgoCD GitOps controller.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'tp1-o2', title: 'Manual cluster-by-cluster ArgoCD sync override', description: 'Force-sync each affected cluster individually via the ArgoCD CLI, bypassing the ApplicationSet controller.', risk: 'medium', reversible: true, model: 'fast' },
+    { id: 'tp1-o3', title: 'Full ApplicationSet deletion and recreation', description: 'Delete the faulty ApplicationSet entirely and redeploy from the canonical Git source.', risk: 'high', reversible: false, model: 'fast' },
+  ],
+  tp2: [], // Investigating — options pending root cause confirmation
+  tp3: [
+    { id: 'tp3-o1', title: 'Memory limit patch with rolling HPA scale-out', description: 'Apply 2Gi → 4Gi memory limit patch via rolling restart and scale HPA to 3 replicas to absorb the increased footprint.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'tp3-o2', title: 'Force pod eviction and reschedule', description: 'Force-evict all affected pods to trigger rescheduling without changing the memory limit configuration — temporary relief only.', risk: 'medium', reversible: true, model: 'fast' },
+  ],
+  tp4: [
+    { id: 'tp4-o1', title: 'Automated OSD pool expansion + log rotation enforcement', description: 'Expand the Ceph OSD pool by 20% via rook-ceph toolbox and enable automated log rotation on the 3 affected StatefulSets.', risk: 'medium', reversible: true, model: 'smart' },
+    { id: 'tp4-o2', title: 'Emergency log data pruning', description: 'Delete the oldest 30% of log data from the overloaded volumes to immediately free storage capacity.', risk: 'high', reversible: false, model: 'fast' },
+  ],
+  tp5: [
+    { id: 'tp5-o1', title: 'Rolling etcd defragmentation across all control plane members', description: 'Defragment all 3 etcd members sequentially with automated health verification between each step.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'tp5-o2', title: 'etcd compaction-only (no defragmentation)', description: 'Compact etcd revision history without a full defragmentation pass — faster but yields partial improvement only.', risk: 'low', reversible: true, model: 'fast' },
+  ],
+  ap1: [
+    { id: 'ap1-o1', title: 'Memory limit patch + pod redeploy with rolling strategy', description: 'Apply the 2Gi → 4Gi limit patch and redeploy pods using a rolling update strategy to resolve the heap leak.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'ap1-o2', title: 'Force pod restart (temporary heap flush)', description: 'Force-restart affected pods to reclaim memory from the leaked heap — buys time without addressing the underlying allocator regression.', risk: 'medium', reversible: true, model: 'fast' },
+  ],
+  ap2: [
+    { id: 'ap2-o1', title: 'TLS secret rotation + webhook endpoint re-registration', description: 'Rotate the EventListener TLS secret and force webhook endpoint re-registration on both clusters.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'ap2-o2', title: 'Delete and recreate EventListener', description: 'Delete the EventListener resource entirely and recreate it to force full TLS re-initialization.', risk: 'medium', reversible: true, model: 'fast' },
+  ],
+  ap3: [
+    { id: 'ap3-o1', title: 'Restore IAM role binding + ACME-based cert rotation', description: 'Re-bind the automation IAM role and trigger an ACME DNS-01 challenge to issue a renewed certificate.', risk: 'medium', reversible: true, model: 'smart' },
+    { id: 'ap3-o2', title: 'Manual emergency cert renewal via internal PKI', description: 'Directly issue a replacement certificate through the internal PKI without restoring the automation role.', risk: 'high', reversible: true, model: 'fast' },
+  ],
+  ap4: [], // Investigating — options pending root cause confirmation
+  ap5: [
+    { id: 'ap5-o1', title: 'Force drain + Metal3 BMH reset + node re-provision', description: 'Force-drain the stuck node, reset the BareMetalHost object, and trigger full Metal3 re-provisioning.', risk: 'high', reversible: false, model: 'smart' },
+    { id: 'ap5-o2', title: 'Node isolation via taint + workload migration', description: 'Taint the node unschedulable and migrate its workloads to healthy nodes without triggering a full re-provision.', risk: 'medium', reversible: true, model: 'fast' },
+  ],
+  ap6: [
+    { id: 'ap6-o1', title: 'ArgoCD hard sync to Git-declared state', description: 'Force a hard sync on the staging application to restore the namespace to its GitOps-declared configuration.', risk: 'low', reversible: true, model: 'fast' },
+  ],
+  ap7: [
+    { id: 'ap7-o1', title: 'Patch PodDisruptionBudget + HPA-driven scale-out', description: 'Set maxUnavailable: 1 on the ingress PDB and allow the HPA to scale routers to the 3-replica minimum.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'ap7-o2', title: 'Temporary PDB suspension + manual ingress restart', description: 'Temporarily suspend the PodDisruptionBudget and manually restart ingress pods to restore the minimum replica count.', risk: 'medium', reversible: true, model: 'fast' },
+  ],
+  ap8: [
+    { id: 'ap8-o1', title: 'Set hostNetwork: false + mutating admission webhook', description: 'Patch the deployment to remove host network access and install a MutatingAdmissionWebhook to prevent future violations.', risk: 'medium', reversible: true, model: 'smart' },
+    { id: 'ap8-o2', title: 'Force-delete non-compliant deployment', description: 'Immediately delete the offending deployment to eliminate the compliance violation — requires manual redeployment with a compliant spec.', risk: 'high', reversible: false, model: 'fast' },
+  ],
+  ap9: [
+    { id: 'ap9-o1', title: 'Kubelet GC cycle + containerd sandbox_cleanup_interval fix', description: 'Trigger a graceful Kubelet garbage collection pass and patch the containerd config to re-enable sandbox cleanup.', risk: 'low', reversible: true, model: 'smart' },
+  ],
+  ap10: [
+    { id: 'ap10-o1', title: 'Terminate stalled job + increase executor count to 8', description: 'Terminate the monopolizing integration test job and scale Jenkins executors from 4 to 8 to prevent recurrence.', risk: 'low', reversible: true, model: 'fast' },
+  ],
+  ap11: [
+    { id: 'ap11-o1', title: 'Restart metrics adapter + update egress network policy', description: 'Restart the custom metrics adapter pod and add an egress rule permitting adapter → Prometheus communication.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'ap11-o2', title: 'Fall back to CPU-only HPA scaling', description: 'Remove the custom metrics configuration and revert the HPA to native CPU utilization-based scaling.', risk: 'medium', reversible: true, model: 'fast' },
+  ],
+  ap12: [
+    { id: 'ap12-o1', title: 'CoreDNS cache flush + registry mirror config update', description: 'Flush CoreDNS caches on affected nodes and update the registry mirror to the corrected endpoint.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'ap12-o2', title: 'Configure pods to pull via registry node IP', description: 'Patch pod specs to reference the registry by direct node IP, bypassing DNS resolution until the record propagates.', risk: 'medium', reversible: true, model: 'fast' },
+  ],
+  ap13: [], // Investigating — options pending root cause confirmation
+  ap14: [
+    { id: 'ap14-o1', title: 'Reconfigure chronyd to corporate NTP pool + restart service', description: 'Update chronyd to use the corporate NTP pool and restart the time synchronization service on all 3 nodes.', risk: 'low', reversible: true, model: 'fast' },
+  ],
+  ap15: [
+    { id: 'ap15-o1', title: 'Restore pruner RBAC permissions + manual prune run', description: 'Restore the delete-image-manifests permission to the registry pruner service account and trigger a manual prune.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'ap15-o2', title: 'Direct manifest deletion by cluster-admin', description: 'Manually delete the 847 MB of unreferenced manifests using cluster-admin credentials, bypassing the pruner workflow.', risk: 'medium', reversible: false, model: 'fast' },
+  ],
+};
+
 // ─── AI disclosure ────────────────────────────────────────────────────────────
 
 const AI_TOOLTIP =
@@ -1032,56 +1123,131 @@ const generateAiInsight = (plan: PlanRow): string =>
   `with a blast radius spanning ${plan.blastRadius}. The agent has isolated the root cause and assembled ` +
   `a verified remediation strategy designed to restore system health with minimal operational risk.`;
 
-// ─── Drawer: Remediation Hub action buttons ───────────────────────────────────
+// ─── Drawer: Remediation option card ─────────────────────────────────────────
 
-const RemediationHubActions: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+const RemediationOptionCard: React.FC<{
+  option: RemediationOption;
+  index: number;
+  plan: PlanRow;
+}> = ({ option, index, plan }) => {
+  const isFirst = index === 0;
   const { status, isUnauthorized } = plan;
+  const isInvestigating = status === 'Investigating';
+  const isTerminal = status === 'Completed' || status === 'Failed';
+  const isRemediating = status === 'Remediating';
 
-  if (status === 'Investigating') {
+  const renderButton = () => {
+    if (isInvestigating) return null;
+
+    if (isTerminal) {
+      return isFirst ? (
+        <Button variant="link" isInline>View execution log</Button>
+      ) : null;
+    }
+
+    if (isRemediating) {
+      return isFirst ? (
+        <Button variant="primary" isDisabled>Applying fix… ⚙</Button>
+      ) : (
+        <Button variant="secondary" size="sm" isDisabled>
+          Apply option {index + 1}
+        </Button>
+      );
+    }
+
+    // Waiting Approval
+    if (isUnauthorized) {
+      return (
+        <Tooltip
+          content="You have Read-Only access to this plan. Authorizing remediation requires elevated cluster privileges."
+          position="top"
+        >
+          <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
+            <Button
+              variant={isFirst ? 'primary' : 'secondary'}
+              size={isFirst ? undefined : 'sm'}
+              isDisabled
+              style={{ pointerEvents: 'none' }}
+            >
+              {isFirst ? (
+                <>Approve &amp; execute&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} /></>
+              ) : (
+                <>Apply option {index + 1}&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} /></>
+              )}
+            </Button>
+          </span>
+        </Tooltip>
+      );
+    }
+
     return (
+      <Button variant={isFirst ? 'primary' : 'secondary'} size={isFirst ? undefined : 'sm'}>
+        {isFirst ? 'Approve & execute' : `Apply option ${index + 1}`}
+      </Button>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        borderRadius: 'var(--pf-t--global--border--radius--default)',
+        border: `1px solid ${
+          isFirst
+            ? 'var(--pf-t--global--color--status--info--default)'
+            : 'var(--pf-t--global--border--color--default)'
+        }`,
+        padding: 'var(--pf-t--global--spacer--md)',
+        backgroundColor: isFirst
+          ? 'var(--pf-t--global--background--color--primary--default)'
+          : 'var(--pf-t--global--background--color--secondary--default)',
+      }}
+    >
+      {/* ── Header row ── */}
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+      >
+        <span className="ols-aio-text-overline">Option {index + 1}</span>
+        {isFirst && <Label color="blue" isCompact>AI recommended</Label>}
+        {isTerminal && isFirst && (
+          <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
+            {status === 'Completed' ? 'Executed' : 'Failed'}
+          </Label>
+        )}
+      </Flex>
+
+      {/* ── Title ── */}
+      <Title headingLevel="h5" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+        {option.title}
+      </Title>
+
+      {/* ── Description ── */}
       <Content
         component="p"
         className="ols-aio-text-subtle-sm"
-        style={{ fontStyle: 'italic', margin: 0 }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
       >
-        Remediation options will be available after root cause analysis completes.
+        {option.description}
       </Content>
-    );
-  }
 
-  if (status === 'Completed' || status === 'Failed') {
-    return (
-      <Button variant="link" isInline>
-        View execution log
-      </Button>
-    );
-  }
+      {/* ── Labels ── */}
+      <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+        <Label color={RISK_COLOR[option.risk]} variant="outline" isCompact>
+          {RISK_LABEL[option.risk]}
+        </Label>
+        <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
+          {option.reversible ? 'Reversible' : 'Non-reversible'}
+        </Label>
+        <Label color={option.model === 'smart' ? 'purple' : 'teal'} variant="outline" isCompact>
+          {option.model === 'smart' ? 'Smart model' : 'Fast model'}
+        </Label>
+      </Flex>
 
-  if (status === 'Remediating') {
-    return (
-      <Button variant="primary" isDisabled>
-        Applying fix… ⚙
-      </Button>
-    );
-  }
-
-  // Waiting Approval
-  if (isUnauthorized) {
-    return (
-      <Tooltip
-        content="You have Read-Only access to this plan. Authorizing remediation requires elevated cluster privileges."
-        position="top"
-      >
-        <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
-          <Button variant="primary" isDisabled style={{ pointerEvents: 'none' }}>
-            Approve &amp; execute&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
-          </Button>
-        </span>
-      </Tooltip>
-    );
-  }
-
-  return <Button variant="primary">Approve &amp; execute</Button>;
+      {/* ── Action button ── */}
+      {renderButton()}
+    </div>
+  );
 };
 
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
@@ -1248,41 +1414,67 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
       {/* ── Section D: Remediation Hub ────────────────────────────────── */}
       <StackItem>
-        <ExpandableSection
-          toggleText=""
-          isExpanded={openRem}
-          onToggle={(_e, expanded) => setOpenRem(expanded)}
-          toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }}>
-              <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-              <Title headingLevel="h4" size="md">Remediation Hub</Title>
-            </Flex>
-          }
-        >
-          <div className="ols-aio-remediation-box">
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+        {(() => {
+          const options = PLAN_REMEDIATION_OPTIONS[plan.id] ?? [];
+          const isInvestigating = plan.status === 'Investigating';
+          const optionCount = options.length;
+          const optionLabel = optionCount === 1 ? '1 remediation option' : `${optionCount} remediation options`;
+
+          return (
+            <ExpandableSection
+              toggleText=""
+              isExpanded={openRem}
+              onToggle={(_e, expanded) => setOpenRem(expanded)}
+              toggleContent={
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
+                  <Title headingLevel="h4" size="md">Remediation Hub</Title>
+                  {optionCount > 0 && (
+                    <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
+                  )}
+                </Flex>
+              }
             >
-              <TerminalIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
-              <span className="ols-aio-text-overline">Recommended Action</span>
-            </Flex>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              {drawer.remediationProposal}{' '}
-              <span style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>
-                {drawer.estimatedRecovery}
-              </span>
-            </Content>
-            <Content
-              component="p"
-              className="ols-aio-text-subtle-sm"
-              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-            >
-              {drawer.riskAssessment}
-            </Content>
-            <RemediationHubActions plan={plan} />
-          </div>
-        </ExpandableSection>
+              <div className="ols-aio-remediation-box">
+                {isInvestigating || optionCount === 0 ? (
+                  <>
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                    >
+                      <TerminalIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+                      <span className="ols-aio-text-overline">Recommended Action</span>
+                    </Flex>
+                    <Content
+                      component="p"
+                      className="ols-aio-text-subtle-sm"
+                      style={{ fontStyle: 'italic', margin: 0 }}
+                    >
+                      Remediation options will be available after root cause analysis completes.
+                    </Content>
+                  </>
+                ) : (
+                  <>
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                    >
+                      <TerminalIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+                      <span className="ols-aio-text-overline">{optionLabel}</span>
+                    </Flex>
+                    <Stack hasGutter>
+                      {options.map((opt, idx) => (
+                        <StackItem key={opt.id}>
+                          <RemediationOptionCard option={opt} index={idx} plan={plan} />
+                        </StackItem>
+                      ))}
+                    </Stack>
+                  </>
+                )}
+              </div>
+            </ExpandableSection>
+          );
+        })()}
       </StackItem>
     </Stack>
   );
