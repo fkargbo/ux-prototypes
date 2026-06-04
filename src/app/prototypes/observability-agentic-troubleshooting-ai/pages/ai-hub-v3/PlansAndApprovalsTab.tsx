@@ -1071,103 +1071,134 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
 // ─── Fixed-position side panel ────────────────────────────────────────────────
 //
-// Rendered via React portal-like fixed positioning so it always anchors to the
-// right viewport edge and fills the full viewport height — independent of any
-// parent container max-width or padding constraints.
+// Position: fixed so the panel anchors to the viewport's right edge regardless
+// of any parent container constraints.
+//
+// The panel's `top` is measured dynamically from the PF page main-container's
+// top edge so it aligns with the start of the page content area (below the
+// masthead + any app chrome).
+//
+// Z-index 150: above the page main content (PF z-index--xs = 100) but safely
+// below the PF sidebar (z-index--sm = 200) and masthead (z-index--md = 300).
+
+const usePanelTop = (): number => {
+  const [panelTop, setPanelTop] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    const measure = () => {
+      const mainContainer = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
+      if (mainContainer) {
+        setPanelTop(mainContainer.getBoundingClientRect().top);
+      }
+    };
+
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  return panelTop;
+};
 
 const RemediationSidePanel: React.FC<{ plan: PlanRow; onClose: () => void }> = ({
   plan,
   onClose,
-}) => (
-  <>
-    {/* Transparent hit-target scrim — click outside to close */}
-    <div
-      aria-hidden="true"
-      style={{ position: 'fixed', inset: 0, zIndex: 199 }}
-      onClick={onClose}
-    />
+}) => {
+  const panelTop = usePanelTop();
 
-    {/* Panel shell */}
-    <div
-      role="complementary"
-      aria-label={`Remediation Blueprint: ${plan.synopsis}`}
-      style={{
-        position: 'fixed',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: '35%',
-        minWidth: '420px',
-        maxWidth: '640px',
-        zIndex: 200,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-        borderLeft: '1px solid var(--pf-t--global--border--color--default)',
-        boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.12)',
-      }}
-    >
-      {/* ── Panel header ─────────────────────────────────────────────── */}
+  return (
+    <>
+      {/* Transparent hit-target scrim — click outside to close.
+          z-index 149 keeps it below the panel (150) and below the
+          masthead (300) / sidebar (200). */}
       <div
+        aria-hidden="true"
+        style={{ position: 'fixed', inset: 0, zIndex: 149 }}
+        onClick={onClose}
+      />
+
+      {/* Panel shell */}
+      <div
+        role="complementary"
+        aria-label={`Remediation Blueprint: ${plan.synopsis}`}
         style={{
-          flexShrink: 0,
-          padding: '16px 20px',
-          borderBottom: '1px solid var(--pf-t--global--border--color--default)',
+          position: 'fixed',
+          top: panelTop,
+          right: 0,
+          bottom: 0,
+          width: '35%',
+          minWidth: '420px',
+          maxWidth: '640px',
+          zIndex: 150,
           display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: '12px',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+          borderLeft: '1px solid var(--pf-t--global--border--color--default)',
+          boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.12)',
         }}
       >
-        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            gap={{ default: 'gapSm' }}
-            flexWrap={{ default: 'nowrap' }}
-          >
-            <FlexItem style={{ flexShrink: 0 }}>
-              <AiIcon size={16} />
-            </FlexItem>
-            <FlexItem style={{ minWidth: 0 }}>
-              <Title
-                headingLevel="h3"
-                size="md"
-                style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
-              >
-                {plan.synopsis}
-              </Title>
-            </FlexItem>
-          </Flex>
-          <div style={{ marginTop: '6px' }}>
-            <StatusLabel status={plan.status} />
+        {/* ── Panel header ─────────────────────────────────────────────── */}
+        <div
+          style={{
+            flexShrink: 0,
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--pf-t--global--border--color--default)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              gap={{ default: 'gapSm' }}
+              flexWrap={{ default: 'nowrap' }}
+            >
+              <FlexItem style={{ flexShrink: 0 }}>
+                <AiIcon size={16} />
+              </FlexItem>
+              <FlexItem style={{ minWidth: 0 }}>
+                <Title
+                  headingLevel="h3"
+                  size="md"
+                  style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
+                >
+                  {plan.synopsis}
+                </Title>
+              </FlexItem>
+            </Flex>
+            <div style={{ marginTop: '6px' }}>
+              <StatusLabel status={plan.status} />
+            </div>
           </div>
+
+          <Button
+            variant="plain"
+            aria-label="Close Remediation Blueprint panel"
+            onClick={onClose}
+            style={{ flexShrink: 0, marginTop: '2px' }}
+          >
+            <TimesIcon />
+          </Button>
         </div>
 
-        <Button
-          variant="plain"
-          aria-label="Close Remediation Blueprint panel"
-          onClick={onClose}
-          style={{ flexShrink: 0, marginTop: '2px' }}
+        {/* ── Scrollable panel body ─────────────────────────────────────── */}
+        <div
+          style={{
+            flex: '1 1 auto',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            padding: '24px 20px',
+          }}
         >
-          <TimesIcon />
-        </Button>
+          <RemediationBlueprintPanel plan={plan} />
+        </div>
       </div>
-
-      {/* ── Scrollable panel body ─────────────────────────────────────── */}
-      <div
-        style={{
-          flex: '1 1 auto',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          padding: '24px 20px',
-        }}
-      >
-        <RemediationBlueprintPanel plan={plan} />
-      </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 // ─── Exported tab content ─────────────────────────────────────────────────────
 
