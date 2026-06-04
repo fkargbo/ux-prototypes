@@ -1,11 +1,33 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   Button,
+  Card,
+  CardBody,
+  CardHeader,
+  CardTitle,
+  Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
+  Drawer,
+  DrawerActions,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerHead,
+  DrawerPanelBody,
+  DrawerPanelContent,
   Flex,
   FlexItem,
   Label,
   Pagination,
   PaginationVariant,
+  ProgressStep,
+  ProgressStepper,
+  Spinner,
   Stack,
   StackItem,
   Title,
@@ -349,6 +371,11 @@ const AiSparkle: React.FC<{ size?: number }> = ({ size = 14 }) => (
   </Tooltip>
 );
 
+// Standalone AI icon (no tooltip wrapper) used inside drawer sections
+const AiIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <img src={AI_EXPERIENCE_ICON_DATA_URL} alt="" aria-hidden="true" width={size} height={size} style={{ display: 'block', flexShrink: 0 }} />
+);
+
 // ─── Severity badge ───────────────────────────────────────────────────────────
 
 const SeverityBadge: React.FC<{ severity: PlanSeverity }> = ({ severity }) =>
@@ -378,13 +405,18 @@ const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
 
 // ─── RBAC-aware action cell ───────────────────────────────────────────────────
 
-const ActionCell: React.FC<{ status: PlanStatus; isUnauthorized: boolean }> = ({
-  status,
-  isUnauthorized,
-}) => {
+interface ActionCellProps {
+  status: PlanStatus;
+  isUnauthorized: boolean;
+  onReview: () => void;
+}
+
+const ActionCell: React.FC<ActionCellProps> = ({ status, isUnauthorized, onReview }) => {
   if (status === 'Investigating' || status === 'Remediating') {
     return (
-      <Button variant="secondary" size="sm">Review plan</Button>
+      <Button variant="secondary" size="sm" onClick={onReview}>
+        Review plan
+      </Button>
     );
   }
 
@@ -402,6 +434,7 @@ const ActionCell: React.FC<{ status: PlanStatus; isUnauthorized: boolean }> = ({
               isInline
               isDisabled
               style={{ pointerEvents: 'none' }}
+              onClick={onReview}
             >
               View details&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
             </Button>
@@ -410,7 +443,7 @@ const ActionCell: React.FC<{ status: PlanStatus; isUnauthorized: boolean }> = ({
       );
     }
     return (
-      <Button variant="secondary" size="sm">
+      <Button variant="secondary" size="sm" onClick={onReview}>
         Review plan
       </Button>
     );
@@ -418,7 +451,7 @@ const ActionCell: React.FC<{ status: PlanStatus; isUnauthorized: boolean }> = ({
 
   // Completed | Failed
   return (
-    <Button variant="link" isInline>
+    <Button variant="link" isInline onClick={onReview}>
       View summary
     </Button>
   );
@@ -434,10 +467,6 @@ const AiColumnHeader: React.FC<{ label: string }> = ({ label }) => (
 );
 
 // ─── Core stateless table renderer ───────────────────────────────────────────
-//
-// Both TopPlansTable and AllPlansTable render PlansTableCore.
-// Each Tbody wraps one main row + one expandable detail row — PF's standard
-// one-Tbody-per-row expandable pattern.
 
 interface PlansTableCoreProps {
   rows: PlanRow[];
@@ -445,6 +474,7 @@ interface PlansTableCoreProps {
   startIndex: number;
   expandedRows: Set<string>;
   onToggle: (id: string) => void;
+  onReviewPlan: (plan: PlanRow) => void;
 }
 
 const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -453,11 +483,11 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   startIndex,
   expandedRows,
   onToggle,
+  onReviewPlan,
 }) => (
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        {/* Expand toggle column — no visible header */}
         <Th screenReaderText="Row expansion" style={{ width: '4%' }} />
         <Th style={{ width: '6%' }}>Severity</Th>
         <Th style={{ width: '7%' }}><AiColumnHeader label="Impact score" /></Th>
@@ -517,7 +547,11 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             </Td>
 
             <Td dataLabel="Action">
-              <ActionCell status={row.status} isUnauthorized={row.isUnauthorized} />
+              <ActionCell
+                status={row.status}
+                isUnauthorized={row.isUnauthorized}
+                onReview={() => onReviewPlan(row)}
+              />
             </Td>
           </Tr>
 
@@ -570,7 +604,11 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
 // ─── Top plans table (no pagination, own expand state) ───────────────────────
 
-const TopPlansTable: React.FC = () => {
+interface TopPlansTableProps {
+  onReviewPlan: (plan: PlanRow) => void;
+}
+
+const TopPlansTable: React.FC<TopPlansTableProps> = ({ onReviewPlan }) => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = useCallback((id: string) => {
@@ -589,6 +627,7 @@ const TopPlansTable: React.FC = () => {
       startIndex={0}
       expandedRows={expandedRows}
       onToggle={toggleRow}
+      onReviewPlan={onReviewPlan}
     />
   );
 };
@@ -597,7 +636,11 @@ const TopPlansTable: React.FC = () => {
 
 const DEFAULT_PER_PAGE = 10;
 
-const AllPlansTable: React.FC = () => {
+interface AllPlansTableProps {
+  onReviewPlan: (plan: PlanRow) => void;
+}
+
+const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan }) => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
@@ -661,6 +704,7 @@ const AllPlansTable: React.FC = () => {
         startIndex={start}
         expandedRows={expandedRows}
         onToggle={toggleRow}
+        onReviewPlan={onReviewPlan}
       />
       <Pagination
         {...paginationProps}
@@ -691,38 +735,442 @@ const SectionHeader: React.FC<{ title: string; threshold: React.ReactNode }> = (
   </Flex>
 );
 
+// ─── Drawer: AI insight helper ────────────────────────────────────────────────
+
+const generateAiInsight = (plan: PlanRow): string =>
+  `Automated analysis correlated ${plan.consolidationScope} from the ${plan.triggerDomains} domain, ` +
+  `with a blast radius spanning ${plan.blastRadius}. The agent has isolated the root cause and assembled ` +
+  `a verified remediation strategy designed to restore system health with minimal operational risk.`;
+
+// ─── Drawer: Progress stepper step states ────────────────────────────────────
+
+interface StepStates {
+  step1Variant: 'success';
+  step2Variant: 'success' | 'info';
+  step2Current: boolean;
+  step3Variant: 'success' | 'info';
+  step3Current: boolean;
+  step3Description: React.ReactNode;
+}
+
+const getStepStates = (status: PlanStatus): StepStates => {
+  if (status === 'Investigating') {
+    return {
+      step1Variant: 'success',
+      step2Variant: 'success',
+      step2Current: false,
+      step3Variant: 'info',
+      step3Current: true,
+      step3Description: (
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <FlexItem><Spinner size="sm" aria-label="Assembling remediation choices" /></FlexItem>
+          <FlexItem>Assembling choices...</FlexItem>
+        </Flex>
+      ),
+    };
+  }
+  return {
+    step1Variant: 'success',
+    step2Variant: 'success',
+    step2Current: false,
+    step3Variant: 'success',
+    step3Current: false,
+    step3Description: '2 remediation paths identified',
+  };
+};
+
+// ─── Drawer: Remediation option cards ────────────────────────────────────────
+
+const RemediationOption1: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+  const canApprove = plan.status === 'Waiting Approval' && !plan.isUnauthorized;
+  const rbacLabel = plan.isUnauthorized
+    ? <Label color="red" isCompact variant="outline"><LockIcon /> Unauthorized</Label>
+    : <Label color="green" isCompact variant="outline">Authorized</Label>;
+
+  return (
+    <Card
+      isCompact
+      style={{
+        borderLeft: '3px solid var(--pf-t--global--color--status--info--default)',
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+      }}
+    >
+      <CardHeader>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <FlexItem><AiIcon size={14} /></FlexItem>
+          <FlexItem>
+            <Label color="blue" isCompact>AI recommended</Label>
+          </FlexItem>
+          <FlexItem>
+            <CardTitle>Primary automated fix</CardTitle>
+          </FlexItem>
+        </Flex>
+      </CardHeader>
+      <CardBody>
+        <DescriptionList isCompact isHorizontal columnModifier={{ default: '1Col' }}>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Risk</DescriptionListTerm>
+            <DescriptionListDescription>
+              <Label color="green" isCompact variant="outline">Low risk</Label>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Reversibility</DescriptionListTerm>
+            <DescriptionListDescription>
+              1-click rollback enabled (GitOps sync-back)
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>RBAC validation</DescriptionListTerm>
+            <DescriptionListDescription>{rbacLabel}</DescriptionListDescription>
+          </DescriptionListGroup>
+        </DescriptionList>
+
+        <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+          {plan.isUnauthorized ? (
+            <Tooltip
+              content="You have Read-Only access to this plan. Authorizing remediation requires elevated cluster privileges."
+              position="top"
+            >
+              <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
+                <Button variant="primary" isDisabled style={{ pointerEvents: 'none' }}>
+                  Approve &amp; execute&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
+                </Button>
+              </span>
+            </Tooltip>
+          ) : (
+            <Button variant="primary" isDisabled={!canApprove}>
+              Approve &amp; execute
+            </Button>
+          )}
+        </div>
+      </CardBody>
+    </Card>
+  );
+};
+
+const RemediationOption2: React.FC = () => (
+  <Card
+    isCompact
+    style={{
+      borderLeft: '3px solid var(--pf-t--global--border--color--default)',
+      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+    }}
+  >
+    <CardHeader>
+      <Label color="grey" isCompact>Manual fallback</Label>
+      <span style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}>
+        <CardTitle>Manual workaround script</CardTitle>
+      </span>
+    </CardHeader>
+    <CardBody>
+      <DescriptionList isCompact isHorizontal columnModifier={{ default: '1Col' }}>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Risk</DescriptionListTerm>
+          <DescriptionListDescription>
+            <Label color="orange" isCompact variant="outline">Medium risk</Label>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Reversibility</DescriptionListTerm>
+          <DescriptionListDescription>
+            Manual rollback required (git commit rebase)
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>RBAC validation</DescriptionListTerm>
+          <DescriptionListDescription>
+            <Label color="red" isCompact variant="outline"><LockIcon /> Unauthorized</Label>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      </DescriptionList>
+
+      <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+        <Tooltip
+          content="This action requires cluster-admin or operator-lifecycle-manager permissions."
+          position="top"
+        >
+          <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
+            <Button variant="secondary" isDisabled style={{ pointerEvents: 'none' }}>
+              Insufficient privileges&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
+            </Button>
+          </span>
+        </Tooltip>
+      </div>
+    </CardBody>
+  </Card>
+);
+
+// ─── Drawer: Post-mortem summary (Completed | Failed) ────────────────────────
+
+const POST_MORTEM_TIMESTAMPS: Record<string, string> = {
+  tp5: '2026-06-04T07:14:31Z',
+  ap6: '2026-06-04T08:02:55Z',
+  ap10: '2026-06-04T06:47:12Z',
+  ap14: '2026-06-03T22:31:09Z',
+  ap5: '2026-06-04T06:52:17Z',
+};
+
+const PostMortemSummary: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+  const isCompleted = plan.status === 'Completed';
+  const timestamp = POST_MORTEM_TIMESTAMPS[plan.id] ?? '2026-06-04T05:00:00Z';
+
+  return (
+    <Card
+      isCompact
+      style={{
+        borderLeft: `3px solid var(--pf-t--global--color--status--${isCompleted ? 'success' : 'danger'}--default)`,
+      }}
+    >
+      <CardHeader>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <FlexItem>
+            <Label color={isCompleted ? 'green' : 'red'} isCompact>
+              {isCompleted ? 'Execution completed' : 'Execution failed'}
+            </Label>
+          </FlexItem>
+          <FlexItem>
+            <CardTitle>Post-mortem summary</CardTitle>
+          </FlexItem>
+        </Flex>
+      </CardHeader>
+      <CardBody>
+        <DescriptionList isCompact isHorizontal columnModifier={{ default: '1Col' }}>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Timestamp</DescriptionListTerm>
+            <DescriptionListDescription>
+              <code style={{ fontSize: '12px' }}>{timestamp}</code>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          {isCompleted ? (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Outcome</DescriptionListTerm>
+              <DescriptionListDescription>
+                All affected {plan.blastRadius} resources returned to a healthy state. GitOps sync confirmed.
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ) : (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Error trace</DescriptionListTerm>
+              <DescriptionListDescription>
+                <code
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--pf-t--global--color--status--danger--default)',
+                    display: 'block',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  ERR_REMEDIATION_ROLLBACK_CONFLICT: Replica set scaling timeout after 300s.
+                  Cluster state unchanged. No resources were modified.
+                </code>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+        </DescriptionList>
+      </CardBody>
+    </Card>
+  );
+};
+
+// ─── Drawer: Remediation Blueprint panel body ─────────────────────────────────
+
+const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+  const isTerminal = plan.status === 'Completed' || plan.status === 'Failed';
+  const stepStates = getStepStates(plan.status);
+
+  return (
+    <Stack hasGutter>
+      {/* ── Section A: AI Insight Banner ──────────────────────────────── */}
+      <StackItem>
+        <Alert
+          variant="info"
+          isInline
+          title="AI synthesis"
+          customIcon={
+            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <AiIcon size={16} />
+            </span>
+          }
+        >
+          <Content component="p" style={{ margin: 0 }}>
+            {generateAiInsight(plan)}
+          </Content>
+        </Alert>
+      </StackItem>
+
+      <Divider />
+
+      {/* ── Section B: Diagnostic Lifecycle Flow ──────────────────────── */}
+      <StackItem>
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          Remediation Blueprint
+        </Title>
+        <ProgressStepper isVertical aria-label="Remediation lifecycle steps">
+          <ProgressStep
+            variant={stepStates.step1Variant}
+            id="step-ingestion"
+            titleId="step-ingestion-title"
+            aria-label="Ingestion and Correlation: complete"
+            description={`Ingested ${plan.consolidationScope} from ${plan.triggerDomains}`}
+          >
+            Ingestion &amp; Correlation
+          </ProgressStep>
+
+          <ProgressStep
+            variant={stepStates.step2Variant}
+            isCurrent={stepStates.step2Current}
+            id="step-rca"
+            titleId="step-rca-title"
+            aria-label="Root-Cause Isolation: complete"
+            description={`Root cause isolated across ${plan.blastRadius}`}
+          >
+            Root-Cause Isolation
+          </ProgressStep>
+
+          <ProgressStep
+            variant={stepStates.step3Variant}
+            isCurrent={stepStates.step3Current}
+            id="step-options"
+            titleId="step-options-title"
+            aria-label={
+              stepStates.step3Current
+                ? 'Option Matrix Synthesis: in progress'
+                : 'Option Matrix Synthesis: complete'
+            }
+            description={stepStates.step3Description}
+          >
+            Option Matrix Synthesis
+          </ProgressStep>
+        </ProgressStepper>
+      </StackItem>
+
+      <Divider />
+
+      {/* ── Section C: Remediation Options or Post-mortem ─────────────── */}
+      <StackItem>
+        {isTerminal ? (
+          <>
+            <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              Execution summary
+            </Title>
+            <PostMortemSummary plan={plan} />
+          </>
+        ) : (
+          <>
+            <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              Available remediation options
+            </Title>
+            <Stack hasGutter>
+              <StackItem>
+                <RemediationOption1 plan={plan} />
+              </StackItem>
+              <StackItem>
+                <RemediationOption2 />
+              </StackItem>
+            </Stack>
+          </>
+        )}
+      </StackItem>
+    </Stack>
+  );
+};
+
 // ─── Exported tab content ─────────────────────────────────────────────────────
 
-export const PlansAndApprovalsTab: React.FC = () => (
-  <Stack hasGutter style={{ rowGap: 'var(--pf-t--global--spacer--xl)' }}>
-    <StackItem>
-      <SectionHeader
-        title="Top plans"
-        threshold={
-          <Label color="blue" isCompact>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-              <FlexItem><AiSparkle size={12} /></FlexItem>
-              <FlexItem>Impact score &ge;&nbsp;80</FlexItem>
-            </Flex>
-          </Label>
-        }
-      />
-      <TopPlansTable />
-    </StackItem>
+export const PlansAndApprovalsTab: React.FC = () => {
+  const [selectedPlan, setSelectedPlan] = useState<PlanRow | null>(null);
+  const isDrawerOpen = selectedPlan !== null;
 
-    <StackItem>
-      <SectionHeader
-        title="All plans"
-        threshold={
-          <Label color="blue" isCompact>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-              <FlexItem><AiSparkle size={12} /></FlexItem>
-              <FlexItem>Impact score &lt;&nbsp;80</FlexItem>
+  const handleReviewPlan = useCallback((plan: PlanRow) => {
+    setSelectedPlan(plan);
+  }, []);
+
+  const handleCloseDrawer = useCallback(() => {
+    setSelectedPlan(null);
+  }, []);
+
+  const drawerPanelContent = selectedPlan ? (
+    <DrawerPanelContent
+      widths={{ default: 'width_33' }}
+      isResizable
+      style={{ minWidth: '360px' }}
+    >
+      <DrawerHead>
+        <Flex
+          alignItems={{ default: 'alignItemsFlexStart' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          flexWrap={{ default: 'nowrap' }}
+          gap={{ default: 'gapMd' }}
+        >
+          <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+              <FlexItem style={{ flexShrink: 0 }}><AiIcon size={16} /></FlexItem>
+              <FlexItem style={{ minWidth: 0 }}>
+                <Title
+                  headingLevel="h3"
+                  size="md"
+                  style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
+                >
+                  {selectedPlan.synopsis}
+                </Title>
+              </FlexItem>
             </Flex>
-          </Label>
-        }
-      />
-      <AllPlansTable />
-    </StackItem>
-  </Stack>
-);
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+              <StatusLabel status={selectedPlan.status} />
+            </div>
+          </FlexItem>
+          <FlexItem style={{ flexShrink: 0 }}>
+            <DrawerActions>
+              <DrawerCloseButton onClick={handleCloseDrawer} />
+            </DrawerActions>
+          </FlexItem>
+        </Flex>
+      </DrawerHead>
+      <DrawerPanelBody style={{ overflowY: 'auto' }}>
+        <RemediationBlueprintPanel plan={selectedPlan} />
+      </DrawerPanelBody>
+    </DrawerPanelContent>
+  ) : undefined;
+
+  return (
+    <Drawer isExpanded={isDrawerOpen} position="end" style={{ overflow: 'visible' }}>
+      <DrawerContent panelContent={drawerPanelContent}>
+        <DrawerContentBody style={{ overflowX: 'auto' }}>
+          <Stack hasGutter style={{ rowGap: 'var(--pf-t--global--spacer--xl)' }}>
+            <StackItem>
+              <SectionHeader
+                title="Top plans"
+                threshold={
+                  <Label color="blue" isCompact>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                      <FlexItem><AiSparkle size={12} /></FlexItem>
+                      <FlexItem>Impact score &ge;&nbsp;80</FlexItem>
+                    </Flex>
+                  </Label>
+                }
+              />
+              <TopPlansTable onReviewPlan={handleReviewPlan} />
+            </StackItem>
+
+            <StackItem>
+              <SectionHeader
+                title="All plans"
+                threshold={
+                  <Label color="blue" isCompact>
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                      <FlexItem><AiSparkle size={12} /></FlexItem>
+                      <FlexItem>Impact score &lt;&nbsp;80</FlexItem>
+                    </Flex>
+                  </Label>
+                }
+              />
+              <AllPlansTable onReviewPlan={handleReviewPlan} />
+            </StackItem>
+          </Stack>
+        </DrawerContentBody>
+      </DrawerContent>
+    </Drawer>
+  );
+};
