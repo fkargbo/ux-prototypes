@@ -475,7 +475,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
       return (
         <Tbody key={row.id} isExpanded={isExpanded}>
           {/* ── Main data row ─────────────────────────────────────────── */}
-          <Tr>
+          <Tr style={{ verticalAlign: 'middle' }}>
             <Td
               expand={{
                 rowIndex: startIndex + idx,
