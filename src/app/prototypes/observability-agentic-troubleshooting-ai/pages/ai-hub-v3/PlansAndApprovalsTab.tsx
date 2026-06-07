@@ -904,7 +904,43 @@ Exit code: 0 — Execution succeeded.`,
   },
 };
 
-// ─── AI disclosure ────────────────────────────────────────────────────────────
+// ─── Runtime post-mortem synthesis ────────────────────────────────────────────
+// Generates a realistic Completed post-mortem for plans that were just executed
+// locally (i.e., plans that don't have a static PLAN_POSTMORTEM entry).
+const generatePostMortem = (plan: PlanRow): PlanPostMortem => {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const timeStr = `${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][now.getDay()]} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} UTC`;
+  // Deterministic hex ref derived from the plan id so it stays stable on re-render.
+  const hashSeed = plan.id.split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) & 0xffffffff, 0);
+  const gitRef = Math.abs(hashSeed).toString(16).padStart(8, '0').slice(0, 8);
+  const targetCount = plan.drawerTargets.length;
+  const durationSecs = 12 + targetCount * 5;
+  const recoveryMs = now.getTime() + durationSecs * 1000;
+  const recoveredAt = (() => {
+    const r = new Date(recoveryMs);
+    return `${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][r.getDay()]} ${pad(r.getHours())}:${pad(r.getMinutes())}:${pad(r.getSeconds())} UTC`;
+  })();
+  const drawer = PLAN_DRAWER_DATA[plan.id];
+  const cmd = drawer?.remediationProposal ?? `Applying automated fix for: ${plan.synopsis}`;
+  const targetLines = plan.drawerTargets
+    .map((t, i) => `[${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds() + i + 1)} UTC] ✓ Applied to target: ${t}`)
+    .join('\n');
+  return {
+    type: 'success',
+    appliedAt: timeStr,
+    executionDuration: `${durationSecs}s`,
+    gitCommitRef: gitRef,
+    recoveredAt,
+    rawLog:
+`[${timeStr}] Initiating remediation: ${plan.synopsis}
+[${timeStr}] Strategy: ${cmd}
+${targetLines}
+[${recoveredAt}] ✓ All ${targetCount} target${targetCount !== 1 ? 's' : ''} updated successfully.
+[${recoveredAt}] Health checks passed. System restored to nominal state.
+Exit code: 0 — Execution succeeded.`,
+  };
+};
 
 const AI_TOOLTIP =
   'This metric is synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns.';
@@ -1788,15 +1824,8 @@ const HubLockedPlaceholder: React.FC = () => (
 const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const [showLogs, setShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
-  const postMortem = PLAN_POSTMORTEM[plan.id];
-
-  if (!postMortem) {
-    return (
-      <Content component="p" className="ols-aio-text-subtle-sm" style={{ fontStyle: 'italic' }}>
-        No execution record available for this plan.
-      </Content>
-    );
-  }
+  // Fall back to a synthesised post-mortem for plans executed live in this session.
+  const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
   if (postMortem.type === 'success') {
     return (
