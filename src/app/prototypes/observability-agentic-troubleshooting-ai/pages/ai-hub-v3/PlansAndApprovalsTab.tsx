@@ -814,6 +814,12 @@ interface PlanPostMortem {
   failureTrace?: string;
   failureReason?: string;
   rawLog?: string;
+  // Contextual Evidence
+  rootCauseSummary?: string;
+  remediationActionDelta?: string;
+  // Scope Boundaries — fleet targets (cluster names) and single-cluster targets
+  executionTargets?: string[];
+  executionTargetsSC?: string[];
 }
 
 const PLAN_POSTMORTEM: Record<string, PlanPostMortem> = {
@@ -823,6 +829,10 @@ const PLAN_POSTMORTEM: Record<string, PlanPostMortem> = {
     appliedAt: 'Wed 10:04:22 UTC',
     gitCommitRef: 'a3f1b9d4',
     recoveredAt: 'Wed 10:04:55 UTC',
+    rootCauseSummary: 'etcd database fragmentation exceeded 65%, causing API write amplification and elevated P99 latency above 1.2s across all control-plane members.',
+    remediationActionDelta: 'Executed rolling etcd defragmentation across all 3 control-plane members, clearing the compaction backlog and reducing fragmentation from 68% to <5%. API write amplification resolved.',
+    executionTargets: ['prod-us-east-01'],
+    executionTargetsSC: ['master-node-1', 'master-node-2', 'master-node-3'],
     rawLog:
 `[10:04:22 UTC] Starting etcd defragmentation sequence (3 members)...
 [10:04:23 UTC] Defragmenting etcd member: etcd-master-1 (172.16.0.11)
@@ -859,6 +869,10 @@ Exit code: 1`,
     appliedAt: 'Tue 16:18:44 UTC',
     gitCommitRef: 'c7e2f08b',
     recoveredAt: 'Tue 16:18:56 UTC',
+    rootCauseSummary: 'A direct kubectl apply bypassed the GitOps workflow, creating a divergence between live and Git-declared state for 3 resources in the staging namespace.',
+    remediationActionDelta: 'Executed an ArgoCD hard sync against revision c7e2f08b, restoring 3 out-of-sync resources and re-establishing full GitOps control over the staging application.',
+    executionTargets: ['staging-ap-south-01'],
+    executionTargetsSC: ['app-staging'],
     rawLog:
 `[16:18:44 UTC] Initiating ArgoCD hard sync for staging-config-map (revision c7e2f08b)...
 [16:18:45 UTC] Comparing live state against Git-declared configuration...
@@ -875,6 +889,10 @@ Exit code: 0 — Execution succeeded.`,
     appliedAt: 'Mon 09:31:17 UTC',
     gitCommitRef: 'f4a90c12',
     recoveredAt: 'Mon 09:31:25 UTC',
+    rootCauseSummary: 'Jenkins executor pool was under-provisioned at 4 executors, causing queue depth to spike and pipeline runs to stall as concurrent build demand exceeded configured capacity.',
+    remediationActionDelta: 'Patched jenkins-leader StatefulSet to increase JENKINS_MAX_EXECUTORS from 4 to 16 and triggered a rolling restart; all 16 executor slots active and queue depth restored to zero.',
+    executionTargets: ['prod-us-east-01'],
+    executionTargetsSC: ['jenkins-leader'],
     rawLog:
 `[09:31:17 UTC] Targeting deployment/jenkins-leader in continuous-integration...
 [09:31:18 UTC] Setting env: JENKINS_MAX_EXECUTORS=16 (previous value: 4)
@@ -890,6 +908,10 @@ Exit code: 0 — Execution succeeded.`,
     appliedAt: 'Thu 03:45:02 UTC',
     gitCommitRef: 'b1d3e7a9',
     recoveredAt: 'Thu 03:45:24 UTC',
+    rootCauseSummary: 'System clock skew of +847–851ms detected across all cluster nodes due to a stale NTP server reference in chrony.conf, preventing accurate log correlation and etcd lease timing.',
+    remediationActionDelta: 'Updated /etc/chrony.conf on all nodes to point to ntp.corp.redhat.com, restarted chrony-sync-daemon fleet-wide, and reduced clock offset delta to <1ms.',
+    executionTargets: ['prod-us-east-01', 'prod-eu-west-02', 'staging-ap-south-01'],
+    executionTargetsSC: ['worker-node-01', 'worker-node-02', 'worker-node-03', 'master-node-1', 'master-node-2', 'master-node-3'],
     rawLog:
 `[03:45:02 UTC] Connecting to chrony-sync-daemon on openshift-node nodes...
 [03:45:04 UTC] Updating /etc/chrony.conf: pool → ntp.corp.redhat.com iburst
@@ -930,6 +952,10 @@ const generatePostMortem = (plan: PlanRow): PlanPostMortem => {
     executionDuration: `${durationSecs}s`,
     gitCommitRef: gitRef,
     recoveredAt,
+    rootCauseSummary: drawer?.rootCauseNarrative ?? `Automated analysis identified the root cause of: ${plan.synopsis}.`,
+    remediationActionDelta: drawer?.remediationProposal ?? `Applied automated fix targeting ${targetCount} infrastructure object${targetCount !== 1 ? 's' : ''}.`,
+    executionTargets: plan.drawerTargets,
+    executionTargetsSC: plan.drawerTargets,
     rawLog:
 `[${timeStr}] Initiating remediation: ${plan.synopsis}
 [${timeStr}] Strategy: ${cmd}
@@ -1835,6 +1861,8 @@ const PostMortemPanel: React.FC<{
 }> = ({ plan, isMetricsExpanded, onToggleMetrics }) => {
   const [showLogs, setShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
+  const { activePerspective } = useActivePerspective();
+  const isSingleCluster = activePerspective === 'Core platforms';
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -1843,42 +1871,100 @@ const PostMortemPanel: React.FC<{
   const hasToggle = isMetricsExpanded !== undefined && onToggleMetrics !== undefined;
 
   if (postMortem.type === 'success') {
+    const targets = isSingleCluster
+      ? (postMortem.executionTargetsSC ?? postMortem.executionTargets ?? [])
+      : (postMortem.executionTargets ?? []);
+
+    const sectionLabel = (text: string) => (
+      <Content
+        component="small"
+        style={{
+          display: 'block',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          color: 'var(--pf-t--global--text--color--subtle)',
+          marginBottom: 'var(--pf-t--global--spacer--xs)',
+          marginTop: 'var(--pf-t--global--spacer--md)',
+        }}
+      >
+        {text}
+      </Content>
+    );
+
     const metricsBlock = (
       <>
-        {/* ── Header ── */}
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-        >
-          <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
-          <Title headingLevel="h5" size="md">Post-Mortem Execution Summary</Title>
-        </Flex>
+        {/* Section A — Contextual Evidence */}
+        {sectionLabel('Contextual Evidence')}
+        <DescriptionList isHorizontal isAutoColumnWidths isCompact>
+          {postMortem.rootCauseSummary && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Original root cause</DescriptionListTerm>
+              <DescriptionListDescription>{postMortem.rootCauseSummary}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {postMortem.remediationActionDelta && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Remediation delta</DescriptionListTerm>
+              <DescriptionListDescription>{postMortem.remediationActionDelta}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+        </DescriptionList>
 
-        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+        {/* Section B — Execution Scope */}
+        {targets.length > 0 && (
+          <>
+            {sectionLabel('Execution Scope')}
+            <DescriptionList isHorizontal isAutoColumnWidths isCompact>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Targets</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapXs' }}>
+                    {targets.map((t) => (
+                      <Label key={t} color="blue" isCompact>{t}</Label>
+                    ))}
+                  </Flex>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
+          </>
+        )}
 
-        {/* ── Metrics ── */}
-        <DescriptionList isHorizontal isCompact style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Applied</DescriptionListTerm>
-            <DescriptionListDescription>{postMortem.appliedAt}</DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Execution time</DescriptionListTerm>
-            <DescriptionListDescription>{postMortem.executionDuration}</DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Git commit</DescriptionListTerm>
-            <DescriptionListDescription>
-              <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}>
-                #{postMortem.gitCommitRef}
-              </code>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>System restored</DescriptionListTerm>
-            <DescriptionListDescription>{postMortem.recoveredAt}</DescriptionListDescription>
-          </DescriptionListGroup>
+        {/* Section C — Audit Trail */}
+        {sectionLabel('Audit Trail')}
+        <DescriptionList isHorizontal isAutoColumnWidths isCompact style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+          {postMortem.appliedAt && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Applied</DescriptionListTerm>
+              <DescriptionListDescription>{postMortem.appliedAt}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {postMortem.recoveredAt && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>System restored</DescriptionListTerm>
+              <DescriptionListDescription>{postMortem.recoveredAt}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {postMortem.executionDuration && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Execution time</DescriptionListTerm>
+              <DescriptionListDescription>{postMortem.executionDuration}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {postMortem.gitCommitRef && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Git commit</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Button
+                  variant="link"
+                  isInline
+                  style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '13px', padding: 0 }}
+                >
+                  #{postMortem.gitCommitRef}
+                </Button>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
         </DescriptionList>
       </>
     );
@@ -1888,64 +1974,83 @@ const PostMortemPanel: React.FC<{
         style={{
           borderRadius: 'var(--pf-t--global--border--radius--default)',
           border: '1px solid var(--pf-t--global--color--status--success--default)',
-          padding: 'var(--pf-t--global--spacer--md)',
+          overflow: 'hidden',
         }}
       >
-        {/* Metrics — collapsible when toggle props are provided, static otherwise */}
-        {hasToggle ? (
-          <ExpandableSection
-            toggleText={isMetricsExpanded ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
-            isExpanded={isMetricsExpanded}
-            onToggle={(_e, v) => onToggleMetrics!(v)}
-          >
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-              {metricsBlock}
-            </div>
-          </ExpandableSection>
-        ) : (
-          metricsBlock
-        )}
-
-        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
-
-        {/* ── Raw logs toggle — always visible ── */}
-        <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-          <Button
-            variant="link"
-            isInline
-            onClick={() => setShowLogs(!showLogs)}
-            style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
-          >
-            {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
-          </Button>
-          {showLogs && (
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-              <ClipboardCopy
-                variant={ClipboardCopyVariant.expansion}
-                isReadOnly
-                isCode
-                style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-              >
-                {postMortem.rawLog ?? ''}
-              </ClipboardCopy>
-            </div>
-          )}
+        {/* ── Success banner ── */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--pf-t--global--spacer--sm)',
+            padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
+            backgroundColor: 'var(--pf-t--global--color--status--success--default)',
+            color: '#fff',
+          }}
+        >
+          <CheckCircleIcon />
+          <Title headingLevel="h5" size="md" style={{ color: '#fff', margin: 0 }}>
+            Remediation Applied Successfully
+          </Title>
         </div>
 
-        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+        <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
+          {/* Metrics — collapsible when toggle props are provided, static otherwise */}
+          {hasToggle ? (
+            <ExpandableSection
+              toggleText={isMetricsExpanded ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
+              isExpanded={isMetricsExpanded}
+              onToggle={(_e, v) => onToggleMetrics!(v)}
+            >
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                {metricsBlock}
+              </div>
+            </ExpandableSection>
+          ) : (
+            metricsBlock
+          )}
 
-        {/* ── Actions — always visible ── */}
-        <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <Button variant="danger" isDanger>
-            Initiate Rollback
-          </Button>
-          <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">
-            Export to ITSM Ticket
-          </Button>
-          <Button variant="link" icon={<DownloadIcon />} iconPosition="end">
-            Download Post-Mortem Report
-          </Button>
-        </Flex>
+          <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
+
+          {/* ── Raw logs toggle — always visible ── */}
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            <Button
+              variant="link"
+              isInline
+              onClick={() => setShowLogs(!showLogs)}
+              style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
+            >
+              {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
+            </Button>
+            {showLogs && (
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                <ClipboardCopy
+                  variant={ClipboardCopyVariant.expansion}
+                  isReadOnly
+                  isCode
+                  style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                >
+                  {postMortem.rawLog ?? ''}
+                </ClipboardCopy>
+              </div>
+            )}
+          </div>
+
+          <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+
+          {/* ── Actions — always visible ── */}
+          <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <Button variant="danger" isDanger>
+              Initiate Rollback
+            </Button>
+            <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">
+              Export to ITSM Ticket
+            </Button>
+            <Button variant="link" icon={<DownloadIcon />} iconPosition="end">
+              Download Post-Mortem Report
+            </Button>
+          </Flex>
+        </div>
       </div>
     );
   }
