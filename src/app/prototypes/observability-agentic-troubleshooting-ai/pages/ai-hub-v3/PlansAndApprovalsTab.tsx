@@ -25,7 +25,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { BullseyeIcon, CheckCircleIcon, CodeBranchIcon, ExclamationCircleIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { BullseyeIcon, CheckCircleIcon, CodeBranchIcon, ExclamationCircleIcon, ExternalLinkAltIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -752,6 +752,7 @@ interface PlanPostMortem {
   gitCommitRef?: string;
   recoveredAt?: string;
   failureTrace?: string;
+  rawLog?: string;
 }
 
 const PLAN_POSTMORTEM: Record<string, PlanPostMortem> = {
@@ -761,10 +762,21 @@ const PLAN_POSTMORTEM: Record<string, PlanPostMortem> = {
     appliedAt: 'Wed 10:04:22 UTC',
     gitCommitRef: 'a3f1b9d4',
     recoveredAt: 'Wed 10:04:55 UTC',
+    rawLog:
+`[10:04:22 UTC] Starting etcd defragmentation sequence (3 members)...
+[10:04:23 UTC] Defragmenting etcd member: etcd-master-1 (172.16.0.11)
+[10:04:28 UTC] ✓ etcd-master-1 defragmented — 1.2 GB freed, latency: 8ms
+[10:04:31 UTC] Defragmenting etcd member: etcd-master-2 (172.16.0.12)
+[10:04:36 UTC] ✓ etcd-master-2 defragmented — 1.1 GB freed, latency: 9ms
+[10:04:39 UTC] Defragmenting etcd member: etcd-master-3 (172.16.0.13)
+[10:04:55 UTC] ✓ etcd-master-3 defragmented — 1.3 GB freed, latency: 7ms
+[10:04:55 UTC] All members healthy. API latency restored to 12ms avg.
+Exit code: 0 — Execution succeeded.`,
   },
   ap5: {
     type: 'failure',
-    failureTrace: `Error: Metal3 BareMetalHost reset failed for node master-node-3
+    failureTrace:
+`Error: Metal3 BareMetalHost reset failed for node master-node-3
 TASK [metal3.reset_node] → connection timeout after 30s
 
 $ oc adm drain master-node-3 --ignore-daemonsets --delete-emptydir-data
@@ -785,6 +797,15 @@ Exit code: 1`,
     appliedAt: 'Tue 16:18:44 UTC',
     gitCommitRef: 'c7e2f08b',
     recoveredAt: 'Tue 16:18:56 UTC',
+    rawLog:
+`[16:18:44 UTC] Initiating ArgoCD hard sync for staging-config-map (revision c7e2f08b)...
+[16:18:45 UTC] Comparing live state against Git-declared configuration...
+[16:18:47 UTC] Delta: 3 resources out of sync
+[16:18:48 UTC] Applying: ConfigMap/staging-db-config → patched
+[16:18:50 UTC] Applying: Deployment/staging-api → synced
+[16:18:53 UTC] Applying: Service/staging-api → unchanged
+[16:18:56 UTC] ✓ Application health: Healthy. Sync status: Synced.
+Exit code: 0 — Execution succeeded.`,
   },
   ap10: {
     type: 'success',
@@ -792,6 +813,14 @@ Exit code: 1`,
     appliedAt: 'Mon 09:31:17 UTC',
     gitCommitRef: 'f4a90c12',
     recoveredAt: 'Mon 09:31:25 UTC',
+    rawLog:
+`[09:31:17 UTC] Targeting deployment/jenkins-leader in continuous-integration...
+[09:31:18 UTC] Setting env: JENKINS_MAX_EXECUTORS=16 (previous value: 4)
+[09:31:19 UTC] Rolling restart triggered.
+[09:31:22 UTC] Pod jenkins-leader-7d4f9b-xk2pq: Terminating
+[09:31:24 UTC] Pod jenkins-leader-9c8e3a-m7vnz: Running (1/1 ready)
+[09:31:25 UTC] ✓ Queue depth: 0 jobs pending. Executor slots: 16/16 active.
+Exit code: 0 — Execution succeeded.`,
   },
   ap14: {
     type: 'success',
@@ -799,6 +828,15 @@ Exit code: 1`,
     appliedAt: 'Thu 03:45:02 UTC',
     gitCommitRef: 'b1d3e7a9',
     recoveredAt: 'Thu 03:45:24 UTC',
+    rawLog:
+`[03:45:02 UTC] Connecting to chrony-sync-daemon on openshift-node nodes...
+[03:45:04 UTC] Updating /etc/chrony.conf: pool → ntp.corp.redhat.com iburst
+[03:45:06 UTC] chrony-sync-daemon on node-1: restarted (offset was +847ms)
+[03:45:09 UTC] chrony-sync-daemon on node-2: restarted (offset was +851ms)
+[03:45:13 UTC] chrony-sync-daemon on node-3: restarted (offset was +843ms)
+[03:45:18 UTC] Clock offset delta: < 1ms across all 3 nodes.
+[03:45:24 UTC] ✓ NTP synchronization restored. NodeClockSkewDetected: resolved.
+Exit code: 0 — Execution succeeded.`,
   },
 };
 
@@ -1428,6 +1466,7 @@ const HubLockedPlaceholder: React.FC = () => (
 // ─── Drawer: post-mortem summary panel ───────────────────────────────────────
 
 const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+  const [showLogs, setShowLogs] = useState(false);
   const postMortem = PLAN_POSTMORTEM[plan.id];
 
   if (!postMortem) {
@@ -1447,28 +1486,33 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           padding: 'var(--pf-t--global--spacer--md)',
         }}
       >
+        {/* ── Header ── */}
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
           gap={{ default: 'gapSm' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
         >
           <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
-          <Title headingLevel="h5" size="md">Execution completed successfully</Title>
+          <Title headingLevel="h5" size="md">Post-Mortem Execution Summary</Title>
         </Flex>
-        <DescriptionList isHorizontal isCompact>
+
+        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+
+        {/* ── Metrics ── */}
+        <DescriptionList isHorizontal isCompact style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
           <DescriptionListGroup>
-            <DescriptionListTerm>Execution duration</DescriptionListTerm>
-            <DescriptionListDescription>{postMortem.executionDuration}</DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Applied at</DescriptionListTerm>
+            <DescriptionListTerm>Applied</DescriptionListTerm>
             <DescriptionListDescription>{postMortem.appliedAt}</DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
-            <DescriptionListTerm>Commit ref</DescriptionListTerm>
+            <DescriptionListTerm>Execution time</DescriptionListTerm>
+            <DescriptionListDescription>{postMortem.executionDuration}</DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Git commit</DescriptionListTerm>
             <DescriptionListDescription>
               <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}>
-                git#{postMortem.gitCommitRef}
+                #{postMortem.gitCommitRef}
               </code>
             </DescriptionListDescription>
           </DescriptionListGroup>
@@ -1477,6 +1521,48 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             <DescriptionListDescription>{postMortem.recoveredAt}</DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>
+
+        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+
+        {/* ── Raw logs toggle ── */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          <Button
+            variant="link"
+            isInline
+            onClick={() => setShowLogs(!showLogs)}
+            style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
+          >
+            {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
+          </Button>
+          {showLogs && (
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+              <ClipboardCopy
+                variant={ClipboardCopyVariant.expansion}
+                isReadOnly
+                isCode
+                style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+              >
+                {postMortem.rawLog ?? ''}
+              </ClipboardCopy>
+            </div>
+          )}
+        </div>
+
+        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+
+        {/* ── Actions ── */}
+        <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+          <Button variant="danger" isDanger>
+            Initiate Rollback
+          </Button>
+          <Button
+            variant="link"
+            icon={<ExternalLinkAltIcon />}
+            iconPosition="end"
+          >
+            Export to ITSM Ticket
+          </Button>
+        </Flex>
       </div>
     );
   }
