@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Button,
+  Checkbox,
   ClipboardCopy,
   ClipboardCopyVariant,
   Content,
@@ -32,6 +33,7 @@ import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserv
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
+import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,6 +59,9 @@ interface PlanRow {
   triggerDomains: string;
   isUnauthorized: boolean;
   expandedReasons: ExpandedReason[];
+  /** Infrastructure objects that will be affected by the remediation. Context-aware:
+   *  Fleet perspective → cluster names; Single-cluster perspective → namespace/pod/node names. */
+  drawerTargets: string[];
 }
 
 // ─── Dataset — Top plans (score ≥ 80) ────────────────────────────────────────
@@ -72,6 +77,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '1 Drift / 4 Alerts',
     triggerDomains: 'GitOps / ArgoCD',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'dev-us-west-04', 'staging-ap-south-01'],
     expandedReasons: [
       { icon: 'sync',  text: 'ArgoCD Controller Event: 1 LiveStateOutOfSync event detected.' },
       { icon: 'alert', text: 'Prometheus Alert: 4 IngressControllerDegraded active alerts running.' },
@@ -87,6 +93,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '14 Runtime Events',
     triggerDomains: 'Security (ACS)',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'prod-ap-east-03'],
     expandedReasons: [
       { icon: 'warning', text: 'Advanced Cluster Security Hook: 14 eBPF Kernel System Call Mutations detected.' },
     ],
@@ -101,6 +108,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '6 Events / 2 Alerts',
     triggerDomains: 'OCP Core Kubelet',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01'],
     expandedReasons: [
       { icon: 'ban',   text: 'Kubelet Eviction Event: 6 Core Container OOMKilled signals.' },
       { icon: 'alert', text: 'Prometheus Alert: 2 KubePodCrashLooping alarms.' },
@@ -116,6 +124,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '8 Alerts',
     triggerDomains: 'OCP Storage',
     isUnauthorized: true,
+    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02'],
     expandedReasons: [
       { icon: 'alert', text: 'Prometheus Alert: 3 CephPoolNearFull warnings.' },
       { icon: 'alert', text: 'Prometheus Alert: 5 KubePersistentVolumeFillingUp alarms.' },
@@ -131,6 +140,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '2 API Events',
     triggerDomains: 'etcd Controller',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01'],
     expandedReasons: [
       { icon: 'gear', text: 'K8s API Server Log Hook: 2 etcd_db_total_size_in_bytes fragmentation events.' },
     ],
@@ -150,6 +160,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '3 Alerts',
     triggerDomains: 'Prometheus',
     isUnauthorized: false,
+    drawerTargets: ['dev-us-west-04'],
     expandedReasons: [
       { icon: 'alert', text: '3 KubePodMemoryUtilizationHigh alarms active on dev pods.' },
     ],
@@ -164,6 +175,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Failure / 2 Alerts',
     triggerDomains: 'Pipelines / Tekton',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01', 'staging-ap-south-01'],
     expandedReasons: [
       { icon: 'wrench', text: 'Tekton Event: 1 PipelineRunFailed block.' },
       { icon: 'alert',  text: 'Prometheus Alert: 2 TektonTaskExecutionStalled warnings.' },
@@ -179,6 +191,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Auth Event',
     triggerDomains: 'OCP Auth',
     isUnauthorized: true,
+    drawerTargets: ['prod-us-east-01'],
     expandedReasons: [
       { icon: 'warning', text: 'Kube-Apt-Controller Event: 1 CertificateExpirationWarning registered.' },
     ],
@@ -193,6 +206,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '4 Alerts',
     triggerDomains: 'OCP Network',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'prod-ap-east-03'],
     expandedReasons: [
       { icon: 'alert', text: '4 CoreDNSLookupLatencyHigh warnings logged.' },
     ],
@@ -207,6 +221,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '2 Events / 1 Alert',
     triggerDomains: 'Metal3 Controller',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-west-03'],
     expandedReasons: [
       { icon: 'gear',  text: '2 NodeCPUOvercommitted events detected.' },
       { icon: 'alert', text: '1 KubeNodeNotReady alert active.' },
@@ -222,6 +237,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Drift Event',
     triggerDomains: 'GitOps / ArgoCD',
     isUnauthorized: false,
+    drawerTargets: ['staging-ap-south-01'],
     expandedReasons: [
       { icon: 'sync', text: 'ArgoCD Event: 1 LiveStateOutOfSync event flagged in staging.' },
     ],
@@ -236,6 +252,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '2 Alerts',
     triggerDomains: 'OCP Network',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02'],
     expandedReasons: [
       { icon: 'alert', text: '2 IngressControllerMinReplicasNotMet rules active.' },
     ],
@@ -250,6 +267,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Security Event / 3 Alerts',
     triggerDomains: 'Security (ACS)',
     isUnauthorized: true,
+    drawerTargets: ['prod-us-east-01'],
     expandedReasons: [
       { icon: 'warning', text: '1 ACS Host Network sharing violation detected.' },
       { icon: 'alert',   text: '3 matching low-priority alerts active.' },
@@ -265,6 +283,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '4 Pod Events',
     triggerDomains: 'OCP Core Kubelet',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02'],
     expandedReasons: [
       { icon: 'ban', text: '4 PodSandboxCleanedUpFailed core Kubelet log entries.' },
     ],
@@ -279,6 +298,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Alert',
     triggerDomains: 'Pipelines / App',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01'],
     expandedReasons: [
       { icon: 'alert', text: '1 JenkinsQueueSizeHigh metric threshold crossed.' },
     ],
@@ -293,6 +313,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 HPA Event',
     triggerDomains: 'OCP Optimize',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01'],
     expandedReasons: [
       { icon: 'warning', text: 'HPA Controller Hook: 1 FailedComputeMetricsReplicas event.' },
     ],
@@ -307,6 +328,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '5 Alerts',
     triggerDomains: 'OCP Core',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'prod-ap-east-03', 'dev-us-west-04'],
     expandedReasons: [
       { icon: 'alert', text: '5 ErrImagePullBackOff sustained threshold alerts.' },
     ],
@@ -321,6 +343,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Event / 2 Alerts',
     triggerDomains: 'OCP Storage',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01'],
     expandedReasons: [
       { icon: 'gear',  text: '1 Storage CSI volume throttling log entry.' },
       { icon: 'alert', text: '2 KubePersistentVolumeResizingStalled warnings.' },
@@ -336,6 +359,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '3 Alerts',
     triggerDomains: 'OCP Core Node',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'staging-ap-south-01'],
     expandedReasons: [
       { icon: 'alert', text: '3 NodeClockSkewDetected Prometheus system metrics warnings.' },
     ],
@@ -350,13 +374,43 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Registry Event',
     triggerDomains: 'OCP Registry',
     isUnauthorized: false,
+    drawerTargets: ['prod-us-east-01'],
     expandedReasons: [
       { icon: 'warning', text: 'ImageRegistry Controller Hook: 1 PruneImageRegistryManifestsFailed trace.' },
     ],
   },
 ];
 
-// ─── Drawer: per-plan data ────────────────────────────────────────────────────
+// ─── Dataset — Single-cluster overrides (Core Platforms perspective) ──────────
+// Same plan IDs, statuses, scores, and reasons as fleet datasets.
+// Only blastRadius, triggerDomains, and drawerTargets are localized to reflect
+// sub-cluster topology (namespaces, pods, nodes) instead of multi-cluster scope.
+
+const SC_TOP_PLANS: PlanRow[] = [
+  { ...TOP_PLANS[0], blastRadius: '3 Namespaces', triggerDomains: 'ArgoCD Core',        drawerTargets: ['openshift-gitops', 'app-prod-east', 'app-staging-east'] },
+  { ...TOP_PLANS[1], blastRadius: '2 Node Pools', triggerDomains: 'ACS DaemonSet',       drawerTargets: ['worker-pool-infra-1', 'worker-pool-compute-2'] },
+  { ...TOP_PLANS[2], blastRadius: '4 Core Pods',  triggerDomains: 'Kubelet Engine',      drawerTargets: ['payment-gw-pod-1', 'payment-gw-pod-2', 'auth-pod-1', 'auth-pod-2'] },
+  { ...TOP_PLANS[3], blastRadius: '1 StoragePool', triggerDomains: 'Local PV CSI',       drawerTargets: ['ceph-block-pool-east'] },
+  { ...TOP_PLANS[4], blastRadius: '3 Master Nodes', triggerDomains: 'etcd Pod Mesh',     drawerTargets: ['master-node-1', 'master-node-2', 'master-node-3'] },
+];
+
+const SC_ALL_PLANS: PlanRow[] = [
+  { ...ALL_PLANS[0],  blastRadius: '2 Namespaces',      triggerDomains: 'Local Prometheus',       drawerTargets: ['dev-analytics', 'monitoring'] },
+  { ...ALL_PLANS[1],  blastRadius: '1 Tekton Pipeline',  triggerDomains: 'Tekton Operator',        drawerTargets: ['build-pipeline-webhook'] },
+  { ...ALL_PLANS[2],  blastRadius: '1 OAuth Stack',      triggerDomains: 'Cluster Auth',           drawerTargets: ['openshift-authentication'] },
+  { ...ALL_PLANS[3],  blastRadius: '4 DNS Pods',         triggerDomains: 'CoreDNS Deployment',     drawerTargets: ['coredns-pod-1', 'coredns-pod-2', 'coredns-pod-3', 'coredns-pod-4'] },
+  { ...ALL_PLANS[4],  blastRadius: '2 Worker Nodes',     triggerDomains: 'BareMetal Host Operator', drawerTargets: ['worker-node-03', 'worker-node-04'] },
+  { ...ALL_PLANS[5],  blastRadius: '1 Namespace',        triggerDomains: 'ArgoCD Controller',      drawerTargets: ['app-staging'] },
+  { ...ALL_PLANS[6],  blastRadius: '2 Router Pods',      triggerDomains: 'Ingress Operator',       drawerTargets: ['router-default-1', 'router-default-2'] },
+  { ...ALL_PLANS[7],  blastRadius: '1 SecurityContext',  triggerDomains: 'ACS Policy Engine',      drawerTargets: ['restricted-scc'] },
+  { ...ALL_PLANS[8],  blastRadius: '1 Kubelet Daemon',   triggerDomains: 'Local Node Runtime',     drawerTargets: ['node-01-kubelet'] },
+  { ...ALL_PLANS[9],  blastRadius: '1 StatefulSet',      triggerDomains: 'CI App Controller',      drawerTargets: ['jenkins-leader'] },
+  { ...ALL_PLANS[10], blastRadius: '1 HPA Object',       triggerDomains: 'Autoscaling Framework',  drawerTargets: ['api-scaler-hpa'] },
+  { ...ALL_PLANS[11], blastRadius: '3 Image Streams',    triggerDomains: 'Local Registry',         drawerTargets: ['registry-stream-1', 'registry-stream-2', 'registry-stream-3'] },
+  { ...ALL_PLANS[12], blastRadius: '1 PVC Volume',       triggerDomains: 'AWS-EBS CSI Plugin',     drawerTargets: ['ceph-storage-pvc'] },
+  { ...ALL_PLANS[13], blastRadius: 'All Cluster Nodes',  triggerDomains: 'Chrony DaemonSet',       drawerTargets: ['worker-node-01', 'worker-node-02', 'worker-node-03', 'master-node-1', 'master-node-2', 'master-node-3'] },
+  { ...ALL_PLANS[14], blastRadius: '1 Registry Catalog', triggerDomains: 'Local Registry',         drawerTargets: ['integrated-registry'] },
+];
 
 interface PlanDrawerData {
   steps: ReasoningStep[];
@@ -1132,9 +1186,10 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
 interface TopPlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
+  rows: PlanRow[];
 }
 
-const TopPlansTable: React.FC<TopPlansTableProps> = ({ onReviewPlan }) => {
+const TopPlansTable: React.FC<TopPlansTableProps> = ({ onReviewPlan, rows }) => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = useCallback((id: string) => {
@@ -1148,7 +1203,7 @@ const TopPlansTable: React.FC<TopPlansTableProps> = ({ onReviewPlan }) => {
 
   return (
     <PlansTableCore
-      rows={TOP_PLANS}
+      rows={rows}
       ariaLabel="Top plans requiring attention"
       startIndex={0}
       expandedRows={expandedRows}
@@ -1164,16 +1219,17 @@ const DEFAULT_PER_PAGE = 10;
 
 interface AllPlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
+  rows: PlanRow[];
 }
 
-const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan }) => {
+const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
-  const totalItems = ALL_PLANS.length;
+  const totalItems = rows.length;
   const start = (page - 1) * perPage;
-  const paginatedRows = ALL_PLANS.slice(start, start + perPage);
+  const paginatedRows = rows.slice(start, start + perPage);
 
   const toggleRow = useCallback((id: string) => {
     setExpandedRows((prev) => {
@@ -1286,15 +1342,22 @@ const RemediationOptionCard: React.FC<{
   onSelect: (id: string) => void;
 }> = ({ option, index, plan, executionMessage, isSelected, onSelect }) => {
   const isFirst = index === 0;
-  const { status, isUnauthorized } = plan;
+  const { status, isUnauthorized, drawerTargets } = plan;
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
   const [showCommands, setShowCommands] = useState(false);
+  const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
+  const [sandboxMode, setSandboxMode] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [isExecuted, setIsExecuted] = useState(false);
 
-  // Reset inner command toggle when the card is collapsed / deselected.
+  // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
-    if (!isSelected) setShowCommands(false);
+    if (!isSelected) {
+      setShowCommands(false);
+      setIsExecuting(false);
+    }
   }, [isSelected]);
 
   // Remediating: non-first options are always hidden.
@@ -1306,15 +1369,18 @@ const RemediationOptionCard: React.FC<{
     ? 'var(--pf-t--global--color--status--info--default)'
     : 'var(--pf-t--global--border--color--default)';
 
-  const renderButton = () => {
-    if (isInvestigating) return null;
+  const selectedCount = selectedTargets.size;
 
-    if (isTerminal) {
-      return isFirst ? (
-        <Button variant="link" isInline>View execution log</Button>
-      ) : null;
-    }
+  const handleExecute = () => {
+    setIsExecuting(true);
+    setTimeout(() => {
+      setIsExecuting(false);
+      setIsExecuted(true);
+    }, 2000);
+  };
 
+  const renderActionButton = () => {
+    if (isInvestigating || isTerminal) return null;
     if (isRemediating) {
       return (
         <Button
@@ -1327,7 +1393,16 @@ const RemediationOptionCard: React.FC<{
         </Button>
       );
     }
-
+    if (isExecuted) {
+      return (
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+          <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
+          <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
+            Applied to {selectedCount} target{selectedCount !== 1 ? 's' : ''}
+          </Content>
+        </Flex>
+      );
+    }
     if (isUnauthorized) {
       return (
         <Tooltip
@@ -1335,26 +1410,24 @@ const RemediationOptionCard: React.FC<{
           position="top"
         >
           <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
-            <Button
-              variant={isFirst ? 'primary' : 'secondary'}
-              size={isFirst ? undefined : 'sm'}
-              isDisabled
-              style={{ pointerEvents: 'none' }}
-            >
-              {isFirst ? (
-                <>Approve &amp; execute&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} /></>
-              ) : (
-                <>Apply option {index + 1}&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} /></>
-              )}
+            <Button variant="primary" isDisabled style={{ pointerEvents: 'none' }}>
+              Apply Remediation to {selectedCount} target{selectedCount !== 1 ? 's' : ''}&nbsp;
+              <LockIcon style={{ verticalAlign: 'middle' }} />
             </Button>
           </span>
         </Tooltip>
       );
     }
-
     return (
-      <Button variant={isFirst ? 'primary' : 'secondary'} size={isFirst ? undefined : 'sm'}>
-        {isFirst ? 'Approve & execute' : `Apply option ${index + 1}`}
+      <Button
+        variant="primary"
+        isDisabled={selectedCount === 0 || isExecuting}
+        isLoading={isExecuting}
+        onClick={handleExecute}
+      >
+        {isExecuting
+          ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
+          : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
       </Button>
     );
   };
@@ -1513,30 +1586,105 @@ const RemediationOptionCard: React.FC<{
           </Flex>
 
           {/* Raw commands toggle */}
-          <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-            <Button
-              variant="link"
-              isInline
-              onClick={() => setShowCommands(!showCommands)}
-              style={{ padding: 0, fontSize: '14px' }}
+          {!isInvestigating && !isTerminal && !isRemediating && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => setShowCommands(!showCommands)}
+                style={{ padding: 0, fontSize: '14px' }}
+              >
+                {showCommands ? 'Hide raw commands' : 'View raw commands'}
+              </Button>
+              {showCommands && (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                  <ClipboardCopy
+                    isReadOnly
+                    isCode
+                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                  >
+                    {option.rawCommands}
+                  </ClipboardCopy>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Target Selection (Waiting Approval only) ── */}
+          {!isInvestigating && !isTerminal && !isRemediating && drawerTargets.length > 0 && (
+            <div
+              style={{
+                borderRadius: 'var(--pf-t--global--border--radius--default)',
+                border: '1px solid var(--pf-t--global--border--color--default)',
+                padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
+                marginBottom: 'var(--pf-t--global--spacer--sm)',
+                backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+              }}
             >
-              {showCommands ? 'Hide raw commands' : 'View raw commands'}
-            </Button>
-            {showCommands && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                <ClipboardCopy
-                  isReadOnly
-                  isCode
-                  style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                >
-                  {option.rawCommands}
-                </ClipboardCopy>
+              {/* Header row: label + Select All / Deselect All */}
+              <Flex
+                justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+              >
+                <Content component="small" style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  Targets ({selectedCount} / {drawerTargets.length})
+                </Content>
+                <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                  <Button
+                    variant="link"
+                    isInline
+                    style={{ fontSize: '12px' }}
+                    onClick={() => setSelectedTargets(new Set(drawerTargets))}
+                  >
+                    Select all
+                  </Button>
+                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>·</span>
+                  <Button
+                    variant="link"
+                    isInline
+                    style={{ fontSize: '12px' }}
+                    onClick={() => setSelectedTargets(new Set())}
+                  >
+                    Deselect all
+                  </Button>
+                </Flex>
+              </Flex>
+
+              {/* Individual target checkboxes */}
+              <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
+                {drawerTargets.map((target) => (
+                  <StackItem key={target}>
+                    <Checkbox
+                      id={`target-${option.id}-${target}`}
+                      label={target}
+                      isChecked={selectedTargets.has(target)}
+                      onChange={(_e, checked) => {
+                        setSelectedTargets((prev) => {
+                          const next = new Set(prev);
+                          checked ? next.add(target) : next.delete(target);
+                          return next;
+                        });
+                      }}
+                    />
+                  </StackItem>
+                ))}
+              </Stack>
+
+              {/* Sandbox toggle */}
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--xs)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+                <Checkbox
+                  id={`sandbox-${option.id}`}
+                  label="Run in sandbox first (recommended for first-time execution)"
+                  isChecked={sandboxMode}
+                  onChange={(_e, checked) => setSandboxMode(checked)}
+                />
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Action button */}
-          {renderButton()}
+          {renderActionButton()}
         </div>
       )}
     </div>
@@ -2294,6 +2442,13 @@ const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase
 // ─── Exported tab content ─────────────────────────────────────────────────────
 
 export const PlansAndApprovalsTab: React.FC = () => {
+  const { activePerspective } = useActivePerspective();
+  const isSingleCluster = activePerspective === 'Core platforms';
+
+  // Swap full datasets based on the active left-nav perspective.
+  const topPlans = isSingleCluster ? SC_TOP_PLANS : TOP_PLANS;
+  const allPlans = isSingleCluster ? SC_ALL_PLANS : ALL_PLANS;
+
   // `displayedPlan` stays populated during the leave animation so the panel
   // content doesn't vanish before it slides off-screen.
   const [displayedPlan, setDisplayedPlan] = useState<PlanRow | null>(null);
@@ -2349,7 +2504,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
               </Label>
             }
           />
-          <TopPlansTable onReviewPlan={openPanel} />
+          <TopPlansTable onReviewPlan={openPanel} rows={topPlans} />
         </StackItem>
 
         <StackItem>
@@ -2364,7 +2519,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
               </Label>
             }
           />
-          <AllPlansTable onReviewPlan={openPanel} />
+          <AllPlansTable onReviewPlan={openPanel} rows={allPlans} />
         </StackItem>
       </Stack>
 
