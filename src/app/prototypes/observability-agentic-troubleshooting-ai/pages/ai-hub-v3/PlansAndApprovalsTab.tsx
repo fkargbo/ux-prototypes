@@ -25,7 +25,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { BullseyeIcon, CheckCircleIcon, CodeBranchIcon, ExclamationCircleIcon, ExternalLinkAltIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { BullseyeIcon, CheckCircleIcon, CodeBranchIcon, DownloadIcon, ExclamationCircleIcon, ExternalLinkAltIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -1551,16 +1551,15 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
         <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
 
         {/* ── Actions ── */}
-        <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+        <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
           <Button variant="danger" isDanger>
             Initiate Rollback
           </Button>
-          <Button
-            variant="link"
-            icon={<ExternalLinkAltIcon />}
-            iconPosition="end"
-          >
+          <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">
             Export to ITSM Ticket
+          </Button>
+          <Button variant="link" icon={<DownloadIcon />} iconPosition="end">
+            Download Post-Mortem Report
           </Button>
         </Flex>
       </div>
@@ -1591,6 +1590,21 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       >
         {postMortem.failureTrace ?? ''}
       </ClipboardCopy>
+
+      <Divider style={{ margin: 'var(--pf-t--global--spacer--md) 0' }} />
+
+      {/* ── Actions ── */}
+      <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <Button variant="secondary">
+          Retry Remediation
+        </Button>
+        <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">
+          Export to ITSM Ticket
+        </Button>
+        <Button variant="link" icon={<DownloadIcon />} iconPosition="end">
+          Download Failure Report
+        </Button>
+      </Flex>
     </div>
   );
 };
