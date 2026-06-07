@@ -5,6 +5,10 @@ import {
   ClipboardCopy,
   ClipboardCopyVariant,
   Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   Divider,
   ExpandableSection,
   Flex,
@@ -14,12 +18,14 @@ import {
   PaginationVariant,
   Progress,
   ProgressSize,
+  Skeleton,
+  Spinner,
   Stack,
   StackItem,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { BullseyeIcon, CodeBranchIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { BullseyeIcon, CheckCircleIcon, CodeBranchIcon, ExclamationCircleIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -737,6 +743,65 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
   ],
 };
 
+// ─── Drawer: post-mortem data (Completed / Failed plans) ─────────────────────
+
+interface PlanPostMortem {
+  type: 'success' | 'failure';
+  executionDuration?: string;
+  appliedAt?: string;
+  gitCommitRef?: string;
+  recoveredAt?: string;
+  failureTrace?: string;
+}
+
+const PLAN_POSTMORTEM: Record<string, PlanPostMortem> = {
+  tp5: {
+    type: 'success',
+    executionDuration: '43s',
+    appliedAt: 'Wed 10:04:22 UTC',
+    gitCommitRef: 'a3f1b9d4',
+    recoveredAt: 'Wed 10:04:55 UTC',
+  },
+  ap5: {
+    type: 'failure',
+    failureTrace: `Error: Metal3 BareMetalHost reset failed for node master-node-3
+TASK [metal3.reset_node] → connection timeout after 30s
+
+$ oc adm drain master-node-3 --ignore-daemonsets --delete-emptydir-data
+Error from server: node "master-node-3" is unreachable
+
+Retrying... (attempt 1/3) connection refused
+Retrying... (attempt 2/3) connection refused
+Retrying... (attempt 3/3) connection refused
+
+FATAL: Node drain failed after 3 attempts.
+BareMetalHost state: provisioning-error
+Rollback: node taint removed, workloads rescheduled to compute-node-7
+Exit code: 1`,
+  },
+  ap6: {
+    type: 'success',
+    executionDuration: '12s',
+    appliedAt: 'Tue 16:18:44 UTC',
+    gitCommitRef: 'c7e2f08b',
+    recoveredAt: 'Tue 16:18:56 UTC',
+  },
+  ap10: {
+    type: 'success',
+    executionDuration: '8s',
+    appliedAt: 'Mon 09:31:17 UTC',
+    gitCommitRef: 'f4a90c12',
+    recoveredAt: 'Mon 09:31:25 UTC',
+  },
+  ap14: {
+    type: 'success',
+    executionDuration: '22s',
+    appliedAt: 'Thu 03:45:02 UTC',
+    gitCommitRef: 'b1d3e7a9',
+    recoveredAt: 'Thu 03:45:24 UTC',
+  },
+};
+
 // ─── AI disclosure ────────────────────────────────────────────────────────────
 
 const AI_TOOLTIP =
@@ -1292,10 +1357,137 @@ const RemediationOptionCard: React.FC<{
   );
 };
 
+// ─── Drawer: locked section placeholders ─────────────────────────────────────
+
+const LOCKED_BOX_STYLE: React.CSSProperties = {
+  borderRadius: 'var(--pf-t--global--border--radius--default)',
+  border: '1px dashed var(--pf-t--global--border--color--default)',
+  padding: 'var(--pf-t--global--spacer--md)',
+};
+
+const RcaLockedPlaceholder: React.FC = () => (
+  <div style={LOCKED_BOX_STYLE}>
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      gap={{ default: 'gapSm' }}
+      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+    >
+      <Spinner size="sm" aria-label="Analyzing root cause" />
+      <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
+        Analyzing infrastructure topology to isolate root cause…
+      </Content>
+    </Flex>
+    <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+    <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+    <Skeleton width="75%" />
+  </div>
+);
+
+const HubLockedPlaceholder: React.FC = () => (
+  <div style={LOCKED_BOX_STYLE}>
+    <Content
+      component="p"
+      className="ols-aio-text-subtle-sm"
+      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
+    >
+      Remediation options will be synthesized following root cause confirmation.
+    </Content>
+    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+    <Skeleton width="55%" />
+  </div>
+);
+
+// ─── Drawer: post-mortem summary panel ───────────────────────────────────────
+
+const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+  const postMortem = PLAN_POSTMORTEM[plan.id];
+
+  if (!postMortem) {
+    return (
+      <Content component="p" className="ols-aio-text-subtle-sm" style={{ fontStyle: 'italic' }}>
+        No execution record available for this plan.
+      </Content>
+    );
+  }
+
+  if (postMortem.type === 'success') {
+    return (
+      <div
+        style={{
+          borderRadius: 'var(--pf-t--global--border--radius--default)',
+          border: '1px solid var(--pf-t--global--color--status--success--default)',
+          padding: 'var(--pf-t--global--spacer--md)',
+        }}
+      >
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+          <Title headingLevel="h5" size="md">Execution completed successfully</Title>
+        </Flex>
+        <DescriptionList isHorizontal isCompact>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Execution duration</DescriptionListTerm>
+            <DescriptionListDescription>{postMortem.executionDuration}</DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Applied at</DescriptionListTerm>
+            <DescriptionListDescription>{postMortem.appliedAt}</DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Commit ref</DescriptionListTerm>
+            <DescriptionListDescription>
+              <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)' }}>
+                git#{postMortem.gitCommitRef}
+              </code>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>System restored</DescriptionListTerm>
+            <DescriptionListDescription>{postMortem.recoveredAt}</DescriptionListDescription>
+          </DescriptionListGroup>
+        </DescriptionList>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        borderRadius: 'var(--pf-t--global--border--radius--default)',
+        border: '1px solid var(--pf-t--global--color--status--danger--default)',
+        padding: 'var(--pf-t--global--spacer--md)',
+      }}
+    >
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      >
+        <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
+        <Title headingLevel="h5" size="md">Execution failed — remediation was not applied</Title>
+      </Flex>
+      <ClipboardCopy
+        variant={ClipboardCopyVariant.expansion}
+        isReadOnly
+        isCode
+        style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+      >
+        {postMortem.failureTrace ?? ''}
+      </ClipboardCopy>
+    </div>
+  );
+};
+
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
 const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const { status } = plan;
+  const isInvestigating = status === 'Investigating';
+  const isTerminal = status === 'Completed' || status === 'Failed';
 
   const [openChain, setOpenChain] = useState(
     status === 'Investigating' || status === 'Remediating',
@@ -1309,6 +1501,9 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
   const drawer = PLAN_DRAWER_DATA[plan.id];
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
+  const options = PLAN_REMEDIATION_OPTIONS[plan.id] ?? [];
+  const optionCount = options.length;
+  const optionLabel = optionCount === 1 ? '1 remediation option' : `${optionCount} remediation options`;
 
   if (!drawer) return null;
 
@@ -1348,7 +1543,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                   <Title headingLevel="h4" size="md">Active Reasoning Chain</Title>
                 </Flex>
               </FlexItem>
-              {plan.status === 'Investigating' && (
+              {isInvestigating && (
                 <FlexItem>
                   <Label color="blue" variant="outline" isCompact>Live</Label>
                 </FlexItem>
@@ -1420,6 +1615,9 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             </Flex>
           }
         >
+          {isInvestigating ? (
+            <RcaLockedPlaceholder />
+          ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`}>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
@@ -1457,82 +1655,63 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
               variant="success"
             />
           </div>
+          )}
         </ExpandableSection>
       </StackItem>
 
       <Divider />
 
-      {/* ── Section D: Remediation Hub ────────────────────────────────── */}
+      {/* ── Section D: Remediation Hub ─────────────────────────────────── */}
       <StackItem>
-        {(() => {
-          const options = PLAN_REMEDIATION_OPTIONS[plan.id] ?? [];
-          const isInvestigating = plan.status === 'Investigating';
-          const optionCount = options.length;
-          const optionLabel = optionCount === 1 ? '1 remediation option' : `${optionCount} remediation options`;
-
-          return (
-            <ExpandableSection
-              toggleText=""
-              isExpanded={openRem}
-              onToggle={(_e, expanded) => setOpenRem(expanded)}
-              toggleContent={
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                  <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-                  <Title headingLevel="h4" size="md">Remediation Hub</Title>
-                  {optionCount > 0 && (
-                    <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
-                  )}
-                </Flex>
-              }
-            >
-              <div className="ols-aio-remediation-box">
-                {isInvestigating || optionCount === 0 ? (
-                  <>
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                    >
-                      <TerminalIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
-                      <span className="ols-aio-text-overline">Recommended Action</span>
-                    </Flex>
-                    <Content
-                      component="p"
-                      className="ols-aio-text-subtle-sm"
-                      style={{ fontStyle: 'italic', margin: 0 }}
-                    >
-                      Remediation options will be available after root cause analysis completes.
-                    </Content>
-                  </>
-                ) : (
-                  <>
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      gap={{ default: 'gapXs' }}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                    >
-                      <Tooltip
-                        content="These remediation strategies are synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns."
-                        position="top"
-                      >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
-                          <AiIcon size={14} />
-                        </span>
-                      </Tooltip>
-                      <span className="ols-aio-text-overline">{optionLabel}</span>
-                    </Flex>
-                    <Stack hasGutter>
-                      {options.map((opt, idx) => (
-                        <StackItem key={opt.id}>
-                          <RemediationOptionCard option={opt} index={idx} plan={plan} />
-                        </StackItem>
-                      ))}
-                    </Stack>
-                  </>
-                )}
-              </div>
-            </ExpandableSection>
-          );
-        })()}
+        <ExpandableSection
+          toggleText=""
+          isExpanded={openRem}
+          onToggle={(_e, expanded) => setOpenRem(expanded)}
+          toggleContent={
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
+              <Title headingLevel="h4" size="md">Remediation Hub</Title>
+              {!isInvestigating && !isTerminal && optionCount > 0 && (
+                <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
+              )}
+            </Flex>
+          }
+        >
+          {isInvestigating ? (
+            <div className="ols-aio-remediation-box">
+              <HubLockedPlaceholder />
+            </div>
+          ) : isTerminal ? (
+            <div className="ols-aio-remediation-box">
+              <PostMortemPanel plan={plan} />
+            </div>
+          ) : (
+            <div className="ols-aio-remediation-box">
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapXs' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                <Tooltip
+                  content="These remediation strategies are synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns."
+                  position="top"
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
+                    <AiIcon size={14} />
+                  </span>
+                </Tooltip>
+                <span className="ols-aio-text-overline">{optionLabel}</span>
+              </Flex>
+              <Stack hasGutter>
+                {options.map((opt, idx) => (
+                  <StackItem key={opt.id}>
+                    <RemediationOptionCard option={opt} index={idx} plan={plan} />
+                  </StackItem>
+                ))}
+              </Stack>
+            </div>
+          )}
+        </ExpandableSection>
       </StackItem>
     </Stack>
   );
