@@ -26,7 +26,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, DownloadIcon, ExclamationCircleIcon, ExternalLinkAltIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -38,6 +38,14 @@ import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 type PlanSeverity = 'critical' | 'warning';
 type PlanStatus = 'Investigating' | 'Waiting Approval' | 'Remediating' | 'Completed' | 'Failed';
 
+/** Icon semantic used in expandable row consolidated reasons. */
+type ReasonIconType = 'sync' | 'alert' | 'warning' | 'gear' | 'ban' | 'wrench';
+
+interface ExpandedReason {
+  icon: ReasonIconType;
+  text: string;
+}
+
 interface PlanRow {
   id: string;
   severity: PlanSeverity;
@@ -48,8 +56,7 @@ interface PlanRow {
   consolidationScope: string;
   triggerDomains: string;
   isUnauthorized: boolean;
-  /** Each entry is one consolidated reason sentence rendered in the expanded panel. */
-  expandedReasons: string[];
+  expandedReasons: ExpandedReason[];
 }
 
 // ─── Dataset — Top plans (score ≥ 80) ────────────────────────────────────────
@@ -66,8 +73,8 @@ const TOP_PLANS: PlanRow[] = [
     triggerDomains: 'GitOps / ArgoCD',
     isUnauthorized: false,
     expandedReasons: [
-      '🔄 ArgoCD Controller Event: 1 LiveStateOutOfSync event detected.',
-      '🛑 Prometheus Alert: 4 IngressControllerDegraded active alerts running.',
+      { icon: 'sync',  text: 'ArgoCD Controller Event: 1 LiveStateOutOfSync event detected.' },
+      { icon: 'alert', text: 'Prometheus Alert: 4 IngressControllerDegraded active alerts running.' },
     ],
   },
   {
@@ -81,7 +88,7 @@ const TOP_PLANS: PlanRow[] = [
     triggerDomains: 'Security (ACS)',
     isUnauthorized: false,
     expandedReasons: [
-      '⚠️ Advanced Cluster Security Hook: 14 eBPF Kernel System Call Mutations detected.',
+      { icon: 'warning', text: 'Advanced Cluster Security Hook: 14 eBPF Kernel System Call Mutations detected.' },
     ],
   },
   {
@@ -95,8 +102,8 @@ const TOP_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Core Kubelet',
     isUnauthorized: false,
     expandedReasons: [
-      '🚫 Kubelet Eviction Event: 6 Core Container OOMKilled signals.',
-      '🛑 Prometheus Alert: 2 KubePodCrashLooping alarms.',
+      { icon: 'ban',   text: 'Kubelet Eviction Event: 6 Core Container OOMKilled signals.' },
+      { icon: 'alert', text: 'Prometheus Alert: 2 KubePodCrashLooping alarms.' },
     ],
   },
   {
@@ -110,8 +117,8 @@ const TOP_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Storage',
     isUnauthorized: true,
     expandedReasons: [
-      '🛑 Prometheus Alert: 3 CephPoolNearFull warnings.',
-      '🛑 Prometheus Alert: 5 KubePersistentVolumeFillingUp alarms.',
+      { icon: 'alert', text: 'Prometheus Alert: 3 CephPoolNearFull warnings.' },
+      { icon: 'alert', text: 'Prometheus Alert: 5 KubePersistentVolumeFillingUp alarms.' },
     ],
   },
   {
@@ -125,7 +132,7 @@ const TOP_PLANS: PlanRow[] = [
     triggerDomains: 'etcd Controller',
     isUnauthorized: false,
     expandedReasons: [
-      '⚙️ K8s API Server Log Hook: 2 etcd_db_total_size_in_bytes fragmentation events.',
+      { icon: 'gear', text: 'K8s API Server Log Hook: 2 etcd_db_total_size_in_bytes fragmentation events.' },
     ],
   },
 ];
@@ -144,7 +151,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'Prometheus',
     isUnauthorized: false,
     expandedReasons: [
-      '🛑 3 KubePodMemoryUtilizationHigh alarms active on dev pods.',
+      { icon: 'alert', text: '3 KubePodMemoryUtilizationHigh alarms active on dev pods.' },
     ],
   },
   {
@@ -158,8 +165,8 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'Pipelines / Tekton',
     isUnauthorized: false,
     expandedReasons: [
-      '🛠️ Tekton Event: 1 PipelineRunFailed block.',
-      '🛑 Prometheus Alert: 2 TektonTaskExecutionStalled warnings.',
+      { icon: 'wrench', text: 'Tekton Event: 1 PipelineRunFailed block.' },
+      { icon: 'alert',  text: 'Prometheus Alert: 2 TektonTaskExecutionStalled warnings.' },
     ],
   },
   {
@@ -173,7 +180,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Auth',
     isUnauthorized: true,
     expandedReasons: [
-      '⚠️ Kube-Apt-Controller Event: 1 CertificateExpirationWarning registered.',
+      { icon: 'warning', text: 'Kube-Apt-Controller Event: 1 CertificateExpirationWarning registered.' },
     ],
   },
   {
@@ -187,7 +194,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Network',
     isUnauthorized: false,
     expandedReasons: [
-      '🛑 4 CoreDNSLookupLatencyHigh warnings logged.',
+      { icon: 'alert', text: '4 CoreDNSLookupLatencyHigh warnings logged.' },
     ],
   },
   {
@@ -201,8 +208,8 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'Metal3 Controller',
     isUnauthorized: false,
     expandedReasons: [
-      '⚙️ 2 NodeCPUOvercommitted events detected.',
-      '🛑 1 KubeNodeNotReady alert active.',
+      { icon: 'gear',  text: '2 NodeCPUOvercommitted events detected.' },
+      { icon: 'alert', text: '1 KubeNodeNotReady alert active.' },
     ],
   },
   {
@@ -216,7 +223,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'GitOps / ArgoCD',
     isUnauthorized: false,
     expandedReasons: [
-      '🔄 ArgoCD Event: 1 LiveStateOutOfSync event flagged in staging.',
+      { icon: 'sync', text: 'ArgoCD Event: 1 LiveStateOutOfSync event flagged in staging.' },
     ],
   },
   {
@@ -230,7 +237,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Network',
     isUnauthorized: false,
     expandedReasons: [
-      '🛑 2 IngressControllerMinReplicasNotMet rules active.',
+      { icon: 'alert', text: '2 IngressControllerMinReplicasNotMet rules active.' },
     ],
   },
   {
@@ -244,8 +251,8 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'Security (ACS)',
     isUnauthorized: true,
     expandedReasons: [
-      '⚠️ 1 ACS Host Network sharing violation detected.',
-      '🛑 3 matching low-priority alerts active.',
+      { icon: 'warning', text: '1 ACS Host Network sharing violation detected.' },
+      { icon: 'alert',   text: '3 matching low-priority alerts active.' },
     ],
   },
   {
@@ -259,7 +266,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Core Kubelet',
     isUnauthorized: false,
     expandedReasons: [
-      '🚫 4 PodSandboxCleanedUpFailed core Kubelet log entries.',
+      { icon: 'ban', text: '4 PodSandboxCleanedUpFailed core Kubelet log entries.' },
     ],
   },
   {
@@ -273,7 +280,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'Pipelines / App',
     isUnauthorized: false,
     expandedReasons: [
-      '🛑 1 JenkinsQueueSizeHigh metric threshold crossed.',
+      { icon: 'alert', text: '1 JenkinsQueueSizeHigh metric threshold crossed.' },
     ],
   },
   {
@@ -287,7 +294,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Optimize',
     isUnauthorized: false,
     expandedReasons: [
-      '⚠️ HPA Controller Hook: 1 FailedComputeMetricsReplicas event.',
+      { icon: 'warning', text: 'HPA Controller Hook: 1 FailedComputeMetricsReplicas event.' },
     ],
   },
   {
@@ -301,7 +308,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Core',
     isUnauthorized: false,
     expandedReasons: [
-      '🛑 5 ErrImagePullBackOff sustained threshold alerts.',
+      { icon: 'alert', text: '5 ErrImagePullBackOff sustained threshold alerts.' },
     ],
   },
   {
@@ -315,8 +322,8 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Storage',
     isUnauthorized: false,
     expandedReasons: [
-      '⚙️ 1 Storage CSI volume throttling log entry.',
-      '🛑 2 KubePersistentVolumeResizingStalled warnings.',
+      { icon: 'gear',  text: '1 Storage CSI volume throttling log entry.' },
+      { icon: 'alert', text: '2 KubePersistentVolumeResizingStalled warnings.' },
     ],
   },
   {
@@ -330,7 +337,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Core Node',
     isUnauthorized: false,
     expandedReasons: [
-      '🛑 3 NodeClockSkewDetected Prometheus system metrics warnings.',
+      { icon: 'alert', text: '3 NodeClockSkewDetected Prometheus system metrics warnings.' },
     ],
   },
   {
@@ -344,7 +351,7 @@ const ALL_PLANS: PlanRow[] = [
     triggerDomains: 'OCP Registry',
     isUnauthorized: false,
     expandedReasons: [
-      '⚠️ ImageRegistry Controller Hook: 1 PruneImageRegistryManifestsFailed trace.',
+      { icon: 'warning', text: 'ImageRegistry Controller Hook: 1 PruneImageRegistryManifestsFailed trace.' },
     ],
   },
 ];
@@ -863,6 +870,34 @@ const AiSparkle: React.FC<{ size?: number }> = ({ size = 14 }) => (
 
 // Standalone AI icon (no tooltip wrapper) used inside drawer sections
 const AiIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+
+// ─── Expanded row: consolidated reason icon ───────────────────────────────────
+
+const REASON_ICON_COMPONENT: Record<ReasonIconType, React.ComponentType<{ style?: React.CSSProperties }>> = {
+  sync:    SyncAltIcon,
+  alert:   ExclamationCircleIcon,
+  warning: ExclamationTriangleIcon,
+  gear:    CogIcon,
+  ban:     BanIcon,
+  wrench:  WrenchIcon,
+};
+
+const REASON_ICON_COLOR: Record<ReasonIconType, string> = {
+  sync:    'var(--pf-t--global--color--status--info--default)',
+  alert:   'var(--pf-t--global--color--status--danger--default)',
+  warning: 'var(--pf-t--global--color--status--warning--default)',
+  gear:    'var(--pf-t--global--text--color--subtle)',
+  ban:     'var(--pf-t--global--color--status--danger--default)',
+  wrench:  'var(--pf-t--global--text--color--subtle)',
+};
+
+const ReasonIcon: React.FC<{ type: ReasonIconType }> = ({ type }) => {
+  const Icon = REASON_ICON_COMPONENT[type];
+  return <Icon style={{ color: REASON_ICON_COLOR[type], flexShrink: 0 }} aria-hidden />;
+};
+
+// Standalone AI icon (no tooltip wrapper) used inside drawer sections
+const AiIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   <img src={AI_EXPERIENCE_ICON_DATA_URL} alt="" aria-hidden="true" width={size} height={size} style={{ display: 'block', flexShrink: 0 }} />
 );
 
@@ -1068,20 +1103,24 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                   >
                     Consolidated reasons for this plan
                   </p>
-                  <ul style={{ margin: 0, paddingInlineStart: 'var(--pf-t--global--spacer--lg)' }}>
+                  <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
                     {row.expandedReasons.map((reason, i) => (
-                      <li
-                        key={i}
-                        style={{
-                          paddingBlock: 'var(--pf-t--global--spacer--2xs)',
-                          color: 'var(--pf-t--global--text--color--regular)',
-                          fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                        }}
-                      >
-                        {reason}
-                      </li>
+                      <StackItem key={i}>
+                        <Flex
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          gap={{ default: 'gapSm' }}
+                          flexWrap={{ default: 'nowrap' }}
+                        >
+                          <FlexItem style={{ display: 'flex', alignItems: 'center' }}>
+                            <ReasonIcon type={reason.icon} />
+                          </FlexItem>
+                          <FlexItem style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--regular)' }}>
+                            {reason.text}
+                          </FlexItem>
+                        </Flex>
+                      </StackItem>
                     ))}
-                  </ul>
+                  </Stack>
                 </div>
               </ExpandableRowContent>
             </Td>
