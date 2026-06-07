@@ -757,7 +757,6 @@ span.ols-aio-card-stat-number {
 .ols-aio-rca-box {
   border-radius: var(--pf-t--global--border--radius--default);
   padding: var(--pf-t--global--spacer--md);
-  border: 1px solid var(--pf-t--color--blue--50);
 }
 
 .ols-aio-rca-box--critical {
@@ -788,6 +787,5 @@ span.ols-aio-card-stat-number {
   border-radius: var(--pf-t--global--border--radius--default);
   padding: var(--pf-t--global--spacer--md);
   background-color: #F5F5F5;
-  border: 1px solid var(--pf-t--color--blue--50);
 }
 

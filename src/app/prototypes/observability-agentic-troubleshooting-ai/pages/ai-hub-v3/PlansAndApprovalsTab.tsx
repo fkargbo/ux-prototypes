@@ -1405,7 +1405,7 @@ const RemediationOptionCard: React.FC<{
   const typeName = OPTION_TYPE_NAMES[index] ?? `Option ${index + 1}`;
   const isInteractive = !isRemediating;
   const borderColor = isSelected
-    ? 'var(--pf-t--global--color--status--info--default)'
+    ? 'var(--pf-t--color--blue--50)'
     : 'var(--pf-t--global--border--color--default)';
 
   const selectedCount = selectedTargets.size;
