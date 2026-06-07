@@ -868,9 +868,6 @@ const AiSparkle: React.FC<{ size?: number }> = ({ size = 14 }) => (
   </Tooltip>
 );
 
-// Standalone AI icon (no tooltip wrapper) used inside drawer sections
-const AiIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
-
 // ─── Expanded row: consolidated reason icon ───────────────────────────────────
 
 const REASON_ICON_COMPONENT: Record<ReasonIconType, React.ComponentType<{ style?: React.CSSProperties }>> = {
