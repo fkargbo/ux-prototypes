@@ -1764,7 +1764,11 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
     status === 'Investigating' || status === 'Remediating',
   );
   const [openRca, setOpenRca] = useState(
-    status === 'Failed',
+    // Always open for Failed (post-mortem).
+    // Also open by default when a critical plan needs RCA verification — reduces
+    // click fatigue so the SRE lands directly on the actionable control.
+    status === 'Failed' ||
+    (plan.severity === 'critical' && status === 'Waiting Approval'),
   );
   const [openRem, setOpenRem] = useState(
     status === 'Waiting Approval' || status === 'Remediating' || status === 'Completed' || status === 'Failed',
@@ -1796,7 +1800,14 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
     setIsDiagnosisVerified(true);
     setSelectedOptionId(options[0]?.id ?? '');
     setOpenRem(true);
+    // After React re-renders the unlocked hub, scroll it above the fold so the
+    // SRE doesn't have to hunt for it — especially on smaller viewports.
+    setTimeout(() => {
+      remHubRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
+
+  const remHubRef = React.useRef<HTMLDivElement>(null);
 
   if (!drawer) return null;
 
@@ -1999,7 +2010,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <Divider />
 
       {/* ── Section D: Remediation Hub ─────────────────────────────────── */}
-      <StackItem>
+      <StackItem ref={remHubRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={openRem}
