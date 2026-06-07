@@ -1462,7 +1462,7 @@ const RemediationOptionCard: React.FC<{
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
           <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
           <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-            Applied to {selectedCount} target{selectedCount !== 1 ? 's' : ''}
+            Remediation applied to {selectedCount} target{selectedCount !== 1 ? 's' : ''}
           </Content>
         </Flex>
       );
@@ -1974,16 +1974,30 @@ const PostMortemPanel: React.FC<{
           <>
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
-            {/* Collapsible metrics (Sections A, B, C) */}
-            <ExpandableSection
-              toggleText={isMetricsExpanded ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
-              isExpanded={isMetricsExpanded}
-              onToggle={(_e, v) => onToggleMetrics!(v)}
+            {/* Collapsible metrics toggle */}
+            <Button
+              variant="link"
+              isInline
+              onClick={() => onToggleMetrics!(!isMetricsExpanded)}
+              icon={
+                <AngleRightIcon
+                  style={{
+                    transform: isMetricsExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                    transition: 'transform 150ms ease',
+                  }}
+                />
+              }
+              style={{ padding: 0, marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
             >
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+              {isMetricsExpanded ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
+            </Button>
+
+            {/* Collapsible metrics content (Sections A, B, C) */}
+            {isMetricsExpanded && (
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {metricsBlock}
               </div>
-            </ExpandableSection>
+            )}
 
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
