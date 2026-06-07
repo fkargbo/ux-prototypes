@@ -1261,9 +1261,10 @@ const RemediationOptionCard: React.FC<{
         <Button
           variant="primary"
           isDisabled
+          icon={<Spinner size="sm" aria-label="Applying fix" />}
           style={{ cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
         >
-          Applying fix… ⚙️
+          Applying fix…
         </Button>
       );
     }
