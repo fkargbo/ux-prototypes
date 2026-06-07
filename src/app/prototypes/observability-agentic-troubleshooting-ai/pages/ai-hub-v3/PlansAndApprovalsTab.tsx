@@ -1797,13 +1797,11 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
           {isExecuted && (
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-              <PostMortemPanel
-                plan={plan}
-                isMetricsExpanded={isPostMortemOpen}
-                onToggleMetrics={setIsPostMortemOpen}
-              />
-            </div>
+            <PostMortemPanel
+              plan={plan}
+              isMetricsExpanded={isPostMortemOpen}
+              onToggleMetrics={setIsPostMortemOpen}
+            />
           )}
         </div>
       )}
@@ -1970,33 +1968,13 @@ const PostMortemPanel: React.FC<{
     );
 
     return (
-      <div
-        style={{
-          borderRadius: 'var(--pf-t--global--border--radius--default)',
-          border: '1px solid var(--pf-t--global--color--status--success--default)',
-          overflow: 'hidden',
-        }}
-      >
-        {/* ── Success banner ── */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--pf-t--global--spacer--sm)',
-            padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
-            backgroundColor: 'var(--pf-t--global--color--status--success--default)',
-            color: '#fff',
-          }}
-        >
-          <CheckCircleIcon />
-          <Title headingLevel="h5" size="md" style={{ color: '#fff', margin: 0 }}>
-            Remediation Applied Successfully
-          </Title>
-        </div>
+      <>
+        {hasToggle ? (
+          /* ── Inline post-execution: flat layout, no container ── */
+          <>
+            <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
-        <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
-          {/* Metrics — collapsible when toggle props are provided, static otherwise */}
-          {hasToggle ? (
+            {/* Collapsible metrics (Sections A, B, C) */}
             <ExpandableSection
               toggleText={isMetricsExpanded ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
               isExpanded={isMetricsExpanded}
@@ -2006,52 +1984,101 @@ const PostMortemPanel: React.FC<{
                 {metricsBlock}
               </div>
             </ExpandableSection>
-          ) : (
-            metricsBlock
-          )}
 
-          <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
+            <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
-          {/* ── Raw logs toggle — always visible ── */}
-          <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            <Button
-              variant="link"
-              isInline
-              onClick={() => setShowLogs(!showLogs)}
-              style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
-            >
-              {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
-            </Button>
-            {showLogs && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                <ClipboardCopy
-                  variant={ClipboardCopyVariant.expansion}
-                  isReadOnly
-                  isCode
-                  style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+            {/* Raw logs — always visible */}
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => setShowLogs(!showLogs)}
+                style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
+              >
+                {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
+              </Button>
+              {showLogs && (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                  <ClipboardCopy
+                    variant={ClipboardCopyVariant.expansion}
+                    isReadOnly
+                    isCode
+                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                  >
+                    {postMortem.rawLog ?? ''}
+                  </ClipboardCopy>
+                </div>
+              )}
+            </div>
+
+            {/* Actions — always visible */}
+            <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <Button variant="danger" isDanger>Initiate Rollback</Button>
+              <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">Export to ITSM Ticket</Button>
+              <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download Post-Mortem Report</Button>
+            </Flex>
+          </>
+        ) : (
+          /* ── Terminal drawer view: bordered card ── */
+          <div
+            style={{
+              borderRadius: 'var(--pf-t--global--border--radius--default)',
+              border: '1px solid var(--pf-t--global--color--status--success--default)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
+                <Title headingLevel="h5" size="md">Post-Mortem Execution Summary</Title>
+              </Flex>
+
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+
+              {metricsBlock}
+
+              <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
+
+              {/* Raw logs */}
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => setShowLogs(!showLogs)}
+                  style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
                 >
-                  {postMortem.rawLog ?? ''}
-                </ClipboardCopy>
+                  {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
+                </Button>
+                {showLogs && (
+                  <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                    <ClipboardCopy
+                      variant={ClipboardCopyVariant.expansion}
+                      isReadOnly
+                      isCode
+                      style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                    >
+                      {postMortem.rawLog ?? ''}
+                    </ClipboardCopy>
+                  </div>
+                )}
               </div>
-            )}
+
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+
+              {/* Actions */}
+              <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <Button variant="danger" isDanger>Initiate Rollback</Button>
+                <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">Export to ITSM Ticket</Button>
+                <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download Post-Mortem Report</Button>
+              </Flex>
+            </div>
           </div>
-
-          <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
-
-          {/* ── Actions — always visible ── */}
-          <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <Button variant="danger" isDanger>
-              Initiate Rollback
-            </Button>
-            <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">
-              Export to ITSM Ticket
-            </Button>
-            <Button variant="link" icon={<DownloadIcon />} iconPosition="end">
-              Download Post-Mortem Report
-            </Button>
-          </Flex>
-        </div>
-      </div>
+        )}
+      </>
     );
   }
 
