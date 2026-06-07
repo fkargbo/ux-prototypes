@@ -1348,7 +1348,8 @@ const RemediationOptionCard: React.FC<{
   const isRemediating = status === 'Remediating';
   const [showCommands, setShowCommands] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
-  const [sandboxMode, setSandboxMode] = useState(false);
+  type SandboxState = 'pending' | 'running' | 'passed' | 'bypassed';
+  const [sandboxState, setSandboxState] = useState<SandboxState>('pending');
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
 
@@ -1357,6 +1358,7 @@ const RemediationOptionCard: React.FC<{
     if (!isSelected) {
       setShowCommands(false);
       setIsExecuting(false);
+      setSandboxState('pending');
     }
   }, [isSelected]);
 
@@ -1403,6 +1405,8 @@ const RemediationOptionCard: React.FC<{
         </Flex>
       );
     }
+    // Block execution until sandbox is cleared (passed or explicitly bypassed).
+    if (sandboxState === 'pending' || sandboxState === 'running') return null;
     if (isUnauthorized) {
       return (
         <Tooltip
@@ -1671,14 +1675,57 @@ const RemediationOptionCard: React.FC<{
                 ))}
               </Stack>
 
-              {/* Sandbox toggle */}
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--xs)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
-                <Checkbox
-                  id={`sandbox-${option.id}`}
-                  label="Run in sandbox first (recommended for first-time execution)"
-                  isChecked={sandboxMode}
-                  onChange={(_e, checked) => setSandboxMode(checked)}
-                />
+              {/* Sandbox gate */}
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+                {sandboxState === 'pending' && (
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setSandboxState('running');
+                        setTimeout(() => setSandboxState('passed'), 2000);
+                      }}
+                    >
+                      Run sandbox test first
+                    </Button>
+                    <Button
+                      variant="link"
+                      isInline
+                      style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}
+                      onClick={() => setSandboxState('bypassed')}
+                    >
+                      Skip (not recommended)
+                    </Button>
+                  </Flex>
+                )}
+
+                {sandboxState === 'running' && (
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <Spinner size="sm" aria-label="Running sandbox test" />
+                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Running sandbox test…
+                    </Content>
+                  </Flex>
+                )}
+
+                {sandboxState === 'passed' && (
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                    <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }} />
+                    <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
+                      Sandbox test passed — execution unlocked
+                    </Content>
+                  </Flex>
+                )}
+
+                {sandboxState === 'bypassed' && (
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                    <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)', flexShrink: 0 }} />
+                    <Content component="small" style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 600 }}>
+                      Sandbox skipped — applying without prior test validation
+                    </Content>
+                  </Flex>
+                )}
               </div>
             </div>
           )}
