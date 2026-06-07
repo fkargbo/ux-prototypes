@@ -17,8 +17,6 @@ import {
   Label,
   Pagination,
   PaginationVariant,
-  Progress,
-  ProgressSize,
   Radio,
   Skeleton,
   Spinner,
@@ -2167,7 +2165,13 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           {isInvestigating ? (
             <RcaLockedPlaceholder />
           ) : (
-          <div className={`ols-aio-rca-box ${rcaVariant}`}>
+          <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ position: 'relative' }}>
+            <Label
+              color={drawer.confidence >= 80 ? 'green' : drawer.confidence >= 60 ? 'gold' : 'blue'}
+              style={{ position: 'absolute', top: 'var(--pf-t--global--spacer--sm)', right: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              {drawer.confidence}% confidence
+            </Label>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
               style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
@@ -2181,28 +2185,6 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               {drawer.rootCauseNarrative}
             </Content>
-            <Flex
-              justifyContent={{ default: 'justifyContentSpaceBetween' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-            >
-              <span className="ols-aio-text-overline">Confidence Score</span>
-              <span
-                style={{
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  color: 'var(--pf-t--global--color--status--success--default)',
-                }}
-              >
-                {drawer.confidence}%
-              </span>
-            </Flex>
-            <Progress
-              value={drawer.confidence}
-              title=""
-              size={ProgressSize.sm}
-              measureLocation="none"
-              variant="success"
-            />
 
             {/* ── Verification gate (critical plans, non-investigating) ── */}
             {!isInvestigating && plan.severity === 'critical' && (
