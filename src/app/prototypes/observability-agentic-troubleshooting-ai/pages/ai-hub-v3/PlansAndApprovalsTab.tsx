@@ -1374,8 +1374,7 @@ const RemediationOptionCard: React.FC<{
   executionMessage?: string;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  onApplied?: () => void;
-}> = ({ option, index, plan, executionMessage, isSelected, onSelect, onApplied }) => {
+}> = ({ option, index, plan, executionMessage, isSelected, onSelect }) => {
   const isFirst = index === 0;
   const { status, isUnauthorized, drawerTargets } = plan;
   const isInvestigating = status === 'Investigating';
@@ -1387,6 +1386,7 @@ const RemediationOptionCard: React.FC<{
   const [sandboxState, setSandboxState] = useState<SandboxState>('pending');
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
+  const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
@@ -1413,9 +1413,7 @@ const RemediationOptionCard: React.FC<{
     setTimeout(() => {
       setIsExecuting(false);
       setIsExecuted(true);
-      // Brief pause so the SRE sees the success confirmation, then hand off
-      // to the parent to flip the drawer into the post-mortem Completed view.
-      setTimeout(() => onApplied?.(), 900);
+      setIsPostMortemOpen(true);
     }, 2000);
   };
 
@@ -1770,6 +1768,21 @@ const RemediationOptionCard: React.FC<{
 
           {/* Action button */}
           {renderActionButton()}
+
+          {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
+          {isExecuted && (
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              <ExpandableSection
+                toggleText={isPostMortemOpen ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
+                isExpanded={isPostMortemOpen}
+                onToggle={(_e, v) => setIsPostMortemOpen(v)}
+              >
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                  <PostMortemPanel plan={plan} />
+                </div>
+              </ExpandableSection>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1981,12 +1994,7 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
 const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
-  // Allow a locally-executed remediation to transition the drawer into the
-  // Completed post-mortem state without requiring a full data re-fetch.
-  const [localStatus, setLocalStatus] = useState<PlanStatus>(plan.status);
-  const localPlan = localStatus !== plan.status ? { ...plan, status: localStatus } : plan;
-
-  const status = localStatus;
+  const status = plan.status;
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
   const isTerminal = status === 'Completed' || status === 'Failed';
@@ -2323,11 +2331,10 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                         <RemediationOptionCard
                           option={opt}
                           index={idx}
-                          plan={localPlan}
+                          plan={plan}
                           executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
                           isSelected={selectedOptionId === opt.id}
                           onSelect={setSelectedOptionId}
-                          onApplied={() => setLocalStatus('Completed')}
                         />
                       </StackItem>
                     ))}
