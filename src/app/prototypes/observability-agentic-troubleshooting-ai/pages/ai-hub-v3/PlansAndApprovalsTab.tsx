@@ -1997,7 +1997,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                     icon={<CheckCircleIcon />}
                     onClick={handleVerifyDiagnosis}
                   >
-                    Verify AI diagnosis
+                    Verify & proceed
                   </Button>
                 )}
               </div>
