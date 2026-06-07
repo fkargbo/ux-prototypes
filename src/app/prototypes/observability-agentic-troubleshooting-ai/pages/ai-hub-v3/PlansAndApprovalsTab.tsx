@@ -1658,6 +1658,14 @@ const RemediationOptionCard: React.FC<{
                 variant="link"
                 isInline
                 onClick={() => setShowCommands(!showCommands)}
+                icon={
+                  <AngleRightIcon
+                    style={{
+                      transform: showCommands ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 150ms ease',
+                    }}
+                  />
+                }
                 style={{ padding: 0, fontSize: '14px' }}
               >
                 {showCommands ? 'Hide raw commands' : 'View raw commands'}
@@ -2007,6 +2015,14 @@ const PostMortemPanel: React.FC<{
                 variant="link"
                 isInline
                 onClick={() => setShowLogs(!showLogs)}
+                icon={
+                  <AngleRightIcon
+                    style={{
+                      transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 150ms ease',
+                    }}
+                  />
+                }
                 style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
               >
                 {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
@@ -2063,6 +2079,14 @@ const PostMortemPanel: React.FC<{
                   variant="link"
                   isInline
                   onClick={() => setShowLogs(!showLogs)}
+                  icon={
+                    <AngleRightIcon
+                      style={{
+                        transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
+                        transition: 'transform 150ms ease',
+                      }}
+                    />
+                  }
                   style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
                 >
                   {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
