@@ -752,6 +752,7 @@ interface PlanPostMortem {
   gitCommitRef?: string;
   recoveredAt?: string;
   failureTrace?: string;
+  failureReason?: string;
   rawLog?: string;
 }
 
@@ -775,6 +776,7 @@ Exit code: 0 — Execution succeeded.`,
   },
   ap5: {
     type: 'failure',
+    failureReason: 'The autonomous remediation loop terminated after exhausting 3 consecutive execution attempts. Node master-node-3 is unreachable via the Metal3 controller and remains in a provisioning-error state. The BareMetalHost object cannot be reset remotely. Immediate manual intervention or cluster-admin escalation is required to restore the node to a schedulable state.',
     failureTrace:
 `Error: Metal3 BareMetalHost reset failed for node master-node-3
 TASK [metal3.reset_node] → connection timeout after 30s
@@ -1468,6 +1470,7 @@ const HubLockedPlaceholder: React.FC = () => (
 
 const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const [showLogs, setShowLogs] = useState(false);
+  const [showTrace, setShowTrace] = useState(false);
   const postMortem = PLAN_POSTMORTEM[plan.id];
 
   if (!postMortem) {
@@ -1572,40 +1575,65 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       style={{
         borderRadius: 'var(--pf-t--global--border--radius--default)',
         border: '1px solid var(--pf-t--global--color--status--danger--default)',
-        padding: 'var(--pf-t--global--spacer--md)',
+        overflow: 'hidden',
       }}
     >
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        gap={{ default: 'gapSm' }}
-        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-      >
-        <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
-        <Title headingLevel="h5" size="md">Execution failed — remediation was not applied</Title>
-      </Flex>
-      <ClipboardCopy
-        variant={ClipboardCopyVariant.expansion}
-        isReadOnly
-        isCode
-        style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-      >
-        {postMortem.failureTrace ?? ''}
-      </ClipboardCopy>
+      {/* ── Failure banner ── */}
+      <Alert
+        variant="danger"
+        isInline
+        title="Critical Automation Failure"
+        customIcon={<span aria-hidden="true">🛑</span>}
+        style={{ borderRadius: 0, borderBottom: '1px solid var(--pf-t--global--color--status--danger--default)' }}
+      />
 
-      <Divider style={{ margin: 'var(--pf-t--global--spacer--md) 0' }} />
+      <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
+        {/* ── Failure reason ── */}
+        {postMortem.failureReason && (
+          <Content
+            component="p"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            {postMortem.failureReason}
+          </Content>
+        )}
 
-      {/* ── Actions ── */}
-      <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
-        <Button variant="secondary">
-          Retry Remediation
-        </Button>
-        <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">
-          Export to ITSM Ticket
-        </Button>
-        <Button variant="link" icon={<DownloadIcon />} iconPosition="end">
-          Download Failure Report
-        </Button>
-      </Flex>
+        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+
+        {/* ── Emergency actions ── */}
+        <Flex
+          gap={{ default: 'gapSm' }}
+          flexWrap={{ default: 'wrap' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          <Button variant="danger" isDanger>
+            Force Emergency Rollback
+          </Button>
+          <Button variant="secondary" icon={<ExternalLinkAltIcon />} iconPosition="end">
+            Escalate to PagerDuty
+          </Button>
+        </Flex>
+
+        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
+
+        {/* ── Failure trace ── */}
+        <ExpandableSection
+          toggleText={showTrace ? 'Hide failure trace' : 'View failure trace'}
+          isExpanded={showTrace}
+          onToggle={(_e, v) => setShowTrace(v)}
+          style={{ marginBottom: showTrace ? 'var(--pf-t--global--spacer--sm)' : 0 }}
+        >
+          <ClipboardCopy
+            variant={ClipboardCopyVariant.expansion}
+            isReadOnly
+            isCode
+            style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+          >
+            {postMortem.failureTrace ?? ''}
+          </ClipboardCopy>
+        </ExpandableSection>
+      </div>
     </div>
   );
 };
