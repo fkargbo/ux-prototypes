@@ -1197,7 +1197,8 @@ const RemediationOptionCard: React.FC<{
   option: RemediationOption;
   index: number;
   plan: PlanRow;
-}> = ({ option, index, plan }) => {
+  executionMessage?: string;
+}> = ({ option, index, plan, executionMessage }) => {
   const isFirst = index === 0;
   const { status, isUnauthorized } = plan;
   const isInvestigating = status === 'Investigating';
@@ -1215,11 +1216,16 @@ const RemediationOptionCard: React.FC<{
     }
 
     if (isRemediating) {
-      return isFirst ? (
-        <Button variant="primary" isDisabled>Applying fix… ⚙</Button>
-      ) : (
-        <Button variant="secondary" size="sm" isDisabled>
-          Apply option {index + 1}
+      // Non-first options are hidden while a fix is already being applied.
+      // Option 1 renders a purely structural, non-interactive progress indicator.
+      if (!isFirst) return null;
+      return (
+        <Button
+          variant="primary"
+          isDisabled
+          style={{ cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
+        >
+          Applying fix… ⚙️
         </Button>
       );
     }
@@ -1269,6 +1275,9 @@ const RemediationOptionCard: React.FC<{
         backgroundColor: isFirst
           ? 'var(--pf-t--global--background--color--primary--default)'
           : 'var(--pf-t--global--background--color--secondary--default)',
+        // Non-first Remediating cards are suppressed — guard at call-site, but
+        // belt-and-suspenders: hide here too in case of direct render.
+        display: isRemediating && !isFirst ? 'none' : undefined,
       }}
     >
       {/* ── Header row ── */}
@@ -1313,6 +1322,24 @@ const RemediationOptionCard: React.FC<{
       >
         {option.description}
       </Content>
+
+      {/* ── Execution status (Remediating only) ── */}
+      {isRemediating && isFirst && executionMessage && (
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          <Spinner size="sm" aria-label="Executing fix" />
+          <Content
+            component="p"
+            className="ols-aio-text-subtle-sm"
+            style={{ margin: 0, fontStyle: 'italic' }}
+          >
+            {executionMessage}
+          </Content>
+        </Flex>
+      )}
 
       {/* ── Labels ── */}
       <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
@@ -1487,6 +1514,7 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const { status } = plan;
   const isInvestigating = status === 'Investigating';
+  const isRemediating = status === 'Remediating';
   const isTerminal = status === 'Completed' || status === 'Failed';
 
   const [openChain, setOpenChain] = useState(
@@ -1506,6 +1534,18 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const optionLabel = optionCount === 1 ? '1 remediation option' : `${optionCount} remediation options`;
 
   if (!drawer) return null;
+
+  // For Remediating plans: override any 'active' step to 'done' so the chain
+  // renders as a static historical read-only view (no live indicators).
+  const displaySteps = isRemediating
+    ? drawer.steps.map(s => s.status === 'active' ? { ...s, status: 'done' as const } : s)
+    : drawer.steps;
+
+  // Derive the live execution message from the step that was 'active' before
+  // the override — this gets surfaced inside Option Card 1 instead.
+  const activeStepTitle = isRemediating
+    ? drawer.steps.find(s => s.status === 'active')?.title
+    : undefined;
 
   return (
     <Stack hasGutter>
@@ -1552,7 +1592,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           }
         >
           <ol className="ols-aio-reasoning-timeline">
-            {drawer.steps.map((step) => (
+            {displaySteps.map((step) => (
               <li key={step.id} className="ols-aio-reasoning-timeline__item">
                 <span className="ols-aio-reasoning-timeline__node">
                   <ReasoningChainStepGlyph step={step} />
@@ -1703,11 +1743,18 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                 <span className="ols-aio-text-overline">{optionLabel}</span>
               </Flex>
               <Stack hasGutter>
-                {options.map((opt, idx) => (
-                  <StackItem key={opt.id}>
-                    <RemediationOptionCard option={opt} index={idx} plan={plan} />
-                  </StackItem>
-                ))}
+                {options
+                  .filter((_, idx) => !(isRemediating && idx > 0))
+                  .map((opt, idx) => (
+                    <StackItem key={opt.id}>
+                      <RemediationOptionCard
+                        option={opt}
+                        index={idx}
+                        plan={plan}
+                        executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
+                      />
+                    </StackItem>
+                  ))}
               </Stack>
             </div>
           )}
