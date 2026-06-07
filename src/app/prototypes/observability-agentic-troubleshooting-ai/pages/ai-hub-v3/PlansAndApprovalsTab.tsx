@@ -1921,6 +1921,24 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
               <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
               <Title headingLevel="h4" size="md">Remediation Hub</Title>
+              {status === 'Completed' && (
+                <Label
+                  color="green"
+                  isCompact
+                  icon={<CheckCircleIcon />}
+                >
+                  Completed
+                </Label>
+              )}
+              {status === 'Failed' && (
+                <Label
+                  color="red"
+                  isCompact
+                  icon={<ExclamationCircleIcon />}
+                >
+                  Failed
+                </Label>
+              )}
               {!isInvestigating && !isTerminal && optionCount > 0 && (
                 <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
               )}
