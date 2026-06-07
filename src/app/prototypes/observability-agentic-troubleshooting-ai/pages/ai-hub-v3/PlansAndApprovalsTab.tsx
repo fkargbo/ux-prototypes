@@ -1340,7 +1340,8 @@ const RemediationOptionCard: React.FC<{
   executionMessage?: string;
   isSelected: boolean;
   onSelect: (id: string) => void;
-}> = ({ option, index, plan, executionMessage, isSelected, onSelect }) => {
+  onApplied?: () => void;
+}> = ({ option, index, plan, executionMessage, isSelected, onSelect, onApplied }) => {
   const isFirst = index === 0;
   const { status, isUnauthorized, drawerTargets } = plan;
   const isInvestigating = status === 'Investigating';
@@ -1378,6 +1379,9 @@ const RemediationOptionCard: React.FC<{
     setTimeout(() => {
       setIsExecuting(false);
       setIsExecuted(true);
+      // Brief pause so the SRE sees the success confirmation, then hand off
+      // to the parent to flip the drawer into the post-mortem Completed view.
+      setTimeout(() => onApplied?.(), 900);
     }, 2000);
   };
 
@@ -1950,7 +1954,12 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
 const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
-  const { status } = plan;
+  // Allow a locally-executed remediation to transition the drawer into the
+  // Completed post-mortem state without requiring a full data re-fetch.
+  const [localStatus, setLocalStatus] = useState<PlanStatus>(plan.status);
+  const localPlan = localStatus !== plan.status ? { ...plan, status: localStatus } : plan;
+
+  const status = localStatus;
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
   const isTerminal = status === 'Completed' || status === 'Failed';
@@ -2244,7 +2253,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             </div>
           ) : isTerminal ? (
             <div className="ols-aio-remediation-box">
-              <PostMortemPanel plan={plan} />
+              <PostMortemPanel plan={localPlan} />
             </div>
           ) : (
             <div className="ols-aio-remediation-box">
@@ -2303,10 +2312,11 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                         <RemediationOptionCard
                           option={opt}
                           index={idx}
-                          plan={plan}
+                          plan={localPlan}
                           executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
                           isSelected={selectedOptionId === opt.id}
                           onSelect={setSelectedOptionId}
+                          onApplied={() => setLocalStatus('Completed')}
                         />
                       </StackItem>
                     ))}
