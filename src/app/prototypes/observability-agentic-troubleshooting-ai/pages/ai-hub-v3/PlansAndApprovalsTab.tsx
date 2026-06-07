@@ -18,6 +18,7 @@ import {
   PaginationVariant,
   Progress,
   ProgressSize,
+  Radio,
   Skeleton,
   Spinner,
   Stack,
@@ -25,7 +26,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { BullseyeIcon, CheckCircleIcon, CodeBranchIcon, DownloadIcon, ExclamationCircleIcon, ExternalLinkAltIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, DownloadIcon, ExclamationCircleIcon, ExternalLinkAltIcon, LockIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -1233,18 +1234,41 @@ const generateAiInsight = (plan: PlanRow): string =>
 
 // ─── Drawer: Remediation option card ─────────────────────────────────────────
 
+// Display names keyed by option index (0-based).
+const OPTION_TYPE_NAMES: Record<number, string> = {
+  0: 'Primary Automated Fix',
+  1: 'Manual Fallback Script',
+  2: 'Emergency Override',
+};
+
 const RemediationOptionCard: React.FC<{
   option: RemediationOption;
   index: number;
   plan: PlanRow;
   executionMessage?: string;
-}> = ({ option, index, plan, executionMessage }) => {
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}> = ({ option, index, plan, executionMessage, isSelected, onSelect }) => {
   const isFirst = index === 0;
   const { status, isUnauthorized } = plan;
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
   const [showCommands, setShowCommands] = useState(false);
+
+  // Reset inner command toggle when the card is collapsed / deselected.
+  useEffect(() => {
+    if (!isSelected) setShowCommands(false);
+  }, [isSelected]);
+
+  // Remediating: non-first options are always hidden.
+  if (isRemediating && !isFirst) return null;
+
+  const typeName = OPTION_TYPE_NAMES[index] ?? `Option ${index + 1}`;
+  const isInteractive = !isRemediating;
+  const borderColor = isSelected
+    ? 'var(--pf-t--global--color--status--info--default)'
+    : 'var(--pf-t--global--border--color--default)';
 
   const renderButton = () => {
     if (isInvestigating) return null;
@@ -1256,9 +1280,6 @@ const RemediationOptionCard: React.FC<{
     }
 
     if (isRemediating) {
-      // Non-first options are hidden while a fix is already being applied.
-      // Option 1 renders a purely structural, non-interactive progress indicator.
-      if (!isFirst) return null;
       return (
         <Button
           variant="primary"
@@ -1271,7 +1292,6 @@ const RemediationOptionCard: React.FC<{
       );
     }
 
-    // Waiting Approval
     if (isUnauthorized) {
       return (
         <Tooltip
@@ -1307,120 +1327,182 @@ const RemediationOptionCard: React.FC<{
     <div
       style={{
         borderRadius: 'var(--pf-t--global--border--radius--default)',
-        border: `1px solid ${
-          isFirst
-            ? 'var(--pf-t--global--color--status--info--default)'
-            : 'var(--pf-t--global--border--color--default)'
-        }`,
-        padding: 'var(--pf-t--global--spacer--md)',
-        backgroundColor: isFirst
-          ? 'var(--pf-t--global--background--color--primary--default)'
-          : 'var(--pf-t--global--background--color--secondary--default)',
-        // Non-first Remediating cards are suppressed — guard at call-site, but
-        // belt-and-suspenders: hide here too in case of direct render.
-        display: isRemediating && !isFirst ? 'none' : undefined,
+        border: `1px solid ${borderColor}`,
+        overflow: 'hidden',
+        transition: 'border-color 150ms ease',
       }}
     >
-      {/* ── Header row ── */}
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        gap={{ default: 'gapSm' }}
-        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+      {/* ── Collapsed header row (always visible) ── */}
+      <div
+        role={isInteractive ? 'button' : undefined}
+        tabIndex={isInteractive ? 0 : undefined}
+        aria-expanded={isSelected}
+        onClick={() => isInteractive && onSelect(option.id)}
+        onKeyDown={(e) => {
+          if (isInteractive && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onSelect(option.id);
+          }
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--pf-t--global--spacer--sm)',
+          padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
+          cursor: isInteractive ? 'pointer' : 'default',
+          backgroundColor: isSelected
+            ? 'var(--pf-t--global--background--color--secondary--default)'
+            : 'var(--pf-t--global--background--color--primary--default)',
+          userSelect: 'none',
+        }}
       >
-        <span className="ols-aio-text-overline">Option {index + 1}</span>
-        {isFirst && <Label color="blue" isCompact>AI recommended</Label>}
-        {isTerminal && isFirst && (
-          <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
-            {status === 'Completed' ? 'Executed' : 'Failed'}
-          </Label>
+        {/* Radio control */}
+        {isInteractive && (
+          <Radio
+            id={`radio-${option.id}`}
+            name={`remedy-${plan.id}`}
+            aria-label={`Select ${typeName}`}
+            isChecked={isSelected}
+            onChange={() => onSelect(option.id)}
+            onClick={(e) => e.stopPropagation()}
+            label=""
+          />
         )}
-      </Flex>
 
-      {/* ── Title ── */}
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        gap={{ default: 'gapXs' }}
-        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-      >
-        <Tooltip
-          content="This remediation strategy is synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns."
-          position="top"
-        >
-          <span style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
-            <AiIcon size={16} />
-          </span>
-        </Tooltip>
-        <Title headingLevel="h5" size="md">
-          {option.title}
-        </Title>
-      </Flex>
-
-      {/* ── Description ── */}
-      <Content
-        component="p"
-        className="ols-aio-text-subtle-sm"
-        style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-      >
-        {option.description}
-      </Content>
-
-      {/* ── Execution status (Remediating only) ── */}
-      {isRemediating && isFirst && executionMessage && (
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-        >
-          <Spinner size="sm" aria-label="Executing fix" />
-          <Content
-            component="p"
-            className="ols-aio-text-subtle-sm"
-            style={{ margin: 0, fontStyle: 'italic' }}
+        {/* Option identity + at-a-glance triage badges */}
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapSm' }}
+            flexWrap={{ default: 'wrap' }}
           >
-            {executionMessage}
-          </Content>
-        </Flex>
-      )}
+            <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+              Option {index + 1}: {typeName}
+            </span>
+            <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+              {isFirst ? (
+                <Label color="blue" isCompact>AI Recommended</Label>
+              ) : (
+                <Label color="grey" isCompact>Manual Fallback</Label>
+              )}
+              {isTerminal && isFirst && (
+                <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
+                  {status === 'Completed' ? 'Executed' : 'Failed'}
+                </Label>
+              )}
+              <Label color={RISK_COLOR[option.risk]} variant="outline" isCompact>
+                {RISK_LABEL[option.risk]}
+              </Label>
+              <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
+                {option.reversible ? '1-Click Rollback' : 'Non-reversible'}
+              </Label>
+            </Flex>
+          </Flex>
+        </div>
 
-      {/* ── Labels ── */}
-      <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-        <Label color={RISK_COLOR[option.risk]} variant="outline" isCompact>
-          {RISK_LABEL[option.risk]}
-        </Label>
-        <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
-          {option.reversible ? 'Reversible' : 'Non-reversible'}
-        </Label>
-        <Label color={option.model === 'smart' ? 'purple' : 'teal'} variant="outline" isCompact>
-          {option.model === 'smart' ? 'Smart model' : 'Fast model'}
-        </Label>
-      </Flex>
-
-      {/* ── Raw commands ── */}
-      <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-        <Button
-          variant="link"
-          isInline
-          onClick={() => setShowCommands(!showCommands)}
-          style={{ padding: 0, fontSize: '14px' }}
-        >
-          {showCommands ? 'Hide raw commands' : 'View raw commands'}
-        </Button>
-        {showCommands && (
-          <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-            <ClipboardCopy
-              variant={ClipboardCopyVariant.expansion}
-              isReadOnly
-              isCode
-              style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-            >
-              {option.rawCommands}
-            </ClipboardCopy>
-          </div>
+        {/* Expand/collapse chevron */}
+        {isInteractive && (
+          <AngleRightIcon
+            style={{
+              transition: 'transform 200ms ease',
+              transform: isSelected ? 'rotate(90deg)' : 'rotate(0deg)',
+              flexShrink: 0,
+              color: 'var(--pf-t--global--text--color--subtle)',
+            }}
+          />
         )}
       </div>
 
-      {/* ── Action button ── */}
-      {renderButton()}
+      {/* ── Expanded body (visible only when selected) ── */}
+      {isSelected && (
+        <div
+          style={{
+            borderTop: `1px solid ${borderColor}`,
+            padding: 'var(--pf-t--global--spacer--md)',
+          }}
+        >
+          {/* AI icon + full option title */}
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapXs' }}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+          >
+            <Tooltip
+              content="This remediation strategy is synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns."
+              position="top"
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
+                <AiIcon size={16} />
+              </span>
+            </Tooltip>
+            <Title headingLevel="h5" size="md">{option.title}</Title>
+          </Flex>
+
+          {/* Description */}
+          <Content
+            component="p"
+            className="ols-aio-text-subtle-sm"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+          >
+            {option.description}
+          </Content>
+
+          {/* Execution status (Remediating only) */}
+          {isRemediating && isFirst && executionMessage && (
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              gap={{ default: 'gapSm' }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              <Spinner size="sm" aria-label="Executing fix" />
+              <Content
+                component="p"
+                className="ols-aio-text-subtle-sm"
+                style={{ margin: 0, fontStyle: 'italic' }}
+              >
+                {executionMessage}
+              </Content>
+            </Flex>
+          )}
+
+          {/* Model badge */}
+          <Flex
+            gap={{ default: 'gapXs' }}
+            flexWrap={{ default: 'wrap' }}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+          >
+            <Label color={option.model === 'smart' ? 'purple' : 'teal'} variant="outline" isCompact>
+              {option.model === 'smart' ? 'Smart model' : 'Fast model'}
+            </Label>
+          </Flex>
+
+          {/* Raw commands toggle */}
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+            <Button
+              variant="link"
+              isInline
+              onClick={() => setShowCommands(!showCommands)}
+              style={{ padding: 0, fontSize: '14px' }}
+            >
+              {showCommands ? 'Hide raw commands' : 'View raw commands'}
+            </Button>
+            {showCommands && (
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                <ClipboardCopy
+                  isReadOnly
+                  isCode
+                  style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                >
+                  {option.rawCommands}
+                </ClipboardCopy>
+              </div>
+            )}
+          </div>
+
+          {/* Action button */}
+          {renderButton()}
+        </div>
+      )}
     </div>
   );
 };
@@ -1658,6 +1740,9 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const optionCount = options.length;
   const optionLabel = optionCount === 1 ? '1 remediation option' : `${optionCount} remediation options`;
 
+  // Default selection: first option is always pre-selected on mount.
+  const [selectedOptionId, setSelectedOptionId] = useState<string>(options[0]?.id ?? '');
+
   if (!drawer) return null;
 
   // For Remediating plans: override any 'active' step to 'done' so the chain
@@ -1877,6 +1962,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                         index={idx}
                         plan={plan}
                         executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
+                        isSelected={selectedOptionId === opt.id}
+                        onSelect={setSelectedOptionId}
                       />
                     </StackItem>
                   ))}
