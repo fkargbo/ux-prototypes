@@ -2295,7 +2295,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             </div>
           ) : isTerminal ? (
             <div className="ols-aio-remediation-box">
-              <PostMortemPanel plan={localPlan} />
+              <PostMortemPanel plan={plan} />
             </div>
           ) : (
             <div className="ols-aio-remediation-box">
