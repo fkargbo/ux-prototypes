@@ -1781,6 +1781,23 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   // Default selection: first option is always pre-selected on mount.
   const [selectedOptionId, setSelectedOptionId] = useState<string>(options[0]?.id ?? '');
 
+  // Safety gate: critical plans require explicit RCA verification before the SRE
+  // can interact with the Remediation Hub. Warning plans skip the gate entirely.
+  // Plans already in execution (Remediating / Completed / Failed) are also exempt
+  // since the gate was already cleared in a prior interaction.
+  const [isDiagnosisVerified, setIsDiagnosisVerified] = useState<boolean>(
+    plan.severity === 'warning' ||
+    status === 'Remediating' ||
+    status === 'Completed' ||
+    status === 'Failed',
+  );
+
+  const handleVerifyDiagnosis = () => {
+    setIsDiagnosisVerified(true);
+    setSelectedOptionId(options[0]?.id ?? '');
+    setOpenRem(true);
+  };
+
   if (!drawer) return null;
 
   // For Remediating plans: override any 'active' step to 'done' so the chain
@@ -1942,6 +1959,38 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
               measureLocation="none"
               variant="success"
             />
+
+            {/* ── Verification gate (critical plans, non-investigating) ── */}
+            {!isInvestigating && plan.severity === 'critical' && (
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
+                {isDiagnosisVerified ? (
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                    <CheckCircleIcon
+                      style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }}
+                    />
+                    <Content
+                      component="small"
+                      style={{
+                        color: 'var(--pf-t--global--color--status--success--default)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Diagnosis verified
+                    </Content>
+                  </Flex>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<CheckCircleIcon />}
+                    onClick={handleVerifyDiagnosis}
+                  >
+                    Verify AI diagnosis
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           )}
         </ExpandableSection>
@@ -2008,22 +2057,55 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                 </Tooltip>
                 <span className="ols-aio-text-overline">{optionLabel}</span>
               </Flex>
-              <Stack hasGutter>
-                {options
-                  .filter((_, idx) => !(isRemediating && idx > 0))
-                  .map((opt, idx) => (
-                    <StackItem key={opt.id}>
-                      <RemediationOptionCard
-                        option={opt}
-                        index={idx}
-                        plan={plan}
-                        executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
-                        isSelected={selectedOptionId === opt.id}
-                        onSelect={setSelectedOptionId}
-                      />
-                    </StackItem>
-                  ))}
-              </Stack>
+
+              {/* Gate hint shown to critical plans before verification */}
+              {!isDiagnosisVerified && (
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  style={{
+                    marginBottom: 'var(--pf-t--global--spacer--sm)',
+                    padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
+                    borderRadius: 'var(--pf-t--global--border--radius--default)',
+                    backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                    border: '1px solid var(--pf-t--global--border--color--default)',
+                  }}
+                >
+                  <LockIcon style={{ flexShrink: 0, color: 'var(--pf-t--global--text--color--subtle)' }} />
+                  <Content
+                    component="small"
+                    style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                  >
+                    Verify the AI diagnosis in the RCA section above to unlock remediation options.
+                  </Content>
+                </Flex>
+              )}
+
+              {/* Options list — gated by diagnosis verification for critical plans */}
+              <div
+                style={{
+                  opacity: isDiagnosisVerified ? 1 : 0.45,
+                  pointerEvents: isDiagnosisVerified ? undefined : 'none',
+                  transition: 'opacity 300ms ease',
+                }}
+              >
+                <Stack hasGutter>
+                  {options
+                    .filter((_, idx) => !(isRemediating && idx > 0))
+                    .map((opt, idx) => (
+                      <StackItem key={opt.id}>
+                        <RemediationOptionCard
+                          option={opt}
+                          index={idx}
+                          plan={plan}
+                          executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
+                          isSelected={selectedOptionId === opt.id}
+                          onSelect={setSelectedOptionId}
+                        />
+                      </StackItem>
+                    ))}
+                </Stack>
+              </div>
             </div>
           )}
         </ExpandableSection>
