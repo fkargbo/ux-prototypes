@@ -1995,7 +1995,7 @@ const PostMortemPanel: React.FC<{
                   }}
                 />
               }
-              style={{ padding: 0, marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
+              style={{ padding: 0, fontSize: '14px', marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
             >
               {isMetricsExpanded ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
             </Button>
