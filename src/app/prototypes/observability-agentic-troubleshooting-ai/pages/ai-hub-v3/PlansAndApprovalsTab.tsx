@@ -1587,53 +1587,49 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
         style={{ borderRadius: 0, borderBottom: '1px solid var(--pf-t--global--color--status--danger--default)' }}
       />
 
-      <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
+      <Stack hasGutter style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
         {/* ── Failure reason ── */}
         {postMortem.failureReason && (
-          <Content
-            component="p"
-            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-          >
-            {postMortem.failureReason}
-          </Content>
+          <StackItem>
+            <Content component="p" style={{ margin: 0 }}>
+              {postMortem.failureReason}
+            </Content>
+          </StackItem>
         )}
 
-        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+        <StackItem><Divider /></StackItem>
 
         {/* ── Emergency actions ── */}
-        <Flex
-          gap={{ default: 'gapSm' }}
-          flexWrap={{ default: 'wrap' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-        >
-          <Button variant="danger" isDanger>
-            Force Emergency Rollback
-          </Button>
-          <Button variant="secondary" icon={<ExternalLinkAltIcon />} iconPosition="end">
-            Escalate to PagerDuty
-          </Button>
-        </Flex>
+        <StackItem>
+          <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <Button variant="danger" isDanger>Force Emergency Rollback</Button>
+            <Button variant="secondary" icon={<ExternalLinkAltIcon />} iconPosition="end">
+              Escalate to PagerDuty
+            </Button>
+          </Flex>
+        </StackItem>
 
-        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
+        <StackItem><Divider /></StackItem>
 
         {/* ── Failure trace ── */}
-        <ExpandableSection
-          toggleText={showTrace ? 'Hide failure trace' : 'View failure trace'}
-          isExpanded={showTrace}
-          onToggle={(_e, v) => setShowTrace(v)}
-          style={{ marginBottom: showTrace ? 'var(--pf-t--global--spacer--sm)' : 0 }}
-        >
-          <ClipboardCopy
-            variant={ClipboardCopyVariant.expansion}
-            isReadOnly
-            isCode
-            style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+        <StackItem>
+          <ExpandableSection
+            toggleText={showTrace ? 'Hide failure trace' : 'View failure trace'}
+            isExpanded={showTrace}
+            onToggle={(_e, v) => setShowTrace(v)}
           >
-            {postMortem.failureTrace ?? ''}
-          </ClipboardCopy>
-        </ExpandableSection>
-      </div>
+            {/* No variant="expansion" — ExpandableSection owns the toggle;
+                ClipboardCopy renders the text directly without a nested expand. */}
+            <ClipboardCopy
+              isReadOnly
+              isCode
+              style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px', marginTop: 'var(--pf-t--global--spacer--xs)' }}
+            >
+              {postMortem.failureTrace ?? ''}
+            </ClipboardCopy>
+          </ExpandableSection>
+        </StackItem>
+      </Stack>
     </div>
   );
 };
