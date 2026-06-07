@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Button,
+  ClipboardCopy,
+  ClipboardCopyVariant,
   Content,
   Divider,
   ExpandableSection,
@@ -654,6 +656,7 @@ interface RemediationOption {
   risk: RemediationRisk;
   reversible: boolean;
   model: 'smart' | 'fast';
+  rawCommands: string;
 }
 
 const RISK_COLOR: Record<RemediationRisk, 'green' | 'orange' | 'red'> = {
@@ -665,72 +668,72 @@ const RISK_LABEL: Record<RemediationRisk, string> = {
 
 const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
   tp1: [
-    { id: 'tp1-o1', title: 'Automated fleet rollback via GitOps controller', description: 'Revert the ApplicationSet to revision r4891 and trigger a fleet-wide hard sync via the ArgoCD GitOps controller.', risk: 'low', reversible: true, model: 'smart' },
-    { id: 'tp1-o2', title: 'Manual cluster-by-cluster ArgoCD sync override', description: 'Force-sync each affected cluster individually via the ArgoCD CLI, bypassing the ApplicationSet controller.', risk: 'medium', reversible: true, model: 'fast' },
-    { id: 'tp1-o3', title: 'Full ApplicationSet deletion and recreation', description: 'Delete the faulty ApplicationSet entirely and redeploy from the canonical Git source.', risk: 'high', reversible: false, model: 'fast' },
+    { id: 'tp1-o1', title: 'Automated fleet rollback via GitOps controller', description: 'Revert the ApplicationSet to revision r4891 and trigger a fleet-wide hard sync via the ArgoCD GitOps controller.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'argocd app sync cluster-ingress-controller --prune --force' },
+    { id: 'tp1-o2', title: 'Manual cluster-by-cluster ArgoCD sync override', description: 'Force-sync each affected cluster individually via the ArgoCD CLI, bypassing the ApplicationSet controller.', risk: 'medium', reversible: true, model: 'fast', rawCommands: 'argocd app sync cluster-ingress-controller --revision HEAD~1 --local' },
+    { id: 'tp1-o3', title: 'Full ApplicationSet deletion and recreation', description: 'Delete the faulty ApplicationSet entirely and redeploy from the canonical Git source.', risk: 'high', reversible: false, model: 'fast', rawCommands: 'argocd app delete cluster-ingress-controller --cascade && git checkout HEAD~1 -- config/applicationset.yaml && argocd app create -f config/applicationset.yaml' },
   ],
-  tp2: [], // Investigating — options pending root cause confirmation
+  tp2: [],
   tp3: [
-    { id: 'tp3-o1', title: 'Memory limit patch with rolling HPA scale-out', description: 'Apply 2Gi → 4Gi memory limit patch via rolling restart and scale HPA to 3 replicas to absorb the increased footprint.', risk: 'low', reversible: true, model: 'smart' },
-    { id: 'tp3-o2', title: 'Force pod eviction and reschedule', description: 'Force-evict all affected pods to trigger rescheduling without changing the memory limit configuration — temporary relief only.', risk: 'medium', reversible: true, model: 'fast' },
+    { id: 'tp3-o1', title: 'Memory limit patch with rolling HPA scale-out', description: 'Apply 2Gi → 4Gi memory limit patch via rolling restart and scale HPA to 3 replicas to absorb the increased footprint.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc set resources deployment/payment-gateway --limits=memory=2Gi --requests=memory=1Gi -n payment-gateway' },
+    { id: 'tp3-o2', title: 'Force pod eviction and reschedule', description: 'Force-evict all affected pods to trigger rescheduling without changing the memory limit configuration — temporary relief only.', risk: 'medium', reversible: true, model: 'fast', rawCommands: 'oc delete pod -l app=payment-gateway -n payment-gateway --force --grace-period=0' },
   ],
   tp4: [
-    { id: 'tp4-o1', title: 'Automated OSD pool expansion + log rotation enforcement', description: 'Expand the Ceph OSD pool by 20% via rook-ceph toolbox and enable automated log rotation on the 3 affected StatefulSets.', risk: 'medium', reversible: true, model: 'smart' },
-    { id: 'tp4-o2', title: 'Emergency log data pruning', description: 'Delete the oldest 30% of log data from the overloaded volumes to immediately free storage capacity.', risk: 'high', reversible: false, model: 'fast' },
+    { id: 'tp4-o1', title: 'Automated OSD pool expansion + log rotation enforcement', description: 'Expand the Ceph OSD pool by 20% via rook-ceph toolbox and enable automated log rotation on the 3 affected StatefulSets.', risk: 'medium', reversible: true, model: 'smart', rawCommands: "oc patch pvc/ceph-storage-core-pvc -p '{\"spec\":{\"resources\":{\"requests\":{\"storage\":\"500Gi\"}}}}'" },
+    { id: 'tp4-o2', title: 'Emergency log data pruning', description: 'Delete the oldest 30% of log data from the overloaded volumes to immediately free storage capacity.', risk: 'high', reversible: false, model: 'fast', rawCommands: 'oc rsh -n rook-ceph rook-ceph-tools -- bash -c "find /var/log/containers -mtime +30 -delete && ceph df"' },
   ],
   tp5: [
-    { id: 'tp5-o1', title: 'Rolling etcd defragmentation across all control plane members', description: 'Defragment all 3 etcd members sequentially with automated health verification between each step.', risk: 'low', reversible: true, model: 'smart' },
-    { id: 'tp5-o2', title: 'etcd compaction-only (no defragmentation)', description: 'Compact etcd revision history without a full defragmentation pass — faster but yields partial improvement only.', risk: 'low', reversible: true, model: 'fast' },
+    { id: 'tp5-o1', title: 'Rolling etcd defragmentation across all control plane members', description: 'Defragment all 3 etcd members sequentially with automated health verification between each step.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc rsh -n openshift-etcd etcd-member-master-1 etcdctl defrag' },
+    { id: 'tp5-o2', title: 'etcd compaction-only (no defragmentation)', description: 'Compact etcd revision history without a full defragmentation pass — faster but yields partial improvement only.', risk: 'low', reversible: true, model: 'fast', rawCommands: 'oc rsh -n openshift-etcd etcd-member-master-1 etcdctl compact $(oc rsh -n openshift-etcd etcd-member-master-1 etcdctl endpoint status --write-out=json | jq \'.[0].Status.header.revision\')' },
   ],
   ap1: [
-    { id: 'ap1-o1', title: 'Memory limit patch + pod redeploy with rolling strategy', description: 'Apply the 2Gi → 4Gi limit patch and redeploy pods using a rolling update strategy to resolve the heap leak.', risk: 'low', reversible: true, model: 'smart' },
-    { id: 'ap1-o2', title: 'Force pod restart (temporary heap flush)', description: 'Force-restart affected pods to reclaim memory from the leaked heap — buys time without addressing the underlying allocator regression.', risk: 'medium', reversible: true, model: 'fast' },
+    { id: 'ap1-o1', title: 'Memory limit patch + pod redeploy with rolling strategy', description: 'Apply the 2Gi → 4Gi limit patch and redeploy pods using a rolling update strategy to resolve the heap leak.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc rollout restart deployment/dev-analytics -n sandbox' },
+    { id: 'ap1-o2', title: 'Force pod restart (temporary heap flush)', description: 'Force-restart affected pods to reclaim memory from the leaked heap — buys time without addressing the underlying allocator regression.', risk: 'medium', reversible: true, model: 'fast', rawCommands: 'oc delete pod -l app=dev-analytics -n sandbox --force --grace-period=0' },
   ],
   ap2: [
-    { id: 'ap2-o1', title: 'TLS secret rotation + webhook endpoint re-registration', description: 'Rotate the EventListener TLS secret and force webhook endpoint re-registration on both clusters.', risk: 'low', reversible: true, model: 'smart' },
-    { id: 'ap2-o2', title: 'Delete and recreate EventListener', description: 'Delete the EventListener resource entirely and recreate it to force full TLS re-initialization.', risk: 'medium', reversible: true, model: 'fast' },
+    { id: 'ap2-o1', title: 'TLS secret rotation + webhook endpoint re-registration', description: 'Rotate the EventListener TLS secret and force webhook endpoint re-registration on both clusters.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc apply -f ./pipelines/repaired-webhook-admission.yaml' },
+    { id: 'ap2-o2', title: 'Delete and recreate EventListener', description: 'Delete the EventListener resource entirely and recreate it to force full TLS re-initialization.', risk: 'medium', reversible: true, model: 'fast', rawCommands: 'oc delete eventlistener/pipeline-webhook -n tekton-pipelines && oc apply -f ./pipelines/eventlistener.yaml' },
   ],
   ap3: [
-    { id: 'ap3-o1', title: 'Restore IAM role binding + ACME-based cert rotation', description: 'Re-bind the automation IAM role and trigger an ACME DNS-01 challenge to issue a renewed certificate.', risk: 'medium', reversible: true, model: 'smart' },
-    { id: 'ap3-o2', title: 'Manual emergency cert renewal via internal PKI', description: 'Directly issue a replacement certificate through the internal PKI without restoring the automation role.', risk: 'high', reversible: true, model: 'fast' },
+    { id: 'ap3-o1', title: 'Restore IAM role binding + ACME-based cert rotation', description: 'Re-bind the automation IAM role and trigger an ACME DNS-01 challenge to issue a renewed certificate.', risk: 'medium', reversible: true, model: 'smart', rawCommands: 'oc delete secret/expired-iam-token-certs -n openshift-auth' },
+    { id: 'ap3-o2', title: 'Manual emergency cert renewal via internal PKI', description: 'Directly issue a replacement certificate through the internal PKI without restoring the automation role.', risk: 'high', reversible: true, model: 'fast', rawCommands: 'oc create secret tls iam-token-certs --cert=./certs/tls.crt --key=./certs/tls.key -n openshift-auth --dry-run=client -o yaml | oc replace -f -' },
   ],
-  ap4: [], // Investigating — options pending root cause confirmation
+  ap4: [],
   ap5: [
-    { id: 'ap5-o1', title: 'Force drain + Metal3 BMH reset + node re-provision', description: 'Force-drain the stuck node, reset the BareMetalHost object, and trigger full Metal3 re-provisioning.', risk: 'high', reversible: false, model: 'smart' },
-    { id: 'ap5-o2', title: 'Node isolation via taint + workload migration', description: 'Taint the node unschedulable and migrate its workloads to healthy nodes without triggering a full re-provision.', risk: 'medium', reversible: true, model: 'fast' },
+    { id: 'ap5-o1', title: 'Force drain + Metal3 BMH reset + node re-provision', description: 'Force-drain the stuck node, reset the BareMetalHost object, and trigger full Metal3 re-provisioning.', risk: 'high', reversible: false, model: 'smart', rawCommands: 'oc adm node-merge-evacuate master-node-3 --target-tier=compute' },
+    { id: 'ap5-o2', title: 'Node isolation via taint + workload migration', description: 'Taint the node unschedulable and migrate its workloads to healthy nodes without triggering a full re-provision.', risk: 'medium', reversible: true, model: 'fast', rawCommands: 'oc adm taint node master-node-3 node.kubernetes.io/unschedulable:NoSchedule && oc adm drain master-node-3 --ignore-daemonsets --delete-emptydir-data' },
   ],
   ap6: [
-    { id: 'ap6-o1', title: 'ArgoCD hard sync to Git-declared state', description: 'Force a hard sync on the staging application to restore the namespace to its GitOps-declared configuration.', risk: 'low', reversible: true, model: 'fast' },
+    { id: 'ap6-o1', title: 'ArgoCD hard sync to Git-declared state', description: 'Force a hard sync on the staging application to restore the namespace to its GitOps-declared configuration.', risk: 'low', reversible: true, model: 'fast', rawCommands: 'argocd app sync staging-config-map --refresh' },
   ],
   ap7: [
-    { id: 'ap7-o1', title: 'Patch PodDisruptionBudget + HPA-driven scale-out', description: 'Set maxUnavailable: 1 on the ingress PDB and allow the HPA to scale routers to the 3-replica minimum.', risk: 'low', reversible: true, model: 'smart' },
-    { id: 'ap7-o2', title: 'Temporary PDB suspension + manual ingress restart', description: 'Temporarily suspend the PodDisruptionBudget and manually restart ingress pods to restore the minimum replica count.', risk: 'medium', reversible: true, model: 'fast' },
+    { id: 'ap7-o1', title: 'Patch PodDisruptionBudget + HPA-driven scale-out', description: 'Set maxUnavailable: 1 on the ingress PDB and allow the HPA to scale routers to the 3-replica minimum.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc scale ingresscontroller/default --replicas=2 -n openshift-ingress-operator' },
+    { id: 'ap7-o2', title: 'Temporary PDB suspension + manual ingress restart', description: 'Temporarily suspend the PodDisruptionBudget and manually restart ingress pods to restore the minimum replica count.', risk: 'medium', reversible: true, model: 'fast', rawCommands: 'oc rollout restart deployment/router-default -n openshift-ingress' },
   ],
   ap8: [
-    { id: 'ap8-o1', title: 'Set hostNetwork: false + mutating admission webhook', description: 'Patch the deployment to remove host network access and install a MutatingAdmissionWebhook to prevent future violations.', risk: 'medium', reversible: true, model: 'smart' },
-    { id: 'ap8-o2', title: 'Force-delete non-compliant deployment', description: 'Immediately delete the offending deployment to eliminate the compliance violation — requires manual redeployment with a compliant spec.', risk: 'high', reversible: false, model: 'fast' },
+    { id: 'ap8-o1', title: 'Set hostNetwork: false + mutating admission webhook', description: 'Patch the deployment to remove host network access and install a MutatingAdmissionWebhook to prevent future violations.', risk: 'medium', reversible: true, model: 'smart', rawCommands: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'" },
+    { id: 'ap8-o2', title: 'Force-delete non-compliant deployment', description: 'Immediately delete the offending deployment to eliminate the compliance violation — requires manual redeployment with a compliant spec.', risk: 'high', reversible: false, model: 'fast', rawCommands: "oc delete deployment -n production -l 'security.redhat.com/non-compliant=true'" },
   ],
   ap9: [
-    { id: 'ap9-o1', title: 'Kubelet GC cycle + containerd sandbox_cleanup_interval fix', description: 'Trigger a graceful Kubelet garbage collection pass and patch the containerd config to re-enable sandbox cleanup.', risk: 'low', reversible: true, model: 'smart' },
+    { id: 'ap9-o1', title: 'Kubelet GC cycle + containerd sandbox_cleanup_interval fix', description: 'Trigger a graceful Kubelet garbage collection pass and patch the containerd config to re-enable sandbox cleanup.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc adm prune deployments --keep-complete=5 --keep-failed=1 --keep-younger-than=60m' },
   ],
   ap10: [
-    { id: 'ap10-o1', title: 'Terminate stalled job + increase executor count to 8', description: 'Terminate the monopolizing integration test job and scale Jenkins executors from 4 to 8 to prevent recurrence.', risk: 'low', reversible: true, model: 'fast' },
+    { id: 'ap10-o1', title: 'Terminate stalled job + increase executor count to 8', description: 'Terminate the monopolizing integration test job and scale Jenkins executors from 4 to 8 to prevent recurrence.', risk: 'low', reversible: true, model: 'fast', rawCommands: 'oc set env deployment/jenkins-leader JENKINS_MAX_EXECUTORS=16 -n continuous-integration' },
   ],
   ap11: [
-    { id: 'ap11-o1', title: 'Restart metrics adapter + update egress network policy', description: 'Restart the custom metrics adapter pod and add an egress rule permitting adapter → Prometheus communication.', risk: 'low', reversible: true, model: 'smart' },
-    { id: 'ap11-o2', title: 'Fall back to CPU-only HPA scaling', description: 'Remove the custom metrics configuration and revert the HPA to native CPU utilization-based scaling.', risk: 'medium', reversible: true, model: 'fast' },
+    { id: 'ap11-o1', title: 'Restart metrics adapter + update egress network policy', description: 'Restart the custom metrics adapter pod and add an egress rule permitting adapter → Prometheus communication.', risk: 'low', reversible: true, model: 'smart', rawCommands: "oc patch hpa/api-scaler -p '{\"spec\":{\"maxReplicas\":50}}' -n production" },
+    { id: 'ap11-o2', title: 'Fall back to CPU-only HPA scaling', description: 'Remove the custom metrics configuration and revert the HPA to native CPU utilization-based scaling.', risk: 'medium', reversible: true, model: 'fast', rawCommands: 'oc patch hpa/api-scaler -p \'{"spec":{"metrics":[{"type":"Resource","resource":{"name":"cpu","target":{"type":"Utilization","averageUtilization":70}}}]}}\' -n production' },
   ],
   ap12: [
-    { id: 'ap12-o1', title: 'CoreDNS cache flush + registry mirror config update', description: 'Flush CoreDNS caches on affected nodes and update the registry mirror to the corrected endpoint.', risk: 'low', reversible: true, model: 'smart' },
-    { id: 'ap12-o2', title: 'Configure pods to pull via registry node IP', description: 'Patch pod specs to reference the registry by direct node IP, bypassing DNS resolution until the record propagates.', risk: 'medium', reversible: true, model: 'fast' },
+    { id: 'ap12-o1', title: 'CoreDNS cache flush + registry mirror config update', description: 'Flush CoreDNS caches on affected nodes and update the registry mirror to the corrected endpoint.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc secrets link deployer registry-pull-secret --for=pull -n core-system' },
+    { id: 'ap12-o2', title: 'Configure pods to pull via registry node IP', description: 'Patch pod specs to reference the registry by direct node IP, bypassing DNS resolution until the record propagates.', risk: 'medium', reversible: true, model: 'fast', rawCommands: "oc patch configmap/registry-env-config -n openshift-image-registry -p '{\"data\":{\"REGISTRY_OPENSHIFT_SERVER_ADDR\":\"172.30.1.1:5000\"}}'" },
   ],
-  ap13: [], // Investigating — options pending root cause confirmation
+  ap13: [],
   ap14: [
-    { id: 'ap14-o1', title: 'Reconfigure chronyd to corporate NTP pool + restart service', description: 'Update chronyd to use the corporate NTP pool and restart the time synchronization service on all 3 nodes.', risk: 'low', reversible: true, model: 'fast' },
+    { id: 'ap14-o1', title: 'Reconfigure chronyd to corporate NTP pool + restart service', description: 'Update chronyd to use the corporate NTP pool and restart the time synchronization service on all 3 nodes.', risk: 'low', reversible: true, model: 'fast', rawCommands: 'oc rsh -n openshift-node chrony-sync-daemon systemctl restart chronyd' },
   ],
   ap15: [
-    { id: 'ap15-o1', title: 'Restore pruner RBAC permissions + manual prune run', description: 'Restore the delete-image-manifests permission to the registry pruner service account and trigger a manual prune.', risk: 'low', reversible: true, model: 'smart' },
-    { id: 'ap15-o2', title: 'Direct manifest deletion by cluster-admin', description: 'Manually delete the 847 MB of unreferenced manifests using cluster-admin credentials, bypassing the pruner workflow.', risk: 'medium', reversible: false, model: 'fast' },
+    { id: 'ap15-o1', title: 'Restore pruner RBAC permissions + manual prune run', description: 'Restore the delete-image-manifests permission to the registry pruner service account and trigger a manual prune.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc adm prune images --keep-tag-revisions=3 --prune-over-size-limit=true' },
+    { id: 'ap15-o2', title: 'Direct manifest deletion by cluster-admin', description: 'Manually delete the 847 MB of unreferenced manifests using cluster-admin credentials, bypassing the pruner workflow.', risk: 'medium', reversible: false, model: 'fast', rawCommands: "oc delete istag -n production $(oc get istag -n production -o jsonpath='{.items[?(@.image.metadata.creationTimestamp<\"2026-01-01\")].metadata.name}')" },
   ],
 };
 
@@ -1135,6 +1138,7 @@ const RemediationOptionCard: React.FC<{
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
+  const [showCommands, setShowCommands] = useState(false);
 
   const renderButton = () => {
     if (isInvestigating) return null;
@@ -1257,6 +1261,23 @@ const RemediationOptionCard: React.FC<{
           {option.model === 'smart' ? 'Smart model' : 'Fast model'}
         </Label>
       </Flex>
+
+      {/* ── Raw commands ── */}
+      <ExpandableSection
+        toggleText={showCommands ? 'Hide raw commands' : 'View raw commands'}
+        isExpanded={showCommands}
+        onToggle={(_e, expanded) => setShowCommands(expanded)}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+      >
+        <ClipboardCopy
+          variant={ClipboardCopyVariant.expansion}
+          isReadOnly
+          isCode
+          style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+        >
+          {option.rawCommands}
+        </ClipboardCopy>
+      </ExpandableSection>
 
       {/* ── Action button ── */}
       {renderButton()}
