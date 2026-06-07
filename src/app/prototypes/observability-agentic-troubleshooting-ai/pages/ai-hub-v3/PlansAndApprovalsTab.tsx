@@ -1218,9 +1218,23 @@ const RemediationOptionCard: React.FC<{
       </Flex>
 
       {/* ── Title ── */}
-      <Title headingLevel="h5" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-        {option.title}
-      </Title>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapXs' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+      >
+        <Tooltip
+          content="This remediation strategy is synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns."
+          position="top"
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
+            <AiIcon size={16} />
+          </span>
+        </Tooltip>
+        <Title headingLevel="h5" size="md">
+          {option.title}
+        </Title>
+      </Flex>
 
       {/* ── Description ── */}
       <Content
@@ -1457,9 +1471,17 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                   <>
                     <Flex
                       alignItems={{ default: 'alignItemsCenter' }}
+                      gap={{ default: 'gapXs' }}
                       style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                     >
-                      <TerminalIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+                      <Tooltip
+                        content="These remediation strategies are synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns."
+                        position="top"
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
+                          <AiIcon size={14} />
+                        </span>
+                      </Tooltip>
                       <span className="ols-aio-text-overline">{optionLabel}</span>
                     </Flex>
                     <Stack hasGutter>
