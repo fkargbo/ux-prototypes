@@ -1738,7 +1738,9 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
   const options = PLAN_REMEDIATION_OPTIONS[plan.id] ?? [];
   const optionCount = options.length;
-  const optionLabel = optionCount === 1 ? '1 remediation option' : `${optionCount} remediation options`;
+  // Remediating plans show only option 1 — count what's actually rendered.
+  const visibleOptionCount = isRemediating ? Math.min(optionCount, 1) : optionCount;
+  const optionLabel = visibleOptionCount === 1 ? '1 remediation option' : `${visibleOptionCount} remediation options`;
 
   // Default selection: first option is always pre-selected on mount.
   const [selectedOptionId, setSelectedOptionId] = useState<string>(options[0]?.id ?? '');
@@ -1939,7 +1941,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                   Failed
                 </Label>
               )}
-              {!isInvestigating && !isTerminal && optionCount > 0 && (
+              {!isInvestigating && !isTerminal && visibleOptionCount > 0 && (
                 <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
               )}
             </Flex>
