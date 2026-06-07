@@ -1575,19 +1575,19 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       style={{
         borderRadius: 'var(--pf-t--global--border--radius--default)',
         border: '1px solid var(--pf-t--global--color--status--danger--default)',
-        overflow: 'hidden',
       }}
     >
-      {/* ── Failure banner ── */}
-      <Alert
-        variant="danger"
-        isInline
-        title="Critical Automation Failure"
-        customIcon={<span aria-hidden="true">🛑</span>}
-        style={{ borderRadius: 0, borderBottom: '1px solid var(--pf-t--global--color--status--danger--default)' }}
-      />
-
       <Stack hasGutter style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
+        {/* ── Header ── */}
+        <StackItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
+            <Title headingLevel="h5" size="md">Critical Automation Failure</Title>
+          </Flex>
+        </StackItem>
+
+        <StackItem><Divider /></StackItem>
+
         {/* ── Failure reason ── */}
         {postMortem.failureReason && (
           <StackItem>
