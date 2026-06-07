@@ -1263,21 +1263,28 @@ const RemediationOptionCard: React.FC<{
       </Flex>
 
       {/* ── Raw commands ── */}
-      <ExpandableSection
-        toggleText={showCommands ? 'Hide raw commands' : 'View raw commands'}
-        isExpanded={showCommands}
-        onToggle={(_e, expanded) => setShowCommands(expanded)}
-        style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-      >
-        <ClipboardCopy
-          variant={ClipboardCopyVariant.expansion}
-          isReadOnly
-          isCode
-          style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+      <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+        <Button
+          variant="link"
+          isInline
+          onClick={() => setShowCommands(!showCommands)}
+          style={{ padding: 0, fontSize: '14px' }}
         >
-          {option.rawCommands}
-        </ClipboardCopy>
-      </ExpandableSection>
+          {showCommands ? 'Hide raw commands' : 'View raw commands'}
+        </Button>
+        {showCommands && (
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+            <ClipboardCopy
+              variant={ClipboardCopyVariant.expansion}
+              isReadOnly
+              isCode
+              style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+            >
+              {option.rawCommands}
+            </ClipboardCopy>
+          </div>
+        )}
+      </div>
 
       {/* ── Action button ── */}
       {renderButton()}
@@ -1288,9 +1295,17 @@ const RemediationOptionCard: React.FC<{
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
 const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
-  const [openChain, setOpenChain] = useState(true);
-  const [openRca, setOpenRca] = useState(true);
-  const [openRem, setOpenRem] = useState(true);
+  const { status } = plan;
+
+  const [openChain, setOpenChain] = useState(
+    status === 'Investigating' || status === 'Remediating',
+  );
+  const [openRca, setOpenRca] = useState(
+    status === 'Failed',
+  );
+  const [openRem, setOpenRem] = useState(
+    status === 'Waiting Approval' || status === 'Remediating' || status === 'Completed' || status === 'Failed',
+  );
 
   const drawer = PLAN_DRAWER_DATA[plan.id];
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
