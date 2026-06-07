@@ -1772,15 +1772,11 @@ const RemediationOptionCard: React.FC<{
           {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
           {isExecuted && (
             <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-              <ExpandableSection
-                toggleText={isPostMortemOpen ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
-                isExpanded={isPostMortemOpen}
-                onToggle={(_e, v) => setIsPostMortemOpen(v)}
-              >
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                  <PostMortemPanel plan={plan} />
-                </div>
-              </ExpandableSection>
+              <PostMortemPanel
+                plan={plan}
+                isMetricsExpanded={isPostMortemOpen}
+                onToggleMetrics={setIsPostMortemOpen}
+              />
             </div>
           )}
         </div>
@@ -1832,21 +1828,23 @@ const HubLockedPlaceholder: React.FC = () => (
 
 // ─── Drawer: post-mortem summary panel ───────────────────────────────────────
 
-const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+const PostMortemPanel: React.FC<{
+  plan: PlanRow;
+  isMetricsExpanded?: boolean;
+  onToggleMetrics?: (expanded: boolean) => void;
+}> = ({ plan, isMetricsExpanded, onToggleMetrics }) => {
   const [showLogs, setShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
+  // When toggle props are supplied the metrics section is collapsible; otherwise
+  // the full panel is rendered statically (e.g. for plans already in terminal state).
+  const hasToggle = isMetricsExpanded !== undefined && onToggleMetrics !== undefined;
+
   if (postMortem.type === 'success') {
-    return (
-      <div
-        style={{
-          borderRadius: 'var(--pf-t--global--border--radius--default)',
-          border: '1px solid var(--pf-t--global--color--status--success--default)',
-          padding: 'var(--pf-t--global--spacer--md)',
-        }}
-      >
+    const metricsBlock = (
+      <>
         {/* ── Header ── */}
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
@@ -1882,10 +1880,35 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             <DescriptionListDescription>{postMortem.recoveredAt}</DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>
+      </>
+    );
+
+    return (
+      <div
+        style={{
+          borderRadius: 'var(--pf-t--global--border--radius--default)',
+          border: '1px solid var(--pf-t--global--color--status--success--default)',
+          padding: 'var(--pf-t--global--spacer--md)',
+        }}
+      >
+        {/* Metrics — collapsible when toggle props are provided, static otherwise */}
+        {hasToggle ? (
+          <ExpandableSection
+            toggleText={isMetricsExpanded ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
+            isExpanded={isMetricsExpanded}
+            onToggle={(_e, v) => onToggleMetrics!(v)}
+          >
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+              {metricsBlock}
+            </div>
+          </ExpandableSection>
+        ) : (
+          metricsBlock
+        )}
 
         <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
 
-        {/* ── Raw logs toggle ── */}
+        {/* ── Raw logs toggle — always visible ── */}
         <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
           <Button
             variant="link"
@@ -1911,7 +1934,7 @@ const PostMortemPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
         <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
 
-        {/* ── Actions ── */}
+        {/* ── Actions — always visible ── */}
         <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
           <Button variant="danger" isDanger>
             Initiate Rollback
