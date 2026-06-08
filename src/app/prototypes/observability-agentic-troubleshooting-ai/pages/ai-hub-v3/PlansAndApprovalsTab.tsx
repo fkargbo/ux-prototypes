@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -11,21 +11,36 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   Divider,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
+  EmptyStateFooter,
   ExpandableSection,
   Flex,
   FlexItem,
   Label,
+  MenuToggle,
+  MenuToggleElement,
   Pagination,
   PaginationVariant,
   Radio,
+  Select,
+  SelectList,
+  SelectOption,
   Skeleton,
   Spinner,
   Stack,
   StackItem,
   Title,
+  Toolbar,
+  ToolbarContent,
+  ToolbarFilter,
+  ToolbarGroup,
+  ToolbarItem,
+  ToolbarToggleGroup,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, FilterIcon, LockIcon, LockOpenIcon, SearchIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -1269,19 +1284,98 @@ const TopPlansTable: React.FC<TopPlansTableProps> = ({ onReviewPlan, rows }) => 
 
 const DEFAULT_PER_PAGE = 10;
 
+// Filter option lists
+const STATUS_FILTER_OPTIONS: PlanStatus[] = [
+  'Investigating',
+  'Waiting Approval',
+  'Remediating',
+  'Completed',
+  'Failed',
+];
+
+const DOMAIN_FILTER_OPTIONS = [
+  'GitOps Core',
+  'Ingress Routing',
+  'Storage (CSI)',
+  'Compute/Nodes',
+  'Security (ACS)',
+] as const;
+type DomainFilter = (typeof DOMAIN_FILTER_OPTIONS)[number];
+
+// Maps each UI domain category to substrings found in triggerDomains data field
+const DOMAIN_KEYWORDS: Record<DomainFilter, string[]> = {
+  'GitOps Core':      ['gitops', 'argocd'],
+  'Ingress Routing':  ['network', 'ingress', 'routing'],
+  'Storage (CSI)':    ['storage', 'csi', 'pv', 'ceph'],
+  'Compute/Nodes':    ['kubelet', 'metal3', 'node', 'etcd', 'compute', 'baremetal'],
+  'Security (ACS)':   ['acs', 'auth', 'security'],
+};
+
+const rowMatchesDomain = (row: PlanRow, domains: string[]): boolean => {
+  if (domains.length === 0) return true;
+  const td = row.triggerDomains.toLowerCase();
+  return domains.some((d) =>
+    (DOMAIN_KEYWORDS[d as DomainFilter] ?? []).some((kw) => td.includes(kw)),
+  );
+};
+
 interface AllPlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
   rows: PlanRow[];
 }
 
 const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => {
+  // ── Filter state — intentionally decoupled from perspective; persists on switch ──
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [domainFilters, setDomainFilters] = useState<string[]>([]);
+  const [rbacOnly, setRbacOnly] = useState(false);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [domainMenuOpen, setDomainMenuOpen] = useState(false);
+
+  // ── Pagination state ──
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
-  const totalItems = rows.length;
+  // ── Derived rows after filters ──
+  const filteredRows = useMemo(() => {
+    return rows.filter((row) => {
+      if (statusFilters.length > 0 && !statusFilters.includes(row.status)) return false;
+      if (!rowMatchesDomain(row, domainFilters)) return false;
+      if (rbacOnly && row.isUnauthorized) return false;
+      return true;
+    });
+  }, [rows, statusFilters, domainFilters, rbacOnly]);
+
+  // Reset to page 1 whenever effective row count changes (filter or perspective)
+  useEffect(() => {
+    setPage(1);
+  }, [filteredRows.length]);
+
+  const clearAllFilters = useCallback(() => {
+    setStatusFilters([]);
+    setDomainFilters([]);
+    setRbacOnly(false);
+  }, []);
+
+  const toggleStatusFilter = useCallback((val: string) => {
+    setStatusFilters((prev) =>
+      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
+    );
+  }, []);
+
+  const toggleDomainFilter = useCallback((val: string) => {
+    setDomainFilters((prev) =>
+      prev.includes(val) ? prev.filter((d) => d !== val) : [...prev, val],
+    );
+  }, []);
+
+  const hasActiveFilters = statusFilters.length > 0 || domainFilters.length > 0 || rbacOnly;
+
+  // ── Pagination handlers ──
+  const totalItems = filteredRows.length;
   const start = (page - 1) * perPage;
-  const paginatedRows = rows.slice(start, start + perPage);
+  const paginatedRows = filteredRows.slice(start, start + perPage);
 
   const toggleRow = useCallback((id: string) => {
     setExpandedRows((prev) => {
@@ -1331,20 +1425,139 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
 
   return (
     <>
-      <Pagination {...paginationProps} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-      <PlansTableCore
-        rows={paginatedRows}
-        ariaLabel="All plans"
-        startIndex={start}
-        expandedRows={expandedRows}
-        onToggle={toggleRow}
-        onReviewPlan={onReviewPlan}
-      />
-      <Pagination
-        {...paginationProps}
-        variant={PaginationVariant.bottom}
-        style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
-      />
+      {/* ── Filter Toolbar ─────────────────────────────────────────────────── */}
+      <Toolbar
+        id="all-plans-toolbar"
+        clearAllFilters={clearAllFilters}
+        collapseListedFiltersBreakpoint="xl"
+        style={{ padding: 0, marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+      >
+        <ToolbarContent>
+          <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
+            <ToolbarGroup variant="filter-group">
+
+              {/* Status filter */}
+              <ToolbarFilter
+                labels={statusFilters}
+                deleteLabel={(_cat, label) => toggleStatusFilter(label as string)}
+                deleteLabelGroup={() => setStatusFilters([])}
+                categoryName="Status"
+              >
+                <Select
+                  aria-label="Status filter"
+                  role="menu"
+                  isOpen={statusMenuOpen}
+                  onSelect={(_e, val) => toggleStatusFilter(val as string)}
+                  onOpenChange={setStatusMenuOpen}
+                  toggle={(ref: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={ref}
+                      onClick={() => setStatusMenuOpen((o) => !o)}
+                      isExpanded={statusMenuOpen}
+                      badge={statusFilters.length > 0 ? statusFilters.length : undefined}
+                    >
+                      Status
+                    </MenuToggle>
+                  )}
+                >
+                  <SelectList>
+                    {STATUS_FILTER_OPTIONS.map((s) => (
+                      <SelectOption key={s} hasCheckbox value={s} isSelected={statusFilters.includes(s)}>
+                        {s}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
+              </ToolbarFilter>
+
+              {/* Component Domain filter */}
+              <ToolbarFilter
+                labels={domainFilters}
+                deleteLabel={(_cat, label) => toggleDomainFilter(label as string)}
+                deleteLabelGroup={() => setDomainFilters([])}
+                categoryName="Domain"
+              >
+                <Select
+                  aria-label="Component domain filter"
+                  role="menu"
+                  isOpen={domainMenuOpen}
+                  onSelect={(_e, val) => toggleDomainFilter(val as string)}
+                  onOpenChange={setDomainMenuOpen}
+                  toggle={(ref: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={ref}
+                      onClick={() => setDomainMenuOpen((o) => !o)}
+                      isExpanded={domainMenuOpen}
+                      badge={domainFilters.length > 0 ? domainFilters.length : undefined}
+                    >
+                      Domain
+                    </MenuToggle>
+                  )}
+                >
+                  <SelectList>
+                    {DOMAIN_FILTER_OPTIONS.map((d) => (
+                      <SelectOption key={d} hasCheckbox value={d} isSelected={domainFilters.includes(d)}>
+                        {d}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
+              </ToolbarFilter>
+
+            </ToolbarGroup>
+          </ToolbarToggleGroup>
+
+          {/* Show Executable Fixes Only — far right */}
+          <ToolbarItem align={{ default: 'alignEnd' }}>
+            <Checkbox
+              id="all-plans-rbac-only"
+              label="Show Executable Fixes Only"
+              isChecked={rbacOnly}
+              onChange={(_e, checked) => setRbacOnly(checked)}
+            />
+          </ToolbarItem>
+        </ToolbarContent>
+      </Toolbar>
+
+      {/* ── Table or Empty State ───────────────────────────────────────────── */}
+      {filteredRows.length === 0 ? (
+        <EmptyState
+          titleText="No plans match your active filters"
+          icon={SearchIcon}
+          headingLevel="h4"
+          style={{ padding: 'var(--pf-t--global--spacer--2xl) 0' }}
+        >
+          <EmptyStateBody>
+            No remediation plans match your current active filters in this cluster perspective.
+          </EmptyStateBody>
+          {hasActiveFilters && (
+            <EmptyStateFooter>
+              <EmptyStateActions>
+                <Button variant="link" onClick={clearAllFilters}>
+                  Clear Active Filters
+                </Button>
+              </EmptyStateActions>
+            </EmptyStateFooter>
+          )}
+        </EmptyState>
+      ) : (
+        <>
+          <Pagination {...paginationProps} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+          <PlansTableCore
+            rows={paginatedRows}
+            ariaLabel="All plans"
+            startIndex={start}
+            expandedRows={expandedRows}
+            onToggle={toggleRow}
+            onReviewPlan={onReviewPlan}
+          />
+          <Pagination
+            {...paginationProps}
+            variant={PaginationVariant.bottom}
+            style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
+          />
+        </>
+      )}
     </>
   );
 };
@@ -2389,7 +2602,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ position: 'relative' }}>
             <Label
-              color={drawer.confidence >= 80 ? 'green' : drawer.confidence >= 60 ? 'gold' : 'blue'}
+              color={drawer.confidence >= 80 ? 'green' : drawer.confidence >= 60 ? 'yellow' : 'blue'}
               style={{ position: 'absolute', top: 'var(--pf-t--global--spacer--sm)', right: 'var(--pf-t--global--spacer--sm)' }}
             >
               {drawer.confidence}% confidence
