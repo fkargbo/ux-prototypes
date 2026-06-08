@@ -500,83 +500,78 @@ export const AIAuditAndLogsTab: React.FC = () => {
         </Grid>
       </StackItem>
 
-      {/* ── 2. Filter Toolbar ─────────────────────────────────────────────────── */}
+      {/* ── 2. Execution Ledger title + Filter Toolbar ───────────────────────── */}
       <StackItem>
+        <Title headingLevel="h3" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+          Execution ledger
+        </Title>
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
           flexWrap={{ default: 'nowrap' }}
           gap={{ default: 'gapSm' }}
         >
-          {/* Left: filter controls */}
+          {/* Invocation Type dropdown */}
           <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-
-              {/* Invocation Type dropdown */}
-              <FlexItem>
-                <Select
-                  aria-label="Invocation type filter"
-                  isOpen={invocationTypeOpen}
-                  onSelect={(_e, val) => { setInvocationTypeFilter(val as string); setInvocationTypeOpen(false); }}
-                  onOpenChange={setInvocationTypeOpen}
-                  toggle={(ref: React.Ref<MenuToggleElement>) => (
-                    <MenuToggle
-                      ref={ref}
-                      onClick={() => setInvocationTypeOpen((o) => !o)}
-                      isExpanded={invocationTypeOpen}
-                    >
-                      {invocationTypeFilter === 'All' ? 'Invocation Type' : invocationTypeFilter}
-                    </MenuToggle>
-                  )}
+            <Select
+              aria-label="Invocation type filter"
+              isOpen={invocationTypeOpen}
+              onSelect={(_e, val) => { setInvocationTypeFilter(val as string); setInvocationTypeOpen(false); }}
+              onOpenChange={setInvocationTypeOpen}
+              toggle={(ref: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={ref}
+                  onClick={() => setInvocationTypeOpen((o) => !o)}
+                  isExpanded={invocationTypeOpen}
                 >
-                  <SelectList>
-                    {INVOCATION_TYPES.map((v) => (
-                      <SelectOption key={v} value={v} isSelected={invocationTypeFilter === v}>{v}</SelectOption>
-                    ))}
-                  </SelectList>
-                </Select>
-              </FlexItem>
-
-              {/* Target Scope search */}
-              <FlexItem>
-                <TextInput
-                  aria-label="Target scope search"
-                  placeholder="Search target scope / namespace…"
-                  value={scopeSearch}
-                  onChange={(_e, val) => setScopeSearch(val)}
-                  style={{ minWidth: 240 }}
-                />
-              </FlexItem>
-
-              {/* Agent Capability dropdown */}
-              <FlexItem>
-                <Select
-                  aria-label="Agent capability filter"
-                  isOpen={capabilityOpen}
-                  onSelect={(_e, val) => { setCapabilityFilter(val as string); setCapabilityOpen(false); }}
-                  onOpenChange={setCapabilityOpen}
-                  toggle={(ref: React.Ref<MenuToggleElement>) => (
-                    <MenuToggle
-                      ref={ref}
-                      onClick={() => setCapabilityOpen((o) => !o)}
-                      isExpanded={capabilityOpen}
-                    >
-                      {capabilityFilter === 'All' ? 'Agent Capability' : capabilityFilter}
-                    </MenuToggle>
-                  )}
-                >
-                  <SelectList>
-                    {AGENT_CAPABILITIES.map((v) => (
-                      <SelectOption key={v} value={v} isSelected={capabilityFilter === v}>{v}</SelectOption>
-                    ))}
-                  </SelectList>
-                </Select>
-              </FlexItem>
-
-            </Flex>
+                  {invocationTypeFilter === 'All' ? 'Invocation Type' : invocationTypeFilter}
+                </MenuToggle>
+              )}
+            >
+              <SelectList>
+                {INVOCATION_TYPES.map((v) => (
+                  <SelectOption key={v} value={v} isSelected={invocationTypeFilter === v}>{v}</SelectOption>
+                ))}
+              </SelectList>
+            </Select>
           </FlexItem>
 
-          {/* Right: export action */}
+          {/* Target Scope search */}
+          <FlexItem>
+            <TextInput
+              aria-label="Target scope search"
+              placeholder="Search target scope / namespace…"
+              value={scopeSearch}
+              onChange={(_e, val) => setScopeSearch(val)}
+              style={{ minWidth: 240 }}
+            />
+          </FlexItem>
+
+          {/* Agent Capability dropdown */}
+          <FlexItem>
+            <Select
+              aria-label="Agent capability filter"
+              isOpen={capabilityOpen}
+              onSelect={(_e, val) => { setCapabilityFilter(val as string); setCapabilityOpen(false); }}
+              onOpenChange={setCapabilityOpen}
+              toggle={(ref: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={ref}
+                  onClick={() => setCapabilityOpen((o) => !o)}
+                  isExpanded={capabilityOpen}
+                >
+                  {capabilityFilter === 'All' ? 'Agent Capability' : capabilityFilter}
+                </MenuToggle>
+              )}
+            >
+              <SelectList>
+                {AGENT_CAPABILITIES.map((v) => (
+                  <SelectOption key={v} value={v} isSelected={capabilityFilter === v}>{v}</SelectOption>
+                ))}
+              </SelectList>
+            </Select>
+          </FlexItem>
+
+          {/* Export action — inline with filters */}
           <FlexItem>
             <Button variant="link" icon={<DownloadIcon />} iconPosition="start">
               Export SOC2 / AI Compliance Report
@@ -587,9 +582,6 @@ export const AIAuditAndLogsTab: React.FC = () => {
 
       {/* ── 3. Execution Ledger Table ─────────────────────────────────────────── */}
       <StackItem>
-        <Title headingLevel="h3" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-          Execution ledger
-        </Title>
         <Table aria-label="Execution ledger" variant="compact">
           <Thead>
             <Tr>
