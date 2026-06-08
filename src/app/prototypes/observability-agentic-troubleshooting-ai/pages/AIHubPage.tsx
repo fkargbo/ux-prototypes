@@ -4,8 +4,6 @@ import {
   BreadcrumbItem,
   Button,
   Content,
-  EmptyState,
-  EmptyStateBody,
   Stack,
   StackItem,
   Tab,
@@ -205,24 +203,8 @@ export const AIHubPage: React.FC = () => {
             <HubV3.PlansAndApprovalsTab />
           </div>
         ) : (
-          <div
-            style={{
-              padding: '24px',
-              maxWidth: '1200px',
-              margin: '0 auto',
-              boxSizing: 'border-box',
-            }}
-          >
-            <EmptyState
-              variant="lg"
-              titleText="Audit & metrics"
-              headingLevel="h2"
-              style={{ paddingTop: 'var(--pf-t--global--spacer--3xl)' }}
-            >
-              <EmptyStateBody>
-                This section is currently in development. Check back soon for updates.
-              </EmptyStateBody>
-            </EmptyState>
+          <div style={{ padding: '24px', boxSizing: 'border-box' }}>
+            <HubV3.AIAuditAndLogsTab />
           </div>
         )}
       </div>
