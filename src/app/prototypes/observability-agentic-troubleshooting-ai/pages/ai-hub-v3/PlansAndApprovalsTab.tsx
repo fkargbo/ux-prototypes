@@ -2534,7 +2534,6 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                 <Alert
                   variant="warning"
                   isInline
-                  isPlain
                   title="Read-only access — remediation execution is locked. Contact your cluster admin to request elevated RBAC privileges."
                   style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
                 />
