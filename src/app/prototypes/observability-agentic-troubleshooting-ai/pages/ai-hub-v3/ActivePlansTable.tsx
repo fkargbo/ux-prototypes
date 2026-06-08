@@ -433,7 +433,7 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
             <FlexItem>
               <InputGroup>
                 {/* Category selector */}
-                <InputGroupItem isBox>
+                <InputGroupItem>
                   <Dropdown
                     isOpen={searchCategoryOpen}
                     onOpenChange={setSearchCategoryOpen}
@@ -457,10 +457,12 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
                           setSearchCategoryOpen(false);
                         }}
                       >
-                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                          <FlexItem>Name</FlexItem>
-                          {searchCategory === 'name' && <FlexItem><CheckIcon /></FlexItem>}
-                        </Flex>
+                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
+                          Name
+                          {searchCategory === 'name' && (
+                            <CheckIcon style={{ color: 'var(--pf-t--global--color--brand--default)' }} />
+                          )}
+                        </span>
                       </DropdownItem>
                       <DropdownItem
                         key="label"
@@ -470,10 +472,12 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
                           setSearchCategoryOpen(false);
                         }}
                       >
-                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
-                          <FlexItem>Label</FlexItem>
-                          {searchCategory === 'label' && <FlexItem><CheckIcon /></FlexItem>}
-                        </Flex>
+                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
+                          Label
+                          {searchCategory === 'label' && (
+                            <CheckIcon style={{ color: 'var(--pf-t--global--color--brand--default)' }} />
+                          )}
+                        </span>
                       </DropdownItem>
                     </DropdownList>
                   </Dropdown>
