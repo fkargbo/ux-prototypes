@@ -25,7 +25,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -1061,21 +1061,12 @@ const ActionCell: React.FC<ActionCellProps> = ({ status, isUnauthorized, onRevie
     if (isUnauthorized) {
       return (
         <Tooltip
-          content="You have Read-Only access to this plan. Authorizing remediation requires elevated cluster privileges."
+          content="Read-only access — you can view plan diagnostics but cannot execute remediations. Contact your cluster admin to request elevated privileges."
           position="top"
         >
-          {/* Wrapper span required: disabled elements don't fire events for Tooltip */}
-          <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
-            <Button
-              variant="link"
-              isInline
-              isDisabled
-              style={{ pointerEvents: 'none' }}
-              onClick={onReview}
-            >
-              View details&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
-            </Button>
-          </span>
+          <Button variant="secondary" size="sm" onClick={onReview}>
+            View details&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
+          </Button>
         </Tooltip>
       );
     }
@@ -1472,17 +1463,14 @@ const RemediationOptionCard: React.FC<{
     if (sandboxState === 'pending' || sandboxState === 'running') return null;
     if (isUnauthorized) {
       return (
-        <Tooltip
-          content="You have Read-Only access to this plan. Authorizing remediation requires elevated cluster privileges."
-          position="top"
+        <Button
+          variant="primary"
+          isDisabled
+          icon={<LockIcon />}
+          style={{ pointerEvents: 'none', cursor: 'not-allowed' }}
         >
-          <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
-            <Button variant="primary" isDisabled style={{ pointerEvents: 'none' }}>
-              Apply Remediation to {selectedCount} target{selectedCount !== 1 ? 's' : ''}&nbsp;
-              <LockIcon style={{ verticalAlign: 'middle' }} />
-            </Button>
-          </span>
-        </Tooltip>
+          Insufficient Privileges to Execute
+        </Button>
       );
     }
     return (
@@ -1562,6 +1550,7 @@ const RemediationOptionCard: React.FC<{
             name={`remedy-${plan.id}`}
             aria-label={`Select ${typeName}`}
             isChecked={isSelected}
+            isDisabled={isUnauthorized}
             onChange={() => onSelect(option.id)}
             onClick={(e) => e.stopPropagation()}
             label=""
@@ -1594,6 +1583,14 @@ const RemediationOptionCard: React.FC<{
               </Label>
               <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
                 {option.reversible ? '1-Click Rollback' : 'Non-reversible'}
+              </Label>
+              <Label
+                color={isUnauthorized ? 'red' : 'green'}
+                variant="outline"
+                isCompact
+                icon={isUnauthorized ? <LockIcon /> : <LockOpenIcon />}
+              >
+                {isUnauthorized ? 'RBAC: Unauthorized' : 'RBAC: Authorized'}
               </Label>
             </Flex>
           </Flex>
@@ -2532,11 +2529,31 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                 </Flex>
               )}
 
-              {/* Options list — gated by diagnosis verification for critical plans */}
+              {/* RBAC notice — shown when the operator has read-only access */}
+              {plan.isUnauthorized && (
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  style={{
+                    marginBottom: 'var(--pf-t--global--spacer--sm)',
+                    padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
+                    borderRadius: 'var(--pf-t--global--border--radius--small)',
+                    backgroundColor: 'var(--pf-t--global--color--status--danger--default)' + '14',
+                    border: '1px solid var(--pf-t--global--color--status--danger--default)',
+                  }}
+                >
+                  <LockIcon style={{ flexShrink: 0, color: 'var(--pf-t--global--color--status--danger--default)' }} />
+                  <Content component="small" style={{ color: 'var(--pf-t--global--color--status--danger--default)', fontWeight: 600 }}>
+                    Read-only access — remediation execution is locked. Contact your cluster admin to request elevated RBAC privileges.
+                  </Content>
+                </Flex>
+              )}
+
+              {/* Options list — gated by diagnosis verification AND RBAC authorization */}
               <div
                 style={{
-                  opacity: isDiagnosisVerified ? 1 : 0.45,
-                  pointerEvents: isDiagnosisVerified ? undefined : 'none',
+                  opacity: plan.isUnauthorized ? 0.6 : isDiagnosisVerified ? 1 : 0.45,
+                  pointerEvents: (plan.isUnauthorized || !isDiagnosisVerified) ? 'none' : undefined,
                   transition: 'opacity 300ms ease',
                 }}
               >
