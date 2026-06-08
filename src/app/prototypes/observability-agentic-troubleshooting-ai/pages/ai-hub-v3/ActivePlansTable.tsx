@@ -437,11 +437,6 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
                   <Dropdown
                     isOpen={searchCategoryOpen}
                     onOpenChange={setSearchCategoryOpen}
-                    onSelect={(_e, val) => {
-                      setSearchCategory(val as 'name' | 'label');
-                      setSearchInputValue('');
-                      setSearchCategoryOpen(false);
-                    }}
                     toggle={(ref: React.Ref<MenuToggleElement>) => (
                       <MenuToggle
                         ref={ref}
@@ -455,26 +450,30 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
                   >
                     <DropdownList>
                       <DropdownItem
-                        value="name"
-                        icon={searchCategory === 'name' ? <CheckIcon /> : undefined}
+                        key="name"
                         onClick={() => {
                           setSearchCategory('name');
                           setSearchInputValue('');
                           setSearchCategoryOpen(false);
                         }}
                       >
-                        Name
+                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                          <FlexItem>Name</FlexItem>
+                          {searchCategory === 'name' && <FlexItem><CheckIcon /></FlexItem>}
+                        </Flex>
                       </DropdownItem>
                       <DropdownItem
-                        value="label"
-                        icon={searchCategory === 'label' ? <CheckIcon /> : undefined}
+                        key="label"
                         onClick={() => {
                           setSearchCategory('label');
                           setSearchInputValue('');
                           setSearchCategoryOpen(false);
                         }}
                       >
-                        Label
+                        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+                          <FlexItem>Label</FlexItem>
+                          {searchCategory === 'label' && <FlexItem><CheckIcon /></FlexItem>}
+                        </Flex>
                       </DropdownItem>
                     </DropdownList>
                   </Dropdown>
