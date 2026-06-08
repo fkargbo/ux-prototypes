@@ -3,8 +3,6 @@ import {
   Button,
   Card,
   CardBody,
-  CardHeader,
-  CardTitle,
   ClipboardCopy,
   ClipboardCopyVariant,
   Content,
@@ -26,10 +24,10 @@ import {
   Tabs,
   TabTitleText,
   TextInput,
-  Title,
 } from '@patternfly/react-core';
 import { CheckCircleIcon, DownloadIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import './ai-hub-v3-inventory.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -317,13 +315,17 @@ const AGENT_CAPABILITIES = ['All', 'K8s', 'GitOps', 'ACS'] as const;
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 const MetricCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <Card isFullHeight>
-    <CardHeader>
-      <CardTitle>
-        <Title headingLevel="h3" size="md">{title}</Title>
-      </CardTitle>
-    </CardHeader>
-    <CardBody>{children}</CardBody>
+  <Card isFullHeight className="ols-ai-hub-audit-metrics-card">
+    <CardBody>
+      <Content
+        component="p"
+        className="ols-ai-hub-fleet-inventory-label ols-ai-diagnostics-kpi-label"
+        style={{ margin: 0, marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+      >
+        {title}
+      </Content>
+      {children}
+    </CardBody>
   </Card>
 );
 
@@ -442,10 +444,8 @@ export const AIAuditAndLogsTab: React.FC = () => {
           {/* Card 1: MTTR Deflection */}
           <GridItem span={4}>
             <MetricCard title="MTTR Deflection & Efficiency">
-              <div style={{ fontSize: '2.4rem', fontWeight: 700, color: 'var(--pf-t--color--green--60)', lineHeight: 1.1 }}>
-                142.5 hrs
-              </div>
-              <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.875rem' }}>
+              <span className="ols-aio-card-stat-number--readonly">142.5 hrs</span>
+              <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
                 Engineering time saved this month vs. manual remediation baseline
               </Content>
             </MetricCard>
@@ -489,10 +489,8 @@ export const AIAuditAndLogsTab: React.FC = () => {
           {/* Card 3: Inference Cost */}
           <GridItem span={4}>
             <MetricCard title="Local Inference Capacity & Budget">
-              <div style={{ fontSize: '2.4rem', fontWeight: 700, color: 'var(--pf-t--color--green--60)', lineHeight: 1.1 }}>
-                $342.10
-              </div>
-              <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.875rem' }}>
+              <span className="ols-aio-card-stat-number--readonly">$342.10</span>
+              <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
                 Simulated public API cost equivalent saved via local model inferencing
               </Content>
             </MetricCard>

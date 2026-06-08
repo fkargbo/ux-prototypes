@@ -2,7 +2,8 @@
 
 .ols-ai-hub-fleet-inventory-card span.ols-aio-card-stat-number--readonly,
 .ols-ai-hub-cluster-inventory-card span.ols-aio-card-stat-number--readonly,
-.ols-ai-hub-diagnostics-card span.ols-aio-card-stat-number--readonly {
+.ols-ai-hub-diagnostics-card span.ols-aio-card-stat-number--readonly,
+.ols-ai-hub-audit-metrics-card span.ols-aio-card-stat-number--readonly {
   display: inline-block;
   font-family: var(--pf-t--global--font--family--body);
   font-size: 24px;
