@@ -438,7 +438,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
 
       {/* ── 1. ROI Metric Cards ───────────────────────────────────────────────── */}
       <StackItem>
-        <Title headingLevel="h2" size="xl" style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+        <Title headingLevel="h2" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
           Operational Insights
         </Title>
         <Grid hasGutter>
