@@ -514,6 +514,7 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                 </StackItem>
               ) : null}
 
+              {activePerspective !== 'Core platforms' ? (
               <StackItem>
                 <Card className="ols-aio-subcard" isCompact isExpanded={cAlertsOpen} id={`${WIDGET_ID}-c-alerts`}>
                   <CardHeader
@@ -582,6 +583,7 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                   </CardExpandableContent>
                 </Card>
               </StackItem>
+              ) : null}
             </Stack>
           ) : (
             <EmptyState variant={EmptyStateVariant.lg}>
