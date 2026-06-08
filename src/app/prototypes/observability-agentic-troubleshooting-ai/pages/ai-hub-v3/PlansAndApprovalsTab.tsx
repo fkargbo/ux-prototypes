@@ -32,6 +32,7 @@ import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
+import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1497,7 +1498,23 @@ const RemediationOptionCard: React.FC<{
             : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
         </Button>
         {!isExecuting && (
-          <Button variant="link" isInline style={{ fontSize: '14px' }}>
+          <Button
+            variant="link"
+            isInline
+            style={{ fontSize: '14px' }}
+            onClick={() => {
+              const drawer = PLAN_DRAWER_DATA[plan.id];
+              agenticGlobalAiApi.openRemediationDiscussion?.({
+                planSynopsis: plan.synopsis,
+                optionTitle: option.title,
+                rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
+                remediationProposal: drawer?.remediationProposal ?? option.description,
+                riskAssessment: drawer?.riskAssessment ?? '',
+                blastRadius: plan.blastRadius,
+                severity: plan.severity,
+              });
+            }}
+          >
             Discuss with Lightspeed
           </Button>
         )}
