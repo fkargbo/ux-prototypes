@@ -24,6 +24,7 @@ import {
   Tabs,
   TabTitleText,
   TextInput,
+  Title,
 } from '@patternfly/react-core';
 import { CheckCircleIcon, DownloadIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -577,16 +578,19 @@ export const AIAuditAndLogsTab: React.FC = () => {
 
           {/* Right: export action */}
           <FlexItem>
-            <Button variant="primary" icon={<DownloadIcon />} iconPosition="start">
+            <Button variant="link" icon={<DownloadIcon />} iconPosition="start">
               Export SOC2 / AI Compliance Report
             </Button>
           </FlexItem>
         </Flex>
       </StackItem>
 
-      {/* ── 3. Audit Log Table ────────────────────────────────────────────────── */}
+      {/* ── 3. Execution Ledger Table ─────────────────────────────────────────── */}
       <StackItem>
-        <Table aria-label="AI Audit Log" variant="compact">
+        <Title headingLevel="h3" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+          Execution ledger
+        </Title>
+        <Table aria-label="Execution ledger" variant="compact">
           <Thead>
             <Tr>
               <Th screenReaderText="Row expand" />
