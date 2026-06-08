@@ -3,6 +3,8 @@ import {
   Button,
   Card,
   CardBody,
+  CardHeader,
+  CardTitle,
   ClipboardCopy,
   ClipboardCopyVariant,
   Content,
@@ -317,16 +319,12 @@ const AGENT_CAPABILITIES = ['All', 'K8s', 'GitOps', 'ACS'] as const;
 
 const MetricCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <Card isFullHeight className="ols-ai-hub-audit-metrics-card">
-    <CardBody>
-      <Content
-        component="p"
-        className="ols-ai-hub-fleet-inventory-label ols-ai-diagnostics-kpi-label"
-        style={{ margin: 0, marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-      >
-        {title}
-      </Content>
-      {children}
-    </CardBody>
+    <CardHeader>
+      <CardTitle>
+        <Title headingLevel="h3" size="md">{title}</Title>
+      </CardTitle>
+    </CardHeader>
+    <CardBody>{children}</CardBody>
   </Card>
 );
 
