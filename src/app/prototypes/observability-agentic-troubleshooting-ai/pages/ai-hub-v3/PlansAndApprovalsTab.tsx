@@ -1501,7 +1501,7 @@ const RemediationOptionCard: React.FC<{
   return (
     <div
       style={{
-        borderRadius: 'var(--pf-t--global--border--radius--default)',
+        borderRadius: 'var(--pf-t--global--border--radius--small)',
         border: `1px solid ${borderColor}`,
         overflow: 'hidden',
         transition: 'border-color 150ms ease',
@@ -1688,7 +1688,7 @@ const RemediationOptionCard: React.FC<{
           {!isInvestigating && !isTerminal && !isRemediating && drawerTargets.length > 0 && (
             <div
               style={{
-                borderRadius: 'var(--pf-t--global--border--radius--default)',
+                borderRadius: 'var(--pf-t--global--border--radius--small)',
                 border: '1px solid var(--pf-t--global--border--color--default)',
                 padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
                 marginBottom: 'var(--pf-t--global--spacer--sm)',
@@ -1820,7 +1820,7 @@ const RemediationOptionCard: React.FC<{
 // ─── Drawer: locked section placeholders ─────────────────────────────────────
 
 const LOCKED_BOX_STYLE: React.CSSProperties = {
-  borderRadius: 'var(--pf-t--global--border--radius--default)',
+  borderRadius: 'var(--pf-t--global--border--radius--small)',
   border: '1px dashed var(--pf-t--global--border--color--default)',
   padding: 'var(--pf-t--global--spacer--md)',
 };
@@ -2052,7 +2052,7 @@ const PostMortemPanel: React.FC<{
           /* ── Terminal drawer view: bordered card ── */
           <div
             style={{
-              borderRadius: 'var(--pf-t--global--border--radius--default)',
+              borderRadius: 'var(--pf-t--global--border--radius--small)',
               border: '1px solid var(--pf-t--global--color--status--success--default)',
               overflow: 'hidden',
             }}
@@ -2123,7 +2123,7 @@ const PostMortemPanel: React.FC<{
   return (
     <div
       style={{
-        borderRadius: 'var(--pf-t--global--border--radius--default)',
+        borderRadius: 'var(--pf-t--global--border--radius--small)',
         border: '1px solid var(--pf-t--global--color--status--danger--default)',
       }}
     >
@@ -2493,7 +2493,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                   style={{
                     marginBottom: 'var(--pf-t--global--spacer--sm)',
                     padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
-                    borderRadius: 'var(--pf-t--global--border--radius--default)',
+                    borderRadius: 'var(--pf-t--global--border--radius--small)',
                     backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
                     border: '1px solid var(--pf-t--global--border--color--default)',
                   }}
