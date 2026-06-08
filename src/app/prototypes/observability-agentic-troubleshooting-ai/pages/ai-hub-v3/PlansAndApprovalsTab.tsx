@@ -19,6 +19,7 @@ import {
   Flex,
   FlexItem,
   Label,
+  LabelGroup,
   MenuToggle,
   MenuToggleElement,
   Pagination,
@@ -34,7 +35,6 @@ import {
   Title,
   Toolbar,
   ToolbarContent,
-  ToolbarFilter,
   ToolbarGroup,
   ToolbarItem,
   ToolbarToggleGroup,
@@ -1425,24 +1425,18 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
 
   return (
     <>
-      {/* ── Filter Toolbar ─────────────────────────────────────────────────── */}
-      <Toolbar
-        id="all-plans-toolbar"
-        clearAllFilters={clearAllFilters}
-        collapseListedFiltersBreakpoint="xl"
-        style={{ padding: 0, marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-      >
+      {/* ── Toolbar: filter dropdowns + "Executable" checkbox + pagination ── */}
+      {/* Pagination lives inside the toolbar so they sit on the same row.   */}
+      {/* ToolbarFilter is intentionally NOT used here — its auto-expanding   */}
+      {/* chip row causes the table to jump. Chips are rendered below        */}
+      {/* in a fixed-minHeight row so the layout never shifts.               */}
+      <Toolbar id="all-plans-toolbar" style={{ padding: 0 }}>
         <ToolbarContent>
           <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
             <ToolbarGroup variant="filter-group">
 
               {/* Status filter */}
-              <ToolbarFilter
-                labels={statusFilters}
-                deleteLabel={(_cat, label) => toggleStatusFilter(label as string)}
-                deleteLabelGroup={() => setStatusFilters([])}
-                categoryName="Status"
-              >
+              <ToolbarItem>
                 <Select
                   aria-label="Status filter"
                   role="menu"
@@ -1468,15 +1462,10 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
                     ))}
                   </SelectList>
                 </Select>
-              </ToolbarFilter>
+              </ToolbarItem>
 
               {/* Component Domain filter */}
-              <ToolbarFilter
-                labels={domainFilters}
-                deleteLabel={(_cat, label) => toggleDomainFilter(label as string)}
-                deleteLabelGroup={() => setDomainFilters([])}
-                categoryName="Domain"
-              >
+              <ToolbarItem>
                 <Select
                   aria-label="Component domain filter"
                   role="menu"
@@ -1502,13 +1491,13 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
                     ))}
                   </SelectList>
                 </Select>
-              </ToolbarFilter>
+              </ToolbarItem>
 
             </ToolbarGroup>
           </ToolbarToggleGroup>
 
-          {/* Show Executable Fixes Only — far right */}
-          <ToolbarItem align={{ default: 'alignEnd' }}>
+          {/* Show Executable Fixes Only */}
+          <ToolbarItem>
             <Checkbox
               id="all-plans-rbac-only"
               label="Show Executable Fixes Only"
@@ -1516,8 +1505,64 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
               onChange={(_e, checked) => setRbacOnly(checked)}
             />
           </ToolbarItem>
+
+          {/* Pagination — right-aligned, same row as the filter controls */}
+          <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
+            <Pagination
+              isCompact
+              {...paginationProps}
+              style={{ margin: 0 }}
+            />
+          </ToolbarItem>
         </ToolbarContent>
       </Toolbar>
+
+      {/* ── Active filter chips ─────────────────────────────────────────────── */}
+      {/* Fixed minHeight so the table never jumps when chips appear/disappear */}
+      <div
+        style={{
+          minHeight: 36,
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 'var(--pf-t--global--spacer--sm)',
+          padding: hasActiveFilters
+            ? 'var(--pf-t--global--spacer--xs) 0'
+            : undefined,
+        }}
+      >
+        {statusFilters.length > 0 && (
+          <LabelGroup categoryName="Status" isClosable onClick={() => setStatusFilters([])}>
+            {statusFilters.map((s) => (
+              <Label key={s} isCompact onClose={() => toggleStatusFilter(s)}>
+                {s}
+              </Label>
+            ))}
+          </LabelGroup>
+        )}
+        {domainFilters.length > 0 && (
+          <LabelGroup categoryName="Domain" isClosable onClick={() => setDomainFilters([])}>
+            {domainFilters.map((d) => (
+              <Label key={d} isCompact onClose={() => toggleDomainFilter(d)}>
+                {d}
+              </Label>
+            ))}
+          </LabelGroup>
+        )}
+        {rbacOnly && (
+          <LabelGroup>
+            <Label isCompact onClose={() => setRbacOnly(false)}>
+              Executable fixes only
+            </Label>
+          </LabelGroup>
+        )}
+        {hasActiveFilters && (
+          <Button variant="link" isInline onClick={clearAllFilters}
+            style={{ fontSize: 'var(--pf-t--global--font--size--sm)' }}>
+            Clear all
+          </Button>
+        )}
+      </div>
 
       {/* ── Table or Empty State ───────────────────────────────────────────── */}
       {filteredRows.length === 0 ? (
@@ -1542,7 +1587,6 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
         </EmptyState>
       ) : (
         <>
-          <Pagination {...paginationProps} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
           <PlansTableCore
             rows={paginatedRows}
             ariaLabel="All plans"
