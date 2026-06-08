@@ -8,6 +8,7 @@ import {
   FlexItem,
   InputGroup,
   InputGroupItem,
+  Label,
   MenuToggle,
   MenuToggleElement,
   Pagination,
@@ -224,20 +225,22 @@ const ActivePlansCell: React.FC<{
   signals: string;
   onPlanRoute?: (rowId: string) => void;
 }> = ({ rowId, planCount, signals, onPlanRoute }) => (
-  <span>
+  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ flexWrap: 'wrap' }}>
     {planCount > 0 ? (
-      <Button
-        variant="link"
-        isInline
+      <Label
+        color="blue"
+        isCompact
         onClick={(e) => { e.stopPropagation(); onPlanRoute?.(rowId); }}
         aria-label={`View ${planCount} active plan${planCount !== 1 ? 's' : ''} for ${rowId}`}
-        style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+        style={{ cursor: 'pointer' }}
       >
         {planCount} {planCount !== 1 ? 'plans' : 'plan'}
-      </Button>
+      </Label>
     ) : (
-      <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>0 plans</span>
-    )}{' '}
+      <Label color="grey" isCompact variant="outline">
+        0 plans
+      </Label>
+    )}
     <span style={{
       fontWeight: 'var(--pf-t--global--font--weight--body--default)',
       color: 'var(--pf-t--global--text--color--subtle)',
@@ -245,7 +248,7 @@ const ActivePlansCell: React.FC<{
     }}>
       ({signals})
     </span>
-  </span>
+  </Flex>
 );
 
 const SaturationCell: React.FC<{ level: HealthStatus; text: string }> = ({ level, text }) => {
