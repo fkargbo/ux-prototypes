@@ -755,7 +755,7 @@ span.ols-aio-card-stat-number {
 }
 
 .ols-aio-rca-box {
-  border-radius: var(--pf-t--global--border--radius--default);
+  border-radius: var(--pf-t--global--border--radius--small);
   padding: var(--pf-t--global--spacer--md);
 }
 
@@ -775,7 +775,7 @@ span.ols-aio-card-stat-number {
   margin: 0;
   padding: var(--pf-t--global--spacer--sm);
   border: 1px solid var(--pf-t--global--border--color--default);
-  border-radius: var(--pf-t--global--border--radius--default);
+  border-radius: var(--pf-t--global--border--radius--small);
   background-color: var(--pf-t--global--background--color--secondary--default);
   font-family: var(--pf-t--global--font--family--mono);
   font-size: var(--pf-t--global--font--size--body--sm);
@@ -784,7 +784,7 @@ span.ols-aio-card-stat-number {
 }
 
 .ols-aio-remediation-box {
-  border-radius: var(--pf-t--global--border--radius--default);
+  border-radius: var(--pf-t--global--border--radius--small);
   padding: var(--pf-t--global--spacer--md);
   background-color: #F5F5F5;
 }
