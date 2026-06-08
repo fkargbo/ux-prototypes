@@ -128,8 +128,8 @@ export const AIHubPage: React.FC = () => {
           />
           <Tab
             eventKey={2}
-            title={<TabTitleText>Audit &amp; metrics</TabTitleText>}
-            aria-label="Audit and metrics tab"
+            title={<TabTitleText>Audit &amp; logs</TabTitleText>}
+            aria-label="Audit and logs tab"
           />
         </Tabs>
 
