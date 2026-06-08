@@ -597,7 +597,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
       </StackItem>
 
       {/* ── 2. Execution Ledger title + Filter Toolbar ───────────────────────── */}
-      <StackItem>
+      <StackItem style={{ marginTop: 12 }}>
         <Title headingLevel="h3" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
           Execution ledger
         </Title>
