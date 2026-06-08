@@ -1485,16 +1485,23 @@ const RemediationOptionCard: React.FC<{
       );
     }
     return (
-      <Button
-        variant="primary"
-        isDisabled={selectedCount === 0 || isExecuting}
-        isLoading={isExecuting}
-        onClick={handleExecute}
-      >
-        {isExecuting
-          ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
-          : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
-      </Button>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+        <Button
+          variant="primary"
+          isDisabled={selectedCount === 0 || isExecuting}
+          isLoading={isExecuting}
+          onClick={handleExecute}
+        >
+          {isExecuting
+            ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
+            : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
+        </Button>
+        {!isExecuting && (
+          <Button variant="link" isInline style={{ fontSize: '14px' }}>
+            Discuss with Lightspeed
+          </Button>
+        )}
+      </Flex>
     );
   };
 
