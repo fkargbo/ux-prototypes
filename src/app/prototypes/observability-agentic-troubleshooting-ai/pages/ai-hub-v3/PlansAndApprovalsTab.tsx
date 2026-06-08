@@ -2531,22 +2531,13 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
               {/* RBAC notice — shown when the operator has read-only access */}
               {plan.isUnauthorized && (
-                <Flex
-                  alignItems={{ default: 'alignItemsCenter' }}
-                  gap={{ default: 'gapSm' }}
-                  style={{
-                    marginBottom: 'var(--pf-t--global--spacer--sm)',
-                    padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
-                    borderRadius: 'var(--pf-t--global--border--radius--small)',
-                    backgroundColor: 'var(--pf-t--global--color--status--danger--default)' + '14',
-                    border: '1px solid var(--pf-t--global--color--status--danger--default)',
-                  }}
-                >
-                  <LockIcon style={{ flexShrink: 0, color: 'var(--pf-t--global--color--status--danger--default)' }} />
-                  <Content component="small" style={{ color: 'var(--pf-t--global--color--status--danger--default)', fontWeight: 600 }}>
-                    Read-only access — remediation execution is locked. Contact your cluster admin to request elevated RBAC privileges.
-                  </Content>
-                </Flex>
+                <Alert
+                  variant="warning"
+                  isInline
+                  isPlain
+                  title="Read-only access — remediation execution is locked. Contact your cluster admin to request elevated RBAC privileges."
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                />
               )}
 
               {/* Options list — gated by diagnosis verification AND RBAC authorization */}
