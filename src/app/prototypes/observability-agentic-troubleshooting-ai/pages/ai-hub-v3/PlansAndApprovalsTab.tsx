@@ -33,9 +33,6 @@ import {
   Stack,
   StackItem,
   Title,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
@@ -1428,86 +1425,88 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
       {/* ToolbarFilter is intentionally NOT used here — its auto-expanding   */}
       {/* chip row causes the table to jump. Chips are rendered below        */}
       {/* in a fixed-minHeight row so the layout never shifts.               */}
-      {/* Single-row toolbar: all items in one ToolbarContent section so       */}
-      {/* nothing creates a second block that would stack above pagination.    */}
-      <Toolbar id="all-plans-toolbar" style={{ padding: 0 }}>
-        <ToolbarContent>
+      {/* Filter + pagination row — plain Flex for guaranteed single-line layout */}
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        flexWrap={{ default: 'nowrap' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+      >
+        {/* Left: filter dropdowns + checkbox */}
+        <FlexItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+            <FlexItem>
+              <Select
+                aria-label="Status filter"
+                role="menu"
+                isOpen={statusMenuOpen}
+                onSelect={(_e, val) => toggleStatusFilter(val as string)}
+                onOpenChange={setStatusMenuOpen}
+                toggle={(ref: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={ref}
+                    onClick={() => setStatusMenuOpen((o) => !o)}
+                    isExpanded={statusMenuOpen}
+                    badge={statusFilters.length > 0 ? statusFilters.length : undefined}
+                  >
+                    Status
+                  </MenuToggle>
+                )}
+              >
+                <SelectList>
+                  {STATUS_FILTER_OPTIONS.map((s) => (
+                    <SelectOption key={s} hasCheckbox value={s} isSelected={statusFilters.includes(s)}>
+                      {s}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </FlexItem>
 
-          {/* Status filter */}
-          <ToolbarItem>
-            <Select
-              aria-label="Status filter"
-              role="menu"
-              isOpen={statusMenuOpen}
-              onSelect={(_e, val) => toggleStatusFilter(val as string)}
-              onOpenChange={setStatusMenuOpen}
-              toggle={(ref: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={ref}
-                  onClick={() => setStatusMenuOpen((o) => !o)}
-                  isExpanded={statusMenuOpen}
-                  badge={statusFilters.length > 0 ? statusFilters.length : undefined}
-                >
-                  Status
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                {STATUS_FILTER_OPTIONS.map((s) => (
-                  <SelectOption key={s} hasCheckbox value={s} isSelected={statusFilters.includes(s)}>
-                    {s}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </Select>
-          </ToolbarItem>
+            <FlexItem>
+              <Select
+                aria-label="Component domain filter"
+                role="menu"
+                isOpen={domainMenuOpen}
+                onSelect={(_e, val) => toggleDomainFilter(val as string)}
+                onOpenChange={setDomainMenuOpen}
+                toggle={(ref: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={ref}
+                    onClick={() => setDomainMenuOpen((o) => !o)}
+                    isExpanded={domainMenuOpen}
+                    badge={domainFilters.length > 0 ? domainFilters.length : undefined}
+                  >
+                    Domain
+                  </MenuToggle>
+                )}
+              >
+                <SelectList>
+                  {DOMAIN_FILTER_OPTIONS.map((d) => (
+                    <SelectOption key={d} hasCheckbox value={d} isSelected={domainFilters.includes(d)}>
+                      {d}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </FlexItem>
 
-          {/* Domain filter */}
-          <ToolbarItem>
-            <Select
-              aria-label="Component domain filter"
-              role="menu"
-              isOpen={domainMenuOpen}
-              onSelect={(_e, val) => toggleDomainFilter(val as string)}
-              onOpenChange={setDomainMenuOpen}
-              toggle={(ref: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={ref}
-                  onClick={() => setDomainMenuOpen((o) => !o)}
-                  isExpanded={domainMenuOpen}
-                  badge={domainFilters.length > 0 ? domainFilters.length : undefined}
-                >
-                  Domain
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                {DOMAIN_FILTER_OPTIONS.map((d) => (
-                  <SelectOption key={d} hasCheckbox value={d} isSelected={domainFilters.includes(d)}>
-                    {d}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </Select>
-          </ToolbarItem>
+            <FlexItem style={{ marginInlineStart: 'var(--pf-t--global--spacer--sm)' }}>
+              <Checkbox
+                id="all-plans-rbac-only"
+                label="Show Executable Fixes Only"
+                isChecked={rbacOnly}
+                onChange={(_e, checked) => setRbacOnly(checked)}
+              />
+            </FlexItem>
+          </Flex>
+        </FlexItem>
 
-          {/* Show Executable Fixes Only */}
-          <ToolbarItem>
-            <Checkbox
-              id="all-plans-rbac-only"
-              label="Show Executable Fixes Only"
-              isChecked={rbacOnly}
-              onChange={(_e, checked) => setRbacOnly(checked)}
-            />
-          </ToolbarItem>
-
-          {/* Pagination — right-aligned in the same row */}
-          <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
-            <Pagination isCompact {...paginationProps} style={{ margin: 0 }} />
-          </ToolbarItem>
-
-        </ToolbarContent>
-      </Toolbar>
+        {/* Right: pagination */}
+        <FlexItem>
+          <Pagination isCompact {...paginationProps} style={{ margin: 0 }} />
+        </FlexItem>
+      </Flex>
 
       {/* ── Active filter chips ─────────────────────────────────────────────── */}
       {/* Fixed minHeight so the table never jumps when chips appear/disappear */}
