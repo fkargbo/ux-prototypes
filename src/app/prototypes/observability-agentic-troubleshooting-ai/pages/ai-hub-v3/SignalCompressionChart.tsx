@@ -59,7 +59,7 @@ const LEGEND_DATA = [
 // ─── AI icon tooltip ──────────────────────────────────────────────────────────
 
 const AI_ICON_TOOLTIP =
-  'The metrics on this card are a mixture of deterministic telemetry and AI-synthesized inference.';
+  'Blends deterministic telemetry (objective event counts) with AI-synthesized remediation strategies to show how effectively the agent correlates cluster noise into actionable plans.';
 
 // ─── Responsive width hook ────────────────────────────────────────────────────
 
@@ -120,10 +120,8 @@ export function SignalCompressionChart() {
   // clamped to a sensible range so it never feels too squat or too tall.
   const chartHeight = Math.min(300, Math.max(180, Math.round(chartWidth * 0.42)));
 
-  // Derive all chart data from live simulation values (Wed = current incident state).
-  const { rawSignalsData, aiPlansData, wednesdayRaw, wednesdayPlans } =
-    getSignalCompressionChartData();
-  const compressionRatio = Math.round(wednesdayRaw / wednesdayPlans);
+  // Derive all chart data from live simulation values.
+  const { rawSignalsData, aiPlansData } = getSignalCompressionChartData();
 
   return (
     <Card
@@ -195,7 +193,7 @@ export function SignalCompressionChart() {
             color: 'var(--pf-t--global--text--color--subtle)',
           }}
         >
-          7-day view &mdash; Wed spike: {wednesdayRaw} raw alerts reduced to {wednesdayPlans} AI plans ({compressionRatio}:1)
+          7-day view &mdash; Wed spike: 465 raw signals compressed to 23 actionable plans* (20:1)
         </Content>
       </CardHeader>
 

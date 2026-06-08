@@ -120,6 +120,7 @@ import {
   agenticGlobalAiApi,
   type DiscussLightspeedContext,
   type NodeInvestigationLightspeedContext,
+  type RemediationDiscussionContext,
 } from '../persesAgenticBridge';
 import { useSimulation } from '../simulation/SimulationProvider';
 import { getSimulationSnapshot } from '../simulation/simulationStore';
@@ -1280,16 +1281,45 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     setIsDrawerOpen(true);
   }, []);
 
+  const handleOpenRemediationDiscussion = useCallback((ctx: RemediationDiscussionContext) => {
+    const ts = new Date().toLocaleString();
+    const severityLabel = ctx.severity === 'critical' ? '🔴 Critical' : '🟡 Warning';
+    const riskBlock = ctx.riskAssessment
+      ? `\n\n**⚠️ Risk Assessment**\n${ctx.riskAssessment}`
+      : '';
+    const content = [
+      `I can see you're about to apply **${ctx.optionTitle}** for the following plan:`,
+      `> _${ctx.planSynopsis}_ · Severity: ${severityLabel} · Blast radius: **${ctx.blastRadius}**`,
+      `**Root Cause**\n${ctx.rootCause}`,
+      `**Proposed Fix**\n${ctx.remediationProposal}${riskBlock}`,
+      `I can walk you through the technical details of this fix, evaluate alternative approaches, or help you assess whether this is the right remediation for your environment. What would you like to explore?`,
+    ].join('\n\n');
+    const opening: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content,
+      name: BOT_DISPLAY_NAME,
+      avatar: botAvatarSrc,
+      timestamp: ts,
+    };
+    setPersistEmptyIntroInScroll(false);
+    setMessages([opening]);
+    setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Remediation discussion for ${ctx.planSynopsis}.`);
+    setIsDrawerOpen(true);
+  }, []);
+
   useEffect(() => {
     agenticGlobalAiApi.startTroubleshootingForAlert = handleStartTroubleshooting;
     agenticGlobalAiApi.openDiscussWithLightspeed = handleOpenDiscussWithLightspeed;
     agenticGlobalAiApi.openLightspeedFromNodeInvestigation = handleOpenLightspeedFromNodeInvestigation;
+    agenticGlobalAiApi.openRemediationDiscussion = handleOpenRemediationDiscussion;
     return () => {
       agenticGlobalAiApi.startTroubleshootingForAlert = null;
       agenticGlobalAiApi.openDiscussWithLightspeed = null;
       agenticGlobalAiApi.openLightspeedFromNodeInvestigation = null;
+      agenticGlobalAiApi.openRemediationDiscussion = null;
     };
-  }, [handleStartTroubleshooting, handleOpenDiscussWithLightspeed, handleOpenLightspeedFromNodeInvestigation]);
+  }, [handleStartTroubleshooting, handleOpenDiscussWithLightspeed, handleOpenLightspeedFromNodeInvestigation, handleOpenRemediationDiscussion]);
 
   const olsChromeDockClassName = `ols-ai-chrome-dock${isDrawerOpen ? ' ols-ai-chrome-dock--chat-open' : ''}`;
 

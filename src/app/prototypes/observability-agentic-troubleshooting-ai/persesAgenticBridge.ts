@@ -28,9 +28,21 @@ export type NodeInvestigationLightspeedContext = {
   investigationSummary: string;
 };
 
+export type RemediationDiscussionContext = {
+  planSynopsis: string;
+  optionTitle: string;
+  rootCause: string;
+  remediationProposal: string;
+  riskAssessment: string;
+  blastRadius: string;
+  severity: 'critical' | 'warning' | string;
+};
+
 export const agenticGlobalAiApi = {
   startTroubleshootingForAlert: null as null | ((alertName: string) => void),
   openDiscussWithLightspeed: null as null | ((ctx: DiscussLightspeedContext) => void),
   /** Core platforms Node & component summary → OLS chat handoff. */
   openLightspeedFromNodeInvestigation: null as null | ((ctx: NodeInvestigationLightspeedContext) => void),
+  /** Remediation Hub → OLS chat: plan overview + fix + risk briefing. */
+  openRemediationDiscussion: null as null | ((ctx: RemediationDiscussionContext) => void),
 };

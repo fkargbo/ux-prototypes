@@ -73,12 +73,36 @@ export interface FleetDiagnosticsMetrics {
   clustersAffected: number;
   clustersTotal: number;
   criticalAlerts: number;
-  /** Clusters with agentStatus 'investigating' or 'escalated'. */
+  /** Total active Plans across the fleet, summed per cluster per failure domain. */
   activeInvestigations: number;
   /** Clusters with agentStatus 'remediating' — AI fix ready to execute. */
   readyRemediations: number;
   /** AI-synthesized estimate of cumulative MTTR reduction across the fleet. */
   estMttrSaved: string;
+}
+
+/**
+ * Returns the number of active Plans for a single cluster.
+ *
+ * A Plan encapsulates one independent failure domain (Input → Diagnosis → Output).
+ * Critical clusters can have multiple concurrent failure domains and therefore multiple Plans:
+ *   - critical + escalated  → 3 plans
+ *   - critical + other      → 2 plans
+ *   - degraded              → 1 plan
+ *   - healthy               → 0 plans
+ *
+ * This is the single source of truth shared by both the DiagnosticsSummaryCard KPI
+ * and the ActivePlansTable per-row plan counts.
+ */
+export function derivePlanCount(c: { health: ClusterHealth; agentStatus: string }): number {
+  if (c.health === 'healthy') return 0;
+  if (c.health === 'critical') return c.agentStatus === 'escalated' ? 3 : 2;
+  return 1;
+}
+
+/** Sum of all active Plans across the entire fleet. */
+export function getFleetActivePlanCount(): number {
+  return CLUSTERS.reduce((sum, c) => sum + derivePlanCount(c), 0);
 }
 
 /**
@@ -94,9 +118,7 @@ export function getFleetDiagnosticsMetrics(): FleetDiagnosticsMetrics {
     clustersAffected: CLUSTERS.filter((c) => c.health !== 'healthy').length,
     clustersTotal: CLUSTERS.length,
     criticalAlerts: FLEET_CRITICAL_FIRING_TOTAL,
-    activeInvestigations: CLUSTERS.filter(
-      (c) => c.agentStatus === 'investigating' || c.agentStatus === 'escalated',
-    ).length,
+    activeInvestigations: getFleetActivePlanCount(),
     // Match the fleet investigations panel: all per-cluster ALERTS + 1 for the
     // fleet-wide regional ingress incident card shown at the top of that panel.
     readyRemediations: ALERTS.length + 1,

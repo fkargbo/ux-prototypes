@@ -755,27 +755,27 @@ span.ols-aio-card-stat-number {
 }
 
 .ols-aio-rca-box {
-  border-radius: var(--pf-t--global--border--radius--default);
+  border-radius: var(--pf-t--global--border--radius--small);
   padding: var(--pf-t--global--spacer--md);
 }
 
 .ols-aio-rca-box--critical {
-  background-color: color-mix(in srgb, var(--pf-t--global--color--status--danger--default) 6%, transparent);
+  background-color: #F5F5F5;
 }
 
 .ols-aio-rca-box--warning {
-  background-color: color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 6%, transparent);
+  background-color: #F5F5F5;
 }
 
 .ols-aio-rca-box--info {
-  background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 6%, transparent);
+  background-color: #F5F5F5;
 }
 
 .ols-aio-code-block {
   margin: 0;
   padding: var(--pf-t--global--spacer--sm);
   border: 1px solid var(--pf-t--global--border--color--default);
-  border-radius: var(--pf-t--global--border--radius--default);
+  border-radius: var(--pf-t--global--border--radius--small);
   background-color: var(--pf-t--global--background--color--secondary--default);
   font-family: var(--pf-t--global--font--family--mono);
   font-size: var(--pf-t--global--font--size--body--sm);
@@ -784,8 +784,8 @@ span.ols-aio-card-stat-number {
 }
 
 .ols-aio-remediation-box {
-  border-radius: var(--pf-t--global--border--radius--default);
+  border-radius: var(--pf-t--global--border--radius--small);
   padding: var(--pf-t--global--spacer--md);
-  background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 5%, transparent);
+  background-color: #F5F5F5;
 }
 
