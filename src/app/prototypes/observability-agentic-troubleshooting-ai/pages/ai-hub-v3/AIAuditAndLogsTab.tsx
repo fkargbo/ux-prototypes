@@ -446,10 +446,10 @@ export const AIAuditAndLogsTab: React.FC = () => {
           {/* Card 1: MTTR Deflection */}
           <GridItem span={4}>
             <MetricCard title="MTTR Deflection & Efficiency">
-              <Flex gap={{ default: 'gapLg' }} flexWrap={{ default: 'nowrap' }} style={{ alignItems: 'flex-start' }}>
+              <Stack>
 
-                {/* Left: aggregate metric */}
-                <FlexItem style={{ flexShrink: 0 }}>
+                {/* Aggregate metric */}
+                <StackItem style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                   <span
                     className="ols-aio-card-stat-number--readonly"
                     style={{ color: 'var(--pf-t--global--color--status--success--default)' }}
@@ -462,89 +462,87 @@ export const AIAuditAndLogsTab: React.FC = () => {
                       marginTop: 'var(--pf-t--global--spacer--xs)',
                       color: 'var(--pf-t--global--text--color--subtle)',
                       fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                      whiteSpace: 'nowrap',
                     }}
                   >
                     Total Cumulative Time Saved
                   </Content>
-                </FlexItem>
+                </StackItem>
 
-                {/* Right: velocity gap bars */}
-                <FlexItem grow={{ default: 'grow' }} style={{ minWidth: 0 }}>
-                  <Stack hasGutter>
+                {/* Velocity gap bars — full card width */}
+                <StackItem style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
 
-                    {/* Row 1 — Manual baseline */}
-                    <StackItem>
-                      <Flex
-                        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                      >
-                        <FlexItem>
-                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                            Manual SRE Baseline
-                          </Content>
-                        </FlexItem>
-                        <FlexItem>
-                          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                            42.0 min
-                          </Content>
-                        </FlexItem>
-                      </Flex>
-                      <div style={{
-                        width: '90%',
-                        height: 8,
-                        borderRadius: 'var(--pf-t--global--border--radius--small)',
-                        backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                      }} />
-                    </StackItem>
+                  {/* Row 1 — Manual baseline */}
+                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                    <Flex
+                      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                    >
+                      <FlexItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                          Manual SRE Baseline
+                        </Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                          42.0 min
+                        </Content>
+                      </FlexItem>
+                    </Flex>
+                    <div style={{
+                      width: '90%',
+                      height: 8,
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                    }} />
+                  </div>
 
-                    {/* Row 2 — AI execution */}
-                    <StackItem>
-                      <Flex
-                        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                      >
-                        <FlexItem>
-                          <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as any }}>
-                            AI Agent Execution
-                          </Content>
-                        </FlexItem>
-                        <FlexItem>
-                          <Content
-                            component="small"
-                            style={{
-                              fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as any,
-                              color: 'var(--pf-t--global--color--status--success--default)',
-                            }}
-                          >
-                            0.6 min (36s)
-                          </Content>
-                        </FlexItem>
-                      </Flex>
-                      <div style={{
-                        width: '3%',
-                        height: 8,
-                        borderRadius: 'var(--pf-t--global--border--radius--small)',
-                        backgroundColor: 'var(--pf-t--global--color--status--success--default)',
-                      }} />
-                    </StackItem>
+                  {/* Row 2 — AI execution */}
+                  <div>
+                    <Flex
+                      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                    >
+                      <FlexItem>
+                        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as any }}>
+                          AI Agent Execution
+                        </Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Content
+                          component="small"
+                          style={{
+                            fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as any,
+                            color: 'var(--pf-t--global--color--status--success--default)',
+                          }}
+                        >
+                          0.6 min (36s)
+                        </Content>
+                      </FlexItem>
+                    </Flex>
+                    <div style={{
+                      width: '3%',
+                      height: 8,
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      backgroundColor: 'var(--pf-t--global--color--status--success--default)',
+                    }} />
+                  </div>
 
-                  </Stack>
+                </StackItem>
 
+                {/* Caption */}
+                <StackItem>
                   <Content
                     component="small"
                     style={{
-                      display: 'block',
-                      marginTop: 'var(--pf-t--global--spacer--md)',
                       color: 'var(--pf-t--global--text--color--subtle)',
                       fontStyle: 'italic',
                     }}
                   >
                     *Calculated across 214 automated interventions this month.
                   </Content>
-                </FlexItem>
+                </StackItem>
 
-              </Flex>
+              </Stack>
             </MetricCard>
           </GridItem>
 
