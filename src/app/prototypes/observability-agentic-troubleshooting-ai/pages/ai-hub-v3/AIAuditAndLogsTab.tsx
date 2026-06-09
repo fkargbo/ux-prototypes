@@ -471,8 +471,8 @@ export const AIAuditAndLogsTab: React.FC = () => {
                 {/* Velocity gap bars — full card width */}
                 <StackItem style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
 
-                  {/* Row 1 — Manual baseline */}
-                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                  {/* Row 1 — Manual baseline: gray track + blue fill */}
+                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     <Flex
                       justifyContent={{ default: 'justifyContentSpaceBetween' }}
                       style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
@@ -489,14 +489,24 @@ export const AIAuditAndLogsTab: React.FC = () => {
                       </FlexItem>
                     </Flex>
                     <div style={{
-                      width: '90%',
-                      height: 8,
+                      position: 'relative',
+                      width: '100%',
+                      height: 10,
                       borderRadius: 'var(--pf-t--global--border--radius--small)',
                       backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                    }} />
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '95%',
+                        height: '100%',
+                        borderRadius: 'var(--pf-t--global--border--radius--small)',
+                        backgroundColor: 'var(--pf-t--color--blue--40)',
+                      }} />
+                    </div>
                   </div>
 
-                  {/* Row 2 — AI execution */}
+                  {/* Row 2 — AI execution: gray track + green fill sliver */}
                   <div>
                     <Flex
                       justifyContent={{ default: 'justifyContentSpaceBetween' }}
@@ -520,11 +530,21 @@ export const AIAuditAndLogsTab: React.FC = () => {
                       </FlexItem>
                     </Flex>
                     <div style={{
-                      width: '3%',
-                      height: 8,
+                      position: 'relative',
+                      width: '100%',
+                      height: 10,
                       borderRadius: 'var(--pf-t--global--border--radius--small)',
-                      backgroundColor: 'var(--pf-t--global--color--status--success--default)',
-                    }} />
+                      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: 'max(1.43%, 6px)',
+                        height: '100%',
+                        borderRadius: 'var(--pf-t--global--border--radius--small)',
+                        backgroundColor: 'var(--pf-t--global--color--status--success--default)',
+                      }} />
+                    </div>
                   </div>
 
                 </StackItem>
