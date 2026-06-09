@@ -471,80 +471,35 @@ export const AIAuditAndLogsTab: React.FC = () => {
                 {/* Velocity gap bars — full card width */}
                 <StackItem style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
 
-                  {/* Row 1 — Manual baseline: gray track + blue fill */}
+                  {/* Row 1 — Manual baseline */}
                   <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    <Flex
-                      justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                    >
-                      <FlexItem>
-                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          Manual SRE Baseline
-                        </Content>
-                      </FlexItem>
-                      <FlexItem>
-                        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          42.0 min
-                        </Content>
-                      </FlexItem>
+                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
+                      <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Manual SRE Baseline</Content></FlexItem>
+                      <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Avg. response time</Content></FlexItem>
                     </Flex>
-                    <div style={{
-                      position: 'relative',
-                      width: '100%',
-                      height: 10,
-                      borderRadius: 'var(--pf-t--global--border--radius--small)',
-                      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        width: '95%',
-                        height: '100%',
-                        borderRadius: 'var(--pf-t--global--border--radius--small)',
-                        backgroundColor: 'var(--pf-t--color--blue--40)',
-                      }} />
-                    </div>
+                    <Progress
+                      value={95}
+                      title="Manual SRE Baseline"
+                      size={ProgressSize.sm}
+                      measureLocation={'outside' as any}
+                      label="42.0 min"
+                    />
                   </div>
 
-                  {/* Row 2 — AI execution: gray track + green fill sliver */}
+                  {/* Row 2 — AI execution */}
                   <div>
-                    <Flex
-                      justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                    >
-                      <FlexItem>
-                        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as any }}>
-                          AI Agent Execution
-                        </Content>
-                      </FlexItem>
-                      <FlexItem>
-                        <Content
-                          component="small"
-                          style={{
-                            fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as any,
-                            color: 'var(--pf-t--global--color--status--success--default)',
-                          }}
-                        >
-                          0.6 min (36s)
-                        </Content>
-                      </FlexItem>
+                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
+                      <FlexItem><Content component="small" style={{ fontWeight: 600 }}>AI Agent Execution</Content></FlexItem>
+                      <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Time to remediate</Content></FlexItem>
                     </Flex>
-                    <div style={{
-                      position: 'relative',
-                      width: '100%',
-                      height: 10,
-                      borderRadius: 'var(--pf-t--global--border--radius--small)',
-                      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        width: 'max(1.43%, 6px)',
-                        height: '100%',
-                        borderRadius: 'var(--pf-t--global--border--radius--small)',
-                        backgroundColor: 'var(--pf-t--global--color--status--success--default)',
-                      }} />
-                    </div>
+                    <Progress
+                      value={2}
+                      title="AI Agent Execution"
+                      size={ProgressSize.sm}
+                      measureLocation={'outside' as any}
+                      label="0.6 min (36s)"
+                      style={{ '--pf-v6-c-progress__indicator--BackgroundColor': 'var(--pf-t--global--color--status--success--default)' } as React.CSSProperties}
+                    />
                   </div>
 
                 </StackItem>
