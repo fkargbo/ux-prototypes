@@ -479,7 +479,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                     </Flex>
                     <Progress
                       value={95}
-                      title="Manual SRE Baseline"
+                      aria-label="Manual SRE Baseline"
                       size={ProgressSize.sm}
                       measureLocation={'outside' as any}
                       label="42.0 min"
@@ -494,7 +494,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                     </Flex>
                     <Progress
                       value={2}
-                      title="AI Agent Execution"
+                      aria-label="AI Agent Execution"
                       size={ProgressSize.sm}
                       measureLocation={'outside' as any}
                       label="0.6 min (36s)"
@@ -532,7 +532,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                   </Flex>
                   <Progress
                     value={94}
-                    title="Warning Alerts — Autonomous Resolution"
+                    aria-label="Warning Alerts — Autonomous Resolution"
                     size={ProgressSize.sm}
                     measureLocation={'outside' as any}
                     label="94%"
@@ -545,7 +545,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                   </Flex>
                   <Progress
                     value={18}
-                    title="Critical Anomalies — Human-in-the-Loop Approval"
+                    aria-label="Critical Anomalies — Human-in-the-Loop Approval"
                     size={ProgressSize.sm}
                     measureLocation={'outside' as any}
                     label="18%"
