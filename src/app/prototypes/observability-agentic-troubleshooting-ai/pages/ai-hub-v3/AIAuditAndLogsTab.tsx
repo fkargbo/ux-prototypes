@@ -439,13 +439,13 @@ export const AIAuditAndLogsTab: React.FC = () => {
       {/* ── 1. ROI Metric Cards ───────────────────────────────────────────────── */}
       <StackItem>
         <Title headingLevel="h2" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-          Operational Insights
+          Operational insights
         </Title>
         <Grid hasGutter>
 
           {/* Card 1: MTTR Deflection */}
           <GridItem span={4}>
-            <MetricCard title="MTTR Deflection & Efficiency">
+            <MetricCard title="MTTR deflection & efficiency">
               <Stack>
 
                 {/* Aggregate metric */}
@@ -474,7 +474,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                   {/* Row 1 — Manual baseline */}
                   <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
-                      <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Manual SRE Baseline</Content></FlexItem>
+                      <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Manual SRE baseline</Content></FlexItem>
                       <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Avg. response time</Content></FlexItem>
                     </Flex>
                     <Progress
@@ -489,7 +489,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                   {/* Row 2 — AI execution */}
                   <div>
                     <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
-                      <FlexItem><Content component="small" style={{ fontWeight: 600 }}>AI Agent Execution</Content></FlexItem>
+                      <FlexItem><Content component="small" style={{ fontWeight: 600 }}>AI agent execution</Content></FlexItem>
                       <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Time to remediate</Content></FlexItem>
                     </Flex>
                     <Progress
@@ -523,12 +523,12 @@ export const AIAuditAndLogsTab: React.FC = () => {
 
           {/* Card 2: Autonomy Rate */}
           <GridItem span={4}>
-            <MetricCard title="Autonomy Rate by Impact">
+            <MetricCard title="Autonomy rate by impact">
               <Stack hasGutter>
                 <StackItem>
                   <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
-                    <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Warning Alerts</Content></FlexItem>
-                    <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Autonomous Resolution</Content></FlexItem>
+                    <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Warning alerts</Content></FlexItem>
+                    <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Autonomous resolution</Content></FlexItem>
                   </Flex>
                   <Progress
                     value={94}
@@ -540,8 +540,8 @@ export const AIAuditAndLogsTab: React.FC = () => {
                 </StackItem>
                 <StackItem>
                   <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
-                    <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Critical Anomalies</Content></FlexItem>
-                    <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Human-in-the-Loop</Content></FlexItem>
+                    <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Critical anomalies</Content></FlexItem>
+                    <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Human-in-the-loop</Content></FlexItem>
                   </Flex>
                   <Progress
                     value={18}
@@ -558,7 +558,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
 
           {/* Card 3: Inference Cost */}
           <GridItem span={4}>
-            <MetricCard title="Local Inference Capacity & Budget">
+            <MetricCard title="Local inference capacity & budget">
               <span className="ols-aio-card-stat-number--readonly">$342.10</span>
               <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
                 Simulated public API cost equivalent saved via local model inferencing
@@ -592,7 +592,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                   onClick={() => setInvocationTypeOpen((o) => !o)}
                   isExpanded={invocationTypeOpen}
                 >
-                  {invocationTypeFilter === 'All' ? 'Invocation Type' : invocationTypeFilter}
+                  {invocationTypeFilter === 'All' ? 'Invocation type' : invocationTypeFilter}
                 </MenuToggle>
               )}
             >
@@ -628,7 +628,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                   onClick={() => setCapabilityOpen((o) => !o)}
                   isExpanded={capabilityOpen}
                 >
-                  {capabilityFilter === 'All' ? 'Agent Capability' : capabilityFilter}
+                  {capabilityFilter === 'All' ? 'Agent capability' : capabilityFilter}
                 </MenuToggle>
               )}
             >
@@ -643,7 +643,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
           {/* Export action — inline with filters */}
           <FlexItem>
             <Button variant="link" icon={<DownloadIcon />} iconPosition="start">
-              Export SOC2 / AI Compliance Report
+              Export SOC2 / AI compliance report
             </Button>
           </FlexItem>
         </Flex>
@@ -656,12 +656,12 @@ export const AIAuditAndLogsTab: React.FC = () => {
             <Tr>
               <Th screenReaderText="Row expand" />
               <Th>Timestamp</Th>
-              <Th>Invocation Type</Th>
-              <Th>Mutation Payload</Th>
-              <Th>Target Scope</Th>
-              <Th>Agent Capability</Th>
-              <Th>Signee / Approver</Th>
-              <Th>OTel Trace Ref</Th>
+              <Th>Invocation type</Th>
+              <Th>Mutation payload</Th>
+              <Th>Target scope</Th>
+              <Th>Agent capability</Th>
+              <Th>Signee / approver</Th>
+              <Th>OTel trace ref</Th>
             </Tr>
           </Thead>
 
@@ -733,8 +733,8 @@ export const AIAuditAndLogsTab: React.FC = () => {
                           {/* Tab 1: Context & Prompt */}
                           <Tab
                             eventKey={0}
-                            title={<TabTitleText>🧠 Context &amp; Prompt</TabTitleText>}
-                            aria-label="Context and Prompt"
+                            title={<TabTitleText>🧠 Context &amp; prompt</TabTitleText>}
+                            aria-label="Context and prompt"
                           >
                             <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
                               <Content component="p" style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
@@ -754,8 +754,8 @@ export const AIAuditAndLogsTab: React.FC = () => {
                           {/* Tab 2: Execution Sandbox Plan */}
                           <Tab
                             eventKey={1}
-                            title={<TabTitleText>🛠️ Execution Sandbox Plan</TabTitleText>}
-                            aria-label="Execution Sandbox Plan"
+                            title={<TabTitleText>🛠️ Execution sandbox plan</TabTitleText>}
+                            aria-label="Execution sandbox plan"
                           >
                             <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
                               <Content component="p" style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--md)' }}>
@@ -768,8 +768,8 @@ export const AIAuditAndLogsTab: React.FC = () => {
                           {/* Tab 3: Cryptographic Audit Receipt */}
                           <Tab
                             eventKey={2}
-                            title={<TabTitleText>📄 Cryptographic Audit Receipt</TabTitleText>}
-                            aria-label="Cryptographic Audit Receipt"
+                            title={<TabTitleText>📄 Cryptographic audit receipt</TabTitleText>}
+                            aria-label="Cryptographic audit receipt"
                           >
                             <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
                               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
