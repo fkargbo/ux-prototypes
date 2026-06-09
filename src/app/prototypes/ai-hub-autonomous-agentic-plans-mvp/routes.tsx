@@ -2,6 +2,8 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
 import { AIHubPage } from './pages/AIHubPage';
+import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
+import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 
 export const routes: RouteConfig[] = [
   {
@@ -13,10 +15,16 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/ai-hub',
     element: <AIHubPage />,
     label: 'AI Hub',
-    title: 'AI Hub - Autonomous agentic plans (MVP)',
+    title: 'AI Hub',
     navigation: {
       group: 'Home',
       order: 1,
     },
   },
 ];
+
+/** Theme state for AI Hub banner appearance controls. */
+export const prototypeRootWrapper = AiHubAppearanceProvider;
+
+/** Banner toolbar: before version picker (see `PrototypeLayout`). */
+export const bannerBeforeVersionPicker = <AiHubBannerAppearanceSettings />;

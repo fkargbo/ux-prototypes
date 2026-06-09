@@ -37,12 +37,12 @@ import {
 } from '@patternfly/react-core';
 import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { AI_EXPERIENCE_ICON_DATA_URL } from '../components/aiExperienceIconUrl';
-import type { ReasoningStep } from '../types/reasoningTypes';
-import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../components/reasoningChainTimeline';
-import '../components/autonomous-ai-observe.css';
+import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
+import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
+import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
+import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
-import { agenticGlobalAiApi } from '../persesAgenticBridge';
+import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

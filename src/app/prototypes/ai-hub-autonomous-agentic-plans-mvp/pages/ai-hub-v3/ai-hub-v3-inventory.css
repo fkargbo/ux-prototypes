@@ -1,0 +1,53 @@
+/* v3-only: Fleet / cluster inventory bars on the AI Hub (v1.0 does not load this file). */
+
+.ols-ai-hub-fleet-inventory-card span.ols-aio-card-stat-number--readonly,
+.ols-ai-hub-cluster-inventory-card span.ols-aio-card-stat-number--readonly,
+.ols-ai-hub-diagnostics-card span.ols-aio-card-stat-number--readonly,
+.ols-ai-hub-audit-metrics-card span.ols-aio-card-stat-number--readonly {
+  display: inline-block;
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.ols-ai-hub-fleet-inventory-label {
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: 14px;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* Uppercase treatment for KPI labels in the horizontal diagnostics bar. */
+.ols-ai-diagnostics-kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+/* AI Agentic Insights section. */
+.ols-ai-diagnostics-ai-section {
+  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* AI disclosure icon — AI experience image inline before the label. */
+.ols-ai-diagnostics-disclosure-icon {
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+  outline-offset: 2px;
+  flex-shrink: 0;
+}
+
+.ols-ai-hub-cluster-inventory-tooltip {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  text-align: left;
+}
+
+.ols-ai-hub-cluster-alerts-kpi {
+  cursor: default;
+}

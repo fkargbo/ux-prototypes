@@ -7,7 +7,7 @@ import {
   NetworkIcon,
   SearchIcon,
 } from '@patternfly/react-icons';
-import type { ReasoningStep } from '../types/reasoningTypes';
+import type { ReasoningStep } from './data';
 
 /** Completed steps show the recorded chain time; steps not yet done use a neutral placeholder. */
 export function formatReasoningStepDisplayTime(step: ReasoningStep): string {

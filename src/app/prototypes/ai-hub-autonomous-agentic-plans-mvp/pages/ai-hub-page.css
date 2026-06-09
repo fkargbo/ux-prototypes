@@ -1,0 +1,593 @@
+/* AI Hub only: remove global `create-policy-header` borders from app.css */
+.ols-ai-hub-page div.create-policy-header {
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+/* Page header: plain layout (avoid PF Flex layout classes on this row). */
+.ols-ai-hub-page-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: var(--pf-t--global--spacer--md);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ols-ai-hub-page-header-primary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pf-t--global--spacer--sm);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ols-ai-hub-page-header-copy {
+  min-width: 0;
+}
+
+.ols-ai-hub-page-header-aside {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Keep subtitle readable in very narrow viewports. */
+.ols-ai-hub-page-subtitle {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* Increase vertical spacing between inventory bar and widget cards. */
+.ols-ai-hub-main-stack.pf-v6-l-stack.pf-m-gutter {
+  gap: 24px;
+}
+
+.ws-full-page-utils {
+  position: fixed;
+  z-index: 1200;
+  /* Prevent column stretch so the MenuToggle is not viewport-wide (Popper uses trigger width by default). */
+  width: max-content;
+  max-width: min(100vw - var(--pf-t--global--spacer--xl), 26rem);
+  box-sizing: border-box;
+  /* Render above app chrome when portaled to document.body */
+  pointer-events: auto;
+}
+
+/* Visible frame around theme + RTL + corner pins (PatternFly dashboard full-page utility). */
+.ws-full-page-utils__shell {
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  box-shadow: var(--pf-t--global--box-shadow--md);
+  box-sizing: border-box;
+}
+
+.ws-full-page-utils__panel {
+  position: relative;
+  display: block;
+  border-radius: var(--pf-t--global--border--radius--small);
+  /* Room for corner pin controls */
+  padding: var(--pf-t--global--spacer--lg);
+  min-width: 7.75rem;
+  min-height: 6.75rem;
+  box-sizing: border-box;
+}
+
+.ws-full-page-utils__center-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+  position: relative;
+  z-index: 1;
+}
+
+.ws-full-page-utils__pin {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ws-full-page-utils__pin--tl {
+  top: var(--pf-t--global--spacer--xs);
+  inset-inline-start: var(--pf-t--global--spacer--xs);
+}
+
+.ws-full-page-utils__pin--tr {
+  top: var(--pf-t--global--spacer--xs);
+  inset-inline-end: var(--pf-t--global--spacer--xs);
+}
+
+.ws-full-page-utils__pin--bl {
+  bottom: var(--pf-t--global--spacer--xs);
+  inset-inline-start: var(--pf-t--global--spacer--xs);
+}
+
+.ws-full-page-utils__pin--br {
+  bottom: var(--pf-t--global--spacer--xs);
+  inset-inline-end: var(--pf-t--global--spacer--xs);
+}
+
+/*
+ * OutlinedArrowAltCircle* icons are 90° apart (up / right / down / left). A uniform -45° rotation
+ * aims each toward its corner: NW / NE / SE / SW respectively.
+ */
+.ws-full-page-utils__pin .ws-full-page-utils-position-btn svg {
+  transform: rotate(-45deg);
+  transform-origin: center;
+}
+
+.ws-full-page-utils.pf-m-top-left {
+  top: var(--pf-t--global--spacer--lg);
+  left: var(--pf-t--global--spacer--lg);
+}
+
+.ws-full-page-utils.pf-m-top-right {
+  top: var(--pf-t--global--spacer--lg);
+  right: var(--pf-t--global--spacer--lg);
+}
+
+.ws-full-page-utils.pf-m-bottom-left {
+  left: var(--pf-t--global--spacer--lg);
+  bottom: var(--pf-t--global--spacer--lg);
+}
+
+.ws-full-page-utils.pf-m-bottom-right {
+  right: var(--pf-t--global--spacer--lg);
+  bottom: var(--pf-t--global--spacer--lg);
+}
+
+/* Theme trigger: unstyled beyond `ws-full-page-utils__trigger` — use PatternFly menu-toggle.css (pf-v6-c-menu-toggle.pf-m-secondary). */
+
+.ws-full-page-utils-position-btn {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: var(--pf-t--global--border--radius--pill);
+  padding: 0;
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border: none;
+  color: var(--pf-t--global--icon--color--subtle);
+  /* Plain buttons still get a high-contrast hairline on hover/clicked — remove entirely. */
+  --pf-v6-c-button--m-plain--BorderWidth: 0;
+  --pf-v6-c-button--m-plain--hover--BorderWidth: 0;
+  --pf-v6-c-button--m-plain--m-clicked--BorderWidth: 0;
+  --pf-v6-c-button--m-plain--BorderColor: transparent;
+  --pf-v6-c-button--m-plain--hover--BorderColor: transparent;
+  --pf-v6-c-button--m-plain--m-clicked--BorderColor: transparent;
+}
+
+.ws-full-page-utils-position-btn:hover {
+  border: none;
+  color: var(--pf-t--global--icon--color--regular);
+}
+
+.ws-full-page-utils-position-btn--selected {
+  /* Same gray “pressed” treatment as PatternFly plain action controls (e.g. menu-toggle plain expanded). */
+  background-color: var(--pf-t--global--background--color--action--plain--clicked);
+  border: none;
+  color: var(--pf-t--global--icon--color--regular);
+  box-shadow: none;
+}
+
+.ws-full-page-utils-position-btn--selected:hover {
+  background-color: var(--pf-t--global--background--color--action--plain--clicked);
+  border: none;
+  color: var(--pf-t--global--icon--color--strong, var(--pf-t--global--icon--color--regular));
+}
+
+/* Align plain button icon token with de-emphasized corner controls */
+.ws-full-page-utils-position-btn.pf-v6-c-button.pf-m-plain {
+  --pf-v6-c-button--m-plain__icon--Color: var(--pf-t--global--icon--color--subtle);
+}
+
+.ws-full-page-utils-position-btn.pf-v6-c-button.pf-m-plain:hover {
+  --pf-v6-c-button--m-plain__icon--Color: var(--pf-t--global--icon--color--regular);
+}
+
+.ws-full-page-utils-position-btn--selected.pf-v6-c-button.pf-m-plain,
+.ws-full-page-utils-position-btn--selected.pf-v6-c-button.pf-m-plain:hover {
+  --pf-v6-c-button--m-plain__icon--Color: var(--pf-t--global--icon--color--regular);
+}
+
+.ws-full-page-utils-position-btn--selected.pf-v6-c-button.pf-m-plain:hover {
+  --pf-v6-c-button--m-plain__icon--Color: var(--pf-t--global--icon--color--strong, var(--pf-t--global--icon--color--regular));
+}
+
+.ws-full-page-utils__rtl-switch.pf-v6-c-switch {
+  margin-top: calc(var(--pf-t--global--spacer--2xs) * -1);
+}
+
+/* Theme menu: Popper width uses popperProps (PatternFly dashboard utility panel ~380px max). */
+.ws-full-page-utils__dropdown.pf-v6-c-menu {
+  width: 100%;
+  min-width: 0;
+  max-width: 23.75rem;
+  box-sizing: border-box;
+}
+
+.ws-full-page-utils__dropdown .pf-v6-c-menu__content {
+  padding: 0;
+}
+
+.ws-full-page-utils__menu-inner {
+  padding: var(--pf-t--global--spacer--md);
+}
+
+.ws-full-page-utils__menu-inner .pf-v6-c-divider {
+  margin-block: var(--pf-t--global--spacer--sm);
+}
+
+.ws-full-page-utils__toggle-group {
+  margin-top: var(--pf-t--global--spacer--xs);
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.ws-full-page-utils__toggle-group .pf-v6-c-toggle-group__button {
+  min-height: 1.5rem;
+  padding-inline: var(--pf-t--global--spacer--sm);
+  font-size: var(--pf-t--global--font--size--body--sm);
+}
+
+.ws-full-page-utils__menu-inner .pf-v6-c-menu__group-title {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  margin-bottom: var(--pf-t--global--spacer--2xs);
+}
+
+/*
+ * AI Hub workspace background — only when Glass contrast is on (`pf-v6-theme-glass` on <html>).
+ * Otherwise Default contrast keeps a flat secondary canvas so app.css main-container margin-right
+ * and page gutters do not reveal artwork (matches standard PF page, not the glass dashboard demo).
+ * SVGs live under `bgimages/` so webpack emits inline data URLs.
+ */
+html.pf-v6-theme-glass:has(.ols-ai-hub-page) {
+  min-height: 100%;
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  background-image: url('../bgimages/patternfly-bkg/PF-Bkg-Generic-Light.svg');
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center;
+  background-size: cover;
+}
+
+html.pf-v6-theme-glass.pf-v6-theme-dark:has(.ols-ai-hub-page) {
+  background-image: url('../bgimages/patternfly-bkg/PF-Bkg-Generic-Dark.svg');
+}
+
+html.pf-v6-theme-glass.pf-v6-theme-felt:has(.ols-ai-hub-page) {
+  background-image: url('../bgimages/patternfly-bkg/Felt-Bkg-Generic-Light.svg');
+}
+
+html.pf-v6-theme-glass.pf-v6-theme-felt.pf-v6-theme-dark:has(.ols-ai-hub-page) {
+  background-image: url('../bgimages/patternfly-bkg/Felt-Bkg-Generic-Dark.svg');
+}
+
+/* Default / non-glass: flat canvas only — no workspace image */
+html:not(.pf-v6-theme-glass):has(.ols-ai-hub-page) {
+  background-image: none !important;
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* Glass: let html canvas show through transparent body / #root / Page */
+body:has(.ols-ai-hub-page),
+#root:has(.ols-ai-hub-page) {
+  background: transparent !important;
+}
+
+/* Glass: transparent page shell so workspace shows in gutters */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+:root.pf-v6-theme-glass .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+}
+
+/* Non-glass: restore opaque regions so margins/gaps match normal app shell (see app.css). */
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  background-image: none !important;
+}
+
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+/* Non-glass: main region reads as standard Page main (primary fill), not transparent over html */
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+/*
+ * Glass + AI Hub: transparent Page, masthead full-bleed top, sidebar + main inset. Scoped with :has(.ols-ai-hub-page).
+ * Frosted panels: 50% white over workspace + blur (align with PF dashboard glass demo).
+ * Uses !important to win over app.css global Page zeroing.
+ */
+
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
+  --ols-ai-hub-glass-chrome-gutter: 24px;
+  --ols-ai-hub-glass-surface-tint: rgb(255 255 255 / 50%);
+  /* Same tokens as PF Page glass sidebar-main / panels (dashboard basic demo). */
+  --ols-ai-hub-glass-chrome-border-color: var(
+    --pf-t--global--border--color--glass--default,
+    var(--pf-t--global--border--color--default)
+  );
+  --ols-ai-hub-glass-chrome-border-width: var(--pf-t--global--border--width--glass--default, 1px);
+  box-sizing: border-box !important;
+  /* Masthead flush to viewport top; 24px inset sides + bottom; gutter below masthead and between columns. */
+  padding-top: 0 !important;
+  padding-inline: var(--ols-ai-hub-glass-chrome-gutter) !important;
+  padding-bottom: var(--ols-ai-hub-glass-chrome-gutter) !important;
+  row-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+@media (min-width: 75rem) {
+  :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
+    padding-top: 0 !important;
+    padding-inline: var(--ols-ai-hub-glass-chrome-gutter) !important;
+    padding-bottom: var(--ols-ai-hub-glass-chrome-gutter) !important;
+    row-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
+    column-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
+  }
+
+  :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page):has(> .pf-v6-c-page__sidebar.pf-m-collapsed) {
+    column-gap: 0 !important;
+  }
+}
+
+/*
+ * Masthead: edge-to-edge horizontally (see masthead.css).
+ * Dropdown / expandable toolbar shadow: masthead.css sets
+ * `--pf-v6-c-masthead__expandable-content--BoxShadow` → `--pf-t--global--box-shadow--md--bottom` on
+ * `.pf-v6-c-masthead .pf-v6-c-toolbar__expandable-content` — restore by not forcing BoxShadow/border to none.
+ */
+:root.pf-v6-theme-glass .hpux-prototype-app-shell .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
+  --pf-v6-c-masthead--BorderWidth: 0 !important;
+  --pf-v6-c-masthead__brand--BorderBlockEnd: 0 !important;
+  --pf-v6-c-masthead--m-display-stack__brand--BorderBlockEnd: 0 !important;
+  --pf-v6-c-masthead--m-display-inline__brand--BorderBlockEnd: 0 !important;
+  margin-inline: calc(-1 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
+  width: calc(100% + 2 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  border-block-end: none !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  /* Elevated chrome like dashboard glass panels */
+  box-shadow: var(--pf-t--global--box-shadow--sm--bottom);
+}
+
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead .pf-v6-c-toolbar__expandable-content {
+  /* masthead.css: border-block-start + box-shadow from --pf-v6-c-masthead__expandable-content--BoxShadow */
+  border-block-start: var(--pf-v6-c-masthead__expandable-content--BorderBlockStart);
+  box-shadow: var(--pf-v6-c-masthead__expandable-content--BoxShadow);
+}
+
+/*
+ * Sidebar shell: structural only (same grid slot as page.css `.pf-v6-c-page__sidebar`). Frost + elevation live on
+ * `.pf-v6-c-page__sidebar-body` to mirror `.pf-v6-c-page__main-container` + `.pf-v6-c-page__main`.
+ *
+ * PatternFly `page.css` sets `.pf-v6-c-page__sidebar { overflow-x: hidden; overflow-y: auto; }` — that clips
+ * `box-shadow` on child `.pf-v6-c-page__sidebar-body` (only a bottom sliver may show). Override to
+ * `overflow: visible` here and move scrolling onto `.pf-v6-c-page__sidebar-body` below.
+ */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar {
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  /* Single glass card; drop default divider border between sidebar and main (gutter = grid column-gap). */
+  --pf-v6-c-page__sidebar--BorderInlineEndWidth: 0 !important;
+  margin-inline-end: 0 !important;
+}
+
+/*
+ * Sidebar body: same frosted surface + `--pf-t--global--box-shadow--lg` as `.pf-v6-c-page__main-container`
+ * (see base.css `--pf-t--global--box-shadow--lg` composite shadow).
+ * Scroll container moved here from `.pf-v6-c-page__sidebar` so elevation isn’t clipped.
+ */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border: none !important;
+  outline: none !important;
+  border-radius: var(--pf-t--global--border--radius--medium) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  box-shadow: var(--pf-t--global--box-shadow--lg);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: var(--pf-t--global--z-index--xs);
+}
+
+/* Sidebar body: remove gray frame from inline perspective control (AppLayout). */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body .perspective-selector button {
+  border: none !important;
+  background: transparent !important;
+}
+
+/*
+ * Main region: frosted fill — elevated shell (same token family as dropdown / menu surfaces:
+ * `--pf-t--global--box-shadow--lg`).
+ */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__main-container {
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border: none !important;
+  border-radius: var(--pf-t--global--border--radius--medium) !important;
+  outline: none !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  box-shadow: var(--pf-t--global--box-shadow--lg);
+  /* Override app.css + PF main-container frame; inner cards carry borders. */
+  --pf-v6-c-page__main-container--BorderBlockStartWidth: 0 !important;
+  --pf-v6-c-page__main-container--BorderBlockEndWidth: 0 !important;
+  --pf-v6-c-page__main-container--BorderInlineStartWidth: 0 !important;
+  --pf-v6-c-page__main-container--BorderInlineEndWidth: 0 !important;
+  margin-inline-start: 0 !important;
+  margin-inline-end: 0 !important;
+}
+
+:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page),
+:root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page {
+  background: transparent;
+}
+
+/*
+ * Title band: same stacking as `.pf-v6-c-page__main-section` in the glass dashboard demo — transparent so
+ * the frosted `.pf-v6-c-page__main-container` layer provides the glass effect (see PF dashboard basic demo).
+ * https://pf-core-staging.patternfly.org/patterns/dashboard/html-demos/basic/
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page .create-policy-header {
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  backdrop-filter: none !important;
+}
+
+/* v3 hub: unified light border for all cards, dividers, and border-color token uses. */
+.ols-ai-hub-page--v3 {
+  --pf-t--global--border--color--default: #e0e0e0;
+}
+
+.ols-ai-hub-page--v3 .pf-v6-c-card {
+  --pf-v6-c-card--BorderColor: #e0e0e0;
+}
+
+.ols-ai-hub-page--v3 .pf-v6-c-divider {
+  --pf-v6-c-divider--BackgroundColor: #e0e0e0;
+}
+
+/*
+ * Frosted surfaces. Card border is drawn on `::before` via `--pf-v6-c-card--BorderColor` (card.css).
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card {
+  --pf-v6-c-card--BorderColor: #e0e0e0;
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-expandable-section,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
+  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border-color: var(--ols-ai-hub-glass-chrome-border-color) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+}
+
+/*
+ * Theme / contrast utility (portaled): decouple from global html theme tokens so applying
+ * theme variant, color scheme, or contrast in the menu does not restyle this control cluster.
+ * Uses fixed light surfaces (not theme CSS variables that track pf-v6-theme-* on <html>).
+ */
+.ols-ai-hub-full-page-utils {
+  color-scheme: light;
+  isolation: isolate;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils__shell {
+  background-color: #fff !important;
+  border-color: var(--pf-t--global--border--color--default) !important;
+  box-shadow: var(--pf-t--global--box-shadow--md) !important;
+  backdrop-filter: none !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils__trigger.pf-v6-c-menu-toggle.pf-m-secondary {
+  --pf-v6-c-menu-toggle--m-secondary--BackgroundColor: #fff;
+  --pf-v6-c-menu-toggle--m-secondary--Color: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary--BorderColor: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary--hover--Color: #004080;
+  --pf-v6-c-menu-toggle--m-secondary--hover--BorderColor: #004080;
+  --pf-v6-c-menu-toggle--m-secondary--expanded--Color: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary--expanded--BorderColor: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary__toggle-icon--Color: #0066cc;
+  --pf-v6-c-menu-toggle--m-secondary--hover__toggle-icon--Color: #004080;
+  --pf-v6-c-menu-toggle--m-secondary--expanded__toggle-icon--Color: #0066cc;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn {
+  background-color: #fff !important;
+  color: #6a6e73 !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn:hover {
+  color: #4a4a4a !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn--selected {
+  background-color: #e8e8e8 !important;
+  color: #4a4a4a !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn--selected:hover {
+  background-color: #e8e8e8 !important;
+  color: #151515 !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn.pf-v6-c-button.pf-m-plain {
+  --pf-v6-c-button--m-plain__icon--Color: #6a6e73;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn.pf-v6-c-button.pf-m-plain:hover {
+  --pf-v6-c-button--m-plain__icon--Color: #4a4a4a;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn--selected.pf-v6-c-button.pf-m-plain,
+.ols-ai-hub-full-page-utils .ws-full-page-utils-position-btn--selected.pf-v6-c-button.pf-m-plain:hover {
+  --pf-v6-c-button--m-plain__icon--Color: #4a4a4a;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils__dropdown.pf-v6-c-menu {
+  background-color: #fff !important;
+  border-color: var(--pf-t--global--border--color--default) !important;
+  backdrop-filter: none !important;
+}
+
+.ols-ai-hub-full-page-utils .ws-full-page-utils__menu-inner {
+  color: #151515;
+}
+
+/* Banner toolbar appearance menu (before version picker) */
+.ols-ai-hub-banner-appearance {
+  display: flex;
+  align-items: center;
+}
+
+.ols-ai-hub-banner-appearance__dropdown.pf-v6-c-menu {
+  color-scheme: light;
+  background-color: #fff !important;
+  border-color: var(--pf-t--global--border--color--default) !important;
+}
+
+/* FormGroup section headings — explicit text color on white popper */
+.ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__label {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* FormGroup already spaces label from control; avoid stacking extra toggle-group offset */
+.ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__group .ws-full-page-utils__toggle-group {
+  margin-top: 0;
+}
+
+.ols-ai-hub-banner-appearance__rtl-row {
+  margin-top: var(--pf-t--global--spacer--xs);
+}
+
+/* Legacy portaled full-page utils panel — superseded by banner control */
+.ws-full-page-utils.ols-ai-hub-full-page-utils {
+  display: none !important;
+}

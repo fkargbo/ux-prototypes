@@ -1,4 +1,4 @@
-import aiExperienceSvg from '../assets/rh-ui-icon-ai-experience-black.svg';
+import aiExperienceSvg from '../../assets/rh-ui-icon-ai-experience-black.svg';
 
 /**
  * Webpack loads project SVGs as raw XML (`raw-loader`). Use a data URL so `<img src>` works.
