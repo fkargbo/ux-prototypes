@@ -733,7 +733,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                           {/* Tab 1: Context & Prompt */}
                           <Tab
                             eventKey={0}
-                            title={<TabTitleText>🧠 Context &amp; prompt</TabTitleText>}
+                            title={<TabTitleText>Context &amp; prompt</TabTitleText>}
                             aria-label="Context and prompt"
                           >
                             <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
@@ -754,7 +754,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                           {/* Tab 2: Execution Sandbox Plan */}
                           <Tab
                             eventKey={1}
-                            title={<TabTitleText>🛠️ Execution sandbox plan</TabTitleText>}
+                            title={<TabTitleText>Execution sandbox plan</TabTitleText>}
                             aria-label="Execution sandbox plan"
                           >
                             <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
@@ -768,7 +768,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
                           {/* Tab 3: Cryptographic Audit Receipt */}
                           <Tab
                             eventKey={2}
-                            title={<TabTitleText>📄 Cryptographic audit receipt</TabTitleText>}
+                            title={<TabTitleText>Cryptographic audit receipt</TabTitleText>}
                             aria-label="Cryptographic audit receipt"
                           >
                             <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
