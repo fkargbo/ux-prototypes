@@ -118,8 +118,8 @@ export const AIHubPage: React.FC = () => {
         >
           <Tab
             eventKey={0}
-            title={<TabTitleText>Fleet overview</TabTitleText>}
-            aria-label="Fleet overview tab"
+            title={<TabTitleText>{activePerspective === 'Core platforms' ? 'Cluster overview' : 'Fleet overview'}</TabTitleText>}
+            aria-label={activePerspective === 'Core platforms' ? 'Cluster overview tab' : 'Fleet overview tab'}
           />
           <Tab
             eventKey={1}
