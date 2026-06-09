@@ -1,15 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   Flex,
   FlexItem,
+  InputGroup,
+  InputGroupItem,
+  Label,
+  MenuToggle,
+  MenuToggleElement,
   Pagination,
   PaginationVariant,
+  TextInput,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
+  CheckIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
 } from '@patternfly/react-icons';
@@ -38,6 +48,8 @@ export interface FleetPlanRow {
   /** Combined "region / provider" label, e.g. "us-east-1 / AWS". */
   regionProvider: string;
   version: string;
+  /** K8s-style operational labels derived from cluster metadata, e.g. "env=prod", "region=us-east-1". */
+  labels: string[];
 }
 
 export interface ClusterPlanRow {
@@ -108,6 +120,13 @@ function buildFleetRows(): FleetPlanRow[] {
       signals: buildSignalsText(c.id, alertAmount, c.health),
       regionProvider: `${c.region} / ${c.provider}`,
       version: c.version,
+      labels: [
+        `env=${c.env}`,
+        `region=${c.region}`,
+        `provider=${c.provider.toLowerCase()}`,
+        `health=${c.health}`,
+        `version=${c.version}`,
+      ],
     };
   });
 }
@@ -206,20 +225,22 @@ const ActivePlansCell: React.FC<{
   signals: string;
   onPlanRoute?: (rowId: string) => void;
 }> = ({ rowId, planCount, signals, onPlanRoute }) => (
-  <span>
+  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ flexWrap: 'wrap' }}>
     {planCount > 0 ? (
-      <Button
-        variant="link"
-        isInline
+      <Label
+        color="blue"
+        isCompact
         onClick={(e) => { e.stopPropagation(); onPlanRoute?.(rowId); }}
         aria-label={`View ${planCount} active plan${planCount !== 1 ? 's' : ''} for ${rowId}`}
-        style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+        style={{ cursor: 'pointer' }}
       >
         {planCount} {planCount !== 1 ? 'plans' : 'plan'}
-      </Button>
+      </Label>
     ) : (
-      <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>0 plans</span>
-    )}{' '}
+      <Label color="grey" isCompact variant="outline">
+        0 plans
+      </Label>
+    )}
     <span style={{
       fontWeight: 'var(--pf-t--global--font--weight--body--default)',
       color: 'var(--pf-t--global--text--color--subtle)',
@@ -227,7 +248,7 @@ const ActivePlansCell: React.FC<{
     }}>
       ({signals})
     </span>
-  </span>
+  </Flex>
 );
 
 const SaturationCell: React.FC<{ level: HealthStatus; text: string }> = ({ level, text }) => {
@@ -273,6 +294,11 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
   const [sortBy, setSortBy] = useState<{ index: number; direction: 'asc' | 'desc' }>({ index: 1, direction: 'asc' });
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+
+  // ── Dual-category search ────────────────────────────────────────────────────
+  const [searchCategory, setSearchCategory] = useState<'name' | 'label'>('name');
+  const [searchInputValue, setSearchInputValue] = useState('');
+  const [searchCategoryOpen, setSearchCategoryOpen] = useState(false);
 
   const onSort = useCallback(
     (_event: React.MouseEvent, columnIndex: number, direction: 'asc' | 'desc') => {
@@ -331,7 +357,20 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
     return rows;
   }, [sortBy]);
 
-  const totalRows = scope === 'fleet' ? sortedFleetRows.length : sortedClusterRows.length;
+  // Apply search filter on top of sorted fleet rows (cluster scope has no search)
+  const searchFilteredFleetRows = useMemo(() => {
+    if (!searchInputValue.trim()) return sortedFleetRows;
+    const q = searchInputValue.toLowerCase();
+    return sortedFleetRows.filter((row) => {
+      if (searchCategory === 'name') return row.clusterName.toLowerCase().includes(q);
+      return row.labels.some((l) => l.toLowerCase().includes(q));
+    });
+  }, [sortedFleetRows, searchInputValue, searchCategory]);
+
+  // Reset to page 1 when search changes
+  useEffect(() => { setPage(1); }, [searchInputValue, searchCategory]);
+
+  const totalRows = scope === 'fleet' ? searchFilteredFleetRows.length : sortedClusterRows.length;
 
   // Guard page overflow when perPage changes.
   useEffect(() => {
@@ -341,8 +380,8 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
 
   const paginatedFleetRows = useMemo(() => {
     const start = (page - 1) * perPage;
-    return sortedFleetRows.slice(start, start + perPage);
-  }, [page, perPage, sortedFleetRows]);
+    return searchFilteredFleetRows.slice(start, start + perPage);
+  }, [page, perPage, searchFilteredFleetRows]);
 
   const paginatedClusterRows = useMemo(() => {
     const start = (page - 1) * perPage;
@@ -386,8 +425,86 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
 
       {/* ── Body ───────────────────────────────────────────────────────────── */}
       <div className="ols-aio-fleet-summary-section__body">
-        <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-          <Pagination {...paginationProps} variant={PaginationVariant.top} />
+        {/* Toolbar row: dual-category search (fleet only) + pagination */}
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          flexWrap={{ default: 'nowrap' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          {scope === 'fleet' ? (
+            <FlexItem>
+              <InputGroup>
+                {/* Category selector */}
+                <InputGroupItem>
+                  <Dropdown
+                    isOpen={searchCategoryOpen}
+                    onOpenChange={setSearchCategoryOpen}
+                    toggle={(ref: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={ref}
+                        onClick={() => setSearchCategoryOpen((o) => !o)}
+                        isExpanded={searchCategoryOpen}
+                        style={{ minWidth: 0 }}
+                      >
+                        {searchCategory === 'name' ? 'Name' : 'Label'}
+                      </MenuToggle>
+                    )}
+                  >
+                    <DropdownList>
+                      <DropdownItem
+                        key="name"
+                        onClick={() => {
+                          setSearchCategory('name');
+                          setSearchInputValue('');
+                          setSearchCategoryOpen(false);
+                        }}
+                      >
+                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
+                          Name
+                          {searchCategory === 'name' && (
+                            <CheckIcon style={{ color: 'var(--pf-t--global--color--brand--default)' }} />
+                          )}
+                        </span>
+                      </DropdownItem>
+                      <DropdownItem
+                        key="label"
+                        onClick={() => {
+                          setSearchCategory('label');
+                          setSearchInputValue('');
+                          setSearchCategoryOpen(false);
+                        }}
+                      >
+                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
+                          Label
+                          {searchCategory === 'label' && (
+                            <CheckIcon style={{ color: 'var(--pf-t--global--color--brand--default)' }} />
+                          )}
+                        </span>
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </InputGroupItem>
+
+                {/* Text search field */}
+                <InputGroupItem isFill>
+                  <TextInput
+                    aria-label={searchCategory === 'name' ? 'Search clusters by name' : 'Search clusters by label'}
+                    placeholder={searchCategory === 'name' ? 'Search by name...' : 'Search by label...'}
+                    value={searchInputValue}
+                    onChange={(_e, val) => setSearchInputValue(val)}
+                    style={{ minWidth: 220 }}
+                  />
+                </InputGroupItem>
+              </InputGroup>
+            </FlexItem>
+          ) : (
+            <FlexItem />
+          )}
+
+          <FlexItem>
+            <Pagination {...paginationProps} variant={PaginationVariant.top} />
+          </FlexItem>
         </Flex>
 
         {scope === 'fleet' ? (

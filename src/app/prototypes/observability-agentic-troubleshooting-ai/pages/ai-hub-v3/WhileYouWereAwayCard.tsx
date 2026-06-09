@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import {
   Alert,
-  Button,
   Card,
   CardBody,
   CardHeader,
@@ -130,10 +129,6 @@ export const WhileYouWereAwayCard: React.FC<WhileYouWereAwayCardProps> = ({
       </CardHeader>
       <CardBody className="ols-aio-away-card-body">
         <AwayDigestList digestItems={digestItems} />
-        <AwayDigestFooter
-          onViewRemediations={onViewRemediations}
-          recommendedRemediationCount={recommendedRemediationCount}
-        />
       </CardBody>
     </Card>
   );
@@ -198,27 +193,3 @@ const AwayDigestList: React.FC<{ digestItems: AwayDigestItem[] }> = ({ digestIte
   </div>
 );
 
-const AwayDigestFooter: React.FC<{
-  onViewRemediations?: () => void;
-  recommendedRemediationCount: number;
-}> = ({ onViewRemediations, recommendedRemediationCount }) => (
-  <div className="ols-aio-away-card-footer">
-    <Button
-      variant="primary"
-      onClick={onViewRemediations}
-      isDisabled={!onViewRemediations}
-      aria-label={`View AI investigations, ${recommendedRemediationCount} suggested`}
-    >
-      <span className="ols-aio-ai-insight-icon" aria-hidden="true" style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
-        <img
-          src={AI_EXPERIENCE_ICON_DATA_URL}
-          alt=""
-          width={16}
-          height={16}
-          style={{ display: 'block', flexShrink: 0, filter: 'brightness(0) invert(1)' }}
-        />
-      </span>
-      View AI investigations
-    </Button>
-  </div>
-);
