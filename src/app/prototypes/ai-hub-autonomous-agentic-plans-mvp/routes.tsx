@@ -8,16 +8,21 @@ import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanc
 export const routes: RouteConfig[] = [
   {
     path: '/',
-    element: <Navigate to="/core/observe/ai-hub" replace />,
+    element: <Navigate to="/core/observe/ai-hub/plans" replace />,
     title: 'AI Hub',
   },
   {
     path: '/core/observe/ai-hub',
-    element: <AIHubPage />,
-    label: 'AI Hub',
+    element: <Navigate to="/core/observe/ai-hub/plans" replace />,
     title: 'AI Hub',
+  },
+  {
+    path: '/core/observe/ai-hub/plans',
+    element: <AIHubPage />,
+    label: 'Plans',
+    title: 'Plans',
     navigation: {
-      group: 'Home',
+      group: 'AI Hub',
       order: 1,
     },
   },
