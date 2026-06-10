@@ -35,8 +35,8 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
-import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
@@ -71,6 +71,8 @@ interface PlanRow {
   /** Infrastructure objects that will be affected by the remediation. Context-aware:
    *  Fleet perspective → cluster names; Single-cluster perspective → namespace/pod/node names. */
   drawerTargets: string[];
+  /** ISO-8601 instant when the plan was created. */
+  createdAt?: string;
 }
 
 // ─── Dataset — Top plans (score ≥ 80) ────────────────────────────────────────
@@ -995,42 +997,25 @@ const AiSparkle: React.FC<{ size?: number }> = ({ size = 14 }) => (
 
 // ─── Expanded row: consolidated reason icon ───────────────────────────────────
 
-const REASON_ICON_COMPONENT: Record<ReasonIconType, React.ComponentType<{ style?: React.CSSProperties }>> = {
-  sync:    SyncAltIcon,
-  alert:   ExclamationCircleIcon,
-  warning: ExclamationTriangleIcon,
-  gear:    CogIcon,
-  ban:     BanIcon,
-  wrench:  WrenchIcon,
-};
-
-const REASON_ICON_COLOR: Record<ReasonIconType, string> = {
-  sync:    'var(--pf-t--global--color--status--info--default)',
-  alert:   'var(--pf-t--global--color--status--danger--default)',
-  warning: 'var(--pf-t--global--color--status--warning--default)',
-  gear:    'var(--pf-t--global--text--color--subtle)',
-  ban:     'var(--pf-t--global--color--status--danger--default)',
-  wrench:  'var(--pf-t--global--text--color--subtle)',
-};
-
-const ReasonIcon: React.FC<{ type: ReasonIconType }> = ({ type }) => {
-  const Icon = REASON_ICON_COMPONENT[type];
-  return <Icon style={{ color: REASON_ICON_COLOR[type], flexShrink: 0 }} aria-hidden />;
+/** OpenShift console / PatternFly table style: e.g. Jun 9, 2026, 2:32 PM */
+const formatPlanCreatedAt = (iso: string): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '—';
+  }
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 };
 
 // Standalone AI icon (no tooltip wrapper) used inside drawer sections
 const AiIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   <img src={AI_EXPERIENCE_ICON_DATA_URL} alt="" aria-hidden="true" width={size} height={size} style={{ display: 'block', flexShrink: 0 }} />
 );
-
-// ─── Severity badge ───────────────────────────────────────────────────────────
-
-const SeverityBadge: React.FC<{ severity: PlanSeverity }> = ({ severity }) =>
-  severity === 'critical' ? (
-    <Label color="red" isCompact>Critical</Label>
-  ) : (
-    <Label color="yellow" isCompact>Warning</Label>
-  );
 
 // ─── Status label ─────────────────────────────────────────────────────────────
 
@@ -1109,138 +1094,55 @@ const AiColumnHeader: React.FC<{ label: string }> = ({ label }) => (
 interface PlansTableCoreProps {
   rows: PlanRow[];
   ariaLabel: string;
-  startIndex: number;
-  expandedRows: Set<string>;
-  onToggle: (id: string) => void;
   onReviewPlan: (plan: PlanRow) => void;
 }
 
-const PlansTableCore: React.FC<PlansTableCoreProps> = ({
-  rows,
-  ariaLabel,
-  startIndex,
-  expandedRows,
-  onToggle,
-  onReviewPlan,
-}) => (
+const PlansTableCore: React.FC<PlansTableCoreProps> = ({ rows, ariaLabel, onReviewPlan }) => (
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        <Th screenReaderText="Row expansion" style={{ width: '4%' }} />
-        <Th style={{ width: '6%' }}>Severity</Th>
-        <Th style={{ width: '7%' }}><AiColumnHeader label="Impact score" /></Th>
-        <Th style={{ width: '21%' }}><AiColumnHeader label="Plan summary" /></Th>
-        <Th style={{ width: '9%' }}>Blast radius</Th>
-        <Th style={{ width: '13%' }}>Consolidation scope</Th>
-        <Th style={{ width: '13%' }}>Trigger domains</Th>
-        <Th style={{ width: '12%' }}>Status</Th>
+        <Th style={{ width: '34%' }}><AiColumnHeader label="Plan summary" /></Th>
+        <Th style={{ width: '20%' }}>Trigger domains</Th>
+        <Th style={{ width: '18%' }}>Created</Th>
+        <Th style={{ width: '13%' }}>Status</Th>
         <Th style={{ width: '15%' }}>Action</Th>
       </Tr>
     </Thead>
 
-    {rows.map((row, idx) => {
-      const isExpanded = expandedRows.has(row.id);
-      return (
-        <Tbody key={row.id} isExpanded={isExpanded}>
-          {/* ── Main data row ─────────────────────────────────────────── */}
-          <Tr style={{ verticalAlign: 'middle' }}>
-            <Td
-              expand={{
-                rowIndex: startIndex + idx,
-                isExpanded,
-                onToggle: () => onToggle(row.id),
-              }}
+    <Tbody>
+      {rows.map((row) => (
+        <Tr key={row.id} style={{ verticalAlign: 'middle' }}>
+          <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+              <FlexItem><AiSparkle /></FlexItem>
+              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
+            </Flex>
+          </Td>
+
+          <Td dataLabel="Trigger domains">{row.triggerDomains}</Td>
+
+          <Td dataLabel="Created">
+            {row.createdAt ? (
+              <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
+            ) : (
+              '—'
+            )}
+          </Td>
+
+          <Td dataLabel="Status">
+            <StatusLabel status={row.status} />
+          </Td>
+
+          <Td dataLabel="Action">
+            <ActionCell
+              status={row.status}
+              isUnauthorized={row.isUnauthorized}
+              onReview={() => onReviewPlan(row)}
             />
-
-            <Td dataLabel="Severity">
-              <SeverityBadge severity={row.severity} />
-            </Td>
-
-            <Td dataLabel="Impact score">
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                <FlexItem><AiSparkle /></FlexItem>
-                <FlexItem><span style={{ fontWeight: 600 }}>{row.score}</span></FlexItem>
-              </Flex>
-            </Td>
-
-            <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                <FlexItem><AiSparkle /></FlexItem>
-                <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
-              </Flex>
-            </Td>
-
-            <Td dataLabel="Blast radius">{row.blastRadius}</Td>
-
-            <Td dataLabel="Consolidation scope">
-              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                {row.consolidationScope}
-              </span>
-            </Td>
-
-            <Td dataLabel="Trigger domains">{row.triggerDomains}</Td>
-
-            <Td dataLabel="Status">
-              <StatusLabel status={row.status} />
-            </Td>
-
-            <Td dataLabel="Action">
-              <ActionCell
-                status={row.status}
-                isUnauthorized={row.isUnauthorized}
-                onReview={() => onReviewPlan(row)}
-              />
-            </Td>
-          </Tr>
-
-          {/* ── Expanded detail row ────────────────────────────────────── */}
-          <Tr isExpanded={isExpanded}>
-            <Td colSpan={9}>
-              <ExpandableRowContent>
-                <div
-                  style={{
-                    padding: 'var(--pf-t--global--spacer--md)',
-                    backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                    borderRadius: 'var(--pf-t--global--border--radius--small)',
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: '0 0 var(--pf-t--global--spacer--xs)',
-                      fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                      fontWeight: 600,
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    Consolidated reasons for this plan
-                  </p>
-                  <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
-                    {row.expandedReasons.map((reason, i) => (
-                      <StackItem key={i}>
-                        <Flex
-                          alignItems={{ default: 'alignItemsCenter' }}
-                          gap={{ default: 'gapSm' }}
-                          flexWrap={{ default: 'nowrap' }}
-                        >
-                          <FlexItem style={{ display: 'flex', alignItems: 'center' }}>
-                            <ReasonIcon type={reason.icon} />
-                          </FlexItem>
-                          <FlexItem style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--regular)' }}>
-                            {reason.text}
-                          </FlexItem>
-                        </Flex>
-                      </StackItem>
-                    ))}
-                  </Stack>
-                </div>
-              </ExpandableRowContent>
-            </Td>
-          </Tr>
-        </Tbody>
-      );
-    })}
+          </Td>
+        </Tr>
+      ))}
+    </Tbody>
   </Table>
 );
 
@@ -1297,7 +1199,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows }) => {
   const [domainMenuOpen, setDomainMenuOpen] = useState(false);
 
   // ── Pagination state ──
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
@@ -1340,15 +1241,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows }) => {
   const totalItems = filteredRows.length;
   const start = (page - 1) * perPage;
   const paginatedRows = filteredRows.slice(start, start + perPage);
-
-  const toggleRow = useCallback((id: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
 
   const onSetPage = useCallback(
     (_evt: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
@@ -1550,9 +1442,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows }) => {
           <PlansTableCore
             rows={paginatedRows}
             ariaLabel="Plans"
-            startIndex={start}
-            expandedRows={expandedRows}
-            onToggle={toggleRow}
             onReviewPlan={onReviewPlan}
           />
           <Pagination
@@ -2946,7 +2835,15 @@ export const PlansAndApprovalsTab: React.FC = () => {
     const combined = isSingleCluster
       ? [...SC_TOP_PLANS, ...SC_ALL_PLANS]
       : [...TOP_PLANS, ...ALL_PLANS];
-    return [...combined].sort((a, b) => b.score - a.score);
+    const createdAnchor = new Date('2026-06-09T16:00:00.000Z').getTime();
+    return [...combined]
+      .sort((a, b) => b.score - a.score)
+      .map((row, index) => ({
+        ...row,
+        createdAt:
+          row.createdAt ??
+          new Date(createdAnchor - index * 47 * 60_000).toISOString(),
+      }));
   }, [isSingleCluster]);
 
   // `displayedPlan` stays populated during the leave animation so the panel
