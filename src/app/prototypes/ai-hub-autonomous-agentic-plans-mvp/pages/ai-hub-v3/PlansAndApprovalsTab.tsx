@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
+  Card,
+  CardBody,
+  CardHeader,
   Checkbox,
   ClipboardCopy,
   ClipboardCopyVariant,
@@ -24,7 +27,6 @@ import {
   MenuToggleElement,
   Pagination,
   PaginationVariant,
-  Radio,
   Select,
   SelectList,
   SelectOption,
@@ -1665,11 +1667,48 @@ const RemediationOptionCard: React.FC<{
 
   const typeName = OPTION_TYPE_NAMES[index] ?? `Option ${index + 1}`;
   const isInteractive = !isRemediating;
-  const borderColor = isSelected
-    ? 'var(--pf-t--color--blue--50)'
-    : 'var(--pf-t--global--border--color--default)';
+  const cardId = `remediation-option-${option.id}`;
 
   const selectedCount = selectedTargets.size;
+
+  const headerContent = (
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      gap={{ default: 'gapSm' }}
+      flexWrap={{ default: 'wrap' }}
+      id={`${cardId}-title`}
+    >
+      <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+        Option {index + 1}: {typeName}
+      </span>
+      <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+        {isFirst ? (
+          <Label color="blue" isCompact>AI Recommended</Label>
+        ) : (
+          <Label color="grey" isCompact>Manual Fallback</Label>
+        )}
+        {isTerminal && isFirst && (
+          <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
+            {status === 'Completed' ? 'Executed' : 'Failed'}
+          </Label>
+        )}
+        <Label color={RISK_COLOR[option.risk]} variant="outline" isCompact>
+          {RISK_LABEL[option.risk]}
+        </Label>
+        <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
+          {option.reversible ? '1-Click Rollback' : 'Non-reversible'}
+        </Label>
+        <Label
+          color={isUnauthorized ? 'red' : 'green'}
+          variant="outline"
+          isCompact
+          icon={isUnauthorized ? <LockIcon /> : <LockOpenIcon />}
+        >
+          {isUnauthorized ? 'RBAC: Unauthorized' : 'RBAC: Authorized'}
+        </Label>
+      </Flex>
+    </Flex>
+  );
 
   const handleExecute = () => {
     setIsExecuting(true);
@@ -1756,112 +1795,46 @@ const RemediationOptionCard: React.FC<{
   };
 
   return (
-    <div
-      style={{
-        borderRadius: 'var(--pf-t--global--border--radius--small)',
-        border: `1px solid ${borderColor}`,
-        overflow: 'hidden',
-        transition: 'border-color 150ms ease',
-      }}
+    <Card
+      id={cardId}
+      isSelectable={isInteractive}
+      isSelected={isSelected}
+      isExpanded={isSelected}
+      isDisabled={isUnauthorized && isInteractive}
     >
-      {/* ── Collapsed header row (always visible) ── */}
-      <div
-        role={isInteractive ? 'button' : undefined}
-        tabIndex={isInteractive ? 0 : undefined}
-        aria-expanded={isSelected}
-        onClick={() => isInteractive && onSelect(option.id)}
-        onKeyDown={(e) => {
-          if (isInteractive && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault();
-            onSelect(option.id);
-          }
-        }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--pf-t--global--spacer--sm)',
-          padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
-          cursor: isInteractive ? 'pointer' : 'default',
-          backgroundColor: isSelected
-            ? 'var(--pf-t--global--background--color--secondary--default)'
-            : 'var(--pf-t--global--background--color--primary--default)',
-          userSelect: 'none',
-        }}
+      <CardHeader
+        selectableActions={
+          isInteractive
+            ? {
+                selectableActionId: `radio-${option.id}`,
+                selectableActionAriaLabelledby: `${cardId}-title`,
+                name: `remedy-${plan.id}`,
+                variant: 'single',
+                onChange: (_event, checked) => {
+                  if (checked) onSelect(option.id);
+                },
+                hasNoOffset: true,
+              }
+            : undefined
+        }
+        onExpand={
+          isInteractive
+            ? (_event, _id) => {
+                onSelect(option.id);
+              }
+            : undefined
+        }
+        toggleButtonProps={
+          isInteractive
+            ? { 'aria-label': isSelected ? `Collapse ${typeName}` : `Expand ${typeName}` }
+            : undefined
+        }
       >
-        {/* Radio control */}
-        {isInteractive && (
-          <Radio
-            id={`radio-${option.id}`}
-            name={`remedy-${plan.id}`}
-            aria-label={`Select ${typeName}`}
-            isChecked={isSelected}
-            isDisabled={isUnauthorized}
-            onChange={() => onSelect(option.id)}
-            onClick={(e) => e.stopPropagation()}
-            label=""
-          />
-        )}
+        {headerContent}
+      </CardHeader>
 
-        {/* Option identity + at-a-glance triage badges */}
-        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            gap={{ default: 'gapSm' }}
-            flexWrap={{ default: 'wrap' }}
-          >
-            <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-              Option {index + 1}: {typeName}
-            </span>
-            <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
-              {isFirst ? (
-                <Label color="blue" isCompact>AI Recommended</Label>
-              ) : (
-                <Label color="grey" isCompact>Manual Fallback</Label>
-              )}
-              {isTerminal && isFirst && (
-                <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
-                  {status === 'Completed' ? 'Executed' : 'Failed'}
-                </Label>
-              )}
-              <Label color={RISK_COLOR[option.risk]} variant="outline" isCompact>
-                {RISK_LABEL[option.risk]}
-              </Label>
-              <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
-                {option.reversible ? '1-Click Rollback' : 'Non-reversible'}
-              </Label>
-              <Label
-                color={isUnauthorized ? 'red' : 'green'}
-                variant="outline"
-                isCompact
-                icon={isUnauthorized ? <LockIcon /> : <LockOpenIcon />}
-              >
-                {isUnauthorized ? 'RBAC: Unauthorized' : 'RBAC: Authorized'}
-              </Label>
-            </Flex>
-          </Flex>
-        </div>
-
-        {/* Expand/collapse chevron */}
-        {isInteractive && (
-          <AngleRightIcon
-            style={{
-              transition: 'transform 200ms ease',
-              transform: isSelected ? 'rotate(90deg)' : 'rotate(0deg)',
-              flexShrink: 0,
-              color: 'var(--pf-t--global--text--color--subtle)',
-            }}
-          />
-        )}
-      </div>
-
-      {/* ── Expanded body (visible only when selected) ── */}
       {isSelected && (
-        <div
-          style={{
-            borderTop: `1px solid ${borderColor}`,
-            padding: 'var(--pf-t--global--spacer--md)',
-          }}
-        >
+        <CardBody>
           {/* AI icon + full option title */}
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -2077,9 +2050,9 @@ const RemediationOptionCard: React.FC<{
               onToggleMetrics={setIsPostMortemOpen}
             />
           )}
-        </div>
+        </CardBody>
       )}
-    </div>
+    </Card>
   );
 };
 
@@ -2763,31 +2736,11 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           }
         >
           {isInvestigating ? (
-            <div className="ols-aio-remediation-box">
-              <HubLockedPlaceholder />
-            </div>
+            <HubLockedPlaceholder />
           ) : isTerminal ? (
-            <div className="ols-aio-remediation-box">
-              <PostMortemPanel plan={plan} />
-            </div>
+            <PostMortemPanel plan={plan} />
           ) : (
-            <div className="ols-aio-remediation-box">
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapXs' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-              >
-                <Tooltip
-                  content="These remediation strategies are synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns."
-                  position="top"
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
-                    <AiIcon size={14} />
-                  </span>
-                </Tooltip>
-                <span className="ols-aio-text-overline">{optionLabel}</span>
-              </Flex>
-
+            <>
               {/* Gate hint shown to critical plans before verification */}
               {!isDiagnosisVerified && (
                 <Flex
@@ -2846,7 +2799,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                     ))}
                 </Stack>
               </div>
-            </div>
+            </>
           )}
         </ExpandableSection>
       </StackItem>
