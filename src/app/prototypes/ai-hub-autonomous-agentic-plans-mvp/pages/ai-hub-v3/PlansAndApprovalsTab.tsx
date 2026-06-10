@@ -73,7 +73,38 @@ interface PlanRow {
   drawerTargets: string[];
   /** ISO-8601 instant when the plan was created. */
   createdAt?: string;
+  /** Logical plan resource name (e.g. gitops-domain-drift-remediation). */
+  name?: string;
+  /** Primary cluster surfaced in the table for the active perspective. */
+  cluster?: string;
 }
+
+/** Simulated plan names and cluster labels for the plans table. */
+const PLAN_TABLE_IDENTITY: Record<
+  string,
+  { name: string; fleetCluster: string; singleCluster: string }
+> = {
+  tp1: { name: 'gitops-domain-drift-remediation', fleetCluster: 'prod-us-east-01 (+3)', singleCluster: 'prod-east-2' },
+  tp2: { name: 'acs-runtime-exploit-quarantine', fleetCluster: 'prod-us-east-01 (+2)', singleCluster: 'prod-east-2' },
+  tp3: { name: 'payments-oomkill-remediation', fleetCluster: 'prod-us-east-01', singleCluster: 'prod-east-2' },
+  tp4: { name: 'rook-ceph-storage-remediation', fleetCluster: 'prod-us-east-01 (+1)', singleCluster: 'prod-east-2' },
+  tp5: { name: 'etcd-api-latency-optimization', fleetCluster: 'prod-us-east-01', singleCluster: 'prod-east-2' },
+  ap1: { name: 'dev-memory-leak-remediation', fleetCluster: 'dev-us-west-04', singleCluster: 'prod-east-2' },
+  ap2: { name: 'tekton-webhook-repair', fleetCluster: 'prod-us-east-01 (+1)', singleCluster: 'prod-east-2' },
+  ap3: { name: 'oauth-client-token-rotation', fleetCluster: 'prod-us-east-01', singleCluster: 'prod-east-2' },
+  ap4: { name: 'coredns-latency-investigation', fleetCluster: 'prod-us-east-01 (+2)', singleCluster: 'prod-east-2' },
+  ap5: { name: 'baremetal-scheduling-rebalance', fleetCluster: 'prod-us-west-03', singleCluster: 'prod-east-2' },
+  ap6: { name: 'staging-namespace-drift-resync', fleetCluster: 'staging-ap-south-01', singleCluster: 'prod-east-2' },
+  ap7: { name: 'ingress-router-replica-repair', fleetCluster: 'prod-us-east-01 (+1)', singleCluster: 'prod-east-2' },
+  ap8: { name: 'acs-compliance-mitigation', fleetCluster: 'prod-us-east-01', singleCluster: 'prod-east-2' },
+  ap9: { name: 'stale-pod-gc-cleanup', fleetCluster: 'prod-us-east-01 (+1)', singleCluster: 'prod-east-2' },
+  ap10: { name: 'jenkins-queue-depth-resolution', fleetCluster: 'prod-us-east-01', singleCluster: 'prod-east-2' },
+  ap11: { name: 'hpa-metrics-limit-remediation', fleetCluster: 'prod-us-east-01', singleCluster: 'prod-east-2' },
+  ap12: { name: 'registry-pull-failure-repair', fleetCluster: 'prod-us-east-01 (+3)', singleCluster: 'prod-east-2' },
+  ap13: { name: 'database-iops-throttle-tuning', fleetCluster: 'prod-us-east-01', singleCluster: 'prod-east-2' },
+  ap14: { name: 'ntp-clock-skew-correction', fleetCluster: 'prod-us-east-01 (+2)', singleCluster: 'prod-east-2' },
+  ap15: { name: 'imagestream-tag-prune', fleetCluster: 'prod-us-east-01', singleCluster: 'prod-east-2' },
+};
 
 // ─── Dataset — Top plans (score ≥ 80) ────────────────────────────────────────
 
@@ -1079,10 +1110,12 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({ rows, ariaLabel, onRevi
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        <Th style={{ width: '38%' }}>Name</Th>
-        <Th style={{ width: '16%' }}>Status</Th>
-        <Th style={{ width: '24%' }}>Trigger domains</Th>
-        <Th style={{ width: '22%' }}>Created</Th>
+        <Th style={{ width: '22%' }}>Name</Th>
+        <Th style={{ width: '22%' }}>Plan summary</Th>
+        <Th style={{ width: '12%' }}>Status</Th>
+        <Th style={{ width: '14%' }}>Cluster</Th>
+        <Th style={{ width: '16%' }}>Trigger domains</Th>
+        <Th style={{ width: '14%' }}>Created</Th>
       </Tr>
     </Thead>
 
@@ -1101,15 +1134,24 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({ rows, ariaLabel, onRevi
                   onClick={() => onReviewPlan(row)}
                   style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
                 >
-                  {row.synopsis}
+                  {row.name ?? row.id}
                 </Button>
               </FlexItem>
+            </Flex>
+          </Td>
+
+          <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+              <FlexItem><AiSparkle /></FlexItem>
+              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
             </Flex>
           </Td>
 
           <Td dataLabel="Status">
             <StatusLabel status={row.status} />
           </Td>
+
+          <Td dataLabel="Cluster">{row.cluster ?? '—'}</Td>
 
           <Td dataLabel="Trigger domains">{row.triggerDomains}</Td>
 
@@ -2814,12 +2856,19 @@ export const PlansAndApprovalsTab: React.FC = () => {
     const createdAnchor = new Date('2026-06-09T16:00:00.000Z').getTime();
     return [...combined]
       .sort((a, b) => b.score - a.score)
-      .map((row, index) => ({
-        ...row,
-        createdAt:
-          row.createdAt ??
-          new Date(createdAnchor - index * 47 * 60_000).toISOString(),
-      }));
+      .map((row, index) => {
+        const identity = PLAN_TABLE_IDENTITY[row.id];
+        return {
+          ...row,
+          name: identity?.name ?? row.id,
+          cluster: isSingleCluster
+            ? identity?.singleCluster ?? 'prod-east-2'
+            : identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
+          createdAt:
+            row.createdAt ??
+            new Date(createdAnchor - index * 47 * 60_000).toISOString(),
+        };
+      });
   }, [isSingleCluster]);
 
   // `displayedPlan` stays populated during the leave animation so the panel
