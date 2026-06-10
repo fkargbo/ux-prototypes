@@ -1202,6 +1202,32 @@ const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
   color: 'var(--pf-t--global--text--color--subtle)',
 };
 
+// ─── Scope cell (cluster / namespace) with multi-target tooltip ───────────────
+
+const PlanScopeCell: React.FC<{
+  scope?: string;
+  scopeColumnLabel: 'Cluster' | 'Namespace';
+  scopeTargets: string[];
+}> = ({ scope, scopeColumnLabel, scopeTargets }) => {
+  const label = scope ?? '—';
+  const showTooltip = scopeColumnLabel === 'Cluster' && scopeTargets.length > 1;
+
+  if (!showTooltip) {
+    return <>{label}</>;
+  }
+
+  const tooltipContent = scopeTargets.join(', ');
+  const ariaLabel = `${label}. All clusters: ${tooltipContent}`;
+
+  return (
+    <Tooltip content={tooltipContent} position="top">
+      <span tabIndex={0} aria-label={ariaLabel} style={{ cursor: 'help' }}>
+        {label}
+      </span>
+    </Tooltip>
+  );
+};
+
 // ─── Core stateless table renderer ───────────────────────────────────────────
 
 interface PlansTableCoreProps {
@@ -1260,7 +1286,13 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             <StatusLabel status={row.status} />
           </Td>
 
-          <Td dataLabel={scopeColumnLabel}>{row.scope ?? '—'}</Td>
+          <Td dataLabel={scopeColumnLabel}>
+            <PlanScopeCell
+              scope={row.scope}
+              scopeColumnLabel={scopeColumnLabel}
+              scopeTargets={scopeColumnLabel === 'Cluster' ? row.drawerTargets : []}
+            />
+          </Td>
 
           <Td dataLabel="Created">
             {row.createdAt ? (
