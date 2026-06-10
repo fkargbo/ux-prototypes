@@ -1082,12 +1082,36 @@ const ActionCell: React.FC<ActionCellProps> = ({ status, isUnauthorized, onRevie
 
 // ─── Table column header helpers ──────────────────────────────────────────────
 
-const AiColumnHeader: React.FC<{ label: string }> = ({ label }) => (
-  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-    <FlexItem><AiSparkle /></FlexItem>
-    <FlexItem>{label}</FlexItem>
-  </Flex>
+/** OpenShift console–style resource badge for Plan resources. */
+const PlanResourceBadge: React.FC = () => (
+  <span
+    aria-hidden
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 24,
+      height: 24,
+      minWidth: 24,
+      borderRadius: 'var(--pf-t--global--border--radius--small)',
+      backgroundColor: 'var(--pf-t--global--color--brand--default)',
+      color: '#fff',
+      fontSize: 'var(--pf-t--global--font--size--body--sm)',
+      fontWeight: 700,
+      lineHeight: 1,
+      flexShrink: 0,
+    }}
+  >
+    P
+  </span>
 );
+
+const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
+  padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs)',
+  fontSize: 'var(--pf-t--global--font--size--body--sm)',
+  fontWeight: 600,
+  color: 'var(--pf-t--global--text--color--subtle)',
+};
 
 // ─── Core stateless table renderer ───────────────────────────────────────────
 
@@ -1101,10 +1125,10 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({ rows, ariaLabel, onRevi
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        <Th style={{ width: '34%' }}><AiColumnHeader label="Plan summary" /></Th>
-        <Th style={{ width: '20%' }}>Trigger domains</Th>
-        <Th style={{ width: '18%' }}>Created</Th>
-        <Th style={{ width: '13%' }}>Status</Th>
+        <Th style={{ width: '32%' }}>Name</Th>
+        <Th style={{ width: '14%' }}>Status</Th>
+        <Th style={{ width: '18%' }}>Trigger domains</Th>
+        <Th style={{ width: '16%' }}>Created</Th>
         <Th style={{ width: '15%' }}>Action</Th>
       </Tr>
     </Thead>
@@ -1112,11 +1136,26 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({ rows, ariaLabel, onRevi
     <Tbody>
       {rows.map((row) => (
         <Tr key={row.id} style={{ verticalAlign: 'middle' }}>
-          <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-              <FlexItem><AiSparkle /></FlexItem>
-              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
+          <Td dataLabel="Name" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+              <FlexItem>
+                <PlanResourceBadge />
+              </FlexItem>
+              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => onReviewPlan(row)}
+                  style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
+                >
+                  {row.synopsis}
+                </Button>
+              </FlexItem>
             </Flex>
+          </Td>
+
+          <Td dataLabel="Status">
+            <StatusLabel status={row.status} />
           </Td>
 
           <Td dataLabel="Trigger domains">{row.triggerDomains}</Td>
@@ -1127,10 +1166,6 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({ rows, ariaLabel, onRevi
             ) : (
               '—'
             )}
-          </Td>
-
-          <Td dataLabel="Status">
-            <StatusLabel status={row.status} />
           </Td>
 
           <Td dataLabel="Action">
@@ -1195,8 +1230,7 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows }) => {
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [domainFilters, setDomainFilters] = useState<string[]>([]);
   const [rbacOnly, setRbacOnly] = useState(false);
-  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
-  const [domainMenuOpen, setDomainMenuOpen] = useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
   // ── Pagination state ──
   const [page, setPage] = useState(1);
@@ -1235,7 +1269,24 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows }) => {
     );
   }, []);
 
-  const hasActiveFilters = statusFilters.length > 0 || domainFilters.length > 0 || rbacOnly;
+  const activeFilterCount = statusFilters.length + domainFilters.length;
+  const hasActiveFilters = activeFilterCount > 0 || rbacOnly;
+
+  const handleFilterSelect = useCallback(
+    (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+      if (typeof value !== 'string') {
+        return;
+      }
+      if (STATUS_FILTER_OPTIONS.includes(value as PlanStatus)) {
+        toggleStatusFilter(value);
+        return;
+      }
+      if ((DOMAIN_FILTER_OPTIONS as readonly string[]).includes(value)) {
+        toggleDomainFilter(value);
+      }
+    },
+    [toggleStatusFilter, toggleDomainFilter],
+  );
 
   // ── Pagination handlers ──
   const totalItems = filteredRows.length;
@@ -1298,51 +1349,31 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows }) => {
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
             <FlexItem>
               <Select
-                aria-label="Status filter"
+                aria-label="Filter plans"
                 role="menu"
-                isOpen={statusMenuOpen}
-                onSelect={(_e, val) => toggleStatusFilter(val as string)}
-                onOpenChange={setStatusMenuOpen}
+                isOpen={filterMenuOpen}
+                onSelect={handleFilterSelect}
+                onOpenChange={setFilterMenuOpen}
                 toggle={(ref: React.Ref<MenuToggleElement>) => (
                   <MenuToggle
                     ref={ref}
-                    onClick={() => setStatusMenuOpen((o) => !o)}
-                    isExpanded={statusMenuOpen}
-                    badge={statusFilters.length > 0 ? statusFilters.length : undefined}
+                    onClick={() => setFilterMenuOpen((o) => !o)}
+                    isExpanded={filterMenuOpen}
+                    badge={activeFilterCount > 0 ? activeFilterCount : undefined}
                   >
-                    Status
+                    Filter
                   </MenuToggle>
                 )}
               >
                 <SelectList>
+                  <div style={FILTER_SECTION_TITLE_STYLE}>Status</div>
                   {STATUS_FILTER_OPTIONS.map((s) => (
                     <SelectOption key={s} hasCheckbox value={s} isSelected={statusFilters.includes(s)}>
                       {s}
                     </SelectOption>
                   ))}
-                </SelectList>
-              </Select>
-            </FlexItem>
-
-            <FlexItem>
-              <Select
-                aria-label="Component domain filter"
-                role="menu"
-                isOpen={domainMenuOpen}
-                onSelect={(_e, val) => toggleDomainFilter(val as string)}
-                onOpenChange={setDomainMenuOpen}
-                toggle={(ref: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={ref}
-                    onClick={() => setDomainMenuOpen((o) => !o)}
-                    isExpanded={domainMenuOpen}
-                    badge={domainFilters.length > 0 ? domainFilters.length : undefined}
-                  >
-                    Domain
-                  </MenuToggle>
-                )}
-              >
-                <SelectList>
+                  <Divider component="li" />
+                  <div style={FILTER_SECTION_TITLE_STYLE}>Domain</div>
                   {DOMAIN_FILTER_OPTIONS.map((d) => (
                     <SelectOption key={d} hasCheckbox value={d} isSelected={domainFilters.includes(d)}>
                       {d}
