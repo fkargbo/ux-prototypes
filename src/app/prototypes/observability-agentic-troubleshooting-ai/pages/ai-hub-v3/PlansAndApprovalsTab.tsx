@@ -2709,7 +2709,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                     icon={<CheckCircleIcon />}
                     onClick={handleVerifyDiagnosis}
                   >
-                    Verify & proceed
+                    Acknowledge & view remediation
                   </Button>
                 )}
               </div>
