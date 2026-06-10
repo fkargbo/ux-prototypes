@@ -1643,22 +1643,18 @@ const RemediationOptionCard: React.FC<{
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
-  type OptionDetailDisclosure = 'commands' | 'metrics' | 'logs' | null;
-  const [detailDisclosure, setDetailDisclosure] = useState<OptionDetailDisclosure>(null);
+  const [showCommands, setShowCommands] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
   type SandboxState = 'pending' | 'running' | 'passed' | 'bypassed';
   const [sandboxState, setSandboxState] = useState<SandboxState>('pending');
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
-
-  const toggleDetailDisclosure = (section: Exclude<OptionDetailDisclosure, null>) => (open: boolean) => {
-    setDetailDisclosure(open ? section : null);
-  };
+  const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
     if (!isSelected) {
-      setDetailDisclosure(null);
+      setShowCommands(false);
       setIsExecuting(false);
       setSandboxState('pending');
     }
@@ -1680,7 +1676,7 @@ const RemediationOptionCard: React.FC<{
     setTimeout(() => {
       setIsExecuting(false);
       setIsExecuted(true);
-      setDetailDisclosure('metrics');
+      setIsPostMortemOpen(true);
     }, 2000);
   };
 
@@ -1927,20 +1923,20 @@ const RemediationOptionCard: React.FC<{
               <Button
                 variant="link"
                 isInline
-                onClick={() => toggleDetailDisclosure('commands')(detailDisclosure !== 'commands')}
+                onClick={() => setShowCommands(!showCommands)}
                 icon={
                   <AngleRightIcon
                     style={{
-                      transform: detailDisclosure === 'commands' ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transform: showCommands ? 'rotate(90deg)' : 'rotate(0deg)',
                       transition: 'transform 150ms ease',
                     }}
                   />
                 }
                 style={{ padding: 0, fontSize: '14px' }}
               >
-                {detailDisclosure === 'commands' ? 'Hide raw commands' : 'View raw commands'}
+                {showCommands ? 'Hide raw commands' : 'View raw commands'}
               </Button>
-              {detailDisclosure === 'commands' && (
+              {showCommands && (
                 <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
                   <ClipboardCopy
                     isReadOnly
@@ -2077,10 +2073,8 @@ const RemediationOptionCard: React.FC<{
           {isExecuted && (
             <PostMortemPanel
               plan={plan}
-              isMetricsExpanded={detailDisclosure === 'metrics'}
-              onToggleMetrics={toggleDetailDisclosure('metrics')}
-              isLogsExpanded={detailDisclosure === 'logs'}
-              onToggleLogs={toggleDetailDisclosure('logs')}
+              isMetricsExpanded={isPostMortemOpen}
+              onToggleMetrics={setIsPostMortemOpen}
             />
           )}
         </div>
@@ -2475,21 +2469,43 @@ const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection
   return 'rem';
 };
 
+const createInitialSectionState = (
+  plan: PlanRow,
+): Record<RemediationWorkflowSection, boolean> => {
+  const focusSection = getDefaultRemediationSection(plan);
+  return {
+    chain: focusSection === 'chain',
+    rca: focusSection === 'rca',
+    rem: focusSection === 'rem',
+  };
+};
+
 const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
   const isTerminal = status === 'Completed' || status === 'Failed';
 
-  const [expandedSection, setExpandedSection] = useState<RemediationWorkflowSection | null>(
-    () => getDefaultRemediationSection(plan),
-  );
+  const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
+  // Guided view: first presentation from the plans table — only the focus section stays open.
+  const [isGuidedView, setIsGuidedView] = useState(true);
+
+  useEffect(() => {
+    setSectionExpanded(createInitialSectionState(plan));
+    setIsGuidedView(true);
+  }, [plan.id]);
 
   const handleSectionToggle = (section: RemediationWorkflowSection) => (
     _event: React.MouseEvent,
     isOpen: boolean,
   ) => {
-    setExpandedSection(isOpen ? section : null);
+    if (isGuidedView) {
+      setIsGuidedView(false);
+    }
+    setSectionExpanded((prev) => ({
+      ...prev,
+      [section]: isOpen,
+    }));
   };
 
   const drawer = PLAN_DRAWER_DATA[plan.id];
@@ -2517,7 +2533,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const handleVerifyDiagnosis = () => {
     setIsDiagnosisVerified(true);
     setSelectedOptionId(options[0]?.id ?? '');
-    setExpandedSection('rem');
+    setIsGuidedView(false);
+    setSectionExpanded({ chain: false, rca: false, rem: true });
     // After React re-renders the unlocked hub, scroll it above the fold so the
     // SRE doesn't have to hunt for it — especially on smaller viewports.
     setTimeout(() => {
@@ -2567,7 +2584,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <StackItem>
         <ExpandableSection
           toggleText=""
-          isExpanded={expandedSection === 'chain'}
+          isExpanded={sectionExpanded.chain}
           onToggle={handleSectionToggle('chain')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
@@ -2640,7 +2657,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <StackItem>
         <ExpandableSection
           toggleText=""
-          isExpanded={expandedSection === 'rca'}
+          isExpanded={sectionExpanded.rca}
           onToggle={handleSectionToggle('rca')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }}>
@@ -2715,7 +2732,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <StackItem ref={remHubRef}>
         <ExpandableSection
           toggleText=""
-          isExpanded={expandedSection === 'rem'}
+          isExpanded={sectionExpanded.rem}
           onToggle={handleSectionToggle('rem')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -2995,7 +3012,7 @@ const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase
             padding-bottom is included in the scroll extent (browser quirk). */}
         <div style={{ flex: '1 1 auto', overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ padding: '24px 20px' }}>
-            <RemediationBlueprintPanel plan={plan} />
+            <RemediationBlueprintPanel key={plan.id} plan={plan} />
           </div>
         </div>
       </div>
