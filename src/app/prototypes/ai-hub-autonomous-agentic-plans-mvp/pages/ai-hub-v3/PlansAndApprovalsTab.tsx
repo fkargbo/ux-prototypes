@@ -1643,18 +1643,22 @@ const RemediationOptionCard: React.FC<{
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
-  const [showCommands, setShowCommands] = useState(false);
+  type OptionDetailDisclosure = 'commands' | 'metrics' | 'logs' | null;
+  const [detailDisclosure, setDetailDisclosure] = useState<OptionDetailDisclosure>(null);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
   type SandboxState = 'pending' | 'running' | 'passed' | 'bypassed';
   const [sandboxState, setSandboxState] = useState<SandboxState>('pending');
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
-  const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
+
+  const toggleDetailDisclosure = (section: Exclude<OptionDetailDisclosure, null>) => (open: boolean) => {
+    setDetailDisclosure(open ? section : null);
+  };
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
     if (!isSelected) {
-      setShowCommands(false);
+      setDetailDisclosure(null);
       setIsExecuting(false);
       setSandboxState('pending');
     }
@@ -1676,7 +1680,7 @@ const RemediationOptionCard: React.FC<{
     setTimeout(() => {
       setIsExecuting(false);
       setIsExecuted(true);
-      setIsPostMortemOpen(true);
+      setDetailDisclosure('metrics');
     }, 2000);
   };
 
@@ -1923,20 +1927,20 @@ const RemediationOptionCard: React.FC<{
               <Button
                 variant="link"
                 isInline
-                onClick={() => setShowCommands(!showCommands)}
+                onClick={() => toggleDetailDisclosure('commands')(detailDisclosure !== 'commands')}
                 icon={
                   <AngleRightIcon
                     style={{
-                      transform: showCommands ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transform: detailDisclosure === 'commands' ? 'rotate(90deg)' : 'rotate(0deg)',
                       transition: 'transform 150ms ease',
                     }}
                   />
                 }
                 style={{ padding: 0, fontSize: '14px' }}
               >
-                {showCommands ? 'Hide raw commands' : 'View raw commands'}
+                {detailDisclosure === 'commands' ? 'Hide raw commands' : 'View raw commands'}
               </Button>
-              {showCommands && (
+              {detailDisclosure === 'commands' && (
                 <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
                   <ClipboardCopy
                     isReadOnly
@@ -2073,8 +2077,10 @@ const RemediationOptionCard: React.FC<{
           {isExecuted && (
             <PostMortemPanel
               plan={plan}
-              isMetricsExpanded={isPostMortemOpen}
-              onToggleMetrics={setIsPostMortemOpen}
+              isMetricsExpanded={detailDisclosure === 'metrics'}
+              onToggleMetrics={toggleDetailDisclosure('metrics')}
+              isLogsExpanded={detailDisclosure === 'logs'}
+              onToggleLogs={toggleDetailDisclosure('logs')}
             />
           )}
         </div>
@@ -2130,8 +2136,10 @@ const PostMortemPanel: React.FC<{
   plan: PlanRow;
   isMetricsExpanded?: boolean;
   onToggleMetrics?: (expanded: boolean) => void;
-}> = ({ plan, isMetricsExpanded, onToggleMetrics }) => {
-  const [showLogs, setShowLogs] = useState(false);
+  isLogsExpanded?: boolean;
+  onToggleLogs?: (expanded: boolean) => void;
+}> = ({ plan, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
+  const [localShowLogs, setLocalShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
@@ -2141,6 +2149,9 @@ const PostMortemPanel: React.FC<{
   // When toggle props are supplied the metrics section is collapsible; otherwise
   // the full panel is rendered statically (e.g. for plans already in terminal state).
   const hasToggle = isMetricsExpanded !== undefined && onToggleMetrics !== undefined;
+  const hasLogsToggle = isLogsExpanded !== undefined && onToggleLogs !== undefined;
+  const showLogs = hasLogsToggle ? isLogsExpanded! : localShowLogs;
+  const toggleLogs = hasLogsToggle ? onToggleLogs! : setLocalShowLogs;
 
   if (postMortem.type === 'success') {
     const targets = isSingleCluster
@@ -2280,7 +2291,7 @@ const PostMortemPanel: React.FC<{
               <Button
                 variant="link"
                 isInline
-                onClick={() => setShowLogs(!showLogs)}
+                onClick={() => toggleLogs(!showLogs)}
                 icon={
                   <AngleRightIcon
                     style={{
@@ -2344,7 +2355,7 @@ const PostMortemPanel: React.FC<{
                 <Button
                   variant="link"
                   isInline
-                  onClick={() => setShowLogs(!showLogs)}
+                  onClick={() => toggleLogs(!showLogs)}
                   icon={
                     <AngleRightIcon
                       style={{
@@ -2452,25 +2463,34 @@ const PostMortemPanel: React.FC<{
 
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
+type RemediationWorkflowSection = 'chain' | 'rca' | 'rem';
+
+const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
+  const { status, severity } = plan;
+  if (status === 'Investigating') return 'chain';
+  if (status === 'Remediating') return 'rem';
+  if (status === 'Waiting Approval') {
+    return severity === 'critical' ? 'rca' : 'rem';
+  }
+  return 'rem';
+};
+
 const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
   const isTerminal = status === 'Completed' || status === 'Failed';
 
-  const [openChain, setOpenChain] = useState(
-    status === 'Investigating' || status === 'Remediating',
+  const [expandedSection, setExpandedSection] = useState<RemediationWorkflowSection | null>(
+    () => getDefaultRemediationSection(plan),
   );
-  const [openRca, setOpenRca] = useState(
-    // Always open for Failed (post-mortem).
-    // Also open by default when a critical plan needs RCA verification — reduces
-    // click fatigue so the SRE lands directly on the actionable control.
-    status === 'Failed' ||
-    (plan.severity === 'critical' && status === 'Waiting Approval'),
-  );
-  const [openRem, setOpenRem] = useState(
-    status === 'Waiting Approval' || status === 'Remediating' || status === 'Completed' || status === 'Failed',
-  );
+
+  const handleSectionToggle = (section: RemediationWorkflowSection) => (
+    _event: React.MouseEvent,
+    isOpen: boolean,
+  ) => {
+    setExpandedSection(isOpen ? section : null);
+  };
 
   const drawer = PLAN_DRAWER_DATA[plan.id];
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
@@ -2497,7 +2517,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const handleVerifyDiagnosis = () => {
     setIsDiagnosisVerified(true);
     setSelectedOptionId(options[0]?.id ?? '');
-    setOpenRem(true);
+    setExpandedSection('rem');
     // After React re-renders the unlocked hub, scroll it above the fold so the
     // SRE doesn't have to hunt for it — especially on smaller viewports.
     setTimeout(() => {
@@ -2547,8 +2567,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <StackItem>
         <ExpandableSection
           toggleText=""
-          isExpanded={openChain}
-          onToggle={(_e, expanded) => setOpenChain(expanded)}
+          isExpanded={expandedSection === 'chain'}
+          onToggle={handleSectionToggle('chain')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
               <FlexItem>
@@ -2620,8 +2640,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <StackItem>
         <ExpandableSection
           toggleText=""
-          isExpanded={openRca}
-          onToggle={(_e, expanded) => setOpenRca(expanded)}
+          isExpanded={expandedSection === 'rca'}
+          onToggle={handleSectionToggle('rca')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }}>
               <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
@@ -2695,8 +2715,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <StackItem ref={remHubRef}>
         <ExpandableSection
           toggleText=""
-          isExpanded={openRem}
-          onToggle={(_e, expanded) => setOpenRem(expanded)}
+          isExpanded={expandedSection === 'rem'}
+          onToggle={handleSectionToggle('rem')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
               <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
