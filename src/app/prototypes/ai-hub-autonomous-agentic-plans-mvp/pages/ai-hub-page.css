@@ -11,6 +11,10 @@
   min-width: 0;
 }
 
+.ols-ai-hub-page div.template-page-content {
+  background-color: #ffffff !important;
+}
+
 /* Keep subtitle readable in very narrow viewports. */
 .ols-ai-hub-page-subtitle {
   margin-top: 0;
@@ -434,8 +438,7 @@ body:has(.ols-ai-hub-page),
  * provides the glass effect (see PF dashboard basic demo).
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .template-page-breadcrumb,
-:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-heading,
-:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-content {
+:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-heading {
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
