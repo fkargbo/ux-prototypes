@@ -2455,25 +2455,51 @@ const PostMortemPanel: React.FC<{
 
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
+type RemediationWorkflowSection = 'chain' | 'rca' | 'rem';
+
+const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
+  const { status, severity } = plan;
+  if (status === 'Investigating') return 'chain';
+  if (status === 'Remediating') return 'rem';
+  if (status === 'Waiting Approval') return severity === 'critical' ? 'rca' : 'rem';
+  return 'rem';
+};
+
+const createInitialSectionState = (
+  plan: PlanRow,
+): Record<RemediationWorkflowSection, boolean> => {
+  const focusSection = getDefaultRemediationSection(plan);
+  return {
+    chain: focusSection === 'chain',
+    rca: focusSection === 'rca',
+    rem: focusSection === 'rem',
+  };
+};
+
 const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
   const isTerminal = status === 'Completed' || status === 'Failed';
 
-  const [openChain, setOpenChain] = useState(
-    status === 'Investigating' || status === 'Remediating',
-  );
-  const [openRca, setOpenRca] = useState(
-    // Always open for Failed (post-mortem).
-    // Also open by default when a critical plan needs RCA verification — reduces
-    // click fatigue so the SRE lands directly on the actionable control.
-    status === 'Failed' ||
-    (plan.severity === 'critical' && status === 'Waiting Approval'),
-  );
-  const [openRem, setOpenRem] = useState(
-    status === 'Waiting Approval' || status === 'Remediating' || status === 'Completed' || status === 'Failed',
-  );
+  const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
+  // Guided view: first presentation from the plans table — only the focus section
+  // is open. First manual toggle by the SRE exits guided mode so all sections
+  // become independently controllable.
+  const [isGuidedView, setIsGuidedView] = useState(true);
+
+  useEffect(() => {
+    setSectionExpanded(createInitialSectionState(plan));
+    setIsGuidedView(true);
+  }, [plan.id]);
+
+  const handleSectionToggle = (section: RemediationWorkflowSection) => (
+    _event: React.MouseEvent,
+    isOpen: boolean,
+  ) => {
+    if (isGuidedView) setIsGuidedView(false);
+    setSectionExpanded((prev) => ({ ...prev, [section]: isOpen }));
+  };
 
   const drawer = PLAN_DRAWER_DATA[plan.id];
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
@@ -2500,7 +2526,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const handleVerifyDiagnosis = () => {
     setIsDiagnosisVerified(true);
     setSelectedOptionId(options[0]?.id ?? '');
-    setOpenRem(true);
+    setIsGuidedView(false);
+    setSectionExpanded({ chain: false, rca: false, rem: true });
     // After React re-renders the unlocked hub, scroll it above the fold so the
     // SRE doesn't have to hunt for it — especially on smaller viewports.
     setTimeout(() => {
@@ -2550,8 +2577,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <StackItem>
         <ExpandableSection
           toggleText=""
-          isExpanded={openChain}
-          onToggle={(_e, expanded) => setOpenChain(expanded)}
+          isExpanded={sectionExpanded.chain}
+          onToggle={handleSectionToggle('chain')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
               <FlexItem>
@@ -2623,8 +2650,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <StackItem>
         <ExpandableSection
           toggleText=""
-          isExpanded={openRca}
-          onToggle={(_e, expanded) => setOpenRca(expanded)}
+          isExpanded={sectionExpanded.rca}
+          onToggle={handleSectionToggle('rca')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }}>
               <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
@@ -2698,8 +2725,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
       <StackItem ref={remHubRef}>
         <ExpandableSection
           toggleText=""
-          isExpanded={openRem}
-          onToggle={(_e, expanded) => setOpenRem(expanded)}
+          isExpanded={sectionExpanded.rem}
+          onToggle={handleSectionToggle('rem')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
               <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
@@ -2738,22 +2765,6 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             </div>
           ) : (
             <div className="ols-aio-remediation-box">
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapXs' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-              >
-                <Tooltip
-                  content="These remediation strategies are synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns."
-                  position="top"
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
-                    <AiIcon size={14} />
-                  </span>
-                </Tooltip>
-                <span className="ols-aio-text-overline">{optionLabel}</span>
-              </Flex>
-
               {/* Gate hint shown to critical plans before verification */}
               {!isDiagnosisVerified && (
                 <Flex
