@@ -1,20 +1,4 @@
-/* AI Hub only: remove global `create-policy-header` borders from app.css */
-.ols-ai-hub-page div.create-policy-header {
-  border-top: none !important;
-  border-bottom: none !important;
-}
-
-/* Page header: plain layout (avoid PF Flex layout classes on this row). */
-.ols-ai-hub-page-header-inner {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: nowrap;
-  gap: var(--pf-t--global--spacer--md);
-  width: 100%;
-  box-sizing: border-box;
-}
-
+/* Page heading: icon + title row (inside `template-page-heading`). */
 .ols-ai-hub-page-header-primary {
   display: flex;
   align-items: flex-start;
@@ -27,13 +11,11 @@
   min-width: 0;
 }
 
-.ols-ai-hub-page-header-aside {
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
 /* Keep subtitle readable in very narrow viewports. */
 .ols-ai-hub-page-subtitle {
+  margin-top: 0;
+  margin-bottom: 0;
+  color: #6a6e73;
   overflow-wrap: anywhere;
   word-break: normal;
 }
@@ -448,11 +430,12 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * Title band: same stacking as `.pf-v6-c-page__main-section` in the glass dashboard demo — transparent so
- * the frosted `.pf-v6-c-page__main-container` layer provides the glass effect (see PF dashboard basic demo).
- * https://pf-core-staging.patternfly.org/patterns/dashboard/html-demos/basic/
+ * Template sections: transparent in glass so the frosted `.pf-v6-c-page__main-container` layer
+ * provides the glass effect (see PF dashboard basic demo).
  */
-:root.pf-v6-theme-glass .ols-ai-hub-page .create-policy-header {
+:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-breadcrumb,
+:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-heading,
+:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-content {
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
