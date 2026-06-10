@@ -2729,15 +2729,11 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           }
         >
           {isInvestigating ? (
-            <div className="ols-aio-remediation-box">
-              <HubLockedPlaceholder />
-            </div>
+            <HubLockedPlaceholder />
           ) : isTerminal ? (
-            <div className="ols-aio-remediation-box">
-              <PostMortemPanel plan={plan} />
-            </div>
+            <PostMortemPanel plan={plan} />
           ) : (
-            <div className="ols-aio-remediation-box">
+            <>
               {/* Gate hint shown to critical plans before verification */}
               {!isDiagnosisVerified && (
                 <Flex
@@ -2796,7 +2792,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                     ))}
                 </Stack>
               </div>
-            </div>
+            </>
           )}
         </ExpandableSection>
       </StackItem>
