@@ -5,7 +5,6 @@
 export { FleetInventoryBar } from './FleetInventoryBar';
 export { ClusterInventoryBar } from './ClusterInventoryBar';
 export { DiagnosticsSummaryCard } from './DiagnosticsSummaryCard';
-export { AgentTokenCounter } from './AgentTokenCounter';
 export { AiExperienceIcon } from './AiExperienceIcon';
 export { TopFiringAlertsCard } from './TopFiringAlertsCard';
 export { SignalCompressionChart } from './SignalCompressionChart';

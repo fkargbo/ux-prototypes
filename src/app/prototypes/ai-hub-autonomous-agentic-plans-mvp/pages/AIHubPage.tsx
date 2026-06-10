@@ -58,11 +58,6 @@ export const AIHubPage: React.FC = () => {
               </Content>
             </div>
           </div>
-          {isHubV3 ? (
-            <div className="ols-ai-hub-page-header-aside">
-              <Hub.AgentTokenCounter />
-            </div>
-          ) : null}
         </div>
       </div>
 
