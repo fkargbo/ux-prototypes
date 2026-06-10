@@ -1244,38 +1244,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   </Table>
 );
 
-// ─── Top plans table (no pagination, own expand state) ───────────────────────
-
-interface TopPlansTableProps {
-  onReviewPlan: (plan: PlanRow) => void;
-  rows: PlanRow[];
-}
-
-const TopPlansTable: React.FC<TopPlansTableProps> = ({ onReviewPlan, rows }) => {
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-
-  const toggleRow = useCallback((id: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  return (
-    <PlansTableCore
-      rows={rows}
-      ariaLabel="Top plans requiring attention"
-      startIndex={0}
-      expandedRows={expandedRows}
-      onToggle={toggleRow}
-      onReviewPlan={onReviewPlan}
-    />
-  );
-};
-
-// ─── All plans table (pagination + own expand state) ─────────────────────────
+// ─── Plans table (pagination + filters + expand state) ───────────────────────
 
 const DEFAULT_PER_PAGE = 10;
 
@@ -1314,12 +1283,12 @@ const rowMatchesDomain = (row: PlanRow, domains: string[]): boolean => {
   );
 };
 
-interface AllPlansTableProps {
+interface PlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
   rows: PlanRow[];
 }
 
-const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => {
+const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows }) => {
   // ── Filter state — intentionally decoupled from perspective; persists on switch ──
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [domainFilters, setDomainFilters] = useState<string[]>([]);
@@ -1493,7 +1462,7 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
 
             <FlexItem style={{ marginInlineStart: 'var(--pf-t--global--spacer--sm)' }}>
               <Checkbox
-                id="all-plans-rbac-only"
+                id="plans-rbac-only"
                 label="Show Executable Fixes Only"
                 isChecked={rbacOnly}
                 onChange={(_e, checked) => setRbacOnly(checked)}
@@ -1580,7 +1549,7 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
         <>
           <PlansTableCore
             rows={paginatedRows}
-            ariaLabel="All plans"
+            ariaLabel="Plans"
             startIndex={start}
             expandedRows={expandedRows}
             onToggle={toggleRow}
@@ -1596,26 +1565,6 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
     </>
   );
 };
-
-// ─── Section header ───────────────────────────────────────────────────────────
-
-const SectionHeader: React.FC<{ title: string; threshold: React.ReactNode }> = ({
-  title,
-  threshold,
-}) => (
-  <Flex
-    alignItems={{ default: 'alignItemsCenter' }}
-    gap={{ default: 'gapMd' }}
-    style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-  >
-    <FlexItem>
-      <Title headingLevel="h3" size="md" className="ols-aio-fleet-subcard-title">
-        {title}
-      </Title>
-    </FlexItem>
-    <FlexItem>{threshold}</FlexItem>
-  </Flex>
-);
 
 // ─── Drawer: AI insight helper ────────────────────────────────────────────────
 
@@ -2992,9 +2941,13 @@ export const PlansAndApprovalsTab: React.FC = () => {
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
 
-  // Swap full datasets based on the active left-nav perspective.
-  const topPlans = isSingleCluster ? SC_TOP_PLANS : TOP_PLANS;
-  const allPlans = isSingleCluster ? SC_ALL_PLANS : ALL_PLANS;
+  // Combined dataset for the active perspective, sorted by impact score (highest first).
+  const plans = useMemo(() => {
+    const combined = isSingleCluster
+      ? [...SC_TOP_PLANS, ...SC_ALL_PLANS]
+      : [...TOP_PLANS, ...ALL_PLANS];
+    return [...combined].sort((a, b) => b.score - a.score);
+  }, [isSingleCluster]);
 
   // `displayedPlan` stays populated during the leave animation so the panel
   // content doesn't vanish before it slides off-screen.
@@ -3038,35 +2991,17 @@ export const PlansAndApprovalsTab: React.FC = () => {
 
   return (
     <>
-      <Stack hasGutter style={{ rowGap: 'var(--pf-t--global--spacer--xl)' }}>
+      <Stack hasGutter>
         <StackItem>
-          <SectionHeader
-            title="Top plans"
-            threshold={
-              <Label color="blue" isCompact>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                  <FlexItem><AiSparkle size={12} /></FlexItem>
-                  <FlexItem>Impact score &ge;&nbsp;80</FlexItem>
-                </Flex>
-              </Label>
-            }
-          />
-          <TopPlansTable onReviewPlan={openPanel} rows={topPlans} />
-        </StackItem>
-
-        <StackItem>
-          <SectionHeader
-            title="All plans"
-            threshold={
-              <Label color="blue" isCompact>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                  <FlexItem><AiSparkle size={12} /></FlexItem>
-                  <FlexItem>Impact score &lt;&nbsp;80</FlexItem>
-                </Flex>
-              </Label>
-            }
-          />
-          <AllPlansTable onReviewPlan={openPanel} rows={allPlans} />
+          <Title
+            headingLevel="h3"
+            size="md"
+            className="ols-aio-fleet-subcard-title"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+          >
+            Plans
+          </Title>
+          <PlansTable onReviewPlan={openPanel} rows={plans} />
         </StackItem>
       </Stack>
 
