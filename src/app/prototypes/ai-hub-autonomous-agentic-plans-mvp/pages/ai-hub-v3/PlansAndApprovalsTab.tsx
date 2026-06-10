@@ -1035,71 +1035,25 @@ const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
   </Label>
 );
 
-// ─── RBAC-aware action cell ───────────────────────────────────────────────────
-
-interface ActionCellProps {
-  status: PlanStatus;
-  isUnauthorized: boolean;
-  onReview: () => void;
-}
-
-const ActionCell: React.FC<ActionCellProps> = ({ status, isUnauthorized, onReview }) => {
-  if (status === 'Investigating' || status === 'Remediating') {
-    return (
-      <Button variant="secondary" size="sm" onClick={onReview}>
-        Review plan
-      </Button>
-    );
-  }
-
-  if (status === 'Waiting Approval') {
-    if (isUnauthorized) {
-      return (
-        <Tooltip
-          content="Read-only access — you can view plan diagnostics but cannot execute remediations. Contact your cluster admin to request elevated privileges."
-          position="top"
-        >
-          <Button variant="secondary" size="sm" onClick={onReview}>
-            View details&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
-          </Button>
-        </Tooltip>
-      );
-    }
-    return (
-      <Button variant="secondary" size="sm" onClick={onReview}>
-        Review plan
-      </Button>
-    );
-  }
-
-  // Completed | Failed
-  return (
-    <Button variant="link" isInline onClick={onReview}>
-      View summary
-    </Button>
-  );
-};
-
 // ─── Table column header helpers ──────────────────────────────────────────────
 
-/** OpenShift console–style resource badge for Plan resources. */
+/** OpenShift console–style resource label for Plan resources. */
 const PlanResourceBadge: React.FC = () => (
   <span
     aria-hidden
     style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 24,
-      height: 24,
-      minWidth: 24,
-      borderRadius: 'var(--pf-t--global--border--radius--small)',
-      backgroundColor: 'var(--pf-t--global--color--brand--default)',
-      color: '#fff',
-      fontSize: 'var(--pf-t--global--font--size--body--sm)',
-      fontWeight: 700,
-      lineHeight: 1,
+      backgroundColor: '#2b9af3',
+      borderRadius: '20px',
+      color: 'var(--pf-t--color--white)',
+      display: 'inline-block',
       flexShrink: 0,
+      fontSize: '14px',
+      fontWeight: 600,
+      lineHeight: '20px',
+      minWidth: 20,
+      height: 20,
+      padding: '0 6px',
+      textAlign: 'center',
     }}
   >
     P
@@ -1125,11 +1079,10 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({ rows, ariaLabel, onRevi
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        <Th style={{ width: '32%' }}>Name</Th>
-        <Th style={{ width: '14%' }}>Status</Th>
-        <Th style={{ width: '18%' }}>Trigger domains</Th>
-        <Th style={{ width: '16%' }}>Created</Th>
-        <Th style={{ width: '15%' }}>Action</Th>
+        <Th style={{ width: '38%' }}>Name</Th>
+        <Th style={{ width: '16%' }}>Status</Th>
+        <Th style={{ width: '24%' }}>Trigger domains</Th>
+        <Th style={{ width: '22%' }}>Created</Th>
       </Tr>
     </Thead>
 
@@ -1166,14 +1119,6 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({ rows, ariaLabel, onRevi
             ) : (
               '—'
             )}
-          </Td>
-
-          <Td dataLabel="Action">
-            <ActionCell
-              status={row.status}
-              isUnauthorized={row.isUnauthorized}
-              onReview={() => onReviewPlan(row)}
-            />
           </Td>
         </Tr>
       ))}
