@@ -1079,6 +1079,20 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
               // Replace existing group with prototype group (prototype routes take precedence)
               activeRoutes[existingGroupIndex] = protoGroup;
             } else {
+              const insertAfterGroup = filteredRoutes.find(
+                (route) =>
+                  route.navigation?.group === protoGroup.label &&
+                  route.navigation.insertAfterGroup
+              )?.navigation?.insertAfterGroup;
+
+              if (insertAfterGroup) {
+                const afterIndex = activeRoutes.findIndex((r) => r.label === insertAfterGroup);
+                if (afterIndex >= 0) {
+                  activeRoutes.splice(afterIndex + 1, 0, protoGroup);
+                  return;
+                }
+              }
+
               // Add new group at the end
               activeRoutes.push(protoGroup);
             }

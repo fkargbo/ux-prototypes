@@ -24,6 +24,7 @@ export const routes: RouteConfig[] = [
     navigation: {
       group: 'AI Hub',
       order: 1,
+      insertAfterGroup: 'Home',
     },
   },
 ];
