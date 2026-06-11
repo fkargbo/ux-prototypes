@@ -1633,6 +1633,7 @@ const RemediationOptionCard: React.FC<{
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
   const cardRootRef = React.useRef<HTMLDivElement>(null);
+  const wasSelectedRef = React.useRef(isSelected);
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
@@ -1643,8 +1644,12 @@ const RemediationOptionCard: React.FC<{
     }
   }, [isSelected]);
 
+  // Scroll only when the user selects a card — not when the first option is pre-selected on page load.
   useEffect(() => {
-    if (!isSelected) {
+    const wasSelected = wasSelectedRef.current;
+    wasSelectedRef.current = isSelected;
+
+    if (!isSelected || wasSelected) {
       return;
     }
     setTimeout(() => {
