@@ -1173,6 +1173,29 @@ export const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
   </Label>
 );
 
+/** Created time + remediation guide download for plans awaiting approval. */
+export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+  if (plan.status !== 'Waiting Approval' || !plan.createdAt) {
+    return null;
+  }
+
+  return (
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      gap={{ default: 'gapMd' }}
+      flexWrap={{ default: 'wrap' }}
+    >
+      <Content component="small" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
+        Created{' '}
+        <time dateTime={plan.createdAt}>{formatPlanCreatedAt(plan.createdAt)}</time>
+      </Content>
+      <Button variant="link" isInline style={{ fontSize: '14px', padding: 0 }}>
+        Download remediation guide
+      </Button>
+    </Flex>
+  );
+};
+
 // ─── Table column header helpers ──────────────────────────────────────────────
 
 /** OpenShift console–style resource label for Plan resources. */
@@ -2845,7 +2868,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           isExpanded={sectionExpanded.rem}
           onToggle={handleSectionToggle('rem')}
           toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <Flex
+              direction={{ default: 'column' }}
+              alignItems={{ default: 'alignItemsFlexStart' }}
+              gap={{ default: 'gapXs' }}
+            >
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
               <Title headingLevel="h4" size="md">Remediation hub</Title>
               {status === 'Completed' && (
                 <Label
@@ -2868,6 +2896,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               {!isInvestigating && !isTerminal && visibleOptionCount > 0 && (
                 <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
               )}
+              </Flex>
+              <WaitingApprovalPlanMeta plan={plan} />
             </Flex>
           }
         >
@@ -2877,27 +2907,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             <PostMortemPanel plan={plan} />
           ) : (
             <>
-              {status === 'Waiting Approval' && plan.createdAt && (
-                <Flex
-                  alignItems={{ default: 'alignItemsCenter' }}
-                  gap={{ default: 'gapMd' }}
-                  flexWrap={{ default: 'wrap' }}
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                >
-                  <Content
-                    component="small"
-                    className="ols-aio-text-subtle-sm"
-                    style={{ margin: 0 }}
-                  >
-                    Created{' '}
-                    <time dateTime={plan.createdAt}>{formatPlanCreatedAt(plan.createdAt)}</time>
-                  </Content>
-                  <Button variant="link" isInline style={{ fontSize: '14px', padding: 0 }}>
-                    Download remediation guide
-                  </Button>
-                </Flex>
-              )}
-
               {/* Gate hint shown to critical plans before verification */}
               {!isDiagnosisVerified && (
                 <Flex
@@ -3105,6 +3114,9 @@ const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase
             </Flex>
             <div style={{ marginTop: '6px' }}>
               <StatusLabel status={plan.status} />
+            </div>
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+              <WaitingApprovalPlanMeta plan={plan} />
             </div>
           </div>
 
