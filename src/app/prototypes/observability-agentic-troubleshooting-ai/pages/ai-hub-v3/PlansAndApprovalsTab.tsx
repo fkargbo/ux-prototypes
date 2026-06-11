@@ -37,7 +37,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, SyncAltIcon, TerminalIcon, TimesIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -2428,6 +2428,102 @@ const PostMortemPanel: React.FC<{
 
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
+// ─── Scroll helpers ───────────────────────────────────────────────────────────
+
+const REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT = 1100;
+const REMEDIATION_SCROLL_PADDING = 16;
+
+const getRemediationScrollParent = (element: HTMLElement): HTMLElement => {
+  let parent = element.parentElement;
+  while (parent) {
+    const { overflowY } = window.getComputedStyle(parent);
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return document.documentElement;
+};
+
+const isRemediationConfinedLayout = (scrollParent: HTMLElement): boolean => {
+  if (window.innerWidth <= REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT) {
+    return true;
+  }
+  return (
+    scrollParent !== document.documentElement &&
+    scrollParent !== document.body &&
+    scrollParent.scrollHeight > scrollParent.clientHeight + 1
+  );
+};
+
+const scrollWithinParent = (
+  target: HTMLElement,
+  scrollParent: HTMLElement,
+  { alignStart = false }: { alignStart?: boolean } = {},
+) => {
+  const targetRect = target.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  const padding = REMEDIATION_SCROLL_PADDING;
+
+  if (
+    scrollParent === document.documentElement ||
+    scrollParent === document.body
+  ) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  if (alignStart || targetRect.top < parentRect.top + padding) {
+    scrollParent.scrollBy({
+      top: targetRect.top - parentRect.top - padding,
+      behavior: 'smooth',
+    });
+    return;
+  }
+
+  if (targetRect.bottom > parentRect.bottom - padding) {
+    scrollParent.scrollBy({
+      top: targetRect.bottom - parentRect.bottom + padding,
+      behavior: 'smooth',
+    });
+  }
+};
+
+/** Scroll expanded workflow content into view when it extends outside the scroll container. */
+const scrollRemediationSectionIntoView = (
+  target: HTMLElement | null,
+  { force = false }: { force?: boolean } = {},
+) => {
+  if (!target) {
+    return;
+  }
+
+  const runScroll = () => {
+    const scrollParent = getRemediationScrollParent(target);
+    if (!force && !isRemediationConfinedLayout(scrollParent)) {
+      return;
+    }
+
+    const targetRect = target.getBoundingClientRect();
+    const parentRect = scrollParent.getBoundingClientRect();
+    const padding = REMEDIATION_SCROLL_PADDING;
+    const extendsBelow = targetRect.bottom > parentRect.bottom - padding;
+    const extendsAbove = targetRect.top < parentRect.top + padding;
+
+    if (!force && !extendsBelow && !extendsAbove) {
+      return;
+    }
+
+    scrollWithinParent(target, scrollParent, { alignStart: force });
+  };
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(runScroll);
+  });
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 type RemediationWorkflowSection = 'chain' | 'rca' | 'rem';
 
 const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
@@ -2460,6 +2556,16 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   // is open. First manual toggle by the SRE exits guided mode so all sections
   // become independently controllable.
   const [isGuidedView, setIsGuidedView] = useState(true);
+  const chainRef = React.useRef<HTMLDivElement>(null);
+  const rcaRef = React.useRef<HTMLDivElement>(null);
+  const remHubRef = React.useRef<HTMLDivElement>(null);
+  const pendingVerifyScrollRef = React.useRef(false);
+
+  const sectionRefMap: Record<RemediationWorkflowSection, React.RefObject<HTMLDivElement | null>> = {
+    chain: chainRef,
+    rca: rcaRef,
+    rem: remHubRef,
+  };
 
   useEffect(() => {
     setSectionExpanded(createInitialSectionState(plan));
@@ -2470,8 +2576,18 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
     _event: React.MouseEvent,
     isOpen: boolean,
   ) => {
-    if (isGuidedView) setIsGuidedView(false);
-    setSectionExpanded((prev) => ({ ...prev, [section]: isOpen }));
+    if (isGuidedView) {
+      setIsGuidedView(false);
+    }
+    setSectionExpanded((prev) => ({
+      ...prev,
+      [section]: isOpen,
+    }));
+    if (isOpen) {
+      setTimeout(() => {
+        scrollRemediationSectionIntoView(sectionRefMap[section].current);
+      }, 100);
+    }
   };
 
   const drawer = PLAN_DRAWER_DATA[plan.id];
@@ -2501,14 +2617,30 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
     setSelectedOptionId(options[0]?.id ?? '');
     setIsGuidedView(false);
     setSectionExpanded({ chain: false, rca: false, rem: true });
-    // After React re-renders the unlocked hub, scroll it above the fold so the
-    // SRE doesn't have to hunt for it — especially on smaller viewports.
-    setTimeout(() => {
-      remHubRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
+    pendingVerifyScrollRef.current = true;
   };
 
-  const remHubRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pendingVerifyScrollRef.current || !isDiagnosisVerified || !sectionExpanded.rem) {
+      return undefined;
+    }
+
+    const scrollToRemediationHub = () => {
+      scrollRemediationSectionIntoView(remHubRef.current, { force: true });
+    };
+
+    // Allow ExpandableSection + option card bodies to lay out before scrolling.
+    const timer = window.setTimeout(scrollToRemediationHub, 200);
+    const retryTimer = window.setTimeout(() => {
+      scrollToRemediationHub();
+      pendingVerifyScrollRef.current = false;
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(retryTimer);
+    };
+  }, [isDiagnosisVerified, sectionExpanded.rem, selectedOptionId]);
 
   if (!drawer) return null;
 
@@ -2548,6 +2680,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
       {/* ── Section B: Active Reasoning Chain ─────────────────────────── */}
       <StackItem>
+        <div ref={chainRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={sectionExpanded.chain}
@@ -2555,10 +2688,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
               <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                  <CodeBranchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-                  <Title headingLevel="h4" size="md">Active Reasoning Chain</Title>
-                </Flex>
+                <Title headingLevel="h4" size="md">Active reasoning chain</Title>
               </FlexItem>
               {isInvestigating && (
                 <FlexItem>
@@ -2615,21 +2745,20 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             ))}
           </ol>
         </ExpandableSection>
+        </div>
       </StackItem>
 
       <Divider />
 
       {/* ── Section C: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
+        <div ref={rcaRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={sectionExpanded.rca}
           onToggle={handleSectionToggle('rca')}
           toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }}>
-              <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-              <Title headingLevel="h4" size="md">Root Cause Analysis (RCA)</Title>
-            </Flex>
+            <Title headingLevel="h4" size="md">Root cause analysis (RCA)</Title>
           }
         >
           {isInvestigating ? (
@@ -2690,20 +2819,21 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           </div>
           )}
         </ExpandableSection>
+        </div>
       </StackItem>
 
       <Divider />
 
       {/* ── Section D: Remediation Hub ─────────────────────────────────── */}
-      <StackItem ref={remHubRef}>
+      <StackItem>
+        <div ref={remHubRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={sectionExpanded.rem}
           onToggle={handleSectionToggle('rem')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-              <Title headingLevel="h4" size="md">Remediation Hub</Title>
+              <Title headingLevel="h4" size="md">Remediation hub</Title>
               {status === 'Completed' && (
                 <Label
                   color="green"
@@ -2795,6 +2925,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             </>
           )}
         </ExpandableSection>
+        </div>
       </StackItem>
     </Stack>
   );
