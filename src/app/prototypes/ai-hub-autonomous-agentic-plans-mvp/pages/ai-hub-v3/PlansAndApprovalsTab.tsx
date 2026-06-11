@@ -2877,6 +2877,27 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             <PostMortemPanel plan={plan} />
           ) : (
             <>
+              {status === 'Waiting Approval' && plan.createdAt && (
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapMd' }}
+                  flexWrap={{ default: 'wrap' }}
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                >
+                  <Content
+                    component="small"
+                    className="ols-aio-text-subtle-sm"
+                    style={{ margin: 0 }}
+                  >
+                    Created{' '}
+                    <time dateTime={plan.createdAt}>{formatPlanCreatedAt(plan.createdAt)}</time>
+                  </Content>
+                  <Button variant="link" isInline style={{ fontSize: '14px', padding: 0 }}>
+                    Download remediation guide
+                  </Button>
+                </Flex>
+              )}
+
               {/* Gate hint shown to critical plans before verification */}
               {!isDiagnosisVerified && (
                 <Flex
