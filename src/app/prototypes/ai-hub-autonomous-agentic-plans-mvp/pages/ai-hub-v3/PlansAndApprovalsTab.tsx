@@ -1999,7 +1999,7 @@ const RemediationOptionCard: React.FC<{
               {/* Sandbox gate */}
               <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
                 {sandboxState === 'pending' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }}>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -2013,8 +2013,8 @@ const RemediationOptionCard: React.FC<{
                     <Button
                       variant="link"
                       isInline
-                      style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}
                       onClick={() => setSandboxState('bypassed')}
+                      style={{ padding: 0, fontSize: '14px' }}
                     >
                       Skip test (not recommended)
                     </Button>
