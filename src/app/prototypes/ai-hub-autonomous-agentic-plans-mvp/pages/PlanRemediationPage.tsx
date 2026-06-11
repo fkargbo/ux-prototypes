@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/react-core';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
@@ -12,18 +12,27 @@ import {
   WaitingApprovalPlanMeta,
 } from './ai-hub-v3/PlansAndApprovalsTab';
 import {
-  PLANS_LIST_PATH,
-  readPlanRemediationDrillSession,
+  DRILL_FROM_QUERY_PARAM,
+  getPlansListHref,
+  isSingleClusterPerspectiveKey,
+  resolveDrillPerspectiveKey,
 } from './planRemediationDrillSession';
 import './ai-hub-page.css';
 
 export const PlanRemediationPage: React.FC = () => {
   const navigate = useNavigate();
   const { planSlug } = useParams<{ planSlug: string }>();
+  const [searchParams] = useSearchParams();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
-  const drillOrigin = useMemo(() => readPlanRemediationDrillSession(), []);
-  const isSingleCluster = drillOrigin?.perspectiveKey === 'core-platforms'
-    || (drillOrigin === null && activePerspective === 'Core platforms');
+
+  const drillPerspectiveKey = useMemo(
+    () => resolveDrillPerspectiveKey(searchParams.get(DRILL_FROM_QUERY_PARAM), activePerspective),
+    [activePerspective, searchParams],
+  );
+
+  const isSingleCluster = drillPerspectiveKey
+    ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
+    : activePerspective === 'Core platforms';
 
   const bannerVersionKey = useBannerVersionSelection(
     prototypeConfig.id,
@@ -39,26 +48,30 @@ export const PlanRemediationPage: React.FC = () => {
   }, [isSingleCluster, planSlug]);
 
   const navigateBackToPlans = useCallback(() => {
-    if (drillOrigin?.perspectiveKey) {
-      setPerspectiveByKey(drillOrigin.perspectiveKey);
+    if (drillPerspectiveKey) {
+      setPerspectiveByKey(drillPerspectiveKey);
+      navigate(getPlansListHref(drillPerspectiveKey));
+      return;
     }
-    navigate(PLANS_LIST_PATH);
-  }, [drillOrigin?.perspectiveKey, navigate, setPerspectiveByKey]);
+    navigate(getPlansListHref('fleet-management'));
+  }, [drillPerspectiveKey, navigate, setPerspectiveByKey]);
 
   useEffect(() => {
-    if (drillOrigin?.perspectiveKey) {
-      setPerspectiveByKey(drillOrigin.perspectiveKey);
+    if (drillPerspectiveKey) {
+      setPerspectiveByKey(drillPerspectiveKey);
     }
-  }, [drillOrigin?.perspectiveKey, setPerspectiveByKey]);
+  }, [drillPerspectiveKey, setPerspectiveByKey]);
 
   useEffect(() => {
     if (!planSlug || !plan) {
-      if (drillOrigin?.perspectiveKey) {
-        setPerspectiveByKey(drillOrigin.perspectiveKey);
+      if (drillPerspectiveKey) {
+        setPerspectiveByKey(drillPerspectiveKey);
+        navigate(getPlansListHref(drillPerspectiveKey), { replace: true });
+        return;
       }
-      navigate(PLANS_LIST_PATH, { replace: true });
+      navigate(getPlansListHref('fleet-management'), { replace: true });
     }
-  }, [drillOrigin?.perspectiveKey, navigate, plan, planSlug, setPerspectiveByKey]);
+  }, [drillPerspectiveKey, navigate, plan, planSlug, setPerspectiveByKey]);
 
   if (!planSlug || !plan) {
     return null;
@@ -70,10 +83,10 @@ export const PlanRemediationPage: React.FC = () => {
     <div className={`ols-ai-hub-page${pageVersionClass}`} data-exp-lab-annotation-root>
       <div className="template-page-breadcrumb">
         <Breadcrumb>
-          <BreadcrumbItem to="#" onClick={navigateBackToPlans}>
+          <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
             AI Hub
           </BreadcrumbItem>
-          <BreadcrumbItem to="#" onClick={navigateBackToPlans}>
+          <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
             Plans
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{planDisplayName}</BreadcrumbItem>
@@ -86,6 +99,7 @@ export const PlanRemediationPage: React.FC = () => {
           gap={{ default: 'gapSm' }}
           flexWrap={{ default: 'wrap' }}
           style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}
+        }}
         >
           <FlexItem>
             <PlanResourceBadge />

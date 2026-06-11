@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -46,7 +46,15 @@ import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../c
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
-import { writePlanRemediationDrillSession } from '../planRemediationDrillSession';
+import {
+  clearPlanRemediationDrillSession,
+  getPlanRemediationHref,
+  isSingleClusterPerspectiveKey,
+  parsePerspectiveKey,
+  perspectiveKeyFromShellName,
+  PERSPECTIVE_QUERY_PARAM,
+  writePlanRemediationDrillSession,
+} from '../planRemediationDrillSession';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2946,9 +2954,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
 // ─── Plan remediation drill-down routes ───────────────────────────────────────
 
-export function getPlanRemediationPath(plan: PlanRow): string {
+export function getPlanRemediationPath(plan: PlanRow, perspectiveKey?: 'core-platforms' | 'fleet-management'): string {
   const slug = plan.name ?? plan.id;
-  return `/core/observe/ai-hub/plans/${slug}/remediation`;
+  if (perspectiveKey) {
+    return getPlanRemediationHref(slug, perspectiveKey);
+  }
+  return `/core/observe/ai-hub/plans/${encodeURIComponent(slug)}/remediation`;
 }
 
 /** @deprecated Use getPlanRemediationPath — retained for existing deep links. */
@@ -2983,8 +2994,25 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
 
 export const PlansAndApprovalsTab: React.FC = () => {
   const navigate = useNavigate();
-  const { activePerspective } = useActivePerspective();
-  const isSingleCluster = activePerspective === 'Core platforms';
+  const [searchParams] = useSearchParams();
+  const { activePerspective, setPerspectiveByKey } = useActivePerspective();
+
+  const urlPerspectiveKey = useMemo(
+    () => parsePerspectiveKey(searchParams.get(PERSPECTIVE_QUERY_PARAM)),
+    [searchParams],
+  );
+
+  const isSingleCluster = urlPerspectiveKey
+    ? isSingleClusterPerspectiveKey(urlPerspectiveKey)
+    : activePerspective === 'Core platforms';
+
+  useEffect(() => {
+    if (!urlPerspectiveKey) {
+      return;
+    }
+    setPerspectiveByKey(urlPerspectiveKey);
+    clearPlanRemediationDrillSession();
+  }, [setPerspectiveByKey, urlPerspectiveKey]);
 
   const plans = useMemo(
     () => buildPlansForPerspective(isSingleCluster),
@@ -2992,11 +3020,11 @@ export const PlansAndApprovalsTab: React.FC = () => {
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
-    writePlanRemediationDrillSession({
-      perspectiveKey: isSingleCluster ? 'core-platforms' : 'fleet-management',
-    });
-    navigate(getPlanRemediationPath(plan));
-  }, [isSingleCluster, navigate]);
+    const perspectiveKey = perspectiveKeyFromShellName(activePerspective)
+      ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
+    writePlanRemediationDrillSession({ perspectiveKey });
+    navigate(getPlanRemediationPath(plan, perspectiveKey));
+  }, [activePerspective, isSingleCluster, navigate]);
 
   return (
     <Stack hasGutter>
