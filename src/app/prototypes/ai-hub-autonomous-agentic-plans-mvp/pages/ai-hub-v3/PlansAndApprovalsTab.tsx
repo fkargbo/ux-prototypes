@@ -1662,12 +1662,13 @@ const RemediationOptionCard: React.FC<{
   const isWaitingApproval = status === 'Waiting Approval';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
-  const showRemediationGuide =
-    isWaitingApproval && isDiagnosisVerified;
   const [showCommands, setShowCommands] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
   type SandboxState = 'pending' | 'running' | 'passed' | 'bypassed';
   const [sandboxState, setSandboxState] = useState<SandboxState>('pending');
+  const isSandboxCleared = sandboxState === 'passed' || sandboxState === 'bypassed';
+  const showRemediationGuide =
+    isWaitingApproval && isDiagnosisVerified && isSandboxCleared;
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
@@ -1738,16 +1739,6 @@ const RemediationOptionCard: React.FC<{
         </Label>
       </Flex>
       </Flex>
-      {showRemediationGuide && (
-        <Button
-          variant="link"
-          isInline
-          style={{ fontSize: '14px', padding: 0 }}
-          aria-label={`Download remediation guide for option ${index + 1}`}
-        >
-          Download remediation guide
-        </Button>
-      )}
     </Flex>
   );
 
@@ -2038,7 +2029,7 @@ const RemediationOptionCard: React.FC<{
                         setTimeout(() => setSandboxState('passed'), 2000);
                       }}
                     >
-                      Run sandbox test first
+                      Test before applying
                     </Button>
                     <Button
                       variant="link"
@@ -2061,21 +2052,53 @@ const RemediationOptionCard: React.FC<{
                 )}
 
                 {sandboxState === 'passed' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }} />
-                    <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-                      Sandbox test passed — execution unlocked
-                    </Content>
-                  </Flex>
+                  <Stack hasGutter>
+                    <StackItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                        <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }} />
+                        <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
+                          Sandbox test passed — execution unlocked
+                        </Content>
+                      </Flex>
+                    </StackItem>
+                    {showRemediationGuide && (
+                      <StackItem>
+                        <Button
+                          variant="link"
+                          isInline
+                          style={{ fontSize: '14px', padding: 0 }}
+                          aria-label={`Download remediation guide for option ${index + 1}`}
+                        >
+                          Download remediation guide
+                        </Button>
+                      </StackItem>
+                    )}
+                  </Stack>
                 )}
 
                 {sandboxState === 'bypassed' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)', flexShrink: 0 }} />
-                    <Content component="small" style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 600 }}>
-                      Sandbox skipped — applying without prior test validation
-                    </Content>
-                  </Flex>
+                  <Stack hasGutter>
+                    <StackItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                        <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)', flexShrink: 0 }} />
+                        <Content component="small" style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 600 }}>
+                          Sandbox skipped — applying without prior test validation
+                        </Content>
+                      </Flex>
+                    </StackItem>
+                    {showRemediationGuide && (
+                      <StackItem>
+                        <Button
+                          variant="link"
+                          isInline
+                          style={{ fontSize: '14px', padding: 0 }}
+                          aria-label={`Download remediation guide for option ${index + 1}`}
+                        >
+                          Download remediation guide
+                        </Button>
+                      </StackItem>
+                    )}
+                  </Stack>
                 )}
               </div>
             </div>
