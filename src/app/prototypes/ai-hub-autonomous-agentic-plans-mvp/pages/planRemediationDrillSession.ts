@@ -1,12 +1,11 @@
 import type { AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 
-/** Handoff from Plans list → full-page remediation drill-down (perspective-aware breadcrumb return). */
+/** Handoff from Plans list ↔ remediation drill-down (perspective-aware breadcrumb return). */
 export const PLAN_REMEDIATION_DRILL_SESSION_KEY =
   'hpux.ai-hub-autonomous-agentic-plans-mvp.plan-remediation-drill';
 
 export const PLANS_LIST_PATH = '/core/observe/ai-hub/plans';
 
-export const PERSPECTIVE_QUERY_PARAM = 'perspective';
 export const DRILL_FROM_QUERY_PARAM = 'from';
 
 export type PlanRemediationDrillPayload = {
@@ -65,19 +64,9 @@ export function clearPlanRemediationDrillSession(): void {
   }
 }
 
-export function resolveDrillPerspectiveKey(
-  fromQuery: string | null | undefined,
-  fallbackShellName?: string,
-): AppShellPerspectiveKey | null {
-  return (
-    parsePerspectiveKey(fromQuery)
-    ?? readPlanRemediationDrillSession()?.perspectiveKey
-    ?? perspectiveKeyFromShellName(fallbackShellName ?? '')
-  );
-}
-
-export function getPlansListHref(perspectiveKey: AppShellPerspectiveKey): string {
-  return `${PLANS_LIST_PATH}?${PERSPECTIVE_QUERY_PARAM}=${perspectiveKey}`;
+/** Perspective encoded on the remediation URL (`?from=`) or in session from the plans list. */
+export function resolveDrillPerspectiveKey(fromQuery: string | null | undefined): AppShellPerspectiveKey | null {
+  return parsePerspectiveKey(fromQuery) ?? readPlanRemediationDrillSession()?.perspectiveKey ?? null;
 }
 
 export function getPlanRemediationHref(planSlug: string, perspectiveKey: AppShellPerspectiveKey): string {

@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -49,10 +49,8 @@ import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import {
   clearPlanRemediationDrillSession,
   getPlanRemediationHref,
-  isSingleClusterPerspectiveKey,
-  parsePerspectiveKey,
   perspectiveKeyFromShellName,
-  PERSPECTIVE_QUERY_PARAM,
+  readPlanRemediationDrillSession,
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
 
@@ -2994,25 +2992,19 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
 
 export const PlansAndApprovalsTab: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
+  const isSingleCluster = activePerspective === 'Core platforms';
 
-  const urlPerspectiveKey = useMemo(
-    () => parsePerspectiveKey(searchParams.get(PERSPECTIVE_QUERY_PARAM)),
-    [searchParams],
-  );
-
-  const isSingleCluster = urlPerspectiveKey
-    ? isSingleClusterPerspectiveKey(urlPerspectiveKey)
-    : activePerspective === 'Core platforms';
-
-  useEffect(() => {
-    if (!urlPerspectiveKey) {
+  // Breadcrumb return: apply session handoff once on mount, then release control to the switcher.
+  useLayoutEffect(() => {
+    const handoff = readPlanRemediationDrillSession();
+    if (!handoff) {
       return;
     }
-    setPerspectiveByKey(urlPerspectiveKey);
+    setPerspectiveByKey(handoff.perspectiveKey);
     clearPlanRemediationDrillSession();
-  }, [setPerspectiveByKey, urlPerspectiveKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per plans-list mount only
+  }, []);
 
   const plans = useMemo(
     () => buildPlansForPerspective(isSingleCluster),
