@@ -1,23 +1,38 @@
-import React, { useMemo } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/react-core';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { config as prototypeConfig } from '../prototype.config';
 import {
   buildPlansForPerspective,
-  DRILL_DOWN_PLAN_SLUG,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
+  WaitingApprovalPlanMeta,
 } from './ai-hub-v3/PlansAndApprovalsTab';
+import {
+  DRILL_FROM_QUERY_PARAM,
+  getPlansListHref,
+  isSingleClusterPerspectiveKey,
+  resolveDrillPerspectiveKey,
+} from './planRemediationDrillSession';
 import './ai-hub-page.css';
 
 export const PlanRemediationPage: React.FC = () => {
   const navigate = useNavigate();
   const { planSlug } = useParams<{ planSlug: string }>();
-  const { activePerspective } = useActivePerspective();
-  const isSingleCluster = activePerspective === 'Core platforms';
+  const [searchParams] = useSearchParams();
+  const { activePerspective, setPerspectiveByKey } = useActivePerspective();
+
+  const drillPerspectiveKey = useMemo(
+    () => resolveDrillPerspectiveKey(searchParams.get(DRILL_FROM_QUERY_PARAM), activePerspective),
+    [activePerspective, searchParams],
+  );
+
+  const isSingleCluster = drillPerspectiveKey
+    ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
+    : activePerspective === 'Core platforms';
 
   const bannerVersionKey = useBannerVersionSelection(
     prototypeConfig.id,
@@ -26,14 +41,40 @@ export const PlanRemediationPage: React.FC = () => {
   const pageVersionClass = bannerVersionKey === 'v3' ? ' ols-ai-hub-page--v3' : ' ols-ai-hub-page--v2';
 
   const plan = useMemo(() => {
-    if (planSlug !== DRILL_DOWN_PLAN_SLUG) {
+    if (!planSlug) {
       return null;
     }
-    return buildPlansForPerspective(isSingleCluster).find((row) => row.name === DRILL_DOWN_PLAN_SLUG) ?? null;
+    return buildPlansForPerspective(isSingleCluster).find((row) => row.name === planSlug) ?? null;
   }, [isSingleCluster, planSlug]);
 
-  if (planSlug !== DRILL_DOWN_PLAN_SLUG || !plan) {
-    return <Navigate to="/core/observe/ai-hub/plans" replace />;
+  const navigateBackToPlans = useCallback(() => {
+    if (drillPerspectiveKey) {
+      setPerspectiveByKey(drillPerspectiveKey);
+      navigate(getPlansListHref(drillPerspectiveKey));
+      return;
+    }
+    navigate(getPlansListHref('fleet-management'));
+  }, [drillPerspectiveKey, navigate, setPerspectiveByKey]);
+
+  useEffect(() => {
+    if (drillPerspectiveKey) {
+      setPerspectiveByKey(drillPerspectiveKey);
+    }
+  }, [drillPerspectiveKey, setPerspectiveByKey]);
+
+  useEffect(() => {
+    if (!planSlug || !plan) {
+      if (drillPerspectiveKey) {
+        setPerspectiveByKey(drillPerspectiveKey);
+        navigate(getPlansListHref(drillPerspectiveKey), { replace: true });
+        return;
+      }
+      navigate(getPlansListHref('fleet-management'), { replace: true });
+    }
+  }, [drillPerspectiveKey, navigate, plan, planSlug, setPerspectiveByKey]);
+
+  if (!planSlug || !plan) {
+    return null;
   }
 
   const planDisplayName = plan.name ?? plan.id;
@@ -42,10 +83,10 @@ export const PlanRemediationPage: React.FC = () => {
     <div className={`ols-ai-hub-page${pageVersionClass}`} data-exp-lab-annotation-root>
       <div className="template-page-breadcrumb">
         <Breadcrumb>
-          <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/ai-hub/plans')}>
+          <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
             AI Hub
           </BreadcrumbItem>
-          <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/ai-hub/plans')}>
+          <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
             Plans
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{planDisplayName}</BreadcrumbItem>
@@ -69,6 +110,9 @@ export const PlanRemediationPage: React.FC = () => {
           </FlexItem>
         </Flex>
         <StatusLabel status={plan.status} />
+        <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+          <WaitingApprovalPlanMeta plan={plan} />
+        </div>
       </div>
 
       <div

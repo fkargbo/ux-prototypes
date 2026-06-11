@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -38,7 +38,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon, TimesIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -46,6 +46,15 @@ import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../c
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
+import {
+  clearPlanRemediationDrillSession,
+  getPlanRemediationHref,
+  isSingleClusterPerspectiveKey,
+  parsePerspectiveKey,
+  perspectiveKeyFromShellName,
+  PERSPECTIVE_QUERY_PARAM,
+  writePlanRemediationDrillSession,
+} from '../planRemediationDrillSession';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -579,7 +588,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's2', time: '10:03:25', status: 'done', icon: 'database',   title: 'Fetched GitOps revision history', detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
       { id: 's3', time: '10:03:41', status: 'done', icon: 'network',    title: 'Diffed live vs. declared NetworkPolicy objects', detail: 'Kustomize overlay conflict found across 4 fleet namespaces' },
       { id: 's4', time: '10:03:55', status: 'done', icon: 'search',     title: 'Scored blast radius and causal confidence', detail: '4 fleets affected · 94% confidence in GitOps root cause' },
-      { id: 's5',                   status: 'pending', icon: 'check',   title: 'Governor approval for fleet rollback' },
     ],
     aggregatedFinding: 'ArgoCD revision r4892 applied a malformed ApplicationSet template that mismatched live cluster state across 4 fleets.',
     rootCauseNarrative: 'A faulty Argo CD ApplicationSet push (revision r4892) propagated conflicting Kustomize overlays, causing router → workload traffic mismatches. The drift was confirmed 3 minutes after the sync event triggered 4 IngressControllerDegraded alerts.',
@@ -594,7 +602,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's2', time: '09:47:18', status: 'done',    icon: 'database',    title: 'Pulled container runtime audit logs', detail: 'Activity isolated to image digest sha256:a3f1b9d4…' },
       { id: 's3', time: '09:47:34', status: 'done',    icon: 'network',     title: 'Mapped network egress from affected pods', detail: 'Unexpected outbound connection to 104.21.x.x:443' },
       { id: 's4',                   status: 'active',  icon: 'search',      title: 'Cross-referencing CVE database and Falco ruleset', detail: 'Matching syscall pattern against known exploit signatures…' },
-      { id: 's5',                   status: 'pending', icon: 'check',       title: 'Assemble quarantine and patch proposal' },
     ],
     aggregatedFinding: 'Signal correlation complete. 14 eBPF kernel mutations detected across 3 clusters. Root cause isolation in progress.',
     rootCauseNarrative: 'Initial signals indicate a compromised container image exploiting kernel syscall interfaces. Full causality graph is being constructed — root cause pending confirmation.',
@@ -608,8 +615,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '11:22:08', status: 'done',   icon: 'exclamation', title: 'Kubelet reported 6 OOMKilled events', detail: 'payments-api and auth-svc pods evicted across 1 cluster' },
       { id: 's2', time: '11:22:19', status: 'done',   icon: 'database',    title: 'Sampled 1-hour container memory metrics', detail: 'Heap growth 40% above configured limits since v2.1.4 deploy' },
       { id: 's3', time: '11:22:33', status: 'done',   icon: 'search',      title: 'Traced memory growth to allocator regression in v2.1.4', detail: '2 KubePodCrashLooping alarms corroborated at 11:22:28' },
-      { id: 's4', time: '11:22:45', status: 'done',   icon: 'check',       title: 'Remediation plan assembled and approved', detail: 'Memory limit patch (2Gi→4Gi) + HPA scale-out to 3 replicas' },
-      { id: 's5',                   status: 'active', icon: 'search',      title: 'Executing rolling pod restart with patched limits', detail: 'Restarting pods in 3-by-3 cadence to preserve service availability' },
+      { id: 's4', time: '11:22:45', status: 'done',   icon: 'search',      title: 'Correlated HPA scale lag with memory limit ceiling', detail: 'Evictions occurring before HPA could provision replacement pods' },
     ],
     aggregatedFinding: '6 OOMKill evictions across payments and auth pods confirmed via Kubelet. Memory quota exhaustion root cause locked.',
     rootCauseNarrative: 'A recent workload rollout increased container memory usage 40% above configured limits. Kubelet is evicting pods before the HPA can scale replacements, amplifying the crash loop cycle.',
@@ -624,7 +630,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's2', time: '08:11:17', status: 'done',    icon: 'database',    title: 'Queried Ceph OSD write-rate and log volume', detail: 'StatefulSet log emission rate 3× above configured ceiling' },
       { id: 's3', time: '08:11:30', status: 'done',    icon: 'search',      title: 'Projected storage exhaustion timeline', detail: 'At current fill rate, pool depletion in ~4 hours' },
       { id: 's4', time: '08:11:42', status: 'done',    icon: 'network',     title: 'Confirmed log rotation absent on 3 StatefulSets', detail: '5 KubePersistentVolumeFillingUp alerts corroborated' },
-      { id: 's5',                   status: 'pending', icon: 'check',       title: 'Awaiting authorized approval for OSD pool expansion' },
     ],
     aggregatedFinding: '8 Prometheus alerts confirm Ceph pool utilization exceeds 80% on 2 production clusters.',
     rootCauseNarrative: 'Rook-Ceph pool fill rate has accelerated due to unconfigured log rotation on 3 stateful workloads. At current write velocity, storage exhaustion is projected in ~4 hours.',
@@ -638,7 +643,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '07:09:11', status: 'done', icon: 'exclamation', title: 'Detected elevated API server P99 latency', detail: '2 etcd_db_total_size_in_bytes fragmentation events triggered' },
       { id: 's2', time: '07:09:22', status: 'done', icon: 'database',    title: 'Queried etcd DB size and compaction history', detail: 'Fragmentation at 68% — last auto-compact skipped during upgrade' },
       { id: 's3', time: '07:09:34', status: 'done', icon: 'search',      title: 'Correlated fragmentation with API write amplification', detail: 'Leader election overhead elevated · P99 latency >1.2s confirmed' },
-      { id: 's4', time: '07:09:46', status: 'done', icon: 'check',       title: 'Defragmentation executed on all 3 control plane members', detail: 'Rolling restart cadence completed · P99 latency restored to 38ms' },
+      { id: 's4', time: '07:09:46', status: 'done', icon: 'search',      title: 'Scored blast radius and causal confidence', detail: 'Fragmentation >65% threshold · 91% confidence in etcd root cause' },
     ],
     aggregatedFinding: 'etcd database fragmentation (>65%) confirmed as root cause of elevated API server P99 latency.',
     rootCauseNarrative: 'etcd fragmentation exceeded 65% — a known performance threshold — causing API write amplification and increased leader election overhead, driving P99 latency above 1.2s.',
@@ -654,7 +659,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '13:41:05', status: 'done',    icon: 'exclamation', title: '3 KubePodMemoryUtilizationHigh alarms fired', detail: 'Dev pods sustaining >85% utilization for >10 minutes' },
       { id: 's2', time: '13:41:18', status: 'done',    icon: 'database',    title: 'Profiled heap growth over 3-hour window', detail: 'Memory growing 15 MB/min — consistent with GC pressure leak' },
       { id: 's3', time: '13:41:30', status: 'done',    icon: 'search',      title: 'Attributed leak to v1.8.3 service update', detail: 'Heap profile diff confirms allocator regression in update' },
-      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to apply memory limit patch (2Gi→4Gi)' },
     ],
     aggregatedFinding: '3 dev pods sustaining >85% memory utilization for >10 minutes, crossing the alert threshold.',
     rootCauseNarrative: 'A memory leak was introduced in a recent service update causing gradual heap growth. Containers are not yet OOMKilled but will exhaust their allocation within ~90 minutes at current growth rate.',
@@ -668,8 +672,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '10:55:03', status: 'done',   icon: 'exclamation', title: 'PipelineRunFailed block detected on 2 clusters', detail: 'All GitOps-triggered pipeline runs blocked' },
       { id: 's2', time: '10:55:14', status: 'done',   icon: 'database',    title: 'Fetched EventListener admission webhook logs', detail: 'TLS handshake failure — certificate CN mismatch on renewal' },
       { id: 's3', time: '10:55:26', status: 'done',   icon: 'network',     title: 'Validated ACME DNS-01 challenge reachability', detail: 'Issuer reachable · stale TLS secret confirmed as root cause' },
-      { id: 's4', time: '10:55:38', status: 'done',   icon: 'check',       title: 'TLS rotation plan approved', detail: 'EventListener secret rotation + webhook re-registration' },
-      { id: 's5',                   status: 'active', icon: 'search',      title: 'Rotating EventListener TLS secret', detail: 'Re-registering webhook endpoints on both clusters' },
+      { id: 's4', time: '10:55:38', status: 'done',   icon: 'search',      title: 'Correlated webhook rejection rate with certificate expiry window', detail: 'Signature validation failures began 18 minutes after secret staleness threshold' },
     ],
     aggregatedFinding: 'Tekton pipeline webhook blocked on 2 clusters due to EventListener TLS certificate failure.',
     rootCauseNarrative: 'A stale TLS certificate on the Tekton Triggers EventListener caused webhook signature validation failures, blocking all GitOps-triggered pipeline runs.',
@@ -683,7 +686,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '06:30:02', status: 'done',    icon: 'exclamation', title: 'CertificateExpirationWarning flagged by Kube-Apt-Controller', detail: 'IAM client cert expiry in <72 hours' },
       { id: 's2', time: '06:30:14', status: 'done',    icon: 'database',    title: 'Audited cert-manager rotation job history', detail: 'Auto-rotation script failed silently 30 days ago' },
       { id: 's3', time: '06:30:28', status: 'done',    icon: 'search',      title: 'Identified missing IAM role binding as root cause', detail: 'Automation account lost delete-certs permission after RBAC audit' },
-      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting authorized approval for emergency cert rotation' },
     ],
     aggregatedFinding: 'An IAM client certificate expires in <72 hours. Service account authentications will fail upon expiry.',
     rootCauseNarrative: 'The certificate rotation automation script failed silently 30 days ago due to a missing IAM role binding, preventing auto-renewal. The warning only surfaced today as the certificate reached its expiry threshold.',
@@ -697,7 +699,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '15:14:07', status: 'done',   icon: 'exclamation', title: '4 CoreDNSLookupLatencyHigh warnings detected', detail: 'Average lookup time >200ms across 3 clusters' },
       { id: 's2', time: '15:14:21', status: 'done',   icon: 'database',    title: 'Sampled CoreDNS pod memory and cache metrics', detail: 'Cache hit rate dropped from 91% to 63% over last 15 minutes' },
       { id: 's3',                   status: 'active', icon: 'search',      title: 'Correlating cache thrash with recent Corefile change', detail: 'Diffing CoreDNS Corefile edits from last deployment cycle…' },
-      { id: 's4',                   status: 'pending', icon: 'check',      title: 'Assemble DNS tuning remediation proposal' },
     ],
     aggregatedFinding: 'Signal correlation complete. 4 CoreDNS latency alerts detected across 3 clusters. Root cause analysis in progress.',
     rootCauseNarrative: 'Initial signals suggest CoreDNS pod memory pressure is causing resolver cache thrash. Full topology correlation is pending — root cause not yet confirmed.',
@@ -710,8 +711,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     steps: [
       { id: 's1', time: '05:58:11', status: 'done',  icon: 'exclamation', title: '2 NodeCPUOvercommitted events and 1 KubeNodeNotReady alert', detail: 'Baremetal node in partially-registered Metal3 state' },
       { id: 's2', time: '05:58:24', status: 'done',  icon: 'database',    title: 'Inspected Metal3 BareMetalHost object status', detail: 'Provisioning phase stuck in "inspecting" — stale kubelet lease' },
-      { id: 's3', time: '05:58:37', status: 'done',  icon: 'search',      title: 'Attempted node cordon and graceful drain', detail: 'Drain initiated · PodDisruptionBudget checked' },
-      { id: 's4', time: '05:59:37', status: 'alert', icon: 'exclamation', title: 'Remediation aborted — drain timeout after 300s', detail: 'Cluster state unchanged. No resources were modified.' },
+      { id: 's3', time: '05:58:37', status: 'done',  icon: 'search',      title: 'Correlated kubelet lease gaps with workload overcommit signals', detail: 'Stale lease timestamps align with CPU overcommit on partially-registered node' },
     ],
     aggregatedFinding: 'CPU overcommitment on a baremetal node detected. Remediation attempt failed during node draining.',
     rootCauseNarrative: 'A Metal3 provisioning anomaly left a baremetal node in a partially-registered state, over-assigning workloads. The remediation script failed during node draining due to a stale kubelet lease.',
@@ -724,8 +724,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     steps: [
       { id: 's1', time: '07:59:03', status: 'done', icon: 'exclamation', title: 'ArgoCD detected LiveStateOutOfSync in staging namespace', detail: 'ConfigMap namespace-config diverged from Git state' },
       { id: 's2', time: '07:59:14', status: 'done', icon: 'database',    title: 'Fetched kubectl apply audit log', detail: 'Direct apply bypass of GitOps workflow by admin at 07:54' },
-      { id: 's3', time: '07:59:24', status: 'done', icon: 'search',      title: 'Verified no downstream dependency conflicts', detail: 'Hard sync safe — no dependent resources affected' },
-      { id: 's4', time: '07:59:32', status: 'done', icon: 'check',       title: 'ArgoCD hard sync executed successfully', detail: 'Declared state restored · GitOps parity confirmed' },
+      { id: 's3', time: '07:59:24', status: 'done', icon: 'search',      title: 'Diffed live vs. declared staging resources', detail: '3 resources diverged · no downstream dependency conflicts detected' },
     ],
     aggregatedFinding: 'ArgoCD detected a single resource drift in the staging namespace configuration.',
     rootCauseNarrative: 'A direct kubectl apply bypassed the GitOps workflow, creating a single resource divergence. Argo CD detected the discrepancy during its 3-minute sync loop and a hard sync restored declared state.',
@@ -739,7 +738,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '12:07:18', status: 'done',    icon: 'exclamation', title: '2 IngressControllerMinReplicasNotMet alerts fired', detail: 'Router replicas: 1 of 3 minimum on 2 clusters' },
       { id: 's2', time: '12:07:29', status: 'done',    icon: 'database',    title: 'Pulled HPA scaling event history', detail: 'HPA attempted scale-out but was blocked' },
       { id: 's3', time: '12:07:43', status: 'done',    icon: 'network',     title: 'Inspected PodDisruptionBudget on openshift-ingress', detail: 'maxUnavailable: 0 prevents any pod movement during scale' },
-      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to patch PodDisruptionBudget and scale routers' },
     ],
     aggregatedFinding: 'Ingress controller replica count dropped below the configured minimum on 2 clusters, degrading load balancing resilience.',
     rootCauseNarrative: 'A node eviction event reduced ingress pod count below the minimum without triggering the HPA correctly. Root cause is a misconfigured PodDisruptionBudget blocking HPA-driven scale-out.',
@@ -753,7 +751,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '09:23:05', status: 'done',    icon: 'exclamation', title: 'ACS flagged hostNetwork: true on production deployment', detail: 'CIS Level 3 violation · node network namespace exposed' },
       { id: 's2', time: '09:23:18', status: 'done',    icon: 'database',    title: 'Inspected deployment spec and admission audit log', detail: 'Misconfigured hostNetwork added in last rollout by dev team' },
       { id: 's3', time: '09:23:32', status: 'done',    icon: 'search',      title: 'Confirmed no legitimate use case for host networking', detail: '3 low-priority ACS alerts corroborated the posture violation' },
-      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting authorized approval to patch deployment and apply admission webhook' },
     ],
     aggregatedFinding: 'ACS detected a host network namespace sharing violation — a CIS benchmark Level 3 non-compliance — on 1 cluster.',
     rootCauseNarrative: 'A new deployment was misconfigured with hostNetwork: true, granting the container direct access to the node network stack. ACS enforcement policy flagged this as a critical security posture violation.',
@@ -767,7 +764,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '14:44:07', status: 'done',    icon: 'exclamation', title: '4 PodSandboxCleanedUpFailed log entries on 2 clusters', detail: 'OCI runtime garbage collection backlog accumulating' },
       { id: 's2', time: '14:44:20', status: 'done',    icon: 'database',    title: 'Queried containerd runtime and overlay disk usage', detail: 'Orphaned container overlays: 2.1 GB on affected nodes' },
       { id: 's3', time: '14:44:34', status: 'done',    icon: 'search',      title: 'Identified containerd config drift after last node update', detail: 'sandbox_cleanup_interval misconfigured to 0 — disabling GC' },
-      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to run Kubelet GC cycle and fix containerd config' },
     ],
     aggregatedFinding: '4 pod sandbox cleanup failures logged by Kubelet on 2 clusters, indicating an OCI runtime garbage collection backlog.',
     rootCauseNarrative: 'A containerd runtime configuration change disrupted the sandbox cleanup routine. Orphaned container overlays are accumulating on node disk and will cause disk pressure if unresolved.',
@@ -781,7 +777,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '06:44:02', status: 'done', icon: 'exclamation', title: 'JenkinsQueueSizeHigh threshold breached', detail: 'Build queue: 57 jobs — all 4 executor slots occupied' },
       { id: 's2', time: '06:44:13', status: 'done', icon: 'database',    title: 'Identified stalled job monopolizing all executors', detail: 'integration-test-suite-full running 4.2h (expected: 45m)' },
       { id: 's3', time: '06:44:22', status: 'done', icon: 'search',      title: 'Confirmed stall due to upstream fixture service timeout', detail: 'No watchdog timer configured on long-running test stage' },
-      { id: 's4', time: '06:44:31', status: 'done', icon: 'check',       title: 'Stalled job terminated · executor count raised to 8', detail: 'Queue drained to 0 within 4 minutes' },
+      { id: 's4', time: '06:44:31', status: 'done', icon: 'search',      title: 'Correlated executor saturation with queue depth growth', detail: 'All 4 slots occupied for 3.7h · queue depth rose from 12 to 57 jobs' },
     ],
     aggregatedFinding: 'Jenkins build queue exceeded 50 jobs, halting CI/CD throughput entirely.',
     rootCauseNarrative: 'A long-running integration test job monopolized all executor slots, starving downstream builds. The agent identified and terminated the stalled job, restoring executor availability.',
@@ -795,7 +791,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '11:37:14', status: 'done',    icon: 'exclamation', title: 'FailedComputeMetricsReplicas event on HPA controller', detail: 'Autoscaling frozen for ~20 minutes' },
       { id: 's2', time: '11:37:26', status: 'done',    icon: 'database',    title: 'Verified custom metrics adapter connectivity', detail: 'Prometheus scrape endpoint unreachable from adapter pod' },
       { id: 's3', time: '11:37:39', status: 'done',    icon: 'network',     title: 'Traced network policy blocking adapter → Prometheus path', detail: 'Namespace isolation policy introduced 22 minutes ago' },
-      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to restart adapter and update network policy' },
     ],
     aggregatedFinding: 'HPA controller failing to compute target replicas, effectively disabling autoscaling.',
     rootCauseNarrative: 'The custom metrics adapter lost connectivity to its Prometheus scrape endpoint, leaving the HPA unable to evaluate scale triggers. Autoscaling has been frozen for approximately 20 minutes.',
@@ -809,7 +804,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '08:29:11', status: 'done',    icon: 'exclamation', title: '5 sustained ErrImagePullBackOff alerts across 4 clusters', detail: '~30% of container image pulls failing intermittently' },
       { id: 's2', time: '08:29:24', status: 'done',    icon: 'database',    title: 'Queried cluster DNS resolution for registry FQDN', detail: 'Stale A-record pointing to decommissioned registry mirror' },
       { id: 's3', time: '08:29:37', status: 'done',    icon: 'network',     title: 'Confirmed DNS propagation lag across 4 cluster resolvers', detail: 'New record not yet reflected in cluster-local CoreDNS caches' },
-      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to flush DNS caches and update mirror config' },
     ],
     aggregatedFinding: '5 sustained ErrImagePullBackOff alerts across 4 clusters indicating container registry connectivity degradation.',
     rootCauseNarrative: 'A registry DNS record update propagated incorrectly to cluster resolvers, causing intermittent image pull failures. Approximately 30% of pull attempts are failing under the current configuration.',
@@ -823,7 +817,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '16:02:08', status: 'done',    icon: 'exclamation', title: 'CSI volume throttling log entry detected', detail: 'Read IOPS exceeded provisioned tier ceiling on 1 cluster' },
       { id: 's2', time: '16:02:22', status: 'done',    icon: 'database',    title: 'Queried cloud storage IOPS metrics over 1-hour window', detail: 'Actual read IOPS: 3,200/s · provisioned limit: 2,000/s' },
       { id: 's3',                   status: 'active',  icon: 'search',      title: 'Correlating IOPS spike with workload event log', detail: 'Checking for batch job or backup process causing elevated reads…' },
-      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Assemble storage tier upgrade or rate-limit proposal' },
     ],
     aggregatedFinding: 'Signal correlation complete. Storage CSI throttling and PV resizing stall detected. Root cause analysis in progress.',
     rootCauseNarrative: 'Initial signals suggest read IOPS are exceeding the provisioned cloud storage tier limits. Full storage topology analysis is pending — root cause not yet confirmed.',
@@ -837,7 +830,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '22:28:04', status: 'done', icon: 'exclamation', title: '3 NodeClockSkewDetected alerts fired', detail: 'Clock skew >10s on 3 nodes · cert validation errors logged' },
       { id: 's2', time: '22:28:16', status: 'done', icon: 'network',     title: 'Traced NTP sync failure to firewall rule change', detail: 'Upstream corporate NTP pool unreachable since 22:15' },
       { id: 's3', time: '22:28:30', status: 'done', icon: 'search',      title: 'Validated fallback NTP pool availability', detail: 'pool.ntp.org reachable · firewall exemption path identified' },
-      { id: 's4', time: '22:28:42', status: 'done', icon: 'check',       title: 'chronyd reconfigured and clock sync restored on all 3 nodes', detail: 'Clock skew below 1ms · cert validation errors cleared' },
+      { id: 's4', time: '22:28:42', status: 'done', icon: 'search',      title: 'Correlated clock drift with certificate validation errors', detail: 'API auth failures began 4 minutes after skew exceeded 10s threshold' },
     ],
     aggregatedFinding: '3 nodes across clusters reported NTP clock skew >10 seconds, flagging sync failures.',
     rootCauseNarrative: 'An upstream NTP server became unreachable due to a firewall rule change, leaving 3 nodes to drift independently. Clock skew exceeded Kubernetes tolerances, triggering certificate validation errors on some API calls.',
@@ -850,8 +843,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     steps: [
       { id: 's1', time: '07:15:03', status: 'done',    icon: 'exclamation', title: 'PruneImageRegistryManifestsFailed trace detected', detail: 'Scheduled pruning job failed for 2 consecutive runs' },
       { id: 's2', time: '07:15:17', status: 'done',    icon: 'database',    title: 'Audited registry pruner service account permissions', detail: 'delete-image-manifests permission revoked in RBAC patch v3.12.1' },
-      { id: 's3', time: '07:15:29', status: 'done',    icon: 'search',      title: 'Confirmed no active workloads reference prunable tags', detail: 'Safe to prune 847 MB of unreferenced manifest layers' },
-      { id: 's4',                   status: 'pending', icon: 'check',       title: 'Awaiting approval to restore RBAC permissions and trigger manual prune' },
+      { id: 's3', time: '07:15:29', status: 'done',    icon: 'search',      title: 'Confirmed no active workloads reference prunable tags', detail: '847 MB of unreferenced manifest layers identified via registry catalog scan' },
     ],
     aggregatedFinding: 'ImageRegistry pruning job failed, leaving orphaned image stream tags consuming registry storage.',
     rootCauseNarrative: 'A permissions regression in a recent RBAC update revoked the registry pruner service account access to delete manifests, causing the scheduled pruning job to fail silently.',
@@ -1173,6 +1165,20 @@ export const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
   </Label>
 );
 
+/** Created time for plans awaiting approval. */
+export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+  if (plan.status !== 'Waiting Approval' || !plan.createdAt) {
+    return null;
+  }
+
+  return (
+    <Content component="small" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
+      Created{' '}
+      <time dateTime={plan.createdAt}>{formatPlanCreatedAt(plan.createdAt)}</time>
+    </Content>
+  );
+};
+
 // ─── Table column header helpers ──────────────────────────────────────────────
 
 /** OpenShift console–style resource label for Plan resources. */
@@ -1323,32 +1329,6 @@ const STATUS_FILTER_OPTIONS: PlanStatus[] = [
   'Failed',
 ];
 
-const DOMAIN_FILTER_OPTIONS = [
-  'GitOps Core',
-  'Ingress Routing',
-  'Storage (CSI)',
-  'Compute/Nodes',
-  'Security (ACS)',
-] as const;
-type DomainFilter = (typeof DOMAIN_FILTER_OPTIONS)[number];
-
-// Maps each UI domain category to substrings found in triggerDomains data field
-const DOMAIN_KEYWORDS: Record<DomainFilter, string[]> = {
-  'GitOps Core':      ['gitops', 'argocd'],
-  'Ingress Routing':  ['network', 'ingress', 'routing'],
-  'Storage (CSI)':    ['storage', 'csi', 'pv', 'ceph'],
-  'Compute/Nodes':    ['kubelet', 'metal3', 'node', 'etcd', 'compute', 'baremetal'],
-  'Security (ACS)':   ['acs', 'auth', 'security'],
-};
-
-const rowMatchesDomain = (row: PlanRow, domains: string[]): boolean => {
-  if (domains.length === 0) return true;
-  const td = row.triggerDomains.toLowerCase();
-  return domains.some((d) =>
-    (DOMAIN_KEYWORDS[d as DomainFilter] ?? []).some((kw) => td.includes(kw)),
-  );
-};
-
 interface PlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
   rows: PlanRow[];
@@ -1358,7 +1338,6 @@ interface PlansTableProps {
 const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleCluster }) => {
   // ── Filter state — intentionally decoupled from perspective; persists on switch ──
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [domainFilters, setDomainFilters] = useState<string[]>([]);
   const [rbacOnly, setRbacOnly] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
@@ -1370,11 +1349,10 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       if (statusFilters.length > 0 && !statusFilters.includes(row.status)) return false;
-      if (!rowMatchesDomain(row, domainFilters)) return false;
       if (rbacOnly && row.isUnauthorized) return false;
       return true;
     });
-  }, [rows, statusFilters, domainFilters, rbacOnly]);
+  }, [rows, statusFilters, rbacOnly]);
 
   // Reset to page 1 whenever effective row count changes (filter or perspective)
   useEffect(() => {
@@ -1383,7 +1361,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
 
   const clearAllFilters = useCallback(() => {
     setStatusFilters([]);
-    setDomainFilters([]);
     setRbacOnly(false);
   }, []);
 
@@ -1393,13 +1370,7 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
     );
   }, []);
 
-  const toggleDomainFilter = useCallback((val: string) => {
-    setDomainFilters((prev) =>
-      prev.includes(val) ? prev.filter((d) => d !== val) : [...prev, val],
-    );
-  }, []);
-
-  const activeFilterCount = statusFilters.length + domainFilters.length;
+  const activeFilterCount = statusFilters.length;
   const hasActiveFilters = activeFilterCount > 0 || rbacOnly;
 
   const handleFilterSelect = useCallback(
@@ -1409,13 +1380,9 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
       }
       if (STATUS_FILTER_OPTIONS.includes(value as PlanStatus)) {
         toggleStatusFilter(value);
-        return;
-      }
-      if ((DOMAIN_FILTER_OPTIONS as readonly string[]).includes(value)) {
-        toggleDomainFilter(value);
       }
     },
-    [toggleStatusFilter, toggleDomainFilter],
+    [toggleStatusFilter],
   );
 
   // ── Pagination handlers ──
@@ -1502,13 +1469,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
                       {s}
                     </SelectOption>
                   ))}
-                  <Divider component="li" />
-                  <div style={FILTER_SECTION_TITLE_STYLE}>Domain</div>
-                  {DOMAIN_FILTER_OPTIONS.map((d) => (
-                    <SelectOption key={d} hasCheckbox value={d} isSelected={domainFilters.includes(d)}>
-                      {d}
-                    </SelectOption>
-                  ))}
                 </SelectList>
               </Select>
             </FlexItem>
@@ -1549,15 +1509,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
             {statusFilters.map((s) => (
               <Label key={s} isCompact onClose={() => toggleStatusFilter(s)}>
                 {s}
-              </Label>
-            ))}
-          </LabelGroup>
-        )}
-        {domainFilters.length > 0 && (
-          <LabelGroup categoryName="Domain" isClosable onClick={() => setDomainFilters([])}>
-            {domainFilters.map((d) => (
-              <Label key={d} isCompact onClose={() => toggleDomainFilter(d)}>
-                {d}
               </Label>
             ))}
           </LabelGroup>
@@ -1639,17 +1590,24 @@ const RemediationOptionCard: React.FC<{
   plan: PlanRow;
   executionMessage?: string;
   isSelected: boolean;
+  isDiagnosisVerified: boolean;
   onSelect: (id: string) => void;
-}> = ({ option, index, plan, executionMessage, isSelected, onSelect }) => {
+}> = ({ option, index, plan, executionMessage, isSelected, isDiagnosisVerified, onSelect }) => {
   const isFirst = index === 0;
+  const { activePerspective } = useActivePerspective();
+  const isSingleCluster = activePerspective === 'Core platforms';
   const { status, isUnauthorized, drawerTargets } = plan;
   const isInvestigating = status === 'Investigating';
+  const isWaitingApproval = status === 'Waiting Approval';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
   const [showCommands, setShowCommands] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
   type SandboxState = 'pending' | 'running' | 'passed' | 'bypassed';
   const [sandboxState, setSandboxState] = useState<SandboxState>('pending');
+  const isSandboxCleared = sandboxState === 'passed' || sandboxState === 'bypassed';
+  const showRemediationGuide =
+    isWaitingApproval && isDiagnosisVerified && isSandboxCleared;
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
@@ -1684,11 +1642,12 @@ const RemediationOptionCard: React.FC<{
 
   const headerContent = (
     <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      gap={{ default: 'gapSm' }}
-      flexWrap={{ default: 'wrap' }}
+      direction={{ default: 'column' }}
+      alignItems={{ default: 'alignItemsFlexStart' }}
+      gap={{ default: 'gapXs' }}
       id={`${cardId}-title`}
     >
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
       <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
         Option {index + 1}: {typeName}
       </span>
@@ -1717,6 +1676,7 @@ const RemediationOptionCard: React.FC<{
         >
           {isUnauthorized ? 'RBAC: Unauthorized' : 'RBAC: Authorized'}
         </Label>
+      </Flex>
       </Flex>
     </Flex>
   );
@@ -1749,7 +1709,9 @@ const RemediationOptionCard: React.FC<{
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
           <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
           <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-            Remediation applied to {selectedCount} target{selectedCount !== 1 ? 's' : ''}
+            {isSingleCluster
+              ? 'Remediation applied'
+              : `Remediation applied to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
           </Content>
         </Flex>
       );
@@ -1772,13 +1734,15 @@ const RemediationOptionCard: React.FC<{
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
         <Button
           variant="primary"
-          isDisabled={selectedCount === 0 || isExecuting}
+          isDisabled={(!isSingleCluster && selectedCount === 0) || isExecuting}
           isLoading={isExecuting}
           onClick={handleExecute}
         >
-          {isExecuting
-            ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
-            : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
+          {isSingleCluster
+            ? (isExecuting ? 'Applying remediation…' : 'Apply remediation')
+            : (isExecuting
+              ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
+              : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`)}
         </Button>
         {!isExecuting && (
           <Button
@@ -1935,8 +1899,8 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── Target Selection (Waiting Approval only) ── */}
-          {!isInvestigating && !isTerminal && !isRemediating && drawerTargets.length > 0 && (
+          {/* ── Target Selection (Waiting Approval only; fleet management) ── */}
+          {!isInvestigating && !isTerminal && !isRemediating && (isSingleCluster || drawerTargets.length > 0) && (
             <div
               style={{
                 borderRadius: 'var(--pf-t--global--border--radius--small)',
@@ -1946,58 +1910,66 @@ const RemediationOptionCard: React.FC<{
                 backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
               }}
             >
-              {/* Header row: label + Select All / Deselect All */}
-              <Flex
-                justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-              >
-                <Content component="small" style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                  Targets ({selectedCount} / {drawerTargets.length})
-                </Content>
-                <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '12px' }}
-                    onClick={() => setSelectedTargets(new Set(drawerTargets))}
+              {!isSingleCluster && drawerTargets.length > 0 && (
+                <>
+                  {/* Header row: label + Select All / Deselect All */}
+                  <Flex
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
                   >
-                    Select all
-                  </Button>
-                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>·</span>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '12px' }}
-                    onClick={() => setSelectedTargets(new Set())}
-                  >
-                    Deselect all
-                  </Button>
-                </Flex>
-              </Flex>
+                    <Content component="small" style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Targets ({selectedCount} / {drawerTargets.length})
+                    </Content>
+                    <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <Button
+                        variant="link"
+                        isInline
+                        style={{ fontSize: '12px' }}
+                        onClick={() => setSelectedTargets(new Set(drawerTargets))}
+                      >
+                        Select all
+                      </Button>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>·</span>
+                      <Button
+                        variant="link"
+                        isInline
+                        style={{ fontSize: '12px' }}
+                        onClick={() => setSelectedTargets(new Set())}
+                      >
+                        Deselect all
+                      </Button>
+                    </Flex>
+                  </Flex>
 
-              {/* Individual target checkboxes */}
-              <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
-                {drawerTargets.map((target) => (
-                  <StackItem key={target}>
-                    <Checkbox
-                      id={`target-${option.id}-${target}`}
-                      label={target}
-                      isChecked={selectedTargets.has(target)}
-                      onChange={(_e, checked) => {
-                        setSelectedTargets((prev) => {
-                          const next = new Set(prev);
-                          checked ? next.add(target) : next.delete(target);
-                          return next;
-                        });
-                      }}
-                    />
-                  </StackItem>
-                ))}
-              </Stack>
+                  {/* Individual target checkboxes */}
+                  <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
+                    {drawerTargets.map((target) => (
+                      <StackItem key={target}>
+                        <Checkbox
+                          id={`target-${option.id}-${target}`}
+                          label={target}
+                          isChecked={selectedTargets.has(target)}
+                          onChange={(_e, checked) => {
+                            setSelectedTargets((prev) => {
+                              const next = new Set(prev);
+                              checked ? next.add(target) : next.delete(target);
+                              return next;
+                            });
+                          }}
+                        />
+                      </StackItem>
+                    ))}
+                  </Stack>
+                </>
+              )}
 
               {/* Sandbox gate */}
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+              <div style={
+                !isSingleCluster && drawerTargets.length > 0
+                  ? { marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }
+                  : undefined
+              }>
                 {sandboxState === 'pending' && (
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <Button
@@ -2008,7 +1980,7 @@ const RemediationOptionCard: React.FC<{
                         setTimeout(() => setSandboxState('passed'), 2000);
                       }}
                     >
-                      Run sandbox test first
+                      Test before applying
                     </Button>
                     <Button
                       variant="link"
@@ -2031,21 +2003,53 @@ const RemediationOptionCard: React.FC<{
                 )}
 
                 {sandboxState === 'passed' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }} />
-                    <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-                      Sandbox test passed — execution unlocked
-                    </Content>
-                  </Flex>
+                  <Stack hasGutter>
+                    <StackItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                        <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }} />
+                        <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
+                          Sandbox test passed — execution unlocked
+                        </Content>
+                      </Flex>
+                    </StackItem>
+                    {showRemediationGuide && (
+                      <StackItem>
+                        <Button
+                          variant="link"
+                          isInline
+                          style={{ fontSize: '14px', padding: 0 }}
+                          aria-label={`Download remediation guide for option ${index + 1}`}
+                        >
+                          Download remediation guide
+                        </Button>
+                      </StackItem>
+                    )}
+                  </Stack>
                 )}
 
                 {sandboxState === 'bypassed' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)', flexShrink: 0 }} />
-                    <Content component="small" style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 600 }}>
-                      Sandbox skipped — applying without prior test validation
-                    </Content>
-                  </Flex>
+                  <Stack hasGutter>
+                    <StackItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                        <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)', flexShrink: 0 }} />
+                        <Content component="small" style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 600 }}>
+                          Sandbox skipped — applying without prior test validation
+                        </Content>
+                      </Flex>
+                    </StackItem>
+                    {showRemediationGuide && (
+                      <StackItem>
+                        <Button
+                          variant="link"
+                          isInline
+                          style={{ fontSize: '14px', padding: 0 }}
+                          aria-label={`Download remediation guide for option ${index + 1}`}
+                        >
+                          Download remediation guide
+                        </Button>
+                      </StackItem>
+                    )}
+                  </Stack>
                 )}
               </div>
             </div>
@@ -2174,8 +2178,8 @@ const PostMortemPanel: React.FC<{
           )}
         </DescriptionList>
 
-        {/* Section B — Execution Scope */}
-        {targets.length > 0 && (
+        {/* Section B — Execution Scope (fleet management only) */}
+        {!isSingleCluster && targets.length > 0 && (
           <>
             {sectionLabel('Execution Scope')}
             <DescriptionList isHorizontal isAutoColumnWidths isCompact>
@@ -2254,7 +2258,7 @@ const PostMortemPanel: React.FC<{
               }
               style={{ padding: 0, fontSize: '14px', marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
             >
-              {isMetricsExpanded ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
+              {isMetricsExpanded ? 'Hide execution summary' : 'View execution summary'}
             </Button>
 
             {/* Collapsible metrics content (Sections A, B, C) */}
@@ -2321,7 +2325,7 @@ const PostMortemPanel: React.FC<{
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
                 <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
-                <Title headingLevel="h5" size="md">Post-Mortem Execution Summary</Title>
+                <Title headingLevel="h5" size="md">Execution summary</Title>
               </Flex>
 
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -2701,7 +2705,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
               <FlexItem>
-                <Title headingLevel="h4" size="md">Active reasoning chain</Title>
+                <Title headingLevel="h4" size="md">Investigation path</Title>
               </FlexItem>
               {isInvestigating && (
                 <FlexItem>
@@ -2760,8 +2764,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
         </ExpandableSection>
         </div>
       </StackItem>
-
-      <Divider />
 
       {/* ── Section C: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
@@ -2835,8 +2837,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
         </div>
       </StackItem>
 
-      <Divider />
-
       {/* ── Section D: Remediation Hub ─────────────────────────────────── */}
       <StackItem>
         <div ref={remHubRef}>
@@ -2845,7 +2845,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           isExpanded={sectionExpanded.rem}
           onToggle={handleSectionToggle('rem')}
           toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <Flex
+              direction={{ default: 'column' }}
+              alignItems={{ default: 'alignItemsFlexStart' }}
+              gap={{ default: 'gapXs' }}
+            >
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
               <Title headingLevel="h4" size="md">Remediation hub</Title>
               {status === 'Completed' && (
                 <Label
@@ -2868,6 +2873,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               {!isInvestigating && !isTerminal && visibleOptionCount > 0 && (
                 <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
               )}
+              </Flex>
+              <WaitingApprovalPlanMeta plan={plan} />
             </Flex>
           }
         >
@@ -2929,6 +2936,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           plan={plan}
                           executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
                           isSelected={selectedOptionId === opt.id}
+                          isDiagnosisVerified={isDiagnosisVerified}
                           onSelect={setSelectedOptionId}
                         />
                       </StackItem>
@@ -2944,178 +2952,18 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   );
 };
 
-// ─── Fixed-position side panel ────────────────────────────────────────────────
-//
-// Position: fixed so the panel anchors to the viewport's right edge regardless
-// of any parent container constraints.
-//
-// The panel's `top` is measured dynamically from the PF page main-container's
-// top edge so it aligns with the start of the page content area (below the
-// masthead + any app chrome).
-//
-// Z-index 150: above the page main content (PF z-index--xs = 100) but safely
-// below the PF sidebar (z-index--sm = 200) and masthead (z-index--md = 300).
-//
-// Animation phase drives a CSS transform slide:
-//   entering  → translateX(100%), no transition  (snap off-screen instantly)
-//   visible   → translateX(0),    ease-out 280ms (decelerate into view)
-//   leaving   → translateX(100%), ease-in  200ms (accelerate off-screen)
+// ─── Plan remediation drill-down routes ───────────────────────────────────────
 
-type PanelPhase = 'entering' | 'visible' | 'leaving';
-
-const PANEL_TRANSITION: Record<PanelPhase, string> = {
-  entering: 'none',
-  visible:  'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)',
-  leaving:  'transform 200ms cubic-bezier(0.55, 0, 1, 0.45)',
-};
-const PANEL_TRANSFORM: Record<PanelPhase, string> = {
-  entering: 'translateX(100%)',
-  visible:  'translateX(0)',
-  leaving:  'translateX(100%)',
-};
-
-// Exit animation duration in ms (must match the 'leaving' transition above).
-const LEAVE_DURATION_MS = 200;
-
-const usePanelTop = (): number => {
-  const [panelTop, setPanelTop] = React.useState<number>(0);
-
-  React.useEffect(() => {
-    const measure = () => {
-      const mainContainer = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
-      if (mainContainer) {
-        setPanelTop(mainContainer.getBoundingClientRect().top);
-      }
-    };
-
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
-
-  return panelTop;
-};
-
-interface RemediationSidePanelProps {
-  plan: PlanRow;
-  phase: PanelPhase;
-  onClose: () => void;
+export function getPlanRemediationPath(plan: PlanRow, perspectiveKey?: 'core-platforms' | 'fleet-management'): string {
+  const slug = plan.name ?? plan.id;
+  if (perspectiveKey) {
+    return getPlanRemediationHref(slug, perspectiveKey);
+  }
+  return `/core/observe/ai-hub/plans/${encodeURIComponent(slug)}/remediation`;
 }
 
-const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase, onClose }) => {
-  const panelTop = usePanelTop();
-
-  return (
-    <>
-      {/* Transparent hit-target scrim — click outside to close.
-          z-index 149 keeps it below the panel (150) and below the
-          masthead (300) / sidebar (200). Fade in/out with the panel. */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 149,
-          opacity: phase === 'visible' ? 1 : 0,
-          transition: phase === 'leaving'
-            ? `opacity ${LEAVE_DURATION_MS}ms ease-in`
-            : 'opacity 280ms ease-out',
-        }}
-        onClick={onClose}
-      />
-
-      {/* Panel shell */}
-      <div
-        role="complementary"
-        aria-label={`Plan review: ${plan.synopsis}`}
-        style={{
-          position: 'fixed',
-          top: panelTop,
-          right: 0,
-          bottom: 0,
-          width: '35%',
-          minWidth: '420px',
-          maxWidth: '640px',
-          zIndex: 150,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-          borderLeft: '1px solid var(--pf-t--global--border--color--default)',
-          /* Top-left corner radius only — right edge and bottom are flush with viewport */
-          borderTopLeftRadius: '16px',
-          boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.12)',
-          /* Slide animation */
-          transform: PANEL_TRANSFORM[phase],
-          transition: PANEL_TRANSITION[phase],
-          willChange: 'transform',
-        }}
-      >
-        {/* ── Panel header ─────────────────────────────────────────────── */}
-        <div
-          style={{
-            flexShrink: 0,
-            padding: '16px 20px',
-            borderBottom: '1px solid var(--pf-t--global--border--color--default)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
-              flexWrap={{ default: 'nowrap' }}
-            >
-              <FlexItem style={{ flexShrink: 0 }}>
-                <AiIcon size={16} />
-              </FlexItem>
-              <FlexItem style={{ minWidth: 0 }}>
-                <Title
-                  headingLevel="h3"
-                  size="md"
-                  style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
-                >
-                  {plan.synopsis}
-                </Title>
-              </FlexItem>
-            </Flex>
-            <div style={{ marginTop: '6px' }}>
-              <StatusLabel status={plan.status} />
-            </div>
-          </div>
-
-          <Button
-            variant="plain"
-            aria-label="Close Remediation Blueprint panel"
-            onClick={onClose}
-            style={{ flexShrink: 0, marginTop: '2px' }}
-          >
-            <TimesIcon />
-          </Button>
-        </div>
-
-        {/* ── Scrollable panel body ─────────────────────────────────────── */}
-        {/* Padding lives on the inner div, not the scroll container, so
-            padding-bottom is included in the scroll extent (browser quirk). */}
-        <div style={{ flex: '1 1 auto', overflowY: 'auto', overflowX: 'hidden' }}>
-          <div style={{ padding: '24px 20px' }}>
-            <RemediationBlueprintPanel key={plan.id} plan={plan} />
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
-// ─── Drill-down remediation page (prototype UX test) ─────────────────────────
-
-/** Plan that opens remediation in a full-page drill-down instead of the side drawer. */
-export const DRILL_DOWN_PLAN_ID = 'ap1';
+/** @deprecated Use getPlanRemediationPath — retained for existing deep links. */
 export const DRILL_DOWN_PLAN_SLUG = 'analytics-memory-leak-fix';
-export const DRILL_DOWN_REMEDIATION_PATH = `/core/observe/ai-hub/plans/${DRILL_DOWN_PLAN_SLUG}/remediation`;
 
 export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
   const combined = isSingleCluster
@@ -3146,83 +2994,52 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
 
 export const PlansAndApprovalsTab: React.FC = () => {
   const navigate = useNavigate();
-  const { activePerspective } = useActivePerspective();
-  const isSingleCluster = activePerspective === 'Core platforms';
+  const [searchParams] = useSearchParams();
+  const { activePerspective, setPerspectiveByKey } = useActivePerspective();
+
+  const urlPerspectiveKey = useMemo(
+    () => parsePerspectiveKey(searchParams.get(PERSPECTIVE_QUERY_PARAM)),
+    [searchParams],
+  );
+
+  const isSingleCluster = urlPerspectiveKey
+    ? isSingleClusterPerspectiveKey(urlPerspectiveKey)
+    : activePerspective === 'Core platforms';
+
+  useEffect(() => {
+    if (!urlPerspectiveKey) {
+      return;
+    }
+    setPerspectiveByKey(urlPerspectiveKey);
+    clearPlanRemediationDrillSession();
+  }, [setPerspectiveByKey, urlPerspectiveKey]);
 
   const plans = useMemo(
     () => buildPlansForPerspective(isSingleCluster),
     [isSingleCluster],
   );
 
-  // `displayedPlan` stays populated during the leave animation so the panel
-  // content doesn't vanish before it slides off-screen.
-  const [displayedPlan, setDisplayedPlan] = useState<PlanRow | null>(null);
-  const [panelPhase, setPanelPhase] = useState<PanelPhase>('entering');
-  const leaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const openPanel = useCallback((plan: PlanRow) => {
-    if (plan.id === DRILL_DOWN_PLAN_ID) {
-      navigate(DRILL_DOWN_REMEDIATION_PATH);
-      return;
-    }
-
-    // Cancel any in-flight leave timer
-    if (leaveTimerRef.current) {
-      clearTimeout(leaveTimerRef.current);
-      leaveTimerRef.current = null;
-    }
-
-    // Snap off-screen (no transition), then on the next two frames slide in.
-    setDisplayedPlan(plan);
-    setPanelPhase('entering');
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setPanelPhase('visible');
-      });
-    });
-  }, [navigate]);
-
-  const closePanel = useCallback(() => {
-    setPanelPhase('leaving');
-    leaveTimerRef.current = setTimeout(() => {
-      setDisplayedPlan(null);
-      leaveTimerRef.current = null;
-    }, LEAVE_DURATION_MS + 20); // +20 ms buffer for transition completion
-  }, []);
-
-  // Clean up on unmount
-  React.useEffect(
-    () => () => {
-      if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
-    },
-    [],
-  );
+  const openPlanRemediation = useCallback((plan: PlanRow) => {
+    const perspectiveKey: 'core-platforms' | 'fleet-management' =
+      perspectiveKeyFromShellName(activePerspective)
+      ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
+    writePlanRemediationDrillSession({ perspectiveKey });
+    navigate(getPlanRemediationPath(plan, perspectiveKey));
+  }, [activePerspective, isSingleCluster, navigate]);
 
   return (
-    <>
-      <Stack hasGutter>
-        <StackItem>
-          <Title
-            headingLevel="h3"
-            size="md"
-            className="ols-aio-fleet-subcard-title"
-            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-          >
-            Plans
-          </Title>
-          <PlansTable onReviewPlan={openPanel} rows={plans} isSingleCluster={isSingleCluster} />
-        </StackItem>
-      </Stack>
-
-      {/* Fixed-position side panel — rendered above all page chrome */}
-      {displayedPlan && (
-        <RemediationSidePanel
-          plan={displayedPlan}
-          phase={panelPhase}
-          onClose={closePanel}
-        />
-      )}
-    </>
+    <Stack hasGutter>
+      <StackItem>
+        <Title
+          headingLevel="h3"
+          size="md"
+          className="ols-aio-fleet-subcard-title"
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          Plans
+        </Title>
+        <PlansTable onReviewPlan={openPlanRemediation} rows={plans} isSingleCluster={isSingleCluster} />
+      </StackItem>
+    </Stack>
   );
 };

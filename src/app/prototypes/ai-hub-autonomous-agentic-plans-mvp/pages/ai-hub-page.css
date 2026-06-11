@@ -28,6 +28,14 @@
   }
 }
 
+/* Remediation workflow: no gray rules between reasoning / RCA / hub sections. */
+.ols-plan-remediation-drilldown .pf-v6-c-expandable-section {
+  --pf-v6-c-expandable-section--BorderBlockEndWidth: 0;
+  --pf-v6-c-expandable-section--BorderBlockStartWidth: 0;
+  border-block-end: none;
+  border-block-start: none;
+}
+
 /* Keep subtitle readable in very narrow viewports. */
 .ols-ai-hub-page-subtitle {
   margin-top: 0;
