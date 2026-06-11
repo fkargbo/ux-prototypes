@@ -15,6 +15,13 @@
   background-color: #ffffff !important;
 }
 
+/* Drill-down remediation page: 70% of the content area, responsive. */
+.ols-plan-remediation-drilldown {
+  width: 70%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 /* Keep subtitle readable in very narrow viewports. */
 .ols-ai-hub-page-subtitle {
   margin-top: 0;

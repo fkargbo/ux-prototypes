@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
 import { AIHubPage } from './pages/AIHubPage';
+import { PlanRemediationPage } from './pages/PlanRemediationPage';
 import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 
@@ -26,6 +27,11 @@ export const routes: RouteConfig[] = [
       order: 1,
       insertAfterGroup: 'Home',
     },
+  },
+  {
+    path: '/core/observe/ai-hub/plans/:planSlug/remediation',
+    element: <PlanRemediationPage />,
+    title: 'Plan remediation',
   },
 ];
 

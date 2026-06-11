@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -59,7 +60,7 @@ interface ExpandedReason {
   text: string;
 }
 
-interface PlanRow {
+export interface PlanRow {
   id: string;
   severity: PlanSeverity;
   status: PlanStatus;
@@ -1166,7 +1167,7 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Failed':           'red',
 };
 
-const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
+export const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
   <Label color={STATUS_LABEL_COLOR[status]} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
     {status}
   </Label>
@@ -1175,7 +1176,7 @@ const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
 // ─── Table column header helpers ──────────────────────────────────────────────
 
 /** OpenShift console–style resource label for Plan resources. */
-const PlanResourceBadge: React.FC = () => (
+export const PlanResourceBadge: React.FC = () => (
   <span
     aria-hidden
     style={{
@@ -2453,7 +2454,7 @@ const createInitialSectionState = (
   };
 };
 
-const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
@@ -2973,37 +2974,49 @@ const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase
   );
 };
 
+// ─── Drill-down remediation page (prototype UX test) ─────────────────────────
+
+/** Plan that opens remediation in a full-page drill-down instead of the side drawer. */
+export const DRILL_DOWN_PLAN_ID = 'ap1';
+export const DRILL_DOWN_PLAN_SLUG = 'analytics-memory-leak-fix';
+export const DRILL_DOWN_REMEDIATION_PATH = `/core/observe/ai-hub/plans/${DRILL_DOWN_PLAN_SLUG}/remediation`;
+
+export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
+  const combined = isSingleCluster
+    ? [...SC_TOP_PLANS, ...SC_ALL_PLANS]
+    : [...TOP_PLANS, ...ALL_PLANS];
+  const createdAnchor = new Date('2026-06-09T16:00:00.000Z').getTime();
+  return [...combined]
+    .sort((a, b) => b.score - a.score)
+    .map((row, index) => {
+      const identity = PLAN_TABLE_IDENTITY[row.id];
+      return {
+        ...row,
+        name: identity?.name ?? row.id,
+        synopsis: identity?.synopsis ?? row.synopsis,
+        namespace: identity?.namespace,
+        cluster: identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
+        scope: isSingleCluster
+          ? identity?.namespace ?? '—'
+          : identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
+        createdAt:
+          row.createdAt ??
+          new Date(createdAnchor - index * 47 * 60_000).toISOString(),
+      };
+    });
+}
+
 // ─── Exported tab content ─────────────────────────────────────────────────────
 
 export const PlansAndApprovalsTab: React.FC = () => {
+  const navigate = useNavigate();
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
 
-  // Combined dataset for the active perspective, sorted by impact score (highest first).
-  const plans = useMemo(() => {
-    const combined = isSingleCluster
-      ? [...SC_TOP_PLANS, ...SC_ALL_PLANS]
-      : [...TOP_PLANS, ...ALL_PLANS];
-    const createdAnchor = new Date('2026-06-09T16:00:00.000Z').getTime();
-    return [...combined]
-      .sort((a, b) => b.score - a.score)
-      .map((row, index) => {
-        const identity = PLAN_TABLE_IDENTITY[row.id];
-        return {
-          ...row,
-          name: identity?.name ?? row.id,
-          synopsis: identity?.synopsis ?? row.synopsis,
-          namespace: identity?.namespace,
-          cluster: identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
-          scope: isSingleCluster
-            ? identity?.namespace ?? '—'
-            : identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
-          createdAt:
-            row.createdAt ??
-            new Date(createdAnchor - index * 47 * 60_000).toISOString(),
-        };
-      });
-  }, [isSingleCluster]);
+  const plans = useMemo(
+    () => buildPlansForPerspective(isSingleCluster),
+    [isSingleCluster],
+  );
 
   // `displayedPlan` stays populated during the leave animation so the panel
   // content doesn't vanish before it slides off-screen.
@@ -3012,6 +3025,11 @@ export const PlansAndApprovalsTab: React.FC = () => {
   const leaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openPanel = useCallback((plan: PlanRow) => {
+    if (plan.id === DRILL_DOWN_PLAN_ID) {
+      navigate(DRILL_DOWN_REMEDIATION_PATH);
+      return;
+    }
+
     // Cancel any in-flight leave timer
     if (leaveTimerRef.current) {
       clearTimeout(leaveTimerRef.current);
@@ -3027,7 +3045,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
         setPanelPhase('visible');
       });
     });
-  }, []);
+  }, [navigate]);
 
   const closePanel = useCallback(() => {
     setPanelPhase('leaving');
