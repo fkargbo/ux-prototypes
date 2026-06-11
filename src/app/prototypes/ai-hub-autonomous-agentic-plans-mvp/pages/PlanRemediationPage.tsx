@@ -9,7 +9,6 @@ import {
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
-  WaitingApprovalPlanMeta,
 } from './ai-hub-v3/PlansAndApprovalsTab';
 import './ai-hub-page.css';
 
@@ -69,9 +68,6 @@ export const PlanRemediationPage: React.FC = () => {
           </FlexItem>
         </Flex>
         <StatusLabel status={plan.status} />
-        <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-          <WaitingApprovalPlanMeta plan={plan} />
-        </div>
       </div>
 
       <div
