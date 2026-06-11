@@ -46,6 +46,7 @@ import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../c
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
+import { writePlanRemediationDrillSession } from '../planRemediationDrillSession';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2991,8 +2992,11 @@ export const PlansAndApprovalsTab: React.FC = () => {
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
+    writePlanRemediationDrillSession({
+      perspectiveKey: isSingleCluster ? 'core-platforms' : 'fleet-management',
+    });
     navigate(getPlanRemediationPath(plan));
-  }, [navigate]);
+  }, [isSingleCluster, navigate]);
 
   return (
     <Stack hasGutter>

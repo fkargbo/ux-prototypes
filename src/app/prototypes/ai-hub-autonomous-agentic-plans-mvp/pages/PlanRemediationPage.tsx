@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/react-core';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
@@ -11,13 +11,19 @@ import {
   StatusLabel,
   WaitingApprovalPlanMeta,
 } from './ai-hub-v3/PlansAndApprovalsTab';
+import {
+  PLANS_LIST_PATH,
+  readPlanRemediationDrillSession,
+} from './planRemediationDrillSession';
 import './ai-hub-page.css';
 
 export const PlanRemediationPage: React.FC = () => {
   const navigate = useNavigate();
   const { planSlug } = useParams<{ planSlug: string }>();
-  const { activePerspective } = useActivePerspective();
-  const isSingleCluster = activePerspective === 'Core platforms';
+  const { activePerspective, setPerspectiveByKey } = useActivePerspective();
+  const drillOrigin = useMemo(() => readPlanRemediationDrillSession(), []);
+  const isSingleCluster = drillOrigin?.perspectiveKey === 'core-platforms'
+    || (drillOrigin === null && activePerspective === 'Core platforms');
 
   const bannerVersionKey = useBannerVersionSelection(
     prototypeConfig.id,
@@ -32,8 +38,30 @@ export const PlanRemediationPage: React.FC = () => {
     return buildPlansForPerspective(isSingleCluster).find((row) => row.name === planSlug) ?? null;
   }, [isSingleCluster, planSlug]);
 
+  const navigateBackToPlans = useCallback(() => {
+    if (drillOrigin?.perspectiveKey) {
+      setPerspectiveByKey(drillOrigin.perspectiveKey);
+    }
+    navigate(PLANS_LIST_PATH);
+  }, [drillOrigin?.perspectiveKey, navigate, setPerspectiveByKey]);
+
+  useEffect(() => {
+    if (drillOrigin?.perspectiveKey) {
+      setPerspectiveByKey(drillOrigin.perspectiveKey);
+    }
+  }, [drillOrigin?.perspectiveKey, setPerspectiveByKey]);
+
+  useEffect(() => {
+    if (!planSlug || !plan) {
+      if (drillOrigin?.perspectiveKey) {
+        setPerspectiveByKey(drillOrigin.perspectiveKey);
+      }
+      navigate(PLANS_LIST_PATH, { replace: true });
+    }
+  }, [drillOrigin?.perspectiveKey, navigate, plan, planSlug, setPerspectiveByKey]);
+
   if (!planSlug || !plan) {
-    return <Navigate to="/core/observe/ai-hub/plans" replace />;
+    return null;
   }
 
   const planDisplayName = plan.name ?? plan.id;
@@ -42,10 +70,10 @@ export const PlanRemediationPage: React.FC = () => {
     <div className={`ols-ai-hub-page${pageVersionClass}`} data-exp-lab-annotation-root>
       <div className="template-page-breadcrumb">
         <Breadcrumb>
-          <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/ai-hub/plans')}>
+          <BreadcrumbItem to="#" onClick={navigateBackToPlans}>
             AI Hub
           </BreadcrumbItem>
-          <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/ai-hub/plans')}>
+          <BreadcrumbItem to="#" onClick={navigateBackToPlans}>
             Plans
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{planDisplayName}</BreadcrumbItem>
