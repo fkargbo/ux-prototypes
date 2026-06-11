@@ -2759,8 +2759,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
         </div>
       </StackItem>
 
-      <Divider />
-
       {/* ── Section C: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
         <div ref={rcaRef}>
@@ -2832,8 +2830,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
         </ExpandableSection>
         </div>
       </StackItem>
-
-      <Divider />
 
       {/* ── Section D: Remediation Hub ─────────────────────────────────── */}
       <StackItem>
