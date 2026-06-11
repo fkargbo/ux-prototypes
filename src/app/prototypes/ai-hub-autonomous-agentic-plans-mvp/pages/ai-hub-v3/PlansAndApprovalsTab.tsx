@@ -1173,26 +1173,17 @@ export const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
   </Label>
 );
 
-/** Created time + remediation guide download for plans awaiting approval. */
+/** Created time for plans awaiting approval. */
 export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   if (plan.status !== 'Waiting Approval' || !plan.createdAt) {
     return null;
   }
 
   return (
-    <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      gap={{ default: 'gapMd' }}
-      flexWrap={{ default: 'wrap' }}
-    >
-      <Content component="small" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
-        Created{' '}
-        <time dateTime={plan.createdAt}>{formatPlanCreatedAt(plan.createdAt)}</time>
-      </Content>
-      <Button variant="link" isInline style={{ fontSize: '14px', padding: 0 }}>
-        Download remediation guide
-      </Button>
-    </Flex>
+    <Content component="small" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
+      Created{' '}
+      <time dateTime={plan.createdAt}>{formatPlanCreatedAt(plan.createdAt)}</time>
+    </Content>
   );
 };
 
@@ -1662,13 +1653,17 @@ const RemediationOptionCard: React.FC<{
   plan: PlanRow;
   executionMessage?: string;
   isSelected: boolean;
+  isDiagnosisVerified: boolean;
   onSelect: (id: string) => void;
-}> = ({ option, index, plan, executionMessage, isSelected, onSelect }) => {
+}> = ({ option, index, plan, executionMessage, isSelected, isDiagnosisVerified, onSelect }) => {
   const isFirst = index === 0;
   const { status, isUnauthorized, drawerTargets } = plan;
   const isInvestigating = status === 'Investigating';
+  const isWaitingApproval = status === 'Waiting Approval';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
+  const showRemediationGuide =
+    isWaitingApproval && isDiagnosisVerified;
   const [showCommands, setShowCommands] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
   type SandboxState = 'pending' | 'running' | 'passed' | 'bypassed';
@@ -1707,11 +1702,12 @@ const RemediationOptionCard: React.FC<{
 
   const headerContent = (
     <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      gap={{ default: 'gapSm' }}
-      flexWrap={{ default: 'wrap' }}
+      direction={{ default: 'column' }}
+      alignItems={{ default: 'alignItemsFlexStart' }}
+      gap={{ default: 'gapXs' }}
       id={`${cardId}-title`}
     >
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
       <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
         Option {index + 1}: {typeName}
       </span>
@@ -1741,6 +1737,17 @@ const RemediationOptionCard: React.FC<{
           {isUnauthorized ? 'RBAC: Unauthorized' : 'RBAC: Authorized'}
         </Label>
       </Flex>
+      </Flex>
+      {showRemediationGuide && (
+        <Button
+          variant="link"
+          isInline
+          style={{ fontSize: '14px', padding: 0 }}
+          aria-label={`Download remediation guide for option ${index + 1}`}
+        >
+          Download remediation guide
+        </Button>
+      )}
     </Flex>
   );
 
@@ -2959,6 +2966,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           plan={plan}
                           executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
                           isSelected={selectedOptionId === opt.id}
+                          isDiagnosisVerified={isDiagnosisVerified}
                           onSelect={setSelectedOptionId}
                         />
                       </StackItem>
