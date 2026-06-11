@@ -1179,12 +1179,15 @@ export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) =
 
 // ─── Table column header helpers ──────────────────────────────────────────────
 
-/** OpenShift console–style resource label for Plan resources. */
-export const PlanResourceBadge: React.FC = () => (
+/** OpenShift console–style resource kind badge (Plan, Namespace, etc.). */
+const OpenShiftResourceBadge: React.FC<{ label: string; backgroundColor: string }> = ({
+  label,
+  backgroundColor,
+}) => (
   <span
     aria-hidden
     style={{
-      backgroundColor: '#2b9af3',
+      backgroundColor,
       borderRadius: '20px',
       color: 'var(--pf-t--color--white)',
       display: 'inline-block',
@@ -1198,8 +1201,17 @@ export const PlanResourceBadge: React.FC = () => (
       textAlign: 'center',
     }}
   >
-    P
+    {label}
   </span>
+);
+
+/** OpenShift console–style resource label for Plan resources. */
+export const PlanResourceBadge: React.FC = () => (
+  <OpenShiftResourceBadge label="P" backgroundColor="#2b9af3" />
+);
+
+const NamespaceResourceBadge: React.FC = () => (
+  <OpenShiftResourceBadge label="NS" backgroundColor="#1e4f18" />
 );
 
 const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
@@ -1218,6 +1230,17 @@ const PlanScopeCell: React.FC<{
 }> = ({ scope, scopeColumnLabel, scopeTargets }) => {
   const label = scope ?? '—';
   const showTooltip = scopeColumnLabel === 'Cluster' && scopeTargets.length > 1;
+
+  if (scopeColumnLabel === 'Namespace') {
+    return (
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+        <FlexItem>
+          <NamespaceResourceBadge />
+        </FlexItem>
+        <FlexItem style={{ minWidth: 0, wordBreak: 'break-word' }}>{label}</FlexItem>
+      </Flex>
+    );
+  }
 
   if (!showTooltip) {
     return <>{label}</>;

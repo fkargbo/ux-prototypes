@@ -32,7 +32,7 @@ export const AIHubPage: React.FC = () => {
           <Hub.AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
             <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
-              AI Hub (Conceptual design)
+              AI Hub (MVP)
             </Title>
             <Content component="p" className="ols-ai-hub-page-subtitle">
               Accelerate incident response with autonomous investigations, automated evidence gathering, and guided
