@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Alert,
@@ -49,9 +49,9 @@ import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import {
   clearPlanRemediationDrillSession,
   getPlanRemediationHref,
-  isSingleClusterPerspectiveKey,
   parsePerspectiveKey,
   perspectiveKeyFromShellName,
+  PLANS_LIST_PATH,
   PERSPECTIVE_QUERY_PARAM,
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
@@ -2997,22 +2997,21 @@ export const PlansAndApprovalsTab: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
 
-  const urlPerspectiveKey = useMemo(
+  // One-time breadcrumb handoff — consumed then cleared so the shell switcher works again.
+  const [perspectiveHandoff] = useState(
     () => parsePerspectiveKey(searchParams.get(PERSPECTIVE_QUERY_PARAM)),
-    [searchParams],
   );
 
-  const isSingleCluster = urlPerspectiveKey
-    ? isSingleClusterPerspectiveKey(urlPerspectiveKey)
-    : activePerspective === 'Core platforms';
+  const isSingleCluster = activePerspective === 'Core platforms';
 
-  useEffect(() => {
-    if (!urlPerspectiveKey) {
+  useLayoutEffect(() => {
+    if (!perspectiveHandoff) {
       return;
     }
-    setPerspectiveByKey(urlPerspectiveKey);
+    setPerspectiveByKey(perspectiveHandoff);
     clearPlanRemediationDrillSession();
-  }, [setPerspectiveByKey, urlPerspectiveKey]);
+    navigate(PLANS_LIST_PATH, { replace: true });
+  }, [navigate, perspectiveHandoff, setPerspectiveByKey]);
 
   const plans = useMemo(
     () => buildPlansForPerspective(isSingleCluster),
