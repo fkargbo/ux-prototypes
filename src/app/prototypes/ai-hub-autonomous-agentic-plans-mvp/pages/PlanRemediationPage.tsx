@@ -6,7 +6,6 @@ import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveCont
 import { config as prototypeConfig } from '../prototype.config';
 import {
   buildPlansForPerspective,
-  DRILL_DOWN_PLAN_SLUG,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
@@ -27,13 +26,13 @@ export const PlanRemediationPage: React.FC = () => {
   const pageVersionClass = bannerVersionKey === 'v3' ? ' ols-ai-hub-page--v3' : ' ols-ai-hub-page--v2';
 
   const plan = useMemo(() => {
-    if (planSlug !== DRILL_DOWN_PLAN_SLUG) {
+    if (!planSlug) {
       return null;
     }
-    return buildPlansForPerspective(isSingleCluster).find((row) => row.name === DRILL_DOWN_PLAN_SLUG) ?? null;
+    return buildPlansForPerspective(isSingleCluster).find((row) => row.name === planSlug) ?? null;
   }, [isSingleCluster, planSlug]);
 
-  if (planSlug !== DRILL_DOWN_PLAN_SLUG || !plan) {
+  if (!planSlug || !plan) {
     return <Navigate to="/core/observe/ai-hub/plans" replace />;
   }
 

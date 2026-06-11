@@ -38,7 +38,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon, TimesIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -1337,32 +1337,6 @@ const STATUS_FILTER_OPTIONS: PlanStatus[] = [
   'Failed',
 ];
 
-const DOMAIN_FILTER_OPTIONS = [
-  'GitOps Core',
-  'Ingress Routing',
-  'Storage (CSI)',
-  'Compute/Nodes',
-  'Security (ACS)',
-] as const;
-type DomainFilter = (typeof DOMAIN_FILTER_OPTIONS)[number];
-
-// Maps each UI domain category to substrings found in triggerDomains data field
-const DOMAIN_KEYWORDS: Record<DomainFilter, string[]> = {
-  'GitOps Core':      ['gitops', 'argocd'],
-  'Ingress Routing':  ['network', 'ingress', 'routing'],
-  'Storage (CSI)':    ['storage', 'csi', 'pv', 'ceph'],
-  'Compute/Nodes':    ['kubelet', 'metal3', 'node', 'etcd', 'compute', 'baremetal'],
-  'Security (ACS)':   ['acs', 'auth', 'security'],
-};
-
-const rowMatchesDomain = (row: PlanRow, domains: string[]): boolean => {
-  if (domains.length === 0) return true;
-  const td = row.triggerDomains.toLowerCase();
-  return domains.some((d) =>
-    (DOMAIN_KEYWORDS[d as DomainFilter] ?? []).some((kw) => td.includes(kw)),
-  );
-};
-
 interface PlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
   rows: PlanRow[];
@@ -1372,7 +1346,6 @@ interface PlansTableProps {
 const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleCluster }) => {
   // ── Filter state — intentionally decoupled from perspective; persists on switch ──
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [domainFilters, setDomainFilters] = useState<string[]>([]);
   const [rbacOnly, setRbacOnly] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
@@ -1384,11 +1357,10 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       if (statusFilters.length > 0 && !statusFilters.includes(row.status)) return false;
-      if (!rowMatchesDomain(row, domainFilters)) return false;
       if (rbacOnly && row.isUnauthorized) return false;
       return true;
     });
-  }, [rows, statusFilters, domainFilters, rbacOnly]);
+  }, [rows, statusFilters, rbacOnly]);
 
   // Reset to page 1 whenever effective row count changes (filter or perspective)
   useEffect(() => {
@@ -1397,7 +1369,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
 
   const clearAllFilters = useCallback(() => {
     setStatusFilters([]);
-    setDomainFilters([]);
     setRbacOnly(false);
   }, []);
 
@@ -1407,13 +1378,7 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
     );
   }, []);
 
-  const toggleDomainFilter = useCallback((val: string) => {
-    setDomainFilters((prev) =>
-      prev.includes(val) ? prev.filter((d) => d !== val) : [...prev, val],
-    );
-  }, []);
-
-  const activeFilterCount = statusFilters.length + domainFilters.length;
+  const activeFilterCount = statusFilters.length;
   const hasActiveFilters = activeFilterCount > 0 || rbacOnly;
 
   const handleFilterSelect = useCallback(
@@ -1423,13 +1388,9 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
       }
       if (STATUS_FILTER_OPTIONS.includes(value as PlanStatus)) {
         toggleStatusFilter(value);
-        return;
-      }
-      if ((DOMAIN_FILTER_OPTIONS as readonly string[]).includes(value)) {
-        toggleDomainFilter(value);
       }
     },
-    [toggleStatusFilter, toggleDomainFilter],
+    [toggleStatusFilter],
   );
 
   // ── Pagination handlers ──
@@ -1516,13 +1477,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
                       {s}
                     </SelectOption>
                   ))}
-                  <Divider component="li" />
-                  <div style={FILTER_SECTION_TITLE_STYLE}>Domain</div>
-                  {DOMAIN_FILTER_OPTIONS.map((d) => (
-                    <SelectOption key={d} hasCheckbox value={d} isSelected={domainFilters.includes(d)}>
-                      {d}
-                    </SelectOption>
-                  ))}
                 </SelectList>
               </Select>
             </FlexItem>
@@ -1563,15 +1517,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
             {statusFilters.map((s) => (
               <Label key={s} isCompact onClose={() => toggleStatusFilter(s)}>
                 {s}
-              </Label>
-            ))}
-          </LabelGroup>
-        )}
-        {domainFilters.length > 0 && (
-          <LabelGroup categoryName="Domain" isClosable onClick={() => setDomainFilters([])}>
-            {domainFilters.map((d) => (
-              <Label key={d} isCompact onClose={() => toggleDomainFilter(d)}>
-                {d}
               </Label>
             ))}
           </LabelGroup>
@@ -3005,181 +2950,15 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   );
 };
 
-// ─── Fixed-position side panel ────────────────────────────────────────────────
-//
-// Position: fixed so the panel anchors to the viewport's right edge regardless
-// of any parent container constraints.
-//
-// The panel's `top` is measured dynamically from the PF page main-container's
-// top edge so it aligns with the start of the page content area (below the
-// masthead + any app chrome).
-//
-// Z-index 150: above the page main content (PF z-index--xs = 100) but safely
-// below the PF sidebar (z-index--sm = 200) and masthead (z-index--md = 300).
-//
-// Animation phase drives a CSS transform slide:
-//   entering  → translateX(100%), no transition  (snap off-screen instantly)
-//   visible   → translateX(0),    ease-out 280ms (decelerate into view)
-//   leaving   → translateX(100%), ease-in  200ms (accelerate off-screen)
+// ─── Plan remediation drill-down routes ───────────────────────────────────────
 
-type PanelPhase = 'entering' | 'visible' | 'leaving';
-
-const PANEL_TRANSITION: Record<PanelPhase, string> = {
-  entering: 'none',
-  visible:  'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)',
-  leaving:  'transform 200ms cubic-bezier(0.55, 0, 1, 0.45)',
-};
-const PANEL_TRANSFORM: Record<PanelPhase, string> = {
-  entering: 'translateX(100%)',
-  visible:  'translateX(0)',
-  leaving:  'translateX(100%)',
-};
-
-// Exit animation duration in ms (must match the 'leaving' transition above).
-const LEAVE_DURATION_MS = 200;
-
-const usePanelTop = (): number => {
-  const [panelTop, setPanelTop] = React.useState<number>(0);
-
-  React.useEffect(() => {
-    const measure = () => {
-      const mainContainer = document.querySelector<HTMLElement>('.pf-v6-c-page__main-container');
-      if (mainContainer) {
-        setPanelTop(mainContainer.getBoundingClientRect().top);
-      }
-    };
-
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
-
-  return panelTop;
-};
-
-interface RemediationSidePanelProps {
-  plan: PlanRow;
-  phase: PanelPhase;
-  onClose: () => void;
+export function getPlanRemediationPath(plan: PlanRow): string {
+  const slug = plan.name ?? plan.id;
+  return `/core/observe/ai-hub/plans/${slug}/remediation`;
 }
 
-const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase, onClose }) => {
-  const panelTop = usePanelTop();
-
-  return (
-    <>
-      {/* Transparent hit-target scrim — click outside to close.
-          z-index 149 keeps it below the panel (150) and below the
-          masthead (300) / sidebar (200). Fade in/out with the panel. */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 149,
-          opacity: phase === 'visible' ? 1 : 0,
-          transition: phase === 'leaving'
-            ? `opacity ${LEAVE_DURATION_MS}ms ease-in`
-            : 'opacity 280ms ease-out',
-        }}
-        onClick={onClose}
-      />
-
-      {/* Panel shell */}
-      <div
-        role="complementary"
-        aria-label={`Plan review: ${plan.synopsis}`}
-        style={{
-          position: 'fixed',
-          top: panelTop,
-          right: 0,
-          bottom: 0,
-          width: '35%',
-          minWidth: '420px',
-          maxWidth: '640px',
-          zIndex: 150,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-          borderLeft: '1px solid var(--pf-t--global--border--color--default)',
-          /* Top-left corner radius only — right edge and bottom are flush with viewport */
-          borderTopLeftRadius: '16px',
-          boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.12)',
-          /* Slide animation */
-          transform: PANEL_TRANSFORM[phase],
-          transition: PANEL_TRANSITION[phase],
-          willChange: 'transform',
-        }}
-      >
-        {/* ── Panel header ─────────────────────────────────────────────── */}
-        <div
-          style={{
-            flexShrink: 0,
-            padding: '16px 20px',
-            borderBottom: '1px solid var(--pf-t--global--border--color--default)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
-              flexWrap={{ default: 'nowrap' }}
-            >
-              <FlexItem style={{ flexShrink: 0 }}>
-                <AiIcon size={16} />
-              </FlexItem>
-              <FlexItem style={{ minWidth: 0 }}>
-                <Title
-                  headingLevel="h3"
-                  size="md"
-                  style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
-                >
-                  {plan.synopsis}
-                </Title>
-              </FlexItem>
-            </Flex>
-            <div style={{ marginTop: '6px' }}>
-              <StatusLabel status={plan.status} />
-            </div>
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-              <WaitingApprovalPlanMeta plan={plan} />
-            </div>
-          </div>
-
-          <Button
-            variant="plain"
-            aria-label="Close Remediation Blueprint panel"
-            onClick={onClose}
-            style={{ flexShrink: 0, marginTop: '2px' }}
-          >
-            <TimesIcon />
-          </Button>
-        </div>
-
-        {/* ── Scrollable panel body ─────────────────────────────────────── */}
-        {/* Padding lives on the inner div, not the scroll container, so
-            padding-bottom is included in the scroll extent (browser quirk). */}
-        <div style={{ flex: '1 1 auto', overflowY: 'auto', overflowX: 'hidden' }}>
-          <div style={{ padding: '24px 20px' }}>
-            <RemediationBlueprintPanel key={plan.id} plan={plan} />
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
-// ─── Drill-down remediation page (prototype UX test) ─────────────────────────
-
-/** Plan that opens remediation in a full-page drill-down instead of the side drawer. */
-export const DRILL_DOWN_PLAN_ID = 'ap1';
+/** @deprecated Use getPlanRemediationPath — retained for existing deep links. */
 export const DRILL_DOWN_PLAN_SLUG = 'analytics-memory-leak-fix';
-export const DRILL_DOWN_REMEDIATION_PATH = `/core/observe/ai-hub/plans/${DRILL_DOWN_PLAN_SLUG}/remediation`;
 
 export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
   const combined = isSingleCluster
@@ -3218,75 +2997,23 @@ export const PlansAndApprovalsTab: React.FC = () => {
     [isSingleCluster],
   );
 
-  // `displayedPlan` stays populated during the leave animation so the panel
-  // content doesn't vanish before it slides off-screen.
-  const [displayedPlan, setDisplayedPlan] = useState<PlanRow | null>(null);
-  const [panelPhase, setPanelPhase] = useState<PanelPhase>('entering');
-  const leaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const openPanel = useCallback((plan: PlanRow) => {
-    if (plan.id === DRILL_DOWN_PLAN_ID) {
-      navigate(DRILL_DOWN_REMEDIATION_PATH);
-      return;
-    }
-
-    // Cancel any in-flight leave timer
-    if (leaveTimerRef.current) {
-      clearTimeout(leaveTimerRef.current);
-      leaveTimerRef.current = null;
-    }
-
-    // Snap off-screen (no transition), then on the next two frames slide in.
-    setDisplayedPlan(plan);
-    setPanelPhase('entering');
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setPanelPhase('visible');
-      });
-    });
+  const openPlanRemediation = useCallback((plan: PlanRow) => {
+    navigate(getPlanRemediationPath(plan));
   }, [navigate]);
 
-  const closePanel = useCallback(() => {
-    setPanelPhase('leaving');
-    leaveTimerRef.current = setTimeout(() => {
-      setDisplayedPlan(null);
-      leaveTimerRef.current = null;
-    }, LEAVE_DURATION_MS + 20); // +20 ms buffer for transition completion
-  }, []);
-
-  // Clean up on unmount
-  React.useEffect(
-    () => () => {
-      if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
-    },
-    [],
-  );
-
   return (
-    <>
-      <Stack hasGutter>
-        <StackItem>
-          <Title
-            headingLevel="h3"
-            size="md"
-            className="ols-aio-fleet-subcard-title"
-            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-          >
-            Plans
-          </Title>
-          <PlansTable onReviewPlan={openPanel} rows={plans} isSingleCluster={isSingleCluster} />
-        </StackItem>
-      </Stack>
-
-      {/* Fixed-position side panel — rendered above all page chrome */}
-      {displayedPlan && (
-        <RemediationSidePanel
-          plan={displayedPlan}
-          phase={panelPhase}
-          onClose={closePanel}
-        />
-      )}
-    </>
+    <Stack hasGutter>
+      <StackItem>
+        <Title
+          headingLevel="h3"
+          size="md"
+          className="ols-aio-fleet-subcard-title"
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          Plans
+        </Title>
+        <PlansTable onReviewPlan={openPlanRemediation} rows={plans} isSingleCluster={isSingleCluster} />
+      </StackItem>
+    </Stack>
   );
 };
