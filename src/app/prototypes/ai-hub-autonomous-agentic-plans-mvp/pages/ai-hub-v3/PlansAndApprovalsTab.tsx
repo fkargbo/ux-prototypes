@@ -1653,6 +1653,7 @@ const RemediationOptionCard: React.FC<{
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
+  const cardRootRef = React.useRef<HTMLDivElement>(null);
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
@@ -1661,6 +1662,15 @@ const RemediationOptionCard: React.FC<{
       setIsExecuting(false);
       setSandboxState('pending');
     }
+  }, [isSelected]);
+
+  useEffect(() => {
+    if (!isSelected) {
+      return;
+    }
+    setTimeout(() => {
+      scrollRemediationSectionIntoViewIfNeeded(cardRootRef.current);
+    }, 50);
   }, [isSelected]);
 
   // Remediating: non-first options are always hidden.
@@ -1796,6 +1806,7 @@ const RemediationOptionCard: React.FC<{
   };
 
   return (
+    <div ref={cardRootRef}>
     <Card
       id={cardId}
       isSelectable={isInteractive}
@@ -2005,7 +2016,7 @@ const RemediationOptionCard: React.FC<{
                       style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}
                       onClick={() => setSandboxState('bypassed')}
                     >
-                      Skip (not recommended)
+                      Skip test (not recommended)
                     </Button>
                   </Flex>
                 )}
@@ -2054,6 +2065,7 @@ const RemediationOptionCard: React.FC<{
         </CardBody>
       )}
     </Card>
+    </div>
   );
 };
 
@@ -2433,6 +2445,45 @@ const PostMortemPanel: React.FC<{
 
 type RemediationWorkflowSection = 'chain' | 'rca' | 'rem';
 
+/** Match drill-down layout: auto-scroll expanded remediation sections on tablet-sized viewports. */
+const REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT = 1100;
+
+const getRemediationScrollParent = (element: HTMLElement): HTMLElement => {
+  let parent = element.parentElement;
+  while (parent) {
+    const { overflowY } = window.getComputedStyle(parent);
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return document.documentElement;
+};
+
+/** Scroll expanded workflow content into view when it extends below the visible fold. */
+const scrollRemediationSectionIntoViewIfNeeded = (target: HTMLElement | null) => {
+  if (!target || window.innerWidth > REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT) {
+    return;
+  }
+
+  const scrollParent = getRemediationScrollParent(target);
+  const targetRect = target.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  const padding = 16;
+  const extendsBelow = targetRect.bottom > parentRect.bottom - padding;
+  const extendsAbove = targetRect.top < parentRect.top + padding;
+
+  if (!extendsBelow && !extendsAbove) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+};
+
 const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
   const { status, severity } = plan;
   if (status === 'Investigating') return 'chain';
@@ -2463,6 +2514,15 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
   // Guided view: first presentation from the plans table — only the focus section stays open.
   const [isGuidedView, setIsGuidedView] = useState(true);
+  const chainRef = React.useRef<HTMLDivElement>(null);
+  const rcaRef = React.useRef<HTMLDivElement>(null);
+  const remHubRef = React.useRef<HTMLDivElement>(null);
+
+  const sectionRefMap: Record<RemediationWorkflowSection, React.RefObject<HTMLDivElement | null>> = {
+    chain: chainRef,
+    rca: rcaRef,
+    rem: remHubRef,
+  };
 
   useEffect(() => {
     setSectionExpanded(createInitialSectionState(plan));
@@ -2480,6 +2540,11 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
       ...prev,
       [section]: isOpen,
     }));
+    if (isOpen) {
+      setTimeout(() => {
+        scrollRemediationSectionIntoViewIfNeeded(sectionRefMap[section].current);
+      }, 50);
+    }
   };
 
   const drawer = PLAN_DRAWER_DATA[plan.id];
@@ -2509,14 +2574,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     setSelectedOptionId(options[0]?.id ?? '');
     setIsGuidedView(false);
     setSectionExpanded({ chain: false, rca: false, rem: true });
-    // After React re-renders the unlocked hub, scroll it above the fold so the
-    // SRE doesn't have to hunt for it — especially on smaller viewports.
     setTimeout(() => {
-      remHubRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scrollRemediationSectionIntoViewIfNeeded(remHubRef.current);
     }, 50);
   };
-
-  const remHubRef = React.useRef<HTMLDivElement>(null);
 
   if (!drawer) return null;
 
@@ -2556,6 +2617,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
       {/* ── Section B: Active Reasoning Chain ─────────────────────────── */}
       <StackItem>
+        <div ref={chainRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={sectionExpanded.chain}
@@ -2623,12 +2685,14 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             ))}
           </ol>
         </ExpandableSection>
+        </div>
       </StackItem>
 
       <Divider />
 
       {/* ── Section C: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
+        <div ref={rcaRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={sectionExpanded.rca}
@@ -2698,12 +2762,14 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           </div>
           )}
         </ExpandableSection>
+        </div>
       </StackItem>
 
       <Divider />
 
       {/* ── Section D: Remediation Hub ─────────────────────────────────── */}
-      <StackItem ref={remHubRef}>
+      <StackItem>
+        <div ref={remHubRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={sectionExpanded.rem}
@@ -2803,6 +2869,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             </>
           )}
         </ExpandableSection>
+        </div>
       </StackItem>
     </Stack>
   );
