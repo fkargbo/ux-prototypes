@@ -1669,8 +1669,8 @@ const RemediationOptionCard: React.FC<{
       return;
     }
     setTimeout(() => {
-      scrollRemediationSectionIntoViewIfNeeded(cardRootRef.current);
-    }, 50);
+      scrollRemediationSectionIntoView(cardRootRef.current);
+    }, 100);
   }, [isSelected]);
 
   // Remediating: non-first options are always hidden.
@@ -2445,8 +2445,9 @@ const PostMortemPanel: React.FC<{
 
 type RemediationWorkflowSection = 'chain' | 'rca' | 'rem';
 
-/** Match drill-down layout: auto-scroll expanded remediation sections on tablet-sized viewports. */
+/** Match drill-down layout breakpoint for full-width remediation content. */
 const REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT = 1100;
+const REMEDIATION_SCROLL_PADDING = 16;
 
 const getRemediationScrollParent = (element: HTMLElement): HTMLElement => {
   let parent = element.parentElement;
@@ -2460,27 +2461,81 @@ const getRemediationScrollParent = (element: HTMLElement): HTMLElement => {
   return document.documentElement;
 };
 
-/** Scroll expanded workflow content into view when it extends below the visible fold. */
-const scrollRemediationSectionIntoViewIfNeeded = (target: HTMLElement | null) => {
-  if (!target || window.innerWidth > REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT) {
-    return;
+const isRemediationConfinedLayout = (scrollParent: HTMLElement): boolean => {
+  if (window.innerWidth <= REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT) {
+    return true;
   }
+  // Side drawer and other nested scroll regions (not only narrow viewports).
+  return (
+    scrollParent !== document.documentElement &&
+    scrollParent !== document.body &&
+    scrollParent.scrollHeight > scrollParent.clientHeight + 1
+  );
+};
 
-  const scrollParent = getRemediationScrollParent(target);
+const scrollWithinParent = (
+  target: HTMLElement,
+  scrollParent: HTMLElement,
+  { alignStart = false }: { alignStart?: boolean } = {},
+) => {
   const targetRect = target.getBoundingClientRect();
   const parentRect = scrollParent.getBoundingClientRect();
-  const padding = 16;
-  const extendsBelow = targetRect.bottom > parentRect.bottom - padding;
-  const extendsAbove = targetRect.top < parentRect.top + padding;
+  const padding = REMEDIATION_SCROLL_PADDING;
 
-  if (!extendsBelow && !extendsAbove) {
+  if (
+    scrollParent === document.documentElement ||
+    scrollParent === document.body
+  ) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (alignStart || targetRect.top < parentRect.top + padding) {
+    scrollParent.scrollBy({
+      top: targetRect.top - parentRect.top - padding,
+      behavior: 'smooth',
     });
+    return;
+  }
+
+  if (targetRect.bottom > parentRect.bottom - padding) {
+    scrollParent.scrollBy({
+      top: targetRect.bottom - parentRect.bottom + padding,
+      behavior: 'smooth',
+    });
+  }
+};
+
+/** Scroll expanded workflow content into view when it extends outside the scroll container. */
+const scrollRemediationSectionIntoView = (
+  target: HTMLElement | null,
+  { force = false }: { force?: boolean } = {},
+) => {
+  if (!target) {
+    return;
+  }
+
+  const runScroll = () => {
+    const scrollParent = getRemediationScrollParent(target);
+    if (!force && !isRemediationConfinedLayout(scrollParent)) {
+      return;
+    }
+
+    const targetRect = target.getBoundingClientRect();
+    const parentRect = scrollParent.getBoundingClientRect();
+    const padding = REMEDIATION_SCROLL_PADDING;
+    const extendsBelow = targetRect.bottom > parentRect.bottom - padding;
+    const extendsAbove = targetRect.top < parentRect.top + padding;
+
+    if (!force && !extendsBelow && !extendsAbove) {
+      return;
+    }
+
+    scrollWithinParent(target, scrollParent, { alignStart: force });
+  };
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(runScroll);
   });
 };
 
@@ -2517,6 +2572,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const chainRef = React.useRef<HTMLDivElement>(null);
   const rcaRef = React.useRef<HTMLDivElement>(null);
   const remHubRef = React.useRef<HTMLDivElement>(null);
+  const pendingVerifyScrollRef = React.useRef(false);
 
   const sectionRefMap: Record<RemediationWorkflowSection, React.RefObject<HTMLDivElement | null>> = {
     chain: chainRef,
@@ -2542,8 +2598,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     }));
     if (isOpen) {
       setTimeout(() => {
-        scrollRemediationSectionIntoViewIfNeeded(sectionRefMap[section].current);
-      }, 50);
+        scrollRemediationSectionIntoView(sectionRefMap[section].current);
+      }, 100);
     }
   };
 
@@ -2574,10 +2630,30 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     setSelectedOptionId(options[0]?.id ?? '');
     setIsGuidedView(false);
     setSectionExpanded({ chain: false, rca: false, rem: true });
-    setTimeout(() => {
-      scrollRemediationSectionIntoViewIfNeeded(remHubRef.current);
-    }, 50);
+    pendingVerifyScrollRef.current = true;
   };
+
+  useEffect(() => {
+    if (!pendingVerifyScrollRef.current || !isDiagnosisVerified || !sectionExpanded.rem) {
+      return undefined;
+    }
+
+    const scrollToRemediationHub = () => {
+      scrollRemediationSectionIntoView(remHubRef.current, { force: true });
+    };
+
+    // Allow ExpandableSection + option card bodies to lay out before scrolling.
+    const timer = window.setTimeout(scrollToRemediationHub, 200);
+    const retryTimer = window.setTimeout(() => {
+      scrollToRemediationHub();
+      pendingVerifyScrollRef.current = false;
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(retryTimer);
+    };
+  }, [isDiagnosisVerified, sectionExpanded.rem, selectedOptionId]);
 
   if (!drawer) return null;
 
