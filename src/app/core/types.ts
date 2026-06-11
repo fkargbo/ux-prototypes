@@ -112,6 +112,8 @@ export interface RouteConfig {
     subMenu?: string;
     /** Order among siblings inside the same `subMenu`. */
     subMenuOrder?: number;
+    /** Insert this nav group immediately after an existing sidebar group label (e.g. `Home`). */
+    insertAfterGroup?: string;
   };
 }
 

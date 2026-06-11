@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -37,8 +38,8 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
-import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon, TimesIcon } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
@@ -59,7 +60,7 @@ interface ExpandedReason {
   text: string;
 }
 
-interface PlanRow {
+export interface PlanRow {
   id: string;
   severity: PlanSeverity;
   status: PlanStatus;
@@ -73,7 +74,144 @@ interface PlanRow {
   /** Infrastructure objects that will be affected by the remediation. Context-aware:
    *  Fleet perspective → cluster names; Single-cluster perspective → namespace/pod/node names. */
   drawerTargets: string[];
+  /** ISO-8601 instant when the plan was created. */
+  createdAt?: string;
+  /** Logical plan resource name (e.g. gitops-domain-drift-remediation). */
+  name?: string;
+  /** Fleet cluster label for the plans table. */
+  cluster?: string;
+  /** Core platforms namespace label for the plans table. */
+  namespace?: string;
+  /** Perspective-aware scope cell (cluster or namespace). */
+  scope?: string;
 }
+
+/** Simulated plan identity — names, summaries, and scope labels aligned to fleet vs. single-cluster UX. */
+const PLAN_TABLE_IDENTITY: Record<
+  string,
+  { name: string; synopsis: string; fleetCluster: string; namespace: string }
+> = {
+  tp1: {
+    name: 'gitops-apps-prod-drift-resync',
+    synopsis: 'Re-sync production application manifests after Argo CD reports LiveState drift',
+    fleetCluster: 'prod-east-2 (+3)',
+    namespace: 'openshift-gitops',
+  },
+  tp2: {
+    name: 'acs-payments-workload-quarantine',
+    synopsis: 'Quarantine payment API workload flagged by ACS for runtime syscall anomalies',
+    fleetCluster: 'prod-east-2 (+2)',
+    namespace: 'payments-prod',
+  },
+  tp3: {
+    name: 'payments-api-oom-remediation',
+    synopsis: 'Raise memory limits and restart payment gateway pods after repeated OOMKills',
+    fleetCluster: 'prod-east-2',
+    namespace: 'payments-prod',
+  },
+  tp4: {
+    name: 'rook-ceph-pool-expansion',
+    synopsis: 'Expand Ceph block pool capacity before persistent volumes exhaust free space',
+    fleetCluster: 'prod-east-2 (+1)',
+    namespace: 'openshift-storage',
+  },
+  tp5: {
+    name: 'etcd-defrag-api-latency',
+    synopsis: 'Defragment etcd and tune API server quotas after control plane latency events',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-etcd',
+  },
+  ap1: {
+    name: 'analytics-memory-leak-fix',
+    synopsis: 'Patch analytics service memory leak surfaced by sustained utilization alerts',
+    fleetCluster: 'stg-central',
+    namespace: 'app-analytics-dev',
+  },
+  ap2: {
+    name: 'tekton-webhook-unblock',
+    synopsis: 'Restore Tekton EventListener webhook after failed PipelineRun deliveries',
+    fleetCluster: 'prod-east-2 (+1)',
+    namespace: 'openshift-pipelines',
+  },
+  ap3: {
+    name: 'oauth-client-token-rotation',
+    synopsis: 'Rotate expiring OAuth client credentials for cluster authentication stack',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-authentication',
+  },
+  ap4: {
+    name: 'coredns-latency-investigation',
+    synopsis: 'Investigate CoreDNS lookup latency spikes affecting internal service discovery',
+    fleetCluster: 'prod-east-2 (+2)',
+    namespace: 'openshift-dns',
+  },
+  ap5: {
+    name: 'baremetal-node-scheduling-fix',
+    synopsis: 'Rebalance Metal3 bare-metal nodes after CPU overcommit scheduling failures',
+    fleetCluster: 'edge-apac-1',
+    namespace: 'openshift-machine-api',
+  },
+  ap6: {
+    name: 'staging-gitops-drift-resync',
+    synopsis: 'Reconcile staging namespace manifests out of sync with GitOps source of truth',
+    fleetCluster: 'stg-central',
+    namespace: 'app-staging',
+  },
+  ap7: {
+    name: 'ingress-router-scale-out',
+    synopsis: 'Scale default ingress controller replicas below minimum availability threshold',
+    fleetCluster: 'prod-east-2 (+1)',
+    namespace: 'openshift-ingress',
+  },
+  ap8: {
+    name: 'acs-hostnetwork-policy-fix',
+    synopsis: 'Remediate ACS compliance violation for hostNetwork workloads in retail namespace',
+    fleetCluster: 'prod-east-2',
+    namespace: 'retail-prod',
+  },
+  ap9: {
+    name: 'kubelet-stale-pod-cleanup',
+    synopsis: 'Clear stale pod sandboxes after repeated Kubelet garbage collection failures',
+    fleetCluster: 'prod-eu-west-1 (+1)',
+    namespace: 'logistics-prod',
+  },
+  ap10: {
+    name: 'jenkins-queue-drain',
+    synopsis: 'Drain Jenkins build queue backlog blocking release pipeline throughput',
+    fleetCluster: 'prod-east-2',
+    namespace: 'ci-cd',
+  },
+  ap11: {
+    name: 'hpa-metrics-scaler-fix',
+    synopsis: 'Repair HorizontalPodAutoscaler unable to read custom metrics API',
+    fleetCluster: 'prod-east-2',
+    namespace: 'api-services',
+  },
+  ap12: {
+    name: 'image-registry-pull-repair',
+    synopsis: 'Resolve integrated registry pull failures blocking workload rollouts fleet-wide',
+    fleetCluster: 'prod-east-2 (+3)',
+    namespace: 'openshift-image-registry',
+  },
+  ap13: {
+    name: 'postgres-iops-throttle-tune',
+    synopsis: 'Tune PostgreSQL PVC I/O throttling after datastore latency warnings',
+    fleetCluster: 'prod-east-2',
+    namespace: 'data-services',
+  },
+  ap14: {
+    name: 'chrony-clock-skew-fix',
+    synopsis: 'Correct node clock skew detected across worker nodes in production fleet',
+    fleetCluster: 'prod-east-2 (+2)',
+    namespace: 'openshift-node',
+  },
+  ap15: {
+    name: 'imagestream-tag-prune',
+    synopsis: 'Prune obsolete ImageStream tags bloating internal registry storage',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-image-registry',
+  },
+};
 
 // ─── Dataset — Top plans (score ≥ 80) ────────────────────────────────────────
 
@@ -88,7 +226,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '1 Drift / 4 Alerts',
     triggerDomains: 'GitOps / ArgoCD',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'dev-us-west-04', 'staging-ap-south-01'],
+    drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'stg-central', 'edge-apac-1'],
     expandedReasons: [
       { icon: 'sync',  text: 'ArgoCD Controller Event: 1 LiveStateOutOfSync event detected.' },
       { icon: 'alert', text: 'Prometheus Alert: 4 IngressControllerDegraded active alerts running.' },
@@ -104,7 +242,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '14 Runtime Events',
     triggerDomains: 'Security (ACS)',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'prod-ap-east-03'],
+    drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'edge-apac-1'],
     expandedReasons: [
       { icon: 'warning', text: 'Advanced Cluster Security Hook: 14 eBPF Kernel System Call Mutations detected.' },
     ],
@@ -119,7 +257,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '6 Events / 2 Alerts',
     triggerDomains: 'OCP Core Kubelet',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01'],
+    drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'ban',   text: 'Kubelet Eviction Event: 6 Core Container OOMKilled signals.' },
       { icon: 'alert', text: 'Prometheus Alert: 2 KubePodCrashLooping alarms.' },
@@ -135,7 +273,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '8 Alerts',
     triggerDomains: 'OCP Storage',
     isUnauthorized: true,
-    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02'],
+    drawerTargets: ['prod-east-2', 'prod-eu-west-1'],
     expandedReasons: [
       { icon: 'alert', text: 'Prometheus Alert: 3 CephPoolNearFull warnings.' },
       { icon: 'alert', text: 'Prometheus Alert: 5 KubePersistentVolumeFillingUp alarms.' },
@@ -151,7 +289,7 @@ const TOP_PLANS: PlanRow[] = [
     consolidationScope: '2 API Events',
     triggerDomains: 'etcd Controller',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01'],
+    drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'gear', text: 'K8s API Server Log Hook: 2 etcd_db_total_size_in_bytes fragmentation events.' },
     ],
@@ -171,7 +309,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '3 Alerts',
     triggerDomains: 'Prometheus',
     isUnauthorized: false,
-    drawerTargets: ['dev-us-west-04'],
+    drawerTargets: ['stg-central'],
     expandedReasons: [
       { icon: 'alert', text: '3 KubePodMemoryUtilizationHigh alarms active on dev pods.' },
     ],
@@ -186,7 +324,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Failure / 2 Alerts',
     triggerDomains: 'Pipelines / Tekton',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01', 'staging-ap-south-01'],
+    drawerTargets: ['prod-east-2', 'stg-central'],
     expandedReasons: [
       { icon: 'wrench', text: 'Tekton Event: 1 PipelineRunFailed block.' },
       { icon: 'alert',  text: 'Prometheus Alert: 2 TektonTaskExecutionStalled warnings.' },
@@ -202,7 +340,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Auth Event',
     triggerDomains: 'OCP Auth',
     isUnauthorized: true,
-    drawerTargets: ['prod-us-east-01'],
+    drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'warning', text: 'Kube-Apt-Controller Event: 1 CertificateExpirationWarning registered.' },
     ],
@@ -217,7 +355,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '4 Alerts',
     triggerDomains: 'OCP Network',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'prod-ap-east-03'],
+    drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'edge-apac-1'],
     expandedReasons: [
       { icon: 'alert', text: '4 CoreDNSLookupLatencyHigh warnings logged.' },
     ],
@@ -232,7 +370,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '2 Events / 1 Alert',
     triggerDomains: 'Metal3 Controller',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-west-03'],
+    drawerTargets: ['edge-apac-1'],
     expandedReasons: [
       { icon: 'gear',  text: '2 NodeCPUOvercommitted events detected.' },
       { icon: 'alert', text: '1 KubeNodeNotReady alert active.' },
@@ -248,7 +386,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Drift Event',
     triggerDomains: 'GitOps / ArgoCD',
     isUnauthorized: false,
-    drawerTargets: ['staging-ap-south-01'],
+    drawerTargets: ['stg-central'],
     expandedReasons: [
       { icon: 'sync', text: 'ArgoCD Event: 1 LiveStateOutOfSync event flagged in staging.' },
     ],
@@ -263,7 +401,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '2 Alerts',
     triggerDomains: 'OCP Network',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02'],
+    drawerTargets: ['prod-east-2', 'prod-eu-west-1'],
     expandedReasons: [
       { icon: 'alert', text: '2 IngressControllerMinReplicasNotMet rules active.' },
     ],
@@ -278,7 +416,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Security Event / 3 Alerts',
     triggerDomains: 'Security (ACS)',
     isUnauthorized: true,
-    drawerTargets: ['prod-us-east-01'],
+    drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'warning', text: '1 ACS Host Network sharing violation detected.' },
       { icon: 'alert',   text: '3 matching low-priority alerts active.' },
@@ -294,7 +432,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '4 Pod Events',
     triggerDomains: 'OCP Core Kubelet',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02'],
+    drawerTargets: ['prod-eu-west-1', 'prod-us-west-2'],
     expandedReasons: [
       { icon: 'ban', text: '4 PodSandboxCleanedUpFailed core Kubelet log entries.' },
     ],
@@ -309,7 +447,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Alert',
     triggerDomains: 'Pipelines / App',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01'],
+    drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'alert', text: '1 JenkinsQueueSizeHigh metric threshold crossed.' },
     ],
@@ -324,7 +462,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 HPA Event',
     triggerDomains: 'OCP Optimize',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01'],
+    drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'warning', text: 'HPA Controller Hook: 1 FailedComputeMetricsReplicas event.' },
     ],
@@ -339,7 +477,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '5 Alerts',
     triggerDomains: 'OCP Core',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'prod-ap-east-03', 'dev-us-west-04'],
+    drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'edge-apac-1', 'stg-central'],
     expandedReasons: [
       { icon: 'alert', text: '5 ErrImagePullBackOff sustained threshold alerts.' },
     ],
@@ -354,7 +492,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Event / 2 Alerts',
     triggerDomains: 'OCP Storage',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01'],
+    drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'gear',  text: '1 Storage CSI volume throttling log entry.' },
       { icon: 'alert', text: '2 KubePersistentVolumeResizingStalled warnings.' },
@@ -370,7 +508,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '3 Alerts',
     triggerDomains: 'OCP Core Node',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01', 'prod-eu-west-02', 'staging-ap-south-01'],
+    drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'stg-central'],
     expandedReasons: [
       { icon: 'alert', text: '3 NodeClockSkewDetected Prometheus system metrics warnings.' },
     ],
@@ -385,7 +523,7 @@ const ALL_PLANS: PlanRow[] = [
     consolidationScope: '1 Registry Event',
     triggerDomains: 'OCP Registry',
     isUnauthorized: false,
-    drawerTargets: ['prod-us-east-01'],
+    drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'warning', text: 'ImageRegistry Controller Hook: 1 PruneImageRegistryManifestsFailed trace.' },
     ],
@@ -398,29 +536,29 @@ const ALL_PLANS: PlanRow[] = [
 // sub-cluster topology (namespaces, pods, nodes) instead of multi-cluster scope.
 
 const SC_TOP_PLANS: PlanRow[] = [
-  { ...TOP_PLANS[0], blastRadius: '3 Namespaces', triggerDomains: 'ArgoCD Core',        drawerTargets: ['openshift-gitops', 'app-prod-east', 'app-staging-east'] },
-  { ...TOP_PLANS[1], blastRadius: '2 Node Pools', triggerDomains: 'ACS DaemonSet',       drawerTargets: ['worker-pool-infra-1', 'worker-pool-compute-2'] },
-  { ...TOP_PLANS[2], blastRadius: '4 Core Pods',  triggerDomains: 'Kubelet Engine',      drawerTargets: ['payment-gw-pod-1', 'payment-gw-pod-2', 'auth-pod-1', 'auth-pod-2'] },
-  { ...TOP_PLANS[3], blastRadius: '1 StoragePool', triggerDomains: 'Local PV CSI',       drawerTargets: ['ceph-block-pool-east'] },
-  { ...TOP_PLANS[4], blastRadius: '3 Master Nodes', triggerDomains: 'etcd Pod Mesh',     drawerTargets: ['master-node-1', 'master-node-2', 'master-node-3'] },
+  { ...TOP_PLANS[0], blastRadius: '3 Applications', triggerDomains: 'ArgoCD Core',        drawerTargets: ['payments-prod', 'retail-prod', 'logistics-prod'] },
+  { ...TOP_PLANS[1], blastRadius: '2 Deployments',  triggerDomains: 'ACS DaemonSet',       drawerTargets: ['payment-api', 'payment-worker'] },
+  { ...TOP_PLANS[2], blastRadius: '4 Pods',         triggerDomains: 'Kubelet Engine',      drawerTargets: ['payment-api-7d4f8', 'payment-api-7d4f8-2', 'payment-worker-9c2a1', 'payment-worker-9c2a1-2'] },
+  { ...TOP_PLANS[3], blastRadius: '1 Ceph Pool',    triggerDomains: 'Local PV CSI',       drawerTargets: ['ocs-storagecluster-ceph-rbd'] },
+  { ...TOP_PLANS[4], blastRadius: '3 etcd Members', triggerDomains: 'etcd Pod Mesh',     drawerTargets: ['etcd-master-01', 'etcd-master-02', 'etcd-master-03'] },
 ];
 
 const SC_ALL_PLANS: PlanRow[] = [
-  { ...ALL_PLANS[0],  blastRadius: '2 Namespaces',      triggerDomains: 'Local Prometheus',       drawerTargets: ['dev-analytics', 'monitoring'] },
-  { ...ALL_PLANS[1],  blastRadius: '1 Tekton Pipeline',  triggerDomains: 'Tekton Operator',        drawerTargets: ['build-pipeline-webhook'] },
-  { ...ALL_PLANS[2],  blastRadius: '1 OAuth Stack',      triggerDomains: 'Cluster Auth',           drawerTargets: ['openshift-authentication'] },
-  { ...ALL_PLANS[3],  blastRadius: '4 DNS Pods',         triggerDomains: 'CoreDNS Deployment',     drawerTargets: ['coredns-pod-1', 'coredns-pod-2', 'coredns-pod-3', 'coredns-pod-4'] },
-  { ...ALL_PLANS[4],  blastRadius: '2 Worker Nodes',     triggerDomains: 'BareMetal Host Operator', drawerTargets: ['worker-node-03', 'worker-node-04'] },
-  { ...ALL_PLANS[5],  blastRadius: '1 Namespace',        triggerDomains: 'ArgoCD Controller',      drawerTargets: ['app-staging'] },
-  { ...ALL_PLANS[6],  blastRadius: '2 Router Pods',      triggerDomains: 'Ingress Operator',       drawerTargets: ['router-default-1', 'router-default-2'] },
-  { ...ALL_PLANS[7],  blastRadius: '1 SecurityContext',  triggerDomains: 'ACS Policy Engine',      drawerTargets: ['restricted-scc'] },
-  { ...ALL_PLANS[8],  blastRadius: '1 Kubelet Daemon',   triggerDomains: 'Local Node Runtime',     drawerTargets: ['node-01-kubelet'] },
-  { ...ALL_PLANS[9],  blastRadius: '1 StatefulSet',      triggerDomains: 'CI App Controller',      drawerTargets: ['jenkins-leader'] },
-  { ...ALL_PLANS[10], blastRadius: '1 HPA Object',       triggerDomains: 'Autoscaling Framework',  drawerTargets: ['api-scaler-hpa'] },
-  { ...ALL_PLANS[11], blastRadius: '3 Image Streams',    triggerDomains: 'Local Registry',         drawerTargets: ['registry-stream-1', 'registry-stream-2', 'registry-stream-3'] },
-  { ...ALL_PLANS[12], blastRadius: '1 PVC Volume',       triggerDomains: 'AWS-EBS CSI Plugin',     drawerTargets: ['ceph-storage-pvc'] },
-  { ...ALL_PLANS[13], blastRadius: 'All Cluster Nodes',  triggerDomains: 'Chrony DaemonSet',       drawerTargets: ['worker-node-01', 'worker-node-02', 'worker-node-03', 'master-node-1', 'master-node-2', 'master-node-3'] },
-  { ...ALL_PLANS[14], blastRadius: '1 Registry Catalog', triggerDomains: 'Local Registry',         drawerTargets: ['integrated-registry'] },
+  { ...ALL_PLANS[0],  blastRadius: '2 Deployments',      triggerDomains: 'Local Prometheus',       drawerTargets: ['analytics-api', 'analytics-worker'] },
+  { ...ALL_PLANS[1],  blastRadius: '1 EventListener',    triggerDomains: 'Tekton Operator',        drawerTargets: ['build-webhook-listener'] },
+  { ...ALL_PLANS[2],  blastRadius: '1 OAuth Client',     triggerDomains: 'Cluster Auth',           drawerTargets: ['oauth-openshift'] },
+  { ...ALL_PLANS[3],  blastRadius: '4 DNS Pods',         triggerDomains: 'CoreDNS Deployment',     drawerTargets: ['dns-default-7f8c9', 'dns-default-7f8c9-2', 'dns-default-7f8c9-3', 'dns-default-7f8c9-4'] },
+  { ...ALL_PLANS[4],  blastRadius: '2 Worker Nodes',     triggerDomains: 'BareMetal Host Operator', drawerTargets: ['worker-bm-03', 'worker-bm-04'] },
+  { ...ALL_PLANS[5],  blastRadius: '3 Resources',        triggerDomains: 'ArgoCD Controller',      drawerTargets: ['staging-api', 'staging-db-config', 'staging-api-svc'] },
+  { ...ALL_PLANS[6],  blastRadius: '2 Router Pods',      triggerDomains: 'Ingress Operator',       drawerTargets: ['router-default-6d4f8', 'router-default-6d4f8-2'] },
+  { ...ALL_PLANS[7],  blastRadius: '1 Deployment',       triggerDomains: 'ACS Policy Engine',      drawerTargets: ['retail-checkout'] },
+  { ...ALL_PLANS[8],  blastRadius: '1 Node',             triggerDomains: 'Local Node Runtime',     drawerTargets: ['worker-logistics-01'] },
+  { ...ALL_PLANS[9],  blastRadius: '1 StatefulSet',      triggerDomains: 'CI App Controller',      drawerTargets: ['jenkins-0'] },
+  { ...ALL_PLANS[10], blastRadius: '1 HPA Object',       triggerDomains: 'Autoscaling Framework',  drawerTargets: ['api-gateway-hpa'] },
+  { ...ALL_PLANS[11], blastRadius: '3 Image Streams',    triggerDomains: 'Local Registry',         drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
+  { ...ALL_PLANS[12], blastRadius: '1 PVC Volume',       triggerDomains: 'AWS-EBS CSI Plugin',     drawerTargets: ['postgres-data-0'] },
+  { ...ALL_PLANS[13], blastRadius: '6 Cluster Nodes',    triggerDomains: 'Chrony DaemonSet',       drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
+  { ...ALL_PLANS[14], blastRadius: '1 Registry Catalog', triggerDomains: 'Local Registry',         drawerTargets: ['image-registry'] },
 ];
 
 interface PlanDrawerData {
@@ -844,8 +982,8 @@ const PLAN_POSTMORTEM: Record<string, PlanPostMortem> = {
     recoveredAt: 'Wed 10:04:55 UTC',
     rootCauseSummary: 'etcd database fragmentation exceeded 65%, causing API write amplification and elevated P99 latency above 1.2s across all control-plane members.',
     remediationActionDelta: 'Executed rolling etcd defragmentation across all 3 control-plane members, clearing the compaction backlog and reducing fragmentation from 68% to <5%. API write amplification resolved.',
-    executionTargets: ['prod-us-east-01'],
-    executionTargetsSC: ['master-node-1', 'master-node-2', 'master-node-3'],
+    executionTargets: ['prod-east-2'],
+    executionTargetsSC: ['etcd-master-01', 'etcd-master-02', 'etcd-master-03'],
     rawLog:
 `[10:04:22 UTC] Starting etcd defragmentation sequence (3 members)...
 [10:04:23 UTC] Defragmenting etcd member: etcd-master-1 (172.16.0.11)
@@ -884,8 +1022,8 @@ Exit code: 1`,
     recoveredAt: 'Tue 16:18:56 UTC',
     rootCauseSummary: 'A direct kubectl apply bypassed the GitOps workflow, creating a divergence between live and Git-declared state for 3 resources in the staging namespace.',
     remediationActionDelta: 'Executed an ArgoCD hard sync against revision c7e2f08b, restoring 3 out-of-sync resources and re-establishing full GitOps control over the staging application.',
-    executionTargets: ['staging-ap-south-01'],
-    executionTargetsSC: ['app-staging'],
+    executionTargets: ['stg-central'],
+    executionTargetsSC: ['staging-api', 'staging-db-config', 'staging-api-svc'],
     rawLog:
 `[16:18:44 UTC] Initiating ArgoCD hard sync for staging-config-map (revision c7e2f08b)...
 [16:18:45 UTC] Comparing live state against Git-declared configuration...
@@ -904,8 +1042,8 @@ Exit code: 0 — Execution succeeded.`,
     recoveredAt: 'Mon 09:31:25 UTC',
     rootCauseSummary: 'Jenkins executor pool was under-provisioned at 4 executors, causing queue depth to spike and pipeline runs to stall as concurrent build demand exceeded configured capacity.',
     remediationActionDelta: 'Patched jenkins-leader StatefulSet to increase JENKINS_MAX_EXECUTORS from 4 to 16 and triggered a rolling restart; all 16 executor slots active and queue depth restored to zero.',
-    executionTargets: ['prod-us-east-01'],
-    executionTargetsSC: ['jenkins-leader'],
+    executionTargets: ['prod-east-2'],
+    executionTargetsSC: ['jenkins-0'],
     rawLog:
 `[09:31:17 UTC] Targeting deployment/jenkins-leader in continuous-integration...
 [09:31:18 UTC] Setting env: JENKINS_MAX_EXECUTORS=16 (previous value: 4)
@@ -923,8 +1061,8 @@ Exit code: 0 — Execution succeeded.`,
     recoveredAt: 'Thu 03:45:24 UTC',
     rootCauseSummary: 'System clock skew of +847–851ms detected across all cluster nodes due to a stale NTP server reference in chrony.conf, preventing accurate log correlation and etcd lease timing.',
     remediationActionDelta: 'Updated /etc/chrony.conf on all nodes to point to ntp.corp.redhat.com, restarted chrony-sync-daemon fleet-wide, and reduced clock offset delta to <1ms.',
-    executionTargets: ['prod-us-east-01', 'prod-eu-west-02', 'staging-ap-south-01'],
-    executionTargetsSC: ['worker-node-01', 'worker-node-02', 'worker-node-03', 'master-node-1', 'master-node-2', 'master-node-3'],
+    executionTargets: ['prod-east-2', 'prod-eu-west-1', 'stg-central'],
+    executionTargetsSC: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'],
     rawLog:
 `[03:45:02 UTC] Connecting to chrony-sync-daemon on openshift-node nodes...
 [03:45:04 UTC] Updating /etc/chrony.conf: pool → ntp.corp.redhat.com iburst
@@ -997,42 +1135,25 @@ const AiSparkle: React.FC<{ size?: number }> = ({ size = 14 }) => (
 
 // ─── Expanded row: consolidated reason icon ───────────────────────────────────
 
-const REASON_ICON_COMPONENT: Record<ReasonIconType, React.ComponentType<{ style?: React.CSSProperties }>> = {
-  sync:    SyncAltIcon,
-  alert:   ExclamationCircleIcon,
-  warning: ExclamationTriangleIcon,
-  gear:    CogIcon,
-  ban:     BanIcon,
-  wrench:  WrenchIcon,
-};
-
-const REASON_ICON_COLOR: Record<ReasonIconType, string> = {
-  sync:    'var(--pf-t--global--color--status--info--default)',
-  alert:   'var(--pf-t--global--color--status--danger--default)',
-  warning: 'var(--pf-t--global--color--status--warning--default)',
-  gear:    'var(--pf-t--global--text--color--subtle)',
-  ban:     'var(--pf-t--global--color--status--danger--default)',
-  wrench:  'var(--pf-t--global--text--color--subtle)',
-};
-
-const ReasonIcon: React.FC<{ type: ReasonIconType }> = ({ type }) => {
-  const Icon = REASON_ICON_COMPONENT[type];
-  return <Icon style={{ color: REASON_ICON_COLOR[type], flexShrink: 0 }} aria-hidden />;
+/** OpenShift console / PatternFly table style: e.g. Jun 9, 2026, 2:32 PM */
+const formatPlanCreatedAt = (iso: string): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '—';
+  }
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 };
 
 // Standalone AI icon (no tooltip wrapper) used inside drawer sections
 const AiIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   <img src={AI_EXPERIENCE_ICON_DATA_URL} alt="" aria-hidden="true" width={size} height={size} style={{ display: 'block', flexShrink: 0 }} />
 );
-
-// ─── Severity badge ───────────────────────────────────────────────────────────
-
-const SeverityBadge: React.FC<{ severity: PlanSeverity }> = ({ severity }) =>
-  severity === 'critical' ? (
-    <Label color="red" isCompact>Critical</Label>
-  ) : (
-    <Label color="yellow" isCompact>Warning</Label>
-  );
 
 // ─── Status label ─────────────────────────────────────────────────────────────
 
@@ -1046,238 +1167,150 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Failed':           'red',
 };
 
-const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
+export const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
   <Label color={STATUS_LABEL_COLOR[status]} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
     {status}
   </Label>
 );
 
-// ─── RBAC-aware action cell ───────────────────────────────────────────────────
-
-interface ActionCellProps {
-  status: PlanStatus;
-  isUnauthorized: boolean;
-  onReview: () => void;
-}
-
-const ActionCell: React.FC<ActionCellProps> = ({ status, isUnauthorized, onReview }) => {
-  if (status === 'Investigating' || status === 'Remediating') {
-    return (
-      <Button variant="secondary" size="sm" onClick={onReview}>
-        Review plan
-      </Button>
-    );
-  }
-
-  if (status === 'Waiting Approval') {
-    if (isUnauthorized) {
-      return (
-        <Tooltip
-          content="Read-only access — you can view plan diagnostics but cannot execute remediations. Contact your cluster admin to request elevated privileges."
-          position="top"
-        >
-          <Button variant="secondary" size="sm" onClick={onReview}>
-            View details&nbsp;<LockIcon style={{ verticalAlign: 'middle' }} />
-          </Button>
-        </Tooltip>
-      );
-    }
-    return (
-      <Button variant="secondary" size="sm" onClick={onReview}>
-        Review plan
-      </Button>
-    );
-  }
-
-  // Completed | Failed
-  return (
-    <Button variant="link" isInline onClick={onReview}>
-      View summary
-    </Button>
-  );
-};
-
 // ─── Table column header helpers ──────────────────────────────────────────────
 
-const AiColumnHeader: React.FC<{ label: string }> = ({ label }) => (
-  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-    <FlexItem><AiSparkle /></FlexItem>
-    <FlexItem>{label}</FlexItem>
-  </Flex>
+/** OpenShift console–style resource label for Plan resources. */
+export const PlanResourceBadge: React.FC = () => (
+  <span
+    aria-hidden
+    style={{
+      backgroundColor: '#2b9af3',
+      borderRadius: '20px',
+      color: 'var(--pf-t--color--white)',
+      display: 'inline-block',
+      flexShrink: 0,
+      fontSize: '14px',
+      fontWeight: 600,
+      lineHeight: '20px',
+      minWidth: 20,
+      height: 20,
+      padding: '0 6px',
+      textAlign: 'center',
+    }}
+  >
+    P
+  </span>
 );
+
+const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
+  padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs)',
+  fontSize: 'var(--pf-t--global--font--size--body--sm)',
+  fontWeight: 600,
+  color: 'var(--pf-t--global--text--color--subtle)',
+};
+
+// ─── Scope cell (cluster / namespace) with multi-target tooltip ───────────────
+
+const PlanScopeCell: React.FC<{
+  scope?: string;
+  scopeColumnLabel: 'Cluster' | 'Namespace';
+  scopeTargets: string[];
+}> = ({ scope, scopeColumnLabel, scopeTargets }) => {
+  const label = scope ?? '—';
+  const showTooltip = scopeColumnLabel === 'Cluster' && scopeTargets.length > 1;
+
+  if (!showTooltip) {
+    return <>{label}</>;
+  }
+
+  const tooltipContent = scopeTargets.join(', ');
+  const ariaLabel = `${label}. All clusters: ${tooltipContent}`;
+
+  return (
+    <Tooltip content={tooltipContent} position="top">
+      <span tabIndex={0} aria-label={ariaLabel} style={{ cursor: 'help' }}>
+        {label}
+      </span>
+    </Tooltip>
+  );
+};
 
 // ─── Core stateless table renderer ───────────────────────────────────────────
 
 interface PlansTableCoreProps {
   rows: PlanRow[];
   ariaLabel: string;
-  startIndex: number;
-  expandedRows: Set<string>;
-  onToggle: (id: string) => void;
+  scopeColumnLabel: 'Cluster' | 'Namespace';
   onReviewPlan: (plan: PlanRow) => void;
 }
 
 const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   rows,
   ariaLabel,
-  startIndex,
-  expandedRows,
-  onToggle,
+  scopeColumnLabel,
   onReviewPlan,
 }) => (
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        <Th screenReaderText="Row expansion" style={{ width: '4%' }} />
-        <Th style={{ width: '6%' }}>Severity</Th>
-        <Th style={{ width: '7%' }}><AiColumnHeader label="Impact score" /></Th>
-        <Th style={{ width: '21%' }}><AiColumnHeader label="Plan summary" /></Th>
-        <Th style={{ width: '9%' }}>Blast radius</Th>
-        <Th style={{ width: '13%' }}>Consolidation scope</Th>
-        <Th style={{ width: '13%' }}>Trigger domains</Th>
+        <Th style={{ width: '24%' }}>Name</Th>
+        <Th style={{ width: '30%' }}>Plan summary</Th>
         <Th style={{ width: '12%' }}>Status</Th>
-        <Th style={{ width: '15%' }}>Action</Th>
+        <Th style={{ width: '14%' }}>{scopeColumnLabel}</Th>
+        <Th style={{ width: '20%' }}>Created</Th>
       </Tr>
     </Thead>
 
-    {rows.map((row, idx) => {
-      const isExpanded = expandedRows.has(row.id);
-      return (
-        <Tbody key={row.id} isExpanded={isExpanded}>
-          {/* ── Main data row ─────────────────────────────────────────── */}
-          <Tr style={{ verticalAlign: 'middle' }}>
-            <Td
-              expand={{
-                rowIndex: startIndex + idx,
-                isExpanded,
-                onToggle: () => onToggle(row.id),
-              }}
-            />
-
-            <Td dataLabel="Severity">
-              <SeverityBadge severity={row.severity} />
-            </Td>
-
-            <Td dataLabel="Impact score">
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                <FlexItem><AiSparkle /></FlexItem>
-                <FlexItem><span style={{ fontWeight: 600 }}>{row.score}</span></FlexItem>
-              </Flex>
-            </Td>
-
-            <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                <FlexItem><AiSparkle /></FlexItem>
-                <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
-              </Flex>
-            </Td>
-
-            <Td dataLabel="Blast radius">{row.blastRadius}</Td>
-
-            <Td dataLabel="Consolidation scope">
-              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                {row.consolidationScope}
-              </span>
-            </Td>
-
-            <Td dataLabel="Trigger domains">{row.triggerDomains}</Td>
-
-            <Td dataLabel="Status">
-              <StatusLabel status={row.status} />
-            </Td>
-
-            <Td dataLabel="Action">
-              <ActionCell
-                status={row.status}
-                isUnauthorized={row.isUnauthorized}
-                onReview={() => onReviewPlan(row)}
-              />
-            </Td>
-          </Tr>
-
-          {/* ── Expanded detail row ────────────────────────────────────── */}
-          <Tr isExpanded={isExpanded}>
-            <Td colSpan={9}>
-              <ExpandableRowContent>
-                <div
-                  style={{
-                    padding: 'var(--pf-t--global--spacer--md)',
-                    backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                    borderRadius: 'var(--pf-t--global--border--radius--small)',
-                  }}
+    <Tbody>
+      {rows.map((row) => (
+        <Tr key={row.id} style={{ verticalAlign: 'middle' }}>
+          <Td dataLabel="Name" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+              <FlexItem>
+                <PlanResourceBadge />
+              </FlexItem>
+              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => onReviewPlan(row)}
+                  style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
                 >
-                  <p
-                    style={{
-                      margin: '0 0 var(--pf-t--global--spacer--xs)',
-                      fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                      fontWeight: 600,
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    Consolidated reasons for this plan
-                  </p>
-                  <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
-                    {row.expandedReasons.map((reason, i) => (
-                      <StackItem key={i}>
-                        <Flex
-                          alignItems={{ default: 'alignItemsCenter' }}
-                          gap={{ default: 'gapSm' }}
-                          flexWrap={{ default: 'nowrap' }}
-                        >
-                          <FlexItem style={{ display: 'flex', alignItems: 'center' }}>
-                            <ReasonIcon type={reason.icon} />
-                          </FlexItem>
-                          <FlexItem style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--regular)' }}>
-                            {reason.text}
-                          </FlexItem>
-                        </Flex>
-                      </StackItem>
-                    ))}
-                  </Stack>
-                </div>
-              </ExpandableRowContent>
-            </Td>
-          </Tr>
-        </Tbody>
-      );
-    })}
+                  {row.name ?? row.id}
+                </Button>
+              </FlexItem>
+            </Flex>
+          </Td>
+
+          <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+              <FlexItem><AiSparkle /></FlexItem>
+              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
+            </Flex>
+          </Td>
+
+          <Td dataLabel="Status">
+            <StatusLabel status={row.status} />
+          </Td>
+
+          <Td dataLabel={scopeColumnLabel}>
+            <PlanScopeCell
+              scope={row.scope}
+              scopeColumnLabel={scopeColumnLabel}
+              scopeTargets={scopeColumnLabel === 'Cluster' ? row.drawerTargets : []}
+            />
+          </Td>
+
+          <Td dataLabel="Created">
+            {row.createdAt ? (
+              <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
+            ) : (
+              '—'
+            )}
+          </Td>
+        </Tr>
+      ))}
+    </Tbody>
   </Table>
 );
 
-// ─── Top plans table (no pagination, own expand state) ───────────────────────
-
-interface TopPlansTableProps {
-  onReviewPlan: (plan: PlanRow) => void;
-  rows: PlanRow[];
-}
-
-const TopPlansTable: React.FC<TopPlansTableProps> = ({ onReviewPlan, rows }) => {
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-
-  const toggleRow = useCallback((id: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  return (
-    <PlansTableCore
-      rows={rows}
-      ariaLabel="Top plans requiring attention"
-      startIndex={0}
-      expandedRows={expandedRows}
-      onToggle={toggleRow}
-      onReviewPlan={onReviewPlan}
-    />
-  );
-};
-
-// ─── All plans table (pagination + own expand state) ─────────────────────────
+// ─── Plans table (pagination + filters + expand state) ───────────────────────
 
 const DEFAULT_PER_PAGE = 10;
 
@@ -1316,21 +1349,20 @@ const rowMatchesDomain = (row: PlanRow, domains: string[]): boolean => {
   );
 };
 
-interface AllPlansTableProps {
+interface PlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
   rows: PlanRow[];
+  isSingleCluster: boolean;
 }
 
-const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => {
+const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleCluster }) => {
   // ── Filter state — intentionally decoupled from perspective; persists on switch ──
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [domainFilters, setDomainFilters] = useState<string[]>([]);
   const [rbacOnly, setRbacOnly] = useState(false);
-  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
-  const [domainMenuOpen, setDomainMenuOpen] = useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
   // ── Pagination state ──
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
@@ -1367,21 +1399,29 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
     );
   }, []);
 
-  const hasActiveFilters = statusFilters.length > 0 || domainFilters.length > 0 || rbacOnly;
+  const activeFilterCount = statusFilters.length + domainFilters.length;
+  const hasActiveFilters = activeFilterCount > 0 || rbacOnly;
+
+  const handleFilterSelect = useCallback(
+    (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+      if (typeof value !== 'string') {
+        return;
+      }
+      if (STATUS_FILTER_OPTIONS.includes(value as PlanStatus)) {
+        toggleStatusFilter(value);
+        return;
+      }
+      if ((DOMAIN_FILTER_OPTIONS as readonly string[]).includes(value)) {
+        toggleDomainFilter(value);
+      }
+    },
+    [toggleStatusFilter, toggleDomainFilter],
+  );
 
   // ── Pagination handlers ──
   const totalItems = filteredRows.length;
   const start = (page - 1) * perPage;
   const paginatedRows = filteredRows.slice(start, start + perPage);
-
-  const toggleRow = useCallback((id: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
 
   const onSetPage = useCallback(
     (_evt: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
@@ -1439,51 +1479,31 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
             <FlexItem>
               <Select
-                aria-label="Status filter"
+                aria-label="Filter plans"
                 role="menu"
-                isOpen={statusMenuOpen}
-                onSelect={(_e, val) => toggleStatusFilter(val as string)}
-                onOpenChange={setStatusMenuOpen}
+                isOpen={filterMenuOpen}
+                onSelect={handleFilterSelect}
+                onOpenChange={setFilterMenuOpen}
                 toggle={(ref: React.Ref<MenuToggleElement>) => (
                   <MenuToggle
                     ref={ref}
-                    onClick={() => setStatusMenuOpen((o) => !o)}
-                    isExpanded={statusMenuOpen}
-                    badge={statusFilters.length > 0 ? statusFilters.length : undefined}
+                    onClick={() => setFilterMenuOpen((o) => !o)}
+                    isExpanded={filterMenuOpen}
+                    badge={activeFilterCount > 0 ? activeFilterCount : undefined}
                   >
-                    Status
+                    Filter
                   </MenuToggle>
                 )}
               >
                 <SelectList>
+                  <div style={FILTER_SECTION_TITLE_STYLE}>Status</div>
                   {STATUS_FILTER_OPTIONS.map((s) => (
                     <SelectOption key={s} hasCheckbox value={s} isSelected={statusFilters.includes(s)}>
                       {s}
                     </SelectOption>
                   ))}
-                </SelectList>
-              </Select>
-            </FlexItem>
-
-            <FlexItem>
-              <Select
-                aria-label="Component domain filter"
-                role="menu"
-                isOpen={domainMenuOpen}
-                onSelect={(_e, val) => toggleDomainFilter(val as string)}
-                onOpenChange={setDomainMenuOpen}
-                toggle={(ref: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={ref}
-                    onClick={() => setDomainMenuOpen((o) => !o)}
-                    isExpanded={domainMenuOpen}
-                    badge={domainFilters.length > 0 ? domainFilters.length : undefined}
-                  >
-                    Domain
-                  </MenuToggle>
-                )}
-              >
-                <SelectList>
+                  <Divider component="li" />
+                  <div style={FILTER_SECTION_TITLE_STYLE}>Domain</div>
                   {DOMAIN_FILTER_OPTIONS.map((d) => (
                     <SelectOption key={d} hasCheckbox value={d} isSelected={domainFilters.includes(d)}>
                       {d}
@@ -1495,7 +1515,7 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
 
             <FlexItem style={{ marginInlineStart: 'var(--pf-t--global--spacer--sm)' }}>
               <Checkbox
-                id="all-plans-rbac-only"
+                id="plans-rbac-only"
                 label="Show Executable Fixes Only"
                 isChecked={rbacOnly}
                 onChange={(_e, checked) => setRbacOnly(checked)}
@@ -1582,10 +1602,8 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
         <>
           <PlansTableCore
             rows={paginatedRows}
-            ariaLabel="All plans"
-            startIndex={start}
-            expandedRows={expandedRows}
-            onToggle={toggleRow}
+            ariaLabel="Plans"
+            scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={onReviewPlan}
           />
           <Pagination
@@ -1598,26 +1616,6 @@ const AllPlansTable: React.FC<AllPlansTableProps> = ({ onReviewPlan, rows }) => 
     </>
   );
 };
-
-// ─── Section header ───────────────────────────────────────────────────────────
-
-const SectionHeader: React.FC<{ title: string; threshold: React.ReactNode }> = ({
-  title,
-  threshold,
-}) => (
-  <Flex
-    alignItems={{ default: 'alignItemsCenter' }}
-    gap={{ default: 'gapMd' }}
-    style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-  >
-    <FlexItem>
-      <Title headingLevel="h3" size="md" className="ols-aio-fleet-subcard-title">
-        {title}
-      </Title>
-    </FlexItem>
-    <FlexItem>{threshold}</FlexItem>
-  </Flex>
-);
 
 // ─── Drawer: AI insight helper ────────────────────────────────────────────────
 
@@ -1655,6 +1653,7 @@ const RemediationOptionCard: React.FC<{
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
+  const cardRootRef = React.useRef<HTMLDivElement>(null);
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
@@ -1663,6 +1662,15 @@ const RemediationOptionCard: React.FC<{
       setIsExecuting(false);
       setSandboxState('pending');
     }
+  }, [isSelected]);
+
+  useEffect(() => {
+    if (!isSelected) {
+      return;
+    }
+    setTimeout(() => {
+      scrollRemediationSectionIntoView(cardRootRef.current);
+    }, 100);
   }, [isSelected]);
 
   // Remediating: non-first options are always hidden.
@@ -1798,6 +1806,7 @@ const RemediationOptionCard: React.FC<{
   };
 
   return (
+    <div ref={cardRootRef}>
     <Card
       id={cardId}
       isSelectable={isInteractive}
@@ -2004,10 +2013,10 @@ const RemediationOptionCard: React.FC<{
                     <Button
                       variant="link"
                       isInline
-                      style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}
                       onClick={() => setSandboxState('bypassed')}
+                      style={{ padding: 0, fontSize: '14px' }}
                     >
-                      Skip (not recommended)
+                      Skip test (not recommended)
                     </Button>
                   </Flex>
                 )}
@@ -2056,6 +2065,7 @@ const RemediationOptionCard: React.FC<{
         </CardBody>
       )}
     </Card>
+    </div>
   );
 };
 
@@ -2106,8 +2116,10 @@ const PostMortemPanel: React.FC<{
   plan: PlanRow;
   isMetricsExpanded?: boolean;
   onToggleMetrics?: (expanded: boolean) => void;
-}> = ({ plan, isMetricsExpanded, onToggleMetrics }) => {
-  const [showLogs, setShowLogs] = useState(false);
+  isLogsExpanded?: boolean;
+  onToggleLogs?: (expanded: boolean) => void;
+}> = ({ plan, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
+  const [localShowLogs, setLocalShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
@@ -2117,6 +2129,9 @@ const PostMortemPanel: React.FC<{
   // When toggle props are supplied the metrics section is collapsible; otherwise
   // the full panel is rendered statically (e.g. for plans already in terminal state).
   const hasToggle = isMetricsExpanded !== undefined && onToggleMetrics !== undefined;
+  const hasLogsToggle = isLogsExpanded !== undefined && onToggleLogs !== undefined;
+  const showLogs = hasLogsToggle ? isLogsExpanded! : localShowLogs;
+  const toggleLogs = hasLogsToggle ? onToggleLogs! : setLocalShowLogs;
 
   if (postMortem.type === 'success') {
     const targets = isSingleCluster
@@ -2256,7 +2271,7 @@ const PostMortemPanel: React.FC<{
               <Button
                 variant="link"
                 isInline
-                onClick={() => setShowLogs(!showLogs)}
+                onClick={() => toggleLogs(!showLogs)}
                 icon={
                   <AngleRightIcon
                     style={{
@@ -2320,7 +2335,7 @@ const PostMortemPanel: React.FC<{
                 <Button
                   variant="link"
                   isInline
-                  onClick={() => setShowLogs(!showLogs)}
+                  onClick={() => toggleLogs(!showLogs)}
                   icon={
                     <AngleRightIcon
                       style={{
@@ -2430,11 +2445,107 @@ const PostMortemPanel: React.FC<{
 
 type RemediationWorkflowSection = 'chain' | 'rca' | 'rem';
 
+/** Match drill-down layout breakpoint for full-width remediation content. */
+const REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT = 1100;
+const REMEDIATION_SCROLL_PADDING = 16;
+
+const getRemediationScrollParent = (element: HTMLElement): HTMLElement => {
+  let parent = element.parentElement;
+  while (parent) {
+    const { overflowY } = window.getComputedStyle(parent);
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return document.documentElement;
+};
+
+const isRemediationConfinedLayout = (scrollParent: HTMLElement): boolean => {
+  if (window.innerWidth <= REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT) {
+    return true;
+  }
+  // Side drawer and other nested scroll regions (not only narrow viewports).
+  return (
+    scrollParent !== document.documentElement &&
+    scrollParent !== document.body &&
+    scrollParent.scrollHeight > scrollParent.clientHeight + 1
+  );
+};
+
+const scrollWithinParent = (
+  target: HTMLElement,
+  scrollParent: HTMLElement,
+  { alignStart = false }: { alignStart?: boolean } = {},
+) => {
+  const targetRect = target.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  const padding = REMEDIATION_SCROLL_PADDING;
+
+  if (
+    scrollParent === document.documentElement ||
+    scrollParent === document.body
+  ) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  if (alignStart || targetRect.top < parentRect.top + padding) {
+    scrollParent.scrollBy({
+      top: targetRect.top - parentRect.top - padding,
+      behavior: 'smooth',
+    });
+    return;
+  }
+
+  if (targetRect.bottom > parentRect.bottom - padding) {
+    scrollParent.scrollBy({
+      top: targetRect.bottom - parentRect.bottom + padding,
+      behavior: 'smooth',
+    });
+  }
+};
+
+/** Scroll expanded workflow content into view when it extends outside the scroll container. */
+const scrollRemediationSectionIntoView = (
+  target: HTMLElement | null,
+  { force = false }: { force?: boolean } = {},
+) => {
+  if (!target) {
+    return;
+  }
+
+  const runScroll = () => {
+    const scrollParent = getRemediationScrollParent(target);
+    if (!force && !isRemediationConfinedLayout(scrollParent)) {
+      return;
+    }
+
+    const targetRect = target.getBoundingClientRect();
+    const parentRect = scrollParent.getBoundingClientRect();
+    const padding = REMEDIATION_SCROLL_PADDING;
+    const extendsBelow = targetRect.bottom > parentRect.bottom - padding;
+    const extendsAbove = targetRect.top < parentRect.top + padding;
+
+    if (!force && !extendsBelow && !extendsAbove) {
+      return;
+    }
+
+    scrollWithinParent(target, scrollParent, { alignStart: force });
+  };
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(runScroll);
+  });
+};
+
 const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
   const { status, severity } = plan;
   if (status === 'Investigating') return 'chain';
   if (status === 'Remediating') return 'rem';
-  if (status === 'Waiting Approval') return severity === 'critical' ? 'rca' : 'rem';
+  if (status === 'Waiting Approval') {
+    return severity === 'critical' ? 'rca' : 'rem';
+  }
   return 'rem';
 };
 
@@ -2449,17 +2560,25 @@ const createInitialSectionState = (
   };
 };
 
-const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
   const isTerminal = status === 'Completed' || status === 'Failed';
 
   const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
-  // Guided view: first presentation from the plans table — only the focus section
-  // is open. First manual toggle by the SRE exits guided mode so all sections
-  // become independently controllable.
+  // Guided view: first presentation from the plans table — only the focus section stays open.
   const [isGuidedView, setIsGuidedView] = useState(true);
+  const chainRef = React.useRef<HTMLDivElement>(null);
+  const rcaRef = React.useRef<HTMLDivElement>(null);
+  const remHubRef = React.useRef<HTMLDivElement>(null);
+  const pendingVerifyScrollRef = React.useRef(false);
+
+  const sectionRefMap: Record<RemediationWorkflowSection, React.RefObject<HTMLDivElement | null>> = {
+    chain: chainRef,
+    rca: rcaRef,
+    rem: remHubRef,
+  };
 
   useEffect(() => {
     setSectionExpanded(createInitialSectionState(plan));
@@ -2470,8 +2589,18 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
     _event: React.MouseEvent,
     isOpen: boolean,
   ) => {
-    if (isGuidedView) setIsGuidedView(false);
-    setSectionExpanded((prev) => ({ ...prev, [section]: isOpen }));
+    if (isGuidedView) {
+      setIsGuidedView(false);
+    }
+    setSectionExpanded((prev) => ({
+      ...prev,
+      [section]: isOpen,
+    }));
+    if (isOpen) {
+      setTimeout(() => {
+        scrollRemediationSectionIntoView(sectionRefMap[section].current);
+      }, 100);
+    }
   };
 
   const drawer = PLAN_DRAWER_DATA[plan.id];
@@ -2501,14 +2630,30 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
     setSelectedOptionId(options[0]?.id ?? '');
     setIsGuidedView(false);
     setSectionExpanded({ chain: false, rca: false, rem: true });
-    // After React re-renders the unlocked hub, scroll it above the fold so the
-    // SRE doesn't have to hunt for it — especially on smaller viewports.
-    setTimeout(() => {
-      remHubRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
+    pendingVerifyScrollRef.current = true;
   };
 
-  const remHubRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pendingVerifyScrollRef.current || !isDiagnosisVerified || !sectionExpanded.rem) {
+      return undefined;
+    }
+
+    const scrollToRemediationHub = () => {
+      scrollRemediationSectionIntoView(remHubRef.current, { force: true });
+    };
+
+    // Allow ExpandableSection + option card bodies to lay out before scrolling.
+    const timer = window.setTimeout(scrollToRemediationHub, 200);
+    const retryTimer = window.setTimeout(() => {
+      scrollToRemediationHub();
+      pendingVerifyScrollRef.current = false;
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(retryTimer);
+    };
+  }, [isDiagnosisVerified, sectionExpanded.rem, selectedOptionId]);
 
   if (!drawer) return null;
 
@@ -2548,6 +2693,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
       {/* ── Section B: Active Reasoning Chain ─────────────────────────── */}
       <StackItem>
+        <div ref={chainRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={sectionExpanded.chain}
@@ -2555,10 +2701,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
               <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                  <CodeBranchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-                  <Title headingLevel="h4" size="md">Active Reasoning Chain</Title>
-                </Flex>
+                <Title headingLevel="h4" size="md">Active reasoning chain</Title>
               </FlexItem>
               {isInvestigating && (
                 <FlexItem>
@@ -2615,21 +2758,20 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             ))}
           </ol>
         </ExpandableSection>
+        </div>
       </StackItem>
 
       <Divider />
 
       {/* ── Section C: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
+        <div ref={rcaRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={sectionExpanded.rca}
           onToggle={handleSectionToggle('rca')}
           toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }}>
-              <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-              <Title headingLevel="h4" size="md">Root Cause Analysis (RCA)</Title>
-            </Flex>
+            <Title headingLevel="h4" size="md">Root cause analysis (RCA)</Title>
           }
         >
           {isInvestigating ? (
@@ -2690,20 +2832,21 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
           </div>
           )}
         </ExpandableSection>
+        </div>
       </StackItem>
 
       <Divider />
 
       {/* ── Section D: Remediation Hub ─────────────────────────────────── */}
-      <StackItem ref={remHubRef}>
+      <StackItem>
+        <div ref={remHubRef}>
         <ExpandableSection
           toggleText=""
           isExpanded={sectionExpanded.rem}
           onToggle={handleSectionToggle('rem')}
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-              <Title headingLevel="h4" size="md">Remediation Hub</Title>
+              <Title headingLevel="h4" size="md">Remediation hub</Title>
               {status === 'Completed' && (
                 <Label
                   color="green"
@@ -2795,6 +2938,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
             </>
           )}
         </ExpandableSection>
+        </div>
       </StackItem>
     </Stack>
   );
@@ -2958,7 +3102,7 @@ const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase
             padding-bottom is included in the scroll extent (browser quirk). */}
         <div style={{ flex: '1 1 auto', overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ padding: '24px 20px' }}>
-            <RemediationBlueprintPanel plan={plan} />
+            <RemediationBlueprintPanel key={plan.id} plan={plan} />
           </div>
         </div>
       </div>
@@ -2966,15 +3110,49 @@ const RemediationSidePanel: React.FC<RemediationSidePanelProps> = ({ plan, phase
   );
 };
 
+// ─── Drill-down remediation page (prototype UX test) ─────────────────────────
+
+/** Plan that opens remediation in a full-page drill-down instead of the side drawer. */
+export const DRILL_DOWN_PLAN_ID = 'ap1';
+export const DRILL_DOWN_PLAN_SLUG = 'analytics-memory-leak-fix';
+export const DRILL_DOWN_REMEDIATION_PATH = `/core/observe/ai-hub/plans/${DRILL_DOWN_PLAN_SLUG}/remediation`;
+
+export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
+  const combined = isSingleCluster
+    ? [...SC_TOP_PLANS, ...SC_ALL_PLANS]
+    : [...TOP_PLANS, ...ALL_PLANS];
+  const createdAnchor = new Date('2026-06-09T16:00:00.000Z').getTime();
+  return [...combined]
+    .sort((a, b) => b.score - a.score)
+    .map((row, index) => {
+      const identity = PLAN_TABLE_IDENTITY[row.id];
+      return {
+        ...row,
+        name: identity?.name ?? row.id,
+        synopsis: identity?.synopsis ?? row.synopsis,
+        namespace: identity?.namespace,
+        cluster: identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
+        scope: isSingleCluster
+          ? identity?.namespace ?? '—'
+          : identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
+        createdAt:
+          row.createdAt ??
+          new Date(createdAnchor - index * 47 * 60_000).toISOString(),
+      };
+    });
+}
+
 // ─── Exported tab content ─────────────────────────────────────────────────────
 
 export const PlansAndApprovalsTab: React.FC = () => {
+  const navigate = useNavigate();
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
 
-  // Swap full datasets based on the active left-nav perspective.
-  const topPlans = isSingleCluster ? SC_TOP_PLANS : TOP_PLANS;
-  const allPlans = isSingleCluster ? SC_ALL_PLANS : ALL_PLANS;
+  const plans = useMemo(
+    () => buildPlansForPerspective(isSingleCluster),
+    [isSingleCluster],
+  );
 
   // `displayedPlan` stays populated during the leave animation so the panel
   // content doesn't vanish before it slides off-screen.
@@ -2983,6 +3161,11 @@ export const PlansAndApprovalsTab: React.FC = () => {
   const leaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openPanel = useCallback((plan: PlanRow) => {
+    if (plan.id === DRILL_DOWN_PLAN_ID) {
+      navigate(DRILL_DOWN_REMEDIATION_PATH);
+      return;
+    }
+
     // Cancel any in-flight leave timer
     if (leaveTimerRef.current) {
       clearTimeout(leaveTimerRef.current);
@@ -2998,7 +3181,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
         setPanelPhase('visible');
       });
     });
-  }, []);
+  }, [navigate]);
 
   const closePanel = useCallback(() => {
     setPanelPhase('leaving');
@@ -3018,35 +3201,17 @@ export const PlansAndApprovalsTab: React.FC = () => {
 
   return (
     <>
-      <Stack hasGutter style={{ rowGap: 'var(--pf-t--global--spacer--xl)' }}>
+      <Stack hasGutter>
         <StackItem>
-          <SectionHeader
-            title="Top plans"
-            threshold={
-              <Label color="blue" isCompact>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                  <FlexItem><AiSparkle size={12} /></FlexItem>
-                  <FlexItem>Impact score &ge;&nbsp;80</FlexItem>
-                </Flex>
-              </Label>
-            }
-          />
-          <TopPlansTable onReviewPlan={openPanel} rows={topPlans} />
-        </StackItem>
-
-        <StackItem>
-          <SectionHeader
-            title="All plans"
-            threshold={
-              <Label color="blue" isCompact>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                  <FlexItem><AiSparkle size={12} /></FlexItem>
-                  <FlexItem>Impact score &lt;&nbsp;80</FlexItem>
-                </Flex>
-              </Label>
-            }
-          />
-          <AllPlansTable onReviewPlan={openPanel} rows={allPlans} />
+          <Title
+            headingLevel="h3"
+            size="md"
+            className="ols-aio-fleet-subcard-title"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+          >
+            Plans
+          </Title>
+          <PlansTable onReviewPlan={openPanel} rows={plans} isSingleCluster={isSingleCluster} />
         </StackItem>
       </Stack>
 
