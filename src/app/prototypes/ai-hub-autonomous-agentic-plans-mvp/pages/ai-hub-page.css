@@ -15,9 +15,9 @@
   background-color: #ffffff !important;
 }
 
-/* Drill-down remediation page: 70% of the content area, responsive. */
+/* Drill-down remediation page: 60% of the content area, responsive. */
 .ols-plan-remediation-drilldown {
-  width: 70%;
+  width: 60%;
   max-width: 100%;
   box-sizing: border-box;
 }
