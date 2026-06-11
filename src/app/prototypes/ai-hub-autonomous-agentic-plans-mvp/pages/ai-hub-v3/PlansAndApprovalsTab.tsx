@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -49,10 +49,8 @@ import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import {
   clearPlanRemediationDrillSession,
   getPlanRemediationHref,
-  parsePerspectiveKey,
   perspectiveKeyFromShellName,
-  PLANS_LIST_PATH,
-  PERSPECTIVE_QUERY_PARAM,
+  readPlanRemediationDrillSession,
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
 
@@ -2994,24 +2992,19 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
 
 export const PlansAndApprovalsTab: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
-
-  // One-time breadcrumb handoff — consumed then cleared so the shell switcher works again.
-  const [perspectiveHandoff] = useState(
-    () => parsePerspectiveKey(searchParams.get(PERSPECTIVE_QUERY_PARAM)),
-  );
-
   const isSingleCluster = activePerspective === 'Core platforms';
 
+  // Breadcrumb return: apply session handoff once on mount, then release control to the switcher.
   useLayoutEffect(() => {
-    if (!perspectiveHandoff) {
+    const handoff = readPlanRemediationDrillSession();
+    if (!handoff) {
       return;
     }
-    setPerspectiveByKey(perspectiveHandoff);
+    setPerspectiveByKey(handoff.perspectiveKey);
     clearPlanRemediationDrillSession();
-    navigate(PLANS_LIST_PATH, { replace: true });
-  }, [navigate, perspectiveHandoff, setPerspectiveByKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per plans-list mount only
+  }, []);
 
   const plans = useMemo(
     () => buildPlansForPerspective(isSingleCluster),

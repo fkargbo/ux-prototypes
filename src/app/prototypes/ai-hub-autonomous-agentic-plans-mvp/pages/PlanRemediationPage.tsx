@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/react-core';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
@@ -13,9 +13,11 @@ import {
 } from './ai-hub-v3/PlansAndApprovalsTab';
 import {
   DRILL_FROM_QUERY_PARAM,
-  getPlansListHref,
   isSingleClusterPerspectiveKey,
+  PLANS_LIST_PATH,
+  perspectiveKeyFromShellName,
   resolveDrillPerspectiveKey,
+  writePlanRemediationDrillSession,
 } from './planRemediationDrillSession';
 import './ai-hub-page.css';
 
@@ -24,10 +26,11 @@ export const PlanRemediationPage: React.FC = () => {
   const { planSlug } = useParams<{ planSlug: string }>();
   const [searchParams] = useSearchParams();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
+  const drillPerspectiveAppliedRef = useRef(false);
 
   const drillPerspectiveKey = useMemo(
-    () => resolveDrillPerspectiveKey(searchParams.get(DRILL_FROM_QUERY_PARAM), activePerspective),
-    [activePerspective, searchParams],
+    () => resolveDrillPerspectiveKey(searchParams.get(DRILL_FROM_QUERY_PARAM)),
+    [searchParams],
   );
 
   const isSingleCluster = drillPerspectiveKey
@@ -48,30 +51,35 @@ export const PlanRemediationPage: React.FC = () => {
   }, [isSingleCluster, planSlug]);
 
   const navigateBackToPlans = useCallback(() => {
-    if (drillPerspectiveKey) {
-      setPerspectiveByKey(drillPerspectiveKey);
-      navigate(getPlansListHref(drillPerspectiveKey));
+    const key = drillPerspectiveKey
+      ?? perspectiveKeyFromShellName(activePerspective)
+      ?? 'fleet-management';
+    writePlanRemediationDrillSession({ perspectiveKey: key });
+    setPerspectiveByKey(key);
+    navigate(PLANS_LIST_PATH);
+  }, [activePerspective, drillPerspectiveKey, navigate, setPerspectiveByKey]);
+
+  useLayoutEffect(() => {
+    if (!drillPerspectiveKey || drillPerspectiveAppliedRef.current) {
       return;
     }
-    navigate(getPlansListHref('fleet-management'));
-  }, [drillPerspectiveKey, navigate, setPerspectiveByKey]);
+    drillPerspectiveAppliedRef.current = true;
+    setPerspectiveByKey(drillPerspectiveKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on drill URL only
+  }, [drillPerspectiveKey]);
 
   useEffect(() => {
-    if (drillPerspectiveKey) {
-      setPerspectiveByKey(drillPerspectiveKey);
+    if (planSlug && plan) {
+      return;
     }
-  }, [drillPerspectiveKey, setPerspectiveByKey]);
-
-  useEffect(() => {
-    if (!planSlug || !plan) {
-      if (drillPerspectiveKey) {
-        setPerspectiveByKey(drillPerspectiveKey);
-        navigate(getPlansListHref(drillPerspectiveKey), { replace: true });
-        return;
-      }
-      navigate(getPlansListHref('fleet-management'), { replace: true });
-    }
-  }, [drillPerspectiveKey, navigate, plan, planSlug, setPerspectiveByKey]);
+    const key = drillPerspectiveKey
+      ?? perspectiveKeyFromShellName(activePerspective)
+      ?? 'fleet-management';
+    writePlanRemediationDrillSession({ perspectiveKey: key });
+    setPerspectiveByKey(key);
+    navigate(PLANS_LIST_PATH, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- redirect once when plan is missing
+  }, [planSlug, plan]);
 
   if (!planSlug || !plan) {
     return null;
