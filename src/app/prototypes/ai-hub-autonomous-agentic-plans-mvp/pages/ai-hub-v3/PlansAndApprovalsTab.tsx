@@ -1999,7 +1999,7 @@ const RemediationOptionCard: React.FC<{
               {/* Sandbox gate */}
               <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
                 {sandboxState === 'pending' && (
-                  <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapXs' }}>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <Button
                       variant="secondary"
                       size="sm"
