@@ -99,7 +99,6 @@ export const PlanRemediationPage: React.FC = () => {
           gap={{ default: 'gapSm' }}
           flexWrap={{ default: 'wrap' }}
           style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}
-        }}
         >
           <FlexItem>
             <PlanResourceBadge />

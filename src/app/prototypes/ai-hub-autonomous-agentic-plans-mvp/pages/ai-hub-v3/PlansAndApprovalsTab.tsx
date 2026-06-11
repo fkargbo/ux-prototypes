@@ -3020,7 +3020,8 @@ export const PlansAndApprovalsTab: React.FC = () => {
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
-    const perspectiveKey = perspectiveKeyFromShellName(activePerspective)
+    const perspectiveKey: 'core-platforms' | 'fleet-management' =
+      perspectiveKeyFromShellName(activePerspective)
       ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
     writePlanRemediationDrillSession({ perspectiveKey });
     navigate(getPlanRemediationPath(plan, perspectiveKey));

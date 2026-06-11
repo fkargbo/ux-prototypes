@@ -20,7 +20,7 @@ export function parsePerspectiveKey(value: string | null | undefined): AppShellP
   return null;
 }
 
-export function perspectiveKeyFromShellName(name: string): AppShellPerspectiveKey | null {
+export function perspectiveKeyFromShellName(name: string): 'core-platforms' | 'fleet-management' | null {
   if (name === 'Core platforms') {
     return 'core-platforms';
   }
@@ -54,6 +54,14 @@ export function readPlanRemediationDrillSession(): PlanRemediationDrillPayload |
       : null;
   } catch {
     return null;
+  }
+}
+
+export function clearPlanRemediationDrillSession(): void {
+  try {
+    sessionStorage.removeItem(PLAN_REMEDIATION_DRILL_SESSION_KEY);
+  } catch {
+    /* ignore */
   }
 }
 
