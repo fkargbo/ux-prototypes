@@ -1585,6 +1585,8 @@ const RemediationOptionCard: React.FC<{
   onSelect: (id: string) => void;
 }> = ({ option, index, plan, executionMessage, isSelected, isDiagnosisVerified, onSelect }) => {
   const isFirst = index === 0;
+  const { activePerspective } = useActivePerspective();
+  const isSingleCluster = activePerspective === 'Core platforms';
   const { status, isUnauthorized, drawerTargets } = plan;
   const isInvestigating = status === 'Investigating';
   const isWaitingApproval = status === 'Waiting Approval';
@@ -1698,7 +1700,9 @@ const RemediationOptionCard: React.FC<{
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
           <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
           <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-            Remediation applied to {selectedCount} target{selectedCount !== 1 ? 's' : ''}
+            {isSingleCluster
+              ? 'Remediation applied'
+              : `Remediation applied to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
           </Content>
         </Flex>
       );
@@ -1721,13 +1725,15 @@ const RemediationOptionCard: React.FC<{
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
         <Button
           variant="primary"
-          isDisabled={selectedCount === 0 || isExecuting}
+          isDisabled={(!isSingleCluster && selectedCount === 0) || isExecuting}
           isLoading={isExecuting}
           onClick={handleExecute}
         >
-          {isExecuting
-            ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
-            : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
+          {isSingleCluster
+            ? (isExecuting ? 'Applying remediation…' : 'Apply remediation')
+            : (isExecuting
+              ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
+              : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`)}
         </Button>
         {!isExecuting && (
           <Button
@@ -1884,8 +1890,8 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── Target Selection (Waiting Approval only) ── */}
-          {!isInvestigating && !isTerminal && !isRemediating && drawerTargets.length > 0 && (
+          {/* ── Target Selection (Waiting Approval only; fleet management) ── */}
+          {!isInvestigating && !isTerminal && !isRemediating && (isSingleCluster || drawerTargets.length > 0) && (
             <div
               style={{
                 borderRadius: 'var(--pf-t--global--border--radius--small)',
@@ -1895,58 +1901,66 @@ const RemediationOptionCard: React.FC<{
                 backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
               }}
             >
-              {/* Header row: label + Select All / Deselect All */}
-              <Flex
-                justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-              >
-                <Content component="small" style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                  Targets ({selectedCount} / {drawerTargets.length})
-                </Content>
-                <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '12px' }}
-                    onClick={() => setSelectedTargets(new Set(drawerTargets))}
+              {!isSingleCluster && drawerTargets.length > 0 && (
+                <>
+                  {/* Header row: label + Select All / Deselect All */}
+                  <Flex
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
                   >
-                    Select all
-                  </Button>
-                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>·</span>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '12px' }}
-                    onClick={() => setSelectedTargets(new Set())}
-                  >
-                    Deselect all
-                  </Button>
-                </Flex>
-              </Flex>
+                    <Content component="small" style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Targets ({selectedCount} / {drawerTargets.length})
+                    </Content>
+                    <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <Button
+                        variant="link"
+                        isInline
+                        style={{ fontSize: '12px' }}
+                        onClick={() => setSelectedTargets(new Set(drawerTargets))}
+                      >
+                        Select all
+                      </Button>
+                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>·</span>
+                      <Button
+                        variant="link"
+                        isInline
+                        style={{ fontSize: '12px' }}
+                        onClick={() => setSelectedTargets(new Set())}
+                      >
+                        Deselect all
+                      </Button>
+                    </Flex>
+                  </Flex>
 
-              {/* Individual target checkboxes */}
-              <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
-                {drawerTargets.map((target) => (
-                  <StackItem key={target}>
-                    <Checkbox
-                      id={`target-${option.id}-${target}`}
-                      label={target}
-                      isChecked={selectedTargets.has(target)}
-                      onChange={(_e, checked) => {
-                        setSelectedTargets((prev) => {
-                          const next = new Set(prev);
-                          checked ? next.add(target) : next.delete(target);
-                          return next;
-                        });
-                      }}
-                    />
-                  </StackItem>
-                ))}
-              </Stack>
+                  {/* Individual target checkboxes */}
+                  <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
+                    {drawerTargets.map((target) => (
+                      <StackItem key={target}>
+                        <Checkbox
+                          id={`target-${option.id}-${target}`}
+                          label={target}
+                          isChecked={selectedTargets.has(target)}
+                          onChange={(_e, checked) => {
+                            setSelectedTargets((prev) => {
+                              const next = new Set(prev);
+                              checked ? next.add(target) : next.delete(target);
+                              return next;
+                            });
+                          }}
+                        />
+                      </StackItem>
+                    ))}
+                  </Stack>
+                </>
+              )}
 
               {/* Sandbox gate */}
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+              <div style={
+                !isSingleCluster && drawerTargets.length > 0
+                  ? { marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }
+                  : undefined
+              }>
                 {sandboxState === 'pending' && (
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <Button
@@ -2155,8 +2169,8 @@ const PostMortemPanel: React.FC<{
           )}
         </DescriptionList>
 
-        {/* Section B — Execution Scope */}
-        {targets.length > 0 && (
+        {/* Section B — Execution Scope (fleet management only) */}
+        {!isSingleCluster && targets.length > 0 && (
           <>
             {sectionLabel('Execution Scope')}
             <DescriptionList isHorizontal isAutoColumnWidths isCompact>
@@ -2682,7 +2696,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           toggleContent={
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
               <FlexItem>
-                <Title headingLevel="h4" size="md">Active reasoning chain</Title>
+                <Title headingLevel="h4" size="md">Investigation path</Title>
               </FlexItem>
               {isInvestigating && (
                 <FlexItem>
