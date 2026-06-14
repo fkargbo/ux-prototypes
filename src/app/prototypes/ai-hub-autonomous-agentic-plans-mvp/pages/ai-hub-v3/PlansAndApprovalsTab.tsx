@@ -1359,7 +1359,6 @@ interface PlansTableProps {
 const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleCluster }) => {
   // ── Filter state — intentionally decoupled from perspective; persists on switch ──
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [rbacOnly, setRbacOnly] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
   // ── Pagination state ──
@@ -1370,10 +1369,9 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       if (statusFilters.length > 0 && !statusFilters.includes(row.status)) return false;
-      if (rbacOnly && row.isUnauthorized) return false;
       return true;
     });
-  }, [rows, statusFilters, rbacOnly]);
+  }, [rows, statusFilters]);
 
   // Reset to page 1 whenever effective row count changes (filter or perspective)
   useEffect(() => {
@@ -1382,7 +1380,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
 
   const clearAllFilters = useCallback(() => {
     setStatusFilters([]);
-    setRbacOnly(false);
   }, []);
 
   const toggleStatusFilter = useCallback((val: string) => {
@@ -1392,7 +1389,7 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
   }, []);
 
   const activeFilterCount = statusFilters.length;
-  const hasActiveFilters = activeFilterCount > 0 || rbacOnly;
+  const hasActiveFilters = activeFilterCount > 0;
 
   const handleFilterSelect = useCallback(
     (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
@@ -1450,7 +1447,7 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
 
   return (
     <>
-      {/* ── Toolbar: filter dropdowns + "Executable" checkbox + pagination ── */}
+      {/* ── Toolbar: filter dropdown + pagination ── */}
       {/* Pagination lives inside the toolbar so they sit on the same row.   */}
       {/* ToolbarFilter is intentionally NOT used here — its auto-expanding   */}
       {/* chip row causes the table to jump. Chips are rendered below        */}
@@ -1462,7 +1459,7 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
         flexWrap={{ default: 'nowrap' }}
         style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
       >
-        {/* Left: filter dropdowns + checkbox */}
+        {/* Left: filter dropdown */}
         <FlexItem>
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
             <FlexItem>
@@ -1492,15 +1489,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
                   ))}
                 </SelectList>
               </Select>
-            </FlexItem>
-
-            <FlexItem style={{ marginInlineStart: 'var(--pf-t--global--spacer--sm)' }}>
-              <Checkbox
-                id="plans-rbac-only"
-                label="Show Executable Fixes Only"
-                isChecked={rbacOnly}
-                onChange={(_e, checked) => setRbacOnly(checked)}
-              />
             </FlexItem>
           </Flex>
         </FlexItem>
@@ -1532,13 +1520,6 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
                 {s}
               </Label>
             ))}
-          </LabelGroup>
-        )}
-        {rbacOnly && (
-          <LabelGroup>
-            <Label isCompact onClose={() => setRbacOnly(false)}>
-              Executable fixes only
-            </Label>
           </LabelGroup>
         )}
         {hasActiveFilters && (
