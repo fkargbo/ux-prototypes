@@ -519,20 +519,20 @@ html:not(:has(.hpux-prototype-chrome-scroll)) .pf-v6-c-page__main-container {
   background-color: #fafafa !important;
 }
 
-/* Logo fills inner box edge-to-edge (crop if needed); no margin/padding inside the control. */
+/* Logo scales inside the 48×48 control (same contain treatment as header / empty-state marks). */
 .chatbot-toggle-sticky-host .ols-floating-launcher__logo {
   box-sizing: border-box !important;
   width: 100% !important;
   height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   flex: 1 1 auto !important;
   flex-shrink: 0 !important;
-  min-width: 100% !important;
-  min-height: 100% !important;
-  object-fit: cover !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  object-fit: contain !important;
   object-position: center !important;
   display: block !important;
   pointer-events: none;

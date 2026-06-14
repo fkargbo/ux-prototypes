@@ -21,7 +21,7 @@ export const AIHubPage: React.FC = () => {
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/ai-hub/plans')}>
-            AI Hub
+            Agentic Plans
           </BreadcrumbItem>
           <BreadcrumbItem isActive>Plans</BreadcrumbItem>
         </Breadcrumb>
@@ -32,11 +32,11 @@ export const AIHubPage: React.FC = () => {
           <Hub.AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
             <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
-              AI Hub (MVP)
+              Agentic plans (MVP)
             </Title>
             <Content component="p" className="ols-ai-hub-page-subtitle">
-              Accelerate incident response with autonomous investigations, automated evidence gathering, and guided
-              fixes.
+              Speed up incident response with targeted agent investigations, automated evidence collection, and
+              actionable remediation proposals.
             </Content>
             <Content
               component="p"
@@ -57,7 +57,7 @@ export const AIHubPage: React.FC = () => {
         id="ols-ai-hub-main"
         className="template-page-content"
         role="main"
-        aria-label="AI Hub plans content"
+        aria-label="Agentic plans content"
       >
         <Hub.PlansAndApprovalsTab />
       </div>

@@ -23,7 +23,7 @@ export const routes: RouteConfig[] = [
     label: 'Plans',
     title: 'Plans',
     navigation: {
-      group: 'AI Hub',
+      group: 'Agentic Plans',
       order: 1,
       insertAfterGroup: 'Home',
     },
