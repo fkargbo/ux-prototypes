@@ -2265,7 +2265,7 @@ const PostMortemPanel: React.FC<{
               }
               style={{ padding: 0, fontSize: '14px', marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
             >
-              {isMetricsExpanded ? 'Hide execution summary' : 'View execution summary'}
+              {isMetricsExpanded ? 'Hide post execution summary' : 'View post execution summary'}
             </Button>
 
             {/* Collapsible metrics content (Sections A, B, C) */}
@@ -2293,7 +2293,7 @@ const PostMortemPanel: React.FC<{
                 }
                 style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
               >
-                {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
+                {showLogs ? 'Hide post-execution logs' : 'View post-execution logs'}
               </Button>
               {showLogs && (
                 <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
@@ -2313,7 +2313,7 @@ const PostMortemPanel: React.FC<{
             <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
               <Button variant="danger" isDanger>Initiate Rollback</Button>
               <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">Export to ITSM Ticket</Button>
-              <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download Post-Mortem Report</Button>
+              <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download post-execution report</Button>
             </Flex>
           </>
         ) : (
@@ -2332,7 +2332,7 @@ const PostMortemPanel: React.FC<{
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
                 <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
-                <Title headingLevel="h5" size="md">Execution summary</Title>
+                <Title headingLevel="h5" size="md">Post execution summary</Title>
               </Flex>
 
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -2357,7 +2357,7 @@ const PostMortemPanel: React.FC<{
                   }
                   style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
                 >
-                  {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
+                  {showLogs ? 'Hide post-execution logs' : 'View post-execution logs'}
                 </Button>
                 {showLogs && (
                   <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
@@ -2379,7 +2379,7 @@ const PostMortemPanel: React.FC<{
               <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
                 <Button variant="danger" isDanger>Initiate Rollback</Button>
                 <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">Export to ITSM Ticket</Button>
-                <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download Post-Mortem Report</Button>
+                <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download post-execution report</Button>
               </Flex>
             </div>
           </div>

@@ -92,7 +92,7 @@ export const PlanRemediationPage: React.FC = () => {
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            AI Hub
+            Agentic Plans
           </BreadcrumbItem>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
             Plans
