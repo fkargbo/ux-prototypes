@@ -2,6 +2,8 @@
  * Mock dataset for Autonomous analysis — values match cursor-prompt-cluster-monitoring-console.md
  */
 
+import type { ConfidenceTier } from '../../types/confidenceTier';
+
 export type ClusterHealth = 'critical' | 'degraded' | 'healthy';
 export type AgentPulseStatus = 'investigating' | 'remediating' | 'escalated' | 'idle';
 export type AlertSeverity = 'critical' | 'warning' | 'info';
@@ -61,7 +63,7 @@ export interface AlertRecord {
   rcaSummary: string;
   rootCauseRef: string;
   rootCauseTail: string;
-  confidence: number;
+  confidence: ConfidenceTier;
   logLines: string;
   blastRadius: string[];
   remediationSummary: string;
@@ -102,6 +104,8 @@ export interface FleetWideCriticalIncident {
   /** Remediation hub — risk / recovery framing. */
   riskAssessment: string;
   estimatedRecovery: string;
+  /** RCA confidence tier for fleet-wide incident panels. */
+  confidence: ConfidenceTier;
 }
 
 /** Default cluster when Core platforms loads Observe with no session-stored focus. */
@@ -343,7 +347,7 @@ type SyntheticAlertInput = {
   rootCauseTail: string;
   estimatedRecovery?: string;
   agentStatus?: AgentPulseStatus;
-  confidence?: number;
+  confidence?: ConfidenceTier;
   category?: string;
   headline?: string;
   narrative?: string;
@@ -401,7 +405,7 @@ function buildSyntheticAlert(input: SyntheticAlertInput): AlertRecord {
     rcaSummary: `${input.title} is amplified by ${input.rootCauseTail} in ${input.clusterId}.`,
     rootCauseRef: input.rootCauseRef,
     rootCauseTail: input.rootCauseTail,
-    confidence: input.confidence ?? 79,
+    confidence: input.confidence ?? 'Medium',
     logLines: `W 14:31:02 ${input.title} threshold exceeded\nI 14:31:08 evaluating ${input.rootCauseRef}\nI 14:31:17 impact scored for ${input.clusterId}`,
     blastRadius: [input.clusterId, input.service],
     remediationSummary: `Apply targeted remediation on ${input.clusterId} to reduce ${input.title} impact while preserving service availability.`,
@@ -713,7 +717,7 @@ export const ALERTS: AlertRecord[] = [
       'NetworkPolicy applied at 14:18 UTC blocks egress to redis cache, causing connection timeouts in payments-api pods and cascading 5xx errors at the gateway.',
     rootCauseRef: 'payments-egress-v3',
     rootCauseTail: 'redis-cache.svc.cluster.local:6379',
-    confidence: 87,
+    confidence: 'High',
     logLines: `E 14:21:58 dial tcp 10.0.4.12:6379:
   i/o timeout
 W 14:21:59 redis pool exhausted (32/32)
@@ -784,7 +788,7 @@ $ kubectl rollout restart deploy/payments-api -n payments`,
       'etcd WAL exceeded 8 GB threshold on master-2 due to skipped auto-compaction window during last upgrade. Disk pressure risks quorum stability.',
     rootCauseRef: 'etcd-master-2',
     rootCauseTail: '/var/lib/etcd',
-    confidence: 92,
+    confidence: 'High',
     logLines: `W 14:15:30 mvcc: storage backend quota exceeded
 W 14:15:31 apply request took too long (412ms)
 E 14:15:32 DiskPressure: available 4% (<10%)`,
@@ -855,7 +859,7 @@ $ oc patch pvc etcd-master-2 -p '{"spec":{"resources":{"requests":{"storage":"60
       'checkout-svc hit HPA ceiling of 4 replicas while sustained traffic grew 2.1x week-over-week. CPU requests under-provisioned for current shape.',
     rootCauseRef: 'checkout-svc',
     rootCauseTail: 'hpa: max=4 cpu.req=250m',
-    confidence: 78,
+    confidence: 'Medium',
     logLines: `I 14:03:55 cpu_throttled_seconds_total +0.42/s
 I 14:04:02 hpa: desired=6 current=4 (capped)
 W 14:04:10 request latency p95 = 1.8s`,
@@ -923,7 +927,7 @@ $ oc set resources deploy/checkout-svc --requests=cpu=500m`,
       'Wildcard cert *.apac.example.com nearing expiry; auto-renewal disabled during last edge maintenance window and never re-enabled.',
     rootCauseRef: 'wildcard-apac',
     rootCauseTail: 'auto-renew=false',
-    confidence: 95,
+    confidence: 'High',
     logLines: `I 14:23:55 cert-manager: 36h to expiry
 W 14:23:56 renewBefore window entered
 I 14:24:00 issuer letsencrypt-prod ready`,
@@ -1016,6 +1020,7 @@ export const FLEET_WIDE_REGIONAL_INGRESS: FleetWideCriticalIncident = {
     'Roll back NetworkPolicy deny-all-ingress to version v2.1.0 across all 3 clusters (prod-east-2, prod-eu-west-1, stg-central).',
   riskAssessment: 'Low risk. This will restore traffic immediately.',
   estimatedRecovery: '~45s',
+  confidence: 'High',
 };
 
 /**
@@ -1061,7 +1066,7 @@ export function buildFleetWideIngressAlertRecordForCluster(clusterId: string): A
     rcaSummary: `${fw.aggregatedFinding} ${fw.rootCauseNarrative}`.trim(),
     rootCauseRef: 'cluster-gitops-policies',
     rootCauseTail: fw.rootCauseNarrative.slice(0, 120),
-    confidence: 94,
+    confidence: 'High',
     logLines: `Fleet ingress symptom · ${fw.correlatedAlertCount} correlated alerts · deny-all-ingress NetworkPolicy roll-forward detected.`,
     blastRadius: [...fw.affectedClusterIds, 'router-default', 'openshift-ingress'],
     remediationSummary: fw.remediationProposal,

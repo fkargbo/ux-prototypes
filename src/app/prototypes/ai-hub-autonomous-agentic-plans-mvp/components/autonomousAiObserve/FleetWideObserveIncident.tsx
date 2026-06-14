@@ -24,6 +24,7 @@ import {
   WrenchIcon,
 } from '@patternfly/react-icons';
 import type { ClusterRecord, FleetWideCriticalIncident } from './data';
+import { confidenceTierProgressValue } from '../../types/confidenceTier';
 import { AgentPulseLabel } from './AgentPulseLabel';
 import { AiInsightLede } from './AiInsightCategoryRow';
 import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from './reasoningChainTimeline';
@@ -238,10 +239,10 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
                       className="ols-aio-card-stat-number"
                       style={{ color: 'var(--pf-t--global--color--status--success--default)' }}
                     >
-                      91%
+                      {incident.confidence}
                     </span>
                   </Flex>
-                  <Progress value={91} title="" size={ProgressSize.sm} measureLocation="none" variant="success" />
+                  <Progress value={confidenceTierProgressValue(incident.confidence)} title="" size={ProgressSize.sm} measureLocation="none" variant="success" />
                   {onDiscussWithLightspeed ? (
                     <Flex
                       alignItems={{ default: 'alignItemsCenter' }}

@@ -42,6 +42,8 @@ import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, Exclamatio
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
+import type { ConfidenceTier } from '../../types/confidenceTier';
+import { confidenceTierLabelColor } from '../../types/confidenceTier';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
@@ -575,7 +577,7 @@ interface PlanDrawerData {
   remediationProposal: string;
   riskAssessment: string;
   estimatedRecovery: string;
-  confidence: number;
+  confidence: ConfidenceTier;
 }
 
 const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
@@ -585,14 +587,14 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '10:03:12', status: 'done', icon: 'exclamation', title: 'Detected ArgoCD LiveStateOutOfSync event', detail: '4 IngressControllerDegraded alerts firing fleet-wide' },
       { id: 's2', time: '10:03:25', status: 'done', icon: 'database',   title: 'Fetched GitOps revision history', detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
       { id: 's3', time: '10:03:41', status: 'done', icon: 'network',    title: 'Diffed live vs. declared NetworkPolicy objects', detail: 'Kustomize overlay conflict found across 4 fleet namespaces' },
-      { id: 's4', time: '10:03:55', status: 'done', icon: 'search',     title: 'Scored blast radius and causal confidence', detail: '4 fleets affected · 94% confidence in GitOps root cause' },
+      { id: 's4', time: '10:03:55', status: 'done', icon: 'search',     title: 'Scored blast radius and causal confidence', detail: '4 fleets affected · High confidence in GitOps root cause' },
     ],
     aggregatedFinding: 'ArgoCD revision r4892 applied a malformed ApplicationSet template that mismatched live cluster state across 4 fleets.',
     rootCauseNarrative: 'A faulty Argo CD ApplicationSet push (revision r4892) propagated conflicting Kustomize overlays, causing router → workload traffic mismatches. The drift was confirmed 3 minutes after the sync event triggered 4 IngressControllerDegraded alerts.',
     remediationProposal: 'Revert ArgoCD ApplicationSet to revision r4891 and force a hard sync across all 4 affected fleets.',
     riskAssessment: 'Low — GitOps rollback is reversible and non-destructive.',
     estimatedRecovery: '~45s',
-    confidence: 94,
+    confidence: 'High',
   },
   tp2: {
     steps: [
@@ -606,7 +608,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Remediation paths pending root cause confirmation.',
     riskAssessment: 'Medium — isolation will require pod eviction, causing brief service disruption.',
     estimatedRecovery: '~3m',
-    confidence: 71,
+    confidence: 'Medium',
   },
   tp3: {
     steps: [
@@ -620,7 +622,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Increase memory limits on affected deployments by 40% and trigger HPA scale-out to 3 replicas.',
     riskAssessment: 'Low — resource limit adjustments are rolling and reversible.',
     estimatedRecovery: '~90s',
-    confidence: 85,
+    confidence: 'High',
   },
   tp4: {
     steps: [
@@ -634,21 +636,21 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Expand Ceph pool capacity by 20% and enforce log rotation on affected StatefulSets.',
     riskAssessment: 'Medium — storage expansion requires OSD reconfiguration and a brief I/O suspension period.',
     estimatedRecovery: '~2m',
-    confidence: 82,
+    confidence: 'High',
   },
   tp5: {
     steps: [
       { id: 's1', time: '07:09:11', status: 'done', icon: 'exclamation', title: 'Detected elevated API server P99 latency', detail: '2 etcd_db_total_size_in_bytes fragmentation events triggered' },
       { id: 's2', time: '07:09:22', status: 'done', icon: 'database',    title: 'Queried etcd DB size and compaction history', detail: 'Fragmentation at 68% — last auto-compact skipped during upgrade' },
       { id: 's3', time: '07:09:34', status: 'done', icon: 'search',      title: 'Correlated fragmentation with API write amplification', detail: 'Leader election overhead elevated · P99 latency >1.2s confirmed' },
-      { id: 's4', time: '07:09:46', status: 'done', icon: 'search',      title: 'Scored blast radius and causal confidence', detail: 'Fragmentation >65% threshold · 91% confidence in etcd root cause' },
+      { id: 's4', time: '07:09:46', status: 'done', icon: 'search',      title: 'Scored blast radius and causal confidence', detail: 'Fragmentation >65% threshold · High confidence in etcd root cause' },
     ],
     aggregatedFinding: 'etcd database fragmentation (>65%) confirmed as root cause of elevated API server P99 latency.',
     rootCauseNarrative: 'etcd fragmentation exceeded 65% — a known performance threshold — causing API write amplification and increased leader election overhead, driving P99 latency above 1.2s.',
     remediationProposal: 'Execute etcd defragmentation on all 3 control plane members with rolling restart cadence.',
     riskAssessment: 'Low — etcd defragmentation is a supported operational procedure.',
     estimatedRecovery: '~45s',
-    confidence: 91,
+    confidence: 'High',
   },
 
   // ── All plans ──────────────────────────────────────────────────────────────
@@ -663,7 +665,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Apply memory limit patch (2Gi → 4Gi) and redeploy affected pods with the corrected configuration.',
     riskAssessment: 'Low — dev environment, no user-facing impact.',
     estimatedRecovery: '~30s',
-    confidence: 78,
+    confidence: 'Medium',
   },
   ap2: {
     steps: [
@@ -677,7 +679,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Rotate EventListener TLS secret and force webhook endpoint re-registration on both clusters.',
     riskAssessment: 'Low — development pipeline only, no production workload impact.',
     estimatedRecovery: '~1m',
-    confidence: 75,
+    confidence: 'Medium',
   },
   ap3: {
     steps: [
@@ -690,7 +692,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Re-bind the IAM automation role and execute emergency certificate rotation.',
     riskAssessment: 'Medium — brief authentication interruption expected during the rotation handoff window.',
     estimatedRecovery: '~2m',
-    confidence: 71,
+    confidence: 'Medium',
   },
   ap4: {
     steps: [
@@ -703,7 +705,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Remediation paths pending root cause confirmation.',
     riskAssessment: 'TBD — root cause under active investigation.',
     estimatedRecovery: 'TBD',
-    confidence: 58,
+    confidence: 'Medium',
   },
   ap5: {
     steps: [
@@ -716,7 +718,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Force-drain node, reset the Metal3 BMH object, and re-provision the node.',
     riskAssessment: 'High — force drain may impact in-flight workloads during the procedure.',
     estimatedRecovery: '~5m',
-    confidence: 65,
+    confidence: 'Medium',
   },
   ap6: {
     steps: [
@@ -729,7 +731,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Force ArgoCD hard sync on the staging application to restore GitOps-declared state.',
     riskAssessment: 'Low — staging environment, non-destructive sync operation.',
     estimatedRecovery: '~15s',
-    confidence: 92,
+    confidence: 'High',
   },
   ap7: {
     steps: [
@@ -742,7 +744,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Patch the PodDisruptionBudget to allow HPA scale-out and immediately scale ingress routers to the minimum replica count.',
     riskAssessment: 'Low — router pods scale rolling with no traffic interruption.',
     estimatedRecovery: '~1m',
-    confidence: 79,
+    confidence: 'Medium',
   },
   ap8: {
     steps: [
@@ -755,7 +757,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Set hostNetwork: false on the offending deployment and apply a network policy admission webhook to prevent recurrence.',
     riskAssessment: 'Medium — policy enforcement will trigger pod restarts on the affected deployment.',
     estimatedRecovery: '~1m',
-    confidence: 75,
+    confidence: 'Medium',
   },
   ap9: {
     steps: [
@@ -768,7 +770,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Execute a graceful Kubelet garbage collection cycle and validate the containerd runtime configuration.',
     riskAssessment: 'Low — housekeeping operation with no workload impact.',
     estimatedRecovery: '~30s',
-    confidence: 72,
+    confidence: 'Medium',
   },
   ap10: {
     steps: [
@@ -782,7 +784,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Terminate the stalled job and increase the executor count from 4 to 8 to prevent recurrence.',
     riskAssessment: 'Low — non-critical CI environment with no production dependency.',
     estimatedRecovery: '~2m',
-    confidence: 88,
+    confidence: 'High',
   },
   ap11: {
     steps: [
@@ -795,7 +797,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Restart the custom metrics adapter and validate Prometheus scrape endpoint connectivity.',
     riskAssessment: 'Low — brief adapter restart has no workload impact.',
     estimatedRecovery: '~45s',
-    confidence: 76,
+    confidence: 'Medium',
   },
   ap12: {
     steps: [
@@ -808,7 +810,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Force DNS cache flush on affected nodes and update the registry mirror configuration to bypass the stale record.',
     riskAssessment: 'Low — rolling DNS update with no workload eviction required.',
     estimatedRecovery: '~2m',
-    confidence: 72,
+    confidence: 'Medium',
   },
   ap13: {
     steps: [
@@ -821,7 +823,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Remediation paths pending root cause confirmation.',
     riskAssessment: 'TBD — storage configuration change scope under investigation.',
     estimatedRecovery: 'TBD',
-    confidence: 58,
+    confidence: 'Medium',
   },
   ap14: {
     steps: [
@@ -835,7 +837,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Reconfigure chronyd to use the corporate NTP pool and restart the clock synchronization service.',
     riskAssessment: 'Low — NTP reconfiguration has no workload impact.',
     estimatedRecovery: '~30s',
-    confidence: 94,
+    confidence: 'High',
   },
   ap15: {
     steps: [
@@ -848,7 +850,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Restore RBAC permissions for the registry pruner service account and trigger a manual prune run.',
     riskAssessment: 'Low — registry pruning is non-destructive (removes unreferenced tags only).',
     estimatedRecovery: '~1m',
-    confidence: 80,
+    confidence: 'High',
   },
 };
 
@@ -2788,10 +2790,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ position: 'relative' }}>
             <Label
-              color={drawer.confidence >= 80 ? 'green' : drawer.confidence >= 60 ? 'yellow' : 'blue'}
+              color={confidenceTierLabelColor(drawer.confidence)}
               style={{ position: 'absolute', top: 'var(--pf-t--global--spacer--sm)', right: 'var(--pf-t--global--spacer--sm)' }}
             >
-              {drawer.confidence}% confidence
+              {drawer.confidence}
             </Label>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}

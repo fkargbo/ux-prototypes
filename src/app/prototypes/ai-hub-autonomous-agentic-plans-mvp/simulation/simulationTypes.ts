@@ -1,4 +1,5 @@
 import type { AgentPulseStatus, AlertSeverity, ClusterHealth, ViewMode } from '../components/autonomousAiObserve/data';
+import type { ConfidenceTier } from '../types/confidenceTier';
 
 /** Serialized alert slice shared between Autonomous analysis and OLS (no mock/fake wording in UX). */
 export interface SimulationAlertBrief {
@@ -16,7 +17,7 @@ export interface SimulationAlertBrief {
   remediationCommands: string;
   remediationRiskSummary: string;
   agentInvestigationNarrative: string;
-  confidence: number;
+  confidence: ConfidenceTier;
   steps: Array<{ id: string; time?: string; title: string; status: string; detail?: string }>;
 }
 

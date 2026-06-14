@@ -191,7 +191,7 @@ function simulationBriefFromFleetRegionalIngress(): SimulationAlertBrief {
       'Use Remediation hub in Fleet management for governor-approved rollback across affected clusters.',
     remediationRiskSummary: fw.riskAssessment,
     agentInvestigationNarrative: fw.aiInsight.narrative ?? fw.aiInsight.evidence,
-    confidence: 94,
+    confidence: fw.confidence,
     steps: fw.steps.map((s) => ({
       id: s.id,
       time: s.time,
@@ -282,7 +282,7 @@ function buildWhyForAlert(a: SimulationAlertBrief): string {
   return (
     `Here is **why** this reads the way it does for **${a.title}**:\n\n` +
     `${a.rcaSummary} The investigation narrative adds: ${a.agentInvestigationNarrative}\n\n` +
-    `Confidence in this synthesized read: **${a.confidence}%**. Use **Observe > Metrics** in the affected namespace to corroborate before changing topology or limits.`
+    `Confidence in this synthesized read: **${a.confidence}**. Use **Observe > Metrics** in the affected namespace to corroborate before changing topology or limits.`
   );
 }
 
@@ -394,7 +394,7 @@ function buildDefaultAlertBlock(p: SimulationAlertBrief, snap: SimulationSnapsho
     specificityHint +
     `**${p.title}** — ${p.message}\n\n` +
     `**Root cause:** ${p.rcaSummary} Key reference: \`${p.rootCauseRef}\` ${p.rootCauseTail}. ` +
-    `**Confidence:** ${p.confidence}%.\n\n` +
+    `**Confidence:** ${p.confidence}.\n\n` +
     `**Remediation:** ${p.remediationSummary}\n` +
     `**Risk:** ${p.remediationRiskSummary}`;
 
