@@ -126,7 +126,7 @@ export const PlanRemediationPage: React.FC = () => {
             </FlexItem>
           )}
           <FlexItem>
-            <PlanRiskBadge score={plan.riskScore ?? 50} isCompact={false} />
+            <PlanRiskBadge score={plan.riskScore ?? 50} />
           </FlexItem>
         </Flex>
         <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
