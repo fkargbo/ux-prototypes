@@ -1620,7 +1620,7 @@ const RemediationOptionCard: React.FC<{
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
-  const [commandView, setCommandView] = useState<'dry-run' | 'live'>('dry-run');
+  const [showLiveCommands, setShowLiveCommands] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
@@ -1631,7 +1631,7 @@ const RemediationOptionCard: React.FC<{
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
     if (!isSelected) {
-      setCommandView('dry-run');
+      setShowLiveCommands(false);
       setIsExecuting(false);
     }
   }, [isSelected]);
@@ -1926,29 +1926,18 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── Command preview (dry-run default; toggle to live for manual apply) ── */}
+          {/* ── Dry-run commands (primary safety gate) ── */}
           {showRemediationActions && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              {commandView === 'dry-run' ? (
-                <Alert
-                  variant="info"
-                  isInline
-                  title="Dry-run preview — verify before applying"
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                >
-                  Review the command summary below. No live mutations occur until you choose{' '}
-                  <strong>Apply remediation</strong> or switch to live commands for manual execution.
-                </Alert>
-              ) : (
-                <Alert
-                  variant="warning"
-                  isInline
-                  title="Live commands — manual execution"
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                >
-                  These commands will mutate cluster state when run. Execute only after dry-run validation passes.
-                </Alert>
-              )}
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              <Alert
+                variant="info"
+                isInline
+                title="Dry-run preview — verify before applying"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                Review the dry-run summary below. No live mutations occur until you choose{' '}
+                <strong>Apply remediation</strong> or use the manual paths underneath.
+              </Alert>
               <Content
                 component="small"
                 style={{
@@ -1960,7 +1949,7 @@ const RemediationOptionCard: React.FC<{
                   marginBottom: 'var(--pf-t--global--spacer--xs)',
                 }}
               >
-                {commandView === 'dry-run' ? 'Dry-run commands' : 'Live commands'}
+                Dry-run commands
               </Content>
               <ClipboardCopy
                 isReadOnly
@@ -1969,14 +1958,72 @@ const RemediationOptionCard: React.FC<{
                 clickTip="Copied"
                 style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
               >
-                {commandView === 'dry-run'
-                  ? buildDryRunCommandPreview(option.rawCommands)
-                  : option.rawCommands}
+                {buildDryRunCommandPreview(option.rawCommands)}
               </ClipboardCopy>
             </div>
           )}
 
-          {/* ── Primary remediation actions ── */}
+          {/* ── Manual paths (stacked below dry-run, above Apply) ── */}
+          {showRemediationActions && (
+            <Stack hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <StackItem>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => setShowLiveCommands(!showLiveCommands)}
+                  icon={
+                    <AngleRightIcon
+                      style={{
+                        transform: showLiveCommands ? 'rotate(90deg)' : 'rotate(0deg)',
+                        transition: 'transform 150ms ease',
+                      }}
+                    />
+                  }
+                  style={{ padding: 0, fontSize: '14px' }}
+                >
+                  {showLiveCommands ? 'Hide live commands' : 'View live commands'}
+                </Button>
+                {showLiveCommands && (
+                  <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        marginBottom: 'var(--pf-t--global--spacer--xs)',
+                      }}
+                    >
+                      Live commands
+                    </Content>
+                    <ClipboardCopy
+                      isReadOnly
+                      isCode
+                      style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                    >
+                      {option.rawCommands}
+                    </ClipboardCopy>
+                  </div>
+                )}
+              </StackItem>
+              <StackItem>
+                <Button
+                  variant="link"
+                  isInline
+                  icon={<DownloadIcon />}
+                  iconPosition="end"
+                  style={{ padding: 0, fontSize: '14px' }}
+                  aria-label={`Download remediation guide for option ${index + 1}`}
+                >
+                  Download remediation guide
+                </Button>
+              </StackItem>
+            </Stack>
+          )}
+
+          {/* ── Apply remediation ── */}
           {showRemediationActions && (
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
@@ -1984,20 +2031,6 @@ const RemediationOptionCard: React.FC<{
               flexWrap={{ default: 'wrap' }}
               style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
             >
-              <Button
-                variant="secondary"
-                onClick={() => setCommandView((v) => (v === 'dry-run' ? 'live' : 'dry-run'))}
-              >
-                {commandView === 'dry-run' ? 'View live commands' : 'View dry-run preview'}
-              </Button>
-              <Button
-                variant="secondary"
-                icon={<DownloadIcon />}
-                iconPosition="end"
-                aria-label={`Download remediation guide for option ${index + 1}`}
-              >
-                Download remediation guide
-              </Button>
               {renderApplyAction()}
               {!isExecuting && !isExecuted && (
                 <Button
