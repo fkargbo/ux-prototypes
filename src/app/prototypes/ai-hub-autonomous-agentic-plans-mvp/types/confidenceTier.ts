@@ -20,6 +20,11 @@ export function confidenceTierLabelColor(tier: ConfidenceTier): 'green' | 'yello
   }
 }
 
+/** RCA / plan drawer label copy — e.g. "Confidence: High". */
+export function formatConfidenceLabel(tier: ConfidenceTier): string {
+  return `Confidence: ${tier}`;
+}
+
 /** Progress bar fill when only tier is stored (no numeric label shown). */
 export function confidenceTierProgressValue(tier: ConfidenceTier): number {
   switch (tier) {

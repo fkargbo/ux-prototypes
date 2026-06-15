@@ -43,7 +43,7 @@ import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
-import { confidenceTierLabelColor } from '../../types/confidenceTier';
+import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
@@ -1805,7 +1805,7 @@ const RemediationOptionCard: React.FC<{
       </CardHeader>
 
       {isSelected && (
-        <CardBody>
+        <CardBody className="ols-remediation-option-card__body">
           {/* AI icon + full option title */}
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -2023,7 +2023,7 @@ const RemediationOptionCard: React.FC<{
               alignItems={{ default: 'alignItemsCenter' }}
               gap={{ default: 'gapSm' }}
               flexWrap={{ default: 'wrap' }}
-              style={{ marginBottom: isExecuted ? 0 : '24px' }}
+              className="ols-remediation-option-card__actions"
             >
               {renderApplyAction()}
               {!isExecuting && !isExecuted && (
@@ -2067,13 +2067,11 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
           {isExecuted && (
-            <div style={{ marginBottom: '24px' }}>
             <PostMortemPanel
               plan={plan}
               isMetricsExpanded={isPostMortemOpen}
               onToggleMetrics={setIsPostMortemOpen}
             />
-            </div>
           )}
         </CardBody>
       )}
@@ -2793,7 +2791,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               color={confidenceTierLabelColor(drawer.confidence)}
               style={{ position: 'absolute', top: 'var(--pf-t--global--spacer--sm)', right: 'var(--pf-t--global--spacer--sm)' }}
             >
-              {drawer.confidence}
+              {formatConfidenceLabel(drawer.confidence)}
             </Label>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
