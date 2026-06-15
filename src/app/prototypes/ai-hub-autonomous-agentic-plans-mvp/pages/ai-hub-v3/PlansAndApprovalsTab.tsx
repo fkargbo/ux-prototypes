@@ -45,6 +45,7 @@ import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
 import {
+  formatRiskBadgeLabel,
   formatRiskLabel,
   isHighRisk,
   isMediumRisk,
@@ -1265,11 +1266,14 @@ export const PlanConfidenceBadge: React.FC<{ tier: ConfidenceTier }> = ({ tier }
   </Label>
 );
 
-export const PlanRiskBadge: React.FC<{ score: number }> = ({ score }) => {
+export const PlanRiskBadge: React.FC<{ score: number; isCompact?: boolean }> = ({
+  score,
+  isCompact = true,
+}) => {
   const tier = scoreToRiskTier(score);
   return (
-    <Label color={riskTierLabelColor(tier)} isCompact>
-      {formatRiskLabel(score)}
+    <Label color={riskTierLabelColor(tier)} isCompact={isCompact}>
+      {formatRiskBadgeLabel(score)}
     </Label>
   );
 };
@@ -2845,9 +2849,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Label color={confidenceTierLabelColor(drawer.confidence)}>
                 {formatConfidenceLabel(drawer.confidence)}
               </Label>
-              <Label color={riskTierLabelColor(scoreToRiskTier(plan.riskScore ?? 50))}>
-                Risk: {formatRiskLabel(plan.riskScore ?? 50)}
-              </Label>
+              <PlanRiskBadge score={plan.riskScore ?? 50} isCompact={false} />
             </Flex>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}

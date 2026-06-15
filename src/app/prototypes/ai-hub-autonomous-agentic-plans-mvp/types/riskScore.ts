@@ -24,6 +24,11 @@ export function formatRiskLabel(score: number): string {
   return `${scoreToRiskTier(score)} (${score})`;
 }
 
+/** Matches RCA / page header badge copy — e.g. "Risk: High (88)". */
+export function formatRiskBadgeLabel(score: number): string {
+  return `Risk: ${formatRiskLabel(score)}`;
+}
+
 export function isLowRisk(score: number): boolean {
   return score < 50;
 }
