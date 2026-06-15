@@ -26,6 +26,11 @@ import {
   LabelGroup,
   MenuToggle,
   MenuToggleElement,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
   Pagination,
   PaginationVariant,
   Popover,
@@ -70,6 +75,10 @@ import {
   readPlanRemediationDrillSession,
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
+import {
+  resolveAgentCapabilitiesClusterId,
+  useAgenticCapabilities,
+} from '../../context/AgenticCapabilitiesContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1150,6 +1159,61 @@ Exit code: 0 — Execution succeeded.`,
   };
 };
 
+const formatExecutionKillTimestamp = (date: Date): string =>
+  date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+function buildActiveExecutionLogLines(plan: PlanRow, option: RemediationOption): string[] {
+  const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
+  const cmd = option.rawCommands.split('\n')[0]?.trim() ?? option.title;
+  const seed = postMortem.rawLog?.split('\n').filter((line) => line.trim().length > 0) ?? [];
+  if (seed.length > 0) {
+    return seed;
+  }
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} UTC`;
+  return [
+    `[${timeStr}] Initiating remediation: ${plan.synopsis}`,
+    `[${timeStr}] Strategy: ${cmd}`,
+    `[${timeStr}] Applying mutations on ${plan.drawerTargets[0] ?? 'target'}…`,
+    `[${timeStr}] Health checks in progress…`,
+  ];
+}
+
+function useStreamingExecutionLog(
+  lines: string[],
+  enabled: boolean,
+  frozen: boolean,
+): string {
+  const [visibleCount, setVisibleCount] = useState(1);
+
+  useEffect(() => {
+    setVisibleCount(1);
+  }, [lines]);
+
+  useEffect(() => {
+    if (!enabled || frozen || visibleCount >= lines.length) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      setVisibleCount((count) => Math.min(count + 1, lines.length));
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [enabled, frozen, lines.length, visibleCount]);
+
+  return lines.slice(0, frozen ? visibleCount : visibleCount).join('\n');
+}
+
+const AGENTIC_AUTOMATION_DISABLED_BANNER =
+  'Agentic automation is currently disabled for this cluster by administrative policy.';
+
 const AI_TOOLTIP =
   'This metric is synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns.';
 
@@ -1366,6 +1430,7 @@ interface PlansTableCoreProps {
   ariaLabel: string;
   scopeColumnLabel: 'Cluster' | 'Namespace';
   onReviewPlan: (plan: PlanRow) => void;
+  isAgenticAutomationEnabled: boolean;
 }
 
 const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -1373,8 +1438,17 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   ariaLabel,
   scopeColumnLabel,
   onReviewPlan,
+  isAgenticAutomationEnabled,
 }) => (
-  <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
+  <Table
+    aria-label={ariaLabel}
+    style={{
+      tableLayout: 'fixed',
+      width: '100%',
+      opacity: isAgenticAutomationEnabled ? 1 : 0.55,
+      transition: 'opacity 200ms ease',
+    }}
+  >
     <Thead>
       <Tr>
         <Th style={{ width: '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
@@ -1413,6 +1487,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                 <Button
                   variant="link"
                   isInline
+                  isDisabled={!isAgenticAutomationEnabled}
                   onClick={() => onReviewPlan(row)}
                   style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
                 >
@@ -1483,9 +1558,15 @@ interface PlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
   rows: PlanRow[];
   isSingleCluster: boolean;
+  isAgenticAutomationEnabled: boolean;
 }
 
-const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleCluster }) => {
+const PlansTable: React.FC<PlansTableProps> = ({
+  onReviewPlan,
+  rows,
+  isSingleCluster,
+  isAgenticAutomationEnabled,
+}) => {
   // ── Filter state — intentionally decoupled from perspective; persists on switch ──
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -1687,6 +1768,7 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
             ariaLabel="Plans"
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={onReviewPlan}
+            isAgenticAutomationEnabled={isAgenticAutomationEnabled}
           />
           <Pagination
             {...paginationProps}
@@ -1736,10 +1818,24 @@ const RemediationOptionCard: React.FC<{
   index: number;
   plan: PlanRow;
   executionMessage?: string;
+  executionKillState?: { killedAt: string } | null;
+  onConfirmStopExecution?: (killedAt: string) => void;
   isSelected: boolean;
   isDiagnosisVerified: boolean;
+  isAgenticAutomationEnabled: boolean;
   onSelect: (id: string) => void;
-}> = ({ option, index, plan, executionMessage, isSelected, isDiagnosisVerified, onSelect }) => {
+}> = ({
+  option,
+  index,
+  plan,
+  executionMessage,
+  executionKillState,
+  onConfirmStopExecution,
+  isSelected,
+  isDiagnosisVerified,
+  isAgenticAutomationEnabled,
+  onSelect,
+}) => {
   const isFirst = index === 0;
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
@@ -1747,13 +1843,24 @@ const RemediationOptionCard: React.FC<{
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
+  const isExecutionKilled = Boolean(executionKillState);
   const [showLiveCommands, setShowLiveCommands] = useState(false);
   const [governorApproved, setGovernorApproved] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
+  const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
   const cardRootRef = React.useRef<HTMLDivElement>(null);
   const wasSelectedRef = React.useRef(isSelected);
+  const activeExecutionLogLines = useMemo(
+    () => buildActiveExecutionLogLines(plan, option),
+    [plan, option],
+  );
+  const streamedExecutionLog = useStreamingExecutionLog(
+    activeExecutionLogLines,
+    isRemediating && isFirst && isSelected,
+    isExecutionKilled,
+  );
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
@@ -1828,6 +1935,9 @@ const RemediationOptionCard: React.FC<{
   );
 
   const handleExecute = () => {
+    if (!isAgenticAutomationEnabled) {
+      return;
+    }
     setIsExecuting(true);
     setTimeout(() => {
       setIsExecuting(false);
@@ -1836,9 +1946,22 @@ const RemediationOptionCard: React.FC<{
     }, 2000);
   };
 
+  const handleConfirmStopExecution = () => {
+    const killedAt = formatExecutionKillTimestamp(new Date());
+    onConfirmStopExecution?.(killedAt);
+    setIsStopExecutionModalOpen(false);
+  };
+
   const renderApplyAction = () => {
     if (isInvestigating || isTerminal) return null;
     if (isRemediating) {
+      if (isExecutionKilled) {
+        return (
+          <Button variant="primary" isDisabled style={{ cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}>
+            Execution stopped
+          </Button>
+        );
+      }
       return (
         <Button
           variant="primary"
@@ -1896,7 +2019,7 @@ const RemediationOptionCard: React.FC<{
     return (
       <Button
         variant="primary"
-        isDisabled={isExecuting || !canAutoExecute}
+        isDisabled={isExecuting || !canAutoExecute || !isAgenticAutomationEnabled}
         isLoading={isExecuting}
         onClick={handleExecute}
         style={{ margin: 0 }}
@@ -1977,21 +2100,79 @@ const RemediationOptionCard: React.FC<{
           </Content>
 
           {/* Execution status (Remediating only) */}
-          {isRemediating && isFirst && executionMessage && (
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              <Spinner size="sm" aria-label="Executing fix" />
-              <Content
-                component="p"
-                className="ols-aio-text-subtle-sm"
-                style={{ margin: 0, fontStyle: 'italic' }}
+          {isRemediating && isFirst && (
+            <>
+              {isExecutionKilled ? (
+                <Alert
+                  variant="danger"
+                  isInline
+                  title={`🛑 Execution Terminated by User at ${executionKillState?.killedAt}`}
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                />
+              ) : (
+                executionMessage && (
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    gap={{ default: 'gapSm' }}
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                  >
+                    <Spinner size="sm" aria-label="Executing fix" />
+                    <Content
+                      component="p"
+                      className="ols-aio-text-subtle-sm"
+                      style={{ margin: 0, fontStyle: 'italic' }}
+                    >
+                      {executionMessage}
+                    </Content>
+                  </Flex>
+                )
+              )}
+
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                flexWrap={{ default: 'wrap' }}
+                gap={{ default: 'gapSm' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
               >
-                {executionMessage}
-              </Content>
-            </Flex>
+                <Content
+                  component="small"
+                  style={{
+                    display: 'block',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    color: 'var(--pf-t--global--text--color--subtle)',
+                    margin: 0,
+                  }}
+                >
+                  Active execution log
+                </Content>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  isDisabled={isExecutionKilled}
+                  onClick={() => setIsStopExecutionModalOpen(true)}
+                >
+                  Stop Execution
+                </Button>
+              </Flex>
+              <ClipboardCopy
+                isReadOnly
+                isCode
+                hoverTip="Copy"
+                clickTip="Copied"
+                style={{
+                  fontFamily: 'var(--pf-t--global--font--family--mono)',
+                  fontSize: '12px',
+                  marginBottom: 'var(--pf-t--global--spacer--sm)',
+                }}
+              >
+                {isExecutionKilled
+                  ? `${streamedExecutionLog}\n[STOPPED] Execution halted by operator — no further mutations will be applied.`
+                  : streamedExecutionLog}
+              </ClipboardCopy>
+            </>
           )}
 
           {/* Model badge */}
@@ -2186,6 +2367,26 @@ const RemediationOptionCard: React.FC<{
 
           {!showRemediationActions && renderApplyAction()}
 
+          <Modal
+            variant={ModalVariant.small}
+            isOpen={isStopExecutionModalOpen}
+            onClose={() => setIsStopExecutionModalOpen(false)}
+            aria-labelledby="stop-plan-execution-title"
+          >
+            <ModalHeader title="Stop Plan Execution?" labelId="stop-plan-execution-title" />
+            <ModalBody>
+              This will instantly halt the agent&apos;s in-flight mutations on this cluster. Completed steps will
+              remain in their current state. This action cannot be undone.
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="danger" onClick={handleConfirmStopExecution}>
+                Yes, Stop Execution
+              </Button>
+              <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
 
           {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
           {isExecuted && (
@@ -2683,8 +2884,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const isTerminal = status === 'Completed' || status === 'Failed';
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
+  const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
+  const { isAgentActiveForCluster } = useAgenticCapabilities();
+  const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
 
   const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
+  const [executionKillState, setExecutionKillState] = useState<{ killedAt: string } | null>(null);
   // Guided view: first presentation from the plans table — only the focus section stays open.
   const [isGuidedView, setIsGuidedView] = useState(true);
   const chainRef = React.useRef<HTMLDivElement>(null);
@@ -2701,6 +2906,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   useEffect(() => {
     setSectionExpanded(createInitialSectionState(plan));
     setIsGuidedView(true);
+    setExecutionKillState(null);
   }, [plan.id]);
 
   const handleSectionToggle = (section: RemediationWorkflowSection) => (
@@ -2942,6 +3148,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                     variant="secondary"
                     size="sm"
                     icon={<CheckCircleIcon />}
+                    isDisabled={!isAgenticAutomationEnabled}
                     onClick={handleVerifyDiagnosis}
                   >
                     Acknowledge & view remediation
@@ -3002,6 +3209,15 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             <PostMortemPanel plan={plan} />
           ) : (
             <>
+              {!isAgenticAutomationEnabled && (
+                <Alert
+                  variant="warning"
+                  isInline
+                  title={AGENTIC_AUTOMATION_DISABLED_BANNER}
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                />
+              )}
+
               {/* Gate hint shown to critical plans before verification */}
               {!isDiagnosisVerified && (
                 <Flex
@@ -3038,8 +3254,19 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               {/* Options list — gated by diagnosis verification AND RBAC authorization */}
               <div
                 style={{
-                  opacity: plan.isUnauthorized ? 0.6 : isDiagnosisVerified ? 1 : 0.45,
-                  pointerEvents: (plan.isUnauthorized || !isDiagnosisVerified) ? 'none' : undefined,
+                  opacity: plan.isUnauthorized
+                    ? 0.6
+                    : !isAgenticAutomationEnabled && !isRemediating
+                      ? 0.55
+                      : isDiagnosisVerified
+                        ? 1
+                        : 0.45,
+                  pointerEvents:
+                    plan.isUnauthorized
+                    || !isDiagnosisVerified
+                    || (!isAgenticAutomationEnabled && !isRemediating)
+                      ? 'none'
+                      : undefined,
                   transition: 'opacity 300ms ease',
                 }}
               >
@@ -3053,8 +3280,11 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           index={idx}
                           plan={plan}
                           executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
+                          executionKillState={executionKillState}
+                          onConfirmStopExecution={(killedAt) => setExecutionKillState({ killedAt })}
                           isSelected={selectedOptionId === opt.id}
                           isDiagnosisVerified={isDiagnosisVerified}
+                          isAgenticAutomationEnabled={isAgenticAutomationEnabled}
                           onSelect={setSelectedOptionId}
                         />
                       </StackItem>
@@ -3123,6 +3353,9 @@ export const PlansAndApprovalsTab: React.FC = () => {
   const navigate = useNavigate();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
+  const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
+  const { isAgentActiveForCluster } = useAgenticCapabilities();
+  const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
 
   // Breadcrumb return: apply session handoff once on mount, then release control to the switcher.
   useLayoutEffect(() => {
@@ -3141,15 +3374,23 @@ export const PlansAndApprovalsTab: React.FC = () => {
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
+    if (!isAgenticAutomationEnabled) {
+      return;
+    }
     const perspectiveKey: 'core-platforms' | 'fleet-management' =
       perspectiveKeyFromShellName(activePerspective)
       ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
     writePlanRemediationDrillSession({ perspectiveKey });
     navigate(getPlanRemediationPath(plan, perspectiveKey));
-  }, [activePerspective, isSingleCluster, navigate]);
+  }, [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate]);
 
   return (
     <Stack hasGutter>
+      {!isAgenticAutomationEnabled && (
+        <StackItem>
+          <Alert variant="warning" isInline title={AGENTIC_AUTOMATION_DISABLED_BANNER} />
+        </StackItem>
+      )}
       <StackItem>
         <Title
           headingLevel="h3"
@@ -3159,7 +3400,12 @@ export const PlansAndApprovalsTab: React.FC = () => {
         >
           Plans
         </Title>
-        <PlansTable onReviewPlan={openPlanRemediation} rows={plans} isSingleCluster={isSingleCluster} />
+        <PlansTable
+          onReviewPlan={openPlanRemediation}
+          rows={plans}
+          isSingleCluster={isSingleCluster}
+          isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+        />
       </StackItem>
     </Stack>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, Content, Title } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Content, Flex, FlexItem, Title } from '@patternfly/react-core';
+import { AgenticCapabilitiesHeaderSwitch } from '../components/AgenticCapabilitiesHeaderSwitch';
 import * as Hub from './ai-hub-v3';
 import './ai-hub-page.css';
 
@@ -18,7 +19,7 @@ export const AIHubPage: React.FC = () => {
         </Breadcrumb>
       </div>
 
-      <div className="template-page-heading">
+      <div className="template-page-heading ols-ai-hub-page-heading-row">
         <div className="ols-ai-hub-page-header-primary">
           <Hub.AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
@@ -42,6 +43,9 @@ export const AIHubPage: React.FC = () => {
             </Content>
           </div>
         </div>
+        <FlexItem className="ols-ai-hub-page-heading-actions">
+          <AgenticCapabilitiesHeaderSwitch />
+        </FlexItem>
       </div>
 
       <div

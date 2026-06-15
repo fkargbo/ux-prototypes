@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
 import { AIHubPage } from './pages/AIHubPage';
 import { PlanRemediationPage } from './pages/PlanRemediationPage';
-import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
+import { AiHubPrototypeRoot } from './components/AiHubPrototypeRoot';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 
 export const routes: RouteConfig[] = [
@@ -36,7 +36,7 @@ export const routes: RouteConfig[] = [
 ];
 
 /** Theme state for AI Hub banner appearance controls. */
-export const prototypeRootWrapper = AiHubAppearanceProvider;
+export const prototypeRootWrapper = AiHubPrototypeRoot;
 
 /** Banner toolbar: before version picker (see `PrototypeLayout`). */
 export const bannerBeforeVersionPicker = <AiHubBannerAppearanceSettings />;
