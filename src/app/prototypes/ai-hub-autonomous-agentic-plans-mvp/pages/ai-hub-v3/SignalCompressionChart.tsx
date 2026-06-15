@@ -3,6 +3,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Button,
   Content,
   Flex,
   FlexItem,
@@ -10,7 +11,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { HelpIcon } from '@patternfly/react-icons';
 import {
   Chart,
   ChartArea,
@@ -167,21 +168,11 @@ export function SignalCompressionChart() {
               bodyContent={PopoverBody}
               position="right"
             >
-              <button
-                type="button"
+              <Button
+                variant="plain"
                 aria-label="More information about Noise reduction"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                }}
-              >
-                <OutlinedQuestionCircleIcon />
-              </button>
+                icon={<HelpIcon />}
+              />
             </Popover>
           </FlexItem>
         </Flex>

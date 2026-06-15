@@ -1335,7 +1335,7 @@ const PlansTableColumnHeader: React.FC<{
   >
     <span>{label}</span>
     <Popover headerContent={popoverHeader} bodyContent={popoverBody} position="top">
-      <Button variant="plain" aria-label={ariaLabel} icon={<HelpIcon />} style={{ padding: 0 }} />
+      <Button variant="plain" aria-label={ariaLabel} icon={<HelpIcon />} />
     </Popover>
   </Flex>
 );
