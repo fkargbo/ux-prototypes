@@ -8,13 +8,13 @@ export function scoreToRiskTier(score: number): RiskTier {
   return 'High';
 }
 
-/** PatternFly Label colors — Low→green, Medium→orange, High→red. */
-export function riskTierLabelColor(tier: RiskTier): 'green' | 'orange' | 'red' {
+/** PatternFly Label colors — Low→green, Medium→yellow (matches Confidence Medium), High→red. */
+export function riskTierLabelColor(tier: RiskTier): 'green' | 'yellow' | 'red' {
   switch (tier) {
     case 'Low':
       return 'green';
     case 'Medium':
-      return 'orange';
+      return 'yellow';
     case 'High':
       return 'red';
   }
