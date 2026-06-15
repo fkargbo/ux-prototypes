@@ -1933,7 +1933,7 @@ const RemediationOptionCard: React.FC<{
                 variant="info"
                 isInline
                 title="Dry-run preview — verify before applying"
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                style={{ marginTop: '24px', marginBottom: '24px' }}
               >
                 Review the dry-run summary below. No live mutations occur until you choose{' '}
                 <strong>Apply remediation</strong> or use the manual paths underneath.
@@ -2021,9 +2021,9 @@ const RemediationOptionCard: React.FC<{
           {showRemediationActions && (
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
               flexWrap={{ default: 'wrap' }}
               className="ols-remediation-option-card__actions"
+              style={{ gap: '16px' }}
             >
               {renderApplyAction()}
               {!isExecuting && !isExecuted && (
