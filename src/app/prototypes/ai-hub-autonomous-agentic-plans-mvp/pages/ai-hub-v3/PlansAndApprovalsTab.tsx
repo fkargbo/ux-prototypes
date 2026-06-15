@@ -1325,16 +1325,20 @@ const PLANS_TABLE_HEADER_TH_STYLE: React.CSSProperties = {
   verticalAlign: 'top',
 };
 
-const PLANS_TABLE_HEADER_CONTENT_STYLE: React.CSSProperties = {
+const PLANS_TABLE_HEADER_POPOVER_CONTENT_STYLE: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'flex-start',
   gap: 'var(--pf-t--global--spacer--xs)',
   lineHeight: 'var(--pf-t--global--line-height--body)',
 };
 
-const PlansTableHeaderLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span style={PLANS_TABLE_HEADER_CONTENT_STYLE}>{children}</span>
-);
+const PLANS_TABLE_HEADER_POPOVER_BUTTON_STYLE: React.CSSProperties = {
+  padding: 0,
+  height: '1em',
+  minHeight: 'unset',
+  display: 'inline-flex',
+  alignItems: 'center',
+};
 
 const PlansTableColumnHeader: React.FC<{
   label: string;
@@ -1342,10 +1346,15 @@ const PlansTableColumnHeader: React.FC<{
   popoverBody: string;
   ariaLabel: string;
 }> = ({ label, popoverHeader, popoverBody, ariaLabel }) => (
-  <span style={PLANS_TABLE_HEADER_CONTENT_STYLE}>
+  <span style={PLANS_TABLE_HEADER_POPOVER_CONTENT_STYLE}>
     {label}
     <Popover headerContent={popoverHeader} bodyContent={popoverBody} position="top">
-      <Button variant="plain" aria-label={ariaLabel} icon={<HelpIcon />} style={{ alignSelf: 'center' }} />
+      <Button
+        variant="plain"
+        aria-label={ariaLabel}
+        icon={<HelpIcon />}
+        style={PLANS_TABLE_HEADER_POPOVER_BUTTON_STYLE}
+      />
     </Popover>
   </span>
 );
@@ -1368,15 +1377,9 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        <Th style={{ width: '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
-          <PlansTableHeaderLabel>Name</PlansTableHeaderLabel>
-        </Th>
-        <Th style={{ width: '24%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
-          <PlansTableHeaderLabel>Plan summary</PlansTableHeaderLabel>
-        </Th>
-        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
-          <PlansTableHeaderLabel>Status</PlansTableHeaderLabel>
-        </Th>
+        <Th style={{ width: '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
+        <Th style={{ width: '24%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
+        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
         <Th style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
           <PlansTableColumnHeader
             label="Confidence"
@@ -1393,12 +1396,8 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             ariaLabel="More information about Risk"
           />
         </Th>
-        <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
-          <PlansTableHeaderLabel>{scopeColumnLabel}</PlansTableHeaderLabel>
-        </Th>
-        <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
-          <PlansTableHeaderLabel>Created</PlansTableHeaderLabel>
-        </Th>
+        <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
+        <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
       </Tr>
     </Thead>
 
