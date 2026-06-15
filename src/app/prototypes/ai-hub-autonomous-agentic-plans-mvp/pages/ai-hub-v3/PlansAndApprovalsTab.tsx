@@ -1963,95 +1963,101 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── Manual paths (stacked below dry-run, above Apply) ── */}
+          {/* ── View live commands (below dry-run, above Apply) ── */}
           {showRemediationActions && (
-            <Stack hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <StackItem>
-                <Button
-                  variant="link"
-                  isInline
-                  onClick={() => setShowLiveCommands(!showLiveCommands)}
-                  icon={
-                    <AngleRightIcon
-                      style={{
-                        transform: showLiveCommands ? 'rotate(90deg)' : 'rotate(0deg)',
-                        transition: 'transform 150ms ease',
-                      }}
-                    />
-                  }
-                  style={{ padding: 0, fontSize: '14px' }}
-                >
-                  {showLiveCommands ? 'Hide live commands' : 'View live commands'}
-                </Button>
-                {showLiveCommands && (
-                  <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                    <Content
-                      component="small"
-                      style={{
-                        display: 'block',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                        marginBottom: 'var(--pf-t--global--spacer--xs)',
-                      }}
-                    >
-                      Live commands
-                    </Content>
-                    <ClipboardCopy
-                      isReadOnly
-                      isCode
-                      style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                    >
-                      {option.rawCommands}
-                    </ClipboardCopy>
-                  </div>
-                )}
-              </StackItem>
-              <StackItem>
-                <Button
-                  variant="link"
-                  isInline
-                  icon={<DownloadIcon />}
-                  iconPosition="end"
-                  style={{ padding: 0, fontSize: '14px' }}
-                  aria-label={`Download remediation guide for option ${index + 1}`}
-                >
-                  Download remediation guide
-                </Button>
-              </StackItem>
-            </Stack>
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => setShowLiveCommands(!showLiveCommands)}
+                icon={
+                  <AngleRightIcon
+                    style={{
+                      transform: showLiveCommands ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 150ms ease',
+                    }}
+                  />
+                }
+                style={{ padding: 0, fontSize: '14px' }}
+              >
+                {showLiveCommands ? 'Hide live commands' : 'View live commands'}
+              </Button>
+              {showLiveCommands && (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title="Live commands — manual execution"
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                  >
+                    These commands will mutate cluster state when run. Execute only after dry-run validation passes.
+                  </Alert>
+                  <Content
+                    component="small"
+                    style={{
+                      display: 'block',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      marginBottom: 'var(--pf-t--global--spacer--xs)',
+                    }}
+                  >
+                    Live commands
+                  </Content>
+                  <ClipboardCopy
+                    isReadOnly
+                    isCode
+                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                  >
+                    {option.rawCommands}
+                  </ClipboardCopy>
+                </div>
+              )}
+            </div>
           )}
 
-          {/* ── Apply remediation ── */}
+          {/* ── Apply remediation + manual download + Lightspeed ── */}
           {showRemediationActions && (
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
               gap={{ default: 'gapSm' }}
               flexWrap={{ default: 'wrap' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              style={{ marginBottom: isExecuted ? 0 : '24px' }}
             >
               {renderApplyAction()}
               {!isExecuting && !isExecuted && (
-                <Button
-                  variant="link"
-                  isInline
-                  style={{ fontSize: '14px' }}
-                  onClick={() => {
-                    const drawer = PLAN_DRAWER_DATA[plan.id];
-                    agenticGlobalAiApi.openRemediationDiscussion?.({
-                      planSynopsis: plan.synopsis,
-                      optionTitle: option.title,
-                      rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
-                      remediationProposal: drawer?.remediationProposal ?? option.description,
-                      riskAssessment: drawer?.riskAssessment ?? '',
-                      blastRadius: plan.blastRadius,
-                      severity: plan.severity,
-                    });
-                  }}
-                >
-                  Discuss with Lightspeed
-                </Button>
+                <>
+                  <Button
+                    variant="link"
+                    isInline
+                    icon={<DownloadIcon />}
+                    iconPosition="end"
+                    style={{ fontSize: '14px' }}
+                    aria-label={`Download remediation guide for option ${index + 1}`}
+                  >
+                    Download remediation guide
+                  </Button>
+                  <Button
+                    variant="link"
+                    isInline
+                    style={{ fontSize: '14px' }}
+                    onClick={() => {
+                      const drawer = PLAN_DRAWER_DATA[plan.id];
+                      agenticGlobalAiApi.openRemediationDiscussion?.({
+                        planSynopsis: plan.synopsis,
+                        optionTitle: option.title,
+                        rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
+                        remediationProposal: drawer?.remediationProposal ?? option.description,
+                        riskAssessment: drawer?.riskAssessment ?? '',
+                        blastRadius: plan.blastRadius,
+                        severity: plan.severity,
+                      });
+                    }}
+                  >
+                    Discuss with Lightspeed
+                  </Button>
+                </>
               )}
             </Flex>
           )}
@@ -2061,11 +2067,13 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
           {isExecuted && (
+            <div style={{ marginBottom: '24px' }}>
             <PostMortemPanel
               plan={plan}
               isMetricsExpanded={isPostMortemOpen}
               onToggleMetrics={setIsPostMortemOpen}
             />
+            </div>
           )}
         </CardBody>
       )}
