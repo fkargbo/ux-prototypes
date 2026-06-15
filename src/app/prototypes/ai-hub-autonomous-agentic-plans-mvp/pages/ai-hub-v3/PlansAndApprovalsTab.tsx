@@ -46,6 +46,13 @@ import type { ConfidenceTier } from '../../types/confidenceTier';
 import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
+import {
+  SC_PLAN_ROW_PATCHES,
+  SC_PLAN_TABLE_IDENTITY,
+  CORE_PLATFORMS_CLUSTER_ID,
+  resolvePlanDrawerData,
+  applyScRemediationPatches,
+} from './singleClusterPlanSimulation';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import {
@@ -566,7 +573,7 @@ const SC_ALL_PLANS: PlanRow[] = [
   { ...ALL_PLANS[10], blastRadius: '1 HPA Object',       triggerDomains: 'Autoscaling Framework',  drawerTargets: ['api-gateway-hpa'] },
   { ...ALL_PLANS[11], blastRadius: '3 Image Streams',    triggerDomains: 'Local Registry',         drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
   { ...ALL_PLANS[12], blastRadius: '1 PVC Volume',       triggerDomains: 'AWS-EBS CSI Plugin',     drawerTargets: ['postgres-data-0'] },
-  { ...ALL_PLANS[13], blastRadius: '6 Cluster Nodes',    triggerDomains: 'Chrony DaemonSet',       drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
+  { ...ALL_PLANS[13], blastRadius: '6 Nodes',           triggerDomains: 'Chrony DaemonSet',       drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
   { ...ALL_PLANS[14], blastRadius: '1 Registry Catalog', triggerDomains: 'Local Registry',         drawerTargets: ['image-registry'] },
 ];
 
@@ -2047,7 +2054,7 @@ const RemediationOptionCard: React.FC<{
                     isInline
                     style={{ fontSize: '14px', margin: 0 }}
                     onClick={() => {
-                      const drawer = PLAN_DRAWER_DATA[plan.id];
+                      const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
                       agenticGlobalAiApi.openRemediationDiscussion?.({
                         planSynopsis: plan.synopsis,
                         optionTitle: option.title,
@@ -2580,6 +2587,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
   const isTerminal = status === 'Completed' || status === 'Failed';
+  const { activePerspective } = useActivePerspective();
+  const isSingleCluster = activePerspective === 'Core platforms';
 
   const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
   // Guided view: first presentation from the plans table — only the focus section stays open.
@@ -2618,9 +2627,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     }
   };
 
-  const drawer = PLAN_DRAWER_DATA[plan.id];
+  const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
-  const options = PLAN_REMEDIATION_OPTIONS[plan.id] ?? [];
+  const options = applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster);
   const optionCount = options.length;
   // Remediating plans show only option 1 — count what's actually rendered.
   const visibleOptionCount = isRemediating ? Math.min(optionCount, 1) : optionCount;
@@ -2984,18 +2993,24 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
   return [...combined]
     .sort((a, b) => b.score - a.score)
     .map((row, index) => {
-      const identity = PLAN_TABLE_IDENTITY[row.id];
+      const identity = isSingleCluster
+        ? SC_PLAN_TABLE_IDENTITY[row.id]
+        : PLAN_TABLE_IDENTITY[row.id];
+      const rowPatch = isSingleCluster ? SC_PLAN_ROW_PATCHES[row.id] : undefined;
+      const mergedRow = rowPatch ? { ...row, ...rowPatch } : row;
       return {
-        ...row,
+        ...mergedRow,
         name: identity?.name ?? row.id,
-        synopsis: identity?.synopsis ?? row.synopsis,
+        synopsis: identity?.synopsis ?? mergedRow.synopsis,
         namespace: identity?.namespace,
-        cluster: identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
+        cluster: isSingleCluster
+          ? CORE_PLATFORMS_CLUSTER_ID
+          : identity?.fleetCluster ?? mergedRow.drawerTargets[0] ?? '—',
         scope: isSingleCluster
           ? identity?.namespace ?? '—'
-          : identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
+          : identity?.fleetCluster ?? mergedRow.drawerTargets[0] ?? '—',
         createdAt:
-          row.createdAt ??
+          mergedRow.createdAt ??
           new Date(createdAnchor - index * 47 * 60_000).toISOString(),
       };
     });
