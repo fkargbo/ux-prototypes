@@ -637,3 +637,12 @@ body:has(.ols-ai-hub-page),
 .ws-full-page-utils.ols-ai-hub-full-page-utils {
   display: none !important;
 }
+
+/* Plans table — neutral compact trigger domain label */
+.ols-plans-trigger-domain-cell {
+  vertical-align: middle;
+}
+
+.ols-plan-aborted-status-icon {
+  color: var(--pf-t--global--icon--color--status--danger--default);
+}
