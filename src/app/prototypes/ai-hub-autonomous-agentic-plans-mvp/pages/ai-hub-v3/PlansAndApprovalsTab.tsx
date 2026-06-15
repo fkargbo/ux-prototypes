@@ -28,6 +28,7 @@ import {
   MenuToggleElement,
   Pagination,
   PaginationVariant,
+  Popover,
   Select,
   SelectList,
   SelectOption,
@@ -38,7 +39,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -1318,6 +1319,27 @@ const PlanScopeCell: React.FC<{
   );
 };
 
+// ─── Table column header with informational popover ───────────────────────────
+
+const PlansTableColumnHeader: React.FC<{
+  label: string;
+  popoverHeader: string;
+  popoverBody: string;
+  ariaLabel: string;
+}> = ({ label, popoverHeader, popoverBody, ariaLabel }) => (
+  <Flex
+    alignItems={{ default: 'alignItemsCenter' }}
+    gap={{ default: 'gapXs' }}
+    flexWrap={{ default: 'nowrap' }}
+    style={{ display: 'inline-flex' }}
+  >
+    <span>{label}</span>
+    <Popover headerContent={popoverHeader} bodyContent={popoverBody} position="top">
+      <Button variant="plain" aria-label={ariaLabel} icon={<HelpIcon />} style={{ padding: 0 }} />
+    </Popover>
+  </Flex>
+);
+
 // ─── Core stateless table renderer ───────────────────────────────────────────
 
 interface PlansTableCoreProps {
@@ -1339,8 +1361,22 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
         <Th style={{ width: '20%' }}>Name</Th>
         <Th style={{ width: '24%' }}>Plan summary</Th>
         <Th style={{ width: '10%' }}>Status</Th>
-        <Th style={{ width: '11%' }}>Confidence</Th>
-        <Th style={{ width: '11%' }}>Risk</Th>
+        <Th style={{ width: '11%' }}>
+          <PlansTableColumnHeader
+            label="Confidence"
+            popoverHeader="How accurate is the fix?"
+            popoverBody="Indicates how certain the AI is that this specific plan will successfully resolve the root cause, based on historical telemetry and event correlation."
+            ariaLabel="More information about Confidence"
+          />
+        </Th>
+        <Th style={{ width: '11%' }}>
+          <PlansTableColumnHeader
+            label="Risk"
+            popoverHeader="What is the blast radius?"
+            popoverBody="Measures the potential operational impact of the plan on cluster stability. High risk scores (>50) automatically restrict or block direct execution to protect production workloads."
+            ariaLabel="More information about Risk"
+          />
+        </Th>
         <Th style={{ width: '12%' }}>{scopeColumnLabel}</Th>
         <Th style={{ width: '12%' }}>Created</Th>
       </Tr>
