@@ -1620,7 +1620,7 @@ const RemediationOptionCard: React.FC<{
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
-  const [showCommands, setShowCommands] = useState(false);
+  const [commandView, setCommandView] = useState<'dry-run' | 'live'>('dry-run');
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
@@ -1631,7 +1631,7 @@ const RemediationOptionCard: React.FC<{
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
     if (!isSelected) {
-      setShowCommands(false);
+      setCommandView('dry-run');
       setIsExecuting(false);
     }
   }, [isSelected]);
@@ -1926,18 +1926,42 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── Dry-run verification (primary safety gate) ── */}
+          {/* ── Command preview (dry-run default; toggle to live for manual apply) ── */}
           {showRemediationActions && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <Alert
-                variant="info"
-                isInline
-                title="Dry-run preview — verify before applying"
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              {commandView === 'dry-run' ? (
+                <Alert
+                  variant="info"
+                  isInline
+                  title="Dry-run preview — verify before applying"
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                >
+                  Review the command summary below. No live mutations occur until you choose{' '}
+                  <strong>Apply remediation</strong> or switch to live commands for manual execution.
+                </Alert>
+              ) : (
+                <Alert
+                  variant="warning"
+                  isInline
+                  title="Live commands — manual execution"
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                >
+                  These commands will mutate cluster state when run. Execute only after dry-run validation passes.
+                </Alert>
+              )}
+              <Content
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 'var(--pf-t--global--spacer--xs)',
+                }}
               >
-                Review the dry-run command summary below. No live mutations occur until you choose{' '}
-                <strong>Apply remediation</strong>. Use raw commands or the remediation guide for manual execution.
-              </Alert>
+                {commandView === 'dry-run' ? 'Dry-run commands' : 'Live commands'}
+              </Content>
               <ClipboardCopy
                 isReadOnly
                 isCode
@@ -1945,7 +1969,9 @@ const RemediationOptionCard: React.FC<{
                 clickTip="Copied"
                 style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
               >
-                {buildDryRunCommandPreview(option.rawCommands)}
+                {commandView === 'dry-run'
+                  ? buildDryRunCommandPreview(option.rawCommands)
+                  : option.rawCommands}
               </ClipboardCopy>
             </div>
           )}
@@ -1960,9 +1986,9 @@ const RemediationOptionCard: React.FC<{
             >
               <Button
                 variant="secondary"
-                onClick={() => setShowCommands(!showCommands)}
+                onClick={() => setCommandView((v) => (v === 'dry-run' ? 'live' : 'dry-run'))}
               >
-                {showCommands ? 'Hide raw commands' : 'View raw commands'}
+                {commandView === 'dry-run' ? 'View live commands' : 'View dry-run preview'}
               </Button>
               <Button
                 variant="secondary"
@@ -1995,31 +2021,6 @@ const RemediationOptionCard: React.FC<{
                 </Button>
               )}
             </Flex>
-          )}
-
-          {showRemediationActions && showCommands && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <Content
-                component="small"
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                  marginBottom: 'var(--pf-t--global--spacer--xs)',
-                }}
-              >
-                Live commands
-              </Content>
-              <ClipboardCopy
-                isReadOnly
-                isCode
-                style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-              >
-                {option.rawCommands}
-              </ClipboardCopy>
-            </div>
           )}
 
           {!showRemediationActions && renderApplyAction()}
