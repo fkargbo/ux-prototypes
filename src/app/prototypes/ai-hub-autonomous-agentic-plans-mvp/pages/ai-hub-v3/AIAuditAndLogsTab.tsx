@@ -25,7 +25,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, DownloadIcon, FileAltIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, FileAltIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import './ai-hub-v3-inventory.css';
 
@@ -49,7 +49,7 @@ interface AuditRow {
   timestamp: string;
   planSummary: string;
   event: LifecycleEvent;
-  actor: string;
+  user: string;
   tokenBurn: number;
   receiptHash: string;
   auditReceipt: AuditReceiptItem[];
@@ -61,39 +61,50 @@ const formatTokenBurn = (tokens: number): string => `${tokens.toLocaleString('en
 
 const truncateReceiptHash = (hash: string): string => hash.slice(0, 6);
 
-const eventStatusColor = (event: LifecycleEvent): 'red' | 'green' | 'blue' | 'orange' | 'grey' => {
-  switch (event) {
-    case 'Plan aborted':
-      return 'red';
-    case 'Remediation applied':
-      return 'green';
-    case 'Approval granted':
-    case 'RCA verified':
-      return 'blue';
-    case 'Investigation started':
-      return 'orange';
-    default:
-      return 'grey';
-  }
+const isSystemUser = (user: string): boolean => user.startsWith('System');
+
+type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
+
+const EVENT_LABEL_COLOR: Record<LifecycleEvent, LabelColor> = {
+  'Plan submitted': 'blue',
+  'Investigation started': 'blue',
+  'RCA verified': 'teal',
+  'Approval granted': 'orange',
+  'Remediation applied': 'green',
+  'Plan aborted': 'red',
 };
 
-const eventStatusTextColor = (event: LifecycleEvent): string => {
-  switch (event) {
-    case 'Plan aborted':
-      return 'var(--pf-t--global--color--status--danger--default)';
-    case 'Remediation applied':
-      return 'var(--pf-t--global--color--status--success--default)';
-    case 'Approval granted':
-    case 'RCA verified':
-      return 'var(--pf-t--global--color--status--info--default)';
-    case 'Investigation started':
-      return 'var(--pf-t--global--color--status--warning--default)';
-    default:
-      return 'var(--pf-t--global--text--color--regular)';
+const EventLabel: React.FC<{ event: LifecycleEvent; timestamp?: string }> = ({ event, timestamp }) => {
+  if (event === 'Plan aborted') {
+    const tooltipContent = `Execution halted by administrative override at ${timestamp ?? '—'}.`;
+    return (
+      <Tooltip content={tooltipContent} position="top">
+        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
+          <Label
+            color="red"
+            variant="outline"
+            isCompact
+            icon={<ExclamationCircleIcon />}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            Plan aborted
+          </Label>
+        </span>
+      </Tooltip>
+    );
   }
-};
 
-const isSystemActor = (actor: string): boolean => actor.startsWith('System');
+  return (
+    <Label
+      color={EVENT_LABEL_COLOR[event]}
+      variant="outline"
+      isCompact
+      style={{ whiteSpace: 'nowrap' }}
+    >
+      {event}
+    </Label>
+  );
+};
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 
@@ -103,13 +114,13 @@ const AUDIT_ROWS: AuditRow[] = [
     timestamp: 'Jun 9, 2026, 2:48:12 PM',
     planSummary: 'tekton-webhook-tls-repair',
     event: 'Plan aborted',
-    actor: 'fkargbo',
+    user: 'Marcus Chen',
     tokenBurn: 840,
     receiptHash: 'a7f2c91e4b8d3f06c5e1a9d2b4f7e8c0',
     auditReceipt: [
       { key: 'SHA-256 Log Hash', value: 'a7f2c91e4b8d3f06c5e1a9d2b4f7e8c0' },
       { key: 'Termination Trigger', value: 'User-initiated Stop Execution (Tier-1 kill switch)' },
-      { key: 'Actor Identity', value: 'fkargbo (OIDC verified)' },
+      { key: 'User identity', value: 'Marcus Chen (OIDC verified)' },
       { key: 'Last Completed Step', value: 'Sandbox dry-run: TLS cert rotation — PASSED' },
       { key: 'Immutability Seal', value: 'Ledger entry sealed — no modifications permitted post-write' },
       { key: 'Compliance Framework', value: 'SOC2 Type II / AI-OPS-CTRL-009 (Execution Halt)' },
@@ -120,12 +131,12 @@ const AUDIT_ROWS: AuditRow[] = [
     timestamp: 'Jun 9, 2026, 11:22:04 AM',
     planSummary: 'payments-oom-cascade-remediation',
     event: 'Approval granted',
-    actor: 'jlim',
+    user: 'Sarah Patel',
     tokenBurn: 1200,
     receiptHash: 'ce3b9a1f8d2e4c7b5a0f3d6e9c1b4a8',
     auditReceipt: [
       { key: 'SHA-256 Log Hash', value: 'ce3b9a1f8d2e4c7b5a0f3d6e9c1b4a8' },
-      { key: 'Approver Identity', value: 'jlim (OIDC + MFA verified)' },
+      { key: 'Approver identity', value: 'Sarah Patel (OIDC + MFA verified)' },
       { key: 'Approval Scope', value: 'Critical plan — payments-prod namespace mutation authorized' },
       { key: 'RBAC Token Clearance', value: 'K8s:Core:Mutation — GRANTED (human-approved override)' },
       { key: 'OTel Trace', value: '#ot-8e4c2a (span closed: 11:22:07 AM)' },
@@ -137,7 +148,7 @@ const AUDIT_ROWS: AuditRow[] = [
     timestamp: 'Jun 9, 2026, 9:14:38 AM',
     planSummary: 'gitops-ingress-drift-remediation',
     event: 'Remediation applied',
-    actor: 'System (Autonomous)',
+    user: 'System (Autonomous)',
     tokenBurn: 2150,
     receiptHash: '4d8f1b2c9e7a3f5061d4b8c2e9a7f1d',
     auditReceipt: [
@@ -154,13 +165,13 @@ const AUDIT_ROWS: AuditRow[] = [
     timestamp: 'Jun 8, 2026, 4:31:55 PM',
     planSummary: 'ceph-osd-drift',
     event: 'RCA verified',
-    actor: 'fkargbo',
+    user: 'Marcus Chen',
     tokenBurn: 960,
     receiptHash: 'b2e5f8a1c4d7e9f3062b8d1a5c4e7f9',
     auditReceipt: [
       { key: 'SHA-256 Log Hash', value: 'b2e5f8a1c4d7e9f3062b8d1a5c4e7f9' },
       { key: 'Root Cause', value: 'OSD near-full threshold breached on pool ceph-block (87% utilization)' },
-      { key: 'Verification Actor', value: 'fkargbo — diagnosis acknowledged via RCA gate' },
+      { key: 'Verified by', value: 'Marcus Chen — diagnosis acknowledged via RCA gate' },
       { key: 'Evidence Chain', value: 'Ceph health report + Prometheus pool metrics + operator logs' },
       { key: 'OTel Trace', value: '#ot-5c3a1d (span closed: 4:32:01 PM)' },
       { key: 'Compliance Framework', value: 'SOC2 Type II / AI-OPS-CTRL-003 (RCA Verification)' },
@@ -171,7 +182,7 @@ const AUDIT_ROWS: AuditRow[] = [
     timestamp: 'Jun 8, 2026, 3:18:22 PM',
     planSummary: 'ceph-osd-drift',
     event: 'Investigation started',
-    actor: 'System (Autonomous)',
+    user: 'System (Autonomous)',
     tokenBurn: 1420,
     receiptHash: 'f9c1e4a7b2d8f3056e1c4a9b7d2f8e3',
     auditReceipt: [
@@ -188,7 +199,7 @@ const AUDIT_ROWS: AuditRow[] = [
     timestamp: 'Jun 8, 2026, 2:55:10 PM',
     planSummary: 'acs-runtime-exploit-quarantine',
     event: 'Plan submitted',
-    actor: 'System (Autonomous)',
+    user: 'System (Autonomous)',
     tokenBurn: 380,
     receiptHash: '1a3c5e7f9b2d4f6082e4c6a8b0d2f4e',
     auditReceipt: [
@@ -212,7 +223,7 @@ const LIFECYCLE_EVENTS = [
   'Plan aborted',
 ] as const;
 
-const ACTOR_FILTERS = ['All', 'System (Autonomous)', 'Human actors'] as const;
+const USER_FILTERS = ['All', 'System (Autonomous)', 'Human users'] as const;
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -261,8 +272,8 @@ const CryptographicReceiptBadge: React.FC<{ hash: string; onView: () => void }> 
 export const AIAuditAndLogsTab: React.FC = () => {
   const [eventFilterOpen, setEventFilterOpen] = useState(false);
   const [eventFilter, setEventFilter] = useState<string>('All');
-  const [actorFilterOpen, setActorFilterOpen] = useState(false);
-  const [actorFilter, setActorFilter] = useState<string>('All');
+  const [userFilterOpen, setUserFilterOpen] = useState(false);
+  const [userFilter, setUserFilter] = useState<string>('All');
   const [planSearch, setPlanSearch] = useState('');
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
@@ -277,8 +288,8 @@ export const AIAuditAndLogsTab: React.FC = () => {
 
   const filteredRows = AUDIT_ROWS.filter((row) => {
     if (eventFilter !== 'All' && row.event !== eventFilter) return false;
-    if (actorFilter === 'System (Autonomous)' && !isSystemActor(row.actor)) return false;
-    if (actorFilter === 'Human actors' && isSystemActor(row.actor)) return false;
+    if (userFilter === 'System (Autonomous)' && !isSystemUser(row.user)) return false;
+    if (userFilter === 'Human users' && isSystemUser(row.user)) return false;
     if (planSearch && !row.planSummary.toLowerCase().includes(planSearch.toLowerCase())) return false;
     return true;
   });
@@ -428,19 +439,19 @@ export const AIAuditAndLogsTab: React.FC = () => {
 
           <FlexItem>
             <Select
-              aria-label="Actor filter"
-              isOpen={actorFilterOpen}
-              onSelect={(_e, val) => { setActorFilter(val as string); setActorFilterOpen(false); }}
-              onOpenChange={setActorFilterOpen}
+              aria-label="User filter"
+              isOpen={userFilterOpen}
+              onSelect={(_e, val) => { setUserFilter(val as string); setUserFilterOpen(false); }}
+              onOpenChange={setUserFilterOpen}
               toggle={(ref: React.Ref<MenuToggleElement>) => (
-                <MenuToggle ref={ref} onClick={() => setActorFilterOpen((o) => !o)} isExpanded={actorFilterOpen}>
-                  {actorFilter === 'All' ? 'Actor' : actorFilter}
+                <MenuToggle ref={ref} onClick={() => setUserFilterOpen((o) => !o)} isExpanded={userFilterOpen}>
+                  {userFilter === 'All' ? 'User' : userFilter}
                 </MenuToggle>
               )}
             >
               <SelectList>
-                {ACTOR_FILTERS.map((v) => (
-                  <SelectOption key={v} value={v} isSelected={actorFilter === v}>{v}</SelectOption>
+                {USER_FILTERS.map((v) => (
+                  <SelectOption key={v} value={v} isSelected={userFilter === v}>{v}</SelectOption>
                 ))}
               </SelectList>
             </Select>
@@ -463,7 +474,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
               <Th>Timestamp</Th>
               <Th>Plan summary</Th>
               <Th>Event / action</Th>
-              <Th>Actor</Th>
+              <Th>User</Th>
               <Th>Token burn</Th>
               <Th>Cryptographic receipt</Th>
             </Tr>
@@ -490,22 +501,13 @@ export const AIAuditAndLogsTab: React.FC = () => {
                     <code className="ols-audit-ledger-table__plan">{row.planSummary}</code>
                   </Td>
                   <Td dataLabel="Event / action">
-                    <Label color={eventStatusColor(row.event)} isCompact>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          color: eventStatusTextColor(row.event),
-                        }}
-                      >
-                        {row.event}
-                      </span>
-                    </Label>
+                    <EventLabel event={row.event} timestamp={row.timestamp} />
                   </Td>
-                  <Td dataLabel="Actor">
-                    {isSystemActor(row.actor) ? (
-                      <Label color="grey" isCompact>{row.actor}</Label>
+                  <Td dataLabel="User">
+                    {isSystemUser(row.user) ? (
+                      <Label color="grey" isCompact>{row.user}</Label>
                     ) : (
-                      <span className="ols-audit-ledger-table__actor">{row.actor}</span>
+                      <span className="ols-audit-ledger-table__user">{row.user}</span>
                     )}
                   </Td>
                   <Td dataLabel="Token burn" className="ols-audit-ledger-table__tokens">

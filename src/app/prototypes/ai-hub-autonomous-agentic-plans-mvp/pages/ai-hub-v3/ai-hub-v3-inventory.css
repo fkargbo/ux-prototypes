@@ -71,10 +71,8 @@
   border-radius: var(--pf-t--global--border--radius--small);
 }
 
-.ols-audit-ledger-table__actor {
-  font-family: var(--pf-t--global--font--family--monospace, monospace);
-  font-size: 0.8125rem;
-  font-weight: 600;
+.ols-audit-ledger-table__user {
+  font-size: 0.875rem;
 }
 
 .ols-audit-ledger-table__tokens {
