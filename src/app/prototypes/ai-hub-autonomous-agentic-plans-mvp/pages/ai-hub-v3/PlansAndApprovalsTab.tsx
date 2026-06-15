@@ -103,7 +103,7 @@ export interface PlanRow {
   synopsis: string;
   blastRadius: string;
   consolidationScope: string;
-  triggerDomains: string[];
+  triggerDomain: string;
   isUnauthorized: boolean;
   expandedReasons: ExpandedReason[];
   /** Infrastructure objects that will be affected by the remediation. Context-aware:
@@ -294,7 +294,7 @@ const TOP_PLANS: PlanRow[] = [
     synopsis: 'Re-sync GitOps Domain Drift',
     blastRadius: '4 Fleets',
     consolidationScope: '1 Drift / 4 Alerts',
-    triggerDomains: ['GitOps', 'ArgoCD'],
+    triggerDomain: 'GitOps',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'stg-central', 'edge-apac-1'],
     expandedReasons: [
@@ -310,7 +310,7 @@ const TOP_PLANS: PlanRow[] = [
     synopsis: 'Quarantine Container Security Exploit',
     blastRadius: '3 Clusters',
     consolidationScope: '14 Runtime Events',
-    triggerDomains: ['Security', 'ACS'],
+    triggerDomain: 'Security',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'edge-apac-1'],
     expandedReasons: [
@@ -325,7 +325,7 @@ const TOP_PLANS: PlanRow[] = [
     synopsis: 'Resolve Cascade Pod OOMKills',
     blastRadius: '1 Cluster',
     consolidationScope: '6 Events / 2 Alerts',
-    triggerDomains: ['Compute', 'Kubelet'],
+    triggerDomain: 'Compute',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
@@ -341,7 +341,7 @@ const TOP_PLANS: PlanRow[] = [
     synopsis: 'Remediate Rook-Ceph Storage Depletion',
     blastRadius: '2 Clusters',
     consolidationScope: '8 Alerts',
-    triggerDomains: ['Storage', 'Ceph'],
+    triggerDomain: 'Storage',
     isUnauthorized: true,
     drawerTargets: ['prod-east-2', 'prod-eu-west-1'],
     expandedReasons: [
@@ -357,7 +357,7 @@ const TOP_PLANS: PlanRow[] = [
     synopsis: 'Optimize Control Plane API Latency',
     blastRadius: '1 Cluster',
     consolidationScope: '2 API Events',
-    triggerDomains: ['Control Plane', 'etcd'],
+    triggerDomain: 'Control Plane',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
@@ -377,7 +377,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Fix Minor App Memory Leak',
     blastRadius: '1 Cluster',
     consolidationScope: '3 Alerts',
-    triggerDomains: ['Observability', 'Prometheus'],
+    triggerDomain: 'Observability',
     isUnauthorized: false,
     drawerTargets: ['stg-central'],
     expandedReasons: [
@@ -393,7 +393,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Repair Dev CI/CD Webhook Block',
     blastRadius: '2 Clusters',
     consolidationScope: '1 Failure / 2 Alerts',
-    triggerDomains: ['Pipelines', 'Tekton'],
+    triggerDomain: 'Pipelines',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2', 'stg-central'],
     expandedReasons: [
@@ -409,7 +409,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Rotate Expiring IAM Client Tokens',
     blastRadius: '1 Cluster',
     consolidationScope: '1 Auth Event',
-    triggerDomains: ['Security', 'Auth'],
+    triggerDomain: 'Security',
     isUnauthorized: true,
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
@@ -424,7 +424,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Investigate Core DNS Latency Spikes',
     blastRadius: '3 Clusters',
     consolidationScope: '4 Alerts',
-    triggerDomains: ['Network', 'DNS'],
+    triggerDomain: 'Network',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'edge-apac-1'],
     expandedReasons: [
@@ -439,7 +439,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Rebalance BareMetal Node Scheduling',
     blastRadius: '1 Cluster',
     consolidationScope: '2 Events / 1 Alert',
-    triggerDomains: ['Compute', 'Nodes'],
+    triggerDomain: 'Compute',
     isUnauthorized: false,
     drawerTargets: ['edge-apac-1'],
     expandedReasons: [
@@ -455,7 +455,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Re-sync Staging Namespace Drift',
     blastRadius: '1 Cluster',
     consolidationScope: '1 Drift Event',
-    triggerDomains: ['GitOps', 'ArgoCD'],
+    triggerDomain: 'GitOps',
     isUnauthorized: false,
     drawerTargets: ['stg-central'],
     expandedReasons: [
@@ -470,7 +470,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Fix Inactive Ingress Router Replicas',
     blastRadius: '2 Clusters',
     consolidationScope: '2 Alerts',
-    triggerDomains: ['Network', 'Ingress'],
+    triggerDomain: 'Network',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2', 'prod-eu-west-1'],
     expandedReasons: [
@@ -485,7 +485,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Mitigate ACS Compliance Violation',
     blastRadius: '1 Cluster',
     consolidationScope: '1 Security Event / 3 Alerts',
-    triggerDomains: ['Security', 'ACS'],
+    triggerDomain: 'Security',
     isUnauthorized: true,
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
@@ -501,7 +501,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Clear Stale Pod Garbage Collection',
     blastRadius: '2 Clusters',
     consolidationScope: '4 Pod Events',
-    triggerDomains: ['Compute', 'Kubelet'],
+    triggerDomain: 'Compute',
     isUnauthorized: false,
     drawerTargets: ['prod-eu-west-1', 'prod-us-west-2'],
     expandedReasons: [
@@ -516,7 +516,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Resolve High Jenkins Queue Depth',
     blastRadius: '1 Cluster',
     consolidationScope: '1 Alert',
-    triggerDomains: ['Pipelines', 'CI'],
+    triggerDomain: 'Pipelines',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
@@ -531,7 +531,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Remediate HorizontalPodAutoscaler Limits',
     blastRadius: '1 Cluster',
     consolidationScope: '1 HPA Event',
-    triggerDomains: ['Compute', 'Autoscaling'],
+    triggerDomain: 'Compute',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
@@ -546,7 +546,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Fix Container Registry Pull Failures',
     blastRadius: '4 Clusters',
     consolidationScope: '5 Alerts',
-    triggerDomains: ['Registry', 'Images'],
+    triggerDomain: 'Registry',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'edge-apac-1', 'stg-central'],
     expandedReasons: [
@@ -561,7 +561,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Tune Database Read IOPS Throttle',
     blastRadius: '1 Cluster',
     consolidationScope: '1 Event / 2 Alerts',
-    triggerDomains: ['Storage', 'CSI'],
+    triggerDomain: 'Storage',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
@@ -577,7 +577,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Address NTP Time Desynchronization',
     blastRadius: '3 Clusters',
     consolidationScope: '3 Alerts',
-    triggerDomains: ['Compute', 'Nodes'],
+    triggerDomain: 'Compute',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'stg-central'],
     expandedReasons: [
@@ -592,7 +592,7 @@ const ALL_PLANS: PlanRow[] = [
     synopsis: 'Clean Obsolete Image Stream Tags',
     blastRadius: '1 Cluster',
     consolidationScope: '1 Registry Event',
-    triggerDomains: ['Registry', 'Images'],
+    triggerDomain: 'Registry',
     isUnauthorized: false,
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
@@ -1280,7 +1280,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
             color="red"
             variant="outline"
             isCompact
-            icon={<ExclamationCircleIcon />}
+            icon={<ExclamationCircleIcon className="ols-plan-aborted-status-icon" aria-hidden />}
             style={{ whiteSpace: 'nowrap' }}
           >
             Plan aborted
@@ -1297,19 +1297,10 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   );
 };
 
-const TriggerDomainsCell: React.FC<{ domains: string[] }> = ({ domains }) => (
-  <LabelGroup aria-label="Trigger domains" className="ols-plans-trigger-domains">
-    {domains.map((domain, index) => (
-      <Label
-        key={`${domain}-${index}`}
-        color="grey"
-        variant="outline"
-        isCompact
-      >
-        {domain}
-      </Label>
-    ))}
-  </LabelGroup>
+const TriggerDomainCell: React.FC<{ domain: string }> = ({ domain }) => (
+  <Label color="grey" variant="outline" isCompact>
+    {domain}
+  </Label>
 );
 
 /** Created time for plans awaiting approval. */
@@ -1495,7 +1486,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
       <Tr>
         <Th style={{ width: '17%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
         <Th style={{ width: '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
-        <Th style={{ width: '13%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domains</Th>
+        <Th style={{ width: '13%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
         <Th style={{ width: '9%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
         <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
           <PlansTableColumnHeader
@@ -1547,8 +1538,8 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             </Flex>
           </Td>
 
-          <Td dataLabel="Trigger domains" className="ols-plans-trigger-domains-cell">
-            <TriggerDomainsCell domains={row.triggerDomains} />
+          <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
+            <TriggerDomainCell domain={row.triggerDomain} />
           </Td>
 
           <Td dataLabel="Status">
@@ -1831,15 +1822,8 @@ const PlansTable: React.FC<PlansTableProps> = ({
 
 // ─── Drawer: AI insight helper ────────────────────────────────────────────────
 
-const formatTriggerDomainsPhrase = (domains: string[]): string =>
-  domains.length === 0
-    ? 'unknown domain'
-    : domains.length === 1
-      ? `${domains[0]} domain`
-      : `${domains.join(', ')} domains`;
-
 const generateAiInsight = (plan: PlanRow): string =>
-  `Automated analysis correlated ${plan.consolidationScope} from the ${formatTriggerDomainsPhrase(plan.triggerDomains)}, ` +
+  `Automated analysis correlated ${plan.consolidationScope} from the ${plan.triggerDomain} domain, ` +
   `with a blast radius spanning ${plan.blastRadius}. The agent has isolated the root cause and assembled ` +
   `a verified remediation strategy designed to restore system health with minimal operational risk.`;
 

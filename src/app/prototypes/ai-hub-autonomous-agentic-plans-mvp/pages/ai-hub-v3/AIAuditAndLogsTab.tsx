@@ -79,7 +79,7 @@ const EventLabel: React.FC<{ event: LifecycleEvent; timestamp?: string }> = ({ e
             color="red"
             variant="outline"
             isCompact
-            icon={<ExclamationCircleIcon />}
+            icon={<ExclamationCircleIcon className="ols-plan-aborted-status-icon" aria-hidden />}
             style={{ whiteSpace: 'nowrap' }}
           >
             Plan aborted
