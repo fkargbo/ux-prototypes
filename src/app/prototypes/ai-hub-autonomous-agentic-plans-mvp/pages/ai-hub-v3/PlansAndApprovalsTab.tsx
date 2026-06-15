@@ -1755,6 +1755,7 @@ const RemediationOptionCard: React.FC<{
             {status === 'Completed' ? 'Executed' : 'Failed'}
           </Label>
         )}
+        <PlanRiskBadge score={planRiskScore} isCompact />
         <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
           {option.reversible ? '1-Click Rollback' : 'Non-reversible'}
         </Label>
@@ -2934,9 +2935,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               )}
               {!isInvestigating && !isTerminal && visibleOptionCount > 0 && (
                 <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
-              )}
-              {!isInvestigating && !isTerminal && (
-                <PlanRiskBadge score={plan.riskScore ?? 50} isCompact={false} />
               )}
               </Flex>
               <WaitingApprovalPlanMeta plan={plan} />
