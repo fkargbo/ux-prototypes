@@ -82,21 +82,10 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
-.ols-audit-receipt-badge-button {
-  padding: 0;
-  min-height: unset;
-}
-
-.ols-audit-receipt-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pf-t--global--spacer--xs);
+.ols-audit-receipt-link {
   font-family: var(--pf-t--global--font--family--monospace, monospace);
-  font-size: 0.75rem;
-}
-
-.ols-audit-receipt-badge__icon {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
+  margin: 0;
 }
 
 .ols-audit-receipt-expand {
