@@ -39,14 +39,19 @@ export const PlanRemediationPage: React.FC = () => {
     ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
     : activePerspective === 'Core platforms';
 
-  const { terminatedPlans } = usePlanTermination();
+  const { abortedPlans, resumedPlanIds } = usePlanTermination();
+
+  const planExecutionRuntime = useMemo(
+    () => ({ abortedPlans, resumedPlanIds }),
+    [abortedPlans, resumedPlanIds],
+  );
 
   const plan = useMemo(() => {
     if (!planSlug) {
       return null;
     }
-    return buildPlansForPerspective(isSingleCluster, terminatedPlans).find((row) => row.name === planSlug) ?? null;
-  }, [isSingleCluster, planSlug, terminatedPlans]);
+    return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find((row) => row.name === planSlug) ?? null;
+  }, [isSingleCluster, planSlug, planExecutionRuntime]);
 
   const navigateBackToPlans = useCallback(() => {
     const key = drillPerspectiveKey

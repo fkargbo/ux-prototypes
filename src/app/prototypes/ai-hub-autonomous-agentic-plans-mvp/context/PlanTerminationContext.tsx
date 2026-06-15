@@ -6,36 +6,69 @@ export type TerminatedPlanEntry = {
 
 export type TerminatedPlanState = Record<string, TerminatedPlanEntry>;
 
+export type PlanExecutionRuntime = {
+  abortedPlans: TerminatedPlanState;
+  resumedPlanIds: Record<string, true>;
+};
+
 type PlanTerminationContextValue = {
-  terminatedPlans: TerminatedPlanState;
+  abortedPlans: TerminatedPlanState;
+  resumedPlanIds: Record<string, true>;
   registerPlanTermination: (planId: string, terminatedAt: string) => void;
+  resumePlanRemediation: (planId: string) => void;
   getPlanTermination: (planId: string) => TerminatedPlanEntry | undefined;
 };
 
 const PlanTerminationContext = createContext<PlanTerminationContextValue | null>(null);
 
 export const PlanTerminationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [terminatedPlans, setTerminatedPlans] = useState<TerminatedPlanState>({});
+  const [abortedPlans, setAbortedPlans] = useState<TerminatedPlanState>({});
+  const [resumedPlanIds, setResumedPlanIds] = useState<Record<string, true>>({});
 
   const registerPlanTermination = useCallback((planId: string, terminatedAt: string) => {
-    setTerminatedPlans((prev) => ({
+    setAbortedPlans((prev) => ({
       ...prev,
       [planId]: { terminatedAt },
+    }));
+    setResumedPlanIds((prev) => {
+      if (!prev[planId]) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[planId];
+      return next;
+    });
+  }, []);
+
+  const resumePlanRemediation = useCallback((planId: string) => {
+    setAbortedPlans((prev) => {
+      if (!prev[planId]) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[planId];
+      return next;
+    });
+    setResumedPlanIds((prev) => ({
+      ...prev,
+      [planId]: true,
     }));
   }, []);
 
   const getPlanTermination = useCallback(
-    (planId: string) => terminatedPlans[planId],
-    [terminatedPlans],
+    (planId: string) => abortedPlans[planId],
+    [abortedPlans],
   );
 
   const value = useMemo(
     () => ({
-      terminatedPlans,
+      abortedPlans,
+      resumedPlanIds,
       registerPlanTermination,
+      resumePlanRemediation,
       getPlanTermination,
     }),
-    [terminatedPlans, registerPlanTermination, getPlanTermination],
+    [abortedPlans, resumedPlanIds, registerPlanTermination, resumePlanRemediation, getPlanTermination],
   );
 
   return <PlanTerminationContext.Provider value={value}>{children}</PlanTerminationContext.Provider>;

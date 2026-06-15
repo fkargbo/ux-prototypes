@@ -80,7 +80,7 @@ import {
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
-import { usePlanTermination, type TerminatedPlanState } from '../../context/PlanTerminationContext';
+import { usePlanTermination, type PlanExecutionRuntime } from '../../context/PlanTerminationContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1201,7 +1201,7 @@ function useStreamingExecutionLog(
 
   useEffect(() => {
     setVisibleCount(1);
-  }, [lines]);
+  }, [lines, frozen]);
 
   useEffect(() => {
     if (!enabled || frozen || visibleCount >= lines.length) {
@@ -1848,6 +1848,7 @@ const RemediationOptionCard: React.FC<{
   executionMessage?: string;
   executionKillState?: { killedAt: string } | null;
   onConfirmStopExecution?: (killedAt: string) => void;
+  onResumeRemediation?: () => void;
   isSelected: boolean;
   isDiagnosisVerified: boolean;
   isAgenticAutomationEnabled: boolean;
@@ -1859,6 +1860,7 @@ const RemediationOptionCard: React.FC<{
   executionMessage,
   executionKillState,
   onConfirmStopExecution,
+  onResumeRemediation,
   isSelected,
   isDiagnosisVerified,
   isAgenticAutomationEnabled,
@@ -1985,7 +1987,7 @@ const RemediationOptionCard: React.FC<{
     if (isRemediating) {
       if (isExecutionKilled) {
         return (
-          <Button variant="primary" style={{ margin: 0 }}>
+          <Button variant="primary" style={{ margin: 0 }} onClick={onResumeRemediation}>
             Apply fix
           </Button>
         );
@@ -2911,9 +2913,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster } = useAgenticCapabilities();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
-  const { registerPlanTermination } = usePlanTermination();
+  const { registerPlanTermination, resumePlanRemediation } = usePlanTermination();
 
-  const executionKillState = plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
+  const executionKillState =
+    plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
 
   const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
   // Guided view: first presentation from the plans table — only the focus section stays open.
@@ -3308,6 +3311,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
                           executionKillState={executionKillState}
                           onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt)}
+                          onResumeRemediation={() => resumePlanRemediation(plan.id)}
                           isSelected={selectedOptionId === opt.id}
                           isDiagnosisVerified={isDiagnosisVerified}
                           isAgenticAutomationEnabled={isAgenticAutomationEnabled}
@@ -3341,8 +3345,9 @@ export const DRILL_DOWN_PLAN_SLUG = 'analytics-memory-leak-fix';
 
 export function buildPlansForPerspective(
   isSingleCluster: boolean,
-  terminatedPlans: TerminatedPlanState = {},
+  runtime: PlanExecutionRuntime = { abortedPlans: {}, resumedPlanIds: {} },
 ): PlanRow[] {
+  const { abortedPlans, resumedPlanIds } = runtime;
   const combined = isSingleCluster
     ? [...SC_TOP_PLANS, ...SC_ALL_PLANS]
     : [...TOP_PLANS, ...ALL_PLANS];
@@ -3356,7 +3361,6 @@ export function buildPlansForPerspective(
       const rowPatch = isSingleCluster ? SC_PLAN_ROW_PATCHES[row.id] : undefined;
       const mergedRow = rowPatch ? { ...row, ...rowPatch } : row;
       const drawerData = resolvePlanDrawerData(row.id, PLAN_DRAWER_DATA[row.id], isSingleCluster);
-      const runtimeTermination = terminatedPlans[row.id];
       const baseRow: PlanRow = {
         ...mergedRow,
         name: identity?.name ?? row.id,
@@ -3376,11 +3380,19 @@ export function buildPlansForPerspective(
         terminatedAt: mergedRow.terminatedAt,
       };
 
-      if (runtimeTermination) {
+      if (abortedPlans[row.id]) {
         return {
           ...baseRow,
           status: 'Plan aborted',
-          terminatedAt: runtimeTermination.terminatedAt,
+          terminatedAt: abortedPlans[row.id].terminatedAt,
+        };
+      }
+
+      if (resumedPlanIds[row.id]) {
+        return {
+          ...baseRow,
+          status: 'Remediating',
+          terminatedAt: undefined,
         };
       }
 
@@ -3396,7 +3408,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster } = useAgenticCapabilities();
-  const { terminatedPlans } = usePlanTermination();
+  const { abortedPlans, resumedPlanIds } = usePlanTermination();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
 
   // Breadcrumb return: apply session handoff once on mount, then release control to the switcher.
@@ -3410,9 +3422,14 @@ export const PlansAndApprovalsTab: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per plans-list mount only
   }, []);
 
+  const planExecutionRuntime = useMemo(
+    () => ({ abortedPlans, resumedPlanIds }),
+    [abortedPlans, resumedPlanIds],
+  );
+
   const plans = useMemo(
-    () => buildPlansForPerspective(isSingleCluster, terminatedPlans),
-    [isSingleCluster, terminatedPlans],
+    () => buildPlansForPerspective(isSingleCluster, planExecutionRuntime),
+    [isSingleCluster, planExecutionRuntime],
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
