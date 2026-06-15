@@ -1,23 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Content, Title } from '@patternfly/react-core';
-import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
-import { config as prototypeConfig } from '../prototype.config';
-import * as HubV3 from './ai-hub-v3';
+import * as Hub from './ai-hub-v3';
 import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
   const navigate = useNavigate();
-  const bannerVersionKey = useBannerVersionSelection(
-    prototypeConfig.id,
-    prototypeConfig.bannerVersionPicker?.defaultKey ?? 'v3'
-  );
-  const isHubV3 = bannerVersionKey === 'v3';
-  const Hub = HubV3;
-  const pageVersionClass = isHubV3 ? ' ols-ai-hub-page--v3' : ' ols-ai-hub-page--v2';
 
   return (
-    <div className={`ols-ai-hub-page${pageVersionClass}`} data-exp-lab-annotation-root>
+    <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/ai-hub/plans')}>

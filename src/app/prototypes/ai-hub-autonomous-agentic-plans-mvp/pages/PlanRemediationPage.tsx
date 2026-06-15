@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/react-core';
-import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
-import { config as prototypeConfig } from '../prototype.config';
 import {
   buildPlansForPerspective,
   PlanResourceBadge,
@@ -36,12 +34,6 @@ export const PlanRemediationPage: React.FC = () => {
   const isSingleCluster = drillPerspectiveKey
     ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
     : activePerspective === 'Core platforms';
-
-  const bannerVersionKey = useBannerVersionSelection(
-    prototypeConfig.id,
-    prototypeConfig.bannerVersionPicker?.defaultKey ?? 'v3',
-  );
-  const pageVersionClass = bannerVersionKey === 'v3' ? ' ols-ai-hub-page--v3' : ' ols-ai-hub-page--v2';
 
   const plan = useMemo(() => {
     if (!planSlug) {
@@ -88,7 +80,7 @@ export const PlanRemediationPage: React.FC = () => {
   const planDisplayName = plan.name ?? plan.id;
 
   return (
-    <div className={`ols-ai-hub-page${pageVersionClass}`} data-exp-lab-annotation-root>
+    <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
