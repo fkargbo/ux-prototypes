@@ -29,6 +29,7 @@ import {
   WrenchIcon,
 } from '@patternfly/react-icons';
 import type { AlertRecord, AlertSeverity } from './data';
+import { confidenceTierProgressValue } from '../../types/confidenceTier';
 import { AgentPulseLabel } from './AgentPulseLabel';
 import { AiInsightLede } from './AiInsightCategoryRow';
 import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from './reasoningChainTimeline';
@@ -277,11 +278,11 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
                       className="ols-aio-card-stat-number"
                       style={{ color: 'var(--pf-t--global--color--status--success--default)' }}
                     >
-                      {alert.confidence}%
+                      {alert.confidence}
                     </span>
                   </Flex>
                   <Progress
-                    value={alert.confidence}
+                    value={confidenceTierProgressValue(alert.confidence)}
                     title=""
                     size={ProgressSize.sm}
                     measureLocation="none"

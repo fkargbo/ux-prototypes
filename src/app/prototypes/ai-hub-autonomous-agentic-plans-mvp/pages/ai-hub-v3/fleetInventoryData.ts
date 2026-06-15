@@ -6,10 +6,8 @@ import type { ClusterRecord, ClusterHealth } from '../../components/autonomousAi
 import {
   CLUSTERS,
   ALERTS,
-  FLEET_WIDE_REGIONAL_INGRESS,
   fleetHubTotalFiringAlertsCount,
   fleetCriticalAttributionCount,
-  fleetWideCriticalAddsForCluster,
   getAlertsForCluster,
   getClusterById,
 } from '../../components/autonomousAiObserve/data';
@@ -140,15 +138,10 @@ export function getClusterDiagnosticsMetrics(clusterId: string): ClusterDiagnost
   const cluster = getClusterById(clusterId);
   if (!cluster) return null;
   const alerts = getAlertsForCluster(clusterId);
-  const criticalAlerts =
-    alerts.filter((a) => a.severity === 'critical').length +
-    fleetWideCriticalAddsForCluster(clusterId);
-  const fleetWideIsActive =
-    fleetWideCriticalAddsForCluster(clusterId) > 0 &&
-    FLEET_WIDE_REGIONAL_INGRESS.agentStatus !== 'idle';
-  const investigatingFromAlerts =
-    alerts.filter((a) => a.agentStatus === 'investigating' || a.agentStatus === 'escalated')
-      .length + (fleetWideIsActive ? 1 : 0);
+  const criticalAlerts = alerts.filter((a) => a.severity === 'critical').length;
+  const investigatingFromAlerts = alerts.filter(
+    (a) => a.agentStatus === 'investigating' || a.agentStatus === 'escalated',
+  ).length;
   const remediatingFromAlerts = alerts.filter((a) => a.agentStatus === 'remediating').length;
   const activeInvestigations = Math.max(
     investigatingFromAlerts,

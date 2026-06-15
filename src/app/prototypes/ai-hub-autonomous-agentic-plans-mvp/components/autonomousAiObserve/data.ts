@@ -2,6 +2,8 @@
  * Mock dataset for Autonomous analysis — values match cursor-prompt-cluster-monitoring-console.md
  */
 
+import type { ConfidenceTier } from '../../types/confidenceTier';
+
 export type ClusterHealth = 'critical' | 'degraded' | 'healthy';
 export type AgentPulseStatus = 'investigating' | 'remediating' | 'escalated' | 'idle';
 export type AlertSeverity = 'critical' | 'warning' | 'info';
@@ -61,7 +63,7 @@ export interface AlertRecord {
   rcaSummary: string;
   rootCauseRef: string;
   rootCauseTail: string;
-  confidence: number;
+  confidence: ConfidenceTier;
   logLines: string;
   blastRadius: string[];
   remediationSummary: string;
@@ -102,6 +104,8 @@ export interface FleetWideCriticalIncident {
   /** Remediation hub — risk / recovery framing. */
   riskAssessment: string;
   estimatedRecovery: string;
+  /** RCA confidence tier for fleet-wide incident panels. */
+  confidence: ConfidenceTier;
 }
 
 /** Default cluster when Core platforms loads Observe with no session-stored focus. */
@@ -343,7 +347,7 @@ type SyntheticAlertInput = {
   rootCauseTail: string;
   estimatedRecovery?: string;
   agentStatus?: AgentPulseStatus;
-  confidence?: number;
+  confidence?: ConfidenceTier;
   category?: string;
   headline?: string;
   narrative?: string;
@@ -401,7 +405,7 @@ function buildSyntheticAlert(input: SyntheticAlertInput): AlertRecord {
     rcaSummary: `${input.title} is amplified by ${input.rootCauseTail} in ${input.clusterId}.`,
     rootCauseRef: input.rootCauseRef,
     rootCauseTail: input.rootCauseTail,
-    confidence: input.confidence ?? 79,
+    confidence: input.confidence ?? 'Medium',
     logLines: `W 14:31:02 ${input.title} threshold exceeded\nI 14:31:08 evaluating ${input.rootCauseRef}\nI 14:31:17 impact scored for ${input.clusterId}`,
     blastRadius: [input.clusterId, input.service],
     remediationSummary: `Apply targeted remediation on ${input.clusterId} to reduce ${input.title} impact while preserving service availability.`,
@@ -713,7 +717,7 @@ export const ALERTS: AlertRecord[] = [
       'NetworkPolicy applied at 14:18 UTC blocks egress to redis cache, causing connection timeouts in payments-api pods and cascading 5xx errors at the gateway.',
     rootCauseRef: 'payments-egress-v3',
     rootCauseTail: 'redis-cache.svc.cluster.local:6379',
-    confidence: 87,
+    confidence: 'High',
     logLines: `E 14:21:58 dial tcp 10.0.4.12:6379:
   i/o timeout
 W 14:21:59 redis pool exhausted (32/32)
@@ -784,7 +788,7 @@ $ kubectl rollout restart deploy/payments-api -n payments`,
       'etcd WAL exceeded 8 GB threshold on master-2 due to skipped auto-compaction window during last upgrade. Disk pressure risks quorum stability.',
     rootCauseRef: 'etcd-master-2',
     rootCauseTail: '/var/lib/etcd',
-    confidence: 92,
+    confidence: 'High',
     logLines: `W 14:15:30 mvcc: storage backend quota exceeded
 W 14:15:31 apply request took too long (412ms)
 E 14:15:32 DiskPressure: available 4% (<10%)`,
@@ -807,6 +811,32 @@ $ oc patch pvc etcd-master-2 -p '{"spec":{"resources":{"requests":{"storage":"60
         "I'm treating skipped compaction after upgrade as the primary risk — expanding disk and defrag reduces quorum hazard next.",
     },
   },
+  buildSyntheticAlert({
+    id: 'alrt-8824',
+    clusterId: 'prod-east-2',
+    severity: 'warning',
+    title: 'KubePodCrashLooping',
+    service: 'payments / payment-api',
+    age: '18m',
+    firedAt: '2026-04-29T18:04:00.000Z',
+    message: 'payment-api pods are crash-looping after memory limit exhaustion on this cluster.',
+    rootCauseRef: 'payment-api-oom',
+    rootCauseTail: 'payments-prod namespace',
+    category: 'AI insight · Workloads',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-8825',
+    clusterId: 'prod-east-2',
+    severity: 'warning',
+    title: 'IngressControllerMinReplicasNotMet',
+    service: 'openshift-ingress / router-default',
+    age: '9m',
+    firedAt: '2026-04-29T18:13:00.000Z',
+    message: 'Ingress router replica count is below the configured minimum on prod-east-2.',
+    rootCauseRef: 'router-default-pdb',
+    rootCauseTail: 'openshift-ingress namespace',
+    category: 'AI insight · Platform',
+  }),
   {
     id: 'alrt-8814',
     clusterId: 'prod-eu-west-1',
@@ -855,7 +885,7 @@ $ oc patch pvc etcd-master-2 -p '{"spec":{"resources":{"requests":{"storage":"60
       'checkout-svc hit HPA ceiling of 4 replicas while sustained traffic grew 2.1x week-over-week. CPU requests under-provisioned for current shape.',
     rootCauseRef: 'checkout-svc',
     rootCauseTail: 'hpa: max=4 cpu.req=250m',
-    confidence: 78,
+    confidence: 'Medium',
     logLines: `I 14:03:55 cpu_throttled_seconds_total +0.42/s
 I 14:04:02 hpa: desired=6 current=4 (capped)
 W 14:04:10 request latency p95 = 1.8s`,
@@ -923,7 +953,7 @@ $ oc set resources deploy/checkout-svc --requests=cpu=500m`,
       'Wildcard cert *.apac.example.com nearing expiry; auto-renewal disabled during last edge maintenance window and never re-enabled.',
     rootCauseRef: 'wildcard-apac',
     rootCauseTail: 'auto-renew=false',
-    confidence: 95,
+    confidence: 'High',
     logLines: `I 14:23:55 cert-manager: 36h to expiry
 W 14:23:56 renewBefore window entered
 I 14:24:00 issuer letsencrypt-prod ready`,
@@ -1016,6 +1046,7 @@ export const FLEET_WIDE_REGIONAL_INGRESS: FleetWideCriticalIncident = {
     'Roll back NetworkPolicy deny-all-ingress to version v2.1.0 across all 3 clusters (prod-east-2, prod-eu-west-1, stg-central).',
   riskAssessment: 'Low risk. This will restore traffic immediately.',
   estimatedRecovery: '~45s',
+  confidence: 'High',
 };
 
 /**
@@ -1061,7 +1092,7 @@ export function buildFleetWideIngressAlertRecordForCluster(clusterId: string): A
     rcaSummary: `${fw.aggregatedFinding} ${fw.rootCauseNarrative}`.trim(),
     rootCauseRef: 'cluster-gitops-policies',
     rootCauseTail: fw.rootCauseNarrative.slice(0, 120),
-    confidence: 94,
+    confidence: 'High',
     logLines: `Fleet ingress symptom · ${fw.correlatedAlertCount} correlated alerts · deny-all-ingress NetworkPolicy roll-forward detected.`,
     blastRadius: [...fw.affectedClusterIds, 'router-default', 'openshift-ingress'],
     remediationSummary: fw.remediationProposal,
@@ -1071,6 +1102,89 @@ export function buildFleetWideIngressAlertRecordForCluster(clusterId: string): A
     remediationRiskSummary: fw.riskAssessment,
     agentInvestigationNarrative: fw.aiInsight.narrative ?? fw.aiInsight.evidence,
     aiInsight: { ...fw.aiInsight },
+  };
+}
+
+/**
+ * Core platforms zoom-in: same underlying GitOps ingress failure, scoped to one cluster’s
+ * openshift-ingress namespace and router pods — not a multi-cluster fleet incident.
+ */
+export function buildClusterScopedIngressAlertRecordForCluster(clusterId: string): AlertRecord | null {
+  if (fleetWideCriticalAddsForCluster(clusterId) === 0) {
+    return null;
+  }
+  const fw = FLEET_WIDE_REGIONAL_INGRESS;
+  const cluster = getClusterById(clusterId);
+  const clusterName = cluster?.name ?? clusterId;
+  return {
+    id: `cluster-alrt-ingress-${clusterId}`,
+    clusterId,
+    severity: 'critical',
+    title: 'IngressControllerDegraded',
+    service: 'openshift-ingress / router-default',
+    age: fw.symptomStartedDisplay,
+    firedAt: fw.firedAt,
+    message:
+      'OpenShift Ingress router is returning 502/503 for payments-prod and retail-prod routes after a GitOps sync applied a deny-all-ingress NetworkPolicy.',
+    agentStatus: fw.agentStatus,
+    steps: [
+      {
+        id: 'ci1',
+        time: '10:04',
+        status: 'done',
+        title: 'Grouped ingress alerts on this cluster',
+        detail: '4 IngressControllerDegraded rules firing on router-default in openshift-ingress',
+        icon: 'database',
+      },
+      {
+        id: 'ci2',
+        time: '10:05',
+        status: 'done',
+        title: 'Anchored blast to openshift-ingress dataplane',
+        detail: `Router → Service hop failing on ${clusterName} for payments-prod and retail-prod`,
+        icon: 'network',
+      },
+      {
+        id: 'ci3',
+        time: '10:06',
+        status: 'done',
+        title: 'Argo CD sync detected 2 minutes prior to alert onset',
+        detail: 'Application payments-prod synced revision r4892 at 10:03 AM',
+        icon: 'search',
+      },
+      {
+        id: 'ci4',
+        time: '10:07',
+        status: 'active',
+        title: 'Diffed applied NetworkPolicy in payments-prod',
+        detail: 'New deny-all-ingress policy lacks allow-rule for openshift-ingress namespace',
+        icon: 'exclamation',
+      },
+    ],
+    rcaSummary:
+      'Argo CD revision r4892 applied a deny-all-ingress NetworkPolicy in payments-prod that blocks router → workload traffic on this cluster.',
+    rootCauseRef: 'payments-prod-netpol-r4892',
+    rootCauseTail: 'deny-all-ingress missing openshift-ingress allow',
+    confidence: 'High',
+    logLines: `E router-default-6d4f8 openshift-ingress: backend 502 for route/payments-api
+E router-default-6d4f8 openshift-ingress: backend 503 for route/retail-checkout`,
+    blastRadius: ['router-default-6d4f8', 'router-default-6d4f8-2', 'payments-prod', 'retail-prod'],
+    remediationSummary:
+      'Revert NetworkPolicy in payments-prod to revision r4891 and hard-sync the Argo CD application on this cluster.',
+    remediationCommands: `argocd app sync payments-prod --revision r4891 --prune
+oc rollout restart deployment/router-default -n openshift-ingress`,
+    estimatedRecovery: fw.estimatedRecovery,
+    remediationRiskSummary: 'Low risk — GitOps rollback restores router → workload traffic on this cluster.',
+    agentInvestigationNarrative:
+      'Correlated 4 ingress alerts on router-default with an Argo CD sync in payments-prod that introduced a deny-all-ingress NetworkPolicy.',
+    aiInsight: {
+      categoryLabel: 'AI insight · Cluster correlation',
+      headline: 'Ingress degradation scoped to openshift-ingress on this cluster',
+      evidence:
+        'Router metrics and NetworkPolicy timestamps align on prod-east-2 — no cross-cluster symptom pattern detected.',
+      narrative:
+        'I tied the ingress drop to a GitOps NetworkPolicy change in payments-prod on this cluster. Next I am validating rollback blast radius before recommending sync.',
+    },
   };
 }
 
@@ -1324,11 +1438,11 @@ export function buildFleetSeverityBreakdown(severity: AlertSeverity): AlertKpiBr
 
 export function getAlertsForCluster(clusterId: string): AlertRecord[] {
   const perCluster = sortAlertsBySeverityPriority(ALERTS.filter((a) => a.clusterId === clusterId));
-  const fleetRow = buildFleetWideIngressAlertRecordForCluster(clusterId);
-  if (!fleetRow) {
+  const ingressRow = buildClusterScopedIngressAlertRecordForCluster(clusterId);
+  if (!ingressRow) {
     return perCluster;
   }
-  return sortAlertsBySeverityPriority([fleetRow, ...perCluster]);
+  return sortAlertsBySeverityPriority([ingressRow, ...perCluster]);
 }
 
 export function buildClusterSeverityBreakdown(clusterId: string, severity: AlertSeverity): AlertKpiBreakdownRow[] {
@@ -1361,12 +1475,11 @@ export function buildClusterAwayDigestItems(clusterId: string): AwayDigestItem[]
   const latestClusterTimestamp = latestClusterAlertIso ? formatLocalDigestTimestamp(latestClusterAlertIso) : 'recent';
 
   if (fleetWideCriticalAddsForCluster(clusterId) > 0) {
-    const summary = FLEET_WIDE_REGIONAL_INGRESS.aiInsight.narrative ?? FLEET_WIDE_REGIONAL_INGRESS.aiInsight.evidence;
     items.push({
       tone: 'danger',
       timestamp: formatLocalDigestTimestamp(FLEET_WIDE_REGIONAL_INGRESS.firedAt),
-      text: `Fleet incident: ${FLEET_WIDE_REGIONAL_INGRESS.title}`,
-      meta: summary.length > 140 ? `${summary.slice(0, 140)}…` : summary,
+      text: 'IngressControllerDegraded on router-default',
+      meta: 'GitOps sync in payments-prod applied deny-all-ingress — router → workload traffic blocked on this cluster.',
     });
   }
 
@@ -1585,8 +1698,7 @@ export function buildClusterTopFiringAlertRuleRows(clusterId: string): FleetTopA
   }
 
   if (fleetWideCriticalAddsForCluster(clusterId) > 0) {
-    const fw = FLEET_WIDE_REGIONAL_INGRESS;
-    const key = fw.title;
+    const key = 'IngressControllerDegraded';
     if (!byTitle[key]) {
       byTitle[key] = { name: key, critical: 0, warning: 0, info: 0, clusters: [clusterName] };
     }
@@ -1597,7 +1709,7 @@ export function buildClusterTopFiringAlertRuleRows(clusterId: string): FleetTopA
     (a, b) => b.critical + b.warning + b.info - (a.critical + a.warning + a.info)
   );
 
-  const ingressTitle = FLEET_WIDE_REGIONAL_INGRESS.title;
+  const ingressTitle = 'IngressControllerDegraded';
   const ingressIdx = sorted.findIndex((r) => r.name === ingressTitle);
   const ingressRow = ingressIdx >= 0 ? sorted[ingressIdx] : undefined;
   const withoutIngress = ingressRow ? sorted.filter((_, i) => i !== ingressIdx) : sorted;
@@ -1607,12 +1719,7 @@ export function buildClusterTopFiringAlertRuleRows(clusterId: string): FleetTopA
 
 /** Firing alert count for one cluster (matches `getAlertsForCluster` / cluster KPI scope). */
 export function clusterHubTotalFiringAlertsCount(clusterId: string): number {
-  const perCluster = ALERTS.filter((a) => a.clusterId === clusterId);
-  const critical =
-    perCluster.filter((a) => a.severity === 'critical').length + fleetWideCriticalAddsForCluster(clusterId);
-  const warning = perCluster.filter((a) => a.severity === 'warning').length;
-  const info = perCluster.filter((a) => a.severity === 'info').length;
-  return critical + warning + info;
+  return getAlertsForCluster(clusterId).length;
 }
 
 /** Aligns with Fleet Summary firing totals (`computeFleetStats` / fleet ingress attribution). */

@@ -6,7 +6,6 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Checkbox,
   ClipboardCopy,
   ClipboardCopyVariant,
   Content,
@@ -42,8 +41,17 @@ import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, Exclamatio
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
+import type { ConfidenceTier } from '../../types/confidenceTier';
+import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
+import {
+  SC_PLAN_ROW_PATCHES,
+  SC_PLAN_TABLE_IDENTITY,
+  CORE_PLATFORMS_CLUSTER_ID,
+  resolvePlanDrawerData,
+  applyScRemediationPatches,
+} from './singleClusterPlanSimulation';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import {
@@ -564,7 +572,7 @@ const SC_ALL_PLANS: PlanRow[] = [
   { ...ALL_PLANS[10], blastRadius: '1 HPA Object',       triggerDomains: 'Autoscaling Framework',  drawerTargets: ['api-gateway-hpa'] },
   { ...ALL_PLANS[11], blastRadius: '3 Image Streams',    triggerDomains: 'Local Registry',         drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
   { ...ALL_PLANS[12], blastRadius: '1 PVC Volume',       triggerDomains: 'AWS-EBS CSI Plugin',     drawerTargets: ['postgres-data-0'] },
-  { ...ALL_PLANS[13], blastRadius: '6 Cluster Nodes',    triggerDomains: 'Chrony DaemonSet',       drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
+  { ...ALL_PLANS[13], blastRadius: '6 Nodes',           triggerDomains: 'Chrony DaemonSet',       drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
   { ...ALL_PLANS[14], blastRadius: '1 Registry Catalog', triggerDomains: 'Local Registry',         drawerTargets: ['image-registry'] },
 ];
 
@@ -575,7 +583,7 @@ interface PlanDrawerData {
   remediationProposal: string;
   riskAssessment: string;
   estimatedRecovery: string;
-  confidence: number;
+  confidence: ConfidenceTier;
 }
 
 const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
@@ -585,14 +593,14 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '10:03:12', status: 'done', icon: 'exclamation', title: 'Detected ArgoCD LiveStateOutOfSync event', detail: '4 IngressControllerDegraded alerts firing fleet-wide' },
       { id: 's2', time: '10:03:25', status: 'done', icon: 'database',   title: 'Fetched GitOps revision history', detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
       { id: 's3', time: '10:03:41', status: 'done', icon: 'network',    title: 'Diffed live vs. declared NetworkPolicy objects', detail: 'Kustomize overlay conflict found across 4 fleet namespaces' },
-      { id: 's4', time: '10:03:55', status: 'done', icon: 'search',     title: 'Scored blast radius and causal confidence', detail: '4 fleets affected · 94% confidence in GitOps root cause' },
+      { id: 's4', time: '10:03:55', status: 'done', icon: 'search',     title: 'Scored blast radius and causal confidence', detail: '4 fleets affected · High confidence in GitOps root cause' },
     ],
     aggregatedFinding: 'ArgoCD revision r4892 applied a malformed ApplicationSet template that mismatched live cluster state across 4 fleets.',
     rootCauseNarrative: 'A faulty Argo CD ApplicationSet push (revision r4892) propagated conflicting Kustomize overlays, causing router → workload traffic mismatches. The drift was confirmed 3 minutes after the sync event triggered 4 IngressControllerDegraded alerts.',
     remediationProposal: 'Revert ArgoCD ApplicationSet to revision r4891 and force a hard sync across all 4 affected fleets.',
     riskAssessment: 'Low — GitOps rollback is reversible and non-destructive.',
     estimatedRecovery: '~45s',
-    confidence: 94,
+    confidence: 'High',
   },
   tp2: {
     steps: [
@@ -606,7 +614,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Remediation paths pending root cause confirmation.',
     riskAssessment: 'Medium — isolation will require pod eviction, causing brief service disruption.',
     estimatedRecovery: '~3m',
-    confidence: 71,
+    confidence: 'Medium',
   },
   tp3: {
     steps: [
@@ -620,7 +628,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Increase memory limits on affected deployments by 40% and trigger HPA scale-out to 3 replicas.',
     riskAssessment: 'Low — resource limit adjustments are rolling and reversible.',
     estimatedRecovery: '~90s',
-    confidence: 85,
+    confidence: 'High',
   },
   tp4: {
     steps: [
@@ -634,21 +642,21 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Expand Ceph pool capacity by 20% and enforce log rotation on affected StatefulSets.',
     riskAssessment: 'Medium — storage expansion requires OSD reconfiguration and a brief I/O suspension period.',
     estimatedRecovery: '~2m',
-    confidence: 82,
+    confidence: 'High',
   },
   tp5: {
     steps: [
       { id: 's1', time: '07:09:11', status: 'done', icon: 'exclamation', title: 'Detected elevated API server P99 latency', detail: '2 etcd_db_total_size_in_bytes fragmentation events triggered' },
       { id: 's2', time: '07:09:22', status: 'done', icon: 'database',    title: 'Queried etcd DB size and compaction history', detail: 'Fragmentation at 68% — last auto-compact skipped during upgrade' },
       { id: 's3', time: '07:09:34', status: 'done', icon: 'search',      title: 'Correlated fragmentation with API write amplification', detail: 'Leader election overhead elevated · P99 latency >1.2s confirmed' },
-      { id: 's4', time: '07:09:46', status: 'done', icon: 'search',      title: 'Scored blast radius and causal confidence', detail: 'Fragmentation >65% threshold · 91% confidence in etcd root cause' },
+      { id: 's4', time: '07:09:46', status: 'done', icon: 'search',      title: 'Scored blast radius and causal confidence', detail: 'Fragmentation >65% threshold · High confidence in etcd root cause' },
     ],
     aggregatedFinding: 'etcd database fragmentation (>65%) confirmed as root cause of elevated API server P99 latency.',
     rootCauseNarrative: 'etcd fragmentation exceeded 65% — a known performance threshold — causing API write amplification and increased leader election overhead, driving P99 latency above 1.2s.',
     remediationProposal: 'Execute etcd defragmentation on all 3 control plane members with rolling restart cadence.',
     riskAssessment: 'Low — etcd defragmentation is a supported operational procedure.',
     estimatedRecovery: '~45s',
-    confidence: 91,
+    confidence: 'High',
   },
 
   // ── All plans ──────────────────────────────────────────────────────────────
@@ -663,7 +671,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Apply memory limit patch (2Gi → 4Gi) and redeploy affected pods with the corrected configuration.',
     riskAssessment: 'Low — dev environment, no user-facing impact.',
     estimatedRecovery: '~30s',
-    confidence: 78,
+    confidence: 'Medium',
   },
   ap2: {
     steps: [
@@ -677,7 +685,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Rotate EventListener TLS secret and force webhook endpoint re-registration on both clusters.',
     riskAssessment: 'Low — development pipeline only, no production workload impact.',
     estimatedRecovery: '~1m',
-    confidence: 75,
+    confidence: 'Medium',
   },
   ap3: {
     steps: [
@@ -690,7 +698,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Re-bind the IAM automation role and execute emergency certificate rotation.',
     riskAssessment: 'Medium — brief authentication interruption expected during the rotation handoff window.',
     estimatedRecovery: '~2m',
-    confidence: 71,
+    confidence: 'Medium',
   },
   ap4: {
     steps: [
@@ -703,7 +711,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Remediation paths pending root cause confirmation.',
     riskAssessment: 'TBD — root cause under active investigation.',
     estimatedRecovery: 'TBD',
-    confidence: 58,
+    confidence: 'Medium',
   },
   ap5: {
     steps: [
@@ -716,7 +724,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Force-drain node, reset the Metal3 BMH object, and re-provision the node.',
     riskAssessment: 'High — force drain may impact in-flight workloads during the procedure.',
     estimatedRecovery: '~5m',
-    confidence: 65,
+    confidence: 'Medium',
   },
   ap6: {
     steps: [
@@ -729,7 +737,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Force ArgoCD hard sync on the staging application to restore GitOps-declared state.',
     riskAssessment: 'Low — staging environment, non-destructive sync operation.',
     estimatedRecovery: '~15s',
-    confidence: 92,
+    confidence: 'High',
   },
   ap7: {
     steps: [
@@ -742,7 +750,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Patch the PodDisruptionBudget to allow HPA scale-out and immediately scale ingress routers to the minimum replica count.',
     riskAssessment: 'Low — router pods scale rolling with no traffic interruption.',
     estimatedRecovery: '~1m',
-    confidence: 79,
+    confidence: 'Medium',
   },
   ap8: {
     steps: [
@@ -755,7 +763,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Set hostNetwork: false on the offending deployment and apply a network policy admission webhook to prevent recurrence.',
     riskAssessment: 'Medium — policy enforcement will trigger pod restarts on the affected deployment.',
     estimatedRecovery: '~1m',
-    confidence: 75,
+    confidence: 'Medium',
   },
   ap9: {
     steps: [
@@ -768,7 +776,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Execute a graceful Kubelet garbage collection cycle and validate the containerd runtime configuration.',
     riskAssessment: 'Low — housekeeping operation with no workload impact.',
     estimatedRecovery: '~30s',
-    confidence: 72,
+    confidence: 'Medium',
   },
   ap10: {
     steps: [
@@ -782,7 +790,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Terminate the stalled job and increase the executor count from 4 to 8 to prevent recurrence.',
     riskAssessment: 'Low — non-critical CI environment with no production dependency.',
     estimatedRecovery: '~2m',
-    confidence: 88,
+    confidence: 'High',
   },
   ap11: {
     steps: [
@@ -795,7 +803,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Restart the custom metrics adapter and validate Prometheus scrape endpoint connectivity.',
     riskAssessment: 'Low — brief adapter restart has no workload impact.',
     estimatedRecovery: '~45s',
-    confidence: 76,
+    confidence: 'Medium',
   },
   ap12: {
     steps: [
@@ -808,7 +816,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Force DNS cache flush on affected nodes and update the registry mirror configuration to bypass the stale record.',
     riskAssessment: 'Low — rolling DNS update with no workload eviction required.',
     estimatedRecovery: '~2m',
-    confidence: 72,
+    confidence: 'Medium',
   },
   ap13: {
     steps: [
@@ -821,7 +829,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Remediation paths pending root cause confirmation.',
     riskAssessment: 'TBD — storage configuration change scope under investigation.',
     estimatedRecovery: 'TBD',
-    confidence: 58,
+    confidence: 'Medium',
   },
   ap14: {
     steps: [
@@ -835,7 +843,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Reconfigure chronyd to use the corporate NTP pool and restart the clock synchronization service.',
     riskAssessment: 'Low — NTP reconfiguration has no workload impact.',
     estimatedRecovery: '~30s',
-    confidence: 94,
+    confidence: 'High',
   },
   ap15: {
     steps: [
@@ -848,7 +856,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Restore RBAC permissions for the registry pruner service account and trigger a manual prune run.',
     riskAssessment: 'Low — registry pruning is non-destructive (removes unreferenced tags only).',
     estimatedRecovery: '~1m',
-    confidence: 80,
+    confidence: 'High',
   },
 };
 
@@ -1586,6 +1594,22 @@ const OPTION_TYPE_NAMES: Record<number, string> = {
   2: 'Emergency Override',
 };
 
+/** Appends dry-run flags for the pre-apply verification preview. */
+function buildDryRunCommandPreview(rawCommands: string): string {
+  return rawCommands
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return '';
+      const bare = trimmed.replace(/^\$\s*/, '');
+      if (/\bdry-run\b/i.test(bare)) return `$ ${bare}`;
+      if (/^(oc|kubectl)\s/.test(bare)) return `$ ${bare} --dry-run=server`;
+      if (/^argocd\s/.test(bare)) return `$ ${bare} --dry-run`;
+      return `$ ${bare}  # preview: dry-run validation recommended`;
+    })
+    .join('\n');
+}
+
 const RemediationOptionCard: React.FC<{
   option: RemediationOption;
   index: number;
@@ -1598,18 +1622,11 @@ const RemediationOptionCard: React.FC<{
   const isFirst = index === 0;
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
-  const { status, isUnauthorized, drawerTargets } = plan;
+  const { status, isUnauthorized } = plan;
   const isInvestigating = status === 'Investigating';
-  const isWaitingApproval = status === 'Waiting Approval';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
-  const [showCommands, setShowCommands] = useState(false);
-  const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
-  type SandboxState = 'pending' | 'running' | 'passed' | 'bypassed';
-  const [sandboxState, setSandboxState] = useState<SandboxState>('pending');
-  const isSandboxCleared = sandboxState === 'passed' || sandboxState === 'bypassed';
-  const showRemediationGuide =
-    isWaitingApproval && isDiagnosisVerified && isSandboxCleared;
+  const [showLiveCommands, setShowLiveCommands] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
@@ -1619,9 +1636,8 @@ const RemediationOptionCard: React.FC<{
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
     if (!isSelected) {
-      setShowCommands(false);
+      setShowLiveCommands(false);
       setIsExecuting(false);
-      setSandboxState('pending');
     }
   }, [isSelected]);
 
@@ -1644,8 +1660,6 @@ const RemediationOptionCard: React.FC<{
   const typeName = OPTION_TYPE_NAMES[index] ?? `Option ${index + 1}`;
   const isInteractive = !isRemediating;
   const cardId = `remediation-option-${option.id}`;
-
-  const selectedCount = selectedTargets.size;
 
   const headerContent = (
     <Flex
@@ -1697,7 +1711,7 @@ const RemediationOptionCard: React.FC<{
     }, 2000);
   };
 
-  const renderActionButton = () => {
+  const renderApplyAction = () => {
     if (isInvestigating || isTerminal) return null;
     if (isRemediating) {
       return (
@@ -1716,15 +1730,11 @@ const RemediationOptionCard: React.FC<{
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
           <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
           <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-            {isSingleCluster
-              ? 'Remediation applied'
-              : `Remediation applied to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
+            Remediation applied
           </Content>
         </Flex>
       );
     }
-    // Block execution until sandbox is cleared (passed or explicitly bypassed).
-    if (sandboxState === 'pending' || sandboxState === 'running') return null;
     if (isUnauthorized) {
       return (
         <Button
@@ -1738,43 +1748,19 @@ const RemediationOptionCard: React.FC<{
       );
     }
     return (
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-        <Button
-          variant="primary"
-          isDisabled={(!isSingleCluster && selectedCount === 0) || isExecuting}
-          isLoading={isExecuting}
-          onClick={handleExecute}
-        >
-          {isSingleCluster
-            ? (isExecuting ? 'Applying remediation…' : 'Apply remediation')
-            : (isExecuting
-              ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
-              : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`)}
-        </Button>
-        {!isExecuting && (
-          <Button
-            variant="link"
-            isInline
-            style={{ fontSize: '14px' }}
-            onClick={() => {
-              const drawer = PLAN_DRAWER_DATA[plan.id];
-              agenticGlobalAiApi.openRemediationDiscussion?.({
-                planSynopsis: plan.synopsis,
-                optionTitle: option.title,
-                rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
-                remediationProposal: drawer?.remediationProposal ?? option.description,
-                riskAssessment: drawer?.riskAssessment ?? '',
-                blastRadius: plan.blastRadius,
-                severity: plan.severity,
-              });
-            }}
-          >
-            Discuss with Lightspeed
-          </Button>
-        )}
-      </Flex>
+      <Button
+        variant="primary"
+        isDisabled={isExecuting}
+        isLoading={isExecuting}
+        onClick={handleExecute}
+        style={{ margin: 0 }}
+      >
+        {isExecuting ? 'Applying remediation…' : 'Apply remediation'}
+      </Button>
     );
   };
+
+  const showRemediationActions = !isInvestigating && !isTerminal && !isRemediating;
 
   return (
     <div ref={cardRootRef}>
@@ -1817,7 +1803,7 @@ const RemediationOptionCard: React.FC<{
       </CardHeader>
 
       {isSelected && (
-        <CardBody>
+        <CardBody className="ols-remediation-option-card__body">
           {/* AI icon + full option title */}
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -1873,27 +1859,85 @@ const RemediationOptionCard: React.FC<{
             </Label>
           </Flex>
 
-          {/* Raw commands toggle */}
-          {!isInvestigating && !isTerminal && !isRemediating && (
+          {/* ── Dry-run commands (primary safety gate) ── */}
+          {showRemediationActions && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              <Alert
+                variant="info"
+                isInline
+                title="Dry-run preview — verify before applying"
+                style={{ marginTop: '24px', marginBottom: '24px' }}
+              >
+                Review the dry-run summary below. No live mutations occur until you choose{' '}
+                <strong>Apply remediation</strong> or use the manual paths underneath.
+              </Alert>
+              <Content
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 'var(--pf-t--global--spacer--xs)',
+                }}
+              >
+                Dry-run commands
+              </Content>
+              <ClipboardCopy
+                isReadOnly
+                isCode
+                hoverTip="Copy"
+                clickTip="Copied"
+                style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+              >
+                {buildDryRunCommandPreview(option.rawCommands)}
+              </ClipboardCopy>
+            </div>
+          )}
+
+          {/* ── View live commands (below dry-run, above Apply) ── */}
+          {showRemediationActions && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               <Button
                 variant="link"
                 isInline
-                onClick={() => setShowCommands(!showCommands)}
+                onClick={() => setShowLiveCommands(!showLiveCommands)}
                 icon={
                   <AngleRightIcon
                     style={{
-                      transform: showCommands ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transform: showLiveCommands ? 'rotate(90deg)' : 'rotate(0deg)',
                       transition: 'transform 150ms ease',
                     }}
                   />
                 }
                 style={{ padding: 0, fontSize: '14px' }}
               >
-                {showCommands ? 'Hide raw commands' : 'View raw commands'}
+                {showLiveCommands ? 'Hide live commands' : 'View live commands'}
               </Button>
-              {showCommands && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+              {showLiveCommands && (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title="Live commands — manual execution"
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                  >
+                    These commands will mutate cluster state when run. Execute only after dry-run validation passes.
+                  </Alert>
+                  <Content
+                    component="small"
+                    style={{
+                      display: 'block',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      marginBottom: 'var(--pf-t--global--spacer--xs)',
+                    }}
+                  >
+                    Live commands
+                  </Content>
                   <ClipboardCopy
                     isReadOnly
                     isCode
@@ -1906,164 +1950,56 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── Target Selection (Waiting Approval only; fleet management) ── */}
-          {!isInvestigating && !isTerminal && !isRemediating && (isSingleCluster || drawerTargets.length > 0) && (
+          {/* ── Apply remediation + manual download + Lightspeed ── */}
+          {showRemediationActions && (
             <div
+              className="ols-remediation-option-card__actions"
               style={{
-                borderRadius: 'var(--pf-t--global--border--radius--small)',
-                border: '1px solid var(--pf-t--global--border--color--default)',
-                padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
-                marginBottom: 'var(--pf-t--global--spacer--sm)',
-                backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '16px',
               }}
             >
-              {!isSingleCluster && drawerTargets.length > 0 && (
+              {renderApplyAction()}
+              {!isExecuting && !isExecuted && (
                 <>
-                  {/* Header row: label + Select All / Deselect All */}
-                  <Flex
-                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                    alignItems={{ default: 'alignItemsCenter' }}
-                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                  <Button
+                    variant="link"
+                    isInline
+                    icon={<DownloadIcon />}
+                    iconPosition="end"
+                    style={{ fontSize: '14px', margin: 0 }}
+                    aria-label={`Download remediation guide for option ${index + 1}`}
                   >
-                    <Content component="small" style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Targets ({selectedCount} / {drawerTargets.length})
-                    </Content>
-                    <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                      <Button
-                        variant="link"
-                        isInline
-                        style={{ fontSize: '12px' }}
-                        onClick={() => setSelectedTargets(new Set(drawerTargets))}
-                      >
-                        Select all
-                      </Button>
-                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>·</span>
-                      <Button
-                        variant="link"
-                        isInline
-                        style={{ fontSize: '12px' }}
-                        onClick={() => setSelectedTargets(new Set())}
-                      >
-                        Deselect all
-                      </Button>
-                    </Flex>
-                  </Flex>
-
-                  {/* Individual target checkboxes */}
-                  <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
-                    {drawerTargets.map((target) => (
-                      <StackItem key={target}>
-                        <Checkbox
-                          id={`target-${option.id}-${target}`}
-                          label={target}
-                          isChecked={selectedTargets.has(target)}
-                          onChange={(_e, checked) => {
-                            setSelectedTargets((prev) => {
-                              const next = new Set(prev);
-                              checked ? next.add(target) : next.delete(target);
-                              return next;
-                            });
-                          }}
-                        />
-                      </StackItem>
-                    ))}
-                  </Stack>
+                    Download remediation guide
+                  </Button>
+                  <Button
+                    variant="link"
+                    isInline
+                    style={{ fontSize: '14px', margin: 0 }}
+                    onClick={() => {
+                      const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
+                      agenticGlobalAiApi.openRemediationDiscussion?.({
+                        planSynopsis: plan.synopsis,
+                        optionTitle: option.title,
+                        rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
+                        remediationProposal: drawer?.remediationProposal ?? option.description,
+                        riskAssessment: drawer?.riskAssessment ?? '',
+                        blastRadius: plan.blastRadius,
+                        severity: plan.severity,
+                      });
+                    }}
+                  >
+                    Discuss with Lightspeed
+                  </Button>
                 </>
               )}
-
-              {/* Sandbox gate */}
-              <div style={
-                !isSingleCluster && drawerTargets.length > 0
-                  ? { marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }
-                  : undefined
-              }>
-                {sandboxState === 'pending' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setSandboxState('running');
-                        setTimeout(() => setSandboxState('passed'), 2000);
-                      }}
-                    >
-                      Test before applying
-                    </Button>
-                    <Button
-                      variant="link"
-                      isInline
-                      onClick={() => setSandboxState('bypassed')}
-                      style={{ padding: 0, fontSize: '14px' }}
-                    >
-                      Skip test (not recommended)
-                    </Button>
-                  </Flex>
-                )}
-
-                {sandboxState === 'running' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                    <Spinner size="sm" aria-label="Running sandbox test" />
-                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Running sandbox test…
-                    </Content>
-                  </Flex>
-                )}
-
-                {sandboxState === 'passed' && (
-                  <Stack hasGutter>
-                    <StackItem>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                        <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }} />
-                        <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-                          Sandbox test passed — execution unlocked
-                        </Content>
-                      </Flex>
-                    </StackItem>
-                    {showRemediationGuide && (
-                      <StackItem>
-                        <Button
-                          variant="link"
-                          isInline
-                          style={{ fontSize: '14px', padding: 0 }}
-                          aria-label={`Download remediation guide for option ${index + 1}`}
-                        >
-                          Download remediation guide
-                        </Button>
-                      </StackItem>
-                    )}
-                  </Stack>
-                )}
-
-                {sandboxState === 'bypassed' && (
-                  <Stack hasGutter>
-                    <StackItem>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                        <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)', flexShrink: 0 }} />
-                        <Content component="small" style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 600 }}>
-                          Sandbox skipped — applying without prior test validation
-                        </Content>
-                      </Flex>
-                    </StackItem>
-                    {showRemediationGuide && (
-                      <StackItem>
-                        <Button
-                          variant="link"
-                          isInline
-                          style={{ fontSize: '14px', padding: 0 }}
-                          aria-label={`Download remediation guide for option ${index + 1}`}
-                        >
-                          Download remediation guide
-                        </Button>
-                      </StackItem>
-                    )}
-                  </Stack>
-                )}
-              </div>
             </div>
           )}
 
-          {/* Action button */}
-          {renderActionButton()}
+          {!showRemediationActions && renderApplyAction()}
+
 
           {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
           {isExecuted && (
@@ -2132,8 +2068,6 @@ const PostMortemPanel: React.FC<{
 }> = ({ plan, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
   const [localShowLogs, setLocalShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
-  const { activePerspective } = useActivePerspective();
-  const isSingleCluster = activePerspective === 'Core platforms';
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -2145,10 +2079,6 @@ const PostMortemPanel: React.FC<{
   const toggleLogs = hasLogsToggle ? onToggleLogs! : setLocalShowLogs;
 
   if (postMortem.type === 'success') {
-    const targets = isSingleCluster
-      ? (postMortem.executionTargetsSC ?? postMortem.executionTargets ?? [])
-      : (postMortem.executionTargets ?? []);
-
     const sectionLabel = (text: string) => (
       <Content
         component="small"
@@ -2185,26 +2115,7 @@ const PostMortemPanel: React.FC<{
           )}
         </DescriptionList>
 
-        {/* Section B — Execution Scope (fleet management only) */}
-        {!isSingleCluster && targets.length > 0 && (
-          <>
-            {sectionLabel('Execution Scope')}
-            <DescriptionList isHorizontal isAutoColumnWidths isCompact>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Targets</DescriptionListTerm>
-                <DescriptionListDescription>
-                  <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapXs' }}>
-                    {targets.map((t) => (
-                      <Label key={t} color="blue" isCompact>{t}</Label>
-                    ))}
-                  </Flex>
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-            </DescriptionList>
-          </>
-        )}
-
-        {/* Section C — Audit Trail */}
+        {/* Section B — Audit Trail */}
         {sectionLabel('Audit Trail')}
         <DescriptionList isHorizontal isAutoColumnWidths isCompact style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
           {postMortem.appliedAt && (
@@ -2576,6 +2487,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
   const isTerminal = status === 'Completed' || status === 'Failed';
+  const { activePerspective } = useActivePerspective();
+  const isSingleCluster = activePerspective === 'Core platforms';
 
   const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
   // Guided view: first presentation from the plans table — only the focus section stays open.
@@ -2614,9 +2527,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     }
   };
 
-  const drawer = PLAN_DRAWER_DATA[plan.id];
+  const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
-  const options = PLAN_REMEDIATION_OPTIONS[plan.id] ?? [];
+  const options = applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster);
   const optionCount = options.length;
   // Remediating plans show only option 1 — count what's actually rendered.
   const visibleOptionCount = isRemediating ? Math.min(optionCount, 1) : optionCount;
@@ -2788,10 +2701,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ position: 'relative' }}>
             <Label
-              color={drawer.confidence >= 80 ? 'green' : drawer.confidence >= 60 ? 'yellow' : 'blue'}
+              color={confidenceTierLabelColor(drawer.confidence)}
               style={{ position: 'absolute', top: 'var(--pf-t--global--spacer--sm)', right: 'var(--pf-t--global--spacer--sm)' }}
             >
-              {drawer.confidence}% confidence
+              {formatConfidenceLabel(drawer.confidence)}
             </Label>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
@@ -2980,18 +2893,24 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
   return [...combined]
     .sort((a, b) => b.score - a.score)
     .map((row, index) => {
-      const identity = PLAN_TABLE_IDENTITY[row.id];
+      const identity = isSingleCluster
+        ? SC_PLAN_TABLE_IDENTITY[row.id]
+        : PLAN_TABLE_IDENTITY[row.id];
+      const rowPatch = isSingleCluster ? SC_PLAN_ROW_PATCHES[row.id] : undefined;
+      const mergedRow = rowPatch ? { ...row, ...rowPatch } : row;
       return {
-        ...row,
+        ...mergedRow,
         name: identity?.name ?? row.id,
-        synopsis: identity?.synopsis ?? row.synopsis,
+        synopsis: identity?.synopsis ?? mergedRow.synopsis,
         namespace: identity?.namespace,
-        cluster: identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
+        cluster: isSingleCluster
+          ? CORE_PLATFORMS_CLUSTER_ID
+          : identity?.fleetCluster ?? mergedRow.drawerTargets[0] ?? '—',
         scope: isSingleCluster
           ? identity?.namespace ?? '—'
-          : identity?.fleetCluster ?? row.drawerTargets[0] ?? '—',
+          : identity?.fleetCluster ?? mergedRow.drawerTargets[0] ?? '—',
         createdAt:
-          row.createdAt ??
+          mergedRow.createdAt ??
           new Date(createdAnchor - index * 47 * 60_000).toISOString(),
       };
     });

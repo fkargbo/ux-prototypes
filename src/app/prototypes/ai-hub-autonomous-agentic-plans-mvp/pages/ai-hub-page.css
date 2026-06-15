@@ -36,6 +36,25 @@
   border-block-start: none;
 }
 
+/*
+ * Remediation option card: 24px from last row (Apply / post-execution) to card bottom edge.
+ * PF expandable card body padding can collapse with inner margins — set block-end on the body.
+ */
+.ols-ai-hub-page--v3 .pf-v6-c-card[id^="remediation-option-"] .ols-remediation-option-card__body.pf-v6-c-card__body,
+.ols-ai-hub-page--v3 .pf-v6-c-card[id^="remediation-option-"] > .pf-v6-c-card__expandable-content {
+  padding-block-end: 24px !important;
+  box-sizing: border-box;
+}
+
+.ols-ai-hub-page--v3 .ols-remediation-option-card__body .ols-remediation-option-card__actions {
+  margin-block-end: 0;
+  gap: 16px !important;
+}
+
+.ols-ai-hub-page--v3 .ols-remediation-option-card__actions .pf-v6-c-button {
+  margin: 0;
+}
+
 /* Keep subtitle readable in very narrow viewports. */
 .ols-ai-hub-page-subtitle {
   margin-top: 0;

@@ -64,24 +64,24 @@ const FLEET_AGGREGATED_ALERTS: AlertRule[] = [
 
 // ─── Cluster adapter (used when scoped to a single cluster) ───────────────────
 
-import { CLUSTERS } from '../../components/autonomousAiObserve/data';
+/** Namespace / workload scope labels for Core platforms top-firing rows on prod-east-2. */
+const CLUSTER_ALERT_SCOPE_LABELS: Record<string, string> = {
+  IngressControllerDegraded: 'openshift-ingress · router-default',
+  PaymentsAPI5xxSurge: 'payments-prod · 4 pods',
+  EtcdDiskPressureOnMaster2: 'openshift-etcd · master-2',
+  KubePodCrashLooping: 'payments-prod · payment-api',
+  IngressControllerMinReplicasNotMet: 'openshift-ingress · 2 router pods',
+};
 
 function adaptClusterRows(rows: FleetTopAlertRuleRow[]): AlertRule[] {
-  const totalClusters = CLUSTERS.length;
   return rows.slice(0, 3).map((row) => {
     const firingInstances = row.critical + row.warning + row.info;
     const severity = row.critical > 0 ? 'critical' as const : row.warning > 0 ? 'warning' as const : 'info' as const;
-    const scopePercent = totalClusters > 0
-      ? Math.min(100, Math.round((row.clusters.length / totalClusters) * 100))
-      : 0;
+    const scopeLabel = CLUSTER_ALERT_SCOPE_LABELS[row.name] ?? row.name;
     const severityBonus = severity === 'critical' ? 25 : severity === 'warning' ? 10 : 0;
-    const impact = Math.min(100, Math.round(scopePercent * 0.75 + severityBonus));
-    const scopeLabel = row.clusters.length === 0
-      ? 'No clusters'
-      : row.clusters.length === 1
-      ? row.clusters[0]
-      : `${row.clusters.length} of ${totalClusters} clusters`;
-    return { id: row.name, severity, name: row.name, impact, firingInstances, scopeLabel, scopePercent };
+    const namespaceScopePct = Math.min(100, 40 + firingInstances * 2 + severityBonus);
+    const impact = Math.min(100, Math.round(namespaceScopePct * 0.75 + severityBonus));
+    return { id: row.name, severity, name: row.name, impact, firingInstances, scopeLabel, scopePercent: namespaceScopePct };
   });
 }
 
