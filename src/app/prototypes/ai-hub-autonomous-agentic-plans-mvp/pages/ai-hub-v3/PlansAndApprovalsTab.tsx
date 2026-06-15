@@ -6,6 +6,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Checkbox,
   ClipboardCopy,
   ClipboardCopyVariant,
   Content,
@@ -43,6 +44,13 @@ import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserv
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
+import {
+  formatRiskLabel,
+  isHighRisk,
+  isMediumRisk,
+  riskTierLabelColor,
+  scoreToRiskTier,
+} from '../../types/riskScore';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import {
@@ -99,7 +107,40 @@ export interface PlanRow {
   namespace?: string;
   /** Perspective-aware scope cell (cluster or namespace). */
   scope?: string;
+  /** RCA confidence tier (from drawer simulation). */
+  confidenceTier?: ConfidenceTier;
+  /** Governance risk score (0–100); gates automated remediation. Set in `buildPlansForPerspective`. */
+  riskScore?: number;
 }
+
+/**
+ * Mock risk scores — showcases Low / Medium / High tiers across the plans table.
+ * Plan A (Low): tp3, ap1 — score 32
+ * Plan B (Medium): tp4, ap7 — score 64
+ * Plan C (High): tp1, ap5 — score 88
+ */
+const PLAN_RISK_SCORES: Record<string, number> = {
+  tp1: 88,
+  tp2: 76,
+  tp3: 32,
+  tp4: 64,
+  tp5: 41,
+  ap1: 32,
+  ap2: 55,
+  ap3: 48,
+  ap4: 52,
+  ap5: 88,
+  ap6: 36,
+  ap7: 64,
+  ap8: 58,
+  ap9: 44,
+  ap10: 39,
+  ap11: 53,
+  ap12: 74,
+  ap13: 61,
+  ap14: 47,
+  ap15: 33,
+};
 
 /** Simulated plan identity — names, summaries, and scope labels aligned to fleet vs. single-cluster UX. */
 const PLAN_TABLE_IDENTITY: Record<
@@ -1218,6 +1259,21 @@ export const PlanResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="P" backgroundColor="#2b9af3" />
 );
 
+export const PlanConfidenceBadge: React.FC<{ tier: ConfidenceTier }> = ({ tier }) => (
+  <Label color={confidenceTierLabelColor(tier)} isCompact>
+    {formatConfidenceLabel(tier)}
+  </Label>
+);
+
+export const PlanRiskBadge: React.FC<{ score: number }> = ({ score }) => {
+  const tier = scoreToRiskTier(score);
+  return (
+    <Label color={riskTierLabelColor(tier)} isCompact>
+      {formatRiskLabel(score)}
+    </Label>
+  );
+};
+
 const NamespaceResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="NS" backgroundColor="#1e4f18" />
 );
@@ -1284,11 +1340,13 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
     <Thead>
       <Tr>
-        <Th style={{ width: '24%' }}>Name</Th>
-        <Th style={{ width: '30%' }}>Plan summary</Th>
-        <Th style={{ width: '12%' }}>Status</Th>
-        <Th style={{ width: '14%' }}>{scopeColumnLabel}</Th>
-        <Th style={{ width: '20%' }}>Created</Th>
+        <Th style={{ width: '20%' }}>Name</Th>
+        <Th style={{ width: '24%' }}>Plan summary</Th>
+        <Th style={{ width: '10%' }}>Status</Th>
+        <Th style={{ width: '11%' }}>Confidence</Th>
+        <Th style={{ width: '11%' }}>Risk</Th>
+        <Th style={{ width: '12%' }}>{scopeColumnLabel}</Th>
+        <Th style={{ width: '12%' }}>Created</Th>
       </Tr>
     </Thead>
 
@@ -1322,6 +1380,18 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
           <Td dataLabel="Status">
             <StatusLabel status={row.status} />
+          </Td>
+
+          <Td dataLabel="Confidence">
+            {row.confidenceTier ? (
+              <PlanConfidenceBadge tier={row.confidenceTier} />
+            ) : (
+              '—'
+            )}
+          </Td>
+
+          <Td dataLabel="Risk">
+            <PlanRiskBadge score={row.riskScore ?? 50} />
           </Td>
 
           <Td dataLabel={scopeColumnLabel}>
@@ -1627,6 +1697,7 @@ const RemediationOptionCard: React.FC<{
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
   const [showLiveCommands, setShowLiveCommands] = useState(false);
+  const [governorApproved, setGovernorApproved] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
@@ -1638,6 +1709,7 @@ const RemediationOptionCard: React.FC<{
     if (!isSelected) {
       setShowLiveCommands(false);
       setIsExecuting(false);
+      setGovernorApproved(false);
     }
   }, [isSelected]);
 
@@ -1660,6 +1732,10 @@ const RemediationOptionCard: React.FC<{
   const typeName = OPTION_TYPE_NAMES[index] ?? `Option ${index + 1}`;
   const isInteractive = !isRemediating;
   const cardId = `remediation-option-${option.id}`;
+  const planRiskScore = plan.riskScore ?? 50;
+  const planIsHighRisk = isHighRisk(planRiskScore);
+  const planIsMediumRisk = isMediumRisk(planRiskScore);
+  const canAutoExecute = !planIsHighRisk && (!planIsMediumRisk || governorApproved);
 
   const headerContent = (
     <Flex
@@ -1747,10 +1823,31 @@ const RemediationOptionCard: React.FC<{
         </Button>
       );
     }
+    if (planIsHighRisk) {
+      return (
+        <Tooltip
+          content="Automated execution is blocked for high blast-radius risk. Use View live commands to run manually."
+          position="top"
+        >
+          <span>
+            <Button variant="primary" isDisabled style={{ margin: 0, pointerEvents: 'none' }}>
+              Apply remediation
+            </Button>
+          </span>
+        </Tooltip>
+      );
+    }
+    if (planIsMediumRisk && !governorApproved) {
+      return (
+        <Button variant="primary" isDisabled style={{ margin: 0 }}>
+          Awaiting approval
+        </Button>
+      );
+    }
     return (
       <Button
         variant="primary"
-        isDisabled={isExecuting}
+        isDisabled={isExecuting || !canAutoExecute}
         isLoading={isExecuting}
         onClick={handleExecute}
         style={{ margin: 0 }}
@@ -1952,50 +2049,90 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── Apply remediation + manual download + Lightspeed ── */}
           {showRemediationActions && (
-            <div
-              className="ols-remediation-option-card__actions"
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '16px',
-              }}
-            >
-              {renderApplyAction()}
-              {!isExecuting && !isExecuted && (
-                <>
-                  <Button
-                    variant="link"
-                    isInline
-                    icon={<DownloadIcon />}
-                    iconPosition="end"
-                    style={{ fontSize: '14px', margin: 0 }}
-                    aria-label={`Download remediation guide for option ${index + 1}`}
-                  >
-                    Download remediation guide
-                  </Button>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '14px', margin: 0 }}
-                    onClick={() => {
-                      const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
-                      agenticGlobalAiApi.openRemediationDiscussion?.({
-                        planSynopsis: plan.synopsis,
-                        optionTitle: option.title,
-                        rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
-                        remediationProposal: drawer?.remediationProposal ?? option.description,
-                        riskAssessment: drawer?.riskAssessment ?? '',
-                        blastRadius: plan.blastRadius,
-                        severity: plan.severity,
-                      });
-                    }}
-                  >
-                    Discuss with Lightspeed
-                  </Button>
-                </>
+            <>
+              {planIsMediumRisk && !isUnauthorized && (
+                <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                  <Checkbox
+                    id={`governor-approval-${option.id}`}
+                    label="Governor approval granted"
+                    isChecked={governorApproved}
+                    onChange={(_event, checked) => setGovernorApproved(Boolean(checked))}
+                  />
+                  {!governorApproved && (
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        marginTop: 'var(--pf-t--global--spacer--xs)',
+                        marginBottom: 0,
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                      }}
+                    >
+                      Governor approval required for medium risk actions.
+                    </Content>
+                  )}
+                </div>
               )}
-            </div>
+              <div
+                className="ols-remediation-option-card__actions"
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: '16px',
+                }}
+              >
+                {renderApplyAction()}
+                {!isExecuting && !isExecuted && (
+                  <>
+                    <Button
+                      variant="link"
+                      isInline
+                      icon={<DownloadIcon />}
+                      iconPosition="end"
+                      style={{ fontSize: '14px', margin: 0 }}
+                      aria-label={`Download remediation guide for option ${index + 1}`}
+                    >
+                      Download remediation guide
+                    </Button>
+                    <Button
+                      variant="link"
+                      isInline
+                      style={{ fontSize: '14px', margin: 0 }}
+                      onClick={() => {
+                        const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
+                        agenticGlobalAiApi.openRemediationDiscussion?.({
+                          planSynopsis: plan.synopsis,
+                          optionTitle: option.title,
+                          rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
+                          remediationProposal: drawer?.remediationProposal ?? option.description,
+                          riskAssessment: drawer?.riskAssessment ?? '',
+                          blastRadius: plan.blastRadius,
+                          severity: plan.severity,
+                        });
+                      }}
+                    >
+                      Discuss with Lightspeed
+                    </Button>
+                  </>
+                )}
+              </div>
+              {planIsHighRisk && !isUnauthorized && (
+                <Content
+                  component="small"
+                  style={{
+                    display: 'block',
+                    marginTop: 'var(--pf-t--global--spacer--sm)',
+                    marginBottom: 0,
+                    color: 'var(--pf-t--global--text--color--subtle)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Automated execution blocked due to high blast radius risk. Use &apos;View live commands&apos; to
+                  execute manually.
+                </Content>
+              )}
+            </>
           )}
 
           {!showRemediationActions && renderApplyAction()}
@@ -2700,12 +2837,18 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             <RcaLockedPlaceholder />
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ position: 'relative' }}>
-            <Label
-              color={confidenceTierLabelColor(drawer.confidence)}
+            <Flex
+              gap={{ default: 'gapXs' }}
+              flexWrap={{ default: 'wrap' }}
               style={{ position: 'absolute', top: 'var(--pf-t--global--spacer--sm)', right: 'var(--pf-t--global--spacer--sm)' }}
             >
-              {formatConfidenceLabel(drawer.confidence)}
-            </Label>
+              <Label color={confidenceTierLabelColor(drawer.confidence)}>
+                {formatConfidenceLabel(drawer.confidence)}
+              </Label>
+              <Label color={riskTierLabelColor(scoreToRiskTier(plan.riskScore ?? 50))}>
+                Risk: {formatRiskLabel(plan.riskScore ?? 50)}
+              </Label>
+            </Flex>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
               style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
@@ -2898,11 +3041,14 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
         : PLAN_TABLE_IDENTITY[row.id];
       const rowPatch = isSingleCluster ? SC_PLAN_ROW_PATCHES[row.id] : undefined;
       const mergedRow = rowPatch ? { ...row, ...rowPatch } : row;
+      const drawerData = resolvePlanDrawerData(row.id, PLAN_DRAWER_DATA[row.id], isSingleCluster);
       return {
         ...mergedRow,
         name: identity?.name ?? row.id,
         synopsis: identity?.synopsis ?? mergedRow.synopsis,
         namespace: identity?.namespace,
+        confidenceTier: drawerData?.confidence,
+        riskScore: PLAN_RISK_SCORES[row.id] ?? 50,
         cluster: isSingleCluster
           ? CORE_PLATFORMS_CLUSTER_ID
           : identity?.fleetCluster ?? mergedRow.drawerTargets[0] ?? '—',

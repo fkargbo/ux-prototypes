@@ -4,7 +4,9 @@ import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/r
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
+  PlanConfidenceBadge,
   PlanResourceBadge,
+  PlanRiskBadge,
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
@@ -109,7 +111,24 @@ export const PlanRemediationPage: React.FC = () => {
             </Title>
           </FlexItem>
         </Flex>
-        <StatusLabel status={plan.status} />
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          flexWrap={{ default: 'wrap' }}
+          style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          <FlexItem>
+            <StatusLabel status={plan.status} />
+          </FlexItem>
+          {plan.confidenceTier && (
+            <FlexItem>
+              <PlanConfidenceBadge tier={plan.confidenceTier} />
+            </FlexItem>
+          )}
+          <FlexItem>
+            <PlanRiskBadge score={plan.riskScore ?? 50} />
+          </FlexItem>
+        </Flex>
         <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
           <WaitingApprovalPlanMeta plan={plan} />
         </div>
