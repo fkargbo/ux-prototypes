@@ -45,7 +45,7 @@ export interface ScPlanRowPatch {
   synopsis?: string;
   blastRadius?: string;
   consolidationScope?: string;
-  triggerDomains?: string;
+  triggerDomains?: string[];
   drawerTargets?: string[];
   expandedReasons?: ExpandedReason[];
 }
