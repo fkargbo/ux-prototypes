@@ -20,6 +20,8 @@ import {
   writePlanRemediationDrillSession,
 } from './planRemediationDrillSession';
 import { AgenticCapabilitiesHeaderSwitch } from '../components/AgenticCapabilitiesHeaderSwitch';
+import { usePlanTermination } from '../context/PlanTerminationContext';
+import './ai-hub-page.css';
 
 export const PlanRemediationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,12 +39,14 @@ export const PlanRemediationPage: React.FC = () => {
     ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
     : activePerspective === 'Core platforms';
 
+  const { terminatedPlans } = usePlanTermination();
+
   const plan = useMemo(() => {
     if (!planSlug) {
       return null;
     }
-    return buildPlansForPerspective(isSingleCluster).find((row) => row.name === planSlug) ?? null;
-  }, [isSingleCluster, planSlug]);
+    return buildPlansForPerspective(isSingleCluster, terminatedPlans).find((row) => row.name === planSlug) ?? null;
+  }, [isSingleCluster, planSlug, terminatedPlans]);
 
   const navigateBackToPlans = useCallback(() => {
     const key = drillPerspectiveKey

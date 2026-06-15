@@ -80,11 +80,12 @@ import {
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
+import { usePlanTermination, type TerminatedPlanState } from '../../context/PlanTerminationContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PlanSeverity = 'critical' | 'warning';
-type PlanStatus = 'Investigating' | 'Waiting Approval' | 'Remediating' | 'Completed' | 'Failed' | 'Terminated';
+type PlanStatus = 'Investigating' | 'Waiting Approval' | 'Remediating' | 'Completed' | 'Failed' | 'Plan aborted';
 
 /** Icon semantic used in expandable row consolidated reasons. */
 type ReasonIconType = 'sync' | 'alert' | 'warning' | 'gear' | 'ban' | 'wrench';
@@ -122,7 +123,7 @@ export interface PlanRow {
   confidenceTier?: ConfidenceTier;
   /** Governance risk score (0–100); gates automated remediation. Set in `buildPlansForPerspective`. */
   riskScore?: number;
-  /** Display timestamp when execution was halted (Terminated plans). */
+  /** Display timestamp when execution was halted (Plan aborted). */
   terminatedAt?: string;
 }
 
@@ -386,7 +387,7 @@ const ALL_PLANS: PlanRow[] = [
   {
     id: 'ap2',
     severity: 'warning',
-    status: 'Terminated',
+    status: 'Plan aborted',
     terminatedAt: 'Jun 9, 2026, 2:48 PM',
     score: 75,
     synopsis: 'Repair Dev CI/CD Webhook Block',
@@ -1263,14 +1264,14 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Remediating':      'teal',
   'Completed':        'green',
   'Failed':           'red',
-  'Terminated':       'red',
+  'Plan aborted':     'red',
 };
 
 export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }> = ({
   status,
   terminatedAt,
 }) => {
-  if (status === 'Terminated') {
+  if (status === 'Plan aborted') {
     const tooltipContent = `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
     return (
       <Tooltip content={tooltipContent} position="top">
@@ -1282,7 +1283,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
             icon={<ExclamationCircleIcon />}
             style={{ whiteSpace: 'nowrap' }}
           >
-            Terminated
+            Plan aborted
           </Label>
         </span>
       </Tooltip>
@@ -1576,7 +1577,7 @@ const STATUS_FILTER_OPTIONS: PlanStatus[] = [
   'Investigating',
   'Waiting Approval',
   'Remediating',
-  'Terminated',
+  'Plan aborted',
   'Completed',
   'Failed',
 ];
@@ -1869,7 +1870,7 @@ const RemediationOptionCard: React.FC<{
   const { status, isUnauthorized } = plan;
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
-  const isRemediating = status === 'Remediating' || status === 'Terminated';
+  const isRemediating = status === 'Remediating' || status === 'Plan aborted';
   const isExecutionKilled = Boolean(executionKillState);
   const [showLiveCommands, setShowLiveCommands] = useState(false);
   const [governorApproved, setGovernorApproved] = useState(false);
@@ -2881,7 +2882,7 @@ function planRequiresRcaAcknowledgment(plan: PlanRow, status: PlanStatus): boole
 const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
   const { status } = plan;
   if (status === 'Investigating') return 'chain';
-  if (status === 'Remediating' || status === 'Terminated') return 'rem';
+  if (status === 'Remediating' || status === 'Plan aborted') return 'rem';
   if (status === 'Waiting Approval') {
     return planRequiresRcaAcknowledgment(plan, status) ? 'rca' : 'rem';
   }
@@ -2902,19 +2903,19 @@ const createInitialSectionState = (
 export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isInvestigating = status === 'Investigating';
-  const isTerminated = status === 'Terminated';
-  const isRemediating = status === 'Remediating' || isTerminated;
+  const isPlanAborted = status === 'Plan aborted';
+  const isRemediating = status === 'Remediating' || isPlanAborted;
   const isTerminal = status === 'Completed' || status === 'Failed';
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster } = useAgenticCapabilities();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
+  const { registerPlanTermination } = usePlanTermination();
+
+  const executionKillState = plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
 
   const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
-  const [executionKillState, setExecutionKillState] = useState<{ killedAt: string } | null>(() =>
-    plan.status === 'Terminated' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null,
-  );
   // Guided view: first presentation from the plans table — only the focus section stays open.
   const [isGuidedView, setIsGuidedView] = useState(true);
   const chainRef = React.useRef<HTMLDivElement>(null);
@@ -2931,10 +2932,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   useEffect(() => {
     setSectionExpanded(createInitialSectionState(plan));
     setIsGuidedView(true);
-    setExecutionKillState(
-      plan.status === 'Terminated' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null,
-    );
-  }, [plan.id, plan.status, plan.terminatedAt]);
+  }, [plan.id]);
 
   const handleSectionToggle = (section: RemediationWorkflowSection) => (
     _event: React.MouseEvent,
@@ -2972,7 +2970,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const [isDiagnosisVerified, setIsDiagnosisVerified] = useState<boolean>(
     !planRequiresRcaAcknowledgment(plan, status) ||
     status === 'Remediating' ||
-    status === 'Terminated' ||
+    status === 'Plan aborted' ||
     status === 'Completed' ||
     status === 'Failed',
   );
@@ -3309,7 +3307,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           plan={plan}
                           executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
                           executionKillState={executionKillState}
-                          onConfirmStopExecution={(killedAt) => setExecutionKillState({ killedAt })}
+                          onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt)}
                           isSelected={selectedOptionId === opt.id}
                           isDiagnosisVerified={isDiagnosisVerified}
                           isAgenticAutomationEnabled={isAgenticAutomationEnabled}
@@ -3341,7 +3339,10 @@ export function getPlanRemediationPath(plan: PlanRow, perspectiveKey?: 'core-pla
 /** @deprecated Use getPlanRemediationPath — retained for existing deep links. */
 export const DRILL_DOWN_PLAN_SLUG = 'analytics-memory-leak-fix';
 
-export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
+export function buildPlansForPerspective(
+  isSingleCluster: boolean,
+  terminatedPlans: TerminatedPlanState = {},
+): PlanRow[] {
   const combined = isSingleCluster
     ? [...SC_TOP_PLANS, ...SC_ALL_PLANS]
     : [...TOP_PLANS, ...ALL_PLANS];
@@ -3355,7 +3356,8 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
       const rowPatch = isSingleCluster ? SC_PLAN_ROW_PATCHES[row.id] : undefined;
       const mergedRow = rowPatch ? { ...row, ...rowPatch } : row;
       const drawerData = resolvePlanDrawerData(row.id, PLAN_DRAWER_DATA[row.id], isSingleCluster);
-      return {
+      const runtimeTermination = terminatedPlans[row.id];
+      const baseRow: PlanRow = {
         ...mergedRow,
         name: identity?.name ?? row.id,
         synopsis: identity?.synopsis ?? mergedRow.synopsis,
@@ -3373,6 +3375,16 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
           new Date(createdAnchor - index * 47 * 60_000).toISOString(),
         terminatedAt: mergedRow.terminatedAt,
       };
+
+      if (runtimeTermination) {
+        return {
+          ...baseRow,
+          status: 'Plan aborted',
+          terminatedAt: runtimeTermination.terminatedAt,
+        };
+      }
+
+      return baseRow;
     });
 }
 
@@ -3384,6 +3396,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster } = useAgenticCapabilities();
+  const { terminatedPlans } = usePlanTermination();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
 
   // Breadcrumb return: apply session handoff once on mount, then release control to the switcher.
@@ -3398,8 +3411,8 @@ export const PlansAndApprovalsTab: React.FC = () => {
   }, []);
 
   const plans = useMemo(
-    () => buildPlansForPerspective(isSingleCluster),
-    [isSingleCluster],
+    () => buildPlansForPerspective(isSingleCluster, terminatedPlans),
+    [isSingleCluster, terminatedPlans],
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
