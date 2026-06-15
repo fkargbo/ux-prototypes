@@ -1955,8 +1955,8 @@ const RemediationOptionCard: React.FC<{
     if (isRemediating) {
       if (isExecutionKilled) {
         return (
-          <Button variant="secondary" isDisabled style={{ margin: 0 }}>
-            Execution stopped
+          <Button variant="primary" style={{ margin: 0 }}>
+            Apply fix
           </Button>
         );
       }
