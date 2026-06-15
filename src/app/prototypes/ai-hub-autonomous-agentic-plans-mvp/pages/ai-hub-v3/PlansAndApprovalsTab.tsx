@@ -3173,15 +3173,36 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                     </Content>
                   </Flex>
                 ) : (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<CheckCircleIcon />}
-                    isDisabled={!isAgenticAutomationEnabled}
-                    onClick={handleVerifyDiagnosis}
-                  >
-                    Acknowledge & view remediation
-                  </Button>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }} flexWrap={{ default: 'wrap' }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<CheckCircleIcon />}
+                      isDisabled={!isAgenticAutomationEnabled}
+                      onClick={handleVerifyDiagnosis}
+                    >
+                      Acknowledge & view remediation
+                    </Button>
+                    <Button
+                      variant="link"
+                      isInline
+                      style={{ fontSize: '14px', margin: 0 }}
+                      onClick={() => {
+                        const firstOption = options[0];
+                        agenticGlobalAiApi.openRemediationDiscussion?.({
+                          planSynopsis: plan.synopsis,
+                          optionTitle: firstOption?.title ?? 'Remediation options',
+                          rootCause: drawer.rootCauseNarrative,
+                          remediationProposal: drawer.remediationProposal ?? firstOption?.description ?? '',
+                          riskAssessment: drawer.riskAssessment ?? '',
+                          blastRadius: plan.blastRadius,
+                          severity: plan.severity,
+                        });
+                      }}
+                    >
+                      Discuss with Lightspeed
+                    </Button>
+                  </Flex>
                 )}
               </div>
             )}
