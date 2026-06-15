@@ -46,7 +46,6 @@ import type { ConfidenceTier } from '../../types/confidenceTier';
 import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
 import {
   formatRiskBadgeLabel,
-  formatRiskLabel,
   isHighRisk,
   isMediumRisk,
   riskTierLabelColor,
@@ -358,7 +357,7 @@ const TOP_PLANS: PlanRow[] = [
 const ALL_PLANS: PlanRow[] = [
   {
     id: 'ap1',
-    severity: 'warning',
+    severity: 'critical',
     status: 'Waiting Approval',
     score: 78,
     synopsis: 'Fix Minor App Memory Leak',
@@ -450,7 +449,7 @@ const ALL_PLANS: PlanRow[] = [
   },
   {
     id: 'ap7',
-    severity: 'warning',
+    severity: 'critical',
     status: 'Waiting Approval',
     score: 59,
     synopsis: 'Fix Inactive Ingress Router Replicas',
@@ -526,7 +525,7 @@ const ALL_PLANS: PlanRow[] = [
   },
   {
     id: 'ap12',
-    severity: 'warning',
+    severity: 'critical',
     status: 'Waiting Approval',
     score: 42,
     synopsis: 'Fix Container Registry Pull Failures',
@@ -915,13 +914,6 @@ interface RemediationOption {
   model: 'smart' | 'fast';
   rawCommands: string;
 }
-
-const RISK_COLOR: Record<RemediationRisk, 'green' | 'orange' | 'red'> = {
-  low: 'green', medium: 'orange', high: 'red',
-};
-const RISK_LABEL: Record<RemediationRisk, string> = {
-  low: 'Low risk', medium: 'Medium risk', high: 'High risk',
-};
 
 const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
   tp1: [
@@ -1763,9 +1755,6 @@ const RemediationOptionCard: React.FC<{
             {status === 'Completed' ? 'Executed' : 'Failed'}
           </Label>
         )}
-        <Label color={RISK_COLOR[option.risk]} variant="outline" isCompact>
-          {RISK_LABEL[option.risk]}
-        </Label>
         <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
           {option.reversible ? '1-Click Rollback' : 'Non-reversible'}
         </Label>
@@ -2602,12 +2591,20 @@ const scrollRemediationSectionIntoView = (
   });
 };
 
+/** Critical Waiting Approval plans require RCA acknowledgment before the remediation hub unlocks. */
+function planRequiresRcaAcknowledgment(plan: PlanRow, status: PlanStatus): boolean {
+  if (status !== 'Waiting Approval') {
+    return false;
+  }
+  return plan.severity === 'critical';
+}
+
 const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
-  const { status, severity } = plan;
+  const { status } = plan;
   if (status === 'Investigating') return 'chain';
   if (status === 'Remediating') return 'rem';
   if (status === 'Waiting Approval') {
-    return severity === 'critical' ? 'rca' : 'rem';
+    return planRequiresRcaAcknowledgment(plan, status) ? 'rca' : 'rem';
   }
   return 'rem';
 };
@@ -2684,7 +2681,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   // Plans already in execution (Remediating / Completed / Failed) are also exempt
   // since the gate was already cleared in a prior interaction.
   const [isDiagnosisVerified, setIsDiagnosisVerified] = useState<boolean>(
-    plan.severity === 'warning' ||
+    !planRequiresRcaAcknowledgment(plan, status) ||
     status === 'Remediating' ||
     status === 'Completed' ||
     status === 'Failed',
@@ -2866,7 +2863,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             </Content>
 
             {/* ── Verification gate (critical plans, non-investigating) ── */}
-            {!isInvestigating && plan.severity === 'critical' && (
+            {!isInvestigating && planRequiresRcaAcknowledgment(plan, status) && (
               <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                 <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
                 {isDiagnosisVerified ? (
@@ -2937,6 +2934,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               )}
               {!isInvestigating && !isTerminal && visibleOptionCount > 0 && (
                 <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
+              )}
+              {!isInvestigating && !isTerminal && (
+                <PlanRiskBadge score={plan.riskScore ?? 50} isCompact={false} />
               )}
               </Flex>
               <WaitingApprovalPlanMeta plan={plan} />
