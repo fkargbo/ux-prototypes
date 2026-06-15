@@ -23,6 +23,14 @@ export function resolveAgentCapabilitiesClusterId(isSingleCluster: boolean): str
   return isSingleCluster ? CORE_PLATFORMS_CLUSTER_ID : FLEET_MANAGEMENT_SCOPE_ID;
 }
 
+/** Inline alert when agentic automation is disabled (kill switch engaged). */
+export function getAgenticAutomationDisabledMessage(isSingleCluster: boolean): string {
+  if (isSingleCluster) {
+    return `Agentic automation is disabled for cluster ${CORE_PLATFORMS_CLUSTER_ID} by administrative policy. Investigate and apply actions on this cluster are unavailable until capabilities are re-enabled.`;
+  }
+  return 'Agentic automation is disabled fleet-wide by administrative policy. Investigate and apply actions are blocked across all managed clusters until capabilities are re-enabled.';
+}
+
 export const AgenticCapabilitiesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAgentActive, setIsAgentActive] = useState<AgentActiveState>(() => ({ ...DEFAULT_AGENT_ACTIVE }));
 

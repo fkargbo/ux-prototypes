@@ -76,6 +76,7 @@ import {
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
 import {
+  getAgenticAutomationDisabledMessage,
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
@@ -1211,9 +1212,6 @@ function useStreamingExecutionLog(
   return lines.slice(0, frozen ? visibleCount : visibleCount).join('\n');
 }
 
-const AGENTIC_AUTOMATION_DISABLED_BANNER =
-  'Agentic automation is currently disabled for this cluster by administrative policy.';
-
 const AI_TOOLTIP =
   'This metric is synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns.';
 
@@ -1957,7 +1955,7 @@ const RemediationOptionCard: React.FC<{
     if (isRemediating) {
       if (isExecutionKilled) {
         return (
-          <Button variant="primary" isDisabled style={{ cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}>
+          <Button variant="secondary" isDisabled style={{ margin: 0 }}>
             Execution stopped
           </Button>
         );
@@ -1966,8 +1964,8 @@ const RemediationOptionCard: React.FC<{
         <Button
           variant="primary"
           isDisabled
-          icon={<Spinner size="sm" aria-label="Applying fix" />}
-          style={{ cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
+          isLoading
+          style={{ margin: 0, cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
         >
           Applying fix…
         </Button>
@@ -2111,52 +2109,29 @@ const RemediationOptionCard: React.FC<{
                 />
               ) : (
                 executionMessage && (
-                  <Flex
-                    alignItems={{ default: 'alignItemsCenter' }}
-                    gap={{ default: 'gapSm' }}
-                    style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                  <Content
+                    component="p"
+                    className="ols-aio-text-subtle-sm"
+                    style={{ margin: '0 0 var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
                   >
-                    <Spinner size="sm" aria-label="Executing fix" />
-                    <Content
-                      component="p"
-                      className="ols-aio-text-subtle-sm"
-                      style={{ margin: 0, fontStyle: 'italic' }}
-                    >
-                      {executionMessage}
-                    </Content>
-                  </Flex>
+                    {executionMessage}
+                  </Content>
                 )
               )}
 
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                flexWrap={{ default: 'wrap' }}
-                gap={{ default: 'gapSm' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+              <Content
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  margin: '0 0 var(--pf-t--global--spacer--xs)',
+                }}
               >
-                <Content
-                  component="small"
-                  style={{
-                    display: 'block',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    color: 'var(--pf-t--global--text--color--subtle)',
-                    margin: 0,
-                  }}
-                >
-                  Active execution log
-                </Content>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  isDisabled={isExecutionKilled}
-                  onClick={() => setIsStopExecutionModalOpen(true)}
-                >
-                  Stop Execution
-                </Button>
-              </Flex>
+                Active execution log
+              </Content>
               <ClipboardCopy
                 isReadOnly
                 isCode
@@ -2365,7 +2340,25 @@ const RemediationOptionCard: React.FC<{
             </>
           )}
 
-          {!showRemediationActions && renderApplyAction()}
+          {!showRemediationActions && (
+            <div
+              className="ols-remediation-option-card__actions"
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '16px',
+                marginTop: isRemediating ? 'var(--pf-t--global--spacer--sm)' : undefined,
+              }}
+            >
+              {renderApplyAction()}
+              {isRemediating && isFirst && !isExecutionKilled && (
+                <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)} style={{ margin: 0 }}>
+                  Stop Execution
+                </Button>
+              )}
+            </div>
+          )}
 
           <Modal
             variant={ModalVariant.small}
@@ -3213,7 +3206,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                 <Alert
                   variant="warning"
                   isInline
-                  title={AGENTIC_AUTOMATION_DISABLED_BANNER}
+                  title={getAgenticAutomationDisabledMessage(isSingleCluster)}
                   style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
                 />
               )}
@@ -3388,7 +3381,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
     <Stack hasGutter>
       {!isAgenticAutomationEnabled && (
         <StackItem>
-          <Alert variant="warning" isInline title={AGENTIC_AUTOMATION_DISABLED_BANNER} />
+          <Alert variant="warning" isInline title={getAgenticAutomationDisabledMessage(isSingleCluster)} />
         </StackItem>
       )}
       <StackItem>
