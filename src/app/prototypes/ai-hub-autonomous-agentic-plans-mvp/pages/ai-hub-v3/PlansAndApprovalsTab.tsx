@@ -1297,14 +1297,12 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   );
 };
 
-const TRIGGER_DOMAIN_LABEL_COLORS: LabelColor[] = ['blue', 'teal', 'purple', 'orange', 'green', 'grey'];
-
 const TriggerDomainsCell: React.FC<{ domains: string[] }> = ({ domains }) => (
   <LabelGroup aria-label="Trigger domains" className="ols-plans-trigger-domains">
     {domains.map((domain, index) => (
       <Label
         key={`${domain}-${index}`}
-        color={TRIGGER_DOMAIN_LABEL_COLORS[index % TRIGGER_DOMAIN_LABEL_COLORS.length]}
+        color="grey"
         variant="outline"
         isCompact
       >
@@ -1549,7 +1547,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             </Flex>
           </Td>
 
-          <Td dataLabel="Trigger domains" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+          <Td dataLabel="Trigger domains" className="ols-plans-trigger-domains-cell">
             <TriggerDomainsCell domains={row.triggerDomains} />
           </Td>
 

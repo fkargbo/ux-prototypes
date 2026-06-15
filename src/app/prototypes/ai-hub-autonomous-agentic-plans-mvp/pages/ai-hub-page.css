@@ -638,12 +638,22 @@ body:has(.ols-ai-hub-page),
   display: none !important;
 }
 
-/* Plans table — inline trigger domain labels */
+/* Plans table — neutral compact trigger domain labels */
+.ols-plans-trigger-domains-cell {
+  vertical-align: middle;
+}
+
 .ols-plans-trigger-domains.pf-v6-c-label-group {
   --pf-v6-c-label-group--m-category--PaddingBlockStart: 0;
   --pf-v6-c-label-group--m-category--PaddingBlockEnd: 0;
+  margin: 0;
 }
 
 .ols-plans-trigger-domains .pf-v6-c-label-group__list {
   row-gap: var(--pf-t--global--spacer--xs);
+  column-gap: var(--pf-t--global--spacer--xs);
+}
+
+.ols-plans-trigger-domains .pf-v6-c-label {
+  margin: 0;
 }
