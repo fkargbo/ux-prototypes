@@ -1588,6 +1588,22 @@ const OPTION_TYPE_NAMES: Record<number, string> = {
   2: 'Emergency Override',
 };
 
+/** Appends dry-run flags for the pre-apply verification preview. */
+function buildDryRunCommandPreview(rawCommands: string): string {
+  return rawCommands
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return '';
+      const bare = trimmed.replace(/^\$\s*/, '');
+      if (/\bdry-run\b/i.test(bare)) return `$ ${bare}`;
+      if (/^(oc|kubectl)\s/.test(bare)) return `$ ${bare} --dry-run=server`;
+      if (/^argocd\s/.test(bare)) return `$ ${bare} --dry-run`;
+      return `$ ${bare}  # preview: dry-run validation recommended`;
+    })
+    .join('\n');
+}
+
 const RemediationOptionCard: React.FC<{
   option: RemediationOption;
   index: number;
@@ -1602,16 +1618,10 @@ const RemediationOptionCard: React.FC<{
   const isSingleCluster = activePerspective === 'Core platforms';
   const { status, isUnauthorized, drawerTargets } = plan;
   const isInvestigating = status === 'Investigating';
-  const isWaitingApproval = status === 'Waiting Approval';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
   const [showCommands, setShowCommands] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
-  type SandboxState = 'pending' | 'running' | 'passed' | 'bypassed';
-  const [sandboxState, setSandboxState] = useState<SandboxState>('pending');
-  const isSandboxCleared = sandboxState === 'passed' || sandboxState === 'bypassed';
-  const showRemediationGuide =
-    isWaitingApproval && isDiagnosisVerified && isSandboxCleared;
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
@@ -1623,7 +1633,6 @@ const RemediationOptionCard: React.FC<{
     if (!isSelected) {
       setShowCommands(false);
       setIsExecuting(false);
-      setSandboxState('pending');
     }
   }, [isSelected]);
 
@@ -1699,7 +1708,7 @@ const RemediationOptionCard: React.FC<{
     }, 2000);
   };
 
-  const renderActionButton = () => {
+  const renderApplyAction = () => {
     if (isInvestigating || isTerminal) return null;
     if (isRemediating) {
       return (
@@ -1725,8 +1734,6 @@ const RemediationOptionCard: React.FC<{
         </Flex>
       );
     }
-    // Block execution until sandbox is cleared (passed or explicitly bypassed).
-    if (sandboxState === 'pending' || sandboxState === 'running') return null;
     if (isUnauthorized) {
       return (
         <Button
@@ -1740,43 +1747,22 @@ const RemediationOptionCard: React.FC<{
       );
     }
     return (
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-        <Button
-          variant="primary"
-          isDisabled={(!isSingleCluster && selectedCount === 0) || isExecuting}
-          isLoading={isExecuting}
-          onClick={handleExecute}
-        >
-          {isSingleCluster
-            ? (isExecuting ? 'Applying remediation…' : 'Apply remediation')
-            : (isExecuting
-              ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
-              : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`)}
-        </Button>
-        {!isExecuting && (
-          <Button
-            variant="link"
-            isInline
-            style={{ fontSize: '14px' }}
-            onClick={() => {
-              const drawer = PLAN_DRAWER_DATA[plan.id];
-              agenticGlobalAiApi.openRemediationDiscussion?.({
-                planSynopsis: plan.synopsis,
-                optionTitle: option.title,
-                rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
-                remediationProposal: drawer?.remediationProposal ?? option.description,
-                riskAssessment: drawer?.riskAssessment ?? '',
-                blastRadius: plan.blastRadius,
-                severity: plan.severity,
-              });
-            }}
-          >
-            Discuss with Lightspeed
-          </Button>
-        )}
-      </Flex>
+      <Button
+        variant="primary"
+        isDisabled={(!isSingleCluster && selectedCount === 0) || isExecuting}
+        isLoading={isExecuting}
+        onClick={handleExecute}
+      >
+        {isSingleCluster
+          ? (isExecuting ? 'Applying remediation…' : 'Apply remediation')
+          : (isExecuting
+            ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
+            : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`)}
+      </Button>
     );
   };
+
+  const showRemediationActions = !isInvestigating && !isTerminal && !isRemediating;
 
   return (
     <div ref={cardRootRef}>
@@ -1875,41 +1861,8 @@ const RemediationOptionCard: React.FC<{
             </Label>
           </Flex>
 
-          {/* Raw commands toggle */}
-          {!isInvestigating && !isTerminal && !isRemediating && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <Button
-                variant="link"
-                isInline
-                onClick={() => setShowCommands(!showCommands)}
-                icon={
-                  <AngleRightIcon
-                    style={{
-                      transform: showCommands ? 'rotate(90deg)' : 'rotate(0deg)',
-                      transition: 'transform 150ms ease',
-                    }}
-                  />
-                }
-                style={{ padding: 0, fontSize: '14px' }}
-              >
-                {showCommands ? 'Hide raw commands' : 'View raw commands'}
-              </Button>
-              {showCommands && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                  <ClipboardCopy
-                    isReadOnly
-                    isCode
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                  >
-                    {option.rawCommands}
-                  </ClipboardCopy>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* ── Target Selection (Waiting Approval only; fleet management) ── */}
-          {!isInvestigating && !isTerminal && !isRemediating && (isSingleCluster || drawerTargets.length > 0) && (
+          {showRemediationActions && (isSingleCluster || drawerTargets.length > 0) && (
             <div
               style={{
                 borderRadius: 'var(--pf-t--global--border--radius--small)',
@@ -1921,7 +1874,6 @@ const RemediationOptionCard: React.FC<{
             >
               {!isSingleCluster && drawerTargets.length > 0 && (
                 <>
-                  {/* Header row: label + Select All / Deselect All */}
                   <Flex
                     justifyContent={{ default: 'justifyContentSpaceBetween' }}
                     alignItems={{ default: 'alignItemsCenter' }}
@@ -1951,7 +1903,6 @@ const RemediationOptionCard: React.FC<{
                     </Flex>
                   </Flex>
 
-                  {/* Individual target checkboxes */}
                   <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
                     {drawerTargets.map((target) => (
                       <StackItem key={target}>
@@ -1972,100 +1923,107 @@ const RemediationOptionCard: React.FC<{
                   </Stack>
                 </>
               )}
-
-              {/* Sandbox gate */}
-              <div style={
-                !isSingleCluster && drawerTargets.length > 0
-                  ? { marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }
-                  : undefined
-              }>
-                {sandboxState === 'pending' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setSandboxState('running');
-                        setTimeout(() => setSandboxState('passed'), 2000);
-                      }}
-                    >
-                      Test before applying
-                    </Button>
-                    <Button
-                      variant="link"
-                      isInline
-                      onClick={() => setSandboxState('bypassed')}
-                      style={{ padding: 0, fontSize: '14px' }}
-                    >
-                      Skip test (not recommended)
-                    </Button>
-                  </Flex>
-                )}
-
-                {sandboxState === 'running' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                    <Spinner size="sm" aria-label="Running sandbox test" />
-                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Running sandbox test…
-                    </Content>
-                  </Flex>
-                )}
-
-                {sandboxState === 'passed' && (
-                  <Stack hasGutter>
-                    <StackItem>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                        <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }} />
-                        <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-                          Sandbox test passed — execution unlocked
-                        </Content>
-                      </Flex>
-                    </StackItem>
-                    {showRemediationGuide && (
-                      <StackItem>
-                        <Button
-                          variant="link"
-                          isInline
-                          style={{ fontSize: '14px', padding: 0 }}
-                          aria-label={`Download remediation guide for option ${index + 1}`}
-                        >
-                          Download remediation guide
-                        </Button>
-                      </StackItem>
-                    )}
-                  </Stack>
-                )}
-
-                {sandboxState === 'bypassed' && (
-                  <Stack hasGutter>
-                    <StackItem>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                        <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)', flexShrink: 0 }} />
-                        <Content component="small" style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 600 }}>
-                          Sandbox skipped — applying without prior test validation
-                        </Content>
-                      </Flex>
-                    </StackItem>
-                    {showRemediationGuide && (
-                      <StackItem>
-                        <Button
-                          variant="link"
-                          isInline
-                          style={{ fontSize: '14px', padding: 0 }}
-                          aria-label={`Download remediation guide for option ${index + 1}`}
-                        >
-                          Download remediation guide
-                        </Button>
-                      </StackItem>
-                    )}
-                  </Stack>
-                )}
-              </div>
             </div>
           )}
 
-          {/* Action button */}
-          {renderActionButton()}
+          {/* ── Dry-run verification (primary safety gate) ── */}
+          {showRemediationActions && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Alert
+                variant="info"
+                isInline
+                title="Dry-run preview — verify before applying"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                Review the dry-run command summary below. No live mutations occur until you choose{' '}
+                <strong>Apply remediation</strong>. Use raw commands or the remediation guide for manual execution.
+              </Alert>
+              <ClipboardCopy
+                isReadOnly
+                isCode
+                hoverTip="Copy"
+                clickTip="Copied"
+                style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+              >
+                {buildDryRunCommandPreview(option.rawCommands)}
+              </ClipboardCopy>
+            </div>
+          )}
+
+          {/* ── Primary remediation actions ── */}
+          {showRemediationActions && (
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              gap={{ default: 'gapSm' }}
+              flexWrap={{ default: 'wrap' }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            >
+              <Button
+                variant="secondary"
+                onClick={() => setShowCommands(!showCommands)}
+              >
+                {showCommands ? 'Hide raw commands' : 'View raw commands'}
+              </Button>
+              <Button
+                variant="secondary"
+                icon={<DownloadIcon />}
+                iconPosition="end"
+                aria-label={`Download remediation guide for option ${index + 1}`}
+              >
+                Download remediation guide
+              </Button>
+              {renderApplyAction()}
+              {!isExecuting && !isExecuted && (
+                <Button
+                  variant="link"
+                  isInline
+                  style={{ fontSize: '14px' }}
+                  onClick={() => {
+                    const drawer = PLAN_DRAWER_DATA[plan.id];
+                    agenticGlobalAiApi.openRemediationDiscussion?.({
+                      planSynopsis: plan.synopsis,
+                      optionTitle: option.title,
+                      rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
+                      remediationProposal: drawer?.remediationProposal ?? option.description,
+                      riskAssessment: drawer?.riskAssessment ?? '',
+                      blastRadius: plan.blastRadius,
+                      severity: plan.severity,
+                    });
+                  }}
+                >
+                  Discuss with Lightspeed
+                </Button>
+              )}
+            </Flex>
+          )}
+
+          {showRemediationActions && showCommands && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Content
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 'var(--pf-t--global--spacer--xs)',
+                }}
+              >
+                Live commands
+              </Content>
+              <ClipboardCopy
+                isReadOnly
+                isCode
+                style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+              >
+                {option.rawCommands}
+              </ClipboardCopy>
+            </div>
+          )}
+
+          {!showRemediationActions && renderApplyAction()}
+
 
           {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
           {isExecuted && (
