@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, Content, Flex, FlexItem, Title } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Content, FlexItem, Title } from '@patternfly/react-core';
 import { AgenticCapabilitiesHeaderSwitch } from '../components/AgenticCapabilitiesHeaderSwitch';
 import * as Hub from './ai-hub-v3';
 import './ai-hub-page.css';
 
-export const AIHubPage: React.FC = () => {
+export const AuditAndLogsPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
@@ -15,7 +15,7 @@ export const AIHubPage: React.FC = () => {
           <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/ai-hub/plans')}>
             Agentic Plans
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Plans</BreadcrumbItem>
+          <BreadcrumbItem isActive>Audit & logs</BreadcrumbItem>
         </Breadcrumb>
       </div>
 
@@ -24,11 +24,11 @@ export const AIHubPage: React.FC = () => {
           <Hub.AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
             <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
-              Agentic plans (MVP)
+              Audit & logs
             </Title>
             <Content component="p" className="ols-ai-hub-page-subtitle">
-              Speed up incident response with targeted agent investigations, automated evidence collection, and
-              actionable remediation proposals.
+              Tamper-evident execution ledger for every agentic plan lifecycle transition — from investigation
+              through approval, remediation, and termination.
             </Content>
             <Content
               component="p"
@@ -39,7 +39,7 @@ export const AIHubPage: React.FC = () => {
                 color: '#4D4D4D',
               }}
             >
-              Always review AI-generated content prior to use.
+              Cryptographic receipts are sealed at write time and cannot be modified post-execution.
             </Content>
           </div>
         </div>
@@ -49,12 +49,12 @@ export const AIHubPage: React.FC = () => {
       </div>
 
       <div
-        id="ols-ai-hub-main"
+        id="ols-ai-hub-audit-main"
         className="template-page-content"
         role="main"
-        aria-label="Agentic plans content"
+        aria-label="Audit and logs content"
       >
-        <Hub.PlansAndApprovalsTab />
+        <Hub.AIAuditAndLogsTab />
       </div>
     </div>
   );

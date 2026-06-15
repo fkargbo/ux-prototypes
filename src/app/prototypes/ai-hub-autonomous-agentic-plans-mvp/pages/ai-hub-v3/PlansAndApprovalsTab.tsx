@@ -6,6 +6,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Checkbox,
   ClipboardCopy,
   ClipboardCopyVariant,
   Content,
@@ -25,8 +26,14 @@ import {
   LabelGroup,
   MenuToggle,
   MenuToggleElement,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
   Pagination,
   PaginationVariant,
+  Popover,
   Select,
   SelectList,
   SelectOption,
@@ -37,12 +44,19 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
+import {
+  formatRiskBadgeLabel,
+  isHighRisk,
+  isMediumRisk,
+  riskTierLabelColor,
+  scoreToRiskTier,
+} from '../../types/riskScore';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import {
@@ -61,11 +75,17 @@ import {
   readPlanRemediationDrillSession,
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
+import {
+  getAgenticAutomationDisabledMessage,
+  resolveAgentCapabilitiesClusterId,
+  useAgenticCapabilities,
+} from '../../context/AgenticCapabilitiesContext';
+import { usePlanTermination, type PlanExecutionRuntime } from '../../context/PlanTerminationContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PlanSeverity = 'critical' | 'warning';
-type PlanStatus = 'Investigating' | 'Waiting Approval' | 'Remediating' | 'Completed' | 'Failed';
+type PlanStatus = 'Investigating' | 'Waiting Approval' | 'Remediating' | 'Completed' | 'Failed' | 'Plan aborted';
 
 /** Icon semantic used in expandable row consolidated reasons. */
 type ReasonIconType = 'sync' | 'alert' | 'warning' | 'gear' | 'ban' | 'wrench';
@@ -99,7 +119,42 @@ export interface PlanRow {
   namespace?: string;
   /** Perspective-aware scope cell (cluster or namespace). */
   scope?: string;
+  /** RCA confidence tier (from drawer simulation). */
+  confidenceTier?: ConfidenceTier;
+  /** Governance risk score (0–100); gates automated remediation. Set in `buildPlansForPerspective`. */
+  riskScore?: number;
+  /** Display timestamp when execution was halted (Plan aborted). */
+  terminatedAt?: string;
 }
+
+/**
+ * Mock risk scores — showcases Low / Medium / High tiers across the plans table.
+ * Plan A (Low): tp3, ap1 — score 32
+ * Plan B (Medium): tp4, ap7 — score 64
+ * Plan C (High): tp1, ap5 — score 88
+ */
+const PLAN_RISK_SCORES: Record<string, number> = {
+  tp1: 88,
+  tp2: 76,
+  tp3: 32,
+  tp4: 64,
+  tp5: 41,
+  ap1: 32,
+  ap2: 55,
+  ap3: 48,
+  ap4: 52,
+  ap5: 88,
+  ap6: 36,
+  ap7: 64,
+  ap8: 58,
+  ap9: 44,
+  ap10: 39,
+  ap11: 53,
+  ap12: 74,
+  ap13: 61,
+  ap14: 47,
+  ap15: 33,
+};
 
 /** Simulated plan identity — names, summaries, and scope labels aligned to fleet vs. single-cluster UX. */
 const PLAN_TABLE_IDENTITY: Record<
@@ -316,7 +371,7 @@ const TOP_PLANS: PlanRow[] = [
 const ALL_PLANS: PlanRow[] = [
   {
     id: 'ap1',
-    severity: 'warning',
+    severity: 'critical',
     status: 'Waiting Approval',
     score: 78,
     synopsis: 'Fix Minor App Memory Leak',
@@ -332,7 +387,8 @@ const ALL_PLANS: PlanRow[] = [
   {
     id: 'ap2',
     severity: 'warning',
-    status: 'Remediating',
+    status: 'Plan aborted',
+    terminatedAt: 'Jun 9, 2026, 2:48 PM',
     score: 75,
     synopsis: 'Repair Dev CI/CD Webhook Block',
     blastRadius: '2 Clusters',
@@ -408,7 +464,7 @@ const ALL_PLANS: PlanRow[] = [
   },
   {
     id: 'ap7',
-    severity: 'warning',
+    severity: 'critical',
     status: 'Waiting Approval',
     score: 59,
     synopsis: 'Fix Inactive Ingress Router Replicas',
@@ -484,7 +540,7 @@ const ALL_PLANS: PlanRow[] = [
   },
   {
     id: 'ap12',
-    severity: 'warning',
+    severity: 'critical',
     status: 'Waiting Approval',
     score: 42,
     synopsis: 'Fix Container Registry Pull Failures',
@@ -874,13 +930,6 @@ interface RemediationOption {
   rawCommands: string;
 }
 
-const RISK_COLOR: Record<RemediationRisk, 'green' | 'orange' | 'red'> = {
-  low: 'green', medium: 'orange', high: 'red',
-};
-const RISK_LABEL: Record<RemediationRisk, string> = {
-  low: 'Low risk', medium: 'Medium risk', high: 'High risk',
-};
-
 const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
   tp1: [
     { id: 'tp1-o1', title: 'Automated fleet rollback via GitOps controller', description: 'Revert the ApplicationSet to revision r4891 and trigger a fleet-wide hard sync via the ArgoCD GitOps controller.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'argocd app sync cluster-ingress-controller --prune --force' },
@@ -1115,6 +1164,58 @@ Exit code: 0 — Execution succeeded.`,
   };
 };
 
+const formatExecutionKillTimestamp = (date: Date): string =>
+  date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+function buildActiveExecutionLogLines(plan: PlanRow, option: RemediationOption): string[] {
+  const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
+  const cmd = option.rawCommands.split('\n')[0]?.trim() ?? option.title;
+  const seed = postMortem.rawLog?.split('\n').filter((line) => line.trim().length > 0) ?? [];
+  if (seed.length > 0) {
+    return seed;
+  }
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} UTC`;
+  return [
+    `[${timeStr}] Initiating remediation: ${plan.synopsis}`,
+    `[${timeStr}] Strategy: ${cmd}`,
+    `[${timeStr}] Applying mutations on ${plan.drawerTargets[0] ?? 'target'}…`,
+    `[${timeStr}] Health checks in progress…`,
+  ];
+}
+
+function useStreamingExecutionLog(
+  lines: string[],
+  enabled: boolean,
+  frozen: boolean,
+): string {
+  const [visibleCount, setVisibleCount] = useState(1);
+
+  useEffect(() => {
+    setVisibleCount(1);
+  }, [lines, frozen]);
+
+  useEffect(() => {
+    if (!enabled || frozen || visibleCount >= lines.length) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      setVisibleCount((count) => Math.min(count + 1, lines.length));
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [enabled, frozen, lines.length, visibleCount]);
+
+  return lines.slice(0, frozen ? visibleCount : visibleCount).join('\n');
+}
+
 const AI_TOOLTIP =
   'This metric is synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns.';
 
@@ -1163,13 +1264,38 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Remediating':      'teal',
   'Completed':        'green',
   'Failed':           'red',
+  'Plan aborted':     'red',
 };
 
-export const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
-  <Label color={STATUS_LABEL_COLOR[status]} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
-    {status}
-  </Label>
-);
+export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }> = ({
+  status,
+  terminatedAt,
+}) => {
+  if (status === 'Plan aborted') {
+    const tooltipContent = `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
+    return (
+      <Tooltip content={tooltipContent} position="top">
+        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
+          <Label
+            color="red"
+            variant="outline"
+            isCompact
+            icon={<ExclamationCircleIcon />}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            Plan aborted
+          </Label>
+        </span>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Label color={STATUS_LABEL_COLOR[status]} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+      {status}
+    </Label>
+  );
+};
 
 /** Created time for plans awaiting approval. */
 export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) => {
@@ -1217,6 +1343,24 @@ const OpenShiftResourceBadge: React.FC<{ label: string; backgroundColor: string 
 export const PlanResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="P" backgroundColor="#2b9af3" />
 );
+
+export const PlanConfidenceBadge: React.FC<{ tier: ConfidenceTier }> = ({ tier }) => (
+  <Label color={confidenceTierLabelColor(tier)} isCompact>
+    {formatConfidenceLabel(tier)}
+  </Label>
+);
+
+export const PlanRiskBadge: React.FC<{ score: number; isCompact?: boolean }> = ({
+  score,
+  isCompact = true,
+}) => {
+  const tier = scoreToRiskTier(score);
+  return (
+    <Label color={riskTierLabelColor(tier)} isCompact={isCompact}>
+      {formatRiskBadgeLabel(score)}
+    </Label>
+  );
+};
 
 const NamespaceResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="NS" backgroundColor="#1e4f18" />
@@ -1266,6 +1410,46 @@ const PlanScopeCell: React.FC<{
   );
 };
 
+// ─── Table column header with informational popover ───────────────────────────
+
+const PLANS_TABLE_HEADER_TH_STYLE: React.CSSProperties = {
+  verticalAlign: 'top',
+};
+
+const PLANS_TABLE_HEADER_POPOVER_CONTENT_STYLE: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'flex-start',
+  gap: 'var(--pf-t--global--spacer--xs)',
+  lineHeight: 'var(--pf-t--global--line-height--body)',
+};
+
+const PLANS_TABLE_HEADER_POPOVER_BUTTON_STYLE: React.CSSProperties = {
+  padding: 0,
+  height: '1em',
+  minHeight: 'unset',
+  display: 'inline-flex',
+  alignItems: 'center',
+};
+
+const PlansTableColumnHeader: React.FC<{
+  label: string;
+  popoverHeader: string;
+  popoverBody: string;
+  ariaLabel: string;
+}> = ({ label, popoverHeader, popoverBody, ariaLabel }) => (
+  <span style={PLANS_TABLE_HEADER_POPOVER_CONTENT_STYLE}>
+    {label}
+    <Popover headerContent={popoverHeader} bodyContent={popoverBody} position="top">
+      <Button
+        variant="plain"
+        aria-label={ariaLabel}
+        icon={<HelpIcon />}
+        style={PLANS_TABLE_HEADER_POPOVER_BUTTON_STYLE}
+      />
+    </Popover>
+  </span>
+);
+
 // ─── Core stateless table renderer ───────────────────────────────────────────
 
 interface PlansTableCoreProps {
@@ -1273,6 +1457,7 @@ interface PlansTableCoreProps {
   ariaLabel: string;
   scopeColumnLabel: 'Cluster' | 'Namespace';
   onReviewPlan: (plan: PlanRow) => void;
+  isAgenticAutomationEnabled: boolean;
 }
 
 const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -1280,15 +1465,40 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   ariaLabel,
   scopeColumnLabel,
   onReviewPlan,
+  isAgenticAutomationEnabled,
 }) => (
-  <Table aria-label={ariaLabel} style={{ tableLayout: 'fixed', width: '100%' }}>
+  <Table
+    aria-label={ariaLabel}
+    style={{
+      tableLayout: 'fixed',
+      width: '100%',
+      opacity: isAgenticAutomationEnabled ? 1 : 0.55,
+      transition: 'opacity 200ms ease',
+    }}
+  >
     <Thead>
       <Tr>
-        <Th style={{ width: '24%' }}>Name</Th>
-        <Th style={{ width: '30%' }}>Plan summary</Th>
-        <Th style={{ width: '12%' }}>Status</Th>
-        <Th style={{ width: '14%' }}>{scopeColumnLabel}</Th>
-        <Th style={{ width: '20%' }}>Created</Th>
+        <Th style={{ width: '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
+        <Th style={{ width: '24%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
+        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
+        <Th style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
+          <PlansTableColumnHeader
+            label="Confidence"
+            popoverHeader="How accurate is the fix?"
+            popoverBody="Indicates how certain the AI is that this specific plan will successfully resolve the root cause, based on historical telemetry and event correlation."
+            ariaLabel="More information about Confidence"
+          />
+        </Th>
+        <Th style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
+          <PlansTableColumnHeader
+            label="Risk"
+            popoverHeader="What is the blast radius?"
+            popoverBody="Measures the potential operational impact of the plan on cluster stability. High risk scores (>50) automatically restrict or block direct execution to protect production workloads."
+            ariaLabel="More information about Risk"
+          />
+        </Th>
+        <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
+        <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
       </Tr>
     </Thead>
 
@@ -1304,6 +1514,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                 <Button
                   variant="link"
                   isInline
+                  isDisabled={!isAgenticAutomationEnabled}
                   onClick={() => onReviewPlan(row)}
                   style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
                 >
@@ -1321,7 +1532,19 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
           </Td>
 
           <Td dataLabel="Status">
-            <StatusLabel status={row.status} />
+            <StatusLabel status={row.status} terminatedAt={row.terminatedAt} />
+          </Td>
+
+          <Td dataLabel="Confidence">
+            {row.confidenceTier ? (
+              <PlanConfidenceBadge tier={row.confidenceTier} />
+            ) : (
+              '—'
+            )}
+          </Td>
+
+          <Td dataLabel="Risk">
+            <PlanRiskBadge score={row.riskScore ?? 50} />
           </Td>
 
           <Td dataLabel={scopeColumnLabel}>
@@ -1354,6 +1577,7 @@ const STATUS_FILTER_OPTIONS: PlanStatus[] = [
   'Investigating',
   'Waiting Approval',
   'Remediating',
+  'Plan aborted',
   'Completed',
   'Failed',
 ];
@@ -1362,9 +1586,15 @@ interface PlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
   rows: PlanRow[];
   isSingleCluster: boolean;
+  isAgenticAutomationEnabled: boolean;
 }
 
-const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleCluster }) => {
+const PlansTable: React.FC<PlansTableProps> = ({
+  onReviewPlan,
+  rows,
+  isSingleCluster,
+  isAgenticAutomationEnabled,
+}) => {
   // ── Filter state — intentionally decoupled from perspective; persists on switch ──
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -1566,6 +1796,7 @@ const PlansTable: React.FC<PlansTableProps> = ({ onReviewPlan, rows, isSingleClu
             ariaLabel="Plans"
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={onReviewPlan}
+            isAgenticAutomationEnabled={isAgenticAutomationEnabled}
           />
           <Pagination
             {...paginationProps}
@@ -1615,29 +1846,58 @@ const RemediationOptionCard: React.FC<{
   index: number;
   plan: PlanRow;
   executionMessage?: string;
+  executionKillState?: { killedAt: string } | null;
+  onConfirmStopExecution?: (killedAt: string) => void;
+  onResumeRemediation?: () => void;
   isSelected: boolean;
   isDiagnosisVerified: boolean;
+  isAgenticAutomationEnabled: boolean;
   onSelect: (id: string) => void;
-}> = ({ option, index, plan, executionMessage, isSelected, isDiagnosisVerified, onSelect }) => {
+}> = ({
+  option,
+  index,
+  plan,
+  executionMessage,
+  executionKillState,
+  onConfirmStopExecution,
+  onResumeRemediation,
+  isSelected,
+  isDiagnosisVerified,
+  isAgenticAutomationEnabled,
+  onSelect,
+}) => {
   const isFirst = index === 0;
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
   const { status, isUnauthorized } = plan;
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
-  const isRemediating = status === 'Remediating';
+  const isRemediating = status === 'Remediating' || status === 'Plan aborted';
+  const isExecutionKilled = Boolean(executionKillState);
   const [showLiveCommands, setShowLiveCommands] = useState(false);
+  const [governorApproved, setGovernorApproved] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
+  const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
   const cardRootRef = React.useRef<HTMLDivElement>(null);
   const wasSelectedRef = React.useRef(isSelected);
+  const activeExecutionLogLines = useMemo(
+    () => buildActiveExecutionLogLines(plan, option),
+    [plan, option],
+  );
+  const streamedExecutionLog = useStreamingExecutionLog(
+    activeExecutionLogLines,
+    isRemediating && isFirst && isSelected,
+    isExecutionKilled,
+  );
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
     if (!isSelected) {
       setShowLiveCommands(false);
       setIsExecuting(false);
+      setGovernorApproved(false);
     }
   }, [isSelected]);
 
@@ -1660,6 +1920,10 @@ const RemediationOptionCard: React.FC<{
   const typeName = OPTION_TYPE_NAMES[index] ?? `Option ${index + 1}`;
   const isInteractive = !isRemediating;
   const cardId = `remediation-option-${option.id}`;
+  const planRiskScore = plan.riskScore ?? 50;
+  const planIsHighRisk = isHighRisk(planRiskScore);
+  const planIsMediumRisk = isMediumRisk(planRiskScore);
+  const canAutoExecute = !planIsHighRisk && (!planIsMediumRisk || governorApproved);
 
   const headerContent = (
     <Flex
@@ -1683,9 +1947,7 @@ const RemediationOptionCard: React.FC<{
             {status === 'Completed' ? 'Executed' : 'Failed'}
           </Label>
         )}
-        <Label color={RISK_COLOR[option.risk]} variant="outline" isCompact>
-          {RISK_LABEL[option.risk]}
-        </Label>
+        <PlanRiskBadge score={planRiskScore} isCompact />
         <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
           {option.reversible ? '1-Click Rollback' : 'Non-reversible'}
         </Label>
@@ -1703,6 +1965,9 @@ const RemediationOptionCard: React.FC<{
   );
 
   const handleExecute = () => {
+    if (!isAgenticAutomationEnabled) {
+      return;
+    }
     setIsExecuting(true);
     setTimeout(() => {
       setIsExecuting(false);
@@ -1711,15 +1976,28 @@ const RemediationOptionCard: React.FC<{
     }, 2000);
   };
 
+  const handleConfirmStopExecution = () => {
+    const killedAt = formatExecutionKillTimestamp(new Date());
+    onConfirmStopExecution?.(killedAt);
+    setIsStopExecutionModalOpen(false);
+  };
+
   const renderApplyAction = () => {
     if (isInvestigating || isTerminal) return null;
     if (isRemediating) {
+      if (isExecutionKilled) {
+        return (
+          <Button variant="primary" style={{ margin: 0 }} onClick={onResumeRemediation}>
+            Apply fix
+          </Button>
+        );
+      }
       return (
         <Button
           variant="primary"
           isDisabled
-          icon={<Spinner size="sm" aria-label="Applying fix" />}
-          style={{ cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
+          isLoading
+          style={{ margin: 0, cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
         >
           Applying fix…
         </Button>
@@ -1747,10 +2025,31 @@ const RemediationOptionCard: React.FC<{
         </Button>
       );
     }
+    if (planIsHighRisk) {
+      return (
+        <Tooltip
+          content="Automated execution is blocked for high blast-radius risk. Use View live commands to run manually."
+          position="top"
+        >
+          <span>
+            <Button variant="primary" isDisabled style={{ margin: 0, pointerEvents: 'none' }}>
+              Apply remediation
+            </Button>
+          </span>
+        </Tooltip>
+      );
+    }
+    if (planIsMediumRisk && !governorApproved) {
+      return (
+        <Button variant="primary" isDisabled style={{ margin: 0 }}>
+          Awaiting approval
+        </Button>
+      );
+    }
     return (
       <Button
         variant="primary"
-        isDisabled={isExecuting}
+        isDisabled={isExecuting || !canAutoExecute || !isAgenticAutomationEnabled}
         isLoading={isExecuting}
         onClick={handleExecute}
         style={{ margin: 0 }}
@@ -1831,21 +2130,56 @@ const RemediationOptionCard: React.FC<{
           </Content>
 
           {/* Execution status (Remediating only) */}
-          {isRemediating && isFirst && executionMessage && (
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              <Spinner size="sm" aria-label="Executing fix" />
+          {isRemediating && isFirst && (
+            <>
+              {isExecutionKilled ? (
+                <Alert
+                  variant="danger"
+                  isInline
+                  title={`🛑 Execution Terminated by User at ${executionKillState?.killedAt}`}
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                />
+              ) : (
+                executionMessage && (
+                  <Content
+                    component="p"
+                    className="ols-aio-text-subtle-sm"
+                    style={{ margin: '0 0 var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
+                  >
+                    {executionMessage}
+                  </Content>
+                )
+              )}
+
               <Content
-                component="p"
-                className="ols-aio-text-subtle-sm"
-                style={{ margin: 0, fontStyle: 'italic' }}
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  margin: '0 0 var(--pf-t--global--spacer--xs)',
+                }}
               >
-                {executionMessage}
+                Active execution log
               </Content>
-            </Flex>
+              <ClipboardCopy
+                isReadOnly
+                isCode
+                hoverTip="Copy"
+                clickTip="Copied"
+                style={{
+                  fontFamily: 'var(--pf-t--global--font--family--mono)',
+                  fontSize: '12px',
+                  marginBottom: 'var(--pf-t--global--spacer--sm)',
+                }}
+              >
+                {isExecutionKilled
+                  ? `${streamedExecutionLog}\n[STOPPED] Execution halted by operator — no further mutations will be applied.`
+                  : streamedExecutionLog}
+              </ClipboardCopy>
+            </>
           )}
 
           {/* Model badge */}
@@ -1952,6 +2286,93 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── Apply remediation + manual download + Lightspeed ── */}
           {showRemediationActions && (
+            <>
+              {planIsMediumRisk && !isUnauthorized && (
+                <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                  <Checkbox
+                    id={`governor-approval-${option.id}`}
+                    label="Governor approval granted"
+                    isChecked={governorApproved}
+                    onChange={(_event, checked) => setGovernorApproved(Boolean(checked))}
+                  />
+                  {!governorApproved && (
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        marginTop: 'var(--pf-t--global--spacer--xs)',
+                        marginBottom: 0,
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                      }}
+                    >
+                      Governor approval required for medium risk actions.
+                    </Content>
+                  )}
+                </div>
+              )}
+              <div
+                className="ols-remediation-option-card__actions"
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: '16px',
+                }}
+              >
+                {renderApplyAction()}
+                {!isExecuting && !isExecuted && (
+                  <>
+                    <Button
+                      variant="link"
+                      isInline
+                      icon={<DownloadIcon />}
+                      iconPosition="end"
+                      style={{ fontSize: '14px', margin: 0 }}
+                      aria-label={`Download remediation guide for option ${index + 1}`}
+                    >
+                      Download remediation guide
+                    </Button>
+                    <Button
+                      variant="link"
+                      isInline
+                      style={{ fontSize: '14px', margin: 0 }}
+                      onClick={() => {
+                        const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
+                        agenticGlobalAiApi.openRemediationDiscussion?.({
+                          planSynopsis: plan.synopsis,
+                          optionTitle: option.title,
+                          rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
+                          remediationProposal: drawer?.remediationProposal ?? option.description,
+                          riskAssessment: drawer?.riskAssessment ?? '',
+                          blastRadius: plan.blastRadius,
+                          severity: plan.severity,
+                        });
+                      }}
+                    >
+                      Discuss with Lightspeed
+                    </Button>
+                  </>
+                )}
+              </div>
+              {planIsHighRisk && !isUnauthorized && (
+                <Content
+                  component="small"
+                  style={{
+                    display: 'block',
+                    marginTop: 'var(--pf-t--global--spacer--sm)',
+                    marginBottom: 0,
+                    color: 'var(--pf-t--global--text--color--subtle)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Automated execution blocked due to high blast radius risk. Use &apos;View live commands&apos; to
+                  execute manually.
+                </Content>
+              )}
+            </>
+          )}
+
+          {!showRemediationActions && (
             <div
               className="ols-remediation-option-card__actions"
               style={{
@@ -1959,47 +2380,38 @@ const RemediationOptionCard: React.FC<{
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 gap: '16px',
+                marginTop: isRemediating ? 'var(--pf-t--global--spacer--sm)' : undefined,
               }}
             >
               {renderApplyAction()}
-              {!isExecuting && !isExecuted && (
-                <>
-                  <Button
-                    variant="link"
-                    isInline
-                    icon={<DownloadIcon />}
-                    iconPosition="end"
-                    style={{ fontSize: '14px', margin: 0 }}
-                    aria-label={`Download remediation guide for option ${index + 1}`}
-                  >
-                    Download remediation guide
-                  </Button>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '14px', margin: 0 }}
-                    onClick={() => {
-                      const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
-                      agenticGlobalAiApi.openRemediationDiscussion?.({
-                        planSynopsis: plan.synopsis,
-                        optionTitle: option.title,
-                        rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
-                        remediationProposal: drawer?.remediationProposal ?? option.description,
-                        riskAssessment: drawer?.riskAssessment ?? '',
-                        blastRadius: plan.blastRadius,
-                        severity: plan.severity,
-                      });
-                    }}
-                  >
-                    Discuss with Lightspeed
-                  </Button>
-                </>
+              {isRemediating && isFirst && !isExecutionKilled && (
+                <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)} style={{ margin: 0 }}>
+                  Stop Execution
+                </Button>
               )}
             </div>
           )}
 
-          {!showRemediationActions && renderApplyAction()}
-
+          <Modal
+            variant={ModalVariant.small}
+            isOpen={isStopExecutionModalOpen}
+            onClose={() => setIsStopExecutionModalOpen(false)}
+            aria-labelledby="stop-plan-execution-title"
+          >
+            <ModalHeader title="Stop Plan Execution?" labelId="stop-plan-execution-title" />
+            <ModalBody>
+              This will instantly halt the agent&apos;s in-flight mutations on this cluster. Completed steps will
+              remain in their current state. This action cannot be undone.
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="danger" onClick={handleConfirmStopExecution}>
+                Yes, Stop Execution
+              </Button>
+              <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
 
           {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
           {isExecuted && (
@@ -2461,12 +2873,20 @@ const scrollRemediationSectionIntoView = (
   });
 };
 
+/** Critical Waiting Approval plans require RCA acknowledgment before the remediation hub unlocks. */
+function planRequiresRcaAcknowledgment(plan: PlanRow, status: PlanStatus): boolean {
+  if (status !== 'Waiting Approval') {
+    return false;
+  }
+  return plan.severity === 'critical';
+}
+
 const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
-  const { status, severity } = plan;
+  const { status } = plan;
   if (status === 'Investigating') return 'chain';
-  if (status === 'Remediating') return 'rem';
+  if (status === 'Remediating' || status === 'Plan aborted') return 'rem';
   if (status === 'Waiting Approval') {
-    return severity === 'critical' ? 'rca' : 'rem';
+    return planRequiresRcaAcknowledgment(plan, status) ? 'rca' : 'rem';
   }
   return 'rem';
 };
@@ -2485,10 +2905,18 @@ const createInitialSectionState = (
 export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isInvestigating = status === 'Investigating';
-  const isRemediating = status === 'Remediating';
+  const isPlanAborted = status === 'Plan aborted';
+  const isRemediating = status === 'Remediating' || isPlanAborted;
   const isTerminal = status === 'Completed' || status === 'Failed';
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
+  const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
+  const { isAgentActiveForCluster } = useAgenticCapabilities();
+  const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
+  const { registerPlanTermination, resumePlanRemediation } = usePlanTermination();
+
+  const executionKillState =
+    plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
 
   const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
   // Guided view: first presentation from the plans table — only the focus section stays open.
@@ -2543,8 +2971,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   // Plans already in execution (Remediating / Completed / Failed) are also exempt
   // since the gate was already cleared in a prior interaction.
   const [isDiagnosisVerified, setIsDiagnosisVerified] = useState<boolean>(
-    plan.severity === 'warning' ||
+    !planRequiresRcaAcknowledgment(plan, status) ||
     status === 'Remediating' ||
+    status === 'Plan aborted' ||
     status === 'Completed' ||
     status === 'Failed',
   );
@@ -2700,12 +3129,16 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             <RcaLockedPlaceholder />
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ position: 'relative' }}>
-            <Label
-              color={confidenceTierLabelColor(drawer.confidence)}
+            <Flex
+              gap={{ default: 'gapXs' }}
+              flexWrap={{ default: 'wrap' }}
               style={{ position: 'absolute', top: 'var(--pf-t--global--spacer--sm)', right: 'var(--pf-t--global--spacer--sm)' }}
             >
-              {formatConfidenceLabel(drawer.confidence)}
-            </Label>
+              <Label color={confidenceTierLabelColor(drawer.confidence)}>
+                {formatConfidenceLabel(drawer.confidence)}
+              </Label>
+              <PlanRiskBadge score={plan.riskScore ?? 50} isCompact={false} />
+            </Flex>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
               style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
@@ -2721,7 +3154,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             </Content>
 
             {/* ── Verification gate (critical plans, non-investigating) ── */}
-            {!isInvestigating && plan.severity === 'critical' && (
+            {!isInvestigating && planRequiresRcaAcknowledgment(plan, status) && (
               <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                 <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
                 {isDiagnosisVerified ? (
@@ -2740,14 +3173,36 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                     </Content>
                   </Flex>
                 ) : (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<CheckCircleIcon />}
-                    onClick={handleVerifyDiagnosis}
-                  >
-                    Acknowledge & view remediation
-                  </Button>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }} flexWrap={{ default: 'wrap' }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<CheckCircleIcon />}
+                      isDisabled={!isAgenticAutomationEnabled}
+                      onClick={handleVerifyDiagnosis}
+                    >
+                      Acknowledge & view remediation
+                    </Button>
+                    <Button
+                      variant="link"
+                      isInline
+                      style={{ fontSize: '14px', margin: 0 }}
+                      onClick={() => {
+                        const firstOption = options[0];
+                        agenticGlobalAiApi.openRemediationDiscussion?.({
+                          planSynopsis: plan.synopsis,
+                          optionTitle: firstOption?.title ?? 'Remediation options',
+                          rootCause: drawer.rootCauseNarrative,
+                          remediationProposal: drawer.remediationProposal ?? firstOption?.description ?? '',
+                          riskAssessment: drawer.riskAssessment ?? '',
+                          blastRadius: plan.blastRadius,
+                          severity: plan.severity,
+                        });
+                      }}
+                    >
+                      Discuss with Lightspeed
+                    </Button>
+                  </Flex>
                 )}
               </div>
             )}
@@ -2804,6 +3259,15 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             <PostMortemPanel plan={plan} />
           ) : (
             <>
+              {!isAgenticAutomationEnabled && (
+                <Alert
+                  variant="warning"
+                  isInline
+                  title={getAgenticAutomationDisabledMessage(isSingleCluster)}
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                />
+              )}
+
               {/* Gate hint shown to critical plans before verification */}
               {!isDiagnosisVerified && (
                 <Flex
@@ -2840,8 +3304,19 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               {/* Options list — gated by diagnosis verification AND RBAC authorization */}
               <div
                 style={{
-                  opacity: plan.isUnauthorized ? 0.6 : isDiagnosisVerified ? 1 : 0.45,
-                  pointerEvents: (plan.isUnauthorized || !isDiagnosisVerified) ? 'none' : undefined,
+                  opacity: plan.isUnauthorized
+                    ? 0.6
+                    : !isAgenticAutomationEnabled && !isRemediating
+                      ? 0.55
+                      : isDiagnosisVerified
+                        ? 1
+                        : 0.45,
+                  pointerEvents:
+                    plan.isUnauthorized
+                    || !isDiagnosisVerified
+                    || (!isAgenticAutomationEnabled && !isRemediating)
+                      ? 'none'
+                      : undefined,
                   transition: 'opacity 300ms ease',
                 }}
               >
@@ -2855,8 +3330,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           index={idx}
                           plan={plan}
                           executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
+                          executionKillState={executionKillState}
+                          onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt)}
+                          onResumeRemediation={() => resumePlanRemediation(plan.id)}
                           isSelected={selectedOptionId === opt.id}
                           isDiagnosisVerified={isDiagnosisVerified}
+                          isAgenticAutomationEnabled={isAgenticAutomationEnabled}
                           onSelect={setSelectedOptionId}
                         />
                       </StackItem>
@@ -2885,7 +3364,11 @@ export function getPlanRemediationPath(plan: PlanRow, perspectiveKey?: 'core-pla
 /** @deprecated Use getPlanRemediationPath — retained for existing deep links. */
 export const DRILL_DOWN_PLAN_SLUG = 'analytics-memory-leak-fix';
 
-export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
+export function buildPlansForPerspective(
+  isSingleCluster: boolean,
+  runtime: PlanExecutionRuntime = { abortedPlans: {}, resumedPlanIds: {} },
+): PlanRow[] {
+  const { abortedPlans, resumedPlanIds } = runtime;
   const combined = isSingleCluster
     ? [...SC_TOP_PLANS, ...SC_ALL_PLANS]
     : [...TOP_PLANS, ...ALL_PLANS];
@@ -2898,11 +3381,14 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
         : PLAN_TABLE_IDENTITY[row.id];
       const rowPatch = isSingleCluster ? SC_PLAN_ROW_PATCHES[row.id] : undefined;
       const mergedRow = rowPatch ? { ...row, ...rowPatch } : row;
-      return {
+      const drawerData = resolvePlanDrawerData(row.id, PLAN_DRAWER_DATA[row.id], isSingleCluster);
+      const baseRow: PlanRow = {
         ...mergedRow,
         name: identity?.name ?? row.id,
         synopsis: identity?.synopsis ?? mergedRow.synopsis,
         namespace: identity?.namespace,
+        confidenceTier: drawerData?.confidence,
+        riskScore: PLAN_RISK_SCORES[row.id] ?? 50,
         cluster: isSingleCluster
           ? CORE_PLATFORMS_CLUSTER_ID
           : identity?.fleetCluster ?? mergedRow.drawerTargets[0] ?? '—',
@@ -2912,7 +3398,26 @@ export function buildPlansForPerspective(isSingleCluster: boolean): PlanRow[] {
         createdAt:
           mergedRow.createdAt ??
           new Date(createdAnchor - index * 47 * 60_000).toISOString(),
+        terminatedAt: mergedRow.terminatedAt,
       };
+
+      if (abortedPlans[row.id]) {
+        return {
+          ...baseRow,
+          status: 'Plan aborted',
+          terminatedAt: abortedPlans[row.id].terminatedAt,
+        };
+      }
+
+      if (resumedPlanIds[row.id]) {
+        return {
+          ...baseRow,
+          status: 'Remediating',
+          terminatedAt: undefined,
+        };
+      }
+
+      return baseRow;
     });
 }
 
@@ -2922,6 +3427,10 @@ export const PlansAndApprovalsTab: React.FC = () => {
   const navigate = useNavigate();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
+  const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
+  const { isAgentActiveForCluster } = useAgenticCapabilities();
+  const { abortedPlans, resumedPlanIds } = usePlanTermination();
+  const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
 
   // Breadcrumb return: apply session handoff once on mount, then release control to the switcher.
   useLayoutEffect(() => {
@@ -2934,21 +3443,34 @@ export const PlansAndApprovalsTab: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per plans-list mount only
   }, []);
 
+  const planExecutionRuntime = useMemo(
+    () => ({ abortedPlans, resumedPlanIds }),
+    [abortedPlans, resumedPlanIds],
+  );
+
   const plans = useMemo(
-    () => buildPlansForPerspective(isSingleCluster),
-    [isSingleCluster],
+    () => buildPlansForPerspective(isSingleCluster, planExecutionRuntime),
+    [isSingleCluster, planExecutionRuntime],
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
+    if (!isAgenticAutomationEnabled) {
+      return;
+    }
     const perspectiveKey: 'core-platforms' | 'fleet-management' =
       perspectiveKeyFromShellName(activePerspective)
       ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
     writePlanRemediationDrillSession({ perspectiveKey });
     navigate(getPlanRemediationPath(plan, perspectiveKey));
-  }, [activePerspective, isSingleCluster, navigate]);
+  }, [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate]);
 
   return (
     <Stack hasGutter>
+      {!isAgenticAutomationEnabled && (
+        <StackItem>
+          <Alert variant="warning" isInline title={getAgenticAutomationDisabledMessage(isSingleCluster)} />
+        </StackItem>
+      )}
       <StackItem>
         <Title
           headingLevel="h3"
@@ -2958,7 +3480,12 @@ export const PlansAndApprovalsTab: React.FC = () => {
         >
           Plans
         </Title>
-        <PlansTable onReviewPlan={openPlanRemediation} rows={plans} isSingleCluster={isSingleCluster} />
+        <PlansTable
+          onReviewPlan={openPlanRemediation}
+          rows={plans}
+          isSingleCluster={isSingleCluster}
+          isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+        />
       </StackItem>
     </Stack>
   );

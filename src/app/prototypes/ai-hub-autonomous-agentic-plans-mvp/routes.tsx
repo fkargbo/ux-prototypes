@@ -2,8 +2,9 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { RouteConfig } from '@app/core/types';
 import { AIHubPage } from './pages/AIHubPage';
+import { AuditAndLogsPage } from './pages/AuditAndLogsPage';
 import { PlanRemediationPage } from './pages/PlanRemediationPage';
-import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
+import { AiHubPrototypeRoot } from './components/AiHubPrototypeRoot';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 
 export const routes: RouteConfig[] = [
@@ -29,6 +30,17 @@ export const routes: RouteConfig[] = [
     },
   },
   {
+    path: '/core/observe/ai-hub/audit-logs',
+    element: <AuditAndLogsPage />,
+    label: 'Audit & logs',
+    title: 'Audit & logs',
+    navigation: {
+      group: 'Agentic Plans',
+      order: 2,
+      insertAfterGroup: 'Home',
+    },
+  },
+  {
     path: '/core/observe/ai-hub/plans/:planSlug/remediation',
     element: <PlanRemediationPage />,
     title: 'Plan remediation',
@@ -36,7 +48,7 @@ export const routes: RouteConfig[] = [
 ];
 
 /** Theme state for AI Hub banner appearance controls. */
-export const prototypeRootWrapper = AiHubAppearanceProvider;
+export const prototypeRootWrapper = AiHubPrototypeRoot;
 
 /** Banner toolbar: before version picker (see `PrototypeLayout`). */
 export const bannerBeforeVersionPicker = <AiHubBannerAppearanceSettings />;

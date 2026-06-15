@@ -4,7 +4,9 @@ import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/r
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
+  PlanConfidenceBadge,
   PlanResourceBadge,
+  PlanRiskBadge,
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
@@ -17,6 +19,8 @@ import {
   resolveDrillPerspectiveKey,
   writePlanRemediationDrillSession,
 } from './planRemediationDrillSession';
+import { AgenticCapabilitiesHeaderSwitch } from '../components/AgenticCapabilitiesHeaderSwitch';
+import { usePlanTermination } from '../context/PlanTerminationContext';
 import './ai-hub-page.css';
 
 export const PlanRemediationPage: React.FC = () => {
@@ -35,12 +39,19 @@ export const PlanRemediationPage: React.FC = () => {
     ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
     : activePerspective === 'Core platforms';
 
+  const { abortedPlans, resumedPlanIds } = usePlanTermination();
+
+  const planExecutionRuntime = useMemo(
+    () => ({ abortedPlans, resumedPlanIds }),
+    [abortedPlans, resumedPlanIds],
+  );
+
   const plan = useMemo(() => {
     if (!planSlug) {
       return null;
     }
-    return buildPlansForPerspective(isSingleCluster).find((row) => row.name === planSlug) ?? null;
-  }, [isSingleCluster, planSlug]);
+    return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find((row) => row.name === planSlug) ?? null;
+  }, [isSingleCluster, planSlug, planExecutionRuntime]);
 
   const navigateBackToPlans = useCallback(() => {
     const key = drillPerspectiveKey
@@ -93,26 +104,48 @@ export const PlanRemediationPage: React.FC = () => {
         </Breadcrumb>
       </div>
 
-      <div className="template-page-heading">
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          flexWrap={{ default: 'wrap' }}
-          style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}
-        >
-          <FlexItem>
-            <PlanResourceBadge />
-          </FlexItem>
-          <FlexItem style={{ minWidth: 0 }}>
-            <Title headingLevel="h1" size="2xl" style={{ marginBottom: 0, wordBreak: 'break-word' }}>
-              {planDisplayName}
-            </Title>
-          </FlexItem>
-        </Flex>
-        <StatusLabel status={plan.status} />
-        <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-          <WaitingApprovalPlanMeta plan={plan} />
-        </div>
+      <div className="template-page-heading ols-ai-hub-page-heading-row">
+        <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapSm' }}
+            flexWrap={{ default: 'wrap' }}
+            style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}
+          >
+            <FlexItem>
+              <PlanResourceBadge />
+            </FlexItem>
+            <FlexItem style={{ minWidth: 0 }}>
+              <Title headingLevel="h1" size="2xl" style={{ marginBottom: 0, wordBreak: 'break-word' }}>
+                {planDisplayName}
+              </Title>
+            </FlexItem>
+          </Flex>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapSm' }}
+            flexWrap={{ default: 'wrap' }}
+            style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+          >
+            <FlexItem>
+              <StatusLabel status={plan.status} terminatedAt={plan.terminatedAt} />
+            </FlexItem>
+            {plan.confidenceTier && (
+              <FlexItem>
+                <PlanConfidenceBadge tier={plan.confidenceTier} />
+              </FlexItem>
+            )}
+            <FlexItem>
+              <PlanRiskBadge score={plan.riskScore ?? 50} />
+            </FlexItem>
+          </Flex>
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+            <WaitingApprovalPlanMeta plan={plan} />
+          </div>
+        </FlexItem>
+        <FlexItem className="ols-ai-hub-page-heading-actions">
+          <AgenticCapabilitiesHeaderSwitch />
+        </FlexItem>
       </div>
 
       <div

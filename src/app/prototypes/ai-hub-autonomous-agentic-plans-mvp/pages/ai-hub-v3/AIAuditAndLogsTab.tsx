@@ -1,47 +1,36 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
-  Card,
-  CardBody,
-  CardHeader,
-  CardTitle,
-  ClipboardCopy,
-  ClipboardCopyVariant,
-  Content,
   Flex,
   FlexItem,
-  Grid,
-  GridItem,
   Label,
   MenuToggle,
   MenuToggleElement,
-  Progress,
-  ProgressSize,
+  Pagination,
+  PaginationVariant,
   Select,
   SelectList,
   SelectOption,
   Stack,
   StackItem,
-  Tab,
-  Tabs,
-  TabTitleText,
   TextInput,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, DownloadIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, FileAltIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { SC_PLAN_TABLE_IDENTITY } from './singleClusterPlanSimulation';
 import './ai-hub-v3-inventory.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type InvocationType = 'Autonomous Pipeline' | 'Human Approved';
-
-interface SandboxStep {
-  step: number;
-  label: string;
-  detail: string;
-  status: 'passed' | 'info';
-}
+type LifecycleEvent =
+  | 'Plan submitted'
+  | 'Investigation started'
+  | 'RCA verified'
+  | 'Approval granted'
+  | 'Remediation applied'
+  | 'Plan aborted';
 
 interface AuditReceiptItem {
   key: string;
@@ -51,371 +40,225 @@ interface AuditReceiptItem {
 interface AuditRow {
   id: number;
   timestamp: string;
-  invocationType: InvocationType;
-  mutationPayload: string;
-  targetScope: string;
-  agentCapability: string;
-  signee: string;
-  otelRef: string;
-  chainOfThought: {
-    contextPrompt: string;
-    sandboxPlan: SandboxStep[];
-    auditReceipt: AuditReceiptItem[];
-  };
+  planSummary: string;
+  event: LifecycleEvent;
+  user: string;
+  tokenBurn: number;
+  receiptHash: string;
+  auditReceipt: AuditReceiptItem[];
 }
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-const AUDIT_ROWS: AuditRow[] = [
-  {
-    id: 1,
-    timestamp: '14:32:05 UTC',
-    invocationType: 'Autonomous Pipeline',
-    mutationPayload: 'Patch ConfigMap & Scale Replicas',
-    targetScope: 'namespace: openshift-ingress',
-    agentCapability: 'K8s:Network:Mutation',
-    signee: 'System Engine',
-    otelRef: '#ot-7f9b1c',
-    chainOfThought: {
-      contextPrompt: `## System Context
-**Alert:** IngressControllerDegraded  (severity: critical)
-**Cluster:** prod-us-east-01
-**Namespace:** openshift-ingress
+const DEFAULT_PER_PAGE = 10;
 
-### Current Pod State
-\`\`\`json
-{
-  "pod": "router-default-5f7b9",
-  "status": "CrashLoopBackOff",
-  "restarts": 14,
-  "lastExit": "OOMKilled",
-  "memory_limit": "256Mi",
-  "memory_usage": "251Mi"
-}
-\`\`\`
+const formatTokenBurn = (tokens: number): string => `${tokens.toLocaleString('en-US')} tokens`;
 
-### Structural Instructions
-- You are an autonomous Kubernetes remediation agent operating under SRE policy v2.4.
-- RBAC Capability: K8s:Network:Mutation (authorized for ConfigMap and ReplicaSet mutations).
-- Target: Patch ingress ConfigMap to increase memory headroom by 25%, then scale replicas from 2 → 3.
-- Log all mutations to OTel trace stream with ref #ot-7f9b1c.
-- Dry-run MUST be executed before any live mutation. Abort on validation failure.`,
-      sandboxPlan: [
-        { step: 1, label: 'Log ingestion & alert parsing', detail: 'Ingested 14 crash loop events, 3 OOM signals from kubelet journal. Parsed structured alert payload from Alertmanager webhook.', status: 'info' },
-        { step: 2, label: 'Sandbox dry-run: ConfigMap patch', detail: 'Executed dry-run against sandbox cluster replica. ConfigMap `router-default-env` patched — memory limit: 256Mi → 320Mi. No breaking drifts.', status: 'passed' },
-        { step: 3, label: 'Sandbox dry-run: ReplicaSet scale', detail: 'Dry-run scale from replicas: 2 → 3 passed scheduling simulation. Node capacity sufficient on worker-pool-east-b.', status: 'passed' },
-        { step: 4, label: 'Validation gate', detail: 'Validation result: PASSED (0 breaking drifts, 0 policy violations). Proceeding to live execution.', status: 'passed' },
-        { step: 5, label: 'Live mutation applied', detail: 'ConfigMap patched and ReplicaSet scaled in prod-us-east-01/openshift-ingress. OTel span closed at 14:32:05 UTC.', status: 'passed' },
-      ],
-      auditReceipt: [
-        { key: 'SHA-256 Log Hash', value: 'a3f9c2e1b4d780f6e52a91bc3d07...9c1a' },
-        { key: 'RBAC Token Clearance', value: 'K8s:Network:Mutation — GRANTED (policy: sre-autonomy-v2.4)' },
-        { key: 'Git Webhook Ref', value: 'gitops-sync-hook-prod — commit #0001c135' },
-        { key: 'OTel Trace', value: '#ot-7f9b1c (span closed: 14:32:07 UTC)' },
-        { key: 'Immutability Seal', value: 'Ledger entry sealed — no modifications permitted post-execution' },
-        { key: 'Compliance Framework', value: 'SOC2 Type II / AI-OPS-CTRL-004' },
-      ],
-    },
-  },
-  {
-    id: 2,
-    timestamp: '11:14:22 UTC',
-    invocationType: 'Human Approved',
-    mutationPayload: 'Force Rolling Pod Restart',
-    targetScope: 'namespace: app-prod-east',
-    agentCapability: 'K8s:Core:Mutation',
-    signee: 'sre-lead-admin@company.com',
-    otelRef: '#ot-3a2d8e',
-    chainOfThought: {
-      contextPrompt: `## System Context
-**Alert:** PodCrashLooping (severity: warning)
-**Cluster:** prod-us-east-01
-**Namespace:** app-prod-east
+const truncateReceiptHash = (hash: string): string => hash.slice(0, 6);
 
-### Current Pod State
-\`\`\`json
-{
-  "pods": ["api-gateway-6c4d9f", "api-gateway-7b2e1c"],
-  "status": "CrashLoopBackOff",
-  "restarts": [8, 11],
-  "lastExit": "Error",
-  "configMap_version": "v1.14-stale"
-}
-\`\`\`
+const isSystemUser = (user: string): boolean => user.startsWith('System');
 
-### Structural Instructions
-- Human approval required per SRE policy §3.2 for production namespace mutations.
-- Awaiting sign-off from sre-lead-admin@company.com before any execution.
-- Action: Force rolling restart on all pods in app-prod-east deployment api-gateway.
-- Capture pre/post pod state snapshot for compliance receipt.`,
-      sandboxPlan: [
-        { step: 1, label: 'Alert correlation & root cause', detail: 'Correlated 2 crashing pods to stale ConfigMap version v1.14. Live version is v1.16 — pods referencing outdated env mount.', status: 'info' },
-        { step: 2, label: 'Human approval gate triggered', detail: 'Action classified as requiring Human-in-the-Loop per SRE Policy §3.2. Approval request dispatched to sre-lead-admin@company.com.', status: 'info' },
-        { step: 3, label: 'Approval received', detail: 'Sign-off confirmed at 11:14:01 UTC by sre-lead-admin@company.com. Digital signature: sha256:d4e5f6...', status: 'passed' },
-        { step: 4, label: 'Rolling restart executed', detail: '`kubectl rollout restart deployment/api-gateway -n app-prod-east` executed. 2/2 pods restarted cleanly. ConfigMap v1.16 mounted successfully.', status: 'passed' },
-      ],
-      auditReceipt: [
-        { key: 'SHA-256 Log Hash', value: 'b7d1e4f2a9c36804...4f2a' },
-        { key: 'Approver Identity', value: 'sre-lead-admin@company.com (OIDC verified)' },
-        { key: 'Approval Timestamp', value: '11:14:01 UTC — 21s before live execution' },
-        { key: 'RBAC Token Clearance', value: 'K8s:Core:Mutation — GRANTED (human-approved override)' },
-        { key: 'OTel Trace', value: '#ot-3a2d8e (span closed: 11:14:25 UTC)' },
-        { key: 'Compliance Framework', value: 'SOC2 Type II / AI-OPS-CTRL-007 (Human Approval Required)' },
-      ],
-    },
-  },
-  {
-    id: 3,
-    timestamp: 'Yesterday 23:45:10',
-    invocationType: 'Autonomous Pipeline',
-    mutationPayload: 'Trigger GitOps Application Sync',
-    targetScope: 'app: payment-gateway',
-    agentCapability: 'GitOps:Argo:Sync',
-    signee: 'System Engine',
-    otelRef: '#ot-9c4b5f',
-    chainOfThought: {
-      contextPrompt: `## System Context
-**Alert:** ArgoCDApplicationOutOfSync (severity: warning)
-**Application:** payment-gateway
-**Cluster:** prod-us-east-01
+type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
 
-### Application State
-\`\`\`json
-{
-  "app": "payment-gateway",
-  "sync_status": "OutOfSync",
-  "health": "Degraded",
-  "revision_target": "r4895",
-  "revision_live": "r4892",
-  "drift_count": 3
-}
-\`\`\`
+const EVENT_LABEL_COLOR: Record<LifecycleEvent, LabelColor> = {
+  'Plan submitted': 'blue',
+  'Investigation started': 'blue',
+  'RCA verified': 'teal',
+  'Approval granted': 'orange',
+  'Remediation applied': 'green',
+  'Plan aborted': 'red',
+};
 
-### Structural Instructions
-- Autonomous sync authorized under GitOps:Argo:Sync capability.
-- Trigger hard sync to revision r4895 using argocd CLI.
-- If health check fails post-sync, escalate to human approval queue immediately.`,
-      sandboxPlan: [
-        { step: 1, label: 'Drift detection', detail: 'Detected 3 resource drifts between target revision r4895 and live r4892: Deployment spec, ConfigMap env block, and Service port mapping.', status: 'info' },
-        { step: 2, label: 'Sync simulation', detail: 'Dry-run sync simulation completed in ArgoCD staging replica. All 3 drifts reconciled cleanly. Health projection: Healthy.', status: 'passed' },
-        { step: 3, label: 'Live sync triggered', detail: '`argocd app sync payment-gateway --force --prune` executed. Sync completed in 12s. All resources reconciled to r4895.', status: 'passed' },
-        { step: 4, label: 'Post-sync health check', detail: 'Application health: Healthy. All pods Running. Payment gateway latency p99: 42ms (nominal).', status: 'passed' },
-      ],
-      auditReceipt: [
-        { key: 'SHA-256 Log Hash', value: 'c9e2f5a8d1b46702...7e3c' },
-        { key: 'ArgoCD Sync Revision', value: 'r4895 (committed by ci-bot@company.com)' },
-        { key: 'RBAC Token Clearance', value: 'GitOps:Argo:Sync — GRANTED (policy: gitops-autonomy-v1.2)' },
-        { key: 'OTel Trace', value: '#ot-9c4b5f (span closed: 23:45:22 UTC)' },
-        { key: 'Git Webhook Ref', value: 'push event: payment-gateway/main — commit a1b2c3d4' },
-        { key: 'Compliance Framework', value: 'SOC2 Type II / AI-OPS-CTRL-002 (GitOps Mutation)' },
-      ],
-    },
-  },
-  {
-    id: 4,
-    timestamp: 'Yesterday 18:22:01',
-    invocationType: 'Human Approved',
-    mutationPayload: 'Isolate Container (Apply NetworkPolicy)',
-    targetScope: 'namespace: checkout-service',
-    agentCapability: 'ACS:Security:Quarantine',
-    signee: 'security-ops@company.com',
-    otelRef: '#ot-1f8e2b',
-    chainOfThought: {
-      contextPrompt: `## System Context
-**Alert:** ACSRuntimeViolation (severity: critical)
-**Policy:** CryptoMining Process Detected
-**Namespace:** checkout-service
+const EventLabel: React.FC<{ event: LifecycleEvent; timestamp?: string }> = ({ event, timestamp }) => {
+  if (event === 'Plan aborted') {
+    const tooltipContent = `Execution halted by administrative override at ${timestamp ?? '—'}.`;
+    return (
+      <Tooltip content={tooltipContent} position="top">
+        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
+          <Label
+            color="red"
+            variant="outline"
+            isCompact
+            icon={<ExclamationCircleIcon />}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            Plan aborted
+          </Label>
+        </span>
+      </Tooltip>
+    );
+  }
 
-### Threat State
-\`\`\`json
-{
-  "pod": "checkout-worker-9d4b2",
-  "violation": "CryptoMiningProcessDetected",
-  "process": "xmrig",
-  "cpu_spike": "94%",
-  "network_egress_unusual": true,
-  "acs_policy": "ENFORCE"
-}
-\`\`\`
+  return (
+    <Label
+      color={EVENT_LABEL_COLOR[event]}
+      variant="outline"
+      isCompact
+      style={{ whiteSpace: 'nowrap' }}
+    >
+      {event}
+    </Label>
+  );
+};
 
-### Structural Instructions
-- Critical security event — human approval required per SecOps Policy §1.1.
-- Proposed action: Apply restrictive NetworkPolicy to isolate checkout-worker-9d4b2.
-- Approval required from security-ops team before any network mutation.
-- Document full chain of evidence for SOC2 compliance audit.`,
-      sandboxPlan: [
-        { step: 1, label: 'ACS violation classification', detail: 'ACS policy engine flagged xmrig process in checkout-worker-9d4b2. CPU at 94%, unusual outbound TCP to 5.188.206.x. Classified: HIGH severity cryptomining.', status: 'info' },
-        { step: 2, label: 'Human approval gate — security-ops', detail: 'Escalated to security-ops@company.com with full threat evidence package. Isolation pre-staged, awaiting response.', status: 'info' },
-        { step: 3, label: 'Approval received', detail: 'Approved by security-ops@company.com at 18:21:44 UTC. Digital signature verified against OIDC provider.', status: 'passed' },
-        { step: 4, label: 'NetworkPolicy applied', detail: 'Egress deny-all NetworkPolicy applied to checkout-service/checkout-worker-9d4b2. Outbound connections severed. Pod retained for forensic capture.', status: 'passed' },
-        { step: 5, label: 'Forensic snapshot captured', detail: 'Memory dump and process tree snapshot captured to forensic storage bucket. Available for incident response team.', status: 'passed' },
-      ],
-      auditReceipt: [
-        { key: 'SHA-256 Log Hash', value: 'f2a8e5c9b1d46904...2b7f' },
-        { key: 'ACS Policy Triggered', value: 'CryptoMining Process Detected — ENFORCE mode' },
-        { key: 'Approver Identity', value: 'security-ops@company.com (OIDC + MFA verified)' },
-        { key: 'RBAC Token Clearance', value: 'ACS:Security:Quarantine — GRANTED (escalated clearance)' },
-        { key: 'OTel Trace', value: '#ot-1f8e2b (span closed: 18:22:08 UTC)' },
-        { key: 'Compliance Framework', value: 'SOC2 Type II / AI-SEC-CTRL-001 (Critical Security Event)' },
-      ],
-    },
-  },
-  {
-    id: 5,
-    timestamp: 'Jun 05, 09:12:44',
-    invocationType: 'Autonomous Pipeline',
-    mutationPayload: 'Purge Deadlock Pod Garbage Collection',
-    targetScope: 'node: worker-infra-pool-3',
-    agentCapability: 'K8s:Node:Triage',
-    signee: 'System Engine',
-    otelRef: '#ot-6d5c4a',
-    chainOfThought: {
-      contextPrompt: `## System Context
-**Alert:** NodeDiskPressure + PodEvictionFailed (severity: warning)
-**Node:** worker-infra-pool-3
-**Cluster:** prod-us-east-01
+const PLAN_SUMMARIES = Object.values(SC_PLAN_TABLE_IDENTITY).map((plan) => plan.name);
 
-### Node State
-\`\`\`json
-{
-  "node": "worker-infra-pool-3",
-  "disk_pressure": true,
-  "disk_usage": "93%",
-  "eviction_failed_pods": [
-    "stale-job-runner-a1b2",
-    "dead-batch-worker-x7y8",
-    "orphan-init-c9d0"
-  ],
-  "kubelet_eviction_threshold": "90%"
-}
-\`\`\`
-
-### Structural Instructions
-- Autonomous pod garbage collection authorized under K8s:Node:Triage.
-- Identify and purge terminated/failed/deadlock pods from worker-infra-pool-3.
-- Verify disk pressure relief post-purge. Target: disk usage < 80%.`,
-      sandboxPlan: [
-        { step: 1, label: 'Deadlock pod identification', detail: 'Identified 3 deadlock pods: stale-job-runner-a1b2 (Completed/stuck), dead-batch-worker-x7y8 (Failed), orphan-init-c9d0 (Init:Error). Total claimed storage: 14.2 GiB.', status: 'info' },
-        { step: 2, label: 'Eviction simulation', detail: 'Simulated pod deletion in sandbox. Projected disk recovery: 14.2 GiB freed. Node disk projection post-purge: 67% usage.', status: 'passed' },
-        { step: 3, label: 'Live purge executed', detail: '`kubectl delete pods stale-job-runner-a1b2 dead-batch-worker-x7y8 orphan-init-c9d0 -n default --grace-period=0 --force` on worker-infra-pool-3.', status: 'passed' },
-        { step: 4, label: 'Post-purge health check', detail: 'Disk pressure cleared. Node disk: 64%. Kubelet eviction threshold no longer breached. Node status: Ready.', status: 'passed' },
-      ],
-      auditReceipt: [
-        { key: 'SHA-256 Log Hash', value: 'e1d4a9f2c7b36801...5e8a' },
-        { key: 'Node Target', value: 'worker-infra-pool-3 (prod-us-east-01)' },
-        { key: 'RBAC Token Clearance', value: 'K8s:Node:Triage — GRANTED (policy: sre-autonomy-v2.4)' },
-        { key: 'Purged Pods', value: 'stale-job-runner-a1b2, dead-batch-worker-x7y8, orphan-init-c9d0' },
-        { key: 'OTel Trace', value: '#ot-6d5c4a (span closed: 09:12:51 UTC)' },
-        { key: 'Compliance Framework', value: 'SOC2 Type II / AI-OPS-CTRL-006 (Node Triage)' },
-      ],
-    },
-  },
+const LIFECYCLE_EVENT_SEQUENCE: LifecycleEvent[] = [
+  'Plan submitted',
+  'Investigation started',
+  'RCA verified',
+  'Approval granted',
+  'Remediation applied',
+  'Plan aborted',
 ];
 
-const INVOCATION_TYPES = ['All', 'Autonomous Pipeline', 'Human Approved'] as const;
-const AGENT_CAPABILITIES = ['All', 'K8s', 'GitOps', 'ACS'] as const;
+const HUMAN_USERS = ['Marcus Chen', 'Sarah Patel', 'James Morrison', 'Elena Vasquez', 'David Okonkwo'];
+
+const COMPLIANCE_BY_EVENT: Record<LifecycleEvent, string> = {
+  'Plan submitted': 'SOC2 Type II / AI-OPS-CTRL-001',
+  'Investigation started': 'SOC2 Type II / AI-OPS-CTRL-001 (Autonomous Investigation)',
+  'RCA verified': 'SOC2 Type II / AI-OPS-CTRL-003 (RCA Verification)',
+  'Approval granted': 'SOC2 Type II / AI-OPS-CTRL-007 (Human Approval Required)',
+  'Remediation applied': 'SOC2 Type II / AI-OPS-CTRL-004',
+  'Plan aborted': 'SOC2 Type II / AI-OPS-CTRL-009 (Execution Halt)',
+};
+
+const buildReceiptHash = (id: number, event: LifecycleEvent): string => {
+  const seed = `${id}-${event}`.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return Array.from({ length: 32 }, (_, index) => {
+    const value = (seed * (index + 17) * 31) % 16;
+    return value.toString(16);
+  }).join('');
+};
+
+const formatAuditTimestamp = (index: number): string => {
+  const base = new Date('2026-06-09T15:00:00');
+  const minutesBack = index * 47 + (index % 5) * 11;
+  const date = new Date(base.getTime() - minutesBack * 60_000);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
+const buildAuditReceipt = (row: Pick<AuditRow, 'event' | 'user' | 'planSummary' | 'receiptHash' | 'timestamp'>): AuditReceiptItem[] => {
+  const items: AuditReceiptItem[] = [
+    { key: 'SHA-256 Log Hash', value: row.receiptHash },
+    { key: 'Plan summary', value: row.planSummary },
+    { key: 'Compliance Framework', value: COMPLIANCE_BY_EVENT[row.event] },
+    { key: 'OTel Trace', value: `#ot-${row.receiptHash.slice(0, 6)} (span closed: ${row.timestamp})` },
+    { key: 'Immutability Seal', value: 'Ledger entry sealed — no modifications permitted post-write' },
+  ];
+
+  if (row.event === 'Plan aborted') {
+    items.splice(1, 0, { key: 'User identity', value: `${row.user} (OIDC verified)` });
+    items.splice(2, 0, { key: 'Termination Trigger', value: 'User-initiated Stop Execution (Tier-1 kill switch)' });
+  } else if (row.event === 'Approval granted') {
+    items.splice(1, 0, { key: 'Approver identity', value: `${row.user} (OIDC + MFA verified)` });
+  } else if (row.event === 'RCA verified') {
+    items.splice(1, 0, { key: 'Verified by', value: `${row.user} — diagnosis acknowledged via RCA gate` });
+  }
+
+  return items;
+};
+
+const buildSimulatedAuditRows = (count: number): AuditRow[] => {
+  const priorityRows: Array<Pick<AuditRow, 'planSummary' | 'event' | 'user' | 'tokenBurn'>> = [
+    { planSummary: 'tekton-webhook-tls-repair', event: 'Plan aborted', user: 'Marcus Chen', tokenBurn: 840 },
+    { planSummary: 'payments-oom-cascade-remediation', event: 'Approval granted', user: 'Sarah Patel', tokenBurn: 1200 },
+    { planSummary: 'gitops-ingress-drift-remediation', event: 'Remediation applied', user: 'System (Autonomous)', tokenBurn: 2150 },
+    { planSummary: 'ceph-osd-drift', event: 'RCA verified', user: 'Marcus Chen', tokenBurn: 960 },
+    { planSummary: 'ceph-osd-drift', event: 'Investigation started', user: 'System (Autonomous)', tokenBurn: 1420 },
+    { planSummary: 'acs-runtime-exploit-quarantine', event: 'Plan submitted', user: 'System (Autonomous)', tokenBurn: 380 },
+  ];
+
+  return Array.from({ length: count }, (_, index) => {
+    const priority = priorityRows[index];
+    const event = priority?.event ?? LIFECYCLE_EVENT_SEQUENCE[index % LIFECYCLE_EVENT_SEQUENCE.length];
+    const planSummary = priority?.planSummary ?? PLAN_SUMMARIES[index % PLAN_SUMMARIES.length];
+    const user = priority?.user ?? (
+      event === 'Remediation applied' || event === 'Investigation started' || event === 'Plan submitted'
+        ? 'System (Autonomous)'
+        : HUMAN_USERS[index % HUMAN_USERS.length]
+    );
+    const tokenBurn = priority?.tokenBurn ?? 320 + ((index * 173) % 2800);
+    const receiptHash = buildReceiptHash(index + 1, event);
+    const timestamp = formatAuditTimestamp(index);
+
+    const row: AuditRow = {
+      id: index + 1,
+      timestamp,
+      planSummary,
+      event,
+      user,
+      tokenBurn,
+      receiptHash,
+      auditReceipt: [],
+    };
+
+    row.auditReceipt = buildAuditReceipt(row);
+    return row;
+  });
+};
+
+const AUDIT_ROWS = buildSimulatedAuditRows(30);
+
+const LIFECYCLE_EVENTS = [
+  'All',
+  'Plan submitted',
+  'Investigation started',
+  'RCA verified',
+  'Approval granted',
+  'Remediation applied',
+  'Plan aborted',
+] as const;
+
+const USER_FILTERS = ['All', 'System (Autonomous)', 'Human users'] as const;
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-const MetricCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <Card isFullHeight className="ols-ai-hub-audit-metrics-card">
-    <CardHeader>
-      <CardTitle>
-        <Title headingLevel="h3" size="md">{title}</Title>
-      </CardTitle>
-    </CardHeader>
-    <CardBody>{children}</CardBody>
-  </Card>
-);
-
-const SandboxTimeline: React.FC<{ steps: SandboxStep[] }> = ({ steps }) => (
-  <Stack hasGutter>
-    {steps.map((step, i) => {
-      const isLast = i === steps.length - 1;
-      return (
-        <StackItem key={step.step}>
-          <Flex alignItems={{ default: 'alignItemsFlexStart' }} gap={{ default: 'gapMd' }} flexWrap={{ default: 'nowrap' }}>
-            {/* Step number + vertical connector */}
-            <FlexItem style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: '50%',
-                backgroundColor: step.status === 'passed'
-                  ? 'var(--pf-t--color--green--60)'
-                  : 'var(--pf-t--global--background--color--secondary--default)',
-                border: step.status === 'info' ? '2px solid var(--pf-t--global--border--color--default)' : 'none',
-                color: step.status === 'passed' ? '#fff' : 'var(--pf-t--global--text--color--regular)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.8rem', fontWeight: 700,
-              }}>
-                {step.status === 'passed' ? <CheckCircleIcon style={{ fontSize: '0.9rem' }} /> : step.step}
-              </div>
-              {!isLast && (
-                <div style={{ width: 2, flex: 1, minHeight: 20, backgroundColor: 'var(--pf-t--global--border--color--default)', marginTop: 4 }} />
-              )}
-            </FlexItem>
-
-            <FlexItem grow={{ default: 'grow' }} style={{ paddingBottom: isLast ? 0 : 'var(--pf-t--global--spacer--sm)' }}>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                <FlexItem>
-                  <Content component="p" style={{ fontWeight: 600, marginBottom: 2 }}>{step.label}</Content>
-                </FlexItem>
-                <FlexItem>
-                  <Label
-                    color={step.status === 'passed' ? 'green' : 'grey'}
-                    icon={step.status === 'passed' ? <CheckCircleIcon /> : <InfoCircleIcon />}
-                    isCompact
-                  >
-                    {step.status === 'passed' ? 'Passed' : 'Info'}
-                  </Label>
-                </FlexItem>
-              </Flex>
-              <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.875rem', marginTop: 0 }}>
-                {step.detail}
-              </Content>
-            </FlexItem>
-          </Flex>
-        </StackItem>
-      );
-    })}
-  </Stack>
-);
-
 const AuditReceiptGrid: React.FC<{ items: AuditReceiptItem[] }> = ({ items }) => (
-  <div style={{
-    display: 'grid',
-    gridTemplateColumns: '220px 1fr',
-    rowGap: 'var(--pf-t--global--spacer--sm)',
-    columnGap: 'var(--pf-t--global--spacer--md)',
-  }}>
+  <div className="ols-audit-receipt-grid">
     {items.map((item) => (
       <React.Fragment key={item.key}>
-        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--pf-t--global--text--color--subtle)', paddingTop: 2 }}>
-          {item.key}
-        </div>
+        <div className="ols-audit-receipt-grid__key">{item.key}</div>
         <div>
-          <code style={{ fontSize: '0.82rem', wordBreak: 'break-all', background: 'var(--pf-t--global--background--color--secondary--default)', padding: '2px 6px', borderRadius: 'var(--pf-t--global--border--radius--small)' }}>
-            {item.value}
-          </code>
+          <code className="ols-audit-receipt-grid__value">{item.value}</code>
         </div>
       </React.Fragment>
     ))}
   </div>
 );
 
+const CryptographicReceiptLink: React.FC<{ hash: string; onView: () => void }> = ({ hash, onView }) => (
+  <Button
+    variant="link"
+    isInline
+    icon={<FileAltIcon />}
+    iconPosition="start"
+    aria-label={`View cryptographic receipt ${truncateReceiptHash(hash)}`}
+    className="ols-audit-receipt-link"
+    onClick={onView}
+  >
+    {truncateReceiptHash(hash)}
+  </Button>
+);
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export const AIAuditAndLogsTab: React.FC = () => {
-  // Filter state
-  const [invocationTypeOpen, setInvocationTypeOpen] = useState(false);
-  const [invocationTypeFilter, setInvocationTypeFilter] = useState<string>('All');
-  const [capabilityOpen, setCapabilityOpen] = useState(false);
-  const [capabilityFilter, setCapabilityFilter] = useState<string>('All');
-  const [scopeSearch, setScopeSearch] = useState('');
-
-  // Table expand state — multiple rows can be open simultaneously
+  const [eventFilterOpen, setEventFilterOpen] = useState(false);
+  const [eventFilter, setEventFilter] = useState<string>('All');
+  const [userFilterOpen, setUserFilterOpen] = useState(false);
+  const [userFilter, setUserFilter] = useState<string>('All');
+  const [planSearch, setPlanSearch] = useState('');
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  // Per-row active tab
-  const [activeTabByRow, setActiveTabByRow] = useState<Record<number, string | number>>({});
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
   const toggleRow = (id: number) => {
     setExpandedRows((prev) => {
@@ -426,221 +269,130 @@ export const AIAuditAndLogsTab: React.FC = () => {
     });
   };
 
-  const filteredRows = AUDIT_ROWS.filter((row) => {
-    if (invocationTypeFilter !== 'All' && row.invocationType !== invocationTypeFilter) return false;
-    if (capabilityFilter !== 'All' && !row.agentCapability.startsWith(capabilityFilter)) return false;
-    if (scopeSearch && !row.targetScope.toLowerCase().includes(scopeSearch.toLowerCase())) return false;
+  const filteredRows = useMemo(() => AUDIT_ROWS.filter((row) => {
+    if (eventFilter !== 'All' && row.event !== eventFilter) return false;
+    if (userFilter === 'System (Autonomous)' && !isSystemUser(row.user)) return false;
+    if (userFilter === 'Human users' && isSystemUser(row.user)) return false;
+    if (planSearch && !row.planSummary.toLowerCase().includes(planSearch.toLowerCase())) return false;
     return true;
-  });
+  }), [eventFilter, userFilter, planSearch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filteredRows.length, eventFilter, userFilter, planSearch]);
+
+  const totalItems = filteredRows.length;
+  const start = (page - 1) * perPage;
+  const paginatedRows = filteredRows.slice(start, start + perPage);
+
+  const onSetPage = useCallback(
+    (_evt: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
+      setPage(newPage);
+    },
+    [],
+  );
+
+  const onPerPageSelect = useCallback(
+    (
+      _evt: React.MouseEvent | React.KeyboardEvent | MouseEvent,
+      newPerPage: number,
+      newPage: number,
+    ) => {
+      setPerPage(newPerPage);
+      setPage(newPage);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(totalItems / perPage));
+    if (page > maxPage) setPage(maxPage);
+  }, [perPage, totalItems, page]);
+
+  const paginationProps = {
+    itemCount: totalItems,
+    page,
+    perPage,
+    onSetPage,
+    onPerPageSelect,
+    perPageOptions: [
+      { title: '5', value: 5 },
+      { title: '10', value: 10 },
+      { title: '20', value: 20 },
+    ],
+  };
 
   return (
     <Stack hasGutter>
-
-      {/* ── 1. ROI Metric Cards ───────────────────────────────────────────────── */}
       <StackItem>
-        <Title headingLevel="h2" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-          Operational insights
-        </Title>
-        <Grid hasGutter>
-
-          {/* Card 1: MTTR Deflection */}
-          <GridItem span={4}>
-            <MetricCard title="MTTR deflection & efficiency">
-              <Stack>
-
-                {/* Aggregate metric */}
-                <StackItem style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                  <span
-                    className="ols-aio-card-stat-number--readonly"
-                    style={{ color: 'var(--pf-t--global--color--status--success--default)' }}
-                  >
-                    142.5 hrs
-                  </span>
-                  <Content
-                    component="p"
-                    style={{
-                      marginTop: 'var(--pf-t--global--spacer--xs)',
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                    }}
-                  >
-                    Total Cumulative Time Saved
-                  </Content>
-                </StackItem>
-
-                {/* Velocity gap bars — full card width */}
-                <StackItem style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-
-                  {/* Row 1 — Manual baseline */}
-                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
-                      <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Manual SRE baseline</Content></FlexItem>
-                      <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Avg. response time</Content></FlexItem>
-                    </Flex>
-                    <Progress
-                      value={95}
-                      aria-label="Manual SRE Baseline"
-                      size={ProgressSize.sm}
-                      measureLocation={'outside' as any}
-                      label="42.0 min"
-                    />
-                  </div>
-
-                  {/* Row 2 — AI execution */}
-                  <div>
-                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
-                      <FlexItem><Content component="small" style={{ fontWeight: 600 }}>AI agent execution</Content></FlexItem>
-                      <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Time to remediate</Content></FlexItem>
-                    </Flex>
-                    <Progress
-                      value={2}
-                      aria-label="AI Agent Execution"
-                      size={ProgressSize.sm}
-                      measureLocation={'outside' as any}
-                      label="0.6 min (36s)"
-                      style={{ '--pf-v6-c-progress__indicator--BackgroundColor': 'var(--pf-t--global--color--status--success--default)' } as React.CSSProperties}
-                    />
-                  </div>
-
-                </StackItem>
-
-                {/* Caption */}
-                <StackItem>
-                  <Content
-                    component="small"
-                    style={{
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    *Calculated across 214 automated interventions this month.
-                  </Content>
-                </StackItem>
-
-              </Stack>
-            </MetricCard>
-          </GridItem>
-
-          {/* Card 2: Autonomy Rate */}
-          <GridItem span={4}>
-            <MetricCard title="Autonomy rate by impact">
-              <Stack hasGutter>
-                <StackItem>
-                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
-                    <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Warning alerts</Content></FlexItem>
-                    <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Autonomous resolution</Content></FlexItem>
-                  </Flex>
-                  <Progress
-                    value={94}
-                    aria-label="Warning Alerts — Autonomous Resolution"
-                    size={ProgressSize.sm}
-                    measureLocation={'outside' as any}
-                    label="94%"
-                  />
-                </StackItem>
-                <StackItem>
-                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ marginBottom: 4 }}>
-                    <FlexItem><Content component="small" style={{ fontWeight: 600 }}>Critical anomalies</Content></FlexItem>
-                    <FlexItem><Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Human-in-the-loop</Content></FlexItem>
-                  </Flex>
-                  <Progress
-                    value={18}
-                    aria-label="Critical Anomalies — Human-in-the-Loop Approval"
-                    size={ProgressSize.sm}
-                    measureLocation={'outside' as any}
-                    label="18%"
-                    style={{ '--pf-v6-c-progress__indicator--BackgroundColor': 'var(--pf-t--color--orange--60)' } as React.CSSProperties}
-                  />
-                </StackItem>
-              </Stack>
-            </MetricCard>
-          </GridItem>
-
-          {/* Card 3: Inference Cost */}
-          <GridItem span={4}>
-            <MetricCard title="Local inference capacity & budget">
-              <span className="ols-aio-card-stat-number--readonly">$342.10</span>
-              <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
-                Simulated public API cost equivalent saved via local model inferencing
-              </Content>
-            </MetricCard>
-          </GridItem>
-
-        </Grid>
-      </StackItem>
-
-      {/* ── 2. Execution Ledger title + Filter Toolbar ───────────────────────── */}
-      <StackItem style={{ marginTop: 12 }}>
-        <Title headingLevel="h3" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-          Execution ledger
-        </Title>
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
-          flexWrap={{ default: 'nowrap' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          flexWrap={{ default: 'wrap' }}
           gap={{ default: 'gapSm' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
         >
-          {/* Invocation Type dropdown */}
+          <FlexItem>
+            <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
+              Execution ledger
+            </Title>
+          </FlexItem>
+          <FlexItem>
+            <Pagination isCompact {...paginationProps} style={{ margin: 0 }} />
+          </FlexItem>
+        </Flex>
+
+        <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
           <FlexItem>
             <Select
-              aria-label="Invocation type filter"
-              isOpen={invocationTypeOpen}
-              onSelect={(_e, val) => { setInvocationTypeFilter(val as string); setInvocationTypeOpen(false); }}
-              onOpenChange={setInvocationTypeOpen}
+              aria-label="Lifecycle event filter"
+              isOpen={eventFilterOpen}
+              onSelect={(_e, val) => { setEventFilter(val as string); setEventFilterOpen(false); }}
+              onOpenChange={setEventFilterOpen}
               toggle={(ref: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={ref}
-                  onClick={() => setInvocationTypeOpen((o) => !o)}
-                  isExpanded={invocationTypeOpen}
-                >
-                  {invocationTypeFilter === 'All' ? 'Invocation type' : invocationTypeFilter}
+                <MenuToggle ref={ref} onClick={() => setEventFilterOpen((o) => !o)} isExpanded={eventFilterOpen}>
+                  {eventFilter === 'All' ? 'Event / action' : eventFilter}
                 </MenuToggle>
               )}
             >
               <SelectList>
-                {INVOCATION_TYPES.map((v) => (
-                  <SelectOption key={v} value={v} isSelected={invocationTypeFilter === v}>{v}</SelectOption>
+                {LIFECYCLE_EVENTS.map((v) => (
+                  <SelectOption key={v} value={v} isSelected={eventFilter === v}>{v}</SelectOption>
                 ))}
               </SelectList>
             </Select>
           </FlexItem>
 
-          {/* Target Scope search */}
           <FlexItem>
             <TextInput
-              aria-label="Target scope search"
-              placeholder="Search target scope / namespace…"
-              value={scopeSearch}
-              onChange={(_e, val) => setScopeSearch(val)}
-              style={{ minWidth: 240 }}
+              aria-label="Plan summary search"
+              placeholder="Search plan summary…"
+              value={planSearch}
+              onChange={(_e, val) => setPlanSearch(val)}
+              style={{ minWidth: 220 }}
             />
           </FlexItem>
 
-          {/* Agent Capability dropdown */}
           <FlexItem>
             <Select
-              aria-label="Agent capability filter"
-              isOpen={capabilityOpen}
-              onSelect={(_e, val) => { setCapabilityFilter(val as string); setCapabilityOpen(false); }}
-              onOpenChange={setCapabilityOpen}
+              aria-label="User filter"
+              isOpen={userFilterOpen}
+              onSelect={(_e, val) => { setUserFilter(val as string); setUserFilterOpen(false); }}
+              onOpenChange={setUserFilterOpen}
               toggle={(ref: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={ref}
-                  onClick={() => setCapabilityOpen((o) => !o)}
-                  isExpanded={capabilityOpen}
-                >
-                  {capabilityFilter === 'All' ? 'Agent capability' : capabilityFilter}
+                <MenuToggle ref={ref} onClick={() => setUserFilterOpen((o) => !o)} isExpanded={userFilterOpen}>
+                  {userFilter === 'All' ? 'User' : userFilter}
                 </MenuToggle>
               )}
             >
               <SelectList>
-                {AGENT_CAPABILITIES.map((v) => (
-                  <SelectOption key={v} value={v} isSelected={capabilityFilter === v}>{v}</SelectOption>
+                {USER_FILTERS.map((v) => (
+                  <SelectOption key={v} value={v} isSelected={userFilter === v}>{v}</SelectOption>
                 ))}
               </SelectList>
             </Select>
           </FlexItem>
 
-          {/* Export action — inline with filters */}
           <FlexItem>
             <Button variant="link" icon={<DownloadIcon />} iconPosition="start">
               Export SOC2 / AI compliance report
@@ -649,31 +401,25 @@ export const AIAuditAndLogsTab: React.FC = () => {
         </Flex>
       </StackItem>
 
-      {/* ── 3. Execution Ledger Table ─────────────────────────────────────────── */}
       <StackItem>
-        <Table aria-label="Execution ledger" variant="compact">
+        <Table aria-label="Execution ledger" variant="compact" className="ols-audit-ledger-table">
           <Thead>
             <Tr>
               <Th screenReaderText="Row expand" />
               <Th>Timestamp</Th>
-              <Th>Invocation type</Th>
-              <Th>Mutation payload</Th>
-              <Th>Target scope</Th>
-              <Th>Agent capability</Th>
-              <Th>Signee / approver</Th>
-              <Th>OTel trace ref</Th>
+              <Th>Plan summary</Th>
+              <Th>Event / action</Th>
+              <Th>User</Th>
+              <Th>Token burn</Th>
+              <Th>Cryptographic receipt</Th>
             </Tr>
           </Thead>
 
-          {filteredRows.map((row, rowIndex) => {
+          {paginatedRows.map((row, rowIndex) => {
             const isExpanded = expandedRows.has(row.id);
-            const activeTab = activeTabByRow[row.id] ?? 0;
-            const setActiveTab = (key: string | number) =>
-              setActiveTabByRow((prev) => ({ ...prev, [row.id]: key }));
 
             return (
               <Tbody key={row.id} isExpanded={isExpanded}>
-                {/* Primary row */}
                 <Tr>
                   <Td
                     expand={{
@@ -683,111 +429,47 @@ export const AIAuditAndLogsTab: React.FC = () => {
                       expandId: `audit-expand-${row.id}`,
                     }}
                   />
-                  <Td dataLabel="Timestamp" style={{ whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                  <Td dataLabel="Timestamp" className="ols-audit-ledger-table__timestamp">
                     {row.timestamp}
                   </Td>
-                  <Td dataLabel="Invocation Type">
-                    <Label
-                      color={row.invocationType === 'Autonomous Pipeline' ? 'blue' : 'green'}
-                      isCompact
-                    >
-                      {row.invocationType}
-                    </Label>
+                  <Td dataLabel="Plan summary">
+                    <code className="ols-audit-ledger-table__plan">{row.planSummary}</code>
                   </Td>
-                  <Td dataLabel="Mutation Payload">{row.mutationPayload}</Td>
-                  <Td dataLabel="Target Scope">
-                    <code style={{ fontSize: '0.8rem', background: 'var(--pf-t--global--background--color--secondary--default)', padding: '1px 5px', borderRadius: 'var(--pf-t--global--border--radius--small)' }}>
-                      {row.targetScope}
-                    </code>
+                  <Td dataLabel="Event / action">
+                    <EventLabel event={row.event} timestamp={row.timestamp} />
                   </Td>
-                  <Td dataLabel="Agent Capability">
-                    <Label color="purple" isCompact variant="outline">{row.agentCapability}</Label>
+                  <Td dataLabel="User">
+                    {isSystemUser(row.user) ? (
+                      <Label color="grey" isCompact>{row.user}</Label>
+                    ) : (
+                      <span className="ols-audit-ledger-table__user">{row.user}</span>
+                    )}
                   </Td>
-                  <Td dataLabel="Signee / Approver" style={{ fontSize: '0.85rem' }}>
-                    {row.signee === 'System Engine'
-                      ? <Label color="grey" isCompact>{row.signee}</Label>
-                      : <span style={{ fontFamily: 'monospace' }}>{row.signee}</span>
-                    }
+                  <Td dataLabel="Token burn" className="ols-audit-ledger-table__tokens">
+                    {formatTokenBurn(row.tokenBurn)}
                   </Td>
-                  <Td dataLabel="OTel Trace Ref">
-                    <Button variant="link" isInline style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                      {row.otelRef}
-                    </Button>
+                  <Td dataLabel="Cryptographic receipt">
+                    <CryptographicReceiptLink hash={row.receiptHash} onView={() => toggleRow(row.id)} />
                   </Td>
                 </Tr>
 
-                {/* ── 4. Expandable Chain of Thought ─────────────────────────── */}
                 <Tr isExpanded={isExpanded}>
-                  <Td colSpan={8} noPadding>
+                  <Td colSpan={7} noPadding>
                     <ExpandableRowContent>
-                      <div style={{
-                        padding: '16px 24px 20px 56px',
-                        backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                        borderTop: '1px solid var(--pf-t--global--border--color--default)',
-                      }}>
-                        <Tabs
-                          activeKey={activeTab}
-                          onSelect={(_e, key) => setActiveTab(key)}
-                          aria-label={`Chain of thought for audit entry ${row.otelRef}`}
-                        >
-                          {/* Tab 1: Context & Prompt */}
-                          <Tab
-                            eventKey={0}
-                            title={<TabTitleText>Context &amp; prompt</TabTitleText>}
-                            aria-label="Context and prompt"
-                          >
-                            <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
-                              <Content component="p" style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                                Read-only system context and prompt payload sent to the LLM inference layer.
-                              </Content>
-                              <ClipboardCopy
-                                isReadOnly
-                                isExpanded
-                                variant={ClipboardCopyVariant.expansion}
-                                style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}
-                              >
-                                {row.chainOfThought.contextPrompt}
-                              </ClipboardCopy>
-                            </div>
-                          </Tab>
-
-                          {/* Tab 2: Execution Sandbox Plan */}
-                          <Tab
-                            eventKey={1}
-                            title={<TabTitleText>Execution sandbox plan</TabTitleText>}
-                            aria-label="Execution sandbox plan"
-                          >
-                            <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
-                              <Content component="p" style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                                Chronological internal verification trace. Sandbox simulation precedes every live mutation.
-                              </Content>
-                              <SandboxTimeline steps={row.chainOfThought.sandboxPlan} />
-                            </div>
-                          </Tab>
-
-                          {/* Tab 3: Cryptographic Audit Receipt */}
-                          <Tab
-                            eventKey={2}
-                            title={<TabTitleText>Cryptographic audit receipt</TabTitleText>}
-                            aria-label="Cryptographic audit receipt"
-                          >
-                            <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
-                              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                                <FlexItem>
-                                  <Label color="green" icon={<CheckCircleIcon />} isCompact>
-                                    Immutable — sealed at execution time
-                                  </Label>
-                                </FlexItem>
-                                <FlexItem>
-                                  <Label color="blue" isCompact variant="outline">
-                                    {row.chainOfThought.auditReceipt.find((i) => i.key === 'Compliance Framework')?.value ?? ''}
-                                  </Label>
-                                </FlexItem>
-                              </Flex>
-                              <AuditReceiptGrid items={row.chainOfThought.auditReceipt} />
-                            </div>
-                          </Tab>
-                        </Tabs>
+                      <div className="ols-audit-receipt-expand">
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                          <FlexItem>
+                            <Label color="green" icon={<CheckCircleIcon />} isCompact>
+                              Immutable — sealed at write time
+                            </Label>
+                          </FlexItem>
+                          <FlexItem>
+                            <Label color="blue" isCompact variant="outline">
+                              {row.auditReceipt.find((i) => i.key === 'Compliance Framework')?.value ?? ''}
+                            </Label>
+                          </FlexItem>
+                        </Flex>
+                        <AuditReceiptGrid items={row.auditReceipt} />
                       </div>
                     </ExpandableRowContent>
                   </Td>
@@ -796,8 +478,13 @@ export const AIAuditAndLogsTab: React.FC = () => {
             );
           })}
         </Table>
-      </StackItem>
 
+        <Pagination
+          {...paginationProps}
+          variant={PaginationVariant.bottom}
+          style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+        />
+      </StackItem>
     </Stack>
   );
 };
