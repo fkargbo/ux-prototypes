@@ -1752,12 +1752,13 @@ const RemediationOptionCard: React.FC<{
         isDisabled={(!isSingleCluster && selectedCount === 0) || isExecuting}
         isLoading={isExecuting}
         onClick={handleExecute}
+        style={{ margin: 0 }}
       >
         {isSingleCluster
           ? (isExecuting ? 'Applying remediation…' : 'Apply remediation')
           : (isExecuting
             ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
-            : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`)}
+            : `Apply remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`)}
       </Button>
     );
   };
@@ -2019,11 +2020,14 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── Apply remediation + manual download + Lightspeed ── */}
           {showRemediationActions && (
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              flexWrap={{ default: 'wrap' }}
+            <div
               className="ols-remediation-option-card__actions"
-              style={{ gap: '16px' }}
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '16px',
+              }}
             >
               {renderApplyAction()}
               {!isExecuting && !isExecuted && (
@@ -2033,7 +2037,7 @@ const RemediationOptionCard: React.FC<{
                     isInline
                     icon={<DownloadIcon />}
                     iconPosition="end"
-                    style={{ fontSize: '14px' }}
+                    style={{ fontSize: '14px', margin: 0 }}
                     aria-label={`Download remediation guide for option ${index + 1}`}
                   >
                     Download remediation guide
@@ -2041,7 +2045,7 @@ const RemediationOptionCard: React.FC<{
                   <Button
                     variant="link"
                     isInline
-                    style={{ fontSize: '14px' }}
+                    style={{ fontSize: '14px', margin: 0 }}
                     onClick={() => {
                       const drawer = PLAN_DRAWER_DATA[plan.id];
                       agenticGlobalAiApi.openRemediationDiscussion?.({
@@ -2059,7 +2063,7 @@ const RemediationOptionCard: React.FC<{
                   </Button>
                 </>
               )}
-            </Flex>
+            </div>
           )}
 
           {!showRemediationActions && renderApplyAction()}

@@ -48,6 +48,11 @@
 
 .ols-ai-hub-page--v3 .ols-remediation-option-card__body .ols-remediation-option-card__actions {
   margin-block-end: 0;
+  gap: 16px !important;
+}
+
+.ols-ai-hub-page--v3 .ols-remediation-option-card__actions .pf-v6-c-button {
+  margin: 0;
 }
 
 /* Keep subtitle readable in very narrow viewports. */
