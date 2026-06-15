@@ -119,7 +119,7 @@ export const PlanRemediationPage: React.FC = () => {
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
             <FlexItem>
-              <StatusLabel status={plan.status} />
+              <StatusLabel status={plan.status} terminatedAt={plan.terminatedAt} />
             </FlexItem>
             {plan.confidenceTier && (
               <FlexItem>
