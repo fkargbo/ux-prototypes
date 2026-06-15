@@ -6,7 +6,6 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Checkbox,
   ClipboardCopy,
   ClipboardCopyVariant,
   Content,
@@ -1623,12 +1622,11 @@ const RemediationOptionCard: React.FC<{
   const isFirst = index === 0;
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
-  const { status, isUnauthorized, drawerTargets } = plan;
+  const { status, isUnauthorized } = plan;
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
   const [showLiveCommands, setShowLiveCommands] = useState(false);
-  const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
@@ -1662,8 +1660,6 @@ const RemediationOptionCard: React.FC<{
   const typeName = OPTION_TYPE_NAMES[index] ?? `Option ${index + 1}`;
   const isInteractive = !isRemediating;
   const cardId = `remediation-option-${option.id}`;
-
-  const selectedCount = selectedTargets.size;
 
   const headerContent = (
     <Flex
@@ -1734,9 +1730,7 @@ const RemediationOptionCard: React.FC<{
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
           <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
           <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-            {isSingleCluster
-              ? 'Remediation applied'
-              : `Remediation applied to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
+            Remediation applied
           </Content>
         </Flex>
       );
@@ -1756,16 +1750,12 @@ const RemediationOptionCard: React.FC<{
     return (
       <Button
         variant="primary"
-        isDisabled={(!isSingleCluster && selectedCount === 0) || isExecuting}
+        isDisabled={isExecuting}
         isLoading={isExecuting}
         onClick={handleExecute}
         style={{ margin: 0 }}
       >
-        {isSingleCluster
-          ? (isExecuting ? 'Applying remediation…' : 'Apply remediation')
-          : (isExecuting
-            ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
-            : `Apply remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`)}
+        {isExecuting ? 'Applying remediation…' : 'Apply remediation'}
       </Button>
     );
   };
@@ -1868,71 +1858,6 @@ const RemediationOptionCard: React.FC<{
               {option.model === 'smart' ? 'Smart model' : 'Fast model'}
             </Label>
           </Flex>
-
-          {/* ── Target Selection (Waiting Approval only; fleet management) ── */}
-          {showRemediationActions && (isSingleCluster || drawerTargets.length > 0) && (
-            <div
-              style={{
-                borderRadius: 'var(--pf-t--global--border--radius--small)',
-                border: '1px solid var(--pf-t--global--border--color--default)',
-                padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
-                marginBottom: 'var(--pf-t--global--spacer--sm)',
-                backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-              }}
-            >
-              {!isSingleCluster && drawerTargets.length > 0 && (
-                <>
-                  <Flex
-                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                    alignItems={{ default: 'alignItemsCenter' }}
-                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                  >
-                    <Content component="small" style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Targets ({selectedCount} / {drawerTargets.length})
-                    </Content>
-                    <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                      <Button
-                        variant="link"
-                        isInline
-                        style={{ fontSize: '12px' }}
-                        onClick={() => setSelectedTargets(new Set(drawerTargets))}
-                      >
-                        Select all
-                      </Button>
-                      <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>·</span>
-                      <Button
-                        variant="link"
-                        isInline
-                        style={{ fontSize: '12px' }}
-                        onClick={() => setSelectedTargets(new Set())}
-                      >
-                        Deselect all
-                      </Button>
-                    </Flex>
-                  </Flex>
-
-                  <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
-                    {drawerTargets.map((target) => (
-                      <StackItem key={target}>
-                        <Checkbox
-                          id={`target-${option.id}-${target}`}
-                          label={target}
-                          isChecked={selectedTargets.has(target)}
-                          onChange={(_e, checked) => {
-                            setSelectedTargets((prev) => {
-                              const next = new Set(prev);
-                              checked ? next.add(target) : next.delete(target);
-                              return next;
-                            });
-                          }}
-                        />
-                      </StackItem>
-                    ))}
-                  </Stack>
-                </>
-              )}
-            </div>
-          )}
 
           {/* ── Dry-run commands (primary safety gate) ── */}
           {showRemediationActions && (
@@ -2143,8 +2068,6 @@ const PostMortemPanel: React.FC<{
 }> = ({ plan, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
   const [localShowLogs, setLocalShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
-  const { activePerspective } = useActivePerspective();
-  const isSingleCluster = activePerspective === 'Core platforms';
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -2156,10 +2079,6 @@ const PostMortemPanel: React.FC<{
   const toggleLogs = hasLogsToggle ? onToggleLogs! : setLocalShowLogs;
 
   if (postMortem.type === 'success') {
-    const targets = isSingleCluster
-      ? (postMortem.executionTargetsSC ?? postMortem.executionTargets ?? [])
-      : (postMortem.executionTargets ?? []);
-
     const sectionLabel = (text: string) => (
       <Content
         component="small"
@@ -2196,26 +2115,7 @@ const PostMortemPanel: React.FC<{
           )}
         </DescriptionList>
 
-        {/* Section B — Execution Scope (fleet management only) */}
-        {!isSingleCluster && targets.length > 0 && (
-          <>
-            {sectionLabel('Execution Scope')}
-            <DescriptionList isHorizontal isAutoColumnWidths isCompact>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Targets</DescriptionListTerm>
-                <DescriptionListDescription>
-                  <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapXs' }}>
-                    {targets.map((t) => (
-                      <Label key={t} color="blue" isCompact>{t}</Label>
-                    ))}
-                  </Flex>
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-            </DescriptionList>
-          </>
-        )}
-
-        {/* Section C — Audit Trail */}
+        {/* Section B — Audit Trail */}
         {sectionLabel('Audit Trail')}
         <DescriptionList isHorizontal isAutoColumnWidths isCompact style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
           {postMortem.appliedAt && (
