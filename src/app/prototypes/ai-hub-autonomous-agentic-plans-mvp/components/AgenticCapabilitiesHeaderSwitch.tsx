@@ -1,10 +1,45 @@
 import React from 'react';
-import { Flex, FlexItem, Switch } from '@patternfly/react-core';
+import { Button, Content, Flex, FlexItem, Popover, Switch } from '@patternfly/react-core';
+import { HelpIcon } from '@patternfly/react-icons';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../context/AgenticCapabilitiesContext';
+
+const AGENTIC_CAPABILITIES_HELP_BUTTON_STYLE: React.CSSProperties = {
+  padding: 0,
+  height: '1em',
+  minHeight: 'unset',
+  display: 'inline-flex',
+  alignItems: 'center',
+};
+
+const AgenticCapabilitiesPopoverBody = (
+  <>
+    <Content component="p" style={{ margin: '0 0 var(--pf-t--global--spacer--sm)' }}>
+      Controls the autonomous analysis engine for this cluster.
+    </Content>
+    <ul
+      style={{
+        margin: 0,
+        paddingLeft: 'var(--pf-t--global--spacer--md)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--pf-t--global--spacer--xs)',
+      }}
+    >
+      <li>
+        <strong>When Enabled:</strong> The AI actively monitors incoming alerts, collects diagnostic
+        logs, correlates telemetry, and creates structured remediation plans.
+      </li>
+      <li>
+        <strong>When Disabled:</strong> The engine goes entirely code-silent. Background analysis
+        halts, active executions freeze, and API token consumption drops to zero.
+      </li>
+    </ul>
+  </>
+);
 
 export const AgenticCapabilitiesHeaderSwitch: React.FC = () => {
   const { activePerspective } = useActivePerspective();
@@ -23,13 +58,34 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC = () => {
       <FlexItem>
         <span
           style={{
-            fontSize: 'var(--pf-t--global--font--size--body--sm)',
-            fontWeight: 600,
-            color: 'var(--pf-t--global--text--color--regular)',
-            whiteSpace: 'nowrap',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--pf-t--global--spacer--xs)',
+            lineHeight: 'var(--pf-t--global--line-height--body)',
           }}
         >
-          Agentic Capabilities
+          <span
+            style={{
+              fontSize: 'var(--pf-t--global--font--size--body--sm)',
+              fontWeight: 600,
+              color: 'var(--pf-t--global--text--color--regular)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Agentic Capabilities
+          </span>
+          <Popover
+            headerContent="Cluster Agentic Capabilities"
+            bodyContent={AgenticCapabilitiesPopoverBody}
+            position="bottom-end"
+          >
+            <Button
+              variant="plain"
+              aria-label="More information about Agentic Capabilities"
+              icon={<HelpIcon />}
+              style={AGENTIC_CAPABILITIES_HELP_BUTTON_STYLE}
+            />
+          </Popover>
         </span>
       </FlexItem>
       <FlexItem>
