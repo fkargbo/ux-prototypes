@@ -6,7 +6,9 @@ import { PlanTerminationProvider } from '../context/PlanTerminationContext';
 export const AiHubPrototypeRoot: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <AiHubAppearanceProvider>
     <AgenticCapabilitiesProvider>
-      <PlanTerminationProvider>{children}</PlanTerminationProvider>
+      <PlanTerminationProvider>
+        {children}
+      </PlanTerminationProvider>
     </AgenticCapabilitiesProvider>
   </AiHubAppearanceProvider>
 );

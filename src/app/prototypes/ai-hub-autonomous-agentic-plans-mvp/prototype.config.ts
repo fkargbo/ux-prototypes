@@ -20,7 +20,7 @@ export const config: PrototypeConfig = {
     name: 'SRE / Platform engineer',
     role: 'Reviewing and approving autonomous agent remediation plans',
   },
-  perspectives: ['fleet-management', 'core-platforms'],
+  perspectives: ['core-platforms', 'fleet-management'],
   tags: ['AI Hub', 'Agents', 'Autonomous', 'Remediation', 'MVP'],
   createdAt: '2026-06-09',
   updatedAt: '2026-06-09',

@@ -9,26 +9,43 @@
 
 .ols-ai-hub-page-header-copy {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
 }
 
-.ols-ai-hub-page-heading-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--pf-t--global--spacer--md);
-  flex-wrap: wrap;
+.ols-ai-hub-page-header-copy .pf-v6-c-title {
+  margin-block: 0;
+}
+
+/* Page header — pin Agentic Capabilities to top-right without a wrapping flex row. */
+.ols-ai-hub-page-heading {
+  position: relative;
 }
 
 .ols-ai-hub-page-heading-actions {
-  flex-shrink: 0;
-  margin-inline-start: auto;
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 1;
+}
+
+.ols-ai-hub-page-heading-body {
+  padding-inline-end: clamp(11rem, 32vw, 17.5rem);
+  min-width: 0;
+}
+
+.ols-ai-hub-page-heading-body-content {
+  min-width: 0;
 }
 
 .ols-agentic-capabilities-header-switch {
-  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--sm);
+  box-sizing: border-box;
+  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
   border-radius: var(--pf-t--global--border--radius--small);
   border: 1px solid var(--pf-t--global--border--color--default);
   background-color: var(--pf-t--global--background--color--secondary--default);
+  white-space: nowrap;
 }
 
 .ols-ai-hub-page div.template-page-content {
@@ -77,11 +94,55 @@
 
 /* Keep subtitle readable in very narrow viewports. */
 .ols-ai-hub-page-subtitle {
-  margin-top: 0;
-  margin-bottom: 0;
+  margin: 0;
   color: #6a6e73;
   overflow-wrap: anywhere;
   word-break: normal;
+}
+
+.ols-ai-hub-page-disclaimer {
+  margin: 0;
+  font-size: 12px;
+  color: #4d4d4d;
+}
+
+/* Plans list page — tighter vertical rhythm between page chrome and table. */
+.ols-ai-hub-page--v3 .template-page-heading {
+  padding-block-end: 16px !important;
+}
+
+.ols-ai-hub-page--v3 #ols-ai-hub-main.template-page-content {
+  padding-block-start: 16px !important;
+}
+
+.ols-ai-hub-plans-section .ols-ai-hub-plans-section-title {
+  margin-block-end: var(--pf-t--global--spacer--xs);
+}
+
+.ols-ai-hub-plans-section .ols-ai-hub-plans-toolbar {
+  margin-block-end: 0;
+}
+
+.ols-ai-hub-plans-filter-select-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.ols-ai-hub-plans-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+.ols-ai-hub-plans-filter-chips--active {
+  min-height: 28px;
+  margin-block-end: var(--pf-t--global--spacer--2xs);
+  padding-block: var(--pf-t--global--spacer--2xs);
+}
+
+.ols-ai-hub-plans-section .ols-plans-table {
+  margin-block-start: 0;
 }
 
 /* Increase vertical spacing between inventory bar and widget cards. */
@@ -643,6 +704,10 @@ body:has(.ols-ai-hub-page),
   vertical-align: middle;
 }
 
-.ols-plan-aborted-status-icon {
-  color: var(--pf-t--global--icon--color--status--danger--default);
+/* Plans table — metric headers with help popovers must not show PF ellipsis truncation */
+.ols-plans-table thead .ols-plans-table__metric-header,
+.ols-plans-table thead .ols-plans-table__metric-header .pf-v6-c-table__text {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
 }

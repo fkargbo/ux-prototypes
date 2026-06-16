@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -23,9 +23,6 @@ import {
   Flex,
   FlexItem,
   Label,
-  LabelGroup,
-  MenuToggle,
-  MenuToggleElement,
   Modal,
   ModalBody,
   ModalFooter,
@@ -34,9 +31,6 @@ import {
   Pagination,
   PaginationVariant,
   Popover,
-  Select,
-  SelectList,
-  SelectOption,
   Skeleton,
   Spinner,
   Stack,
@@ -52,12 +46,18 @@ import type { ConfidenceTier } from '../../types/confidenceTier';
 import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
 import {
   formatRiskBadgeLabel,
+  formatRiskLabel,
   isHighRisk,
   isMediumRisk,
   riskTierLabelColor,
   scoreToRiskTier,
 } from '../../types/riskScore';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
+import {
+  AGENTIC_STATUS_FILTER_OPTIONS,
+  PlansFilterToolbar,
+  usePlansFilterState,
+} from './PlansFilterToolbar';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import {
   SC_PLAN_ROW_PATCHES,
@@ -66,7 +66,7 @@ import {
   resolvePlanDrawerData,
   applyScRemediationPatches,
 } from './singleClusterPlanSimulation';
-import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
+import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import {
   clearPlanRemediationDrillSession,
@@ -154,6 +154,14 @@ const PLAN_RISK_SCORES: Record<string, number> = {
   ap13: 61,
   ap14: 47,
   ap15: 33,
+  cp1: 68,
+  cp2: 12,
+  cp3: 75,
+  op1: 18,
+  op2: 32,
+  op3: 55,
+  op4: 24,
+  op5: 45,
 };
 
 /** Simulated plan identity — names, summaries, and scope labels aligned to fleet vs. single-cluster UX. */
@@ -281,6 +289,54 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-image-registry',
   },
+  cp1: {
+    name: 'ocp-upgrade-4.14-to-4.15',
+    synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-update',
+  },
+  cp2: {
+    name: 'ocp-patch-4.15.1-to-4.15.8',
+    synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-update',
+  },
+  cp3: {
+    name: 'ocp-upgrade-4.15-to-4.16',
+    synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-update',
+  },
+  op1: {
+    name: 'reconcile-prometheus-targets',
+    synopsis: 'Reconcile Prometheus scrape targets after endpoint failures in openshift-monitoring',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
+  },
+  op2: {
+    name: 'fix-alertmanager-webhook-secret',
+    synopsis: 'Rotate Alertmanager PagerDuty webhook credentials after delivery failures',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
+  },
+  op3: {
+    name: 'recover-thanos-compactor-pv',
+    synopsis: 'Recover Thanos compactor persistent volume after corrupted block detection',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
+  },
+  op4: {
+    name: 'scale-otel-collector-replicas',
+    synopsis: 'Scale OpenTelemetry collector replicas to relieve trace ingestion backpressure',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-opentelemetry-operator',
+  },
+  op5: {
+    name: 'clear-grafana-sqlite-lock',
+    synopsis: 'Clear Grafana SQLite database lock causing dashboard write timeouts',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
+  },
 };
 
 // ─── Dataset — Top plans (score ≥ 80) ────────────────────────────────────────
@@ -364,11 +420,60 @@ const TOP_PLANS: PlanRow[] = [
       { icon: 'gear', text: 'K8s API Server Log Hook: 2 etcd_db_total_size_in_bytes fragmentation events.' },
     ],
   },
+  {
+    id: 'cp1',
+    severity: 'critical',
+    status: 'Waiting Approval',
+    score: 86,
+    synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Cluster is EOL or behind upgrade channel',
+    triggerDomain: 'Control Plane',
+    isUnauthorized: false,
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'warning', text: 'ClusterVersion: Channel fast-4.14 reports EndOfLife — no further z-stream releases.' },
+      { icon: 'gear', text: 'Upgradeable: False — cluster minor version behind supported release window.' },
+    ],
+  },
 ];
 
 // ─── Dataset — All plans (score < 80) ────────────────────────────────────────
 
 const ALL_PLANS: PlanRow[] = [
+  {
+    id: 'cp2',
+    severity: 'warning',
+    status: 'Completed',
+    score: 78,
+    synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Critical z-stream platform CVE remediation available',
+    triggerDomain: 'Control Plane',
+    isUnauthorized: false,
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'alert', text: 'OpenShift Advisory: RHSA-2026-1842 — critical platform CVE patched in 4.15.8.' },
+      { icon: 'gear', text: 'ClusterVersion: Recommended patch 4.15.8 available from 4.15.1.' },
+    ],
+  },
+  {
+    id: 'cp3',
+    severity: 'critical',
+    status: 'Plan aborted',
+    terminatedAt: 'Jun 9, 2026, 4:12 PM',
+    score: 74,
+    synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Admin triggered channel update check; manually terminated mid-flight',
+    triggerDomain: 'Control Plane',
+    isUnauthorized: false,
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'gear', text: 'ClusterVersion: Admin initiated upgrade path evaluation 4.15 → 4.16.' },
+      { icon: 'ban', text: 'Administrative override: plan terminated during preflight validation phase.' },
+    ],
+  },
   {
     id: 'ap1',
     severity: 'critical',
@@ -599,6 +704,83 @@ const ALL_PLANS: PlanRow[] = [
       { icon: 'warning', text: 'ImageRegistry Controller Hook: 1 PruneImageRegistryManifestsFailed trace.' },
     ],
   },
+  {
+    id: 'op1',
+    severity: 'warning',
+    status: 'Completed',
+    score: 72,
+    synopsis: 'Reconcile Prometheus Targets',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: PrometheusTargetDown (Endpoint scrape failures detected in openshift-monitoring)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['prometheus-k8s', 'prometheus-operator'],
+    expandedReasons: [
+      { icon: 'alert', text: 'PrometheusTargetDown: endpoint scrape failures detected in openshift-monitoring.' },
+    ],
+  },
+  {
+    id: 'op2',
+    severity: 'critical',
+    status: 'Waiting Approval',
+    score: 76,
+    synopsis: 'Fix Alertmanager Webhook Secret',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: AlertmanagerDeliveryFailing (Expired integration tokens for PagerDuty receiver)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['alertmanager-main'],
+    expandedReasons: [
+      { icon: 'alert', text: 'AlertmanagerDeliveryFailing: expired integration tokens for PagerDuty receiver.' },
+    ],
+  },
+  {
+    id: 'op3',
+    severity: 'critical',
+    status: 'Plan aborted',
+    terminatedAt: 'Jun 10, 2026, 11:32 AM',
+    score: 68,
+    synopsis: 'Recover Thanos Compactor PV',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block; manually terminated by admin)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['thanos-compactor'],
+    expandedReasons: [
+      { icon: 'alert', text: 'ThanosCompactorHasNotRun: compactor pod stuck on corrupted block.' },
+      { icon: 'ban', text: 'Administrative override: plan manually terminated by admin.' },
+    ],
+  },
+  {
+    id: 'op4',
+    severity: 'warning',
+    status: 'Completed',
+    score: 70,
+    synopsis: 'Scale OTel Collector Replicas',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: OpenTelemetryCollectorBufferFull (Spike in cluster trace volume causing memory saturation)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['otel-collector'],
+    expandedReasons: [
+      { icon: 'alert', text: 'OpenTelemetryCollectorBufferFull: trace volume spike causing memory saturation.' },
+    ],
+  },
+  {
+    id: 'op5',
+    severity: 'warning',
+    status: 'Waiting Approval',
+    score: 74,
+    synopsis: 'Clear Grafana SQLite Lock',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: GrafanaDatabaseDatabaseLocked (Database write timeouts on shared persistent volume)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['grafana'],
+    expandedReasons: [
+      { icon: 'alert', text: 'GrafanaDatabaseDatabaseLocked: database write timeouts on shared persistent volume.' },
+    ],
+  },
 ];
 
 // ─── Dataset — Single-cluster overrides (Core Platforms perspective) ──────────
@@ -612,24 +794,32 @@ const SC_TOP_PLANS: PlanRow[] = [
   { ...TOP_PLANS[2], blastRadius: '4 Pods', drawerTargets: ['payment-api-7d4f8', 'payment-api-7d4f8-2', 'payment-worker-9c2a1', 'payment-worker-9c2a1-2'] },
   { ...TOP_PLANS[3], blastRadius: '1 Ceph Pool', drawerTargets: ['ocs-storagecluster-ceph-rbd'] },
   { ...TOP_PLANS[4], blastRadius: '3 etcd Members', drawerTargets: ['etcd-master-01', 'etcd-master-02', 'etcd-master-03'] },
+  { ...TOP_PLANS[5], blastRadius: '1 ClusterVersion', drawerTargets: ['version', 'cluster'] },
 ];
 
 const SC_ALL_PLANS: PlanRow[] = [
-  { ...ALL_PLANS[0],  blastRadius: '2 Deployments',      drawerTargets: ['analytics-api', 'analytics-worker'] },
-  { ...ALL_PLANS[1],  blastRadius: '1 EventListener',    drawerTargets: ['build-webhook-listener'] },
-  { ...ALL_PLANS[2],  blastRadius: '1 OAuth Client',     drawerTargets: ['oauth-openshift'] },
-  { ...ALL_PLANS[3],  blastRadius: '4 DNS Pods',         drawerTargets: ['dns-default-7f8c9', 'dns-default-7f8c9-2', 'dns-default-7f8c9-3', 'dns-default-7f8c9-4'] },
-  { ...ALL_PLANS[4],  blastRadius: '2 Worker Nodes',     drawerTargets: ['worker-bm-03', 'worker-bm-04'] },
-  { ...ALL_PLANS[5],  blastRadius: '3 Resources',        drawerTargets: ['staging-api', 'staging-db-config', 'staging-api-svc'] },
-  { ...ALL_PLANS[6],  blastRadius: '2 Router Pods',      drawerTargets: ['router-default-6d4f8', 'router-default-6d4f8-2'] },
-  { ...ALL_PLANS[7],  blastRadius: '1 Deployment',       drawerTargets: ['retail-checkout'] },
-  { ...ALL_PLANS[8],  blastRadius: '1 Node',             drawerTargets: ['worker-logistics-01'] },
-  { ...ALL_PLANS[9],  blastRadius: '1 StatefulSet',      drawerTargets: ['jenkins-0'] },
-  { ...ALL_PLANS[10], blastRadius: '1 HPA Object',       drawerTargets: ['api-gateway-hpa'] },
-  { ...ALL_PLANS[11], blastRadius: '3 Image Streams',    drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
-  { ...ALL_PLANS[12], blastRadius: '1 PVC Volume',       drawerTargets: ['postgres-data-0'] },
-  { ...ALL_PLANS[13], blastRadius: '6 Nodes',           drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
-  { ...ALL_PLANS[14], blastRadius: '1 Registry Catalog', drawerTargets: ['image-registry'] },
+  { ...ALL_PLANS[0], blastRadius: '1 ClusterVersion', drawerTargets: ['version', 'cluster'] },
+  { ...ALL_PLANS[1], blastRadius: '1 ClusterVersion', drawerTargets: ['version', 'cluster'] },
+  { ...ALL_PLANS[2],  blastRadius: '2 Deployments',      drawerTargets: ['analytics-api', 'analytics-worker'] },
+  { ...ALL_PLANS[3],  blastRadius: '1 EventListener',    drawerTargets: ['build-webhook-listener'] },
+  { ...ALL_PLANS[4],  blastRadius: '1 OAuth Client',     drawerTargets: ['oauth-openshift'] },
+  { ...ALL_PLANS[5],  blastRadius: '4 DNS Pods',         drawerTargets: ['dns-default-7f8c9', 'dns-default-7f8c9-2', 'dns-default-7f8c9-3', 'dns-default-7f8c9-4'] },
+  { ...ALL_PLANS[6],  blastRadius: '2 Worker Nodes',     drawerTargets: ['worker-bm-03', 'worker-bm-04'] },
+  { ...ALL_PLANS[7],  blastRadius: '3 Resources',        drawerTargets: ['staging-api', 'staging-db-config', 'staging-api-svc'] },
+  { ...ALL_PLANS[8],  blastRadius: '2 Router Pods',      drawerTargets: ['router-default-6d4f8', 'router-default-6d4f8-2'] },
+  { ...ALL_PLANS[9],  blastRadius: '1 Deployment',       drawerTargets: ['retail-checkout'] },
+  { ...ALL_PLANS[10], blastRadius: '1 Node',             drawerTargets: ['worker-logistics-01'] },
+  { ...ALL_PLANS[11], blastRadius: '1 StatefulSet',      drawerTargets: ['jenkins-0'] },
+  { ...ALL_PLANS[12], blastRadius: '1 HPA Object',       drawerTargets: ['api-gateway-hpa'] },
+  { ...ALL_PLANS[13], blastRadius: '3 Image Streams',    drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
+  { ...ALL_PLANS[14], blastRadius: '1 PVC Volume',       drawerTargets: ['postgres-data-0'] },
+  { ...ALL_PLANS[15], blastRadius: '6 Nodes',           drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
+  { ...ALL_PLANS[16], blastRadius: '1 Registry Catalog', drawerTargets: ['image-registry'] },
+  { ...ALL_PLANS[17], blastRadius: '2 Monitoring Pods', drawerTargets: ['prometheus-k8s-0', 'prometheus-k8s-1'] },
+  { ...ALL_PLANS[18], blastRadius: '1 Alertmanager', drawerTargets: ['alertmanager-main-0'] },
+  { ...ALL_PLANS[19], blastRadius: '1 Compactor PVC', drawerTargets: ['thanos-compactor-data'] },
+  { ...ALL_PLANS[20], blastRadius: '3 Collector Pods', drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
+  { ...ALL_PLANS[21], blastRadius: '1 Grafana Deployment', drawerTargets: ['grafana-6d4f8'] },
 ];
 
 interface PlanDrawerData {
@@ -712,6 +902,19 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Execute etcd defragmentation on all 3 control plane members with rolling restart cadence.',
     riskAssessment: 'Low — etcd defragmentation is a supported operational procedure.',
     estimatedRecovery: '~45s',
+    confidence: 'High',
+  },
+  cp1: {
+    steps: [
+      { id: 's1', time: '14:02:11', status: 'done', icon: 'exclamation', title: 'ClusterVersion channel reports EndOfLife on 4.14', detail: 'Cluster is EOL or behind upgrade channel' },
+      { id: 's2', time: '14:02:24', status: 'done', icon: 'database', title: 'Evaluated supported upgrade graph to 4.15', detail: 'Upgradeable=False — minor version outside supported window' },
+      { id: 's3', time: '14:02:38', status: 'done', icon: 'search', title: 'Scored control plane blast radius for minor bump', detail: 'Single-cluster scope · High confidence in channel signal' },
+    ],
+    aggregatedFinding: 'ClusterVersion reports fast-4.14 channel EndOfLife with no further z-stream releases available.',
+    rootCauseNarrative: 'The cluster remains on OpenShift 4.14 while the subscribed channel has reached end of life. Without a minor version upgrade to 4.15, the platform cannot receive security or bug-fix releases.',
+    remediationProposal: 'Execute supported minor upgrade from OpenShift 4.14 to 4.15 with rolling control plane and worker cordon/drain cadence.',
+    riskAssessment: 'High — minor upgrade requires control plane restarts and workload disruption during node rotation.',
+    estimatedRecovery: '~45m',
     confidence: 'High',
   },
 
@@ -914,6 +1117,97 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: '~1m',
     confidence: 'High',
   },
+  cp2: {
+    steps: [
+      { id: 's1', time: '09:18:04', status: 'done', icon: 'exclamation', title: 'Critical z-stream CVE advisory published for 4.15.8', detail: 'Critical z-stream platform CVE remediation available' },
+      { id: 's2', time: '09:18:17', status: 'done', icon: 'database', title: 'Validated cluster at 4.15.1 — patch path to 4.15.8 confirmed', detail: 'No blocking ClusterOperators · patch-only upgrade eligible' },
+      { id: 's3', time: '09:18:31', status: 'done', icon: 'check', title: 'Executed z-stream patch upgrade', detail: 'Control plane and nodes reconciled to 4.15.8 without workload migration' },
+    ],
+    aggregatedFinding: 'OpenShift advisory RHSA-2026-1842 requires z-stream patch 4.15.8 to remediate a critical platform CVE.',
+    rootCauseNarrative: 'The cluster remained on OpenShift 4.15.1 while a critical platform CVE was addressed only in patch release 4.15.8. Delaying the z-stream update left the control plane exposed to a known vulnerability.',
+    remediationProposal: 'Apply z-stream patch upgrade from 4.15.1 to 4.15.8 using the supported ClusterVersion update graph.',
+    riskAssessment: 'Low — z-stream patch is a supported in-place update with minimal disruption.',
+    estimatedRecovery: '~25m',
+    confidence: 'High',
+  },
+  cp3: {
+    steps: [
+      { id: 's1', time: '16:44:02', status: 'done', icon: 'network', title: 'Admin initiated upgrade channel check 4.15 → 4.16', detail: 'Admin triggered channel update check; manually terminated mid-flight' },
+      { id: 's2', time: '16:44:15', status: 'done', icon: 'search', title: 'Preflight validation started for next minor release', detail: 'ClusterOperator health gates evaluated · 2 warnings surfaced' },
+      { id: 's3', time: '16:44:28', status: 'done', icon: 'exclamation', title: 'Plan terminated by administrative override', detail: 'Upgrade aborted before control plane rollout began' },
+    ],
+    aggregatedFinding: 'Administrative channel update check for OpenShift 4.16 was manually terminated during preflight validation.',
+    rootCauseNarrative: 'A platform administrator triggered an upgrade path evaluation from 4.15 to 4.16. Preflight validation surfaced operator warnings and the plan was halted mid-flight before any control plane mutation occurred.',
+    remediationProposal: 'Resolve ClusterOperator warnings and re-submit upgrade plan when maintenance window is approved.',
+    riskAssessment: 'High — next minor upgrade carries elevated control plane blast radius if resumed without remediation.',
+    estimatedRecovery: 'N/A — plan aborted',
+    confidence: 'Medium',
+  },
+  op1: {
+    steps: [
+      { id: 's1', time: '08:42:11', status: 'done', icon: 'exclamation', title: 'PrometheusTargetDown alert fired', detail: 'Endpoint scrape failures detected in openshift-monitoring' },
+      { id: 's2', time: '08:42:24', status: 'done', icon: 'database', title: 'Compared ServiceMonitor endpoints vs. live targets', detail: 'Stale TLS SAN mismatch on 2 prometheus-k8s scrape jobs' },
+      { id: 's3', time: '08:42:39', status: 'done', icon: 'check', title: 'Reconciled Prometheus operator targets', detail: 'Scrape success restored across openshift-monitoring' },
+    ],
+    aggregatedFinding: 'Prometheus scrape failures traced to stale ServiceMonitor endpoints after a certificate rotation in openshift-monitoring.',
+    rootCauseNarrative: 'A recent serving certificate rotation left Prometheus scrape configurations pointing at expired endpoint SANs, triggering PrometheusTargetDown across the monitoring namespace.',
+    remediationProposal: 'Reconcile Prometheus operator ServiceMonitor targets and roll prometheus-k8s pods to pick up refreshed TLS trust bundles.',
+    riskAssessment: 'Low — target reconciliation is rolling and non-destructive to workloads.',
+    estimatedRecovery: '~2m',
+    confidence: 'High',
+  },
+  op2: {
+    steps: [
+      { id: 's1', time: '10:18:04', status: 'done', icon: 'exclamation', title: 'AlertmanagerDeliveryFailing alert detected', detail: 'Expired integration tokens for PagerDuty receiver' },
+      { id: 's2', time: '10:18:17', status: 'done', icon: 'database', title: 'Validated Alertmanager receiver secret references', detail: 'PagerDuty integration key past rotation window by 11 days' },
+      { id: 's3', time: '10:18:31', status: 'active', icon: 'search', title: 'Awaiting approval to rotate webhook secret', detail: 'Secret rotation requires platform admin approval' },
+    ],
+    aggregatedFinding: 'Alertmanager notification delivery failures correlate with an expired PagerDuty integration token in openshift-monitoring.',
+    rootCauseNarrative: 'The Alertmanager PagerDuty receiver references a Kubernetes secret whose integration token expired, causing sustained AlertmanagerDeliveryFailing alerts and missed pages.',
+    remediationProposal: 'Rotate the Alertmanager webhook secret with a fresh PagerDuty integration key and reload alertmanager-main.',
+    riskAssessment: 'Low — secret rotation is reversible and scoped to notification routing only.',
+    estimatedRecovery: '~5m',
+    confidence: 'High',
+  },
+  op3: {
+    steps: [
+      { id: 's1', time: '11:05:02', status: 'done', icon: 'exclamation', title: 'ThanosCompactorHasNotRun alert fired', detail: 'Thanos compactor pod stuck on corrupted block' },
+      { id: 's2', time: '11:05:16', status: 'done', icon: 'database', title: 'Inspected compactor PVC and block metadata', detail: 'Corrupted TSDB block detected on thanos-compactor-data volume' },
+      { id: 's3', time: '11:32:00', status: 'done', icon: 'ban', title: 'Plan terminated by administrative override', detail: 'Admin halted recovery before PVC resize completed' },
+    ],
+    aggregatedFinding: 'Thanos compactor stalled on a corrupted block; administrative override terminated recovery mid-flight.',
+    rootCauseNarrative: 'A corrupted TSDB block prevented the Thanos compactor from completing its compaction cycle. An administrator manually terminated the plan during persistent volume recovery.',
+    remediationProposal: 'Quarantine the corrupted block, expand the compactor PVC, and restart thanos-compactor with a clean compaction window.',
+    riskAssessment: 'Medium — PVC recovery may require brief metrics query degradation.',
+    estimatedRecovery: 'N/A — plan aborted',
+    confidence: 'Medium',
+  },
+  op4: {
+    steps: [
+      { id: 's1', time: '14:27:08', status: 'done', icon: 'exclamation', title: 'OpenTelemetryCollectorBufferFull alert detected', detail: 'Trace volume spike causing memory saturation' },
+      { id: 's2', time: '14:27:21', status: 'done', icon: 'database', title: 'Sampled collector memory and export queue depth', detail: 'Batch queue at 98% capacity across 3 collector pods' },
+      { id: 's3', time: '14:27:44', status: 'done', icon: 'check', title: 'Scaled collector replicas and tuned batch processor', detail: 'Buffer utilization normalized within 4 minutes' },
+    ],
+    aggregatedFinding: 'OpenTelemetry collector memory saturation caused by a cluster-wide trace volume spike triggered OpenTelemetryCollectorBufferFull.',
+    rootCauseNarrative: 'A sudden increase in distributed trace volume exceeded single-replica collector batch buffers, saturating memory and stalling export pipelines until replicas were scaled out.',
+    remediationProposal: 'Scale otel-collector deployment replicas and tune batch processor limits for sustained trace ingestion.',
+    riskAssessment: 'Low — horizontal scale-out is rolling and reversible.',
+    estimatedRecovery: '~4m',
+    confidence: 'High',
+  },
+  op5: {
+    steps: [
+      { id: 's1', time: '16:03:12', status: 'done', icon: 'exclamation', title: 'GrafanaDatabaseDatabaseLocked alert fired', detail: 'Database write timeouts on shared persistent volume' },
+      { id: 's2', time: '16:03:26', status: 'done', icon: 'database', title: 'Inspected Grafana SQLite WAL and PVC mount state', detail: 'Stale WAL lock held after grafana pod eviction' },
+      { id: 's3', time: '16:03:41', status: 'active', icon: 'search', title: 'Awaiting approval to clear SQLite lock', detail: 'Lock removal requires brief Grafana downtime' },
+    ],
+    aggregatedFinding: 'Grafana dashboard persistence failures trace to a SQLite WAL lock on the shared monitoring PVC.',
+    rootCauseNarrative: 'An ungraceful grafana pod eviction left a SQLite write-ahead log lock on the shared persistent volume, causing GrafanaDatabaseDatabaseLocked alerts and dashboard write timeouts.',
+    remediationProposal: 'Stop grafana, remove the stale SQLite WAL lock file, and restart the deployment with verified PVC consistency.',
+    riskAssessment: 'Medium — clearing the lock requires a short Grafana read-only window.',
+    estimatedRecovery: '~3m',
+    confidence: 'High',
+  },
 };
 
 // ─── Remediation options data ────────────────────────────────────────────────
@@ -998,6 +1292,18 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
   ap15: [
     { id: 'ap15-o1', title: 'Restore pruner RBAC permissions + manual prune run', description: 'Restore the delete-image-manifests permission to the registry pruner service account and trigger a manual prune.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc adm prune images --keep-tag-revisions=3 --prune-over-size-limit=true' },
     { id: 'ap15-o2', title: 'Direct manifest deletion by cluster-admin', description: 'Manually delete the 847 MB of unreferenced manifests using cluster-admin credentials, bypassing the pruner workflow.', risk: 'medium', reversible: false, model: 'fast', rawCommands: "oc delete istag -n production $(oc get istag -n production -o jsonpath='{.items[?(@.image.metadata.creationTimestamp<\"2026-01-01\")].metadata.name}')" },
+  ],
+  cp1: [
+    { id: 'cp1-o1', title: 'Supported minor upgrade 4.14 → 4.15 with rolling node cadence', description: 'Apply the ClusterVersion update to 4.15 using the supported upgrade graph with automated worker cordon, drain, and reboot sequencing.', risk: 'high', reversible: false, model: 'smart', rawCommands: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade' },
+    { id: 'cp1-o2', title: 'Preflight validation only (defer execution)', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane — defers execution until a maintenance window is approved.', risk: 'low', reversible: true, model: 'fast', rawCommands: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
+  ],
+  op2: [
+    { id: 'op2-o1', title: 'Rotate Alertmanager PagerDuty secret + rolling reload', description: 'Replace the expired PagerDuty integration key in the alertmanager-main secret and trigger a rolling reload of alertmanager pods in openshift-monitoring.', risk: 'low', reversible: true, model: 'smart', rawCommands: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f - && oc rollout restart statefulset/alertmanager-main -n openshift-monitoring' },
+    { id: 'op2-o2', title: 'Temporarily disable PagerDuty receiver route', description: 'Silence the PagerDuty receiver in Alertmanager configuration to stop delivery failures while the integration token is rotated manually.', risk: 'medium', reversible: true, model: 'fast', rawCommands: 'oc patch secret alertmanager-main -n openshift-monitoring --type merge -p \'{"data":{"alertmanager.yaml":"<route with null receiver for pagerduty>"}}\' && oc delete pod alertmanager-main-0 -n openshift-monitoring' },
+  ],
+  op5: [
+    { id: 'op5-o1', title: 'Clear stale Grafana SQLite WAL lock + controlled restart', description: 'Scale grafana to zero, remove the stale SQLite WAL lock file on the shared PVC, verify filesystem consistency, and restart the deployment.', risk: 'medium', reversible: true, model: 'smart', rawCommands: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal && oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
+    { id: 'op5-o2', title: 'Snapshot PVC then force WAL checkpoint', description: 'Take a volume snapshot of the Grafana PVC and run a forced SQLite checkpoint before clearing the lock — slower but preserves rollback capability.', risk: 'low', reversible: true, model: 'fast', rawCommands: 'oc create -f grafana-pvc-snapshot.yaml && oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
   ],
 };
 
@@ -1276,13 +1582,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
     return (
       <Tooltip content={tooltipContent} position="top">
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label
-            color="red"
-            variant="outline"
-            isCompact
-            icon={<ExclamationCircleIcon className="ols-plan-aborted-status-icon" aria-hidden />}
-            style={{ whiteSpace: 'nowrap' }}
-          >
+          <Label color="red" variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
             Plan aborted
           </Label>
         </span>
@@ -1297,7 +1597,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   );
 };
 
-const TriggerDomainCell: React.FC<{ domain: string }> = ({ domain }) => (
+export const TriggerDomainCell: React.FC<{ domain: string }> = ({ domain }) => (
   <Label color="grey" variant="outline" isCompact>
     {domain}
   </Label>
@@ -1350,20 +1650,24 @@ export const PlanResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="P" backgroundColor="#2b9af3" />
 );
 
-export const PlanConfidenceBadge: React.FC<{ tier: ConfidenceTier }> = ({ tier }) => (
+export const PlanConfidenceBadge: React.FC<{ tier: ConfidenceTier; showPrefix?: boolean }> = ({
+  tier,
+  showPrefix = true,
+}) => (
   <Label color={confidenceTierLabelColor(tier)} isCompact>
-    {formatConfidenceLabel(tier)}
+    {showPrefix ? formatConfidenceLabel(tier) : tier}
   </Label>
 );
 
-export const PlanRiskBadge: React.FC<{ score: number; isCompact?: boolean }> = ({
+export const PlanRiskBadge: React.FC<{ score: number; isCompact?: boolean; showPrefix?: boolean }> = ({
   score,
   isCompact = true,
+  showPrefix = true,
 }) => {
   const tier = scoreToRiskTier(score);
   return (
     <Label color={riskTierLabelColor(tier)} isCompact={isCompact}>
-      {formatRiskBadgeLabel(score)}
+      {showPrefix ? formatRiskBadgeLabel(score) : formatRiskLabel(score)}
     </Label>
   );
 };
@@ -1371,13 +1675,6 @@ export const PlanRiskBadge: React.FC<{ score: number; isCompact?: boolean }> = (
 const NamespaceResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="NS" backgroundColor="#1e4f18" />
 );
-
-const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
-  padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs)',
-  fontSize: 'var(--pf-t--global--font--size--body--sm)',
-  fontWeight: 600,
-  color: 'var(--pf-t--global--text--color--subtle)',
-};
 
 // ─── Scope cell (cluster / namespace) with multi-target tooltip ───────────────
 
@@ -1424,9 +1721,10 @@ const PLANS_TABLE_HEADER_TH_STYLE: React.CSSProperties = {
 
 const PLANS_TABLE_HEADER_POPOVER_CONTENT_STYLE: React.CSSProperties = {
   display: 'inline-flex',
-  alignItems: 'flex-start',
+  alignItems: 'center',
   gap: 'var(--pf-t--global--spacer--xs)',
   lineHeight: 'var(--pf-t--global--line-height--body)',
+  whiteSpace: 'nowrap',
 };
 
 const PLANS_TABLE_HEADER_POPOVER_BUTTON_STYLE: React.CSSProperties = {
@@ -1466,7 +1764,7 @@ interface PlansTableCoreProps {
   isAgenticAutomationEnabled: boolean;
 }
 
-const PlansTableCore: React.FC<PlansTableCoreProps> = ({
+export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   rows,
   ariaLabel,
   scopeColumnLabel,
@@ -1475,6 +1773,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 }) => (
   <Table
     aria-label={ariaLabel}
+    className="ols-plans-table"
     style={{
       tableLayout: 'fixed',
       width: '100%',
@@ -1485,10 +1784,10 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
     <Thead>
       <Tr>
         <Th style={{ width: '17%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
-        <Th style={{ width: '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
+        <Th style={{ width: '18%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
         <Th style={{ width: '13%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
         <Th style={{ width: '9%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
-        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
+        <Th className="ols-plans-table__metric-header" style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
           <PlansTableColumnHeader
             label="Confidence"
             popoverHeader="How accurate is the fix?"
@@ -1496,7 +1795,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             ariaLabel="More information about Confidence"
           />
         </Th>
-        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
+        <Th className="ols-plans-table__metric-header" style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
           <PlansTableColumnHeader
             label="Risk"
             popoverHeader="What is the blast radius?"
@@ -1518,15 +1817,24 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                 <PlanResourceBadge />
               </FlexItem>
               <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
-                <Button
-                  variant="link"
-                  isInline
-                  isDisabled={!isAgenticAutomationEnabled}
-                  onClick={() => onReviewPlan(row)}
-                  style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
-                >
-                  {row.name ?? row.id}
-                </Button>
+                {row.triggerDomain === 'Observability' ? (
+                  <Link
+                    to={`/core/observe/troubleshooting-plans/${encodeURIComponent(row.id)}`}
+                    style={{ fontWeight: 400, whiteSpace: 'normal', wordBreak: 'break-word' }}
+                  >
+                    {row.name ?? row.id}
+                  </Link>
+                ) : (
+                  <Button
+                    variant="link"
+                    isInline
+                    isDisabled={!isAgenticAutomationEnabled}
+                    onClick={() => onReviewPlan(row)}
+                    style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
+                  >
+                    {row.name ?? row.id}
+                  </Button>
+                )}
               </FlexItem>
             </Flex>
           </Td>
@@ -1548,14 +1856,14 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
           <Td dataLabel="Confidence">
             {row.confidenceTier ? (
-              <PlanConfidenceBadge tier={row.confidenceTier} />
+              <PlanConfidenceBadge tier={row.confidenceTier} showPrefix={false} />
             ) : (
               '—'
             )}
           </Td>
 
           <Td dataLabel="Risk">
-            <PlanRiskBadge score={row.riskScore ?? 50} />
+            <PlanRiskBadge score={row.riskScore ?? 50} showPrefix={false} />
           </Td>
 
           <Td dataLabel={scopeColumnLabel}>
@@ -1583,16 +1891,6 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
 const DEFAULT_PER_PAGE = 10;
 
-// Filter option lists
-const STATUS_FILTER_OPTIONS: PlanStatus[] = [
-  'Investigating',
-  'Waiting Approval',
-  'Remediating',
-  'Plan aborted',
-  'Completed',
-  'Failed',
-];
-
 interface PlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
   rows: PlanRow[];
@@ -1606,53 +1904,28 @@ const PlansTable: React.FC<PlansTableProps> = ({
   isSingleCluster,
   isAgenticAutomationEnabled,
 }) => {
-  // ── Filter state — intentionally decoupled from perspective; persists on switch ──
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true });
 
-  // ── Pagination state ──
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
-  // ── Derived rows after filters ──
-  const filteredRows = useMemo(() => {
-    return rows.filter((row) => {
-      if (statusFilters.length > 0 && !statusFilters.includes(row.status)) return false;
-      return true;
-    });
-  }, [rows, statusFilters]);
-
-  // Reset to page 1 whenever effective row count changes (filter or perspective)
-  useEffect(() => {
-    setPage(1);
-  }, [filteredRows.length]);
-
-  const clearAllFilters = useCallback(() => {
-    setStatusFilters([]);
-  }, []);
-
-  const toggleStatusFilter = useCallback((val: string) => {
-    setStatusFilters((prev) =>
-      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-    );
-  }, []);
-
-  const activeFilterCount = statusFilters.length;
-  const hasActiveFilters = activeFilterCount > 0;
-
-  const handleFilterSelect = useCallback(
-    (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
-      if (typeof value !== 'string') {
-        return;
-      }
-      if (STATUS_FILTER_OPTIONS.includes(value as PlanStatus)) {
-        toggleStatusFilter(value);
-      }
-    },
-    [toggleStatusFilter],
+  const filteredRows = useMemo(
+    () => plansFilter.filterRows(rows),
+    [rows, plansFilter.filterRows],
   );
 
-  // ── Pagination handlers ──
+  useEffect(() => {
+    setPage(1);
+  }, [
+    filteredRows.length,
+    plansFilter.searchInputValue,
+    plansFilter.searchCategory,
+    plansFilter.statusFilters,
+    plansFilter.riskFilters,
+    plansFilter.confidenceFilters,
+    plansFilter.triggerDomainFilters,
+  ]);
+
   const totalItems = filteredRows.length;
   const start = (page - 1) * perPage;
   const paginatedRows = filteredRows.slice(start, start + perPage);
@@ -1696,90 +1969,14 @@ const PlansTable: React.FC<PlansTableProps> = ({
 
   return (
     <>
-      {/* ── Toolbar: filter dropdown + pagination ── */}
-      {/* Pagination lives inside the toolbar so they sit on the same row.   */}
-      {/* ToolbarFilter is intentionally NOT used here — its auto-expanding   */}
-      {/* chip row causes the table to jump. Chips are rendered below        */}
-      {/* in a fixed-minHeight row so the layout never shifts.               */}
-      {/* Filter + pagination row — plain Flex for guaranteed single-line layout */}
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        flexWrap={{ default: 'nowrap' }}
-        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-      >
-        {/* Left: filter dropdown */}
-        <FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-            <FlexItem>
-              <Select
-                aria-label="Filter plans"
-                role="menu"
-                isOpen={filterMenuOpen}
-                onSelect={handleFilterSelect}
-                onOpenChange={setFilterMenuOpen}
-                toggle={(ref: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={ref}
-                    onClick={() => setFilterMenuOpen((o) => !o)}
-                    isExpanded={filterMenuOpen}
-                    badge={activeFilterCount > 0 ? activeFilterCount : undefined}
-                  >
-                    Filter
-                  </MenuToggle>
-                )}
-              >
-                <SelectList>
-                  <div style={FILTER_SECTION_TITLE_STYLE}>Status</div>
-                  {STATUS_FILTER_OPTIONS.map((s) => (
-                    <SelectOption key={s} hasCheckbox value={s} isSelected={statusFilters.includes(s)}>
-                      {s}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            </FlexItem>
-          </Flex>
-        </FlexItem>
+      <PlansFilterToolbar
+        filterAriaLabel="Filter plans"
+        statusOptions={AGENTIC_STATUS_FILTER_OPTIONS}
+        includeTriggerDomainFilter
+        pagination={<Pagination isCompact {...paginationProps} style={{ margin: 0 }} />}
+        {...plansFilter}
+      />
 
-        {/* Right: pagination */}
-        <FlexItem>
-          <Pagination isCompact {...paginationProps} style={{ margin: 0 }} />
-        </FlexItem>
-      </Flex>
-
-      {/* ── Active filter chips ─────────────────────────────────────────────── */}
-      {/* Fixed minHeight so the table never jumps when chips appear/disappear */}
-      <div
-        style={{
-          minHeight: 36,
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 'var(--pf-t--global--spacer--sm)',
-          padding: hasActiveFilters
-            ? 'var(--pf-t--global--spacer--xs) 0'
-            : undefined,
-        }}
-      >
-        {statusFilters.length > 0 && (
-          <LabelGroup categoryName="Status" isClosable onClick={() => setStatusFilters([])}>
-            {statusFilters.map((s) => (
-              <Label key={s} isCompact onClose={() => toggleStatusFilter(s)}>
-                {s}
-              </Label>
-            ))}
-          </LabelGroup>
-        )}
-        {hasActiveFilters && (
-          <Button variant="link" isInline onClick={clearAllFilters}
-            style={{ fontSize: 'var(--pf-t--global--font--size--sm)' }}>
-            Clear all
-          </Button>
-        )}
-      </div>
-
-      {/* ── Table or Empty State ───────────────────────────────────────────── */}
       {filteredRows.length === 0 ? (
         <EmptyState
           titleText="No plans match your active filters"
@@ -1790,10 +1987,10 @@ const PlansTable: React.FC<PlansTableProps> = ({
           <EmptyStateBody>
             No remediation plans match your current active filters in this cluster perspective.
           </EmptyStateBody>
-          {hasActiveFilters && (
+          {plansFilter.hasActiveFilters && (
             <EmptyStateFooter>
               <EmptyStateActions>
-                <Button variant="link" onClick={clearAllFilters}>
+                <Button variant="link" onClick={plansFilter.clearAllFilters}>
                   Clear Active Filters
                 </Button>
               </EmptyStateActions>
@@ -3364,7 +3561,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
 // ─── Plan remediation drill-down routes ───────────────────────────────────────
 
-export function getPlanRemediationPath(plan: PlanRow, perspectiveKey?: 'core-platforms' | 'fleet-management'): string {
+export function getPlanRemediationPath(plan: PlanRow, perspectiveKey?: AppShellPerspectiveKey): string {
   const slug = plan.name ?? plan.id;
   if (perspectiveKey) {
     return getPlanRemediationHref(slug, perspectiveKey);
@@ -3468,7 +3665,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
     if (!isAgenticAutomationEnabled) {
       return;
     }
-    const perspectiveKey: 'core-platforms' | 'fleet-management' =
+    const perspectiveKey: AppShellPerspectiveKey =
       perspectiveKeyFromShellName(activePerspective)
       ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
     writePlanRemediationDrillSession({ perspectiveKey });
@@ -3476,18 +3673,17 @@ export const PlansAndApprovalsTab: React.FC = () => {
   }, [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate]);
 
   return (
-    <Stack hasGutter>
+    <Stack>
       {!isAgenticAutomationEnabled && (
-        <StackItem>
+        <StackItem style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
           <Alert variant="warning" isInline title={getAgenticAutomationDisabledMessage(isSingleCluster)} />
         </StackItem>
       )}
-      <StackItem>
+      <StackItem className="ols-ai-hub-plans-section">
         <Title
           headingLevel="h3"
           size="md"
-          className="ols-aio-fleet-subcard-title"
-          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+          className="ols-aio-fleet-subcard-title ols-ai-hub-plans-section-title"
         >
           Plans
         </Title>

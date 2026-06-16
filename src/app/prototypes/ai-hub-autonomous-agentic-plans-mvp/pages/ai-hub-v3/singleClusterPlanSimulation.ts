@@ -37,6 +37,14 @@ export const SC_PLAN_TABLE_IDENTITY: Record<string, ScPlanTableIdentity> = {
   ap13: { name: 'database-iops-throttle-tune', synopsis: 'Tune postgres PVC read IOPS throttle', namespace: 'data-services', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   ap14: { name: 'ntp-desync-remediation', synopsis: 'Fix NTP skew on 6 cluster nodes', namespace: 'openshift-node', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   ap15: { name: 'image-stream-tag-cleanup', synopsis: 'Prune obsolete image stream tags', namespace: 'openshift-image-registry', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  cp1: { name: 'ocp-upgrade-4.14-to-4.15', synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  cp2: { name: 'ocp-patch-4.15.1-to-4.15.8', synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  cp3: { name: 'ocp-upgrade-4.15-to-4.16', synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op1: { name: 'reconcile-prometheus-targets', synopsis: 'Reconcile Prometheus scrape targets after endpoint failures in openshift-monitoring', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op2: { name: 'fix-alertmanager-webhook-secret', synopsis: 'Rotate Alertmanager PagerDuty webhook credentials after delivery failures', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op3: { name: 'recover-thanos-compactor-pv', synopsis: 'Recover Thanos compactor persistent volume after corrupted block detection', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op4: { name: 'scale-otel-collector-replicas', synopsis: 'Scale OpenTelemetry collector replicas to relieve trace ingestion backpressure', namespace: 'openshift-opentelemetry-operator', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op5: { name: 'clear-grafana-sqlite-lock', synopsis: 'Clear Grafana SQLite database lock causing dashboard write timeouts', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
 };
 
 type ExpandedReason = { icon: 'sync' | 'alert' | 'warning' | 'ban' | 'gear' | 'wrench'; text: string };
@@ -181,6 +189,37 @@ export const SC_PLAN_ROW_PATCHES: Record<string, ScPlanRowPatch> = {
     consolidationScope: '1 Registry Event',
     expandedReasons: [
       { icon: 'warning', text: 'ImageRegistry: PruneImageRegistryManifestsFailed on cluster image-registry.' },
+    ],
+  },
+  op1: {
+    consolidationScope: 'Triggered by alert: PrometheusTargetDown (Endpoint scrape failures detected in openshift-monitoring)',
+    expandedReasons: [
+      { icon: 'alert', text: 'PrometheusTargetDown: endpoint scrape failures detected in openshift-monitoring.' },
+    ],
+  },
+  op2: {
+    consolidationScope: 'Triggered by alert: AlertmanagerDeliveryFailing (Expired integration tokens for PagerDuty receiver)',
+    expandedReasons: [
+      { icon: 'alert', text: 'AlertmanagerDeliveryFailing: expired integration tokens for PagerDuty receiver.' },
+    ],
+  },
+  op3: {
+    consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block; manually terminated by admin)',
+    expandedReasons: [
+      { icon: 'alert', text: 'ThanosCompactorHasNotRun: compactor pod stuck on corrupted block.' },
+      { icon: 'ban', text: 'Administrative override: plan manually terminated by admin.' },
+    ],
+  },
+  op4: {
+    consolidationScope: 'Triggered by alert: OpenTelemetryCollectorBufferFull (Spike in cluster trace volume causing memory saturation)',
+    expandedReasons: [
+      { icon: 'alert', text: 'OpenTelemetryCollectorBufferFull: trace volume spike causing memory saturation.' },
+    ],
+  },
+  op5: {
+    consolidationScope: 'Triggered by alert: GrafanaDatabaseDatabaseLocked (Database write timeouts on shared persistent volume)',
+    expandedReasons: [
+      { icon: 'alert', text: 'GrafanaDatabaseDatabaseLocked: database write timeouts on shared persistent volume.' },
     ],
   },
 };
@@ -490,6 +529,18 @@ export const SC_REMEDIATION_OPTION_PATCHES: Record<string, ScRemediationOptionPa
   ],
   ap14: [
     { id: 'ap14-o1', description: 'Reconfigure chronyd on all 6 nodes in openshift-node.', rawCommands: 'oc patch daemonset chrony-sync -n openshift-node --type merge -p \'{"spec":{"template":{"spec":{"containers":[{"name":"chrony","env":[{"name":"NTP_SERVER","value":"ntp.corp.example.com"}]}]}}}}\' && oc rollout restart daemonset/chrony-sync -n openshift-node' },
+  ],
+  cp1: [
+    { id: 'cp1-o1', description: 'Apply ClusterVersion update to 4.15.8 on prod-east-2 with rolling worker rotation.', rawCommands: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade' },
+    { id: 'cp1-o2', description: 'Run upgrade preflight validation only — no control plane mutation.', rawCommands: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
+  ],
+  op2: [
+    { id: 'op2-o1', description: 'Rotate PagerDuty integration secret and restart alertmanager-main on prod-east-2.', rawCommands: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f - && oc rollout restart statefulset/alertmanager-main -n openshift-monitoring' },
+    { id: 'op2-o2', description: 'Disable PagerDuty receiver route until token rotation completes.', rawCommands: 'oc delete pod alertmanager-main-0 -n openshift-monitoring' },
+  ],
+  op5: [
+    { id: 'op5-o1', description: 'Clear Grafana SQLite WAL lock on shared monitoring PVC and restart grafana.', rawCommands: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal && oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
+    { id: 'op5-o2', description: 'Snapshot Grafana PVC then run forced SQLite checkpoint before restart.', rawCommands: 'oc create -f grafana-pvc-snapshot.yaml && oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
   ],
 };
 

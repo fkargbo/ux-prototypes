@@ -1254,15 +1254,33 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Alerts tab active filters
   const isAlertsTabGlobalView = alertsTabGroupFilter.length === 2 && alertsTabGroupFilter.includes('Cluster') && alertsTabGroupFilter.includes('Namespace');
   const hasAlertsTabGroupFilterChanges = !isAlertsTabGlobalView;
-  const hasAlertsTabActiveFilters = alertsTabRegionFilter.length > 0 || alertsTabClusterFilter.length > 0 || alertsTabNamespaceFilter.length > 0 || 
-    alertsTabLabelFilter.length > 0 || alertsTabSeverityFilter.length > 0 || hasAlertsTabGroupFilterChanges || alertsTabComponentFilter.length > 0 || alertsTabSearchValue.length > 0 ||
-    mainComponentFilter !== null || mainAlertNameFilter !== null || alertStateFilter.length > 0 || alertSourceFilter.length > 0 || contributingAlertsFilter.length > 0;
+  const hasAlertsTabActiveFilters =
+    (!isCorePlatformsPerspective && alertsTabRegionFilter.length > 0) ||
+    (!isCorePlatformsPerspective && alertsTabClusterFilter.length > 0) ||
+    alertsTabNamespaceFilter.length > 0 ||
+    alertsTabLabelFilter.length > 0 ||
+    alertsTabSeverityFilter.length > 0 ||
+    hasAlertsTabGroupFilterChanges ||
+    alertsTabComponentFilter.length > 0 ||
+    alertsTabSearchValue.length > 0 ||
+    mainComponentFilter !== null ||
+    mainAlertNameFilter !== null ||
+    alertStateFilter.length > 0 ||
+    alertSourceFilter.length > 0 ||
+    contributingAlertsFilter.length > 0;
+
+  React.useEffect(() => {
+    if (isCorePlatformsPerspective) {
+      setAlertsTabRegionFilter([]);
+      setAlertsTabClusterFilter([]);
+    }
+  }, [isCorePlatformsPerspective]);
 
   // Filtered clusters for Alerts tab (uses alerts-tab-specific filters)
   const filteredClustersForAlerts = React.useMemo(() => {
     return mockClusters.filter(cluster => {
-      if (alertsTabRegionFilter.length > 0 && !alertsTabRegionFilter.includes(cluster.region)) return false;
-      if (alertsTabClusterFilter.length > 0 && !alertsTabClusterFilter.includes(cluster.name)) return false;
+      if (!isCorePlatformsPerspective && alertsTabRegionFilter.length > 0 && !alertsTabRegionFilter.includes(cluster.region)) return false;
+      if (!isCorePlatformsPerspective && alertsTabClusterFilter.length > 0 && !alertsTabClusterFilter.includes(cluster.name)) return false;
       if (alertsTabNamespaceFilter.length > 0 && !cluster.namespaces.some(ns => alertsTabNamespaceFilter.includes(ns))) return false;
       if (alertsTabSearchValue && !cluster.name.toLowerCase().includes(alertsTabSearchValue.toLowerCase())) return false;
       if (alertsTabSeverityFilter.length > 0) {
@@ -1277,7 +1295,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
       }
       return true;
     });
-  }, [mockClusters, alertsTabRegionFilter, alertsTabClusterFilter, alertsTabNamespaceFilter, alertsTabSearchValue, alertsTabSeverityFilter, alertsTabComponentFilter]);
+  }, [mockClusters, alertsTabRegionFilter, alertsTabClusterFilter, alertsTabNamespaceFilter, alertsTabSearchValue, alertsTabSeverityFilter, alertsTabComponentFilter, isCorePlatformsPerspective]);
 
   const hasDrillDownActiveFilters = drillDownSeverityFilter.length > 0 || drillDownGroupFilter.length > 0 || 
     drillDownComponentFilter.length > 0 || drillDownSourceFilter.length > 0 || drillDownStateFilter.length > 0 ||
@@ -1854,6 +1872,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           clearAlertsTabFilters={clearAlertsTabFilters}
           hasAlertsTabActiveFilters={hasAlertsTabActiveFilters}
           hasAlertsTabGroupFilterChanges={hasAlertsTabGroupFilterChanges}
+          hideMultiClusterTableFeatures={isCorePlatformsPerspective}
         />
       )}
 

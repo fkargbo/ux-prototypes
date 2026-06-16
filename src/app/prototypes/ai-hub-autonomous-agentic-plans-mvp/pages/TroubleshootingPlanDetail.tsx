@@ -14,9 +14,7 @@ import {
 import {
   buildPrototypeHref,
   isSingleClusterPerspectiveKey,
-  PLANS_LIST_PATH,
   perspectiveKeyFromShellName,
-  readRemediationSource,
   resolveDrillPerspectiveKey,
   TROUBLESHOOTING_PLANS_LIST_PATH,
   writePlanRemediationDrillSession,
@@ -26,9 +24,9 @@ import { AiHubPageHeading } from '../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../prototypePerspectiveUrl';
 import './ai-hub-page.css';
 
-export const PlanRemediationPage: React.FC = () => {
+export const TroubleshootingPlanDetail: React.FC = () => {
   const navigate = useNavigate();
-  const { planSlug } = useParams<{ planSlug: string }>();
+  const { planId } = useParams<{ planId: string }>();
   const [searchParams] = useSearchParams();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
   const drillPerspectiveAppliedRef = useRef(false);
@@ -37,13 +35,6 @@ export const PlanRemediationPage: React.FC = () => {
     () => resolveDrillPerspectiveKey(searchParams),
     [searchParams],
   );
-
-  const remediationSource = useMemo(
-    () => readRemediationSource(searchParams),
-    [searchParams],
-  );
-
-  const isFromTroubleshootingPlans = remediationSource === 'troubleshooting-plans';
 
   const isSingleCluster = drillPerspectiveKey
     ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
@@ -57,21 +48,24 @@ export const PlanRemediationPage: React.FC = () => {
   );
 
   const plan = useMemo(() => {
-    if (!planSlug) {
-      return null;
-    }
-    return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find((row) => row.name === planSlug) ?? null;
-  }, [isSingleCluster, planSlug, planExecutionRuntime]);
+    if (!planId) return null;
+    const decoded = decodeURIComponent(planId);
+    return (
+      buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
+        (p) => p.id === decoded,
+      ) ?? null
+    );
+  }, [isSingleCluster, planId, planExecutionRuntime]);
 
   const navigateBackToPlans = useCallback(() => {
-    const key = drillPerspectiveKey
+    const key =
+      drillPerspectiveKey
       ?? perspectiveKeyFromShellName(activePerspective)
       ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
     writePlanRemediationDrillSession({ perspectiveKey: key });
     setPerspectiveByKey(key);
-    const backPath = isFromTroubleshootingPlans ? TROUBLESHOOTING_PLANS_LIST_PATH : PLANS_LIST_PATH;
-    navigate(buildPrototypeHref(backPath, key));
-  }, [activePerspective, drillPerspectiveKey, isFromTroubleshootingPlans, navigate, setPerspectiveByKey]);
+    navigate(buildPrototypeHref(TROUBLESHOOTING_PLANS_LIST_PATH, key));
+  }, [activePerspective, drillPerspectiveKey, navigate, setPerspectiveByKey]);
 
   useLayoutEffect(() => {
     if (!drillPerspectiveKey || drillPerspectiveAppliedRef.current) {
@@ -83,19 +77,20 @@ export const PlanRemediationPage: React.FC = () => {
   }, [drillPerspectiveKey]);
 
   useEffect(() => {
-    if (planSlug && plan) {
+    if (planId && plan) {
       return;
     }
-    const key = drillPerspectiveKey
+    const key =
+      drillPerspectiveKey
       ?? perspectiveKeyFromShellName(activePerspective)
       ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
     writePlanRemediationDrillSession({ perspectiveKey: key });
     setPerspectiveByKey(key);
-    navigate(buildPrototypeHref(PLANS_LIST_PATH, key), { replace: true });
+    navigate(buildPrototypeHref(TROUBLESHOOTING_PLANS_LIST_PATH, key), { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- redirect once when plan is missing
-  }, [planSlug, plan]);
+  }, [planId, plan]);
 
-  if (!planSlug || !plan) {
+  if (!planId || !plan) {
     return null;
   }
 
@@ -105,25 +100,12 @@ export const PlanRemediationPage: React.FC = () => {
     <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
       <div className="template-page-breadcrumb">
         <Breadcrumb>
-          {isFromTroubleshootingPlans ? (
-            <>
-              <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-                Observe
-              </BreadcrumbItem>
-              <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-                Troubleshooting plans
-              </BreadcrumbItem>
-            </>
-          ) : (
-            <>
-              <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-                Agentic Plans
-              </BreadcrumbItem>
-              <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-                Plans
-              </BreadcrumbItem>
-            </>
-          )}
+          <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
+            Observe
+          </BreadcrumbItem>
+          <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
+            Troubleshooting plans
+          </BreadcrumbItem>
           <BreadcrumbItem isActive>{planDisplayName}</BreadcrumbItem>
         </Breadcrumb>
       </div>
@@ -172,7 +154,7 @@ export const PlanRemediationPage: React.FC = () => {
       <div
         className="template-page-content"
         role="main"
-        aria-label={`Plan remediation: ${planDisplayName}`}
+        aria-label={`Troubleshooting plan: ${planDisplayName}`}
       >
         <div className="ols-plan-remediation-drilldown">
           <RemediationBlueprintPanel key={plan.id} plan={plan} />

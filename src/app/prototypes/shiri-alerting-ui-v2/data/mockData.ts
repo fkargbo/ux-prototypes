@@ -304,125 +304,248 @@ export const mockTrendData: TrendData[] = [
   { timestamp: 'Now', critical: 5, warning: 8, info: 4 },
 ];
 
-// Generate 45 clusters with comprehensive data
+// ============================================================
+// FIXED DETERMINISTIC CLUSTER DATA
+// Produces exactly the 17 aggregated alert rows visible on the
+// live reference page (kuklas.github.io/HPUX-Prototypes).
+//
+// Row index → alertName / severity / totalCount / clusterCount / group / component / source
+//  R1  PodCrashLoopBackOff  Critical  2  2   Cluster    Network         User
+//  R2  HighMemoryUsage      Critical  2  2   Cluster    Pod             User
+//  R3  ETCDHighLatency      Critical  2  2   Cluster    Pod             User
+//  R4  DiskPressure         Critical  1  1   Namespace  Network         User
+//  R5  HighCPUUsage         Warning   4  4   Cluster    Network         User
+//  R6  NetworkLatency       Warning   4  3   Cluster    Pod             Platform
+//  R7  QuotaWarning         Warning   5  5   Cluster    Quota           Platform
+//  R8  PodCrashLoopBackOff  Warning   6  6   Cluster    Workload        User
+//  R9  ETCDHighLatency      Warning   6  6   Namespace  Quota           User
+//  R10 ServiceUnavailable   Warning   2  2   Namespace  Quota           User
+//  R11 DiskPressure         Warning   2  2   Namespace  Quota           User
+//  R12 QuotaWarning         Info      2  2   Cluster    kube-apiserver  Platform
+//  R13 NetworkLatency       Info      4  4   Cluster    Pod             Platform
+//  R14 CertExpiring         Info      3  3   Cluster    Pod             Platform
+//  R15 ServiceUnavailable   Info      4  4   Cluster    Quota           Platform
+//  R16 HighMemoryUsage      Info      2  2   Namespace  Controller      User
+//  R17 PodCrashLoopBackOff  Info      5  3   Namespace  Workload        User
+// ============================================================
+
+function makeAlert(
+  idSuffix: string,
+  alertName: string,
+  severity: AlertSeverity,
+  group: AlertGroup,
+  component: AlertComponent,
+  source: string,
+  minutesAgo: number,
+): AlertData {
+  const lastFiredStr = minutesAgo < 60
+    ? `${minutesAgo} min ago`
+    : minutesAgo < 1440
+      ? `${Math.floor(minutesAgo / 60)} hour${Math.floor(minutesAgo / 60) > 1 ? 's' : ''} ago`
+      : `${Math.floor(minutesAgo / 1440)} day${Math.floor(minutesAgo / 1440) > 1 ? 's' : ''} ago`;
+  return {
+    id: `alert-${idSuffix}`,
+    severity,
+    status: 'firing',
+    alertName,
+    clusterName: '', // filled in below per-cluster
+    namespace: group === 'Namespace' ? 'production' : 'kube-system',
+    labels: { severity: severity.toLowerCase(), source: source.toLowerCase() },
+    summary: `${alertName} detected`,
+    lastFired: lastFiredStr,
+    lastFiredTimestamp: new Date(now.getTime() - minutesAgo * 60000),
+    details: `${alertName} requires immediate attention. Check runbook for remediation steps.`,
+    source,
+    count: 1,
+    group,
+    component,
+    description: `This alert indicates a ${alertName.toLowerCase()} condition affecting ${group === 'Namespace' ? 'a namespace' : 'the cluster'}.`,
+    runbookUrl: `https://runbooks.example.com/alerts/${alertName}`,
+  };
+}
+
+function withClusterName(alert: AlertData, clusterName: string): AlertData {
+  return { ...alert, clusterName };
+}
+
 export const generateMockClusters = (): ClusterData[] => {
-  const regions = ['US East', 'US West', 'US Central', 'EU Central', 'EU West', 'Asia Pacific', 'South America'];
-  const providers = ['AWS', 'GCP', 'Azure'];
-  const teams = ['Platform', 'Data', 'QA', 'Development', 'Security', 'ML'];
-  const envs = ['prod', 'staging', 'dev'];
-  const alertNames = ['HighMemoryUsage', 'HighCPUUsage', 'PodCrashLoopBackOff', 'NodeNotReady', 'DiskPressure', 'NetworkLatency', 'ServiceUnavailable', 'QuotaWarning', 'CertExpiring', 'ETCDHighLatency'];
-  const components: AlertComponent[] = ['kube-apiserver', 'Storage', 'Network', 'etcd', 'Scheduler', 'Controller', 'Workload', 'Pod', 'Quota'];
-  const groups: AlertGroup[] = ['Cluster', 'Namespace'];
-  const sources = ['Platform', 'User'];
+  // ── 8 clusters with firing alerts ──────────────────────────────────────────
 
-  const clusters: ClusterData[] = [];
+  const clusterDefs: Array<{
+    id: string; name: string; region: string; provider: string; team: string;
+    nodeCount: number; cpuUsage: number; memUsage: number;
+    alerts: AlertData[];
+  }> = [
+    {
+      id: 'c1', name: 'prod-us-east-1', region: 'US East', provider: 'AWS', team: 'Platform',
+      nodeCount: 18, cpuUsage: 72, memUsage: 68,
+      alerts: [
+        makeAlert('e1-r1',  'PodCrashLoopBackOff', 'Critical', 'Cluster',   'Network',        'User',     45),
+        makeAlert('e1-r2',  'HighMemoryUsage',     'Critical', 'Cluster',   'Pod',            'User',     30),
+        makeAlert('e1-r5',  'HighCPUUsage',        'Warning',  'Cluster',   'Network',        'User',     90),
+        makeAlert('e1-r6a', 'NetworkLatency',      'Warning',  'Cluster',   'Pod',            'Platform', 120),
+        makeAlert('e1-r6b', 'NetworkLatency',      'Warning',  'Cluster',   'Pod',            'Platform', 135),
+        makeAlert('e1-r7',  'QuotaWarning',        'Warning',  'Cluster',   'Quota',          'Platform', 200),
+        makeAlert('e1-r8',  'PodCrashLoopBackOff', 'Warning',  'Cluster',   'Workload',       'User',     55),
+        makeAlert('e1-r9',  'ETCDHighLatency',     'Warning',  'Namespace', 'Quota',          'User',     180),
+        makeAlert('e1-r12', 'QuotaWarning',        'Info',     'Cluster',   'kube-apiserver', 'Platform', 250),
+        makeAlert('e1-r13', 'NetworkLatency',      'Info',     'Cluster',   'Pod',            'Platform', 300),
+        makeAlert('e1-r14', 'CertExpiring',        'Info',     'Cluster',   'Pod',            'Platform', 350),
+        makeAlert('e1-r15', 'ServiceUnavailable',  'Info',     'Cluster',   'Quota',          'Platform', 280),
+        makeAlert('e1-r17a','PodCrashLoopBackOff', 'Info',     'Namespace', 'Workload',       'User',     40),
+        makeAlert('e1-r17b','PodCrashLoopBackOff', 'Info',     'Namespace', 'Workload',       'User',     50),
+      ],
+    },
+    {
+      id: 'c2', name: 'prod-us-east-2', region: 'US East', provider: 'AWS', team: 'Platform',
+      nodeCount: 14, cpuUsage: 58, memUsage: 61,
+      alerts: [
+        makeAlert('e2-r1',  'PodCrashLoopBackOff', 'Critical', 'Cluster',   'Network',        'User',     50),
+        makeAlert('e2-r5',  'HighCPUUsage',        'Warning',  'Cluster',   'Network',        'User',     85),
+        makeAlert('e2-r7',  'QuotaWarning',        'Warning',  'Cluster',   'Quota',          'Platform', 210),
+        makeAlert('e2-r8',  'PodCrashLoopBackOff', 'Warning',  'Cluster',   'Workload',       'User',     60),
+        makeAlert('e2-r9',  'ETCDHighLatency',     'Warning',  'Namespace', 'Quota',          'User',     190),
+        makeAlert('e2-r12', 'QuotaWarning',        'Info',     'Cluster',   'kube-apiserver', 'Platform', 260),
+        makeAlert('e2-r13', 'NetworkLatency',      'Info',     'Cluster',   'Pod',            'Platform', 310),
+        makeAlert('e2-r15', 'ServiceUnavailable',  'Info',     'Cluster',   'Quota',          'Platform', 290),
+      ],
+    },
+    {
+      id: 'c3', name: 'prod-us-west-1', region: 'US West', provider: 'GCP', team: 'Platform',
+      nodeCount: 16, cpuUsage: 64, memUsage: 70,
+      alerts: [
+        makeAlert('w1-r2',   'HighMemoryUsage',     'Critical', 'Cluster',   'Pod',      'User',     35),
+        makeAlert('w1-r5',   'HighCPUUsage',        'Warning',  'Cluster',   'Network',  'User',     95),
+        makeAlert('w1-r6',   'NetworkLatency',      'Warning',  'Cluster',   'Pod',      'Platform', 140),
+        makeAlert('w1-r7',   'QuotaWarning',        'Warning',  'Cluster',   'Quota',    'Platform', 220),
+        makeAlert('w1-r8',   'PodCrashLoopBackOff', 'Warning',  'Cluster',   'Workload', 'User',     65),
+        makeAlert('w1-r9',   'ETCDHighLatency',     'Warning',  'Namespace', 'Quota',    'User',     195),
+        makeAlert('w1-r11',  'DiskPressure',        'Warning',  'Namespace', 'Quota',    'User',     230),
+        makeAlert('w1-r13',  'NetworkLatency',      'Info',     'Cluster',   'Pod',      'Platform', 315),
+        makeAlert('w1-r14',  'CertExpiring',        'Info',     'Cluster',   'Pod',      'Platform', 360),
+        makeAlert('w1-r17a', 'PodCrashLoopBackOff', 'Info',     'Namespace', 'Workload', 'User',     45),
+        makeAlert('w1-r17b', 'PodCrashLoopBackOff', 'Info',     'Namespace', 'Workload', 'User',     55),
+      ],
+    },
+    {
+      id: 'c4', name: 'prod-us-west-2', region: 'US West', provider: 'GCP', team: 'Data',
+      nodeCount: 10, cpuUsage: 49, memUsage: 55,
+      alerts: [
+        makeAlert('w2-r5',  'HighCPUUsage',        'Warning',  'Cluster',   'Network',  'User',     100),
+        makeAlert('w2-r7',  'QuotaWarning',        'Warning',  'Cluster',   'Quota',    'Platform', 215),
+        makeAlert('w2-r8',  'PodCrashLoopBackOff', 'Warning',  'Cluster',   'Workload', 'User',     70),
+        makeAlert('w2-r9',  'ETCDHighLatency',     'Warning',  'Namespace', 'Quota',    'User',     185),
+        makeAlert('w2-r11', 'DiskPressure',        'Warning',  'Namespace', 'Quota',    'User',     240),
+      ],
+    },
+    {
+      id: 'c5', name: 'prod-eu-central-1', region: 'EU Central', provider: 'Azure', team: 'Platform',
+      nodeCount: 20, cpuUsage: 76, memUsage: 72,
+      alerts: [
+        makeAlert('ec1-r3',  'ETCDHighLatency',     'Critical', 'Cluster',   'Pod',            'User',     25),
+        makeAlert('ec1-r6',  'NetworkLatency',      'Warning',  'Cluster',   'Pod',            'Platform', 145),
+        makeAlert('ec1-r7',  'QuotaWarning',        'Warning',  'Cluster',   'Quota',          'Platform', 225),
+        makeAlert('ec1-r8',  'PodCrashLoopBackOff', 'Warning',  'Cluster',   'Workload',       'User',     75),
+        makeAlert('ec1-r9',  'ETCDHighLatency',     'Warning',  'Namespace', 'Quota',          'User',     175),
+        makeAlert('ec1-r13', 'NetworkLatency',      'Info',     'Cluster',   'Pod',            'Platform', 320),
+        makeAlert('ec1-r14', 'CertExpiring',        'Info',     'Cluster',   'Pod',            'Platform', 370),
+        makeAlert('ec1-r15', 'ServiceUnavailable',  'Info',     'Cluster',   'Quota',          'Platform', 285),
+        makeAlert('ec1-r17', 'PodCrashLoopBackOff', 'Info',     'Namespace', 'Workload',       'User',     60),
+      ],
+    },
+    {
+      id: 'c6', name: 'prod-eu-west-1', region: 'EU West', provider: 'Azure', team: 'Security',
+      nodeCount: 12, cpuUsage: 55, memUsage: 59,
+      alerts: [
+        makeAlert('ew1-r3',  'ETCDHighLatency',    'Critical', 'Cluster',   'Pod',     'User',     20),
+        makeAlert('ew1-r8',  'PodCrashLoopBackOff','Warning',  'Cluster',   'Workload','User',     80),
+        makeAlert('ew1-r9',  'ETCDHighLatency',    'Warning',  'Namespace', 'Quota',   'User',     170),
+        makeAlert('ew1-r15', 'ServiceUnavailable', 'Info',     'Cluster',   'Quota',   'Platform', 295),
+      ],
+    },
+    {
+      id: 'c7', name: 'staging-us-1', region: 'US East', provider: 'AWS', team: 'QA',
+      nodeCount: 6, cpuUsage: 38, memUsage: 42,
+      alerts: [
+        makeAlert('su1-r4',  'DiskPressure',       'Critical', 'Namespace', 'Network',    'User', 15),
+        makeAlert('su1-r10', 'ServiceUnavailable', 'Warning',  'Namespace', 'Quota',      'User', 110),
+        makeAlert('su1-r16', 'HighMemoryUsage',    'Info',     'Namespace', 'Controller', 'User', 330),
+      ],
+    },
+    {
+      id: 'c8', name: 'staging-eu-1', region: 'EU West', provider: 'GCP', team: 'QA',
+      nodeCount: 5, cpuUsage: 32, memUsage: 38,
+      alerts: [
+        makeAlert('seu1-r10', 'ServiceUnavailable','Warning',  'Namespace', 'Quota',      'User', 115),
+        makeAlert('seu1-r16', 'HighMemoryUsage',   'Info',     'Namespace', 'Controller', 'User', 335),
+      ],
+    },
+  ];
 
-  for (let i = 1; i <= 45; i++) {
-    const env = envs[Math.floor(Math.random() * envs.length)];
-    const region = regions[Math.floor(Math.random() * regions.length)];
-    const provider = providers[Math.floor(Math.random() * providers.length)];
-    const team = teams[Math.floor(Math.random() * teams.length)];
-    const nodeCount = Math.floor(Math.random() * 20) + 3;
-    const podCount = nodeCount * (Math.floor(Math.random() * 15) + 5);
+  // ── 10 healthy clusters (no firing alerts) ──────────────────────────────────
+  const healthyClusters: Array<{ id: string; name: string; region: string; provider: string; team: string; nodeCount: number; cpuUsage: number; memUsage: number }> = [
+    { id: 'h1',  name: 'prod-apac-1',      region: 'Asia Pacific',  provider: 'AWS',   team: 'Platform',    nodeCount: 15, cpuUsage: 42, memUsage: 45 },
+    { id: 'h2',  name: 'prod-apac-2',      region: 'Asia Pacific',  provider: 'GCP',   team: 'Data',        nodeCount: 12, cpuUsage: 38, memUsage: 41 },
+    { id: 'h3',  name: 'prod-sa-1',        region: 'South America', provider: 'Azure', team: 'Development', nodeCount: 8,  cpuUsage: 35, memUsage: 39 },
+    { id: 'h4',  name: 'prod-us-central-1',region: 'US Central',    provider: 'AWS',   team: 'Platform',    nodeCount: 18, cpuUsage: 44, memUsage: 50 },
+    { id: 'h5',  name: 'prod-eu-north-1',  region: 'EU West',       provider: 'Azure', team: 'Security',    nodeCount: 10, cpuUsage: 30, memUsage: 35 },
+    { id: 'h6',  name: 'staging-us-2',     region: 'US West',       provider: 'GCP',   team: 'QA',          nodeCount: 5,  cpuUsage: 28, memUsage: 32 },
+    { id: 'h7',  name: 'staging-apac-1',   region: 'Asia Pacific',  provider: 'AWS',   team: 'QA',          nodeCount: 4,  cpuUsage: 22, memUsage: 28 },
+    { id: 'h8',  name: 'dev-us-1',         region: 'US East',       provider: 'AWS',   team: 'Development', nodeCount: 4,  cpuUsage: 20, memUsage: 25 },
+    { id: 'h9',  name: 'dev-eu-1',         region: 'EU Central',    provider: 'GCP',   team: 'Development', nodeCount: 3,  cpuUsage: 18, memUsage: 22 },
+    { id: 'h10', name: 'dev-apac-1',       region: 'Asia Pacific',  provider: 'Azure', team: 'ML',          nodeCount: 3,  cpuUsage: 16, memUsage: 20 },
+  ];
 
-    // Generate alerts for this cluster
-    const alertCount = Math.floor(Math.random() * 6);
-    const alerts: AlertData[] = [];
+  const result: ClusterData[] = [];
 
-    for (let j = 0; j < alertCount; j++) {
-      const severity: AlertSeverity = Math.random() < 0.1 ? 'Critical' : Math.random() < 0.5 ? 'Warning' : 'Info';
-      const status: AlertStatus = Math.random() < 0.7 ? 'firing' : Math.random() < 0.9 ? 'acknowledged' : 'resolved';
-      const alertName = alertNames[Math.floor(Math.random() * alertNames.length)];
-
-      // Generate varied time ranges — heavily weighted toward recent to ensure
-      // alerts are visible with the default "Last 6 hours" time filter
-      const timeBucket = Math.random();
-      let minutesAgo: number;
-      if (timeBucket < 0.35) {
-        // Within last hour
-        minutesAgo = Math.floor(Math.random() * 55) + 5;
-      } else if (timeBucket < 0.60) {
-        // 1-4 hours ago
-        minutesAgo = Math.floor(Math.random() * 180) + 61;
-      } else if (timeBucket < 0.80) {
-        // 4-12 hours ago
-        minutesAgo = Math.floor(Math.random() * 480) + 241;
-      } else if (timeBucket < 0.90) {
-        // 12-24 hours ago
-        minutesAgo = Math.floor(Math.random() * 720) + 721;
-      } else if (timeBucket < 0.95) {
-        // 1-7 days ago
-        minutesAgo = Math.floor(Math.random() * 8640) + 1440;
-      } else {
-        // 7-30 days ago
-        minutesAgo = Math.floor(Math.random() * 33120) + 10080;
-      }
-
-      // Format the lastFired string based on time
-      let lastFiredStr: string;
-      if (minutesAgo < 60) {
-        lastFiredStr = `${minutesAgo} min ago`;
-      } else if (minutesAgo < 1440) {
-        lastFiredStr = `${Math.floor(minutesAgo / 60)} hour${Math.floor(minutesAgo / 60) > 1 ? 's' : ''} ago`;
-      } else {
-        const daysAgo = Math.floor(minutesAgo / 1440);
-        lastFiredStr = `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`;
-      }
-
-      const ackAt = status === 'acknowledged' ? new Date(now.getTime() - Math.floor(Math.random() * minutesAgo * 0.5) * 60000) : undefined;
-
-      alerts.push({
-        id: `alert-${i}-${j}`,
-        severity,
-        status,
-        alertName,
-        clusterName: `cluster-${env}-${region.toLowerCase().replace(' ', '-')}-${i}`,
-        namespace: Math.random() < 0.5 ? 'production' : Math.random() < 0.7 ? 'kube-system' : 'monitoring',
-        labels: { env, severity: severity.toLowerCase(), team },
-        summary: `${alertName} detected on cluster-${i}`,
-        lastFired: lastFiredStr,
-        lastFiredTimestamp: new Date(now.getTime() - minutesAgo * 60000),
-        details: `Detailed information about ${alertName}. This requires attention.`,
-        source: sources[Math.floor(Math.random() * sources.length)],
-        count: Math.floor(Math.random() * 10) + 1,
-        group: groups[Math.floor(Math.random() * groups.length)],
-        component: components[Math.floor(Math.random() * components.length)],
-        description: `This alert indicates ${alertName.toLowerCase()} condition.`,
-        resource: Math.random() < 0.3 ? `node-${Math.floor(Math.random() * 10) + 1}` : undefined,
-        runbookUrl: Math.random() < 0.7 ? `https://runbooks.example.com/alerts/${alertName}` : undefined,
-        acknowledgedBy: status === 'acknowledged' ? 'admin@nyf.com' : undefined,
-        acknowledgedAt: ackAt,
-      });
-    }
-
-    // Assign ACM status - most clusters are Ready, some have other statuses
-    const acmStatuses: ACMClusterStatus[] = ['Ready', 'Ready', 'Ready', 'Ready', 'Ready', 'Ready', 'Ready', 'Ready',
-      'Degraded', 'Degraded', 'Offline', 'Unknown', 'Hibernating', 'Pending Import', 'Installing'];
-    const acmStatus = acmStatuses[Math.floor(Math.random() * acmStatuses.length)];
-
-    clusters.push({
-      id: `cluster-${i}`,
-      name: `${env}-${provider.toLowerCase()}-${region.toLowerCase().replace(' ', '-')}-${i}`,
-      region,
-      cloudProvider: provider,
-      team,
-      namespaces: ['production', 'kube-system', 'monitoring', 'logging'].slice(0, Math.floor(Math.random() * 3) + 2),
-      labels: { env, tier: env === 'prod' ? 'critical' : 'standard' },
+  for (const def of clusterDefs) {
+    const alerts = def.alerts.map(a => withClusterName(a, def.name));
+    result.push({
+      id: def.id,
+      name: def.name,
+      region: def.region,
+      cloudProvider: def.provider,
+      team: def.team,
+      namespaces: ['production', 'kube-system', 'monitoring', 'logging'],
+      labels: { env: def.name.startsWith('staging') ? 'staging' : 'prod', tier: def.name.startsWith('prod') ? 'critical' : 'standard' },
       alerts,
-      nodeCount,
-      podCount,
-      cpuUsage: Math.floor(Math.random() * 60) + 20,
-      memoryUsage: Math.floor(Math.random() * 60) + 25,
-      cpuCores: nodeCount * 4,
-      totalMemory: nodeCount * 16,
-      vmCount: Math.floor(Math.random() * 10),
-      cpuRequests: Math.floor(Math.random() * 50) + 10,
-      memoryRequests: Math.floor(Math.random() * 40) + 15,
-      acmStatus,
+      nodeCount: def.nodeCount,
+      podCount: def.nodeCount * 12,
+      cpuUsage: def.cpuUsage,
+      memoryUsage: def.memUsage,
+      cpuCores: def.nodeCount * 4,
+      totalMemory: def.nodeCount * 16,
+      vmCount: 0,
+      cpuRequests: Math.round(def.cpuUsage * 0.7),
+      memoryRequests: Math.round(def.memUsage * 0.65),
+      acmStatus: 'Ready',
     });
   }
 
-  return clusters;
+  for (const h of healthyClusters) {
+    result.push({
+      id: h.id,
+      name: h.name,
+      region: h.region,
+      cloudProvider: h.provider,
+      team: h.team,
+      namespaces: ['production', 'kube-system', 'monitoring'],
+      labels: { env: h.name.startsWith('dev') ? 'dev' : h.name.startsWith('staging') ? 'staging' : 'prod', tier: 'standard' },
+      alerts: [],
+      nodeCount: h.nodeCount,
+      podCount: h.nodeCount * 10,
+      cpuUsage: h.cpuUsage,
+      memoryUsage: h.memUsage,
+      cpuCores: h.nodeCount * 4,
+      totalMemory: h.nodeCount * 16,
+      vmCount: 0,
+      cpuRequests: Math.round(h.cpuUsage * 0.6),
+      memoryRequests: Math.round(h.memUsage * 0.6),
+      acmStatus: 'Ready',
+    });
+  }
+
+  return result;
 };
 
 export const mockClusters: ClusterData[] = generateMockClusters();

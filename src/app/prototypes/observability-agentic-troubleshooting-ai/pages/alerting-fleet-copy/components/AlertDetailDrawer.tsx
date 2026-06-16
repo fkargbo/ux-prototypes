@@ -25,6 +25,7 @@ import {
 } from '@patternfly/react-icons';
 import type { AlertData } from '../data/types';
 import { AlertTimelineVisualization } from './AlertTimelineVisualization';
+import { AI_EXPERIENCE_ICON_DATA_URL } from '../../../components/autonomousAiObserve/aiExperienceIconUrl';
 
 export interface AlertDetailDrawerProps {
   isExpanded: boolean;
@@ -429,7 +430,7 @@ export const AlertDetailDrawer: React.FC<AlertDetailDrawerProps> = ({
                       <StackItem>
                         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                           <Button variant="link" isInline>
-                            Troubleshoot
+                            Troubleshoot with Signal Correlation
                           </Button>
                           <Popover
                             headerContent="Install Korrel8r operator to correlate observability signals"
@@ -441,7 +442,7 @@ export const AlertDetailDrawer: React.FC<AlertDetailDrawerProps> = ({
                               </Flex>
                             }
                           >
-                            <Button variant="plain" aria-label="More info about Troubleshoot" style={{ padding: '0 4px' }}>
+                            <Button variant="plain" aria-label="More info about Troubleshoot with Signal Correlation" style={{ padding: '0 4px' }}>
                               <Icon status="info">
                                 <InfoCircleIcon />
                               </Icon>
@@ -458,6 +459,21 @@ export const AlertDetailDrawer: React.FC<AlertDetailDrawerProps> = ({
                         <Button variant="link" isInline>
                           See related incident
                         </Button>
+                      </StackItem>
+                      <StackItem>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                          <img
+                            src={AI_EXPERIENCE_ICON_DATA_URL}
+                            alt=""
+                            aria-hidden="true"
+                            width={14}
+                            height={14}
+                            style={{ display: 'block', flexShrink: 0 }}
+                          />
+                          <Button variant="link" isInline>
+                            Investigate with AI
+                          </Button>
+                        </Flex>
                       </StackItem>
                     </Stack>
                   </StackItem>
