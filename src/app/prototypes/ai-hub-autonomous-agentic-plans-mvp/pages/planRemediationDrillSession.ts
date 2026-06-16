@@ -3,11 +3,16 @@ import {
   buildPrototypeHref,
   DRILL_FROM_QUERY_PARAM,
   getPlanRemediationHref,
+  getTroubleshootingPlanRemediationHref,
   parsePerspectiveKey,
+  PLAN_REMEDIATION_SOURCE_QUERY_PARAM,
   PLANS_LIST_PATH,
   perspectiveKeyFromShellName,
   isSingleClusterPerspectiveKey,
   readPerspectiveFromSearch,
+  readRemediationSource,
+  TROUBLESHOOTING_PLANS_LIST_PATH,
+  type PlanRemediationSource,
 } from '../prototypePerspectiveUrl';
 
 /** Handoff from Plans list ↔ remediation drill-down (perspective-aware breadcrumb return). */
