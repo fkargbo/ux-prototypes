@@ -1764,7 +1764,7 @@ interface PlansTableCoreProps {
   isAgenticAutomationEnabled: boolean;
 }
 
-const PlansTableCore: React.FC<PlansTableCoreProps> = ({
+export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   rows,
   ariaLabel,
   scopeColumnLabel,

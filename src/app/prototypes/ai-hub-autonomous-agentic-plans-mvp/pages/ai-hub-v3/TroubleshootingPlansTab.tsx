@@ -3,17 +3,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
-  Button,
   Content,
-  Flex,
-  FlexItem,
   Pagination,
   Stack,
   StackItem,
-  Tooltip,
 } from '@patternfly/react-core';
-import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import {
   getAgenticAutomationDisabledMessage,
   resolveAgentCapabilitiesClusterId,
@@ -26,10 +20,7 @@ import {
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
 import {
-  PlanConfidenceBadge,
-  PlanRiskBadge,
-  StatusLabel,
-  TriggerDomainCell,
+  PlansTableCore,
   buildPlansForPerspective,
   getPlanRemediationPath,
   type PlanRow,
@@ -39,26 +30,6 @@ import {
   TROUBLESHOOTING_STATUS_FILTER_OPTIONS,
   usePlansFilterState,
 } from './PlansFilterToolbar';
-
-const AI_TOOLTIP =
-  'This metric is synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns.';
-
-const AiSparkle: React.FC<{ size?: number }> = ({ size = 14 }) => (
-  <Tooltip content={AI_TOOLTIP} position="top">
-    <span
-      tabIndex={0}
-      role="img"
-      aria-label="AI-synthesized metric"
-      style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', cursor: 'help', flexShrink: 0 }}
-    >
-      <img src={AI_EXPERIENCE_ICON_DATA_URL} alt="" aria-hidden="true" width={size} height={size} style={{ display: 'block' }} />
-    </span>
-  </Tooltip>
-);
-
-const TABLE_HEADER_TH_STYLE: React.CSSProperties = {
-  verticalAlign: 'top',
-};
 
 const DEFAULT_PER_PAGE = 10;
 
@@ -165,90 +136,19 @@ export const TroubleshootingPlansTab: React.FC = () => {
           {...plansFilter}
         />
 
-        <Table
-          aria-label="Troubleshooting plans"
-          className="ols-plans-table"
-          style={{
-            tableLayout: 'fixed',
-            width: '100%',
-            opacity: isAgenticAutomationEnabled ? 1 : 0.55,
-            transition: 'opacity 200ms ease',
-          }}
-        >
-          <Thead>
-            <Tr>
-              <Th style={{ width: '22%', ...TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
-              <Th style={{ width: '12%', ...TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
-              <Th style={{ width: '10%', ...TABLE_HEADER_TH_STYLE }}>Risk score</Th>
-              <Th style={{ width: '11%', ...TABLE_HEADER_TH_STYLE }}>Confidence</Th>
-              <Th style={{ width: '12%', ...TABLE_HEADER_TH_STYLE }}>Status</Th>
-              <Th style={{ width: '33%', ...TABLE_HEADER_TH_STYLE }}>Input/Signal context</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {paginatedRows.length === 0 ? (
-              <Tr>
-                <Td colSpan={6}>
-                  <Content component="p" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    No troubleshooting plans match the current filters.
-                  </Content>
-                </Td>
-              </Tr>
-            ) : (
-              paginatedRows.map((row) => (
-                <Tr key={row.id} style={{ verticalAlign: 'middle' }}>
-                  <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                      <FlexItem>
-                        <AiSparkle />
-                      </FlexItem>
-                      <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
-                        <Button
-                          variant="link"
-                          isInline
-                          isDisabled={!isAgenticAutomationEnabled}
-                          onClick={() => openPlanRemediation(row)}
-                          style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
-                        >
-                          {row.synopsis}
-                        </Button>
-                        <Content
-                          component="small"
-                          style={{
-                            display: 'block',
-                            marginTop: 'var(--pf-t--global--spacer--2xs)',
-                            color: 'var(--pf-t--global--text--color--subtle)',
-                          }}
-                        >
-                          {row.name ?? row.id}
-                        </Content>
-                      </FlexItem>
-                    </Flex>
-                  </Td>
-                  <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
-                    <TriggerDomainCell domain={row.triggerDomain} />
-                  </Td>
-                  <Td dataLabel="Risk score">
-                    <PlanRiskBadge score={row.riskScore ?? 50} showPrefix={false} />
-                  </Td>
-                  <Td dataLabel="Confidence">
-                    {row.confidenceTier ? (
-                      <PlanConfidenceBadge tier={row.confidenceTier} showPrefix={false} />
-                    ) : (
-                      '—'
-                    )}
-                  </Td>
-                  <Td dataLabel="Status">
-                    <StatusLabel status={row.status} terminatedAt={row.terminatedAt} />
-                  </Td>
-                  <Td dataLabel="Input/Signal context" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                    {row.consolidationScope}
-                  </Td>
-                </Tr>
-              ))
-            )}
-          </Tbody>
-        </Table>
+        {paginatedRows.length === 0 ? (
+          <Content component="p" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
+            No troubleshooting plans match the current filters.
+          </Content>
+        ) : (
+          <PlansTableCore
+            rows={paginatedRows}
+            ariaLabel="Troubleshooting plans"
+            scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
+            onReviewPlan={openPlanRemediation}
+            isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+          />
+        )}
       </StackItem>
     </Stack>
   );
