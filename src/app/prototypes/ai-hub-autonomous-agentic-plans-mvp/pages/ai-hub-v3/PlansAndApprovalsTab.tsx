@@ -38,7 +38,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, LockIcon, LockOpenIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, LockIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -52,7 +52,6 @@ import {
   riskTierLabelColor,
   scoreToRiskTier,
 } from '../../types/riskScore';
-import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import {
   AGENTIC_STATUS_FILTER_OPTIONS,
   PlansFilterToolbar,
@@ -67,7 +66,6 @@ import {
   applyScRemediationPatches,
 } from './singleClusterPlanSimulation';
 import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
-import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import {
   clearPlanRemediationDrillSession,
   getPlanRemediationHref,
@@ -101,7 +99,6 @@ export interface PlanRow {
   status: PlanStatus;
   score: number;
   synopsis: string;
-  blastRadius: string;
   consolidationScope: string;
   triggerDomain: string;
   isUnauthorized: boolean;
@@ -348,7 +345,6 @@ const TOP_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 94,
     synopsis: 'Re-sync GitOps Domain Drift',
-    blastRadius: '4 Fleets',
     consolidationScope: '1 Drift / 4 Alerts',
     triggerDomain: 'GitOps',
     isUnauthorized: false,
@@ -364,7 +360,6 @@ const TOP_PLANS: PlanRow[] = [
     status: 'Investigating',
     score: 89,
     synopsis: 'Quarantine Container Security Exploit',
-    blastRadius: '3 Clusters',
     consolidationScope: '14 Runtime Events',
     triggerDomain: 'Security',
     isUnauthorized: false,
@@ -379,7 +374,6 @@ const TOP_PLANS: PlanRow[] = [
     status: 'Remediating',
     score: 85,
     synopsis: 'Resolve Cascade Pod OOMKills',
-    blastRadius: '1 Cluster',
     consolidationScope: '6 Events / 2 Alerts',
     triggerDomain: 'Compute',
     isUnauthorized: false,
@@ -395,7 +389,6 @@ const TOP_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 82,
     synopsis: 'Remediate Rook-Ceph Storage Depletion',
-    blastRadius: '2 Clusters',
     consolidationScope: '8 Alerts',
     triggerDomain: 'Storage',
     isUnauthorized: true,
@@ -411,7 +404,6 @@ const TOP_PLANS: PlanRow[] = [
     status: 'Completed',
     score: 80,
     synopsis: 'Optimize Control Plane API Latency',
-    blastRadius: '1 Cluster',
     consolidationScope: '2 API Events',
     triggerDomain: 'Control Plane',
     isUnauthorized: false,
@@ -426,7 +418,6 @@ const TOP_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 86,
     synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life',
-    blastRadius: '1 Cluster',
     consolidationScope: 'Cluster is EOL or behind upgrade channel',
     triggerDomain: 'Control Plane',
     isUnauthorized: false,
@@ -447,7 +438,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Completed',
     score: 78,
     synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation',
-    blastRadius: '1 Cluster',
     consolidationScope: 'Critical z-stream platform CVE remediation available',
     triggerDomain: 'Control Plane',
     isUnauthorized: false,
@@ -464,7 +454,6 @@ const ALL_PLANS: PlanRow[] = [
     terminatedAt: 'Jun 9, 2026, 4:12 PM',
     score: 74,
     synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
-    blastRadius: '1 Cluster',
     consolidationScope: 'Admin triggered channel update check; manually terminated mid-flight',
     triggerDomain: 'Control Plane',
     isUnauthorized: false,
@@ -480,7 +469,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 78,
     synopsis: 'Fix Minor App Memory Leak',
-    blastRadius: '1 Cluster',
     consolidationScope: '3 Alerts',
     triggerDomain: 'Observability',
     isUnauthorized: false,
@@ -496,7 +484,6 @@ const ALL_PLANS: PlanRow[] = [
     terminatedAt: 'Jun 9, 2026, 2:48 PM',
     score: 75,
     synopsis: 'Repair Dev CI/CD Webhook Block',
-    blastRadius: '2 Clusters',
     consolidationScope: '1 Failure / 2 Alerts',
     triggerDomain: 'Pipelines',
     isUnauthorized: false,
@@ -512,7 +499,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 71,
     synopsis: 'Rotate Expiring IAM Client Tokens',
-    blastRadius: '1 Cluster',
     consolidationScope: '1 Auth Event',
     triggerDomain: 'Security',
     isUnauthorized: true,
@@ -527,7 +513,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Investigating',
     score: 68,
     synopsis: 'Investigate Core DNS Latency Spikes',
-    blastRadius: '3 Clusters',
     consolidationScope: '4 Alerts',
     triggerDomain: 'Network',
     isUnauthorized: false,
@@ -542,7 +527,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Failed',
     score: 65,
     synopsis: 'Rebalance BareMetal Node Scheduling',
-    blastRadius: '1 Cluster',
     consolidationScope: '2 Events / 1 Alert',
     triggerDomain: 'Compute',
     isUnauthorized: false,
@@ -558,7 +542,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Completed',
     score: 62,
     synopsis: 'Re-sync Staging Namespace Drift',
-    blastRadius: '1 Cluster',
     consolidationScope: '1 Drift Event',
     triggerDomain: 'GitOps',
     isUnauthorized: false,
@@ -573,7 +556,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 59,
     synopsis: 'Fix Inactive Ingress Router Replicas',
-    blastRadius: '2 Clusters',
     consolidationScope: '2 Alerts',
     triggerDomain: 'Network',
     isUnauthorized: false,
@@ -588,7 +570,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 55,
     synopsis: 'Mitigate ACS Compliance Violation',
-    blastRadius: '1 Cluster',
     consolidationScope: '1 Security Event / 3 Alerts',
     triggerDomain: 'Security',
     isUnauthorized: true,
@@ -604,7 +585,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 52,
     synopsis: 'Clear Stale Pod Garbage Collection',
-    blastRadius: '2 Clusters',
     consolidationScope: '4 Pod Events',
     triggerDomain: 'Compute',
     isUnauthorized: false,
@@ -619,7 +599,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Completed',
     score: 49,
     synopsis: 'Resolve High Jenkins Queue Depth',
-    blastRadius: '1 Cluster',
     consolidationScope: '1 Alert',
     triggerDomain: 'Pipelines',
     isUnauthorized: false,
@@ -634,7 +613,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 46,
     synopsis: 'Remediate HorizontalPodAutoscaler Limits',
-    blastRadius: '1 Cluster',
     consolidationScope: '1 HPA Event',
     triggerDomain: 'Compute',
     isUnauthorized: false,
@@ -649,7 +627,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 42,
     synopsis: 'Fix Container Registry Pull Failures',
-    blastRadius: '4 Clusters',
     consolidationScope: '5 Alerts',
     triggerDomain: 'Registry',
     isUnauthorized: false,
@@ -664,7 +641,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Investigating',
     score: 38,
     synopsis: 'Tune Database Read IOPS Throttle',
-    blastRadius: '1 Cluster',
     consolidationScope: '1 Event / 2 Alerts',
     triggerDomain: 'Storage',
     isUnauthorized: false,
@@ -680,7 +656,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Completed',
     score: 35,
     synopsis: 'Address NTP Time Desynchronization',
-    blastRadius: '3 Clusters',
     consolidationScope: '3 Alerts',
     triggerDomain: 'Compute',
     isUnauthorized: false,
@@ -695,7 +670,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 30,
     synopsis: 'Clean Obsolete Image Stream Tags',
-    blastRadius: '1 Cluster',
     consolidationScope: '1 Registry Event',
     triggerDomain: 'Registry',
     isUnauthorized: false,
@@ -710,7 +684,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Completed',
     score: 72,
     synopsis: 'Reconcile Prometheus Targets',
-    blastRadius: '1 Cluster',
     consolidationScope: 'Triggered by alert: PrometheusTargetDown (Endpoint scrape failures detected in openshift-monitoring)',
     triggerDomain: 'Observability',
     isUnauthorized: false,
@@ -725,7 +698,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 76,
     synopsis: 'Fix Alertmanager Webhook Secret',
-    blastRadius: '1 Cluster',
     consolidationScope: 'Triggered by alert: AlertmanagerDeliveryFailing (Expired integration tokens for PagerDuty receiver)',
     triggerDomain: 'Observability',
     isUnauthorized: false,
@@ -741,7 +713,6 @@ const ALL_PLANS: PlanRow[] = [
     terminatedAt: 'Jun 10, 2026, 11:32 AM',
     score: 68,
     synopsis: 'Recover Thanos Compactor PV',
-    blastRadius: '1 Cluster',
     consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block; manually terminated by admin)',
     triggerDomain: 'Observability',
     isUnauthorized: false,
@@ -757,7 +728,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Completed',
     score: 70,
     synopsis: 'Scale OTel Collector Replicas',
-    blastRadius: '1 Cluster',
     consolidationScope: 'Triggered by alert: OpenTelemetryCollectorBufferFull (Spike in cluster trace volume causing memory saturation)',
     triggerDomain: 'Observability',
     isUnauthorized: false,
@@ -772,7 +742,6 @@ const ALL_PLANS: PlanRow[] = [
     status: 'Waiting Approval',
     score: 74,
     synopsis: 'Clear Grafana SQLite Lock',
-    blastRadius: '1 Cluster',
     consolidationScope: 'Triggered by alert: GrafanaDatabaseDatabaseLocked (Database write timeouts on shared persistent volume)',
     triggerDomain: 'Observability',
     isUnauthorized: false,
@@ -785,41 +754,41 @@ const ALL_PLANS: PlanRow[] = [
 
 // ─── Dataset — Single-cluster overrides (Core Platforms perspective) ──────────
 // Same plan IDs, statuses, scores, and reasons as fleet datasets.
-// Only blastRadius and drawerTargets are localized to reflect
+// Only drawerTargets are localized to reflect
 // sub-cluster topology (namespaces, pods, nodes) instead of multi-cluster scope.
 
 const SC_TOP_PLANS: PlanRow[] = [
-  { ...TOP_PLANS[0], blastRadius: '3 Applications', drawerTargets: ['payments-prod', 'retail-prod', 'logistics-prod'] },
-  { ...TOP_PLANS[1], blastRadius: '2 Deployments', drawerTargets: ['payment-api', 'payment-worker'] },
-  { ...TOP_PLANS[2], blastRadius: '4 Pods', drawerTargets: ['payment-api-7d4f8', 'payment-api-7d4f8-2', 'payment-worker-9c2a1', 'payment-worker-9c2a1-2'] },
-  { ...TOP_PLANS[3], blastRadius: '1 Ceph Pool', drawerTargets: ['ocs-storagecluster-ceph-rbd'] },
-  { ...TOP_PLANS[4], blastRadius: '3 etcd Members', drawerTargets: ['etcd-master-01', 'etcd-master-02', 'etcd-master-03'] },
-  { ...TOP_PLANS[5], blastRadius: '1 ClusterVersion', drawerTargets: ['version', 'cluster'] },
+  { ...TOP_PLANS[0],drawerTargets: ['payments-prod', 'retail-prod', 'logistics-prod'] },
+  { ...TOP_PLANS[1],drawerTargets: ['payment-api', 'payment-worker'] },
+  { ...TOP_PLANS[2],drawerTargets: ['payment-api-7d4f8', 'payment-api-7d4f8-2', 'payment-worker-9c2a1', 'payment-worker-9c2a1-2'] },
+  { ...TOP_PLANS[3],drawerTargets: ['ocs-storagecluster-ceph-rbd'] },
+  { ...TOP_PLANS[4],drawerTargets: ['etcd-master-01', 'etcd-master-02', 'etcd-master-03'] },
+  { ...TOP_PLANS[5],drawerTargets: ['version', 'cluster'] },
 ];
 
 const SC_ALL_PLANS: PlanRow[] = [
-  { ...ALL_PLANS[0], blastRadius: '1 ClusterVersion', drawerTargets: ['version', 'cluster'] },
-  { ...ALL_PLANS[1], blastRadius: '1 ClusterVersion', drawerTargets: ['version', 'cluster'] },
-  { ...ALL_PLANS[2],  blastRadius: '2 Deployments',      drawerTargets: ['analytics-api', 'analytics-worker'] },
-  { ...ALL_PLANS[3],  blastRadius: '1 EventListener',    drawerTargets: ['build-webhook-listener'] },
-  { ...ALL_PLANS[4],  blastRadius: '1 OAuth Client',     drawerTargets: ['oauth-openshift'] },
-  { ...ALL_PLANS[5],  blastRadius: '4 DNS Pods',         drawerTargets: ['dns-default-7f8c9', 'dns-default-7f8c9-2', 'dns-default-7f8c9-3', 'dns-default-7f8c9-4'] },
-  { ...ALL_PLANS[6],  blastRadius: '2 Worker Nodes',     drawerTargets: ['worker-bm-03', 'worker-bm-04'] },
-  { ...ALL_PLANS[7],  blastRadius: '3 Resources',        drawerTargets: ['staging-api', 'staging-db-config', 'staging-api-svc'] },
-  { ...ALL_PLANS[8],  blastRadius: '2 Router Pods',      drawerTargets: ['router-default-6d4f8', 'router-default-6d4f8-2'] },
-  { ...ALL_PLANS[9],  blastRadius: '1 Deployment',       drawerTargets: ['retail-checkout'] },
-  { ...ALL_PLANS[10], blastRadius: '1 Node',             drawerTargets: ['worker-logistics-01'] },
-  { ...ALL_PLANS[11], blastRadius: '1 StatefulSet',      drawerTargets: ['jenkins-0'] },
-  { ...ALL_PLANS[12], blastRadius: '1 HPA Object',       drawerTargets: ['api-gateway-hpa'] },
-  { ...ALL_PLANS[13], blastRadius: '3 Image Streams',    drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
-  { ...ALL_PLANS[14], blastRadius: '1 PVC Volume',       drawerTargets: ['postgres-data-0'] },
-  { ...ALL_PLANS[15], blastRadius: '6 Nodes',           drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
-  { ...ALL_PLANS[16], blastRadius: '1 Registry Catalog', drawerTargets: ['image-registry'] },
-  { ...ALL_PLANS[17], blastRadius: '2 Monitoring Pods', drawerTargets: ['prometheus-k8s-0', 'prometheus-k8s-1'] },
-  { ...ALL_PLANS[18], blastRadius: '1 Alertmanager', drawerTargets: ['alertmanager-main-0'] },
-  { ...ALL_PLANS[19], blastRadius: '1 Compactor PVC', drawerTargets: ['thanos-compactor-data'] },
-  { ...ALL_PLANS[20], blastRadius: '3 Collector Pods', drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
-  { ...ALL_PLANS[21], blastRadius: '1 Grafana Deployment', drawerTargets: ['grafana-6d4f8'] },
+  { ...ALL_PLANS[0],drawerTargets: ['version', 'cluster'] },
+  { ...ALL_PLANS[1],drawerTargets: ['version', 'cluster'] },
+  { ...ALL_PLANS[2],drawerTargets: ['analytics-api', 'analytics-worker'] },
+  { ...ALL_PLANS[3],drawerTargets: ['build-webhook-listener'] },
+  { ...ALL_PLANS[4],drawerTargets: ['oauth-openshift'] },
+  { ...ALL_PLANS[5],drawerTargets: ['dns-default-7f8c9', 'dns-default-7f8c9-2', 'dns-default-7f8c9-3', 'dns-default-7f8c9-4'] },
+  { ...ALL_PLANS[6],drawerTargets: ['worker-bm-03', 'worker-bm-04'] },
+  { ...ALL_PLANS[7],drawerTargets: ['staging-api', 'staging-db-config', 'staging-api-svc'] },
+  { ...ALL_PLANS[8],drawerTargets: ['router-default-6d4f8', 'router-default-6d4f8-2'] },
+  { ...ALL_PLANS[9],drawerTargets: ['retail-checkout'] },
+  { ...ALL_PLANS[10],drawerTargets: ['worker-logistics-01'] },
+  { ...ALL_PLANS[11],drawerTargets: ['jenkins-0'] },
+  { ...ALL_PLANS[12],drawerTargets: ['api-gateway-hpa'] },
+  { ...ALL_PLANS[13],drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
+  { ...ALL_PLANS[14],drawerTargets: ['postgres-data-0'] },
+  { ...ALL_PLANS[15],drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
+  { ...ALL_PLANS[16],drawerTargets: ['image-registry'] },
+  { ...ALL_PLANS[17],drawerTargets: ['prometheus-k8s-0', 'prometheus-k8s-1'] },
+  { ...ALL_PLANS[18],drawerTargets: ['alertmanager-main-0'] },
+  { ...ALL_PLANS[19],drawerTargets: ['thanos-compactor-data'] },
+  { ...ALL_PLANS[20],drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
+  { ...ALL_PLANS[21],drawerTargets: ['grafana-6d4f8'] },
 ];
 
 interface PlanDrawerData {
@@ -2020,57 +1989,30 @@ const PlansTable: React.FC<PlansTableProps> = ({
 // ─── Drawer: AI insight helper ────────────────────────────────────────────────
 
 const generateAiInsight = (plan: PlanRow): string =>
-  `Automated analysis correlated ${plan.consolidationScope} from the ${plan.triggerDomain} domain, ` +
-  `with a blast radius spanning ${plan.blastRadius}. The agent has isolated the root cause and assembled ` +
-  `a verified remediation strategy designed to restore system health with minimal operational risk.`;
+  `Automated analysis correlated ${plan.consolidationScope} from the ${plan.triggerDomain} domain. ` +
+  `The agent has isolated the root cause and assembled a remediation strategy designed to restore ` +
+  `system health with minimal operational risk.`;
 
 // ─── Drawer: Remediation option card ─────────────────────────────────────────
-
-// Display names keyed by option index (0-based).
-const OPTION_TYPE_NAMES: Record<number, string> = {
-  0: 'Primary Automated Fix',
-  1: 'Manual Fallback Script',
-  2: 'Emergency Override',
-};
-
-/** Appends dry-run flags for the pre-apply verification preview. */
-function buildDryRunCommandPreview(rawCommands: string): string {
-  return rawCommands
-    .split('\n')
-    .map((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return '';
-      const bare = trimmed.replace(/^\$\s*/, '');
-      if (/\bdry-run\b/i.test(bare)) return `$ ${bare}`;
-      if (/^(oc|kubectl)\s/.test(bare)) return `$ ${bare} --dry-run=server`;
-      if (/^argocd\s/.test(bare)) return `$ ${bare} --dry-run`;
-      return `$ ${bare}  # preview: dry-run validation recommended`;
-    })
-    .join('\n');
-}
 
 const RemediationOptionCard: React.FC<{
   option: RemediationOption;
   index: number;
   plan: PlanRow;
-  executionMessage?: string;
   executionKillState?: { killedAt: string } | null;
   onConfirmStopExecution?: (killedAt: string) => void;
   onResumeRemediation?: () => void;
   isSelected: boolean;
-  isDiagnosisVerified: boolean;
   isAgenticAutomationEnabled: boolean;
   onSelect: (id: string) => void;
 }> = ({
   option,
   index,
   plan,
-  executionMessage,
   executionKillState,
   onConfirmStopExecution,
   onResumeRemediation,
   isSelected,
-  isDiagnosisVerified,
   isAgenticAutomationEnabled,
   onSelect,
 }) => {
@@ -2082,8 +2024,6 @@ const RemediationOptionCard: React.FC<{
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating' || status === 'Plan aborted';
   const isExecutionKilled = Boolean(executionKillState);
-  const [showLiveCommands, setShowLiveCommands] = useState(false);
-  const [governorApproved, setGovernorApproved] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
@@ -2103,9 +2043,7 @@ const RemediationOptionCard: React.FC<{
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
     if (!isSelected) {
-      setShowLiveCommands(false);
       setIsExecuting(false);
-      setGovernorApproved(false);
     }
   }, [isSelected]);
 
@@ -2125,13 +2063,8 @@ const RemediationOptionCard: React.FC<{
   // Remediating: non-first options are always hidden.
   if (isRemediating && !isFirst) return null;
 
-  const typeName = OPTION_TYPE_NAMES[index] ?? `Option ${index + 1}`;
   const isInteractive = !isRemediating;
   const cardId = `remediation-option-${option.id}`;
-  const planRiskScore = plan.riskScore ?? 50;
-  const planIsHighRisk = isHighRisk(planRiskScore);
-  const planIsMediumRisk = isMediumRisk(planRiskScore);
-  const canAutoExecute = !planIsHighRisk && (!planIsMediumRisk || governorApproved);
 
   const headerContent = (
     <Flex
@@ -2142,20 +2075,14 @@ const RemediationOptionCard: React.FC<{
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
       <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-        Option {index + 1}: {typeName}
+        Option {index + 1}
       </span>
       <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
-        {isFirst ? (
-          <Label color="blue" isCompact>AI Recommended</Label>
-        ) : (
-          <Label color="grey" isCompact>Manual Fallback</Label>
-        )}
         {isTerminal && isFirst && (
           <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
             {status === 'Completed' ? 'Executed' : 'Failed'}
           </Label>
         )}
-        <PlanRiskBadge score={planRiskScore} isCompact />
         <Label color={option.reversible ? 'green' : 'orange'} variant="outline" isCompact>
           {option.reversible ? '1-Click Rollback' : 'Non-reversible'}
         </Label>
@@ -2163,7 +2090,7 @@ const RemediationOptionCard: React.FC<{
           color={isUnauthorized ? 'red' : 'green'}
           variant="outline"
           isCompact
-          icon={isUnauthorized ? <LockIcon /> : <LockOpenIcon />}
+          icon={<LockIcon />}
         >
           {isUnauthorized ? 'RBAC: Unauthorized' : 'RBAC: Authorized'}
         </Label>
@@ -2233,31 +2160,10 @@ const RemediationOptionCard: React.FC<{
         </Button>
       );
     }
-    if (planIsHighRisk) {
-      return (
-        <Tooltip
-          content="Automated execution is blocked for high blast-radius risk. Use View live commands to run manually."
-          position="top"
-        >
-          <span>
-            <Button variant="primary" isDisabled style={{ margin: 0, pointerEvents: 'none' }}>
-              Apply remediation
-            </Button>
-          </span>
-        </Tooltip>
-      );
-    }
-    if (planIsMediumRisk && !governorApproved) {
-      return (
-        <Button variant="primary" isDisabled style={{ margin: 0 }}>
-          Awaiting approval
-        </Button>
-      );
-    }
     return (
       <Button
         variant="primary"
-        isDisabled={isExecuting || !canAutoExecute || !isAgenticAutomationEnabled}
+        isDisabled={isExecuting || !isAgenticAutomationEnabled}
         isLoading={isExecuting}
         onClick={handleExecute}
         style={{ margin: 0 }}
@@ -2302,7 +2208,7 @@ const RemediationOptionCard: React.FC<{
         }
         toggleButtonProps={
           isInteractive
-            ? { 'aria-label': isSelected ? `Collapse ${typeName}` : `Expand ${typeName}` }
+            ? { 'aria-label': isSelected ? `Collapse option ${index + 1}` : `Expand option ${index + 1}` }
             : undefined
         }
       >
@@ -2338,27 +2244,17 @@ const RemediationOptionCard: React.FC<{
           </Content>
 
           {/* Execution status (Remediating only) */}
-          {isRemediating && isFirst && (
-            <>
-              {isExecutionKilled ? (
-                <Alert
-                  variant="danger"
-                  isInline
-                  title={`🛑 Execution Terminated by User at ${executionKillState?.killedAt}`}
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                />
-              ) : (
-                executionMessage && (
-                  <Content
-                    component="p"
-                    className="ols-aio-text-subtle-sm"
-                    style={{ margin: '0 0 var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
-                  >
-                    {executionMessage}
-                  </Content>
-                )
-              )}
+          {isRemediating && isFirst && isExecutionKilled && (
+            <Alert
+              variant="danger"
+              isInline
+              title={`Execution terminated by operator at ${executionKillState?.killedAt}`}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            />
+          )}
 
+          {isRemediating && isFirst && !isExecutionKilled && (
+            <>
               <Content
                 component="small"
                 style={{
@@ -2383,36 +2279,14 @@ const RemediationOptionCard: React.FC<{
                   marginBottom: 'var(--pf-t--global--spacer--sm)',
                 }}
               >
-                {isExecutionKilled
-                  ? `${streamedExecutionLog}\n[STOPPED] Execution halted by operator — no further mutations will be applied.`
-                  : streamedExecutionLog}
+                {streamedExecutionLog}
               </ClipboardCopy>
             </>
           )}
 
-          {/* Model badge */}
-          <Flex
-            gap={{ default: 'gapXs' }}
-            flexWrap={{ default: 'wrap' }}
-            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-          >
-            <Label color={option.model === 'smart' ? 'purple' : 'teal'} variant="outline" isCompact>
-              {option.model === 'smart' ? 'Smart model' : 'Fast model'}
-            </Label>
-          </Flex>
-
-          {/* ── Dry-run commands (primary safety gate) ── */}
-          {showRemediationActions && (
+          {/* ── Command executed by agent (read-only) ── */}
+          {!isRemediating && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <Alert
-                variant="info"
-                isInline
-                title="Dry-run preview — verify before applying"
-                style={{ marginTop: '24px', marginBottom: '24px' }}
-              >
-                Review the dry-run summary below. No live mutations occur until you choose{' '}
-                <strong>Apply remediation</strong> or use the manual paths underneath.
-              </Alert>
               <Content
                 component="small"
                 style={{
@@ -2424,7 +2298,7 @@ const RemediationOptionCard: React.FC<{
                   marginBottom: 'var(--pf-t--global--spacer--xs)',
                 }}
               >
-                Dry-run commands
+                Command executed by agent
               </Content>
               <ClipboardCopy
                 isReadOnly
@@ -2433,151 +2307,24 @@ const RemediationOptionCard: React.FC<{
                 clickTip="Copied"
                 style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
               >
-                {buildDryRunCommandPreview(option.rawCommands)}
+                {option.rawCommands}
               </ClipboardCopy>
             </div>
           )}
 
-          {/* ── View live commands (below dry-run, above Apply) ── */}
+          {/* ── Apply remediation ── */}
           {showRemediationActions && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <Button
-                variant="link"
-                isInline
-                onClick={() => setShowLiveCommands(!showLiveCommands)}
-                icon={
-                  <AngleRightIcon
-                    style={{
-                      transform: showLiveCommands ? 'rotate(90deg)' : 'rotate(0deg)',
-                      transition: 'transform 150ms ease',
-                    }}
-                  />
-                }
-                style={{ padding: 0, fontSize: '14px' }}
-              >
-                {showLiveCommands ? 'Hide live commands' : 'View live commands'}
-              </Button>
-              {showLiveCommands && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                  <Alert
-                    variant="warning"
-                    isInline
-                    title="Live commands — manual execution"
-                    style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                  >
-                    These commands will mutate cluster state when run. Execute only after dry-run validation passes.
-                  </Alert>
-                  <Content
-                    component="small"
-                    style={{
-                      display: 'block',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      marginBottom: 'var(--pf-t--global--spacer--xs)',
-                    }}
-                  >
-                    Live commands
-                  </Content>
-                  <ClipboardCopy
-                    isReadOnly
-                    isCode
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                  >
-                    {option.rawCommands}
-                  </ClipboardCopy>
-                </div>
-              )}
+            <div
+              className="ols-remediation-option-card__actions"
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '16px',
+              }}
+            >
+              {renderApplyAction()}
             </div>
-          )}
-
-          {/* ── Apply remediation + manual download + Lightspeed ── */}
-          {showRemediationActions && (
-            <>
-              {planIsMediumRisk && !isUnauthorized && (
-                <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                  <Checkbox
-                    id={`governor-approval-${option.id}`}
-                    label="Governor approval granted"
-                    isChecked={governorApproved}
-                    onChange={(_event, checked) => setGovernorApproved(Boolean(checked))}
-                  />
-                  {!governorApproved && (
-                    <Content
-                      component="small"
-                      style={{
-                        display: 'block',
-                        marginTop: 'var(--pf-t--global--spacer--xs)',
-                        marginBottom: 0,
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                      }}
-                    >
-                      Governor approval required for medium risk actions.
-                    </Content>
-                  )}
-                </div>
-              )}
-              <div
-                className="ols-remediation-option-card__actions"
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: '16px',
-                }}
-              >
-                {renderApplyAction()}
-                {!isExecuting && !isExecuted && (
-                  <>
-                    <Button
-                      variant="link"
-                      isInline
-                      icon={<DownloadIcon />}
-                      iconPosition="end"
-                      style={{ fontSize: '14px', margin: 0 }}
-                      aria-label={`Download remediation guide for option ${index + 1}`}
-                    >
-                      Download remediation guide
-                    </Button>
-                    <Button
-                      variant="link"
-                      isInline
-                      style={{ fontSize: '14px', margin: 0 }}
-                      onClick={() => {
-                        const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
-                        agenticGlobalAiApi.openRemediationDiscussion?.({
-                          planSynopsis: plan.synopsis,
-                          optionTitle: option.title,
-                          rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
-                          remediationProposal: drawer?.remediationProposal ?? option.description,
-                          riskAssessment: drawer?.riskAssessment ?? '',
-                          blastRadius: plan.blastRadius,
-                          severity: plan.severity,
-                        });
-                      }}
-                    >
-                      Discuss with Lightspeed
-                    </Button>
-                  </>
-                )}
-              </div>
-              {planIsHighRisk && !isUnauthorized && (
-                <Content
-                  component="small"
-                  style={{
-                    display: 'block',
-                    marginTop: 'var(--pf-t--global--spacer--sm)',
-                    marginBottom: 0,
-                    color: 'var(--pf-t--global--text--color--subtle)',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  Automated execution blocked due to high blast radius risk. Use &apos;View live commands&apos; to
-                  execute manually.
-                </Content>
-              )}
-            </>
           )}
 
           {!showRemediationActions && (
@@ -2985,7 +2732,7 @@ const PostMortemPanel: React.FC<{
 
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
-type RemediationWorkflowSection = 'chain' | 'rca' | 'rem';
+type RemediationWorkflowSection = 'rca' | 'rem';
 
 /** Match drill-down layout breakpoint for full-width remediation content. */
 const REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT = 1100;
@@ -3081,30 +2828,13 @@ const scrollRemediationSectionIntoView = (
   });
 };
 
-/** Critical Waiting Approval plans require RCA acknowledgment before the remediation hub unlocks. */
-function planRequiresRcaAcknowledgment(plan: PlanRow, status: PlanStatus): boolean {
-  if (status !== 'Waiting Approval') {
-    return false;
-  }
-  return plan.severity === 'critical';
-}
-
-const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
-  const { status } = plan;
-  if (status === 'Investigating') return 'chain';
-  if (status === 'Remediating' || status === 'Plan aborted') return 'rem';
-  if (status === 'Waiting Approval') {
-    return planRequiresRcaAcknowledgment(plan, status) ? 'rca' : 'rem';
-  }
-  return 'rem';
-};
+const getDefaultRemediationSection = (_plan: PlanRow): RemediationWorkflowSection => 'rem';
 
 const createInitialSectionState = (
   plan: PlanRow,
 ): Record<RemediationWorkflowSection, boolean> => {
   const focusSection = getDefaultRemediationSection(plan);
   return {
-    chain: focusSection === 'chain',
     rca: focusSection === 'rca',
     rem: focusSection === 'rem',
   };
@@ -3127,15 +2857,11 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
 
   const [sectionExpanded, setSectionExpanded] = useState(() => createInitialSectionState(plan));
-  // Guided view: first presentation from the plans table — only the focus section stays open.
   const [isGuidedView, setIsGuidedView] = useState(true);
-  const chainRef = React.useRef<HTMLDivElement>(null);
   const rcaRef = React.useRef<HTMLDivElement>(null);
   const remHubRef = React.useRef<HTMLDivElement>(null);
-  const pendingVerifyScrollRef = React.useRef(false);
 
   const sectionRefMap: Record<RemediationWorkflowSection, React.RefObject<HTMLDivElement | null>> = {
-    chain: chainRef,
     rca: rcaRef,
     rem: remHubRef,
   };
@@ -3174,61 +2900,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   // Default selection: first option is always pre-selected on mount.
   const [selectedOptionId, setSelectedOptionId] = useState<string>(options[0]?.id ?? '');
 
-  // Safety gate: critical plans require explicit RCA verification before the SRE
-  // can interact with the Remediation Hub. Warning plans skip the gate entirely.
-  // Plans already in execution (Remediating / Completed / Failed) are also exempt
-  // since the gate was already cleared in a prior interaction.
-  const [isDiagnosisVerified, setIsDiagnosisVerified] = useState<boolean>(
-    !planRequiresRcaAcknowledgment(plan, status) ||
-    status === 'Remediating' ||
-    status === 'Plan aborted' ||
-    status === 'Completed' ||
-    status === 'Failed',
-  );
-
-  const handleVerifyDiagnosis = () => {
-    setIsDiagnosisVerified(true);
-    setSelectedOptionId(options[0]?.id ?? '');
-    setIsGuidedView(false);
-    setSectionExpanded({ chain: false, rca: false, rem: true });
-    pendingVerifyScrollRef.current = true;
-  };
-
-  useEffect(() => {
-    if (!pendingVerifyScrollRef.current || !isDiagnosisVerified || !sectionExpanded.rem) {
-      return undefined;
-    }
-
-    const scrollToRemediationHub = () => {
-      scrollRemediationSectionIntoView(remHubRef.current, { force: true });
-    };
-
-    // Allow ExpandableSection + option card bodies to lay out before scrolling.
-    const timer = window.setTimeout(scrollToRemediationHub, 200);
-    const retryTimer = window.setTimeout(() => {
-      scrollToRemediationHub();
-      pendingVerifyScrollRef.current = false;
-    }, 450);
-
-    return () => {
-      window.clearTimeout(timer);
-      window.clearTimeout(retryTimer);
-    };
-  }, [isDiagnosisVerified, sectionExpanded.rem, selectedOptionId]);
-
   if (!drawer) return null;
-
-  // For Remediating plans: override any 'active' step to 'done' so the chain
-  // renders as a static historical read-only view (no live indicators).
-  const displaySteps = isRemediating
-    ? drawer.steps.map(s => s.status === 'active' ? { ...s, status: 'done' as const } : s)
-    : drawer.steps;
-
-  // Derive the live execution message from the step that was 'active' before
-  // the override — this gets surfaced inside Option Card 1 instead.
-  const activeStepTitle = isRemediating
-    ? drawer.steps.find(s => s.status === 'active')?.title
-    : undefined;
 
   return (
     <Stack hasGutter>
@@ -3252,77 +2924,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
       <Divider />
 
-      {/* ── Section B: Active Reasoning Chain ─────────────────────────── */}
-      <StackItem>
-        <div ref={chainRef}>
-        <ExpandableSection
-          toggleText=""
-          isExpanded={sectionExpanded.chain}
-          onToggle={handleSectionToggle('chain')}
-          toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-              <FlexItem>
-                <Title headingLevel="h4" size="md">Investigation path</Title>
-              </FlexItem>
-              {isInvestigating && (
-                <FlexItem>
-                  <Label color="blue" variant="outline" isCompact>Live</Label>
-                </FlexItem>
-              )}
-            </Flex>
-          }
-        >
-          <ol className="ols-aio-reasoning-timeline">
-            {displaySteps.map((step) => (
-              <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                <span className="ols-aio-reasoning-timeline__node">
-                  <ReasoningChainStepGlyph step={step} />
-                </span>
-                <Flex
-                  justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                  flexWrap={{ default: 'wrap' }}
-                >
-                  <FlexItem>
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      flexWrap={{ default: 'wrap' }}
-                      gap={{ default: 'gapSm' }}
-                    >
-                      <span
-                        className="ols-aio-text-subtle-sm"
-                        style={{ fontVariantNumeric: 'tabular-nums' }}
-                      >
-                        {formatReasoningStepDisplayTime(step)}
-                      </span>
-                      {step.status === 'active' && (
-                        <Label color="blue" variant="outline" isCompact>In progress</Label>
-                      )}
-                    </Flex>
-                  </FlexItem>
-                </Flex>
-                <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                  {step.title}
-                </Title>
-                {step.detail && (
-                  <Content
-                    component="p"
-                    style={{
-                      marginTop: 'var(--pf-t--global--spacer--xs)',
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      marginBottom: 0,
-                    }}
-                  >
-                    {step.detail}
-                  </Content>
-                )}
-              </li>
-            ))}
-          </ol>
-        </ExpandableSection>
-        </div>
-      </StackItem>
-
-      {/* ── Section C: Root Cause Analysis ────────────────────────────── */}
+      {/* ── Section B: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
         <div ref={rcaRef}>
         <ExpandableSection
@@ -3345,7 +2947,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Label color={confidenceTierLabelColor(drawer.confidence)}>
                 {formatConfidenceLabel(drawer.confidence)}
               </Label>
-              <PlanRiskBadge score={plan.riskScore ?? 50} isCompact={false} />
             </Flex>
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
@@ -3361,59 +2962,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               {drawer.rootCauseNarrative}
             </Content>
 
-            {/* ── Verification gate (critical plans, non-investigating) ── */}
-            {!isInvestigating && planRequiresRcaAcknowledgment(plan, status) && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
-                {isDiagnosisVerified ? (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <CheckCircleIcon
-                      style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }}
-                    />
-                    <Content
-                      component="small"
-                      style={{
-                        color: 'var(--pf-t--global--color--status--success--default)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Diagnosis verified
-                    </Content>
-                  </Flex>
-                ) : (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }} flexWrap={{ default: 'wrap' }}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon={<CheckCircleIcon />}
-                      isDisabled={!isAgenticAutomationEnabled}
-                      onClick={handleVerifyDiagnosis}
-                    >
-                      Acknowledge & view remediation
-                    </Button>
-                    <Button
-                      variant="link"
-                      isInline
-                      style={{ fontSize: '14px', margin: 0 }}
-                      onClick={() => {
-                        const firstOption = options[0];
-                        agenticGlobalAiApi.openRemediationDiscussion?.({
-                          planSynopsis: plan.synopsis,
-                          optionTitle: firstOption?.title ?? 'Remediation options',
-                          rootCause: drawer.rootCauseNarrative,
-                          remediationProposal: drawer.remediationProposal ?? firstOption?.description ?? '',
-                          riskAssessment: drawer.riskAssessment ?? '',
-                          blastRadius: plan.blastRadius,
-                          severity: plan.severity,
-                        });
-                      }}
-                    >
-                      Discuss with Lightspeed
-                    </Button>
-                  </Flex>
-                )}
-              </div>
-            )}
           </div>
           )}
         </ExpandableSection>
@@ -3476,29 +3024,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                 />
               )}
 
-              {/* Gate hint shown to critical plans before verification */}
-              {!isDiagnosisVerified && (
-                <Flex
-                  alignItems={{ default: 'alignItemsCenter' }}
-                  gap={{ default: 'gapSm' }}
-                  style={{
-                    marginBottom: 'var(--pf-t--global--spacer--sm)',
-                    padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
-                    borderRadius: 'var(--pf-t--global--border--radius--small)',
-                    backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                    border: '1px solid var(--pf-t--global--border--color--default)',
-                  }}
-                >
-                  <LockIcon style={{ flexShrink: 0, color: 'var(--pf-t--global--text--color--subtle)' }} />
-                  <Content
-                    component="small"
-                    style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-                  >
-                    Verify the AI diagnosis in the RCA section above to unlock remediation options.
-                  </Content>
-                </Flex>
-              )}
-
               {/* RBAC notice — shown when the operator has read-only access */}
               {plan.isUnauthorized && (
                 <Alert
@@ -3509,20 +3034,17 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                 />
               )}
 
-              {/* Options list — gated by diagnosis verification AND RBAC authorization */}
+              {/* Options list — gated by RBAC authorization */}
               <div
                 style={{
                   opacity: plan.isUnauthorized
                     ? 0.6
                     : !isAgenticAutomationEnabled && !isRemediating
                       ? 0.55
-                      : isDiagnosisVerified
-                        ? 1
-                        : 0.45,
+                      : 1,
                   pointerEvents:
-                    plan.isUnauthorized
-                    || !isDiagnosisVerified
-                    || (!isAgenticAutomationEnabled && !isRemediating)
+                    plan.isUnauthorized ||
+                    (!isAgenticAutomationEnabled && !isRemediating)
                       ? 'none'
                       : undefined,
                   transition: 'opacity 300ms ease',
@@ -3537,12 +3059,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           option={opt}
                           index={idx}
                           plan={plan}
-                          executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
                           executionKillState={executionKillState}
                           onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt)}
                           onResumeRemediation={() => resumePlanRemediation(plan.id)}
                           isSelected={selectedOptionId === opt.id}
-                          isDiagnosisVerified={isDiagnosisVerified}
                           isAgenticAutomationEnabled={isAgenticAutomationEnabled}
                           onSelect={setSelectedOptionId}
                         />
