@@ -5,6 +5,7 @@ import { AIHubPage } from './pages/AIHubPage';
 import { AuditAndLogsPage } from './pages/AuditAndLogsPage';
 import { PlanRemediationPage } from './pages/PlanRemediationPage';
 import { AiHubPrototypeRoot } from './components/AiHubPrototypeRoot';
+import { withPerspectiveUrlSync } from './components/AiHubPerspectiveRouteShell';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
@@ -22,7 +23,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/ai-hub/plans',
-    element: <AIHubPage />,
+    element: withPerspectiveUrlSync(<AIHubPage />),
     label: 'Plans',
     title: 'Plans',
     navigation: {
@@ -33,7 +34,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/ai-hub/audit-logs',
-    element: <AuditAndLogsPage />,
+    element: withPerspectiveUrlSync(<AuditAndLogsPage />),
     label: 'Audit & logs',
     title: 'Audit & logs',
     navigation: {
@@ -44,7 +45,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/ai-hub/plans/:planSlug/remediation',
-    element: <PlanRemediationPage />,
+    element: withPerspectiveUrlSync(<PlanRemediationPage />),
     title: 'Plan remediation',
   },
 ];

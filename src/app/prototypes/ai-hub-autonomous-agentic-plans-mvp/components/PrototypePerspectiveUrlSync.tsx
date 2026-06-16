@@ -10,49 +10,53 @@ import {
 /**
  * Keeps `?perspective=` in sync with the shell perspective switcher so share links
  * preserve page path + Core platforms / Fleet management context.
+ *
+ * Must render inside `AppLayout`'s `ActivePerspectiveProvider` (route elements), not
+ * the prototype root wrapper — otherwise `useActivePerspective` falls back to Fleet
+ * management and share URLs will always show `?perspective=fleet-management`.
  */
 export const PrototypePerspectiveUrlSync: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
-  const skipNextUrlWriteRef = useRef(false);
+  const skipNextShellToUrlRef = useRef(false);
+  const lastShellWrittenPerspectiveRef = useRef<string | null>(null);
 
-  const searchParams = new URLSearchParams(location.search);
-  const urlPerspective = readPerspectiveFromSearch(searchParams);
   const activePerspectiveKey = resolveActivePerspectiveKey(activePerspective);
 
-  // URL → shell (shared links and browser back/forward)
+  // Shared links / browser back-forward: URL → shell
   useLayoutEffect(() => {
+    const urlPerspective = readPerspectiveFromSearch(new URLSearchParams(location.search));
     if (!urlPerspective) {
       return;
     }
-    skipNextUrlWriteRef.current = true;
+
+    if (urlPerspective === lastShellWrittenPerspectiveRef.current) {
+      lastShellWrittenPerspectiveRef.current = null;
+      skipNextShellToUrlRef.current = true;
+      return;
+    }
+
+    skipNextShellToUrlRef.current = true;
     setPerspectiveByKey(urlPerspective);
-  }, [urlPerspective, setPerspectiveByKey]);
+  }, [location.search, setPerspectiveByKey]);
 
-  // Re-apply URL perspective if AppLayout default overrides a shared link on first mount.
+  // Shell perspective + route → URL (perspective switcher, sidebar nav, in-prototype links)
   useEffect(() => {
-    if (!urlPerspective || activePerspectiveKey === urlPerspective) {
-      return;
-    }
-    skipNextUrlWriteRef.current = true;
-    setPerspectiveByKey(urlPerspective);
-  }, [activePerspectiveKey, urlPerspective, setPerspectiveByKey]);
-
-  // Shell perspective + route → URL (sidebar nav, perspective switcher, in-prototype links)
-  useEffect(() => {
-    if (skipNextUrlWriteRef.current) {
-      skipNextUrlWriteRef.current = false;
+    if (skipNextShellToUrlRef.current) {
+      skipNextShellToUrlRef.current = false;
       return;
     }
 
-    const currentParam = searchParams.get('perspective');
-    if (currentParam === activePerspectiveKey) {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('perspective') === activePerspectiveKey) {
+      lastShellWrittenPerspectiveRef.current = null;
       return;
     }
 
+    lastShellWrittenPerspectiveRef.current = activePerspectiveKey;
     navigate(buildPrototypeHref(location.pathname, activePerspectiveKey, searchParams), { replace: true });
-  }, [activePerspectiveKey, location.pathname, location.search, navigate]);
+  }, [activePerspectiveKey, location.pathname, navigate]);
 
   return null;
 };
