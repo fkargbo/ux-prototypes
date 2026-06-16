@@ -186,6 +186,8 @@ interface AllAlertsCardProps {
   /** Row-level severity filter (must match Alerts tab / URL e.g. drill from Observe KPI). */
   severityFilter: AlertSeverity[];
   setSeverityFilter: React.Dispatch<React.SetStateAction<AlertSeverity[]>>;
+  /** Core platforms: hide fleet-only table columns and controls (e.g. Cluster). */
+  hideMultiClusterTableFeatures?: boolean;
 }
 
 const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
@@ -224,6 +226,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   alertNamesFilter = [],
   severityFilter,
   setSeverityFilter,
+  hideMultiClusterTableFeatures = false,
 }) => {
   // Component metadata with alert scopes
   const componentMeta: Record<AlertComponent, { impactGroup: 'Cluster' | 'Namespace' }> = {
@@ -405,7 +408,34 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
     setIsManageColumnsOpen(false);
   };
   
-  const getVisibleColumns = () => columns.filter(c => c.isVisible).sort((a, b) => a.order - b.order);
+  const isColumnAvailableInView = (col: ColumnConfig) => {
+    if (hideMultiClusterTableFeatures && col.key === 'clusters') {
+      return false;
+    }
+    if (isAggregated && col.key === 'clusters') {
+      return false;
+    }
+    if (!isAggregated && col.key === 'total') {
+      return false;
+    }
+    return true;
+  };
+
+  const getVisibleColumns = () =>
+    columns
+      .filter(c => c.isVisible)
+      .filter(isColumnAvailableInView)
+      .sort((a, b) => a.order - b.order);
+
+  React.useEffect(() => {
+    if (hideMultiClusterTableFeatures && groupBy === 'cluster' && onGroupByChange) {
+      onGroupByChange('none');
+    }
+  }, [hideMultiClusterTableFeatures, groupBy, onGroupByChange]);
+
+  const groupByOptions: AlertsGroupByOption[] = hideMultiClusterTableFeatures
+    ? ['none', 'severity', 'impact', 'component']
+    : ['none', 'severity', 'impact', 'component', 'cluster'];
   
   // Export to CSV
   const exportToCSV = () => {
@@ -1115,7 +1145,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                               )}
                             >
                               <DropdownList>
-                                {(['none', 'severity', 'impact', 'component', 'cluster'] as AlertsGroupByOption[]).map(option => {
+                                {groupByOptions.map(option => {
                                   const label = option === 'none' ? 'None' : option === 'impact' ? 'Alert scope' : option === 'cluster' ? 'Cluster' : option.charAt(0).toUpperCase() + option.slice(1);
                                   const count = groupByOptionCounts[option];
                                   return (
@@ -1468,13 +1498,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 isInline
                 onClick={() => {
                   // Filter relevant columns based on aggregation state
-                  const relevantColumns = tempColumns.filter(c => {
-                    if (isAggregated) {
-                      return c.key !== 'clusters';
-                    } else {
-                      return c.key !== 'total';
-                    }
-                  });
+                  const relevantColumns = tempColumns.filter(isColumnAvailableInView);
                   
                   const allSelected = relevantColumns.filter(c => !c.isLocked).every(c => c.isVisible);
                   const visibleLockedCount = relevantColumns.filter(c => c.isLocked).length;
@@ -1484,7 +1508,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                     let slotsUsed = 0;
                     return prev.map(c => {
                       // Skip irrelevant columns
-                      if ((isAggregated && c.key === 'clusters') || (!isAggregated && c.key === 'total')) {
+                      if (!isColumnAvailableInView(c)) {
                         return c;
                       }
                       
@@ -1509,14 +1533,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                 overflowY: 'auto'
               }}>
                 {tempColumns
-                  .filter(col => {
-                    // Filter columns based on aggregation state
-                    if (isAggregated) {
-                      return col.key !== 'clusters'; // Hide 'clusters' in aggregated view
-                    } else {
-                      return col.key !== 'total'; // Hide 'total' in non-aggregated view
-                    }
-                  })
+                  .filter(isColumnAvailableInView)
                   .map((col, index) => (
                   <div 
                     key={col.key}
@@ -1524,7 +1541,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
                       display: 'flex', 
                       alignItems: 'center', 
                       padding: '12px 16px',
-                      borderBottom: index < tempColumns.filter(c => isAggregated ? c.key !== 'clusters' : c.key !== 'total').length - 1 ? '1px solid var(--pf-t--global--border--color--default)' : 'none',
+                      borderBottom: index < tempColumns.filter(isColumnAvailableInView).length - 1 ? '1px solid var(--pf-t--global--border--color--default)' : 'none',
                       backgroundColor: 'var(--pf-t--global--background--color--primary--default)'
                     }}
                     draggable={!col.isLocked}

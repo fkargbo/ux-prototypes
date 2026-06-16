@@ -133,6 +133,7 @@ export interface AlertsTabFleetOverviewContentProps {
   clearAlertsTabFilters: () => void;
   hasAlertsTabActiveFilters: boolean;
   hasAlertsTabGroupFilterChanges: boolean;
+  hideMultiClusterTableFeatures?: boolean;
 }
 
 export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFleetOverviewContentProps> = (props) => {
@@ -217,6 +218,7 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
     clearAlertsTabFilters,
     hasAlertsTabActiveFilters,
     hasAlertsTabGroupFilterChanges,
+    hideMultiClusterTableFeatures = false,
   } = props;
 
   return (
@@ -384,6 +386,7 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                     alertNamesFilter={contributingAlertsFilter}
                     severityFilter={alertsTabSeverityFilter}
                     setSeverityFilter={setAlertsTabSeverityFilter}
+                    hideMultiClusterTableFeatures={hideMultiClusterTableFeatures}
                     filterToolbar={
                       <>
                         <Toolbar className="pf-m-align-items-center" style={{ backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0, paddingTop: 0, paddingBottom: 0 }}>

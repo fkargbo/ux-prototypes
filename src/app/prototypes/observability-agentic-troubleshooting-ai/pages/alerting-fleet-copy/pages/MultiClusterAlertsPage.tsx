@@ -1854,6 +1854,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           clearAlertsTabFilters={clearAlertsTabFilters}
           hasAlertsTabActiveFilters={hasAlertsTabActiveFilters}
           hasAlertsTabGroupFilterChanges={hasAlertsTabGroupFilterChanges}
+          hideMultiClusterTableFeatures={isCorePlatformsPerspective}
         />
       )}
 
