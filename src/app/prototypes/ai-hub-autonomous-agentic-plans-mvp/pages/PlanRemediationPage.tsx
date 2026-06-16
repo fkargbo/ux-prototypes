@@ -12,7 +12,7 @@ import {
   WaitingApprovalPlanMeta,
 } from './ai-hub-v3/PlansAndApprovalsTab';
 import {
-  DRILL_FROM_QUERY_PARAM,
+  buildPrototypeHref,
   isSingleClusterPerspectiveKey,
   PLANS_LIST_PATH,
   perspectiveKeyFromShellName,
@@ -21,6 +21,7 @@ import {
 } from './planRemediationDrillSession';
 import { AgenticCapabilitiesHeaderSwitch } from '../components/AgenticCapabilitiesHeaderSwitch';
 import { usePlanTermination } from '../context/PlanTerminationContext';
+import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../prototypePerspectiveUrl';
 import './ai-hub-page.css';
 
 export const PlanRemediationPage: React.FC = () => {
@@ -31,7 +32,7 @@ export const PlanRemediationPage: React.FC = () => {
   const drillPerspectiveAppliedRef = useRef(false);
 
   const drillPerspectiveKey = useMemo(
-    () => resolveDrillPerspectiveKey(searchParams.get(DRILL_FROM_QUERY_PARAM)),
+    () => resolveDrillPerspectiveKey(searchParams),
     [searchParams],
   );
 
@@ -56,10 +57,10 @@ export const PlanRemediationPage: React.FC = () => {
   const navigateBackToPlans = useCallback(() => {
     const key = drillPerspectiveKey
       ?? perspectiveKeyFromShellName(activePerspective)
-      ?? 'fleet-management';
+      ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
     writePlanRemediationDrillSession({ perspectiveKey: key });
     setPerspectiveByKey(key);
-    navigate(PLANS_LIST_PATH);
+    navigate(buildPrototypeHref(PLANS_LIST_PATH, key));
   }, [activePerspective, drillPerspectiveKey, navigate, setPerspectiveByKey]);
 
   useLayoutEffect(() => {
@@ -77,10 +78,10 @@ export const PlanRemediationPage: React.FC = () => {
     }
     const key = drillPerspectiveKey
       ?? perspectiveKeyFromShellName(activePerspective)
-      ?? 'fleet-management';
+      ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
     writePlanRemediationDrillSession({ perspectiveKey: key });
     setPerspectiveByKey(key);
-    navigate(PLANS_LIST_PATH, { replace: true });
+    navigate(buildPrototypeHref(PLANS_LIST_PATH, key), { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- redirect once when plan is missing
   }, [planSlug, plan]);
 

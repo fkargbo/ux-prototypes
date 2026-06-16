@@ -66,7 +66,7 @@ import {
   resolvePlanDrawerData,
   applyScRemediationPatches,
 } from './singleClusterPlanSimulation';
-import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
+import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import {
   clearPlanRemediationDrillSession,
@@ -3360,7 +3360,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
 // ─── Plan remediation drill-down routes ───────────────────────────────────────
 
-export function getPlanRemediationPath(plan: PlanRow, perspectiveKey?: 'core-platforms' | 'fleet-management'): string {
+export function getPlanRemediationPath(plan: PlanRow, perspectiveKey?: AppShellPerspectiveKey): string {
   const slug = plan.name ?? plan.id;
   if (perspectiveKey) {
     return getPlanRemediationHref(slug, perspectiveKey);
@@ -3464,7 +3464,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
     if (!isAgenticAutomationEnabled) {
       return;
     }
-    const perspectiveKey: 'core-platforms' | 'fleet-management' =
+    const perspectiveKey: AppShellPerspectiveKey =
       perspectiveKeyFromShellName(activePerspective)
       ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
     writePlanRemediationDrillSession({ perspectiveKey });

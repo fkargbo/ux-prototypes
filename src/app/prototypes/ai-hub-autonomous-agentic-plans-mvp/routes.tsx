@@ -7,15 +7,17 @@ import { PlanRemediationPage } from './pages/PlanRemediationPage';
 import { AiHubPrototypeRoot } from './components/AiHubPrototypeRoot';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 
+import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
+
 export const routes: RouteConfig[] = [
   {
     path: '/',
-    element: <Navigate to="/core/observe/ai-hub/plans" replace />,
+    element: <Navigate to={`/core/observe/ai-hub/plans?perspective=${DEFAULT_PROTOTYPE_PERSPECTIVE}`} replace />,
     title: 'AI Hub',
   },
   {
     path: '/core/observe/ai-hub',
-    element: <Navigate to="/core/observe/ai-hub/plans" replace />,
+    element: <Navigate to={`/core/observe/ai-hub/plans?perspective=${DEFAULT_PROTOTYPE_PERSPECTIVE}`} replace />,
     title: 'AI Hub',
   },
   {

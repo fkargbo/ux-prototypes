@@ -1,37 +1,33 @@
 import type { AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
+import {
+  buildPrototypeHref,
+  DRILL_FROM_QUERY_PARAM,
+  getPlanRemediationHref,
+  parsePerspectiveKey,
+  PLANS_LIST_PATH,
+  perspectiveKeyFromShellName,
+  isSingleClusterPerspectiveKey,
+  readPerspectiveFromSearch,
+} from '../prototypePerspectiveUrl';
 
 /** Handoff from Plans list ↔ remediation drill-down (perspective-aware breadcrumb return). */
 export const PLAN_REMEDIATION_DRILL_SESSION_KEY =
   'hpux.ai-hub-autonomous-agentic-plans-mvp.plan-remediation-drill';
 
-export const PLANS_LIST_PATH = '/core/observe/ai-hub/plans';
-
-export const DRILL_FROM_QUERY_PARAM = 'from';
-
 export type PlanRemediationDrillPayload = {
   perspectiveKey: AppShellPerspectiveKey;
 };
 
-export function parsePerspectiveKey(value: string | null | undefined): AppShellPerspectiveKey | null {
-  if (value === 'core-platforms' || value === 'fleet-management') {
-    return value;
-  }
-  return null;
-}
-
-export function perspectiveKeyFromShellName(name: string): 'core-platforms' | 'fleet-management' | null {
-  if (name === 'Core platforms') {
-    return 'core-platforms';
-  }
-  if (name === 'Fleet management') {
-    return 'fleet-management';
-  }
-  return null;
-}
-
-export function isSingleClusterPerspectiveKey(key: AppShellPerspectiveKey | null): boolean {
-  return key === 'core-platforms';
-}
+export {
+  buildPrototypeHref,
+  DRILL_FROM_QUERY_PARAM,
+  getPlanRemediationHref,
+  isSingleClusterPerspectiveKey,
+  parsePerspectiveKey,
+  PLANS_LIST_PATH,
+  perspectiveKeyFromShellName,
+  readPerspectiveFromSearch,
+};
 
 export function writePlanRemediationDrillSession(payload: PlanRemediationDrillPayload): void {
   try {
@@ -64,11 +60,9 @@ export function clearPlanRemediationDrillSession(): void {
   }
 }
 
-/** Perspective encoded on the remediation URL (`?from=`) or in session from the plans list. */
-export function resolveDrillPerspectiveKey(fromQuery: string | null | undefined): AppShellPerspectiveKey | null {
-  return parsePerspectiveKey(fromQuery) ?? readPlanRemediationDrillSession()?.perspectiveKey ?? null;
-}
-
-export function getPlanRemediationHref(planSlug: string, perspectiveKey: AppShellPerspectiveKey): string {
-  return `/core/observe/ai-hub/plans/${encodeURIComponent(planSlug)}/remediation?${DRILL_FROM_QUERY_PARAM}=${perspectiveKey}`;
+/** Perspective from URL query (`?perspective=` / legacy `?from=`) or session handoff. */
+export function resolveDrillPerspectiveKey(
+  searchParams: URLSearchParams | { get: (key: string) => string | null },
+): AppShellPerspectiveKey | null {
+  return readPerspectiveFromSearch(searchParams) ?? readPlanRemediationDrillSession()?.perspectiveKey ?? null;
 }
