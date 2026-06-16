@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, Content, Flex, FlexItem, Title } from '@patternfly/react-core';
-import { AgenticCapabilitiesHeaderSwitch } from '../components/AgenticCapabilitiesHeaderSwitch';
+import { Breadcrumb, BreadcrumbItem, Content, Title } from '@patternfly/react-core';
+import { AiHubPageHeading } from '../components/AiHubPageHeading';
 import * as Hub from './ai-hub-v3';
 import './ai-hub-page.css';
 
@@ -19,34 +19,23 @@ export const AIHubPage: React.FC = () => {
         </Breadcrumb>
       </div>
 
-      <div className="template-page-heading ols-ai-hub-page-heading-row">
+      <AiHubPageHeading>
         <div className="ols-ai-hub-page-header-primary">
           <Hub.AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
-            <Title headingLevel="h1" size="2xl" style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}>
+            <Title headingLevel="h1" size="2xl">
               Agentic plans (MVP)
             </Title>
             <Content component="p" className="ols-ai-hub-page-subtitle">
               Speed up incident response with targeted agent investigations, automated evidence collection, and
               actionable remediation proposals.
             </Content>
-            <Content
-              component="p"
-              style={{
-                marginTop: 'var(--pf-t--global--spacer--xs)',
-                marginBottom: 0,
-                fontSize: '12px',
-                color: '#4D4D4D',
-              }}
-            >
+            <Content component="p" className="ols-ai-hub-page-disclaimer">
               Always review AI-generated content prior to use.
             </Content>
           </div>
         </div>
-        <FlexItem className="ols-ai-hub-page-heading-actions">
-          <AgenticCapabilitiesHeaderSwitch />
-        </FlexItem>
-      </div>
+      </AiHubPageHeading>
 
       <div
         id="ols-ai-hub-main"

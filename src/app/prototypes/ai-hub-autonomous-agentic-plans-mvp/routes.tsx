@@ -5,8 +5,8 @@ import { AIHubPage } from './pages/AIHubPage';
 import { AuditAndLogsPage } from './pages/AuditAndLogsPage';
 import { PlanRemediationPage } from './pages/PlanRemediationPage';
 import { AiHubPrototypeRoot } from './components/AiHubPrototypeRoot';
-import { withPerspectiveUrlSync } from './components/AiHubPerspectiveRouteShell';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
+import { withPerspectiveUrlSync } from './components/AiHubPerspectiveRouteShell';
 
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
 
@@ -53,5 +53,5 @@ export const routes: RouteConfig[] = [
 /** Theme state for AI Hub banner appearance controls. */
 export const prototypeRootWrapper = AiHubPrototypeRoot;
 
-/** Banner toolbar: before version picker (see `PrototypeLayout`). */
+/** Banner toolbar: appearance menu (see `PrototypeLayout`). */
 export const bannerBeforeVersionPicker = <AiHubBannerAppearanceSettings />;

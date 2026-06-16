@@ -1,7 +1,13 @@
 import React from 'react';
 import { Button, Content, Flex, FlexItem, Popover, Switch } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
+import { useLocation } from 'react-router-dom';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
+import {
+  DEFAULT_PROTOTYPE_PERSPECTIVE,
+  perspectiveKeyFromShellName,
+  readPerspectiveFromSearch,
+} from '../prototypePerspectiveUrl';
 import {
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
@@ -42,19 +48,24 @@ const AgenticCapabilitiesPopoverBody = (
 );
 
 export const AgenticCapabilitiesHeaderSwitch: React.FC = () => {
+  const location = useLocation();
   const { activePerspective } = useActivePerspective();
-  const isSingleCluster = activePerspective === 'Core platforms';
+  const perspectiveKey =
+    readPerspectiveFromSearch(new URLSearchParams(location.search))
+    ?? perspectiveKeyFromShellName(activePerspective)
+    ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
+  const isSingleCluster = perspectiveKey === 'core-platforms';
   const clusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster, setAgentActiveForCluster } = useAgenticCapabilities();
   const isChecked = isAgentActiveForCluster(clusterId);
 
   return (
-    <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      gap={{ default: 'gapSm' }}
-      flexWrap={{ default: 'nowrap' }}
-      className="ols-agentic-capabilities-header-switch"
-    >
+    <div className="ols-agentic-capabilities-header-switch">
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        flexWrap={{ default: 'nowrap' }}
+      >
       <FlexItem>
         <span
           style={{
@@ -96,6 +107,7 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC = () => {
           onChange={(_event, checked) => setAgentActiveForCluster(clusterId, checked)}
         />
       </FlexItem>
-    </Flex>
+      </Flex>
+    </div>
   );
 };

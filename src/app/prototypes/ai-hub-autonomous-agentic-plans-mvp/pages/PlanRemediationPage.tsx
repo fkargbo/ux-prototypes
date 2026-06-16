@@ -19,8 +19,8 @@ import {
   resolveDrillPerspectiveKey,
   writePlanRemediationDrillSession,
 } from './planRemediationDrillSession';
-import { AgenticCapabilitiesHeaderSwitch } from '../components/AgenticCapabilitiesHeaderSwitch';
 import { usePlanTermination } from '../context/PlanTerminationContext';
+import { AiHubPageHeading } from '../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../prototypePerspectiveUrl';
 import './ai-hub-page.css';
 
@@ -105,8 +105,8 @@ export const PlanRemediationPage: React.FC = () => {
         </Breadcrumb>
       </div>
 
-      <div className="template-page-heading ols-ai-hub-page-heading-row">
-        <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
+      <AiHubPageHeading>
+        <div className="ols-ai-hub-page-heading-body-content">
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             gap={{ default: 'gapSm' }}
@@ -143,11 +143,8 @@ export const PlanRemediationPage: React.FC = () => {
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
             <WaitingApprovalPlanMeta plan={plan} />
           </div>
-        </FlexItem>
-        <FlexItem className="ols-ai-hub-page-heading-actions">
-          <AgenticCapabilitiesHeaderSwitch />
-        </FlexItem>
-      </div>
+        </div>
+      </AiHubPageHeading>
 
       <div
         className="template-page-content"

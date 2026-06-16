@@ -1707,7 +1707,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
         alignItems={{ default: 'alignItemsCenter' }}
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
         flexWrap={{ default: 'nowrap' }}
-        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+        className="ols-ai-hub-plans-toolbar"
       >
         {/* Left: filter dropdown */}
         <FlexItem>
@@ -1750,35 +1750,23 @@ const PlansTable: React.FC<PlansTableProps> = ({
       </Flex>
 
       {/* ── Active filter chips ─────────────────────────────────────────────── */}
-      {/* Fixed minHeight so the table never jumps when chips appear/disappear */}
-      <div
-        style={{
-          minHeight: 36,
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 'var(--pf-t--global--spacer--sm)',
-          padding: hasActiveFilters
-            ? 'var(--pf-t--global--spacer--xs) 0'
-            : undefined,
-        }}
-      >
-        {statusFilters.length > 0 && (
-          <LabelGroup categoryName="Status" isClosable onClick={() => setStatusFilters([])}>
-            {statusFilters.map((s) => (
-              <Label key={s} isCompact onClose={() => toggleStatusFilter(s)}>
-                {s}
-              </Label>
-            ))}
-          </LabelGroup>
-        )}
-        {hasActiveFilters && (
+      {hasActiveFilters && (
+        <div className="ols-ai-hub-plans-filter-chips ols-ai-hub-plans-filter-chips--active">
+          {statusFilters.length > 0 && (
+            <LabelGroup categoryName="Status" isClosable onClick={() => setStatusFilters([])}>
+              {statusFilters.map((s) => (
+                <Label key={s} isCompact onClose={() => toggleStatusFilter(s)}>
+                  {s}
+                </Label>
+              ))}
+            </LabelGroup>
+          )}
           <Button variant="link" isInline onClick={clearAllFilters}
             style={{ fontSize: 'var(--pf-t--global--font--size--sm)' }}>
             Clear all
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Table or Empty State ───────────────────────────────────────────── */}
       {filteredRows.length === 0 ? (
@@ -3477,18 +3465,17 @@ export const PlansAndApprovalsTab: React.FC = () => {
   }, [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate]);
 
   return (
-    <Stack hasGutter>
+    <Stack>
       {!isAgenticAutomationEnabled && (
-        <StackItem>
+        <StackItem style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
           <Alert variant="warning" isInline title={getAgenticAutomationDisabledMessage(isSingleCluster)} />
         </StackItem>
       )}
-      <StackItem>
+      <StackItem className="ols-ai-hub-plans-section">
         <Title
           headingLevel="h3"
           size="md"
-          className="ols-aio-fleet-subcard-title"
-          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+          className="ols-aio-fleet-subcard-title ols-ai-hub-plans-section-title"
         >
           Plans
         </Title>
