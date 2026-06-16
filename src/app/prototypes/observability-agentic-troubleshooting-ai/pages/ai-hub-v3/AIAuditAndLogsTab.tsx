@@ -99,11 +99,11 @@ const AUDIT_ROWS: AuditRow[] = [
 - RBAC Capability: K8s:Network:Mutation (authorized for ConfigMap and ReplicaSet mutations).
 - Target: Patch ingress ConfigMap to increase memory headroom by 25%, then scale replicas from 2 → 3.
 - Log all mutations to OTel trace stream with ref #ot-7f9b1c.
-- Dry-run MUST be executed before any live mutation. Abort on validation failure.`,
+- Verify configuration before any live mutation. Abort on validation failure.`,
       sandboxPlan: [
         { step: 1, label: 'Log ingestion & alert parsing', detail: 'Ingested 14 crash loop events, 3 OOM signals from kubelet journal. Parsed structured alert payload from Alertmanager webhook.', status: 'info' },
-        { step: 2, label: 'Sandbox dry-run: ConfigMap patch', detail: 'Executed dry-run against sandbox cluster replica. ConfigMap `router-default-env` patched — memory limit: 256Mi → 320Mi. No breaking drifts.', status: 'passed' },
-        { step: 3, label: 'Sandbox dry-run: ReplicaSet scale', detail: 'Dry-run scale from replicas: 2 → 3 passed scheduling simulation. Node capacity sufficient on worker-pool-east-b.', status: 'passed' },
+        { step: 2, label: 'Pre-apply verification: ConfigMap patch', detail: 'Executed dry-run against sandbox cluster replica. ConfigMap `router-default-env` patched — memory limit: 256Mi → 320Mi. No breaking drifts.', status: 'passed' },
+        { step: 3, label: 'Pre-apply verification: ReplicaSet scale', detail: 'Dry-run scale from replicas: 2 → 3 passed scheduling simulation. Node capacity sufficient on worker-pool-east-b.', status: 'passed' },
         { step: 4, label: 'Validation gate', detail: 'Validation result: PASSED (0 breaking drifts, 0 policy violations). Proceeding to live execution.', status: 'passed' },
         { step: 5, label: 'Live mutation applied', detail: 'ConfigMap patched and ReplicaSet scaled in prod-us-east-01/openshift-ingress. OTel span closed at 14:32:05 UTC.', status: 'passed' },
       ],
@@ -197,7 +197,7 @@ const AUDIT_ROWS: AuditRow[] = [
 - If health check fails post-sync, escalate to human approval queue immediately.`,
       sandboxPlan: [
         { step: 1, label: 'Drift detection', detail: 'Detected 3 resource drifts between target revision r4895 and live r4892: Deployment spec, ConfigMap env block, and Service port mapping.', status: 'info' },
-        { step: 2, label: 'Sync simulation', detail: 'Dry-run sync simulation completed in ArgoCD staging replica. All 3 drifts reconciled cleanly. Health projection: Healthy.', status: 'passed' },
+        { step: 2, label: 'Sync pre-check', detail: 'Dry-run sync simulation completed in ArgoCD staging replica. All 3 drifts reconciled cleanly. Health projection: Healthy.', status: 'passed' },
         { step: 3, label: 'Live sync triggered', detail: '`argocd app sync payment-gateway --force --prune` executed. Sync completed in 12s. All resources reconciled to r4895.', status: 'passed' },
         { step: 4, label: 'Post-sync health check', detail: 'Application health: Healthy. All pods Running. Payment gateway latency p99: 42ms (nominal).', status: 'passed' },
       ],
@@ -296,7 +296,7 @@ const AUDIT_ROWS: AuditRow[] = [
 - Verify disk pressure relief post-purge. Target: disk usage < 80%.`,
       sandboxPlan: [
         { step: 1, label: 'Deadlock pod identification', detail: 'Identified 3 deadlock pods: stale-job-runner-a1b2 (Completed/stuck), dead-batch-worker-x7y8 (Failed), orphan-init-c9d0 (Init:Error). Total claimed storage: 14.2 GiB.', status: 'info' },
-        { step: 2, label: 'Eviction simulation', detail: 'Simulated pod deletion in sandbox. Projected disk recovery: 14.2 GiB freed. Node disk projection post-purge: 67% usage.', status: 'passed' },
+        { step: 2, label: 'Eviction pre-check', detail: 'Simulated pod deletion in sandbox. Projected disk recovery: 14.2 GiB freed. Node disk projection post-purge: 67% usage.', status: 'passed' },
         { step: 3, label: 'Live purge executed', detail: '`kubectl delete pods stale-job-runner-a1b2 dead-batch-worker-x7y8 orphan-init-c9d0 -n default --grace-period=0 --force` on worker-infra-pool-3.', status: 'passed' },
         { step: 4, label: 'Post-purge health check', detail: 'Disk pressure cleared. Node disk: 64%. Kubelet eviction threshold no longer breached. Node status: Ready.', status: 'passed' },
       ],
@@ -313,7 +313,6 @@ const AUDIT_ROWS: AuditRow[] = [
 ];
 
 const INVOCATION_TYPES = ['All', 'Autonomous Pipeline', 'Human Approved'] as const;
-const AGENT_CAPABILITIES = ['All', 'K8s', 'GitOps', 'ACS'] as const;
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -328,7 +327,7 @@ const MetricCard: React.FC<{ title: string; children: React.ReactNode }> = ({ ti
   </Card>
 );
 
-const SandboxTimeline: React.FC<{ steps: SandboxStep[] }> = ({ steps }) => (
+const ExecutionTimeline: React.FC<{ steps: SandboxStep[] }> = ({ steps }) => (
   <Stack hasGutter>
     {steps.map((step, i) => {
       const isLast = i === steps.length - 1;
@@ -408,8 +407,6 @@ export const AIAuditAndLogsTab: React.FC = () => {
   // Filter state
   const [invocationTypeOpen, setInvocationTypeOpen] = useState(false);
   const [invocationTypeFilter, setInvocationTypeFilter] = useState<string>('All');
-  const [capabilityOpen, setCapabilityOpen] = useState(false);
-  const [capabilityFilter, setCapabilityFilter] = useState<string>('All');
   const [scopeSearch, setScopeSearch] = useState('');
 
   // Table expand state — multiple rows can be open simultaneously
@@ -428,7 +425,6 @@ export const AIAuditAndLogsTab: React.FC = () => {
 
   const filteredRows = AUDIT_ROWS.filter((row) => {
     if (invocationTypeFilter !== 'All' && row.invocationType !== invocationTypeFilter) return false;
-    if (capabilityFilter !== 'All' && !row.agentCapability.startsWith(capabilityFilter)) return false;
     if (scopeSearch && !row.targetScope.toLowerCase().includes(scopeSearch.toLowerCase())) return false;
     return true;
   });
@@ -615,31 +611,6 @@ export const AIAuditAndLogsTab: React.FC = () => {
             />
           </FlexItem>
 
-          {/* Agent Capability dropdown */}
-          <FlexItem>
-            <Select
-              aria-label="Agent capability filter"
-              isOpen={capabilityOpen}
-              onSelect={(_e, val) => { setCapabilityFilter(val as string); setCapabilityOpen(false); }}
-              onOpenChange={setCapabilityOpen}
-              toggle={(ref: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={ref}
-                  onClick={() => setCapabilityOpen((o) => !o)}
-                  isExpanded={capabilityOpen}
-                >
-                  {capabilityFilter === 'All' ? 'Agent capability' : capabilityFilter}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                {AGENT_CAPABILITIES.map((v) => (
-                  <SelectOption key={v} value={v} isSelected={capabilityFilter === v}>{v}</SelectOption>
-                ))}
-              </SelectList>
-            </Select>
-          </FlexItem>
-
           {/* Export action — inline with filters */}
           <FlexItem>
             <Button variant="link" icon={<DownloadIcon />} iconPosition="start">
@@ -751,17 +722,17 @@ export const AIAuditAndLogsTab: React.FC = () => {
                             </div>
                           </Tab>
 
-                          {/* Tab 2: Execution Sandbox Plan */}
+                          {/* Tab 2: Execution Timeline */}
                           <Tab
                             eventKey={1}
-                            title={<TabTitleText>Execution sandbox plan</TabTitleText>}
-                            aria-label="Execution sandbox plan"
+                            title={<TabTitleText>Execution timeline</TabTitleText>}
+                            aria-label="Execution timeline"
                           >
                             <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
                               <Content component="p" style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                                Chronological internal verification trace. Sandbox simulation precedes every live mutation.
+                                Chronological trace of agent reasoning steps and actions applied during this execution.
                               </Content>
-                              <SandboxTimeline steps={row.chainOfThought.sandboxPlan} />
+                              <ExecutionTimeline steps={row.chainOfThought.sandboxPlan} />
                             </div>
                           </Tab>
 
