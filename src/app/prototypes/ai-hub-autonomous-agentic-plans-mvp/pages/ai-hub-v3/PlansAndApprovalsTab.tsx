@@ -1276,13 +1276,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
     return (
       <Tooltip content={tooltipContent} position="top">
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label
-            color="red"
-            variant="outline"
-            isCompact
-            icon={<ExclamationCircleIcon className="ols-plan-aborted-status-icon" aria-hidden />}
-            style={{ whiteSpace: 'nowrap' }}
-          >
+          <Label color="red" variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
             Plan aborted
           </Label>
         </span>

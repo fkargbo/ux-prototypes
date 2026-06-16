@@ -17,7 +17,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, DownloadIcon, ExclamationCircleIcon, FileAltIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, DownloadIcon, FileAltIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { SC_PLAN_TABLE_IDENTITY } from './singleClusterPlanSimulation';
 import './ai-hub-v3-inventory.css';
@@ -75,13 +75,7 @@ const EventLabel: React.FC<{ event: LifecycleEvent; timestamp?: string }> = ({ e
     return (
       <Tooltip content={tooltipContent} position="top">
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label
-            color="red"
-            variant="outline"
-            isCompact
-            icon={<ExclamationCircleIcon className="ols-plan-aborted-status-icon" aria-hidden />}
-            style={{ whiteSpace: 'nowrap' }}
-          >
+          <Label color="red" variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
             Plan aborted
           </Label>
         </span>
