@@ -7,6 +7,7 @@ import { PlanRemediationPage } from './pages/PlanRemediationPage';
 import { AiHubPrototypeRoot } from './components/AiHubPrototypeRoot';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 import { withPerspectiveUrlSync } from './components/AiHubPerspectiveRouteShell';
+import { SummitFleetAlertingPage } from './pages/alerting-fleet-copy/SummitFleetAlertingPage';
 
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
 
@@ -47,6 +48,36 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/ai-hub/plans/:planSlug/remediation',
     element: withPerspectiveUrlSync(<PlanRemediationPage />),
     title: 'Plan remediation',
+  },
+  {
+    path: '/core/observe/alerting',
+    element: <SummitFleetAlertingPage />,
+    label: 'Alerting',
+    title: 'Alerting',
+    navigation: {
+      group: 'Observe',
+      order: 0,
+    },
+  },
+  {
+    path: '/core/observe/alerting/:clusterId/components',
+    element: <SummitFleetAlertingPage />,
+    title: 'Alerting',
+  },
+  {
+    path: '/core/observe/alerting/:clusterId/:componentId',
+    element: <SummitFleetAlertingPage />,
+    title: 'Alerting',
+  },
+  {
+    path: '/core/observe/alerting-v2/create-alert-rule',
+    element: <SummitFleetAlertingPage />,
+    title: 'Create Alert Rule',
+  },
+  {
+    path: '/core/observe/alerting-v2/create-silence',
+    element: <SummitFleetAlertingPage />,
+    title: 'Create Silence',
   },
 ];
 
