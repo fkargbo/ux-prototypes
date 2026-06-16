@@ -16,7 +16,9 @@ import {
   isSingleClusterPerspectiveKey,
   PLANS_LIST_PATH,
   perspectiveKeyFromShellName,
+  readRemediationSource,
   resolveDrillPerspectiveKey,
+  TROUBLESHOOTING_PLANS_LIST_PATH,
   writePlanRemediationDrillSession,
 } from './planRemediationDrillSession';
 import { usePlanTermination } from '../context/PlanTerminationContext';
@@ -35,6 +37,13 @@ export const PlanRemediationPage: React.FC = () => {
     () => resolveDrillPerspectiveKey(searchParams),
     [searchParams],
   );
+
+  const remediationSource = useMemo(
+    () => readRemediationSource(searchParams),
+    [searchParams],
+  );
+
+  const isFromTroubleshootingPlans = remediationSource === 'troubleshooting-plans';
 
   const isSingleCluster = drillPerspectiveKey
     ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
@@ -60,8 +69,9 @@ export const PlanRemediationPage: React.FC = () => {
       ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
     writePlanRemediationDrillSession({ perspectiveKey: key });
     setPerspectiveByKey(key);
-    navigate(buildPrototypeHref(PLANS_LIST_PATH, key));
-  }, [activePerspective, drillPerspectiveKey, navigate, setPerspectiveByKey]);
+    const backPath = isFromTroubleshootingPlans ? TROUBLESHOOTING_PLANS_LIST_PATH : PLANS_LIST_PATH;
+    navigate(buildPrototypeHref(backPath, key));
+  }, [activePerspective, drillPerspectiveKey, isFromTroubleshootingPlans, navigate, setPerspectiveByKey]);
 
   useLayoutEffect(() => {
     if (!drillPerspectiveKey || drillPerspectiveAppliedRef.current) {
@@ -95,12 +105,25 @@ export const PlanRemediationPage: React.FC = () => {
     <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
       <div className="template-page-breadcrumb">
         <Breadcrumb>
-          <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            Agentic Plans
-          </BreadcrumbItem>
-          <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            Plans
-          </BreadcrumbItem>
+          {isFromTroubleshootingPlans ? (
+            <>
+              <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
+                Observe
+              </BreadcrumbItem>
+              <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
+                Troubleshooting plans
+              </BreadcrumbItem>
+            </>
+          ) : (
+            <>
+              <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
+                Agentic Plans
+              </BreadcrumbItem>
+              <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
+                Plans
+              </BreadcrumbItem>
+            </>
+          )}
           <BreadcrumbItem isActive>{planDisplayName}</BreadcrumbItem>
         </Breadcrumb>
       </div>

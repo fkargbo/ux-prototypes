@@ -16,13 +16,13 @@ import {
 import { usePlanTermination } from '../../context/PlanTerminationContext';
 import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
+  getTroubleshootingPlanRemediationHref,
   perspectiveKeyFromShellName,
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
 import {
   PlansTableCore,
   buildPlansForPerspective,
-  getPlanRemediationPath,
   type PlanRow,
 } from './PlansAndApprovalsTab';
 import {
@@ -97,7 +97,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
         perspectiveKeyFromShellName(activePerspective)
         ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
       writePlanRemediationDrillSession({ perspectiveKey });
-      navigate(getPlanRemediationPath(plan, perspectiveKey));
+      navigate(getTroubleshootingPlanRemediationHref(plan.name ?? plan.id, perspectiveKey));
     },
     [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate],
   );

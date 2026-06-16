@@ -22,11 +22,16 @@ export {
   buildPrototypeHref,
   DRILL_FROM_QUERY_PARAM,
   getPlanRemediationHref,
+  getTroubleshootingPlanRemediationHref,
   isSingleClusterPerspectiveKey,
   parsePerspectiveKey,
+  PLAN_REMEDIATION_SOURCE_QUERY_PARAM,
   PLANS_LIST_PATH,
+  TROUBLESHOOTING_PLANS_LIST_PATH,
   perspectiveKeyFromShellName,
   readPerspectiveFromSearch,
+  readRemediationSource,
+  type PlanRemediationSource,
 };
 
 export function writePlanRemediationDrillSession(payload: PlanRemediationDrillPayload): void {

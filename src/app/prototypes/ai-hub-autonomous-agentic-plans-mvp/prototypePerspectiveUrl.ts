@@ -61,10 +61,35 @@ export function buildPrototypeHref(
 }
 
 export const PLANS_LIST_PATH = '/core/observe/ai-hub/plans';
+export const TROUBLESHOOTING_PLANS_LIST_PATH = '/core/observe/troubleshooting-plans';
+
+/** Source identifier written into the remediation drill URL (?source=…) */
+export type PlanRemediationSource = 'agentic-plans' | 'troubleshooting-plans';
+export const PLAN_REMEDIATION_SOURCE_QUERY_PARAM = 'source';
+
+export function readRemediationSource(
+  searchParams: URLSearchParams | { get: (key: string) => string | null },
+): PlanRemediationSource {
+  const v = searchParams.get(PLAN_REMEDIATION_SOURCE_QUERY_PARAM);
+  if (v === 'troubleshooting-plans') return 'troubleshooting-plans';
+  return 'agentic-plans';
+}
 
 export function getPlanRemediationHref(planSlug: string, perspectiveKey: AppShellPerspectiveKey): string {
   return buildPrototypeHref(
     `/core/observe/ai-hub/plans/${encodeURIComponent(planSlug)}/remediation`,
     perspectiveKey,
   );
+}
+
+export function getTroubleshootingPlanRemediationHref(
+  planSlug: string,
+  perspectiveKey: AppShellPerspectiveKey,
+): string {
+  const base = buildPrototypeHref(
+    `/core/observe/ai-hub/plans/${encodeURIComponent(planSlug)}/remediation`,
+    perspectiveKey,
+  );
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}${PLAN_REMEDIATION_SOURCE_QUERY_PARAM}=troubleshooting-plans`;
 }
