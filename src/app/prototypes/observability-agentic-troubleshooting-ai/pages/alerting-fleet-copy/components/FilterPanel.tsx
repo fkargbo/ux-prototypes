@@ -79,6 +79,8 @@ export interface FilterPanelProps {
   setTriggeredToTime?: (v: string) => void;
   // Filter context for dynamic title (fleet vs alerts)
   filterContext?: 'fleet' | 'alerts';
+  /** Core platforms: hide fleet-only region/cluster filters. */
+  hideMultiClusterFilters?: boolean;
 }
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
@@ -107,6 +109,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   triggeredToTime,
   setTriggeredToTime,
   filterContext = 'fleet',
+  hideMultiClusterFilters = false,
 }) => {
   const allSeverities: AlertSeverity[] = ['Critical', 'Warning', 'Info'];
   const allGroups: AlertGroup[] = ['Cluster', 'Namespace'];
@@ -152,8 +155,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const isGlobalView = groupFilter.length === 2 && groupFilter.includes('Cluster') && groupFilter.includes('Namespace');
   const hasGroupFilterChanges = !isGlobalView;
 
-  const hasActiveFilters = regionFilter.length > 0 || clusterFilter.length > 0 || namespaceFilter.length > 0 ||
-    labelFilter.length > 0 || severityFilter.length > 0 || hasGroupFilterChanges || componentFilter.length > 0;
+  const hasActiveFilters =
+    (!hideMultiClusterFilters && regionFilter.length > 0) ||
+    (!hideMultiClusterFilters && clusterFilter.length > 0) ||
+    namespaceFilter.length > 0 ||
+    labelFilter.length > 0 ||
+    severityFilter.length > 0 ||
+    hasGroupFilterChanges ||
+    componentFilter.length > 0;
 
   // Auto-clear cluster selections when their regions are deselected
   React.useEffect(() => {
@@ -258,7 +267,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const filteredLabels = availableLabels.filter(l => l.toLowerCase().includes(labelSearchValue.toLowerCase()));
   const filteredComponents = availableComponents.filter(c => c.toLowerCase().includes(componentSearchValue.toLowerCase()));
 
-  const filterTitle = filterContext === 'alerts' ? 'Filter fleet alerts' : 'Filter fleet';
+  const filterTitle = hideMultiClusterFilters
+    ? 'Filter alerts'
+    : filterContext === 'alerts'
+      ? 'Filter fleet alerts'
+      : 'Filter fleet';
 
   return (
     <Card>
@@ -274,115 +287,119 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       </CardHeader>
       <CardBody>
         <Stack hasGutter>
-          {/* Region Dropdown */}
-          <StackItem>
-            <Content component="small" className="pf-v6-u-mb-sm"><strong>Region</strong></Content>
-            <Select
-              role="menu"
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsRegionOpen(!isRegionOpen)}
-                  isExpanded={isRegionOpen}
-                  style={{ width: '100%' }}
-                  icon={<MapMarkerAltIcon />}
+          {!hideMultiClusterFilters && (
+            <>
+              {/* Region Dropdown */}
+              <StackItem>
+                <Content component="small" className="pf-v6-u-mb-sm"><strong>Region</strong></Content>
+                <Select
+                  role="menu"
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsRegionOpen(!isRegionOpen)}
+                      isExpanded={isRegionOpen}
+                      style={{ width: '100%' }}
+                      icon={<MapMarkerAltIcon />}
+                    >
+                      {regionFilter.length > 0 ? `${regionFilter.length} selected` : 'Select regions'}
+                    </MenuToggle>
+                  )}
+                  isOpen={isRegionOpen}
+                  onOpenChange={setIsRegionOpen}
+                  onSelect={(_, value) => {
+                    const val = value as string;
+                    if (regionFilter.includes(val)) {
+                      setRegionFilter(regionFilter.filter(r => r !== val));
+                    } else {
+                      setRegionFilter([...regionFilter, val]);
+                    }
+                  }}
                 >
-                  {regionFilter.length > 0 ? `${regionFilter.length} selected` : 'Select regions'}
-                </MenuToggle>
-              )}
-              isOpen={isRegionOpen}
-              onOpenChange={setIsRegionOpen}
-              onSelect={(_, value) => {
-                const val = value as string;
-                if (regionFilter.includes(val)) {
-                  setRegionFilter(regionFilter.filter(r => r !== val));
-                } else {
-                  setRegionFilter([...regionFilter, val]);
-                }
-              }}
-            >
-              <div style={{ padding: '8px' }}>
-                <SearchInput
-                  placeholder="Search regions..."
-                  value={regionSearchValue}
-                  onChange={(_, value) => setRegionSearchValue(value)}
-                  onClear={() => setRegionSearchValue('')}
-                />
-              </div>
+                  <div style={{ padding: '8px' }}>
+                    <SearchInput
+                      placeholder="Search regions..."
+                      value={regionSearchValue}
+                      onChange={(_, value) => setRegionSearchValue(value)}
+                      onClear={() => setRegionSearchValue('')}
+                    />
+                  </div>
+                  <Divider />
+                  <SelectList>
+                    {filteredRegions.map(region => (
+                      <SelectOption key={region} value={region} hasCheckbox isSelected={regionFilter.includes(region)}>
+                        {region} {regionCounts[region] !== undefined && `(${regionCounts[region]})`}
+                      </SelectOption>
+                    ))}
+                    {filteredRegions.length === 0 && (
+                      <SelectOption isDisabled>No regions found</SelectOption>
+                    )}
+                  </SelectList>
+                </Select>
+              </StackItem>
+
               <Divider />
-              <SelectList>
-                {filteredRegions.map(region => (
-                  <SelectOption key={region} value={region} hasCheckbox isSelected={regionFilter.includes(region)}>
-                    {region} {regionCounts[region] !== undefined && `(${regionCounts[region]})`}
-                  </SelectOption>
-                ))}
-                {filteredRegions.length === 0 && (
-                  <SelectOption isDisabled>No regions found</SelectOption>
-                )}
-              </SelectList>
-            </Select>
-          </StackItem>
 
-          <Divider />
-
-          {/* Cluster Dropdown */}
-          <StackItem>
-            <Content component="small" className="pf-v6-u-mb-sm"><strong>Cluster</strong></Content>
-            <Select
-              role="menu"
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsClusterOpen(!isClusterOpen)}
-                  isExpanded={isClusterOpen}
-                  style={{ width: '100%' }}
-                  icon={<ClusterIcon />}
+              {/* Cluster Dropdown */}
+              <StackItem>
+                <Content component="small" className="pf-v6-u-mb-sm"><strong>Cluster</strong></Content>
+                <Select
+                  role="menu"
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsClusterOpen(!isClusterOpen)}
+                      isExpanded={isClusterOpen}
+                      style={{ width: '100%' }}
+                      icon={<ClusterIcon />}
+                    >
+                      {clusterFilter.length > 0 ? `${clusterFilter.length} selected` : 'Select clusters'}
+                    </MenuToggle>
+                  )}
+                  isOpen={isClusterOpen}
+                  onOpenChange={setIsClusterOpen}
+                  onSelect={(_, value) => {
+                    const val = value as string;
+                    if (clusterFilter.includes(val)) {
+                      setClusterFilter(clusterFilter.filter(c => c !== val));
+                    } else {
+                      setClusterFilter([...clusterFilter, val]);
+                    }
+                  }}
                 >
-                  {clusterFilter.length > 0 ? `${clusterFilter.length} selected` : 'Select clusters'}
-                </MenuToggle>
-              )}
-              isOpen={isClusterOpen}
-              onOpenChange={setIsClusterOpen}
-              onSelect={(_, value) => {
-                const val = value as string;
-                if (clusterFilter.includes(val)) {
-                  setClusterFilter(clusterFilter.filter(c => c !== val));
-                } else {
-                  setClusterFilter([...clusterFilter, val]);
-                }
-              }}
-            >
-              <div style={{ padding: '8px' }}>
-                <SearchInput
-                  placeholder="Search clusters..."
-                  value={clusterSearchValue}
-                  onChange={(_, value) => setClusterSearchValue(value)}
-                  onClear={() => setClusterSearchValue('')}
-                />
-              </div>
-              <Divider />
-              <SelectList style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                {filteredClusters.map(cluster => (
-                  <SelectOption key={cluster} value={cluster} hasCheckbox isSelected={clusterFilter.includes(cluster)}>
-                    {cluster} {clusterCounts[cluster] !== undefined && `(${clusterCounts[cluster]})`}
-                  </SelectOption>
-                ))}
-                {filteredClusters.length === 0 && (
-                  <SelectOption isDisabled>No clusters found</SelectOption>
-                )}
-              </SelectList>
-            </Select>
-            <div style={{
-              fontSize: '12px',
-              color: 'var(--pf-t--global--text--color--subtle)',
-              marginTop: '4px',
-              fontStyle: 'italic'
-            }}>
-              {regionFilter.length > 0 ? 'Filtered by region' : 'Showing all clusters'}
-            </div>
-          </StackItem>
+                  <div style={{ padding: '8px' }}>
+                    <SearchInput
+                      placeholder="Search clusters..."
+                      value={clusterSearchValue}
+                      onChange={(_, value) => setClusterSearchValue(value)}
+                      onClear={() => setClusterSearchValue('')}
+                    />
+                  </div>
+                  <Divider />
+                  <SelectList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {filteredClusters.map(cluster => (
+                      <SelectOption key={cluster} value={cluster} hasCheckbox isSelected={clusterFilter.includes(cluster)}>
+                        {cluster} {clusterCounts[cluster] !== undefined && `(${clusterCounts[cluster]})`}
+                      </SelectOption>
+                    ))}
+                    {filteredClusters.length === 0 && (
+                      <SelectOption isDisabled>No clusters found</SelectOption>
+                    )}
+                  </SelectList>
+                </Select>
+                <div style={{
+                  fontSize: '12px',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginTop: '4px',
+                  fontStyle: 'italic'
+                }}>
+                  {regionFilter.length > 0 ? 'Filtered by region' : 'Showing all clusters'}
+                </div>
+              </StackItem>
 
-          <Divider />
+              <Divider />
+            </>
+          )}
 
           {/* Namespace Dropdown */}
           <StackItem>
@@ -437,7 +454,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               marginTop: '4px',
               fontStyle: 'italic'
             }}>
-              {clusterFilter.length > 0 ? 'Filtered by cluster' : 'Showing all namespaces'}
+              {!hideMultiClusterFilters && clusterFilter.length > 0 ? 'Filtered by cluster' : 'Showing all namespaces'}
             </div>
           </StackItem>
 

@@ -221,6 +221,22 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
     hideMultiClusterTableFeatures = false,
   } = props;
 
+  React.useEffect(() => {
+    if (hideMultiClusterTableFeatures) {
+      setAlertsTabRegionFilter([]);
+      setAlertsTabClusterFilter([]);
+    }
+  }, [hideMultiClusterTableFeatures, setAlertsTabRegionFilter, setAlertsTabClusterFilter]);
+
+  const activeFilterChipCount =
+    (hideMultiClusterTableFeatures ? 0 : alertsTabRegionFilter.length + alertsTabClusterFilter.length) +
+    alertsTabSeverityFilter.length +
+    (hasAlertsTabGroupFilterChanges ? alertsTabGroupFilter.length : 0) +
+    alertsTabComponentFilter.length +
+    alertStateFilter.length +
+    alertSourceFilter.length +
+    contributingAlertsFilter.length;
+
   return (
     <Drawer isExpanded={isDrawerExpanded} position="end" style={{ flex: 1, minHeight: 0 }}>
       {showFilterAnimation && (
@@ -325,6 +341,7 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                   triggeredToTime={alertsTabTriggeredToTime}
                   setTriggeredToTime={setAlertsTabTriggeredToTime}
                   filterContext="alerts"
+                  hideMultiClusterFilters={hideMultiClusterTableFeatures}
                 />
               </div>
             )}
@@ -397,16 +414,7 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                 icon={<FilterIcon />}
                                 onClick={() => setAlertsTabIsFilterPanelOpen(!alertsTabIsFilterPanelOpen)}
                               >
-                                Filters {hasAlertsTabActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{
-                                  alertsTabRegionFilter.length +
-                                  alertsTabClusterFilter.length +
-                                  alertsTabSeverityFilter.length +
-                                  (hasAlertsTabGroupFilterChanges ? alertsTabGroupFilter.length : 0) +
-                                  alertsTabComponentFilter.length +
-                                  alertStateFilter.length +
-                                  alertSourceFilter.length +
-                                  contributingAlertsFilter.length
-                                }</Badge>}
+                                Filters {hasAlertsTabActiveFilters && <Badge isRead style={{ marginLeft: '4px' }}>{activeFilterChipCount}</Badge>}
                               </Button>
                             </ToolbarItem>
                             <ToolbarItem>
@@ -438,8 +446,8 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                             setAlertsTabSeverityFilter(filter.filters.severity as AlertSeverity[]);
                                             setAlertsTabGroupFilter(filter.filters.group as AlertGroup[]);
                                             setAlertsTabComponentFilter(filter.filters.component as AlertComponent[]);
-                                            setAlertsTabRegionFilter(filter.filters.region || []);
-                                            setAlertsTabClusterFilter(filter.filters.cluster || []);
+                                            setAlertsTabRegionFilter(hideMultiClusterTableFeatures ? [] : (filter.filters.region || []));
+                                            setAlertsTabClusterFilter(hideMultiClusterTableFeatures ? [] : (filter.filters.cluster || []));
                                             setAlertsTabNamespaceFilter(filter.filters.namespace || []);
                                             setAlertsTabLabelFilter(filter.filters.label || []);
                                             setAlertsTabSearchValue(filter.filters.searchValue || '');
@@ -552,7 +560,7 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                             </ToolbarItem>
                           </ToolbarContent>
                         </Toolbar>
-                        {(alertsTabSeverityFilter.length > 0 || hasAlertsTabGroupFilterChanges || alertsTabComponentFilter.length > 0 || alertsTabRegionFilter.length > 0 || alertsTabClusterFilter.length > 0 || alertsTabNamespaceFilter.length > 0 || alertsTabLabelFilter.length > 0 || mainComponentFilter !== null || mainAlertNameFilter !== null || alertStateFilter.length > 0 || alertSourceFilter.length > 0 || contributingAlertsFilter.length > 0) && (
+                        {(alertsTabSeverityFilter.length > 0 || hasAlertsTabGroupFilterChanges || alertsTabComponentFilter.length > 0 || (!hideMultiClusterTableFeatures && alertsTabRegionFilter.length > 0) || (!hideMultiClusterTableFeatures && alertsTabClusterFilter.length > 0) || alertsTabNamespaceFilter.length > 0 || alertsTabLabelFilter.length > 0 || mainComponentFilter !== null || mainAlertNameFilter !== null || alertStateFilter.length > 0 || alertSourceFilter.length > 0 || contributingAlertsFilter.length > 0) && (
                           <div style={{ marginTop: '8px' }}>
                             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                               <FlexItem>
@@ -580,14 +588,14 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                       ))}
                                     </LabelGroup>
                                   )}
-                                  {alertsTabRegionFilter.length > 0 && (
+                                  {!hideMultiClusterTableFeatures && alertsTabRegionFilter.length > 0 && (
                                     <LabelGroup categoryName="Region">
                                       {alertsTabRegionFilter.map(r => (
                                         <Label key={r} variant="outline" onClose={() => setAlertsTabRegionFilter(alertsTabRegionFilter.filter(x => x !== r))}>{r}</Label>
                                       ))}
                                     </LabelGroup>
                                   )}
-                                  {alertsTabClusterFilter.length > 0 && (
+                                  {!hideMultiClusterTableFeatures && alertsTabClusterFilter.length > 0 && (
                                     <LabelGroup categoryName="Cluster">
                                       {alertsTabClusterFilter.map(c => (
                                         <Label key={c} variant="outline" onClose={() => setAlertsTabClusterFilter(alertsTabClusterFilter.filter(x => x !== c))}>{c}</Label>
@@ -656,8 +664,8 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                       JSON.stringify([...alertsTabGroupFilter].sort()) !== JSON.stringify([...(saved.group || [])].sort()) ||
                                       JSON.stringify([...alertsTabComponentFilter].sort()) !== JSON.stringify([...(saved.component || [])].sort()) ||
                                       JSON.stringify([...alertSourceFilter].sort()) !== JSON.stringify([...(saved.source || [])].sort()) ||
-                                      JSON.stringify([...alertsTabRegionFilter].sort()) !== JSON.stringify([...(saved.region || [])].sort()) ||
-                                      JSON.stringify([...alertsTabClusterFilter].sort()) !== JSON.stringify([...(saved.cluster || [])].sort()) ||
+                                      (!hideMultiClusterTableFeatures && JSON.stringify([...alertsTabRegionFilter].sort()) !== JSON.stringify([...(saved.region || [])].sort())) ||
+                                      (!hideMultiClusterTableFeatures && JSON.stringify([...alertsTabClusterFilter].sort()) !== JSON.stringify([...(saved.cluster || [])].sort())) ||
                                       JSON.stringify([...alertsTabNamespaceFilter].sort()) !== JSON.stringify([...(saved.namespace || [])].sort()) ||
                                       JSON.stringify([...alertsTabLabelFilter].sort()) !== JSON.stringify([...(saved.label || [])].sort()) ||
                                       alertsTabSearchValue !== (saved.searchValue || '');
@@ -670,8 +678,8 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                                             component: alertsTabComponentFilter,
                                             source: alertSourceFilter,
                                             searchValue: alertsTabSearchValue,
-                                            region: alertsTabRegionFilter,
-                                            cluster: alertsTabClusterFilter,
+                                            region: hideMultiClusterTableFeatures ? [] : alertsTabRegionFilter,
+                                            cluster: hideMultiClusterTableFeatures ? [] : alertsTabClusterFilter,
                                             namespace: alertsTabNamespaceFilter,
                                             label: alertsTabLabelFilter,
                                           };
