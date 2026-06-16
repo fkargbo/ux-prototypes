@@ -1598,7 +1598,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   );
 };
 
-const TriggerDomainCell: React.FC<{ domain: string }> = ({ domain }) => (
+export const TriggerDomainCell: React.FC<{ domain: string }> = ({ domain }) => (
   <Label color="grey" variant="outline" isCompact>
     {domain}
   </Label>
