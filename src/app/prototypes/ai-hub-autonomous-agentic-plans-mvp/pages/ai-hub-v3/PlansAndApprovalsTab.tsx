@@ -1173,7 +1173,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     steps: [
       { id: 's1', time: '11:05:02', status: 'done', icon: 'exclamation', title: 'ThanosCompactorHasNotRun alert fired', detail: 'Thanos compactor pod stuck on corrupted block' },
       { id: 's2', time: '11:05:16', status: 'done', icon: 'database', title: 'Inspected compactor PVC and block metadata', detail: 'Corrupted TSDB block detected on thanos-compactor-data volume' },
-      { id: 's3', time: '11:32:00', status: 'done', icon: 'ban', title: 'Plan terminated by administrative override', detail: 'Admin halted recovery before PVC resize completed' },
+      { id: 's3', time: '11:32:00', status: 'done', icon: 'exclamation', title: 'Plan terminated by administrative override', detail: 'Admin halted recovery before PVC resize completed' },
     ],
     aggregatedFinding: 'Thanos compactor stalled on a corrupted block; administrative override terminated recovery mid-flight.',
     rootCauseNarrative: 'A corrupted TSDB block prevented the Thanos compactor from completing its compaction cycle. An administrator manually terminated the plan during persistent volume recovery.',
