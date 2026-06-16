@@ -9,6 +9,7 @@ import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanc
 import { withPerspectiveUrlSync } from './components/AiHubPerspectiveRouteShell';
 import { SummitFleetAlertingPage } from './pages/alerting-fleet-copy/SummitFleetAlertingPage';
 import { TroubleshootingPlansPage } from './pages/TroubleshootingPlansPage';
+import { TroubleshootingPlanDetail } from './pages/TroubleshootingPlanDetail';
 
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
 
@@ -69,6 +70,11 @@ export const routes: RouteConfig[] = [
       group: 'Observe',
       order: 1,
     },
+  },
+  {
+    path: '/core/observe/troubleshooting-plans/:planId',
+    element: withPerspectiveUrlSync(<TroubleshootingPlanDetail />),
+    title: 'Troubleshooting plan detail',
   },
   {
     path: '/core/observe/alerting/:clusterId/components',
