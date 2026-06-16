@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
@@ -7,74 +7,96 @@ import {
   resolveActivePerspectiveKey,
 } from '../prototypePerspectiveUrl';
 
-/** AppLayout bootstraps as Fleet before enabledPerspectives[0]; skip one shell→URL write per session. */
-let hasSkippedAppLayoutFleetBootstrap = false;
-
 /**
- * Keeps `?perspective=` in sync with the shell perspective switcher so share links
- * preserve page path + Core platforms / Fleet management context.
+ * Keeps `?perspective=` in sync with the shell perspective switcher so share
+ * links preserve page path + perspective context.
  *
- * Must render inside `AppLayout`'s `ActivePerspectiveProvider` (route elements), not
- * the prototype root wrapper — otherwise `useActivePerspective` falls back to Fleet
- * management and share URLs will always show `?perspective=fleet-management`.
+ * Two-effect design
+ * ─────────────────
+ * 1. URL → shell  When location.search carries a valid `?perspective=`, drive
+ *    the shell to match (shared links, browser back/forward).
+ *
+ * 2. Shell → URL  When the shell perspective changes (user switches via
+ *    perspective switcher, sidebar nav loses the param, etc.), write the
+ *    current perspective into the URL.
+ *
+ * Boot-default guard
+ * ──────────────────
+ * AppLayout initialises `activePerspective` to 'Fleet management' before its
+ * own useEffect applies `enabledPerspectives[0]` ('core-platforms' for this
+ * prototype).  We use `perspectiveStabilisedRef` to suppress shell→URL writes
+ * until the shell is either (a) driven by the URL→shell branch, or (b) no
+ * longer the AppLayout boot default.
  */
 export const PrototypePerspectiveUrlSync: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
-  const skipNextShellToUrlRef = useRef(false);
-  const lastShellWrittenPerspectiveRef = useRef<string | null>(null);
 
   const activePerspectiveKey = resolveActivePerspectiveKey(activePerspective);
 
-  // Shared links / browser back-forward: URL → shell
-  useLayoutEffect(() => {
+  /**
+   * Flips to `true` once we're confident the shell perspective is authoritative
+   * (either from a URL param or from AppLayout settling past its boot default).
+   */
+  const perspectiveStabilisedRef = useRef(false);
+
+  /**
+   * Suppresses one shell→URL write immediately after URL→shell has applied a
+   * value, preventing a feedback loop.
+   */
+  const suppressNextWriteRef = useRef(false);
+
+  // ── 1. URL → shell ──────────────────────────────────────────────────────────
+  useEffect(() => {
     const urlPerspective = readPerspectiveFromSearch(new URLSearchParams(location.search));
+
     if (!urlPerspective) {
       return;
     }
 
-    if (urlPerspective === lastShellWrittenPerspectiveRef.current) {
-      lastShellWrittenPerspectiveRef.current = null;
-      // Only suppress the follow-up URL write when shell and URL already agree.
-      if (urlPerspective === activePerspectiveKey) {
-        skipNextShellToUrlRef.current = true;
-      }
-      return;
-    }
-
-    skipNextShellToUrlRef.current = true;
-    setPerspectiveByKey(urlPerspective);
-  }, [activePerspectiveKey, location.search, setPerspectiveByKey]);
-
-  // Shell perspective + route → URL (perspective switcher, sidebar nav, in-prototype links)
-  useEffect(() => {
-    if (skipNextShellToUrlRef.current) {
-      skipNextShellToUrlRef.current = false;
-      return;
-    }
-
-    const searchParams = new URLSearchParams(location.search);
-    const urlPerspective = readPerspectiveFromSearch(searchParams);
-
-    // AppLayout initializes to Fleet management before applying enabledPerspectives[0].
-    // Skip one erroneous shell→URL write on cold start so Core platforms can win.
-    if (
-      !urlPerspective
-      && activePerspectiveKey === 'fleet-management'
-      && !hasSkippedAppLayoutFleetBootstrap
-    ) {
-      hasSkippedAppLayoutFleetBootstrap = true;
-      return;
-    }
-
+    // URL and shell already agree — nothing to do.
     if (urlPerspective === activePerspectiveKey) {
-      lastShellWrittenPerspectiveRef.current = null;
+      perspectiveStabilisedRef.current = true;
       return;
     }
 
-    lastShellWrittenPerspectiveRef.current = activePerspectiveKey;
-    navigate(buildPrototypeHref(location.pathname, activePerspectiveKey, searchParams), { replace: true });
+    // Drive the shell to match the URL (shared link / back-forward).
+    suppressNextWriteRef.current = true;
+    perspectiveStabilisedRef.current = true;
+    setPerspectiveByKey(urlPerspective);
+  }, [location.search, activePerspectiveKey, setPerspectiveByKey]);
+
+  // ── 2. Shell → URL ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    // Suppress the write that would immediately follow a URL→shell sync.
+    if (suppressNextWriteRef.current) {
+      suppressNextWriteRef.current = false;
+      return;
+    }
+
+    const urlPerspective = readPerspectiveFromSearch(new URLSearchParams(location.search));
+
+    // Don't write to the URL while AppLayout is in its boot default
+    // ('fleet-management') and hasn't yet applied enabledPerspectives[0].
+    // The URL→shell branch or the next render (when AppLayout settles) will
+    // flip perspectiveStabilisedRef and allow this branch to proceed.
+    if (!perspectiveStabilisedRef.current && activePerspectiveKey === 'fleet-management') {
+      return;
+    }
+    perspectiveStabilisedRef.current = true;
+
+    // URL already matches shell — nothing to write.
+    if (urlPerspective === activePerspectiveKey) {
+      return;
+    }
+
+    // Write the current shell perspective into the URL.
+    const searchParams = new URLSearchParams(location.search);
+    navigate(
+      buildPrototypeHref(location.pathname, activePerspectiveKey, searchParams),
+      { replace: true },
+    );
   }, [activePerspectiveKey, location.pathname, location.search, navigate]);
 
   return null;
