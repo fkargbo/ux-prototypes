@@ -25,6 +25,11 @@ import {
   LabelGroup,
   MenuToggle,
   MenuToggleElement,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
   Pagination,
   PaginationVariant,
   Select,
@@ -37,7 +42,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CodeBranchIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, SyncAltIcon, TerminalIcon, TimesIcon, WrenchIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CogIcon, DownloadIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, LockIcon, LockOpenIcon, SearchIcon, SyncAltIcon, TerminalIcon, TimesIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -45,6 +50,34 @@ import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../c
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
+
+// ─── Confidence tier helpers ──────────────────────────────────────────────────
+
+type ConfidenceTier = 'High' | 'Medium' | 'Low';
+
+const toConfidenceTier = (confidence: number): ConfidenceTier => {
+  if (confidence >= 80) return 'High';
+  if (confidence >= 60) return 'Medium';
+  return 'Low';
+};
+
+const confidenceTierLabelColor = (tier: ConfidenceTier): 'green' | 'yellow' | 'blue' =>
+  tier === 'High' ? 'green' : tier === 'Medium' ? 'yellow' : 'blue';
+
+const formatConfidenceLabel = (tier: ConfidenceTier): string => `${tier} confidence`;
+
+// ─── Dry-run command preview ──────────────────────────────────────────────────
+
+const buildDryRunCommandPreview = (rawCommands: string): string =>
+  rawCommands
+    .split('\n')
+    .map((cmd) => {
+      const trimmed = cmd.trim();
+      if (/^(oc|kubectl)\s/.test(trimmed)) return `${cmd} --dry-run=client`;
+      if (/^argocd\s/.test(trimmed)) return `${cmd} --dry-run`;
+      return cmd;
+    })
+    .join('\n');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1648,10 +1681,8 @@ const RemediationOptionCard: React.FC<{
   const isInvestigating = status === 'Investigating';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isRemediating = status === 'Remediating';
-  const [showCommands, setShowCommands] = useState(false);
+  const [showLiveCommands, setShowLiveCommands] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(drawerTargets));
-  type SandboxState = 'pending' | 'running' | 'passed' | 'bypassed';
-  const [sandboxState, setSandboxState] = useState<SandboxState>('pending');
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPostMortemOpen, setIsPostMortemOpen] = useState(false);
@@ -1659,9 +1690,8 @@ const RemediationOptionCard: React.FC<{
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
     if (!isSelected) {
-      setShowCommands(false);
+      setShowLiveCommands(false);
       setIsExecuting(false);
-      setSandboxState('pending');
     }
   }, [isSelected]);
 
@@ -1676,15 +1706,16 @@ const RemediationOptionCard: React.FC<{
 
   const headerContent = (
     <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      gap={{ default: 'gapSm' }}
-      flexWrap={{ default: 'wrap' }}
+      direction={{ default: 'column' }}
+      alignItems={{ default: 'alignItemsFlexStart' }}
+      gap={{ default: 'gapXs' }}
       id={`${cardId}-title`}
     >
-      <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-        Option {index + 1}: {typeName}
-      </span>
-      <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+          Option {index + 1}: {typeName}
+        </span>
+        <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
         {isFirst ? (
           <Label color="blue" isCompact>AI Recommended</Label>
         ) : (
@@ -1710,6 +1741,7 @@ const RemediationOptionCard: React.FC<{
           {isUnauthorized ? 'RBAC: Unauthorized' : 'RBAC: Authorized'}
         </Label>
       </Flex>
+      </Flex>
     </Flex>
   );
 
@@ -1722,15 +1754,17 @@ const RemediationOptionCard: React.FC<{
     }, 2000);
   };
 
-  const renderActionButton = () => {
+  const showRemediationActions = !isInvestigating && !isTerminal && !isRemediating;
+
+  const renderApplyAction = () => {
     if (isInvestigating || isTerminal) return null;
     if (isRemediating) {
       return (
         <Button
           variant="primary"
           isDisabled
-          icon={<Spinner size="sm" aria-label="Applying fix" />}
-          style={{ cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
+          isLoading
+          style={{ margin: 0, cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
         >
           Applying fix…
         </Button>
@@ -1746,54 +1780,30 @@ const RemediationOptionCard: React.FC<{
         </Flex>
       );
     }
-    // Block execution until sandbox is cleared (passed or explicitly bypassed).
-    if (sandboxState === 'pending' || sandboxState === 'running') return null;
     if (isUnauthorized) {
       return (
         <Button
           variant="primary"
           isDisabled
           icon={<LockIcon />}
-          style={{ pointerEvents: 'none', cursor: 'not-allowed' }}
+          style={{ pointerEvents: 'none', cursor: 'not-allowed', margin: 0 }}
         >
           Insufficient Privileges to Execute
         </Button>
       );
     }
     return (
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-        <Button
-          variant="primary"
-          isDisabled={selectedCount === 0 || isExecuting}
-          isLoading={isExecuting}
-          onClick={handleExecute}
-        >
-          {isExecuting
-            ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
-            : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
-        </Button>
-        {!isExecuting && (
-          <Button
-            variant="link"
-            isInline
-            style={{ fontSize: '14px' }}
-            onClick={() => {
-              const drawer = PLAN_DRAWER_DATA[plan.id];
-              agenticGlobalAiApi.openRemediationDiscussion?.({
-                planSynopsis: plan.synopsis,
-                optionTitle: option.title,
-                rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
-                remediationProposal: drawer?.remediationProposal ?? option.description,
-                riskAssessment: drawer?.riskAssessment ?? '',
-                blastRadius: plan.blastRadius,
-                severity: plan.severity,
-              });
-            }}
-          >
-            Discuss with Lightspeed
-          </Button>
-        )}
-      </Flex>
+      <Button
+        variant="primary"
+        isDisabled={selectedCount === 0 || isExecuting}
+        isLoading={isExecuting}
+        onClick={handleExecute}
+        style={{ margin: 0 }}
+      >
+        {isExecuting
+          ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
+          : `Apply remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
+      </Button>
     );
   };
 
@@ -1893,27 +1903,85 @@ const RemediationOptionCard: React.FC<{
             </Label>
           </Flex>
 
-          {/* Raw commands toggle */}
-          {!isInvestigating && !isTerminal && !isRemediating && (
+          {/* ── Dry-run preview (primary safety gate) ── */}
+          {showRemediationActions && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              <Alert
+                variant="info"
+                isInline
+                title="Dry-run preview — verify before applying"
+                style={{ marginTop: '24px', marginBottom: '24px' }}
+              >
+                Review the dry-run summary below. No live mutations occur until you choose{' '}
+                <strong>Apply remediation</strong> or use the manual commands below.
+              </Alert>
+              <Content
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 'var(--pf-t--global--spacer--xs)',
+                }}
+              >
+                Dry-run commands
+              </Content>
+              <ClipboardCopy
+                isReadOnly
+                isCode
+                hoverTip="Copy"
+                clickTip="Copied"
+                style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+              >
+                {buildDryRunCommandPreview(option.rawCommands)}
+              </ClipboardCopy>
+            </div>
+          )}
+
+          {/* ── View live commands ── */}
+          {showRemediationActions && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               <Button
                 variant="link"
                 isInline
-                onClick={() => setShowCommands(!showCommands)}
+                onClick={() => setShowLiveCommands(!showLiveCommands)}
                 icon={
                   <AngleRightIcon
                     style={{
-                      transform: showCommands ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transform: showLiveCommands ? 'rotate(90deg)' : 'rotate(0deg)',
                       transition: 'transform 150ms ease',
                     }}
                   />
                 }
                 style={{ padding: 0, fontSize: '14px' }}
               >
-                {showCommands ? 'Hide raw commands' : 'View raw commands'}
+                {showLiveCommands ? 'Hide live commands' : 'View live commands'}
               </Button>
-              {showCommands && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+              {showLiveCommands && (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title="Live commands — manual execution"
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                  >
+                    These commands will mutate cluster state when run. Execute only after dry-run validation passes.
+                  </Alert>
+                  <Content
+                    component="small"
+                    style={{
+                      display: 'block',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      marginBottom: 'var(--pf-t--global--spacer--xs)',
+                    }}
+                  >
+                    Live commands
+                  </Content>
                   <ClipboardCopy
                     isReadOnly
                     isCode
@@ -1926,8 +1994,8 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── Target Selection (Waiting Approval only) ── */}
-          {!isInvestigating && !isTerminal && !isRemediating && drawerTargets.length > 0 && (
+          {/* ── Target Selection ── */}
+          {showRemediationActions && drawerTargets.length > 0 && (
             <div
               style={{
                 borderRadius: 'var(--pf-t--global--border--radius--small)',
@@ -1937,7 +2005,6 @@ const RemediationOptionCard: React.FC<{
                 backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
               }}
             >
-              {/* Header row: label + Select All / Deselect All */}
               <Flex
                 justifyContent={{ default: 'justifyContentSpaceBetween' }}
                 alignItems={{ default: 'alignItemsCenter' }}
@@ -1947,27 +2014,15 @@ const RemediationOptionCard: React.FC<{
                   Targets ({selectedCount} / {drawerTargets.length})
                 </Content>
                 <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '12px' }}
-                    onClick={() => setSelectedTargets(new Set(drawerTargets))}
-                  >
+                  <Button variant="link" isInline style={{ fontSize: '12px' }} onClick={() => setSelectedTargets(new Set(drawerTargets))}>
                     Select all
                   </Button>
                   <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>·</span>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '12px' }}
-                    onClick={() => setSelectedTargets(new Set())}
-                  >
+                  <Button variant="link" isInline style={{ fontSize: '12px' }} onClick={() => setSelectedTargets(new Set())}>
                     Deselect all
                   </Button>
                 </Flex>
               </Flex>
-
-              {/* Individual target checkboxes */}
               <Stack hasGutter={false} style={{ gap: 'var(--pf-t--global--spacer--xs)' }}>
                 {drawerTargets.map((target) => (
                   <StackItem key={target}>
@@ -1986,66 +2041,68 @@ const RemediationOptionCard: React.FC<{
                   </StackItem>
                 ))}
               </Stack>
-
-              {/* Sandbox gate */}
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', paddingTop: 'var(--pf-t--global--spacer--sm)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
-                {sandboxState === 'pending' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setSandboxState('running');
-                        setTimeout(() => setSandboxState('passed'), 2000);
-                      }}
-                    >
-                      Run sandbox test first
-                    </Button>
-                    <Button
-                      variant="link"
-                      isInline
-                      style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}
-                      onClick={() => setSandboxState('bypassed')}
-                    >
-                      Skip (not recommended)
-                    </Button>
-                  </Flex>
-                )}
-
-                {sandboxState === 'running' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                    <Spinner size="sm" aria-label="Running sandbox test" />
-                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Running sandbox test…
-                    </Content>
-                  </Flex>
-                )}
-
-                {sandboxState === 'passed' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }} />
-                    <Content component="small" style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}>
-                      Sandbox test passed — execution unlocked
-                    </Content>
-                  </Flex>
-                )}
-
-                {sandboxState === 'bypassed' && (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)', flexShrink: 0 }} />
-                    <Content component="small" style={{ color: 'var(--pf-t--global--color--status--warning--default)', fontWeight: 600 }}>
-                      Sandbox skipped — applying without prior test validation
-                    </Content>
-                  </Flex>
-                )}
-              </div>
             </div>
           )}
 
-          {/* Action button */}
-          {renderActionButton()}
+          {/* ── Apply + Download + Discuss ── */}
+          {showRemediationActions && (
+            <div
+              className="ols-remediation-option-card__actions"
+              style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px' }}
+            >
+              {renderApplyAction()}
+              {!isExecuting && !isExecuted && (
+                <>
+                  <Button
+                    variant="link"
+                    isInline
+                    icon={<DownloadIcon />}
+                    iconPosition="end"
+                    style={{ fontSize: '14px', margin: 0 }}
+                    aria-label={`Download remediation guide for option ${index + 1}`}
+                  >
+                    Download remediation guide
+                  </Button>
+                  <Button
+                    variant="link"
+                    isInline
+                    style={{ fontSize: '14px', margin: 0 }}
+                    onClick={() => {
+                      const drawer = PLAN_DRAWER_DATA[plan.id];
+                      agenticGlobalAiApi.openRemediationDiscussion?.({
+                        planSynopsis: plan.synopsis,
+                        optionTitle: option.title,
+                        rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
+                        remediationProposal: drawer?.remediationProposal ?? option.description,
+                        riskAssessment: drawer?.riskAssessment ?? '',
+                        blastRadius: plan.blastRadius,
+                        severity: plan.severity,
+                      });
+                    }}
+                  >
+                    Discuss with Lightspeed
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
 
-          {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
+          {!showRemediationActions && (
+            <div
+              className="ols-remediation-option-card__actions"
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '16px',
+                marginTop: isRemediating ? 'var(--pf-t--global--spacer--sm)' : undefined,
+              }}
+            >
+              {renderApplyAction()}
+            </div>
+          )}
+
+          {/* ── Post-execution summary (inline, after execution) ── */}
           {isExecuted && (
             <PostMortemPanel
               plan={plan}
@@ -2239,7 +2296,7 @@ const PostMortemPanel: React.FC<{
               }
               style={{ padding: 0, fontSize: '14px', marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
             >
-              {isMetricsExpanded ? 'Hide Post-Mortem Execution Summary' : 'View Post-Mortem Execution Summary'}
+              {isMetricsExpanded ? 'Hide post-execution summary' : 'View post-execution summary'}
             </Button>
 
             {/* Collapsible metrics content (Sections A, B, C) */}
@@ -2267,7 +2324,7 @@ const PostMortemPanel: React.FC<{
                 }
                 style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
               >
-                {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
+                {showLogs ? 'Hide post-execution logs' : 'View post-execution logs'}
               </Button>
               {showLogs && (
                 <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
@@ -2287,7 +2344,7 @@ const PostMortemPanel: React.FC<{
             <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
               <Button variant="danger" isDanger>Initiate Rollback</Button>
               <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">Export to ITSM Ticket</Button>
-              <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download Post-Mortem Report</Button>
+              <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download post-execution report</Button>
             </Flex>
           </>
         ) : (
@@ -2306,7 +2363,7 @@ const PostMortemPanel: React.FC<{
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
                 <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
-                <Title headingLevel="h5" size="md">Post-Mortem Execution Summary</Title>
+                <Title headingLevel="h5" size="md">Post-execution summary</Title>
               </Flex>
 
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -2331,7 +2388,7 @@ const PostMortemPanel: React.FC<{
                   }
                   style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
                 >
-                  {showLogs ? 'Hide raw execution logs' : 'View raw execution logs'}
+                  {showLogs ? 'Hide post-execution logs' : 'View post-execution logs'}
                 </Button>
                 {showLogs && (
                   <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
@@ -2353,7 +2410,7 @@ const PostMortemPanel: React.FC<{
               <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }} alignItems={{ default: 'alignItemsCenter' }}>
                 <Button variant="danger" isDanger>Initiate Rollback</Button>
                 <Button variant="link" icon={<ExternalLinkAltIcon />} iconPosition="end">Export to ITSM Ticket</Button>
-                <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download Post-Mortem Report</Button>
+                <Button variant="link" icon={<DownloadIcon />} iconPosition="end">Download post-execution report</Button>
               </Flex>
             </div>
           </div>
@@ -2428,13 +2485,100 @@ const PostMortemPanel: React.FC<{
 
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
+// ─── Scroll helpers ───────────────────────────────────────────────────────────
+
+/** Match drill-down layout breakpoint for full-width remediation content. */
+const REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT = 1100;
+const REMEDIATION_SCROLL_PADDING = 16;
+
+const getRemediationScrollParent = (element: HTMLElement): HTMLElement => {
+  let parent = element.parentElement;
+  while (parent) {
+    const { overflowY } = window.getComputedStyle(parent);
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return document.documentElement;
+};
+
+const isRemediationConfinedLayout = (scrollParent: HTMLElement): boolean => {
+  if (window.innerWidth <= REMEDIATION_AUTO_SCROLL_MAX_VIEWPORT) {
+    return true;
+  }
+  return (
+    scrollParent !== document.documentElement &&
+    scrollParent !== document.body &&
+    scrollParent.scrollHeight > scrollParent.clientHeight + 1
+  );
+};
+
+const scrollWithinParent = (
+  target: HTMLElement,
+  scrollParent: HTMLElement,
+  { alignStart = false }: { alignStart?: boolean } = {},
+) => {
+  const targetRect = target.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  const padding = REMEDIATION_SCROLL_PADDING;
+
+  if (scrollParent === document.documentElement || scrollParent === document.body) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  if (alignStart || targetRect.top < parentRect.top + padding) {
+    scrollParent.scrollBy({ top: targetRect.top - parentRect.top - padding, behavior: 'smooth' });
+    return;
+  }
+
+  if (targetRect.bottom > parentRect.bottom - padding) {
+    scrollParent.scrollBy({ top: targetRect.bottom - parentRect.bottom + padding, behavior: 'smooth' });
+  }
+};
+
+/** Scroll expanded workflow content into view when it extends outside the scroll container. */
+const scrollRemediationSectionIntoView = (
+  target: HTMLElement | null,
+  { force = false }: { force?: boolean } = {},
+) => {
+  if (!target) return;
+
+  const runScroll = () => {
+    const scrollParent = getRemediationScrollParent(target);
+    if (!force && !isRemediationConfinedLayout(scrollParent)) return;
+
+    const targetRect = target.getBoundingClientRect();
+    const parentRect = scrollParent.getBoundingClientRect();
+    const padding = REMEDIATION_SCROLL_PADDING;
+    const extendsBelow = targetRect.bottom > parentRect.bottom - padding;
+    const extendsAbove = targetRect.top < parentRect.top + padding;
+
+    if (!force && !extendsBelow && !extendsAbove) return;
+
+    scrollWithinParent(target, scrollParent, { alignStart: force });
+  };
+
+  requestAnimationFrame(() => { requestAnimationFrame(runScroll); });
+};
+
+// ─── RCA acknowledgment gate ─────────────────────────────────────────────────
+
+/** Critical Waiting Approval plans require RCA acknowledgment before the remediation hub unlocks. */
+function planRequiresRcaAcknowledgment(plan: PlanRow, status: PlanStatus): boolean {
+  return status === 'Waiting Approval' && plan.severity === 'critical';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 type RemediationWorkflowSection = 'chain' | 'rca' | 'rem';
 
 const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
-  const { status, severity } = plan;
+  const { status } = plan;
   if (status === 'Investigating') return 'chain';
   if (status === 'Remediating') return 'rem';
-  if (status === 'Waiting Approval') return severity === 'critical' ? 'rca' : 'rem';
+  if (status === 'Waiting Approval') return planRequiresRcaAcknowledgment(plan, status) ? 'rca' : 'rem';
   return 'rem';
 };
 
@@ -2461,6 +2605,19 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   // become independently controllable.
   const [isGuidedView, setIsGuidedView] = useState(true);
 
+  // Scroll refs — each section header div is observed so the panel scrolls the
+  // newly-expanded content into view inside the side-drawer scroll container.
+  const chainRef = React.useRef<HTMLDivElement>(null);
+  const rcaRef = React.useRef<HTMLDivElement>(null);
+  const remHubRef = React.useRef<HTMLDivElement>(null);
+  const pendingVerifyScrollRef = React.useRef(false);
+
+  const sectionRefMap: Record<RemediationWorkflowSection, React.RefObject<HTMLDivElement | null>> = {
+    chain: chainRef,
+    rca: rcaRef,
+    rem: remHubRef,
+  };
+
   useEffect(() => {
     setSectionExpanded(createInitialSectionState(plan));
     setIsGuidedView(true);
@@ -2472,6 +2629,11 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   ) => {
     if (isGuidedView) setIsGuidedView(false);
     setSectionExpanded((prev) => ({ ...prev, [section]: isOpen }));
+    if (isOpen) {
+      setTimeout(() => {
+        scrollRemediationSectionIntoView(sectionRefMap[section].current);
+      }, 100);
+    }
   };
 
   const drawer = PLAN_DRAWER_DATA[plan.id];
@@ -2490,7 +2652,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   // Plans already in execution (Remediating / Completed / Failed) are also exempt
   // since the gate was already cleared in a prior interaction.
   const [isDiagnosisVerified, setIsDiagnosisVerified] = useState<boolean>(
-    plan.severity === 'warning' ||
+    !planRequiresRcaAcknowledgment(plan, status) ||
     status === 'Remediating' ||
     status === 'Completed' ||
     status === 'Failed',
@@ -2501,14 +2663,21 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
     setSelectedOptionId(options[0]?.id ?? '');
     setIsGuidedView(false);
     setSectionExpanded({ chain: false, rca: false, rem: true });
-    // After React re-renders the unlocked hub, scroll it above the fold so the
-    // SRE doesn't have to hunt for it — especially on smaller viewports.
-    setTimeout(() => {
-      remHubRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
+    pendingVerifyScrollRef.current = true;
   };
 
-  const remHubRef = React.useRef<HTMLDivElement>(null);
+  // Two-pass scroll: first attempt at 200ms lets the ExpandableSection open and
+  // lay out; retry at 450ms catches cases where option card bodies finish
+  // rendering after the first frame.
+  useEffect(() => {
+    if (!pendingVerifyScrollRef.current || !isDiagnosisVerified || !sectionExpanded.rem) {
+      return undefined;
+    }
+    const scrollToHub = () => scrollRemediationSectionIntoView(remHubRef.current, { force: true });
+    const t1 = window.setTimeout(scrollToHub, 200);
+    const t2 = window.setTimeout(() => { scrollToHub(); pendingVerifyScrollRef.current = false; }, 450);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, [isDiagnosisVerified, sectionExpanded.rem, selectedOptionId]);
 
   if (!drawer) return null;
 
@@ -2523,6 +2692,8 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const activeStepTitle = isRemediating
     ? drawer.steps.find(s => s.status === 'active')?.title
     : undefined;
+
+  const confidenceTier = toConfidenceTier(drawer.confidence);
 
   return (
     <Stack hasGutter>
@@ -2546,255 +2717,265 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
       <Divider />
 
-      {/* ── Section B: Active Reasoning Chain ─────────────────────────── */}
+      {/* ── Section B: Investigation Path ─────────────────────────────── */}
       <StackItem>
-        <ExpandableSection
-          toggleText=""
-          isExpanded={sectionExpanded.chain}
-          onToggle={handleSectionToggle('chain')}
-          toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-              <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                  <CodeBranchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-                  <Title headingLevel="h4" size="md">Active Reasoning Chain</Title>
-                </Flex>
-              </FlexItem>
-              {isInvestigating && (
+        <div ref={chainRef}>
+          <ExpandableSection
+            toggleText=""
+            isExpanded={sectionExpanded.chain}
+            onToggle={handleSectionToggle('chain')}
+            toggleContent={
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
                 <FlexItem>
-                  <Label color="blue" variant="outline" isCompact>Live</Label>
+                  <Title headingLevel="h4" size="md">Investigation path</Title>
                 </FlexItem>
-              )}
-            </Flex>
-          }
-        >
-          <ol className="ols-aio-reasoning-timeline">
-            {displaySteps.map((step) => (
-              <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                <span className="ols-aio-reasoning-timeline__node">
-                  <ReasoningChainStepGlyph step={step} />
-                </span>
-                <Flex
-                  justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                  flexWrap={{ default: 'wrap' }}
-                >
+                {isInvestigating && (
                   <FlexItem>
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      flexWrap={{ default: 'wrap' }}
-                      gap={{ default: 'gapSm' }}
-                    >
-                      <span
-                        className="ols-aio-text-subtle-sm"
-                        style={{ fontVariantNumeric: 'tabular-nums' }}
-                      >
-                        {formatReasoningStepDisplayTime(step)}
-                      </span>
-                      {step.status === 'active' && (
-                        <Label color="blue" variant="outline" isCompact>In progress</Label>
-                      )}
-                    </Flex>
+                    <Label color="blue" variant="outline" isCompact>Live</Label>
                   </FlexItem>
-                </Flex>
-                <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                  {step.title}
-                </Title>
-                {step.detail && (
-                  <Content
-                    component="p"
-                    style={{
-                      marginTop: 'var(--pf-t--global--spacer--xs)',
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      marginBottom: 0,
-                    }}
-                  >
-                    {step.detail}
-                  </Content>
                 )}
-              </li>
-            ))}
-          </ol>
-        </ExpandableSection>
+              </Flex>
+            }
+          >
+            <ol className="ols-aio-reasoning-timeline">
+              {displaySteps.map((step) => (
+                <li key={step.id} className="ols-aio-reasoning-timeline__item">
+                  <span className="ols-aio-reasoning-timeline__node">
+                    <ReasoningChainStepGlyph step={step} />
+                  </span>
+                  <Flex
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    flexWrap={{ default: 'wrap' }}
+                  >
+                    <FlexItem>
+                      <Flex
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        flexWrap={{ default: 'wrap' }}
+                        gap={{ default: 'gapSm' }}
+                      >
+                        <span
+                          className="ols-aio-text-subtle-sm"
+                          style={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
+                          {formatReasoningStepDisplayTime(step)}
+                        </span>
+                        {step.status === 'active' && (
+                          <Label color="blue" variant="outline" isCompact>In progress</Label>
+                        )}
+                      </Flex>
+                    </FlexItem>
+                  </Flex>
+                  <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                    {step.title}
+                  </Title>
+                  {step.detail && (
+                    <Content
+                      component="p"
+                      style={{
+                        marginTop: 'var(--pf-t--global--spacer--xs)',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        marginBottom: 0,
+                      }}
+                    >
+                      {step.detail}
+                    </Content>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </ExpandableSection>
+        </div>
       </StackItem>
 
       <Divider />
 
       {/* ── Section C: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
-        <ExpandableSection
-          toggleText=""
-          isExpanded={sectionExpanded.rca}
-          onToggle={handleSectionToggle('rca')}
-          toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }}>
-              <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-              <Title headingLevel="h4" size="md">Root Cause Analysis (RCA)</Title>
-            </Flex>
-          }
-        >
-          {isInvestigating ? (
-            <RcaLockedPlaceholder />
-          ) : (
-          <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ position: 'relative' }}>
-            <Label
-              color={drawer.confidence >= 80 ? 'green' : drawer.confidence >= 60 ? 'yellow' : 'blue'}
-              style={{ position: 'absolute', top: 'var(--pf-t--global--spacer--sm)', right: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              {drawer.confidence}% confidence
-            </Label>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
-              <span className="ols-aio-text-overline">Detected Root Cause</span>
-            </Flex>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              {drawer.aggregatedFinding}
-            </Content>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              {drawer.rootCauseNarrative}
-            </Content>
+        <div ref={rcaRef}>
+          <ExpandableSection
+            toggleText=""
+            isExpanded={sectionExpanded.rca}
+            onToggle={handleSectionToggle('rca')}
+            toggleContent={
+              <Title headingLevel="h4" size="md">Root cause analysis (RCA)</Title>
+            }
+          >
+            {isInvestigating ? (
+              <RcaLockedPlaceholder />
+            ) : (
+              <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ position: 'relative' }}>
+                <Flex
+                  gap={{ default: 'gapXs' }}
+                  flexWrap={{ default: 'wrap' }}
+                  style={{ position: 'absolute', top: 'var(--pf-t--global--spacer--sm)', right: 'var(--pf-t--global--spacer--sm)' }}
+                >
+                  <Label color={confidenceTierLabelColor(confidenceTier)}>
+                    {formatConfidenceLabel(confidenceTier)}
+                  </Label>
+                </Flex>
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                >
+                  <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+                  <span className="ols-aio-text-overline">Detected Root Cause</span>
+                </Flex>
+                <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                  {drawer.aggregatedFinding}
+                </Content>
+                <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                  {drawer.rootCauseNarrative}
+                </Content>
 
-            {/* ── Verification gate (critical plans, non-investigating) ── */}
-            {!isInvestigating && plan.severity === 'critical' && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
-                {isDiagnosisVerified ? (
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <CheckCircleIcon
-                      style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }}
-                    />
-                    <Content
-                      component="small"
-                      style={{
-                        color: 'var(--pf-t--global--color--status--success--default)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Diagnosis verified
-                    </Content>
-                  </Flex>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<CheckCircleIcon />}
-                    onClick={handleVerifyDiagnosis}
-                  >
-                    Acknowledge & view remediation
-                  </Button>
+                {/* ── Verification gate (critical plans, non-investigating) ── */}
+                {!isInvestigating && planRequiresRcaAcknowledgment(plan, status) && (
+                  <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                    <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
+                    {isDiagnosisVerified ? (
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                        <CheckCircleIcon
+                          style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }}
+                        />
+                        <Content
+                          component="small"
+                          style={{ color: 'var(--pf-t--global--color--status--success--default)', fontWeight: 600 }}
+                        >
+                          Diagnosis verified
+                        </Content>
+                      </Flex>
+                    ) : (
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }} flexWrap={{ default: 'wrap' }}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          icon={<CheckCircleIcon />}
+                          onClick={handleVerifyDiagnosis}
+                        >
+                          Acknowledge &amp; view remediation
+                        </Button>
+                        <Button
+                          variant="link"
+                          isInline
+                          style={{ fontSize: '14px', margin: 0 }}
+                          onClick={() => {
+                            agenticGlobalAiApi.openRemediationDiscussion?.({
+                              planSynopsis: plan.synopsis,
+                              optionTitle: options[0]?.title ?? 'Remediation options',
+                              rootCause: drawer.rootCauseNarrative,
+                              remediationProposal: drawer.remediationProposal,
+                              riskAssessment: drawer.riskAssessment,
+                              blastRadius: plan.blastRadius,
+                              severity: plan.severity,
+                            });
+                          }}
+                        >
+                          Discuss with Lightspeed
+                        </Button>
+                      </Flex>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-          </div>
-          )}
-        </ExpandableSection>
+          </ExpandableSection>
+        </div>
       </StackItem>
 
       <Divider />
 
       {/* ── Section D: Remediation Hub ─────────────────────────────────── */}
-      <StackItem ref={remHubRef}>
-        <ExpandableSection
-          toggleText=""
-          isExpanded={sectionExpanded.rem}
-          onToggle={handleSectionToggle('rem')}
-          toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <WrenchIcon style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }} />
-              <Title headingLevel="h4" size="md">Remediation Hub</Title>
-              {status === 'Completed' && (
-                <Label
-                  color="green"
-                  isCompact
-                  icon={<CheckCircleIcon />}
-                >
-                  Completed
-                </Label>
-              )}
-              {status === 'Failed' && (
-                <Label
-                  color="red"
-                  isCompact
-                  icon={<ExclamationCircleIcon />}
-                >
-                  Failed
-                </Label>
-              )}
-              {!isInvestigating && !isTerminal && visibleOptionCount > 0 && (
-                <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
-              )}
-            </Flex>
-          }
-        >
-          {isInvestigating ? (
-            <HubLockedPlaceholder />
-          ) : isTerminal ? (
-            <PostMortemPanel plan={plan} />
-          ) : (
-            <>
-              {/* Gate hint shown to critical plans before verification */}
-              {!isDiagnosisVerified && (
-                <Flex
-                  alignItems={{ default: 'alignItemsCenter' }}
-                  gap={{ default: 'gapSm' }}
+      <StackItem>
+        <div ref={remHubRef}>
+          <ExpandableSection
+            toggleText=""
+            isExpanded={sectionExpanded.rem}
+            onToggle={handleSectionToggle('rem')}
+            toggleContent={
+              <Flex
+                direction={{ default: 'column' }}
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                gap={{ default: 'gapXs' }}
+              >
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                  <Title headingLevel="h4" size="md">Remediation hub</Title>
+                  {status === 'Completed' && (
+                    <Label color="green" isCompact icon={<CheckCircleIcon />}>Completed</Label>
+                  )}
+                  {status === 'Failed' && (
+                    <Label color="red" isCompact icon={<ExclamationCircleIcon />}>Failed</Label>
+                  )}
+                  {!isInvestigating && !isTerminal && visibleOptionCount > 0 && (
+                    <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
+                  )}
+                </Flex>
+              </Flex>
+            }
+          >
+            {isInvestigating ? (
+              <HubLockedPlaceholder />
+            ) : isTerminal ? (
+              <PostMortemPanel plan={plan} />
+            ) : (
+              <>
+                {/* Gate hint shown to critical plans before verification */}
+                {!isDiagnosisVerified && (
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    gap={{ default: 'gapSm' }}
+                    style={{
+                      marginBottom: 'var(--pf-t--global--spacer--sm)',
+                      padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                      border: '1px solid var(--pf-t--global--border--color--default)',
+                    }}
+                  >
+                    <LockIcon style={{ flexShrink: 0, color: 'var(--pf-t--global--text--color--subtle)' }} />
+                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Verify the AI diagnosis in the RCA section above to unlock remediation options.
+                    </Content>
+                  </Flex>
+                )}
+
+                {/* RBAC notice — shown when the operator has read-only access */}
+                {plan.isUnauthorized && (
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title="Read-only access — remediation execution is locked. Contact your cluster admin to request elevated RBAC privileges."
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                  />
+                )}
+
+                {/* Options list — gated by diagnosis verification AND RBAC authorization */}
+                <div
                   style={{
-                    marginBottom: 'var(--pf-t--global--spacer--sm)',
-                    padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
-                    borderRadius: 'var(--pf-t--global--border--radius--small)',
-                    backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                    border: '1px solid var(--pf-t--global--border--color--default)',
+                    opacity: plan.isUnauthorized ? 0.6 : isDiagnosisVerified ? 1 : 0.45,
+                    pointerEvents: (plan.isUnauthorized || !isDiagnosisVerified) ? 'none' : undefined,
+                    transition: 'opacity 300ms ease',
                   }}
                 >
-                  <LockIcon style={{ flexShrink: 0, color: 'var(--pf-t--global--text--color--subtle)' }} />
-                  <Content
-                    component="small"
-                    style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-                  >
-                    Verify the AI diagnosis in the RCA section above to unlock remediation options.
-                  </Content>
-                </Flex>
-              )}
-
-              {/* RBAC notice — shown when the operator has read-only access */}
-              {plan.isUnauthorized && (
-                <Alert
-                  variant="warning"
-                  isInline
-                  title="Read-only access — remediation execution is locked. Contact your cluster admin to request elevated RBAC privileges."
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                />
-              )}
-
-              {/* Options list — gated by diagnosis verification AND RBAC authorization */}
-              <div
-                style={{
-                  opacity: plan.isUnauthorized ? 0.6 : isDiagnosisVerified ? 1 : 0.45,
-                  pointerEvents: (plan.isUnauthorized || !isDiagnosisVerified) ? 'none' : undefined,
-                  transition: 'opacity 300ms ease',
-                }}
-              >
-                <Stack hasGutter>
-                  {options
-                    .filter((_, idx) => !(isRemediating && idx > 0))
-                    .map((opt, idx) => (
-                      <StackItem key={opt.id}>
-                        <RemediationOptionCard
-                          option={opt}
-                          index={idx}
-                          plan={plan}
-                          executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
-                          isSelected={selectedOptionId === opt.id}
-                          onSelect={setSelectedOptionId}
-                        />
-                      </StackItem>
-                    ))}
-                </Stack>
-              </div>
-            </>
-          )}
-        </ExpandableSection>
+                  <Stack hasGutter>
+                    {options
+                      .filter((_, idx) => !(isRemediating && idx > 0))
+                      .map((opt, idx) => (
+                        <StackItem key={opt.id}>
+                          <RemediationOptionCard
+                            option={opt}
+                            index={idx}
+                            plan={plan}
+                            executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
+                            isSelected={selectedOptionId === opt.id}
+                            onSelect={setSelectedOptionId}
+                          />
+                        </StackItem>
+                      ))}
+                  </Stack>
+                </div>
+              </>
+            )}
+          </ExpandableSection>
+        </div>
       </StackItem>
     </Stack>
   );
