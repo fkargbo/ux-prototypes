@@ -1,0 +1,27 @@
+---
+description: Hard isolation fence for the ai-hub-autonomous-agentic-plans-mvp prototype. ALL edits must stay inside src/app/prototypes/ai-hub-autonomous-agentic-plans-mvp/. Never touch observability-agentic-troubleshooting-ai.
+globs: src/app/prototypes/ai-hub-autonomous-agentic-plans-mvp/**
+alwaysApply: false
+---
+
+# Prototype: ai-hub-autonomous-agentic-plans-mvp — Isolation Fence
+
+## HARD RULE
+Every file read, edit, or creation in this session MUST be inside:
+```
+src/app/prototypes/ai-hub-autonomous-agentic-plans-mvp/
+```
+
+## STRICTLY FORBIDDEN
+- ❌ Any edit to `src/app/prototypes/observability-agentic-troubleshooting-ai/`
+- ❌ Any edit to shared components, global CSS, or infrastructure outside this prototype's directory
+- ❌ Copying a fix from this prototype into another prototype (even if the code looks identical)
+
+## REQUIRED: Confirm target before every edit
+Before writing or editing **any** file, confirm its path starts with:
+`src/app/prototypes/ai-hub-autonomous-agentic-plans-mvp/`
+
+If the target path is outside this prefix → **STOP and ask the user** which prototype they intended.
+
+## Why this matters
+`observability-agentic-troubleshooting-ai` and `ai-hub-autonomous-agentic-plans-mvp` share similar component names (`PlansAndApprovalsTab.tsx`, `AIAuditAndLogsTab.tsx`). Always resolve the full path before editing.
