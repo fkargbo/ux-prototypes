@@ -155,6 +155,9 @@ const PLAN_RISK_SCORES: Record<string, number> = {
   ap13: 61,
   ap14: 47,
   ap15: 33,
+  cp1: 68,
+  cp2: 12,
+  cp3: 75,
 };
 
 /** Simulated plan identity — names, summaries, and scope labels aligned to fleet vs. single-cluster UX. */
@@ -282,6 +285,24 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-image-registry',
   },
+  cp1: {
+    name: 'ocp-upgrade-4.14-to-4.15',
+    synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-update',
+  },
+  cp2: {
+    name: 'ocp-patch-4.15.1-to-4.15.8',
+    synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-update',
+  },
+  cp3: {
+    name: 'ocp-upgrade-4.15-to-4.16',
+    synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-update',
+  },
 };
 
 // ─── Dataset — Top plans (score ≥ 80) ────────────────────────────────────────
@@ -365,11 +386,60 @@ const TOP_PLANS: PlanRow[] = [
       { icon: 'gear', text: 'K8s API Server Log Hook: 2 etcd_db_total_size_in_bytes fragmentation events.' },
     ],
   },
+  {
+    id: 'cp1',
+    severity: 'critical',
+    status: 'Waiting Approval',
+    score: 86,
+    synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Cluster is EOL or behind upgrade channel',
+    triggerDomain: 'Control Plane',
+    isUnauthorized: false,
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'warning', text: 'ClusterVersion: Channel fast-4.14 reports EndOfLife — no further z-stream releases.' },
+      { icon: 'gear', text: 'Upgradeable: False — cluster minor version behind supported release window.' },
+    ],
+  },
 ];
 
 // ─── Dataset — All plans (score < 80) ────────────────────────────────────────
 
 const ALL_PLANS: PlanRow[] = [
+  {
+    id: 'cp2',
+    severity: 'warning',
+    status: 'Completed',
+    score: 78,
+    synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Critical z-stream platform CVE remediation available',
+    triggerDomain: 'Control Plane',
+    isUnauthorized: false,
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'alert', text: 'OpenShift Advisory: RHSA-2026-1842 — critical platform CVE patched in 4.15.8.' },
+      { icon: 'gear', text: 'ClusterVersion: Recommended patch 4.15.8 available from 4.15.1.' },
+    ],
+  },
+  {
+    id: 'cp3',
+    severity: 'critical',
+    status: 'Plan aborted',
+    terminatedAt: 'Jun 9, 2026, 4:12 PM',
+    score: 74,
+    synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Admin triggered channel update check; manually terminated mid-flight',
+    triggerDomain: 'Control Plane',
+    isUnauthorized: false,
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'gear', text: 'ClusterVersion: Admin initiated upgrade path evaluation 4.15 → 4.16.' },
+      { icon: 'ban', text: 'Administrative override: plan terminated during preflight validation phase.' },
+    ],
+  },
   {
     id: 'ap1',
     severity: 'critical',
@@ -613,24 +683,27 @@ const SC_TOP_PLANS: PlanRow[] = [
   { ...TOP_PLANS[2], blastRadius: '4 Pods', drawerTargets: ['payment-api-7d4f8', 'payment-api-7d4f8-2', 'payment-worker-9c2a1', 'payment-worker-9c2a1-2'] },
   { ...TOP_PLANS[3], blastRadius: '1 Ceph Pool', drawerTargets: ['ocs-storagecluster-ceph-rbd'] },
   { ...TOP_PLANS[4], blastRadius: '3 etcd Members', drawerTargets: ['etcd-master-01', 'etcd-master-02', 'etcd-master-03'] },
+  { ...TOP_PLANS[5], blastRadius: '1 ClusterVersion', drawerTargets: ['version', 'cluster'] },
 ];
 
 const SC_ALL_PLANS: PlanRow[] = [
-  { ...ALL_PLANS[0],  blastRadius: '2 Deployments',      drawerTargets: ['analytics-api', 'analytics-worker'] },
-  { ...ALL_PLANS[1],  blastRadius: '1 EventListener',    drawerTargets: ['build-webhook-listener'] },
-  { ...ALL_PLANS[2],  blastRadius: '1 OAuth Client',     drawerTargets: ['oauth-openshift'] },
-  { ...ALL_PLANS[3],  blastRadius: '4 DNS Pods',         drawerTargets: ['dns-default-7f8c9', 'dns-default-7f8c9-2', 'dns-default-7f8c9-3', 'dns-default-7f8c9-4'] },
-  { ...ALL_PLANS[4],  blastRadius: '2 Worker Nodes',     drawerTargets: ['worker-bm-03', 'worker-bm-04'] },
-  { ...ALL_PLANS[5],  blastRadius: '3 Resources',        drawerTargets: ['staging-api', 'staging-db-config', 'staging-api-svc'] },
-  { ...ALL_PLANS[6],  blastRadius: '2 Router Pods',      drawerTargets: ['router-default-6d4f8', 'router-default-6d4f8-2'] },
-  { ...ALL_PLANS[7],  blastRadius: '1 Deployment',       drawerTargets: ['retail-checkout'] },
-  { ...ALL_PLANS[8],  blastRadius: '1 Node',             drawerTargets: ['worker-logistics-01'] },
-  { ...ALL_PLANS[9],  blastRadius: '1 StatefulSet',      drawerTargets: ['jenkins-0'] },
-  { ...ALL_PLANS[10], blastRadius: '1 HPA Object',       drawerTargets: ['api-gateway-hpa'] },
-  { ...ALL_PLANS[11], blastRadius: '3 Image Streams',    drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
-  { ...ALL_PLANS[12], blastRadius: '1 PVC Volume',       drawerTargets: ['postgres-data-0'] },
-  { ...ALL_PLANS[13], blastRadius: '6 Nodes',           drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
-  { ...ALL_PLANS[14], blastRadius: '1 Registry Catalog', drawerTargets: ['image-registry'] },
+  { ...ALL_PLANS[0], blastRadius: '1 ClusterVersion', drawerTargets: ['version', 'cluster'] },
+  { ...ALL_PLANS[1], blastRadius: '1 ClusterVersion', drawerTargets: ['version', 'cluster'] },
+  { ...ALL_PLANS[2],  blastRadius: '2 Deployments',      drawerTargets: ['analytics-api', 'analytics-worker'] },
+  { ...ALL_PLANS[3],  blastRadius: '1 EventListener',    drawerTargets: ['build-webhook-listener'] },
+  { ...ALL_PLANS[4],  blastRadius: '1 OAuth Client',     drawerTargets: ['oauth-openshift'] },
+  { ...ALL_PLANS[5],  blastRadius: '4 DNS Pods',         drawerTargets: ['dns-default-7f8c9', 'dns-default-7f8c9-2', 'dns-default-7f8c9-3', 'dns-default-7f8c9-4'] },
+  { ...ALL_PLANS[6],  blastRadius: '2 Worker Nodes',     drawerTargets: ['worker-bm-03', 'worker-bm-04'] },
+  { ...ALL_PLANS[7],  blastRadius: '3 Resources',        drawerTargets: ['staging-api', 'staging-db-config', 'staging-api-svc'] },
+  { ...ALL_PLANS[8],  blastRadius: '2 Router Pods',      drawerTargets: ['router-default-6d4f8', 'router-default-6d4f8-2'] },
+  { ...ALL_PLANS[9],  blastRadius: '1 Deployment',       drawerTargets: ['retail-checkout'] },
+  { ...ALL_PLANS[10], blastRadius: '1 Node',             drawerTargets: ['worker-logistics-01'] },
+  { ...ALL_PLANS[11], blastRadius: '1 StatefulSet',      drawerTargets: ['jenkins-0'] },
+  { ...ALL_PLANS[12], blastRadius: '1 HPA Object',       drawerTargets: ['api-gateway-hpa'] },
+  { ...ALL_PLANS[13], blastRadius: '3 Image Streams',    drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
+  { ...ALL_PLANS[14], blastRadius: '1 PVC Volume',       drawerTargets: ['postgres-data-0'] },
+  { ...ALL_PLANS[15], blastRadius: '6 Nodes',           drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
+  { ...ALL_PLANS[16], blastRadius: '1 Registry Catalog', drawerTargets: ['image-registry'] },
 ];
 
 interface PlanDrawerData {
@@ -713,6 +786,19 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Execute etcd defragmentation on all 3 control plane members with rolling restart cadence.',
     riskAssessment: 'Low — etcd defragmentation is a supported operational procedure.',
     estimatedRecovery: '~45s',
+    confidence: 'High',
+  },
+  cp1: {
+    steps: [
+      { id: 's1', time: '14:02:11', status: 'done', icon: 'exclamation', title: 'ClusterVersion channel reports EndOfLife on 4.14', detail: 'Cluster is EOL or behind upgrade channel' },
+      { id: 's2', time: '14:02:24', status: 'done', icon: 'database', title: 'Evaluated supported upgrade graph to 4.15', detail: 'Upgradeable=False — minor version outside supported window' },
+      { id: 's3', time: '14:02:38', status: 'done', icon: 'search', title: 'Scored control plane blast radius for minor bump', detail: 'Single-cluster scope · High confidence in channel signal' },
+    ],
+    aggregatedFinding: 'ClusterVersion reports fast-4.14 channel EndOfLife with no further z-stream releases available.',
+    rootCauseNarrative: 'The cluster remains on OpenShift 4.14 while the subscribed channel has reached end of life. Without a minor version upgrade to 4.15, the platform cannot receive security or bug-fix releases.',
+    remediationProposal: 'Execute supported minor upgrade from OpenShift 4.14 to 4.15 with rolling control plane and worker cordon/drain cadence.',
+    riskAssessment: 'High — minor upgrade requires control plane restarts and workload disruption during node rotation.',
+    estimatedRecovery: '~45m',
     confidence: 'High',
   },
 
@@ -914,6 +1000,32 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — registry pruning is non-destructive (removes unreferenced tags only).',
     estimatedRecovery: '~1m',
     confidence: 'High',
+  },
+  cp2: {
+    steps: [
+      { id: 's1', time: '09:18:04', status: 'done', icon: 'exclamation', title: 'Critical z-stream CVE advisory published for 4.15.8', detail: 'Critical z-stream platform CVE remediation available' },
+      { id: 's2', time: '09:18:17', status: 'done', icon: 'database', title: 'Validated cluster at 4.15.1 — patch path to 4.15.8 confirmed', detail: 'No blocking ClusterOperators · patch-only upgrade eligible' },
+      { id: 's3', time: '09:18:31', status: 'done', icon: 'check', title: 'Executed z-stream patch upgrade', detail: 'Control plane and nodes reconciled to 4.15.8 without workload migration' },
+    ],
+    aggregatedFinding: 'OpenShift advisory RHSA-2026-1842 requires z-stream patch 4.15.8 to remediate a critical platform CVE.',
+    rootCauseNarrative: 'The cluster remained on OpenShift 4.15.1 while a critical platform CVE was addressed only in patch release 4.15.8. Delaying the z-stream update left the control plane exposed to a known vulnerability.',
+    remediationProposal: 'Apply z-stream patch upgrade from 4.15.1 to 4.15.8 using the supported ClusterVersion update graph.',
+    riskAssessment: 'Low — z-stream patch is a supported in-place update with minimal disruption.',
+    estimatedRecovery: '~25m',
+    confidence: 'High',
+  },
+  cp3: {
+    steps: [
+      { id: 's1', time: '16:44:02', status: 'done', icon: 'network', title: 'Admin initiated upgrade channel check 4.15 → 4.16', detail: 'Admin triggered channel update check; manually terminated mid-flight' },
+      { id: 's2', time: '16:44:15', status: 'done', icon: 'search', title: 'Preflight validation started for next minor release', detail: 'ClusterOperator health gates evaluated · 2 warnings surfaced' },
+      { id: 's3', time: '16:44:28', status: 'done', icon: 'exclamation', title: 'Plan terminated by administrative override', detail: 'Upgrade aborted before control plane rollout began' },
+    ],
+    aggregatedFinding: 'Administrative channel update check for OpenShift 4.16 was manually terminated during preflight validation.',
+    rootCauseNarrative: 'A platform administrator triggered an upgrade path evaluation from 4.15 to 4.16. Preflight validation surfaced operator warnings and the plan was halted mid-flight before any control plane mutation occurred.',
+    remediationProposal: 'Resolve ClusterOperator warnings and re-submit upgrade plan when maintenance window is approved.',
+    riskAssessment: 'High — next minor upgrade carries elevated control plane blast radius if resumed without remediation.',
+    estimatedRecovery: 'N/A — plan aborted',
+    confidence: 'Medium',
   },
 };
 

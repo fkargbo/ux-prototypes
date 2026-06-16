@@ -37,6 +37,9 @@ export const SC_PLAN_TABLE_IDENTITY: Record<string, ScPlanTableIdentity> = {
   ap13: { name: 'database-iops-throttle-tune', synopsis: 'Tune postgres PVC read IOPS throttle', namespace: 'data-services', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   ap14: { name: 'ntp-desync-remediation', synopsis: 'Fix NTP skew on 6 cluster nodes', namespace: 'openshift-node', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   ap15: { name: 'image-stream-tag-cleanup', synopsis: 'Prune obsolete image stream tags', namespace: 'openshift-image-registry', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  cp1: { name: 'ocp-upgrade-4.14-to-4.15', synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  cp2: { name: 'ocp-patch-4.15.1-to-4.15.8', synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  cp3: { name: 'ocp-upgrade-4.15-to-4.16', synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
 };
 
 type ExpandedReason = { icon: 'sync' | 'alert' | 'warning' | 'ban' | 'gear' | 'wrench'; text: string };
