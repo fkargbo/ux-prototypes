@@ -530,6 +530,18 @@ export const SC_REMEDIATION_OPTION_PATCHES: Record<string, ScRemediationOptionPa
   ap14: [
     { id: 'ap14-o1', description: 'Reconfigure chronyd on all 6 nodes in openshift-node.', rawCommands: 'oc patch daemonset chrony-sync -n openshift-node --type merge -p \'{"spec":{"template":{"spec":{"containers":[{"name":"chrony","env":[{"name":"NTP_SERVER","value":"ntp.corp.example.com"}]}]}}}}\' && oc rollout restart daemonset/chrony-sync -n openshift-node' },
   ],
+  cp1: [
+    { id: 'cp1-o1', description: 'Apply ClusterVersion update to 4.15.8 on prod-east-2 with rolling worker rotation.', rawCommands: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade' },
+    { id: 'cp1-o2', description: 'Run upgrade preflight validation only — no control plane mutation.', rawCommands: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
+  ],
+  op2: [
+    { id: 'op2-o1', description: 'Rotate PagerDuty integration secret and restart alertmanager-main on prod-east-2.', rawCommands: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f - && oc rollout restart statefulset/alertmanager-main -n openshift-monitoring' },
+    { id: 'op2-o2', description: 'Disable PagerDuty receiver route until token rotation completes.', rawCommands: 'oc delete pod alertmanager-main-0 -n openshift-monitoring' },
+  ],
+  op5: [
+    { id: 'op5-o1', description: 'Clear Grafana SQLite WAL lock on shared monitoring PVC and restart grafana.', rawCommands: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal && oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
+    { id: 'op5-o2', description: 'Snapshot Grafana PVC then run forced SQLite checkpoint before restart.', rawCommands: 'oc create -f grafana-pvc-snapshot.yaml && oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
+  ],
 };
 
 export function resolvePlanDrawerData(
