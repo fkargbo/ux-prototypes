@@ -46,7 +46,6 @@ import { AngleRightIcon, BanIcon, BullseyeIcon, CheckCircleIcon, CogIcon, Downlo
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
-import { ReasoningChainStepGlyph } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 
@@ -1598,10 +1597,9 @@ const RemediationOptionCard: React.FC<{
   option: RemediationOption;
   index: number;
   plan: PlanRow;
-  executionMessage?: string;
   isSelected: boolean;
   onSelect: (id: string) => void;
-}> = ({ option, index, plan, executionMessage, isSelected, onSelect }) => {
+}> = ({ option, index, plan, isSelected, onSelect }) => {
   const isFirst = index === 0;
   const { status, isUnauthorized, drawerTargets } = plan;
   const isInvestigating = status === 'Investigating';
@@ -1788,24 +1786,6 @@ const RemediationOptionCard: React.FC<{
           >
             {option.description}
           </Content>
-
-          {/* Execution status (Remediating only) */}
-          {isRemediating && isFirst && executionMessage && (
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              <Spinner size="sm" aria-label="Executing fix" />
-              <Content
-                component="p"
-                className="ols-aio-text-subtle-sm"
-                style={{ margin: 0, fontStyle: 'italic' }}
-              >
-                {executionMessage}
-              </Content>
-            </Flex>
-          )}
 
           {/* ── Agent command (audit log — read-only) ── */}
           {showRemediationActions && (
@@ -2373,11 +2353,10 @@ const scrollRemediationSectionIntoView = (
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-type RemediationWorkflowSection = 'chain' | 'rca' | 'rem';
+type RemediationWorkflowSection = 'rca' | 'rem';
 
 const getDefaultRemediationSection = (plan: PlanRow): RemediationWorkflowSection => {
   const { status } = plan;
-  if (status === 'Investigating') return 'chain';
   if (status === 'Remediating') return 'rem';
   return 'rem';
 };
@@ -2387,7 +2366,6 @@ const createInitialSectionState = (
 ): Record<RemediationWorkflowSection, boolean> => {
   const focusSection = getDefaultRemediationSection(plan);
   return {
-    chain: focusSection === 'chain',
     rca: focusSection === 'rca',
     rem: focusSection === 'rem',
   };
@@ -2407,12 +2385,10 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
   // Scroll refs — each section header div is observed so the panel scrolls the
   // newly-expanded content into view inside the side-drawer scroll container.
-  const chainRef = React.useRef<HTMLDivElement>(null);
   const rcaRef = React.useRef<HTMLDivElement>(null);
   const remHubRef = React.useRef<HTMLDivElement>(null);
 
   const sectionRefMap: Record<RemediationWorkflowSection, React.RefObject<HTMLDivElement | null>> = {
-    chain: chainRef,
     rca: rcaRef,
     rem: remHubRef,
   };
@@ -2449,18 +2425,6 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
   if (!drawer) return null;
 
-  // For Remediating plans: override any 'active' step to 'done' so the chain
-  // renders as a static historical read-only view (no live indicators).
-  const displaySteps = isRemediating
-    ? drawer.steps.map(s => s.status === 'active' ? { ...s, status: 'done' as const } : s)
-    : drawer.steps;
-
-  // Derive the live execution message from the step that was 'active' before
-  // the override — this gets surfaced inside Option Card 1 instead.
-  const activeStepTitle = isRemediating
-    ? drawer.steps.find(s => s.status === 'active')?.title
-    : undefined;
-
   const confidenceTier = toConfidenceTier(drawer.confidence);
 
   return (
@@ -2485,60 +2449,7 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
 
       <Divider />
 
-      {/* ── Section B: Investigation Path ─────────────────────────────── */}
-      <StackItem>
-        <div ref={chainRef}>
-          <ExpandableSection
-            toggleText=""
-            isExpanded={sectionExpanded.chain}
-            onToggle={handleSectionToggle('chain')}
-            toggleContent={
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-                <FlexItem>
-                  <Title headingLevel="h4" size="md">Investigation path</Title>
-                </FlexItem>
-                {isInvestigating && (
-                  <FlexItem>
-                    <Label color="blue" variant="outline" isCompact>Live</Label>
-                  </FlexItem>
-                )}
-              </Flex>
-            }
-          >
-            <ol className="ols-aio-reasoning-timeline">
-              {displaySteps.map((step) => (
-                <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                  <span className="ols-aio-reasoning-timeline__node">
-                    <ReasoningChainStepGlyph step={step} />
-                  </span>
-                  {step.status === 'active' && (
-                    <Label color="blue" variant="outline" isCompact>In progress</Label>
-                  )}
-                  <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                    {step.title}
-                  </Title>
-                  {step.detail && (
-                    <Content
-                      component="p"
-                      style={{
-                        marginTop: 'var(--pf-t--global--spacer--xs)',
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                        marginBottom: 0,
-                      }}
-                    >
-                      {step.detail}
-                    </Content>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </ExpandableSection>
-        </div>
-      </StackItem>
-
-      <Divider />
-
-      {/* ── Section C: Root Cause Analysis ────────────────────────────── */}
+      {/* ── Section B: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
         <div ref={rcaRef}>
           <ExpandableSection
@@ -2633,14 +2544,13 @@ const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
                     .filter((_, idx) => !(isRemediating && idx > 0))
                     .map((opt, idx) => (
                       <StackItem key={opt.id}>
-                        <RemediationOptionCard
-                          option={opt}
-                          index={idx}
-                          plan={plan}
-                          executionMessage={isRemediating && idx === 0 ? activeStepTitle : undefined}
-                          isSelected={selectedOptionId === opt.id}
-                          onSelect={setSelectedOptionId}
-                        />
+                          <RemediationOptionCard
+                            option={opt}
+                            index={idx}
+                            plan={plan}
+                            isSelected={selectedOptionId === opt.id}
+                            onSelect={setSelectedOptionId}
+                          />
                       </StackItem>
                     ))}
                 </Stack>
