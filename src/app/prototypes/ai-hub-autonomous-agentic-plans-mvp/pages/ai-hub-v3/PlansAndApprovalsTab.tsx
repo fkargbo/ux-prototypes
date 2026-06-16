@@ -52,6 +52,7 @@ import type { ConfidenceTier } from '../../types/confidenceTier';
 import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
 import {
   formatRiskBadgeLabel,
+  formatRiskLabel,
   isHighRisk,
   isMediumRisk,
   riskTierLabelColor,
@@ -1344,20 +1345,24 @@ export const PlanResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="P" backgroundColor="#2b9af3" />
 );
 
-export const PlanConfidenceBadge: React.FC<{ tier: ConfidenceTier }> = ({ tier }) => (
+export const PlanConfidenceBadge: React.FC<{ tier: ConfidenceTier; showPrefix?: boolean }> = ({
+  tier,
+  showPrefix = true,
+}) => (
   <Label color={confidenceTierLabelColor(tier)} isCompact>
-    {formatConfidenceLabel(tier)}
+    {showPrefix ? formatConfidenceLabel(tier) : tier}
   </Label>
 );
 
-export const PlanRiskBadge: React.FC<{ score: number; isCompact?: boolean }> = ({
+export const PlanRiskBadge: React.FC<{ score: number; isCompact?: boolean; showPrefix?: boolean }> = ({
   score,
   isCompact = true,
+  showPrefix = true,
 }) => {
   const tier = scoreToRiskTier(score);
   return (
     <Label color={riskTierLabelColor(tier)} isCompact={isCompact}>
-      {formatRiskBadgeLabel(score)}
+      {showPrefix ? formatRiskBadgeLabel(score) : formatRiskLabel(score)}
     </Label>
   );
 };
@@ -1544,14 +1549,14 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
           <Td dataLabel="Confidence">
             {row.confidenceTier ? (
-              <PlanConfidenceBadge tier={row.confidenceTier} />
+              <PlanConfidenceBadge tier={row.confidenceTier} showPrefix={false} />
             ) : (
               '—'
             )}
           </Td>
 
           <Td dataLabel="Risk">
-            <PlanRiskBadge score={row.riskScore ?? 50} />
+            <PlanRiskBadge score={row.riskScore ?? 50} showPrefix={false} />
           </Td>
 
           <Td dataLabel={scopeColumnLabel}>
