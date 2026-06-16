@@ -23,9 +23,6 @@ import {
   Flex,
   FlexItem,
   Label,
-  LabelGroup,
-  MenuToggle,
-  MenuToggleElement,
   Modal,
   ModalBody,
   ModalFooter,
@@ -34,9 +31,6 @@ import {
   Pagination,
   PaginationVariant,
   Popover,
-  Select,
-  SelectList,
-  SelectOption,
   Skeleton,
   Spinner,
   Stack,
@@ -59,6 +53,11 @@ import {
   scoreToRiskTier,
 } from '../../types/riskScore';
 import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../components/autonomousAiObserve/reasoningChainTimeline';
+import {
+  AGENTIC_STATUS_FILTER_OPTIONS,
+  PlansFilterToolbar,
+  usePlansFilterState,
+} from './PlansFilterToolbar';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import {
   SC_PLAN_ROW_PATCHES,
@@ -1677,13 +1676,6 @@ const NamespaceResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="NS" backgroundColor="#1e4f18" />
 );
 
-const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
-  padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs)',
-  fontSize: 'var(--pf-t--global--font--size--body--sm)',
-  fontWeight: 600,
-  color: 'var(--pf-t--global--text--color--subtle)',
-};
-
 // ─── Scope cell (cluster / namespace) with multi-target tooltip ───────────────
 
 const PlanScopeCell: React.FC<{
@@ -1890,16 +1882,6 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
 const DEFAULT_PER_PAGE = 10;
 
-// Filter option lists
-const STATUS_FILTER_OPTIONS: PlanStatus[] = [
-  'Investigating',
-  'Waiting Approval',
-  'Remediating',
-  'Plan aborted',
-  'Completed',
-  'Failed',
-];
-
 interface PlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
   rows: PlanRow[];
@@ -1913,53 +1895,28 @@ const PlansTable: React.FC<PlansTableProps> = ({
   isSingleCluster,
   isAgenticAutomationEnabled,
 }) => {
-  // ── Filter state — intentionally decoupled from perspective; persists on switch ──
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true });
 
-  // ── Pagination state ──
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
-  // ── Derived rows after filters ──
-  const filteredRows = useMemo(() => {
-    return rows.filter((row) => {
-      if (statusFilters.length > 0 && !statusFilters.includes(row.status)) return false;
-      return true;
-    });
-  }, [rows, statusFilters]);
-
-  // Reset to page 1 whenever effective row count changes (filter or perspective)
-  useEffect(() => {
-    setPage(1);
-  }, [filteredRows.length]);
-
-  const clearAllFilters = useCallback(() => {
-    setStatusFilters([]);
-  }, []);
-
-  const toggleStatusFilter = useCallback((val: string) => {
-    setStatusFilters((prev) =>
-      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-    );
-  }, []);
-
-  const activeFilterCount = statusFilters.length;
-  const hasActiveFilters = activeFilterCount > 0;
-
-  const handleFilterSelect = useCallback(
-    (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
-      if (typeof value !== 'string') {
-        return;
-      }
-      if (STATUS_FILTER_OPTIONS.includes(value as PlanStatus)) {
-        toggleStatusFilter(value);
-      }
-    },
-    [toggleStatusFilter],
+  const filteredRows = useMemo(
+    () => plansFilter.filterRows(rows),
+    [rows, plansFilter.filterRows],
   );
 
-  // ── Pagination handlers ──
+  useEffect(() => {
+    setPage(1);
+  }, [
+    filteredRows.length,
+    plansFilter.searchInputValue,
+    plansFilter.searchCategory,
+    plansFilter.statusFilters,
+    plansFilter.riskFilters,
+    plansFilter.confidenceFilters,
+    plansFilter.triggerDomainFilters,
+  ]);
+
   const totalItems = filteredRows.length;
   const start = (page - 1) * perPage;
   const paginatedRows = filteredRows.slice(start, start + perPage);
@@ -2003,78 +1960,14 @@ const PlansTable: React.FC<PlansTableProps> = ({
 
   return (
     <>
-      {/* ── Toolbar: filter dropdown + pagination ── */}
-      {/* Pagination lives inside the toolbar so they sit on the same row.   */}
-      {/* ToolbarFilter is intentionally NOT used here — its auto-expanding   */}
-      {/* chip row causes the table to jump. Chips are rendered below        */}
-      {/* in a fixed-minHeight row so the layout never shifts.               */}
-      {/* Filter + pagination row — plain Flex for guaranteed single-line layout */}
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        flexWrap={{ default: 'nowrap' }}
-        className="ols-ai-hub-plans-toolbar"
-      >
-        {/* Left: filter dropdown */}
-        <FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-            <FlexItem>
-              <Select
-                aria-label="Filter plans"
-                role="menu"
-                isOpen={filterMenuOpen}
-                onSelect={handleFilterSelect}
-                onOpenChange={setFilterMenuOpen}
-                toggle={(ref: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={ref}
-                    onClick={() => setFilterMenuOpen((o) => !o)}
-                    isExpanded={filterMenuOpen}
-                    badge={activeFilterCount > 0 ? activeFilterCount : undefined}
-                  >
-                    Filter
-                  </MenuToggle>
-                )}
-              >
-                <SelectList>
-                  <div style={FILTER_SECTION_TITLE_STYLE}>Status</div>
-                  {STATUS_FILTER_OPTIONS.map((s) => (
-                    <SelectOption key={s} hasCheckbox value={s} isSelected={statusFilters.includes(s)}>
-                      {s}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            </FlexItem>
-          </Flex>
-        </FlexItem>
+      <PlansFilterToolbar
+        filterAriaLabel="Filter plans"
+        statusOptions={AGENTIC_STATUS_FILTER_OPTIONS}
+        includeTriggerDomainFilter
+        pagination={<Pagination isCompact {...paginationProps} style={{ margin: 0 }} />}
+        {...plansFilter}
+      />
 
-        {/* Right: pagination */}
-        <FlexItem>
-          <Pagination isCompact {...paginationProps} style={{ margin: 0 }} />
-        </FlexItem>
-      </Flex>
-
-      {/* ── Active filter chips ─────────────────────────────────────────────── */}
-      {hasActiveFilters && (
-        <div className="ols-ai-hub-plans-filter-chips ols-ai-hub-plans-filter-chips--active">
-          {statusFilters.length > 0 && (
-            <LabelGroup categoryName="Status" isClosable onClick={() => setStatusFilters([])}>
-              {statusFilters.map((s) => (
-                <Label key={s} isCompact onClose={() => toggleStatusFilter(s)}>
-                  {s}
-                </Label>
-              ))}
-            </LabelGroup>
-          )}
-          <Button variant="link" isInline onClick={clearAllFilters}
-            style={{ fontSize: 'var(--pf-t--global--font--size--sm)' }}>
-            Clear all
-          </Button>
-        </div>
-      )}
-
-      {/* ── Table or Empty State ───────────────────────────────────────────── */}
       {filteredRows.length === 0 ? (
         <EmptyState
           titleText="No plans match your active filters"
@@ -2085,10 +1978,10 @@ const PlansTable: React.FC<PlansTableProps> = ({
           <EmptyStateBody>
             No remediation plans match your current active filters in this cluster perspective.
           </EmptyStateBody>
-          {hasActiveFilters && (
+          {plansFilter.hasActiveFilters && (
             <EmptyStateFooter>
               <EmptyStateActions>
-                <Button variant="link" onClick={clearAllFilters}>
+                <Button variant="link" onClick={plansFilter.clearAllFilters}>
                   Clear Active Filters
                 </Button>
               </EmptyStateActions>
