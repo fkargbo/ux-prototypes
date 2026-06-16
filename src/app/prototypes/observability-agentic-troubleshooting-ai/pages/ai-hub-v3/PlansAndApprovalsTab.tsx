@@ -1754,7 +1754,7 @@ const RemediationOptionCard: React.FC<{
         }
         toggleButtonProps={
           isInteractive
-            ? { 'aria-label': isSelected ? `Collapse ${typeName}` : `Expand ${typeName}` }
+            ? { 'aria-label': isSelected ? `Collapse option ${index + 1}` : `Expand option ${index + 1}` }
             : undefined
         }
       >
