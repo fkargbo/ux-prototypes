@@ -646,3 +646,11 @@ body:has(.ols-ai-hub-page),
 .ols-plan-aborted-status-icon {
   color: var(--pf-t--global--icon--color--status--danger--default);
 }
+
+/* Plans table — metric headers with help popovers must not show PF ellipsis truncation */
+.ols-plans-table thead .ols-plans-table__metric-header,
+.ols-plans-table thead .ols-plans-table__metric-header .pf-v6-c-table__text {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}

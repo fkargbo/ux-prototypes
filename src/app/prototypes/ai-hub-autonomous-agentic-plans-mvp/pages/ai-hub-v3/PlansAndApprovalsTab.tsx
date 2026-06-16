@@ -1424,9 +1424,10 @@ const PLANS_TABLE_HEADER_TH_STYLE: React.CSSProperties = {
 
 const PLANS_TABLE_HEADER_POPOVER_CONTENT_STYLE: React.CSSProperties = {
   display: 'inline-flex',
-  alignItems: 'flex-start',
+  alignItems: 'center',
   gap: 'var(--pf-t--global--spacer--xs)',
   lineHeight: 'var(--pf-t--global--line-height--body)',
+  whiteSpace: 'nowrap',
 };
 
 const PLANS_TABLE_HEADER_POPOVER_BUTTON_STYLE: React.CSSProperties = {
@@ -1475,6 +1476,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 }) => (
   <Table
     aria-label={ariaLabel}
+    className="ols-plans-table"
     style={{
       tableLayout: 'fixed',
       width: '100%',
@@ -1485,10 +1487,10 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
     <Thead>
       <Tr>
         <Th style={{ width: '17%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
-        <Th style={{ width: '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
+        <Th style={{ width: '18%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
         <Th style={{ width: '13%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
         <Th style={{ width: '9%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
-        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
+        <Th className="ols-plans-table__metric-header" style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
           <PlansTableColumnHeader
             label="Confidence"
             popoverHeader="How accurate is the fix?"
@@ -1496,7 +1498,7 @@ const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             ariaLabel="More information about Confidence"
           />
         </Th>
-        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
+        <Th className="ols-plans-table__metric-header" style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
           <PlansTableColumnHeader
             label="Risk"
             popoverHeader="What is the blast radius?"
