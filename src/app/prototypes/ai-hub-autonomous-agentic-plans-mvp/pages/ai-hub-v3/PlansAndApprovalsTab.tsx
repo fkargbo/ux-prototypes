@@ -158,6 +158,11 @@ const PLAN_RISK_SCORES: Record<string, number> = {
   cp1: 68,
   cp2: 12,
   cp3: 75,
+  op1: 18,
+  op2: 32,
+  op3: 55,
+  op4: 24,
+  op5: 45,
 };
 
 /** Simulated plan identity — names, summaries, and scope labels aligned to fleet vs. single-cluster UX. */
@@ -302,6 +307,36 @@ const PLAN_TABLE_IDENTITY: Record<
     synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-update',
+  },
+  op1: {
+    name: 'reconcile-prometheus-targets',
+    synopsis: 'Reconcile Prometheus scrape targets after endpoint failures in openshift-monitoring',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
+  },
+  op2: {
+    name: 'fix-alertmanager-webhook-secret',
+    synopsis: 'Rotate Alertmanager PagerDuty webhook credentials after delivery failures',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
+  },
+  op3: {
+    name: 'recover-thanos-compactor-pv',
+    synopsis: 'Recover Thanos compactor persistent volume after corrupted block detection',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
+  },
+  op4: {
+    name: 'scale-otel-collector-replicas',
+    synopsis: 'Scale OpenTelemetry collector replicas to relieve trace ingestion backpressure',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-opentelemetry-operator',
+  },
+  op5: {
+    name: 'clear-grafana-sqlite-lock',
+    synopsis: 'Clear Grafana SQLite database lock causing dashboard write timeouts',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
   },
 };
 
@@ -670,6 +705,83 @@ const ALL_PLANS: PlanRow[] = [
       { icon: 'warning', text: 'ImageRegistry Controller Hook: 1 PruneImageRegistryManifestsFailed trace.' },
     ],
   },
+  {
+    id: 'op1',
+    severity: 'warning',
+    status: 'Completed',
+    score: 72,
+    synopsis: 'Reconcile Prometheus Targets',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: PrometheusTargetDown (Endpoint scrape failures detected in openshift-monitoring)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['prometheus-k8s', 'prometheus-operator'],
+    expandedReasons: [
+      { icon: 'alert', text: 'PrometheusTargetDown: endpoint scrape failures detected in openshift-monitoring.' },
+    ],
+  },
+  {
+    id: 'op2',
+    severity: 'critical',
+    status: 'Waiting Approval',
+    score: 76,
+    synopsis: 'Fix Alertmanager Webhook Secret',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: AlertmanagerDeliveryFailing (Expired integration tokens for PagerDuty receiver)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['alertmanager-main'],
+    expandedReasons: [
+      { icon: 'alert', text: 'AlertmanagerDeliveryFailing: expired integration tokens for PagerDuty receiver.' },
+    ],
+  },
+  {
+    id: 'op3',
+    severity: 'critical',
+    status: 'Plan aborted',
+    terminatedAt: 'Jun 10, 2026, 11:32 AM',
+    score: 68,
+    synopsis: 'Recover Thanos Compactor PV',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block; manually terminated by admin)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['thanos-compactor'],
+    expandedReasons: [
+      { icon: 'alert', text: 'ThanosCompactorHasNotRun: compactor pod stuck on corrupted block.' },
+      { icon: 'ban', text: 'Administrative override: plan manually terminated by admin.' },
+    ],
+  },
+  {
+    id: 'op4',
+    severity: 'warning',
+    status: 'Completed',
+    score: 70,
+    synopsis: 'Scale OTel Collector Replicas',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: OpenTelemetryCollectorBufferFull (Spike in cluster trace volume causing memory saturation)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['otel-collector'],
+    expandedReasons: [
+      { icon: 'alert', text: 'OpenTelemetryCollectorBufferFull: trace volume spike causing memory saturation.' },
+    ],
+  },
+  {
+    id: 'op5',
+    severity: 'warning',
+    status: 'Waiting Approval',
+    score: 74,
+    synopsis: 'Clear Grafana SQLite Lock',
+    blastRadius: '1 Cluster',
+    consolidationScope: 'Triggered by alert: GrafanaDatabaseDatabaseLocked (Database write timeouts on shared persistent volume)',
+    triggerDomain: 'Observability',
+    isUnauthorized: false,
+    drawerTargets: ['grafana'],
+    expandedReasons: [
+      { icon: 'alert', text: 'GrafanaDatabaseDatabaseLocked: database write timeouts on shared persistent volume.' },
+    ],
+  },
 ];
 
 // ─── Dataset — Single-cluster overrides (Core Platforms perspective) ──────────
@@ -704,6 +816,11 @@ const SC_ALL_PLANS: PlanRow[] = [
   { ...ALL_PLANS[14], blastRadius: '1 PVC Volume',       drawerTargets: ['postgres-data-0'] },
   { ...ALL_PLANS[15], blastRadius: '6 Nodes',           drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
   { ...ALL_PLANS[16], blastRadius: '1 Registry Catalog', drawerTargets: ['image-registry'] },
+  { ...ALL_PLANS[17], blastRadius: '2 Monitoring Pods', drawerTargets: ['prometheus-k8s-0', 'prometheus-k8s-1'] },
+  { ...ALL_PLANS[18], blastRadius: '1 Alertmanager', drawerTargets: ['alertmanager-main-0'] },
+  { ...ALL_PLANS[19], blastRadius: '1 Compactor PVC', drawerTargets: ['thanos-compactor-data'] },
+  { ...ALL_PLANS[20], blastRadius: '3 Collector Pods', drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
+  { ...ALL_PLANS[21], blastRadius: '1 Grafana Deployment', drawerTargets: ['grafana-6d4f8'] },
 ];
 
 interface PlanDrawerData {
@@ -1026,6 +1143,71 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'High — next minor upgrade carries elevated control plane blast radius if resumed without remediation.',
     estimatedRecovery: 'N/A — plan aborted',
     confidence: 'Medium',
+  },
+  op1: {
+    steps: [
+      { id: 's1', time: '08:42:11', status: 'done', icon: 'exclamation', title: 'PrometheusTargetDown alert fired', detail: 'Endpoint scrape failures detected in openshift-monitoring' },
+      { id: 's2', time: '08:42:24', status: 'done', icon: 'database', title: 'Compared ServiceMonitor endpoints vs. live targets', detail: 'Stale TLS SAN mismatch on 2 prometheus-k8s scrape jobs' },
+      { id: 's3', time: '08:42:39', status: 'done', icon: 'check', title: 'Reconciled Prometheus operator targets', detail: 'Scrape success restored across openshift-monitoring' },
+    ],
+    aggregatedFinding: 'Prometheus scrape failures traced to stale ServiceMonitor endpoints after a certificate rotation in openshift-monitoring.',
+    rootCauseNarrative: 'A recent serving certificate rotation left Prometheus scrape configurations pointing at expired endpoint SANs, triggering PrometheusTargetDown across the monitoring namespace.',
+    remediationProposal: 'Reconcile Prometheus operator ServiceMonitor targets and roll prometheus-k8s pods to pick up refreshed TLS trust bundles.',
+    riskAssessment: 'Low — target reconciliation is rolling and non-destructive to workloads.',
+    estimatedRecovery: '~2m',
+    confidence: 'High',
+  },
+  op2: {
+    steps: [
+      { id: 's1', time: '10:18:04', status: 'done', icon: 'exclamation', title: 'AlertmanagerDeliveryFailing alert detected', detail: 'Expired integration tokens for PagerDuty receiver' },
+      { id: 's2', time: '10:18:17', status: 'done', icon: 'database', title: 'Validated Alertmanager receiver secret references', detail: 'PagerDuty integration key past rotation window by 11 days' },
+      { id: 's3', time: '10:18:31', status: 'active', icon: 'search', title: 'Awaiting approval to rotate webhook secret', detail: 'Secret rotation requires platform admin approval' },
+    ],
+    aggregatedFinding: 'Alertmanager notification delivery failures correlate with an expired PagerDuty integration token in openshift-monitoring.',
+    rootCauseNarrative: 'The Alertmanager PagerDuty receiver references a Kubernetes secret whose integration token expired, causing sustained AlertmanagerDeliveryFailing alerts and missed pages.',
+    remediationProposal: 'Rotate the Alertmanager webhook secret with a fresh PagerDuty integration key and reload alertmanager-main.',
+    riskAssessment: 'Low — secret rotation is reversible and scoped to notification routing only.',
+    estimatedRecovery: '~5m',
+    confidence: 'High',
+  },
+  op3: {
+    steps: [
+      { id: 's1', time: '11:05:02', status: 'done', icon: 'exclamation', title: 'ThanosCompactorHasNotRun alert fired', detail: 'Thanos compactor pod stuck on corrupted block' },
+      { id: 's2', time: '11:05:16', status: 'done', icon: 'database', title: 'Inspected compactor PVC and block metadata', detail: 'Corrupted TSDB block detected on thanos-compactor-data volume' },
+      { id: 's3', time: '11:32:00', status: 'done', icon: 'ban', title: 'Plan terminated by administrative override', detail: 'Admin halted recovery before PVC resize completed' },
+    ],
+    aggregatedFinding: 'Thanos compactor stalled on a corrupted block; administrative override terminated recovery mid-flight.',
+    rootCauseNarrative: 'A corrupted TSDB block prevented the Thanos compactor from completing its compaction cycle. An administrator manually terminated the plan during persistent volume recovery.',
+    remediationProposal: 'Quarantine the corrupted block, expand the compactor PVC, and restart thanos-compactor with a clean compaction window.',
+    riskAssessment: 'Medium — PVC recovery may require brief metrics query degradation.',
+    estimatedRecovery: 'N/A — plan aborted',
+    confidence: 'Medium',
+  },
+  op4: {
+    steps: [
+      { id: 's1', time: '14:27:08', status: 'done', icon: 'exclamation', title: 'OpenTelemetryCollectorBufferFull alert detected', detail: 'Trace volume spike causing memory saturation' },
+      { id: 's2', time: '14:27:21', status: 'done', icon: 'database', title: 'Sampled collector memory and export queue depth', detail: 'Batch queue at 98% capacity across 3 collector pods' },
+      { id: 's3', time: '14:27:44', status: 'done', icon: 'check', title: 'Scaled collector replicas and tuned batch processor', detail: 'Buffer utilization normalized within 4 minutes' },
+    ],
+    aggregatedFinding: 'OpenTelemetry collector memory saturation caused by a cluster-wide trace volume spike triggered OpenTelemetryCollectorBufferFull.',
+    rootCauseNarrative: 'A sudden increase in distributed trace volume exceeded single-replica collector batch buffers, saturating memory and stalling export pipelines until replicas were scaled out.',
+    remediationProposal: 'Scale otel-collector deployment replicas and tune batch processor limits for sustained trace ingestion.',
+    riskAssessment: 'Low — horizontal scale-out is rolling and reversible.',
+    estimatedRecovery: '~4m',
+    confidence: 'High',
+  },
+  op5: {
+    steps: [
+      { id: 's1', time: '16:03:12', status: 'done', icon: 'exclamation', title: 'GrafanaDatabaseDatabaseLocked alert fired', detail: 'Database write timeouts on shared persistent volume' },
+      { id: 's2', time: '16:03:26', status: 'done', icon: 'database', title: 'Inspected Grafana SQLite WAL and PVC mount state', detail: 'Stale WAL lock held after grafana pod eviction' },
+      { id: 's3', time: '16:03:41', status: 'active', icon: 'search', title: 'Awaiting approval to clear SQLite lock', detail: 'Lock removal requires brief Grafana downtime' },
+    ],
+    aggregatedFinding: 'Grafana dashboard persistence failures trace to a SQLite WAL lock on the shared monitoring PVC.',
+    rootCauseNarrative: 'An ungraceful grafana pod eviction left a SQLite write-ahead log lock on the shared persistent volume, causing GrafanaDatabaseDatabaseLocked alerts and dashboard write timeouts.',
+    remediationProposal: 'Stop grafana, remove the stale SQLite WAL lock file, and restart the deployment with verified PVC consistency.',
+    riskAssessment: 'Medium — clearing the lock requires a short Grafana read-only window.',
+    estimatedRecovery: '~3m',
+    confidence: 'High',
   },
 };
 

@@ -40,6 +40,11 @@ export const SC_PLAN_TABLE_IDENTITY: Record<string, ScPlanTableIdentity> = {
   cp1: { name: 'ocp-upgrade-4.14-to-4.15', synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   cp2: { name: 'ocp-patch-4.15.1-to-4.15.8', synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   cp3: { name: 'ocp-upgrade-4.15-to-4.16', synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op1: { name: 'reconcile-prometheus-targets', synopsis: 'Reconcile Prometheus scrape targets after endpoint failures in openshift-monitoring', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op2: { name: 'fix-alertmanager-webhook-secret', synopsis: 'Rotate Alertmanager PagerDuty webhook credentials after delivery failures', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op3: { name: 'recover-thanos-compactor-pv', synopsis: 'Recover Thanos compactor persistent volume after corrupted block detection', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op4: { name: 'scale-otel-collector-replicas', synopsis: 'Scale OpenTelemetry collector replicas to relieve trace ingestion backpressure', namespace: 'openshift-opentelemetry-operator', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op5: { name: 'clear-grafana-sqlite-lock', synopsis: 'Clear Grafana SQLite database lock causing dashboard write timeouts', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
 };
 
 type ExpandedReason = { icon: 'sync' | 'alert' | 'warning' | 'ban' | 'gear' | 'wrench'; text: string };
@@ -184,6 +189,37 @@ export const SC_PLAN_ROW_PATCHES: Record<string, ScPlanRowPatch> = {
     consolidationScope: '1 Registry Event',
     expandedReasons: [
       { icon: 'warning', text: 'ImageRegistry: PruneImageRegistryManifestsFailed on cluster image-registry.' },
+    ],
+  },
+  op1: {
+    consolidationScope: 'Triggered by alert: PrometheusTargetDown (Endpoint scrape failures detected in openshift-monitoring)',
+    expandedReasons: [
+      { icon: 'alert', text: 'PrometheusTargetDown: endpoint scrape failures detected in openshift-monitoring.' },
+    ],
+  },
+  op2: {
+    consolidationScope: 'Triggered by alert: AlertmanagerDeliveryFailing (Expired integration tokens for PagerDuty receiver)',
+    expandedReasons: [
+      { icon: 'alert', text: 'AlertmanagerDeliveryFailing: expired integration tokens for PagerDuty receiver.' },
+    ],
+  },
+  op3: {
+    consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block; manually terminated by admin)',
+    expandedReasons: [
+      { icon: 'alert', text: 'ThanosCompactorHasNotRun: compactor pod stuck on corrupted block.' },
+      { icon: 'ban', text: 'Administrative override: plan manually terminated by admin.' },
+    ],
+  },
+  op4: {
+    consolidationScope: 'Triggered by alert: OpenTelemetryCollectorBufferFull (Spike in cluster trace volume causing memory saturation)',
+    expandedReasons: [
+      { icon: 'alert', text: 'OpenTelemetryCollectorBufferFull: trace volume spike causing memory saturation.' },
+    ],
+  },
+  op5: {
+    consolidationScope: 'Triggered by alert: GrafanaDatabaseDatabaseLocked (Database write timeouts on shared persistent volume)',
+    expandedReasons: [
+      { icon: 'alert', text: 'GrafanaDatabaseDatabaseLocked: database write timeouts on shared persistent volume.' },
     ],
   },
 };
