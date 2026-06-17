@@ -26,6 +26,7 @@ import {
   type PlanRow,
 } from './PlansAndApprovalsTab';
 import {
+  OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS,
   PlansFilterToolbar,
   TROUBLESHOOTING_STATUS_FILTER_OPTIONS,
   usePlansFilterState,
@@ -42,7 +43,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
   const { abortedPlans, resumedPlanIds } = usePlanTermination();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
 
-  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: false });
+  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true });
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
@@ -55,7 +56,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
   const observabilityPlans = useMemo(() => {
     return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).filter(
       (plan) =>
-        plan.triggerDomain === 'Observability'
+        (OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS as readonly string[]).includes(plan.triggerDomain)
         && plan.consolidationScope.startsWith('Triggered by alert:'),
     );
   }, [isSingleCluster, planExecutionRuntime]);
@@ -74,6 +75,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
     plansFilter.statusFilters,
     plansFilter.riskFilters,
     plansFilter.confidenceFilters,
+    plansFilter.triggerDomainFilters,
   ]);
 
   useEffect(() => {
@@ -114,6 +116,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
         <PlansFilterToolbar
           filterAriaLabel="Filter troubleshooting plans"
           statusOptions={TROUBLESHOOTING_STATUS_FILTER_OPTIONS}
+          triggerDomainOptions={OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS}
           pagination={
             <Pagination
               itemCount={filteredRows.length}
