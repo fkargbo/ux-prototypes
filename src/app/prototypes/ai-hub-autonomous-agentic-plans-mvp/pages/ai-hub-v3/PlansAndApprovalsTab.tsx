@@ -1762,6 +1762,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
       <Tr>
         <Th style={{ width: '17%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
         <Th style={{ width: '18%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
+        <Th style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
         <Th style={{ width: '13%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
         <Th style={{ width: '9%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
         <Th className="ols-plans-table__metric-header" style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
@@ -1780,7 +1781,6 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             ariaLabel="More information about Risk"
           />
         </Th>
-        <Th style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
         <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
       </Tr>
     </Thead>
@@ -1823,6 +1823,14 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             </Flex>
           </Td>
 
+          <Td dataLabel={scopeColumnLabel}>
+            <PlanScopeCell
+              scope={row.scope}
+              scopeColumnLabel={scopeColumnLabel}
+              scopeTargets={scopeColumnLabel === 'Cluster' ? row.drawerTargets : []}
+            />
+          </Td>
+
           <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
             <TriggerDomainCell domain={row.triggerDomain} mapObservabilityDomains={mapObservabilityDomains} />
           </Td>
@@ -1841,14 +1849,6 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
           <Td dataLabel="Risk">
             <PlanRiskBadge score={row.riskScore ?? 50} showPrefix={false} />
-          </Td>
-
-          <Td dataLabel={scopeColumnLabel}>
-            <PlanScopeCell
-              scope={row.scope}
-              scopeColumnLabel={scopeColumnLabel}
-              scopeTargets={scopeColumnLabel === 'Cluster' ? row.drawerTargets : []}
-            />
           </Td>
 
           <Td dataLabel="Created">
