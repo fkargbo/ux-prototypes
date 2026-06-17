@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Content, Title } from '@patternfly/react-core';
 import { AiHubPageHeading } from '../components/AiHubPageHeading';
+import { AuditKillSwitchPanel } from '../components/AuditKillSwitchPanel';
 import * as Hub from './ai-hub-v3';
 import './ai-hub-page.css';
 
@@ -43,6 +44,7 @@ export const AuditAndLogsPage: React.FC = () => {
         role="main"
         aria-label="Audit and logs content"
       >
+        <AuditKillSwitchPanel />
         <Hub.AIAuditAndLogsTab />
       </div>
     </div>

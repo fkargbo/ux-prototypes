@@ -13,7 +13,7 @@ import {
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
-import { usePlanTermination } from '../../context/PlanTerminationContext';
+import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   getTroubleshootingPlanRemediationHref,
@@ -39,18 +39,13 @@ export const TroubleshootingPlansTab: React.FC = () => {
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster } = useAgenticCapabilities();
-  const { abortedPlans, resumedPlanIds } = usePlanTermination();
+  const planExecutionRuntime = usePlanBuildRuntime();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
 
   const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: false });
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
-
-  const planExecutionRuntime = useMemo(
-    () => ({ abortedPlans, resumedPlanIds }),
-    [abortedPlans, resumedPlanIds],
-  );
 
   const observabilityPlans = useMemo(() => {
     return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).filter(

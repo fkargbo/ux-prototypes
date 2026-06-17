@@ -19,7 +19,7 @@ import {
   TROUBLESHOOTING_PLANS_LIST_PATH,
   writePlanRemediationDrillSession,
 } from './planRemediationDrillSession';
-import { usePlanTermination } from '../context/PlanTerminationContext';
+import { usePlanBuildRuntime } from '../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../prototypePerspectiveUrl';
 import './ai-hub-page.css';
@@ -40,12 +40,7 @@ export const TroubleshootingPlanDetail: React.FC = () => {
     ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
     : activePerspective === 'Core platforms';
 
-  const { abortedPlans, resumedPlanIds } = usePlanTermination();
-
-  const planExecutionRuntime = useMemo(
-    () => ({ abortedPlans, resumedPlanIds }),
-    [abortedPlans, resumedPlanIds],
-  );
+  const planExecutionRuntime = usePlanBuildRuntime();
 
   const plan = useMemo(() => {
     if (!planId) return null;
@@ -142,7 +137,7 @@ export const TroubleshootingPlanDetail: React.FC = () => {
               </FlexItem>
             )}
             <FlexItem>
-              <PlanRiskBadge score={plan.riskScore ?? 50} />
+              <PlanRiskBadge level={plan.riskLevel ?? 'Medium'} />
             </FlexItem>
           </Flex>
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>

@@ -26,7 +26,12 @@ import {
   Pagination,
   PaginationVariant,
   Tooltip,
-  TextInput,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
+  TextArea,
   Stack,
   StackItem,
   ExpandableSection,
@@ -118,9 +123,11 @@ import olsLogoUrl from '../assets/ols-logo.png';
 import {
   persesAgenticBridge,
   agenticGlobalAiApi,
+  revisionDiscussionBridge,
   type DiscussLightspeedContext,
   type NodeInvestigationLightspeedContext,
   type RemediationDiscussionContext,
+  type RevisionDiscussionContext,
 } from '../persesAgenticBridge';
 import { useSimulation } from '../simulation/SimulationProvider';
 import { getSimulationSnapshot } from '../simulation/simulationStore';
@@ -426,6 +433,9 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
    * instead of replacing the “landing” view.
    */
   const [persistEmptyIntroInScroll, setPersistEmptyIntroInScroll] = useState(false);
+  const [revisionMode, setRevisionMode] = useState<RevisionDiscussionContext | null>(null);
+  const [revisionFeedbackDraft, setRevisionFeedbackDraft] = useState('');
+  const [isRevisionConfirmOpen, setIsRevisionConfirmOpen] = useState(false);
   const chatbotToggleRef = useRef<HTMLDivElement>(null);
   const olsChromeDockRef = useRef<HTMLDivElement>(null);
   const olsLauncherStackRef = useRef<HTMLDivElement>(null);
@@ -1282,6 +1292,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   }, []);
 
   const handleOpenRemediationDiscussion = useCallback((ctx: RemediationDiscussionContext) => {
+    setRevisionMode(null);
     const ts = new Date().toLocaleString();
     const severityLabel = ctx.severity === 'critical' ? '🔴 Critical' : '🟡 Warning';
     const riskBlock = ctx.riskAssessment
@@ -1308,18 +1319,77 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     setIsDrawerOpen(true);
   }, []);
 
+  const handleOpenRevisionDiscussion = useCallback((ctx: RevisionDiscussionContext) => {
+    const ts = new Date().toLocaleString();
+    const opening: MessageProps = {
+      id: generateId(),
+      role: 'bot',
+      content: [
+        "Let's refine this analysis before re-running. What should the agent reconsider — scope, root cause, or remediation approach?",
+        '',
+        `**Plan:** _${ctx.planSynopsis}_`,
+        ctx.revisionCount > 0 ? `_Current analysis revision: ${ctx.revisionCount + 1}_` : '',
+        '',
+        '**Current finding**',
+        ctx.aggregatedFinding,
+        '',
+        '**Root cause narrative**',
+        ctx.rootCauseNarrative,
+        '',
+        '**Remediation options**',
+        ctx.optionsSummary,
+      ].filter(Boolean).join('\n'),
+      name: BOT_DISPLAY_NAME,
+      avatar: botAvatarSrc,
+      timestamp: ts,
+    };
+    setRevisionMode(ctx);
+    setRevisionFeedbackDraft('');
+    setPersistEmptyIntroInScroll(false);
+    setMessages([opening]);
+    setAnnouncement(`Message from ${BOT_DISPLAY_NAME}: Revision discussion for ${ctx.planSynopsis}.`);
+    setIsDrawerOpen(true);
+  }, []);
+
+  const lastUserMessage = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i].role === 'user') {
+        return typeof messages[i].content === 'string' ? messages[i].content : '';
+      }
+    }
+    return '';
+  }, [messages]);
+
+  const handleOpenRevisionSubmit = () => {
+    setRevisionFeedbackDraft((lastUserMessage ?? '').trim());
+    setIsRevisionConfirmOpen(true);
+  };
+
+  const handleConfirmRevisionFeedback = () => {
+    if (!revisionMode || !revisionFeedbackDraft.trim()) {
+      return;
+    }
+    revisionDiscussionBridge.submitFeedback(revisionMode.planId, revisionFeedbackDraft.trim());
+    setIsRevisionConfirmOpen(false);
+    setRevisionMode(null);
+    setRevisionFeedbackDraft('');
+    setIsDrawerOpen(false);
+  };
+
   useEffect(() => {
     agenticGlobalAiApi.startTroubleshootingForAlert = handleStartTroubleshooting;
     agenticGlobalAiApi.openDiscussWithLightspeed = handleOpenDiscussWithLightspeed;
     agenticGlobalAiApi.openLightspeedFromNodeInvestigation = handleOpenLightspeedFromNodeInvestigation;
     agenticGlobalAiApi.openRemediationDiscussion = handleOpenRemediationDiscussion;
+    agenticGlobalAiApi.openRevisionDiscussion = handleOpenRevisionDiscussion;
     return () => {
       agenticGlobalAiApi.startTroubleshootingForAlert = null;
       agenticGlobalAiApi.openDiscussWithLightspeed = null;
       agenticGlobalAiApi.openLightspeedFromNodeInvestigation = null;
       agenticGlobalAiApi.openRemediationDiscussion = null;
+      agenticGlobalAiApi.openRevisionDiscussion = null;
     };
-  }, [handleStartTroubleshooting, handleOpenDiscussWithLightspeed, handleOpenLightspeedFromNodeInvestigation, handleOpenRemediationDiscussion]);
+  }, [handleStartTroubleshooting, handleOpenDiscussWithLightspeed, handleOpenLightspeedFromNodeInvestigation, handleOpenRemediationDiscussion, handleOpenRevisionDiscussion]);
 
   const olsChromeDockClassName = `ols-ai-chrome-dock${isDrawerOpen ? ' ols-ai-chrome-dock--chat-open' : ''}`;
 
@@ -1464,7 +1534,23 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                   })}
                 </MessageBox>
               </ChatbotContent>
-              <ChatbotFooter style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
+              <ChatbotFooter style={{ flexShrink: 0, display: 'flex', visibility: 'visible', flexDirection: 'column' }}>
+                {revisionMode && (
+                  <div
+                    style={{
+                      padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
+                      borderTop: '1px solid var(--pf-t--global--border--color--default)',
+                      background: 'var(--pf-t--global--background--color--secondary--default)',
+                    }}
+                  >
+                    <Button variant="primary" onClick={handleOpenRevisionSubmit} isDisabled={!(lastUserMessage ?? '').trim()}>
+                      Submit revision feedback
+                    </Button>
+                    <Content component="small" className="ols-aio-text-subtle-sm" style={{ display: 'block', marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                      Commits your feedback and triggers re-analysis. Chat alone does not re-run the agent.
+                    </Content>
+                  </div>
+                )}
                 <MessageBar
                   displayMode={ChatbotDisplayMode.drawer}
                   onSendMessage={handleSendMessage}
@@ -1531,6 +1617,33 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       </div>,
       document.body
     )}
+    <Modal
+      variant={ModalVariant.small}
+      isOpen={isRevisionConfirmOpen}
+      onClose={() => setIsRevisionConfirmOpen(false)}
+      aria-labelledby="revision-feedback-confirm-title"
+    >
+      <ModalHeader title="Submit revision feedback?" labelId="revision-feedback-confirm-title" />
+      <ModalBody>
+        <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+          This will trigger re-analysis and clear any pending execution approval.
+        </Content>
+        <TextArea
+          value={revisionFeedbackDraft}
+          onChange={(_event, value) => setRevisionFeedbackDraft(value)}
+          aria-label="Revision feedback"
+          rows={4}
+        />
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="primary" onClick={handleConfirmRevisionFeedback} isDisabled={!revisionFeedbackDraft.trim()}>
+          Submit and re-analyze
+        </Button>
+        <Button variant="link" onClick={() => setIsRevisionConfirmOpen(false)}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </Modal>
   </>
   );
 };
