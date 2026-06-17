@@ -19,7 +19,9 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, DownloadIcon, FileAltIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { formatTokenBurn } from '../../types/tokenBurn';
 import { SC_PLAN_TABLE_IDENTITY } from './singleClusterPlanSimulation';
+import { MVP_PLAN_IDS } from './plansMvpConstants';
 import './ai-hub-v3-inventory.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -30,6 +32,10 @@ type LifecycleEvent =
   | 'RCA verified'
   | 'Approval granted'
   | 'Remediation applied'
+  | 'Verification started'
+  | 'Verification passed'
+  | 'Verification failed'
+  | 'Analysis revision requested'
   | 'Plan aborted';
 
 interface AuditReceiptItem {
@@ -52,9 +58,11 @@ interface AuditRow {
 
 const DEFAULT_PER_PAGE = 10;
 
-const formatTokenBurn = (tokens: number): string => `${tokens.toLocaleString('en-US')} tokens`;
-
 const truncateReceiptHash = (hash: string): string => hash.slice(0, 6);
+
+const PLAN_SUMMARIES = Object.entries(SC_PLAN_TABLE_IDENTITY)
+  .filter(([id]) => MVP_PLAN_IDS.has(id))
+  .map(([, plan]) => plan.name);
 
 const isSystemUser = (user: string): boolean => user.startsWith('System');
 
@@ -66,6 +74,10 @@ const EVENT_LABEL_COLOR: Record<LifecycleEvent, LabelColor> = {
   'RCA verified': 'teal',
   'Approval granted': 'orange',
   'Remediation applied': 'green',
+  'Verification started': 'teal',
+  'Verification passed': 'green',
+  'Verification failed': 'red',
+  'Analysis revision requested': 'blue',
   'Plan aborted': 'red',
 };
 
@@ -95,8 +107,6 @@ const EventLabel: React.FC<{ event: LifecycleEvent; timestamp?: string }> = ({ e
   );
 };
 
-const PLAN_SUMMARIES = Object.values(SC_PLAN_TABLE_IDENTITY).map((plan) => plan.name);
-
 const LIFECYCLE_EVENT_SEQUENCE: LifecycleEvent[] = [
   'Plan submitted',
   'Investigation started',
@@ -114,6 +124,10 @@ const COMPLIANCE_BY_EVENT: Record<LifecycleEvent, string> = {
   'RCA verified': 'SOC2 Type II / AI-OPS-CTRL-003 (RCA Verification)',
   'Approval granted': 'SOC2 Type II / AI-OPS-CTRL-007 (Human Approval Required)',
   'Remediation applied': 'SOC2 Type II / AI-OPS-CTRL-004',
+  'Verification started': 'SOC2 Type II / AI-OPS-CTRL-005 (Post-Execution Verification)',
+  'Verification passed': 'SOC2 Type II / AI-OPS-CTRL-005 (Post-Execution Verification)',
+  'Verification failed': 'SOC2 Type II / AI-OPS-CTRL-005 (Post-Execution Verification)',
+  'Analysis revision requested': 'SOC2 Type II / AI-OPS-CTRL-002 (Revision Feedback)',
   'Plan aborted': 'SOC2 Type II / AI-OPS-CTRL-009 (Execution Halt)',
 };
 
@@ -162,12 +176,14 @@ const buildAuditReceipt = (row: Pick<AuditRow, 'event' | 'user' | 'planSummary' 
 
 const buildSimulatedAuditRows = (count: number): AuditRow[] => {
   const priorityRows: Array<Pick<AuditRow, 'planSummary' | 'event' | 'user' | 'tokenBurn'>> = [
-    { planSummary: 'tekton-webhook-tls-repair', event: 'Plan aborted', user: 'Marcus Chen', tokenBurn: 840 },
-    { planSummary: 'payments-oom-cascade-remediation', event: 'Approval granted', user: 'Sarah Patel', tokenBurn: 1200 },
-    { planSummary: 'gitops-ingress-drift-remediation', event: 'Remediation applied', user: 'System (Autonomous)', tokenBurn: 2150 },
-    { planSummary: 'ceph-osd-drift', event: 'RCA verified', user: 'Marcus Chen', tokenBurn: 960 },
-    { planSummary: 'ceph-osd-drift', event: 'Investigation started', user: 'System (Autonomous)', tokenBurn: 1420 },
-    { planSummary: 'acs-runtime-exploit-quarantine', event: 'Plan submitted', user: 'System (Autonomous)', tokenBurn: 380 },
+    { planSummary: 'ocp-upgrade-4.15-to-4.16', event: 'Plan aborted', user: 'Marcus Chen', tokenBurn: 2450 },
+    { planSummary: 'scale-otel-collector-replicas', event: 'Verification started', user: 'System (Autonomous)', tokenBurn: 1540 },
+    { planSummary: 'fix-alertmanager-webhook-secret', event: 'Analysis revision requested', user: 'Marcus Chen', tokenBurn: 560 },
+    { planSummary: 'recover-thanos-compactor-pv', event: 'Approval granted', user: 'Sarah Patel', tokenBurn: 1880 },
+    { planSummary: 'reconcile-prometheus-targets', event: 'Verification passed', user: 'System (Autonomous)', tokenBurn: 1920 },
+    { planSummary: 'acs-hostnetwork-policy-fix', event: 'Approval granted', user: 'Marcus Chen', tokenBurn: 920 },
+    { planSummary: 'acs-payments-workload-quarantine', event: 'Investigation started', user: 'System (Autonomous)', tokenBurn: 1420 },
+    { planSummary: 'acs-payments-workload-quarantine', event: 'Plan submitted', user: 'System (Autonomous)', tokenBurn: 380 },
   ];
 
   return Array.from({ length: count }, (_, index) => {
@@ -175,7 +191,11 @@ const buildSimulatedAuditRows = (count: number): AuditRow[] => {
     const event = priority?.event ?? LIFECYCLE_EVENT_SEQUENCE[index % LIFECYCLE_EVENT_SEQUENCE.length];
     const planSummary = priority?.planSummary ?? PLAN_SUMMARIES[index % PLAN_SUMMARIES.length];
     const user = priority?.user ?? (
-      event === 'Remediation applied' || event === 'Investigation started' || event === 'Plan submitted'
+      event === 'Remediation applied'
+        || event === 'Investigation started'
+        || event === 'Plan submitted'
+        || event === 'Verification started'
+        || event === 'Verification passed'
         ? 'System (Autonomous)'
         : HUMAN_USERS[index % HUMAN_USERS.length]
     );
@@ -208,6 +228,10 @@ const LIFECYCLE_EVENTS = [
   'RCA verified',
   'Approval granted',
   'Remediation applied',
+  'Verification started',
+  'Verification passed',
+  'Verification failed',
+  'Analysis revision requested',
   'Plan aborted',
 ] as const;
 

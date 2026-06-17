@@ -204,10 +204,9 @@ export const SC_PLAN_ROW_PATCHES: Record<string, ScPlanRowPatch> = {
     ],
   },
   op3: {
-    consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block; manually terminated by admin)',
+    consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block)',
     expandedReasons: [
       { icon: 'alert', text: 'ThanosCompactorHasNotRun: compactor pod stuck on corrupted block.' },
-      { icon: 'ban', text: 'Administrative override: plan manually terminated by admin.' },
     ],
   },
   op4: {

@@ -20,15 +20,17 @@ import {
 } from '@patternfly/react-core';
 import { CheckIcon } from '@patternfly/react-icons';
 import type { ConfidenceTier } from '../../types/confidenceTier';
-import { scoreToRiskTier, type RiskTier } from '../../types/riskScore';
+import type { RiskTier } from '../../types/riskScore';
 import type { PlanRow } from './PlansAndApprovalsTab';
 
 export type PlansSearchCategory = 'name' | 'label';
 
 export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
-  { label: 'Investigating', value: 'Investigating' },
-  { label: 'Awaiting Approval', value: 'Waiting Approval' },
-  { label: 'Remediating', value: 'Remediating' },
+  { label: 'Analyzing', value: 'Analyzing' },
+  { label: 'Proposed', value: 'Proposed' },
+  { label: 'Approved', value: 'Approved' },
+  { label: 'Executing', value: 'Executing' },
+  { label: 'Verifying', value: 'Verifying' },
   { label: 'Plan aborted', value: 'Plan aborted' },
   { label: 'Completed', value: 'Completed' },
   { label: 'Failed', value: 'Failed' },
@@ -36,22 +38,16 @@ export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['sta
 
 export const TROUBLESHOOTING_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
   { label: 'Completed', value: 'Completed' },
-  { label: 'Awaiting Approval', value: 'Waiting Approval' },
+  { label: 'Proposed', value: 'Proposed' },
   { label: 'Plan aborted', value: 'Plan aborted' },
 ];
 
-const RISK_LEVEL_OPTIONS: RiskTier[] = ['High', 'Medium', 'Low'];
+const RISK_LEVEL_OPTIONS: RiskTier[] = ['Critical', 'High', 'Medium', 'Low'];
 const CONFIDENCE_OPTIONS: ConfidenceTier[] = ['High', 'Medium', 'Low'];
 
 export const TRIGGER_DOMAIN_FILTER_OPTIONS = [
   'Observability',
-  'Control Plane',
-  'Storage',
-  'Network',
-  'Compute',
-  'GitOps',
-  'Pipelines',
-  'Registry',
+  'Cluster update',
   'Security',
 ] as const;
 
@@ -105,7 +101,7 @@ function planMatchesAttributeFilters(
   if (statusFilters.length > 0 && !statusFilters.includes(plan.status)) {
     return false;
   }
-  if (riskFilters.length > 0 && !riskFilters.includes(scoreToRiskTier(plan.riskScore ?? 50))) {
+  if (riskFilters.length > 0 && !riskFilters.includes(plan.riskLevel ?? 'Medium')) {
     return false;
   }
   if (confidenceFilters.length > 0) {

@@ -38,6 +38,30 @@ export type RemediationDiscussionContext = {
   severity: 'critical' | 'warning' | string;
 };
 
+export type RevisionDiscussionContext = {
+  planId: string;
+  planSynopsis: string;
+  aggregatedFinding: string;
+  rootCauseNarrative: string;
+  optionsSummary: string;
+  revisionCount: number;
+};
+
+type RevisionFeedbackHandler = (planId: string, text: string) => void;
+
+export const revisionDiscussionBridge = {
+  registerFeedbackHandler: (handler: RevisionFeedbackHandler) => {
+    revisionDiscussionBridge._handler = handler;
+  },
+  unregisterFeedbackHandler: () => {
+    revisionDiscussionBridge._handler = null;
+  },
+  submitFeedback: (planId: string, text: string) => {
+    revisionDiscussionBridge._handler?.(planId, text);
+  },
+  _handler: null as RevisionFeedbackHandler | null,
+};
+
 export const agenticGlobalAiApi = {
   startTroubleshootingForAlert: null as null | ((alertName: string) => void),
   openDiscussWithLightspeed: null as null | ((ctx: DiscussLightspeedContext) => void),
@@ -45,4 +69,6 @@ export const agenticGlobalAiApi = {
   openLightspeedFromNodeInvestigation: null as null | ((ctx: NodeInvestigationLightspeedContext) => void),
   /** Remediation Hub → OLS chat: plan overview + fix + risk briefing. */
   openRemediationDiscussion: null as null | ((ctx: RemediationDiscussionContext) => void),
+  /** Proposed plan → OLS chat: refine analysis before re-run. */
+  openRevisionDiscussion: null as null | ((ctx: RevisionDiscussionContext) => void),
 };
