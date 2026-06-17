@@ -695,7 +695,6 @@ const ALL_PLANS: RawPlanRow[] = [
     synopsis: 'Reconcile Prometheus Targets',
     consolidationScope: 'Triggered by alert: PrometheusTargetDown (Endpoint scrape failures detected in openshift-monitoring)',
     triggerDomain: 'Prometheus',
-    isUnauthorized: false,
     drawerTargets: ['prometheus-k8s', 'prometheus-operator'],
     expandedReasons: [
       { icon: 'alert', text: 'PrometheusTargetDown: endpoint scrape failures detected in openshift-monitoring.' },
@@ -709,7 +708,6 @@ const ALL_PLANS: RawPlanRow[] = [
     synopsis: 'Fix Alertmanager Webhook Secret',
     consolidationScope: 'Triggered by alert: AlertmanagerDeliveryFailing (Expired integration tokens for PagerDuty receiver)',
     triggerDomain: 'Alertmanager',
-    isUnauthorized: false,
     drawerTargets: ['alertmanager-main'],
     expandedReasons: [
       { icon: 'alert', text: 'AlertmanagerDeliveryFailing: expired integration tokens for PagerDuty receiver.' },
@@ -723,7 +721,6 @@ const ALL_PLANS: RawPlanRow[] = [
     synopsis: 'Recover Thanos Compactor PV',
     consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block; manually terminated by admin)',
     triggerDomain: 'Thanos',
-    isUnauthorized: false,
     drawerTargets: ['thanos-compactor'],
     expandedReasons: [
       { icon: 'alert', text: 'ThanosCompactorHasNotRun: compactor pod stuck on corrupted block.' },
@@ -737,7 +734,6 @@ const ALL_PLANS: RawPlanRow[] = [
     synopsis: 'Scale OTel Collector Replicas',
     consolidationScope: 'Triggered by alert: OpenTelemetryCollectorBufferFull (Spike in cluster trace volume causing memory saturation)',
     triggerDomain: 'OpenTelemetry',
-    isUnauthorized: false,
     drawerTargets: ['otel-collector'],
     expandedReasons: [
       { icon: 'alert', text: 'OpenTelemetryCollectorBufferFull: trace volume spike causing memory saturation.' },
@@ -751,7 +747,6 @@ const ALL_PLANS: RawPlanRow[] = [
     synopsis: 'Clear Perses Storage Lock',
     consolidationScope: 'Triggered by alert: PersesDashboardStorageLocked (Database write timeouts on shared persistent volume)',
     triggerDomain: 'Perses',
-    isUnauthorized: false,
     drawerTargets: ['perses'],
     expandedReasons: [
       { icon: 'alert', text: 'PersesDashboardStorageLocked: database write timeouts on shared persistent volume.' },
