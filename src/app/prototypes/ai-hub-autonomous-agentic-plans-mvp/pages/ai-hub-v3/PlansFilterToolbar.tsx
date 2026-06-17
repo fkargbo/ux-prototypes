@@ -64,6 +64,17 @@ export const OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS = [
   'Perses',
 ] as const;
 
+const OBSERVABILITY_TELEMETRY_DOMAIN_SET = new Set<string>(OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS);
+
+/**
+ * Maps a granular telemetry-stack domain to its macro category.
+ * Used by the fleet Agentic Plans view to coalesce Prometheus/Thanos/etc. into "Observability".
+ * The Troubleshooting Plans view bypasses this by passing the raw domain.
+ */
+export function resolveDisplayDomain(domain: string): string {
+  return OBSERVABILITY_TELEMETRY_DOMAIN_SET.has(domain) ? 'Observability' : domain;
+}
+
 const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
   padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs)',
   fontSize: 'var(--pf-t--global--font--size--body--sm)',
@@ -89,6 +100,7 @@ function planMatchesAttributeFilters(
   confidenceFilters: ConfidenceTier[],
   triggerDomainFilters: string[],
   includeTriggerDomainFilter: boolean,
+  mapObservabilityDomains: boolean,
 ): boolean {
   if (statusFilters.length > 0 && !statusFilters.includes(plan.status)) {
     return false;
@@ -101,8 +113,13 @@ function planMatchesAttributeFilters(
       return false;
     }
   }
-  if (includeTriggerDomainFilter && triggerDomainFilters.length > 0 && !triggerDomainFilters.includes(plan.triggerDomain)) {
-    return false;
+  if (includeTriggerDomainFilter && triggerDomainFilters.length > 0) {
+    const effectiveDomain = mapObservabilityDomains
+      ? resolveDisplayDomain(plan.triggerDomain)
+      : plan.triggerDomain;
+    if (!triggerDomainFilters.includes(effectiveDomain)) {
+      return false;
+    }
   }
   return true;
 }
@@ -115,6 +132,7 @@ export function filterPlanRows(
     confidenceFilters: ConfidenceTier[];
     triggerDomainFilters: string[];
     includeTriggerDomainFilter: boolean;
+    mapObservabilityDomains: boolean;
     searchCategory: PlansSearchCategory;
     searchInputValue: string;
   },
@@ -128,6 +146,7 @@ export function filterPlanRows(
         options.confidenceFilters,
         options.triggerDomainFilters,
         options.includeTriggerDomainFilter,
+        options.mapObservabilityDomains,
       )
     ) {
       return false;
@@ -138,10 +157,14 @@ export function filterPlanRows(
 
 export interface UsePlansFilterStateOptions {
   includeTriggerDomainFilter?: boolean;
+  /** When true, granular observability telemetry domains (Prometheus, Thanos, etc.)
+   *  are coalesced to "Observability" for filtering. Use in fleet/Agentic Plans view. */
+  mapObservabilityDomains?: boolean;
 }
 
 export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   const includeTriggerDomainFilter = options.includeTriggerDomainFilter ?? false;
+  const mapObservabilityDomains = options.mapObservabilityDomains ?? false;
 
   const [statusFilters, setStatusFilters] = useState<PlanRow['status'][]>([]);
   const [riskFilters, setRiskFilters] = useState<RiskTier[]>([]);
@@ -190,12 +213,14 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
         confidenceFilters,
         triggerDomainFilters,
         includeTriggerDomainFilter,
+        mapObservabilityDomains,
         searchCategory,
         searchInputValue,
       }),
     [
       confidenceFilters,
       includeTriggerDomainFilter,
+      mapObservabilityDomains,
       riskFilters,
       searchCategory,
       searchInputValue,

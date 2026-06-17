@@ -55,6 +55,7 @@ import {
 import {
   AGENTIC_STATUS_FILTER_OPTIONS,
   PlansFilterToolbar,
+  resolveDisplayDomain,
   usePlansFilterState,
 } from './PlansFilterToolbar';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
@@ -1566,9 +1567,13 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   );
 };
 
-export const TriggerDomainCell: React.FC<{ domain: string }> = ({ domain }) => (
+export const TriggerDomainCell: React.FC<{
+  domain: string;
+  /** When true, granular telemetry domains (Prometheus, Thanos…) are coalesced to "Observability". */
+  mapObservabilityDomains?: boolean;
+}> = ({ domain, mapObservabilityDomains = false }) => (
   <Label color="grey" variant="outline" isCompact>
-    {domain}
+    {mapObservabilityDomains ? resolveDisplayDomain(domain) : domain}
   </Label>
 );
 
@@ -1731,6 +1736,8 @@ interface PlansTableCoreProps {
   scopeColumnLabel: 'Cluster' | 'Namespace';
   onReviewPlan: (plan: PlanRow) => void;
   isAgenticAutomationEnabled: boolean;
+  /** When true, granular observability telemetry domains are coalesced to "Observability" in the cell badge. */
+  mapObservabilityDomains?: boolean;
 }
 
 export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -1739,6 +1746,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   scopeColumnLabel,
   onReviewPlan,
   isAgenticAutomationEnabled,
+  mapObservabilityDomains = false,
 }) => (
   <Table
     aria-label={ariaLabel}
@@ -1816,7 +1824,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
           </Td>
 
           <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
-            <TriggerDomainCell domain={row.triggerDomain} />
+            <TriggerDomainCell domain={row.triggerDomain} mapObservabilityDomains={mapObservabilityDomains} />
           </Td>
 
           <Td dataLabel="Status">
@@ -1873,7 +1881,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
   isSingleCluster,
   isAgenticAutomationEnabled,
 }) => {
-  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true });
+  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true, mapObservabilityDomains: true });
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
@@ -1974,6 +1982,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={onReviewPlan}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+            mapObservabilityDomains
           />
           <Pagination
             {...paginationProps}
