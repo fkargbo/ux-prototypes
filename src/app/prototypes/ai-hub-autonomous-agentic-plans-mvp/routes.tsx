@@ -30,7 +30,7 @@ export const routes: RouteConfig[] = [
     label: 'Plans',
     title: 'Plans',
     navigation: {
-      group: 'Agentic Plans',
+      group: 'Agentic plans',
       order: 1,
       insertAfterGroup: 'Home',
     },
@@ -41,7 +41,7 @@ export const routes: RouteConfig[] = [
     label: 'Audit & logs',
     title: 'Audit & logs',
     navigation: {
-      group: 'Agentic Plans',
+      group: 'Agentic plans',
       order: 2,
       insertAfterGroup: 'Home',
     },

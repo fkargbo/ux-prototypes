@@ -117,7 +117,7 @@ export const PlanRemediationPage: React.FC = () => {
           ) : (
             <>
               <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-                Agentic Plans
+                Agentic plans
               </BreadcrumbItem>
               <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
                 Plans

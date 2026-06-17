@@ -1794,7 +1794,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                 <PlanResourceBadge />
               </FlexItem>
               <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
-                {row.triggerDomain === 'Observability' ? (
+                {resolveDisplayDomain(row.triggerDomain) === 'Observability' ? (
                   <Link
                     to={`/core/observe/troubleshooting-plans/${encodeURIComponent(row.id)}`}
                     style={{ fontWeight: 400, whiteSpace: 'normal', wordBreak: 'break-word' }}
