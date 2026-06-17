@@ -51,6 +51,26 @@ export const TRIGGER_DOMAIN_FILTER_OPTIONS = [
   'Security',
 ] as const;
 
+/** Granular telemetry-stack domains used by the Troubleshooting Plans view. */
+export const OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS = [
+  'Prometheus',
+  'Alertmanager',
+  'Thanos',
+  'OpenTelemetry',
+  'Perses',
+] as const;
+
+const OBSERVABILITY_TELEMETRY_DOMAIN_SET = new Set<string>(OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS);
+
+/**
+ * Maps a granular telemetry-stack domain to its macro category.
+ * Used by the fleet Agentic Plans view to coalesce Prometheus/Thanos/etc. into "Observability".
+ * The Troubleshooting Plans view bypasses this by passing the raw domain.
+ */
+export function resolveDisplayDomain(domain: string): string {
+  return OBSERVABILITY_TELEMETRY_DOMAIN_SET.has(domain) ? 'Observability' : domain;
+}
+
 const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
   padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs)',
   fontSize: 'var(--pf-t--global--font--size--body--sm)',
@@ -76,6 +96,7 @@ function planMatchesAttributeFilters(
   confidenceFilters: ConfidenceTier[],
   triggerDomainFilters: string[],
   includeTriggerDomainFilter: boolean,
+  mapObservabilityDomains: boolean,
 ): boolean {
   if (statusFilters.length > 0 && !statusFilters.includes(plan.status)) {
     return false;
@@ -88,8 +109,13 @@ function planMatchesAttributeFilters(
       return false;
     }
   }
-  if (includeTriggerDomainFilter && triggerDomainFilters.length > 0 && !triggerDomainFilters.includes(plan.triggerDomain)) {
-    return false;
+  if (includeTriggerDomainFilter && triggerDomainFilters.length > 0) {
+    const effectiveDomain = mapObservabilityDomains
+      ? resolveDisplayDomain(plan.triggerDomain)
+      : plan.triggerDomain;
+    if (!triggerDomainFilters.includes(effectiveDomain)) {
+      return false;
+    }
   }
   return true;
 }
@@ -102,6 +128,7 @@ export function filterPlanRows(
     confidenceFilters: ConfidenceTier[];
     triggerDomainFilters: string[];
     includeTriggerDomainFilter: boolean;
+    mapObservabilityDomains: boolean;
     searchCategory: PlansSearchCategory;
     searchInputValue: string;
   },
@@ -115,6 +142,7 @@ export function filterPlanRows(
         options.confidenceFilters,
         options.triggerDomainFilters,
         options.includeTriggerDomainFilter,
+        options.mapObservabilityDomains,
       )
     ) {
       return false;
@@ -125,10 +153,14 @@ export function filterPlanRows(
 
 export interface UsePlansFilterStateOptions {
   includeTriggerDomainFilter?: boolean;
+  /** When true, granular observability telemetry domains (Prometheus, Thanos, etc.)
+   *  are coalesced to "Observability" for filtering. Use in fleet/Agentic Plans view. */
+  mapObservabilityDomains?: boolean;
 }
 
 export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   const includeTriggerDomainFilter = options.includeTriggerDomainFilter ?? false;
+  const mapObservabilityDomains = options.mapObservabilityDomains ?? false;
 
   const [statusFilters, setStatusFilters] = useState<PlanRow['status'][]>([]);
   const [riskFilters, setRiskFilters] = useState<RiskTier[]>([]);
@@ -177,12 +209,14 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
         confidenceFilters,
         triggerDomainFilters,
         includeTriggerDomainFilter,
+        mapObservabilityDomains,
         searchCategory,
         searchInputValue,
       }),
     [
       confidenceFilters,
       includeTriggerDomainFilter,
+      mapObservabilityDomains,
       riskFilters,
       searchCategory,
       searchInputValue,
@@ -220,6 +254,8 @@ export interface PlansFilterToolbarProps {
   filterAriaLabel: string;
   statusOptions: { label: string; value: PlanRow['status'] }[];
   includeTriggerDomainFilter?: boolean;
+  /** Override the default trigger-domain option list. Defaults to TRIGGER_DOMAIN_FILTER_OPTIONS. */
+  triggerDomainOptions?: readonly string[];
   pagination?: React.ReactNode;
   statusFilters: PlanRow['status'][];
   riskFilters: RiskTier[];
@@ -247,6 +283,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   filterAriaLabel,
   statusOptions,
   includeTriggerDomainFilter = false,
+  triggerDomainOptions = TRIGGER_DOMAIN_FILTER_OPTIONS,
   pagination,
   statusFilters,
   riskFilters,
@@ -286,15 +323,13 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
         toggleFilterValue(value as ConfidenceTier, setConfidenceFilters);
         return;
       }
-      if (
-        includeTriggerDomainFilter
-        && TRIGGER_DOMAIN_FILTER_OPTIONS.includes(value as (typeof TRIGGER_DOMAIN_FILTER_OPTIONS)[number])
-      ) {
+      if (includeTriggerDomainFilter && (triggerDomainOptions as readonly string[]).includes(value)) {
         toggleFilterValue(value, setTriggerDomainFilters);
       }
     },
     [
       includeTriggerDomainFilter,
+      triggerDomainOptions,
       setConfidenceFilters,
       setRiskFilters,
       setStatusFilters,
@@ -365,7 +400,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                   {includeTriggerDomainFilter && (
                     <>
                       <div style={FILTER_SECTION_TITLE_STYLE}>Trigger Domain</div>
-                      {TRIGGER_DOMAIN_FILTER_OPTIONS.map((domain) => (
+                      {triggerDomainOptions.map((domain) => (
                         <SelectOption
                           key={domain}
                           hasCheckbox

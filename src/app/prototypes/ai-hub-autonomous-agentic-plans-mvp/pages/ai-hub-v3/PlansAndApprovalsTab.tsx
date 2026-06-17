@@ -66,6 +66,7 @@ import {
 import {
   AGENTIC_STATUS_FILTER_OPTIONS,
   PlansFilterToolbar,
+  resolveDisplayDomain,
   usePlansFilterState,
 } from './PlansFilterToolbar';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
@@ -358,8 +359,8 @@ const PLAN_TABLE_IDENTITY: Record<
     namespace: 'openshift-opentelemetry-operator',
   },
   op5: {
-    name: 'clear-grafana-sqlite-lock',
-    synopsis: 'Clear Grafana SQLite database lock causing dashboard write timeouts',
+    name: 'clear-perses-storage-lock',
+    synopsis: 'Clear Perses dashboard storage lock causing write timeouts on shared persistent volume',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-monitoring',
   },
@@ -693,7 +694,8 @@ const ALL_PLANS: RawPlanRow[] = [
     score: 72,
     synopsis: 'Reconcile Prometheus Targets',
     consolidationScope: 'Triggered by alert: PrometheusTargetDown (Endpoint scrape failures detected in openshift-monitoring)',
-    triggerDomain: 'Observability',
+    triggerDomain: 'Prometheus',
+    isUnauthorized: false,
     drawerTargets: ['prometheus-k8s', 'prometheus-operator'],
     expandedReasons: [
       { icon: 'alert', text: 'PrometheusTargetDown: endpoint scrape failures detected in openshift-monitoring.' },
@@ -706,7 +708,8 @@ const ALL_PLANS: RawPlanRow[] = [
     score: 76,
     synopsis: 'Fix Alertmanager Webhook Secret',
     consolidationScope: 'Triggered by alert: AlertmanagerDeliveryFailing (Expired integration tokens for PagerDuty receiver)',
-    triggerDomain: 'Observability',
+    triggerDomain: 'Alertmanager',
+    isUnauthorized: false,
     drawerTargets: ['alertmanager-main'],
     expandedReasons: [
       { icon: 'alert', text: 'AlertmanagerDeliveryFailing: expired integration tokens for PagerDuty receiver.' },
@@ -718,8 +721,9 @@ const ALL_PLANS: RawPlanRow[] = [
     status: 'Executing',
     score: 68,
     synopsis: 'Recover Thanos Compactor PV',
-    consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block)',
-    triggerDomain: 'Observability',
+    consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block; manually terminated by admin)',
+    triggerDomain: 'Thanos',
+    isUnauthorized: false,
     drawerTargets: ['thanos-compactor'],
     expandedReasons: [
       { icon: 'alert', text: 'ThanosCompactorHasNotRun: compactor pod stuck on corrupted block.' },
@@ -732,7 +736,8 @@ const ALL_PLANS: RawPlanRow[] = [
     score: 70,
     synopsis: 'Scale OTel Collector Replicas',
     consolidationScope: 'Triggered by alert: OpenTelemetryCollectorBufferFull (Spike in cluster trace volume causing memory saturation)',
-    triggerDomain: 'Observability',
+    triggerDomain: 'OpenTelemetry',
+    isUnauthorized: false,
     drawerTargets: ['otel-collector'],
     expandedReasons: [
       { icon: 'alert', text: 'OpenTelemetryCollectorBufferFull: trace volume spike causing memory saturation.' },
@@ -743,12 +748,13 @@ const ALL_PLANS: RawPlanRow[] = [
     severity: 'warning',
     status: 'Proposed',
     score: 74,
-    synopsis: 'Clear Grafana SQLite Lock',
-    consolidationScope: 'Triggered by alert: GrafanaDatabaseDatabaseLocked (Database write timeouts on shared persistent volume)',
-    triggerDomain: 'Observability',
-    drawerTargets: ['grafana'],
+    synopsis: 'Clear Perses Storage Lock',
+    consolidationScope: 'Triggered by alert: PersesDashboardStorageLocked (Database write timeouts on shared persistent volume)',
+    triggerDomain: 'Perses',
+    isUnauthorized: false,
+    drawerTargets: ['perses'],
     expandedReasons: [
-      { icon: 'alert', text: 'GrafanaDatabaseDatabaseLocked: database write timeouts on shared persistent volume.' },
+      { icon: 'alert', text: 'PersesDashboardStorageLocked: database write timeouts on shared persistent volume.' },
     ],
   },
 ];
@@ -789,7 +795,7 @@ const SC_ALL_PLANS: RawPlanRow[] = [
   { ...ALL_PLANS[18],drawerTargets: ['alertmanager-main-0'] },
   { ...ALL_PLANS[19],drawerTargets: ['thanos-compactor-data'] },
   { ...ALL_PLANS[20],drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
-  { ...ALL_PLANS[21],drawerTargets: ['grafana-6d4f8'] },
+  { ...ALL_PLANS[21],drawerTargets: ['perses-6d4f8'] },
 ];
 
 interface PlanDrawerData {
@@ -1167,14 +1173,14 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
   },
   op5: {
     steps: [
-      { id: 's1', time: '16:03:12', status: 'done', icon: 'exclamation', title: 'GrafanaDatabaseDatabaseLocked alert fired', detail: 'Database write timeouts on shared persistent volume' },
-      { id: 's2', time: '16:03:26', status: 'done', icon: 'database', title: 'Inspected Grafana SQLite WAL and PVC mount state', detail: 'Stale WAL lock held after grafana pod eviction' },
-      { id: 's3', time: '16:03:41', status: 'active', icon: 'search', title: 'Awaiting approval to clear SQLite lock', detail: 'Lock removal requires brief Grafana downtime' },
+      { id: 's1', time: '16:03:12', status: 'done', icon: 'exclamation', title: 'PersesDashboardStorageLocked alert fired', detail: 'Database write timeouts on shared persistent volume' },
+      { id: 's2', time: '16:03:26', status: 'done', icon: 'database', title: 'Inspected Perses storage volume and PVC mount state', detail: 'Stale lock file held after ungraceful perses pod eviction' },
+      { id: 's3', time: '16:03:41', status: 'active', icon: 'search', title: 'Awaiting approval to remove storage lock', detail: 'Lock removal requires a brief Perses write-unavailable window' },
     ],
-    aggregatedFinding: 'Grafana dashboard persistence failures trace to a SQLite WAL lock on the shared monitoring PVC.',
-    rootCauseNarrative: 'An ungraceful grafana pod eviction left a SQLite write-ahead log lock on the shared persistent volume, causing GrafanaDatabaseDatabaseLocked alerts and dashboard write timeouts.',
-    remediationProposal: 'Stop grafana, remove the stale SQLite WAL lock file, and restart the deployment with verified PVC consistency.',
-    riskAssessment: 'Medium — clearing the lock requires a short Grafana read-only window.',
+    aggregatedFinding: 'Perses dashboard persistence failures trace to a storage lock on the shared monitoring PVC.',
+    rootCauseNarrative: 'An ungraceful Perses pod eviction left a stale lock file on the shared persistent volume, causing PersesDashboardStorageLocked alerts and dashboard write timeouts.',
+    remediationProposal: 'Stop Perses, remove the stale lock file from the PVC, and restart the deployment with verified volume consistency.',
+    riskAssessment: 'Medium — clearing the lock requires a short Perses write-unavailable window.',
     estimatedRecovery: '~3m',
     confidence: 'High',
   },
@@ -1576,9 +1582,13 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   );
 };
 
-export const TriggerDomainCell: React.FC<{ domain: string }> = ({ domain }) => (
+export const TriggerDomainCell: React.FC<{
+  domain: string;
+  /** When true, granular telemetry domains (Prometheus, Thanos…) are coalesced to "Observability". */
+  mapObservabilityDomains?: boolean;
+}> = ({ domain, mapObservabilityDomains = false }) => (
   <Label color="grey" variant="outline" isCompact>
-    {domain}
+    {mapObservabilityDomains ? resolveDisplayDomain(domain) : domain}
   </Label>
 );
 
@@ -1768,6 +1778,8 @@ interface PlansTableCoreProps {
   scopeColumnLabel: 'Cluster' | 'Namespace';
   onReviewPlan: (plan: PlanRow) => void;
   isAgenticAutomationEnabled: boolean;
+  /** When true, granular observability telemetry domains are coalesced to "Observability" in the cell badge. */
+  mapObservabilityDomains?: boolean;
 }
 
 export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -1776,6 +1788,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   scopeColumnLabel,
   onReviewPlan,
   isAgenticAutomationEnabled,
+  mapObservabilityDomains = false,
 }) => (
   <Table
     aria-label={ariaLabel}
@@ -1789,8 +1802,9 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   >
     <Thead>
       <Tr>
-        <Th style={{ width: '16%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
-        <Th style={{ width: '17%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
+        <Th style={{ width: '17%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
+        <Th style={{ width: '18%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
+        <Th style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
         <Th style={{ width: '13%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
         <Th style={{ width: '9%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
         <Th className="ols-plans-table__metric-header" style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
@@ -1809,9 +1823,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             ariaLabel="More information about Risk"
           />
         </Th>
-        <Th style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
-        <Th style={{ width: '9%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
-        <Th style={{ width: 48, ...PLANS_TABLE_HEADER_TH_STYLE }} aria-label="Actions" />
+        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
       </Tr>
     </Thead>
 
@@ -1853,8 +1865,16 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             </Flex>
           </Td>
 
+          <Td dataLabel={scopeColumnLabel}>
+            <PlanScopeCell
+              scope={row.scope}
+              scopeColumnLabel={scopeColumnLabel}
+              scopeTargets={scopeColumnLabel === 'Cluster' ? row.drawerTargets : []}
+            />
+          </Td>
+
           <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
-            <TriggerDomainCell domain={row.triggerDomain} />
+            <TriggerDomainCell domain={row.triggerDomain} mapObservabilityDomains={mapObservabilityDomains} />
           </Td>
 
           <Td dataLabel="Status">
@@ -1871,14 +1891,6 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
           <Td dataLabel="Risk">
             <PlanRiskBadge level={row.riskLevel ?? 'Medium'} showPrefix={false} />
-          </Td>
-
-          <Td dataLabel={scopeColumnLabel}>
-            <PlanScopeCell
-              scope={row.scope}
-              scopeColumnLabel={scopeColumnLabel}
-              scopeTargets={scopeColumnLabel === 'Cluster' ? row.drawerTargets : []}
-            />
           </Td>
 
           <Td dataLabel="Created">
@@ -1914,7 +1926,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
   isSingleCluster,
   isAgenticAutomationEnabled,
 }) => {
-  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true });
+  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true, mapObservabilityDomains: true });
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
@@ -2015,6 +2027,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={onReviewPlan}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+            mapObservabilityDomains
           />
           <Pagination
             {...paginationProps}
