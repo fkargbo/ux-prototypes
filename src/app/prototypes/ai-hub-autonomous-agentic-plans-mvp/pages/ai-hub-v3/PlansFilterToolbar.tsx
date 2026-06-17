@@ -55,6 +55,15 @@ export const TRIGGER_DOMAIN_FILTER_OPTIONS = [
   'Security',
 ] as const;
 
+/** Granular telemetry-stack domains used by the Troubleshooting Plans view. */
+export const OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS = [
+  'Prometheus',
+  'Alertmanager',
+  'Thanos',
+  'OpenTelemetry',
+  'Perses',
+] as const;
+
 const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
   padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs)',
   fontSize: 'var(--pf-t--global--font--size--body--sm)',
@@ -224,6 +233,8 @@ export interface PlansFilterToolbarProps {
   filterAriaLabel: string;
   statusOptions: { label: string; value: PlanRow['status'] }[];
   includeTriggerDomainFilter?: boolean;
+  /** Override the default trigger-domain option list. Defaults to TRIGGER_DOMAIN_FILTER_OPTIONS. */
+  triggerDomainOptions?: readonly string[];
   pagination?: React.ReactNode;
   statusFilters: PlanRow['status'][];
   riskFilters: RiskTier[];
@@ -251,6 +262,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   filterAriaLabel,
   statusOptions,
   includeTriggerDomainFilter = false,
+  triggerDomainOptions = TRIGGER_DOMAIN_FILTER_OPTIONS,
   pagination,
   statusFilters,
   riskFilters,
@@ -290,15 +302,13 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
         toggleFilterValue(value as ConfidenceTier, setConfidenceFilters);
         return;
       }
-      if (
-        includeTriggerDomainFilter
-        && TRIGGER_DOMAIN_FILTER_OPTIONS.includes(value as (typeof TRIGGER_DOMAIN_FILTER_OPTIONS)[number])
-      ) {
+      if (includeTriggerDomainFilter && (triggerDomainOptions as readonly string[]).includes(value)) {
         toggleFilterValue(value, setTriggerDomainFilters);
       }
     },
     [
       includeTriggerDomainFilter,
+      triggerDomainOptions,
       setConfidenceFilters,
       setRiskFilters,
       setStatusFilters,
@@ -369,7 +379,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                   {includeTriggerDomainFilter && (
                     <>
                       <div style={FILTER_SECTION_TITLE_STYLE}>Trigger Domain</div>
-                      {TRIGGER_DOMAIN_FILTER_OPTIONS.map((domain) => (
+                      {triggerDomainOptions.map((domain) => (
                         <SelectOption
                           key={domain}
                           hasCheckbox
