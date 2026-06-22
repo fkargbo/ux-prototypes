@@ -590,8 +590,14 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
   const location = useLocation();
 
   const navRouteMatchesLocation = (route: IAppRoute): boolean => {
-    if (route.path && route.path === location.pathname) {
-      return true;
+    if (route.path) {
+      if (route.path === location.pathname) {
+        return true;
+      }
+      // Detail routes highlight their list nav item (e.g. Pods → Pod details).
+      if (location.pathname.startsWith(`${route.path}/`)) {
+        return true;
+      }
     }
     if (route.routes?.length) {
       return route.routes.some((child) => navRouteMatchesLocation(child));
@@ -600,7 +606,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
   };
 
   const renderNavItem = (route: IAppRoute, keyId: string) => (
-    <NavItem key={keyId} id={keyId.replace(/\s+/g, '-')} isActive={route.path === location.pathname}>
+    <NavItem key={keyId} id={keyId.replace(/\s+/g, '-')} isActive={navRouteMatchesLocation(route)}>
       <NavLink to={route.path}>{route.label}</NavLink>
     </NavItem>
   );

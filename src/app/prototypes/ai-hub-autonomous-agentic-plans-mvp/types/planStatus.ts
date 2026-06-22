@@ -5,6 +5,7 @@ export type PlanStatus =
   | 'Approved'
   | 'Executing'
   | 'Verifying'
+  | 'Acknowledged'
   | 'Completed'
   | 'Failed'
   | 'Plan aborted';

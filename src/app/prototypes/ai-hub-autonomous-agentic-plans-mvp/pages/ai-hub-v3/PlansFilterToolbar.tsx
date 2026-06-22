@@ -1,5 +1,4 @@
-import * as React from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Dropdown,
@@ -19,8 +18,6 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { CheckIcon } from '@patternfly/react-icons';
-import type { ConfidenceTier } from '../../types/confidenceTier';
-import type { RiskTier } from '../../types/riskScore';
 import type { PlanRow } from './PlansAndApprovalsTab';
 
 export type PlansSearchCategory = 'name' | 'label';
@@ -28,9 +25,9 @@ export type PlansSearchCategory = 'name' | 'label';
 export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
   { label: 'Analyzing', value: 'Analyzing' },
   { label: 'Proposed', value: 'Proposed' },
-  { label: 'Approved', value: 'Approved' },
   { label: 'Executing', value: 'Executing' },
   { label: 'Verifying', value: 'Verifying' },
+  { label: 'Acknowledged', value: 'Acknowledged' },
   { label: 'Plan aborted', value: 'Plan aborted' },
   { label: 'Completed', value: 'Completed' },
   { label: 'Failed', value: 'Failed' },
@@ -41,9 +38,6 @@ export const TROUBLESHOOTING_STATUS_FILTER_OPTIONS: { label: string; value: Plan
   { label: 'Proposed', value: 'Proposed' },
   { label: 'Plan aborted', value: 'Plan aborted' },
 ];
-
-const RISK_LEVEL_OPTIONS: RiskTier[] = ['Critical', 'High', 'Medium', 'Low'];
-const CONFIDENCE_OPTIONS: ConfidenceTier[] = ['High', 'Medium', 'Low'];
 
 export const TRIGGER_DOMAIN_FILTER_OPTIONS = [
   'Observability',
@@ -92,22 +86,12 @@ function planMatchesTextSearch(plan: PlanRow, query: string, category: PlansSear
 function planMatchesAttributeFilters(
   plan: PlanRow,
   statusFilters: PlanRow['status'][],
-  riskFilters: RiskTier[],
-  confidenceFilters: ConfidenceTier[],
   triggerDomainFilters: string[],
   includeTriggerDomainFilter: boolean,
   mapObservabilityDomains: boolean,
 ): boolean {
   if (statusFilters.length > 0 && !statusFilters.includes(plan.status)) {
     return false;
-  }
-  if (riskFilters.length > 0 && !riskFilters.includes(plan.riskLevel ?? 'Medium')) {
-    return false;
-  }
-  if (confidenceFilters.length > 0) {
-    if (!plan.confidenceTier || !confidenceFilters.includes(plan.confidenceTier)) {
-      return false;
-    }
   }
   if (includeTriggerDomainFilter && triggerDomainFilters.length > 0) {
     const effectiveDomain = mapObservabilityDomains
@@ -124,8 +108,6 @@ export function filterPlanRows(
   rows: PlanRow[],
   options: {
     statusFilters: PlanRow['status'][];
-    riskFilters: RiskTier[];
-    confidenceFilters: ConfidenceTier[];
     triggerDomainFilters: string[];
     includeTriggerDomainFilter: boolean;
     mapObservabilityDomains: boolean;
@@ -138,8 +120,6 @@ export function filterPlanRows(
       !planMatchesAttributeFilters(
         plan,
         options.statusFilters,
-        options.riskFilters,
-        options.confidenceFilters,
         options.triggerDomainFilters,
         options.includeTriggerDomainFilter,
         options.mapObservabilityDomains,
@@ -163,8 +143,6 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   const mapObservabilityDomains = options.mapObservabilityDomains ?? false;
 
   const [statusFilters, setStatusFilters] = useState<PlanRow['status'][]>([]);
-  const [riskFilters, setRiskFilters] = useState<RiskTier[]>([]);
-  const [confidenceFilters, setConfidenceFilters] = useState<ConfidenceTier[]>([]);
   const [triggerDomainFilters, setTriggerDomainFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [searchCategory, setSearchCategory] = useState<PlansSearchCategory>('name');
@@ -177,25 +155,17 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
 
   const clearAllFilters = useCallback(() => {
     setStatusFilters([]);
-    setRiskFilters([]);
-    setConfidenceFilters([]);
     setTriggerDomainFilters([]);
     setSearchInputValue('');
   }, []);
 
   const activeFilterCount = useMemo(() => {
-    let count = statusFilters.length + riskFilters.length + confidenceFilters.length;
+    let count = statusFilters.length;
     if (includeTriggerDomainFilter) {
       count += triggerDomainFilters.length;
     }
     return count;
-  }, [
-    confidenceFilters.length,
-    includeTriggerDomainFilter,
-    riskFilters.length,
-    statusFilters.length,
-    triggerDomainFilters.length,
-  ]);
+  }, [includeTriggerDomainFilter, statusFilters.length, triggerDomainFilters.length]);
 
   const hasActiveAttributeFilters = activeFilterCount > 0;
   const hasActiveTextSearch = searchInputValue.trim().length > 0;
@@ -205,8 +175,6 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
     (rows: PlanRow[]) =>
       filterPlanRows(rows, {
         statusFilters,
-        riskFilters,
-        confidenceFilters,
         triggerDomainFilters,
         includeTriggerDomainFilter,
         mapObservabilityDomains,
@@ -214,10 +182,8 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
         searchInputValue,
       }),
     [
-      confidenceFilters,
       includeTriggerDomainFilter,
       mapObservabilityDomains,
-      riskFilters,
       searchCategory,
       searchInputValue,
       statusFilters,
@@ -228,10 +194,6 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   return {
     statusFilters,
     setStatusFilters,
-    riskFilters,
-    setRiskFilters,
-    confidenceFilters,
-    setConfidenceFilters,
     triggerDomainFilters,
     setTriggerDomainFilters,
     filterMenuOpen,
@@ -258,8 +220,6 @@ export interface PlansFilterToolbarProps {
   triggerDomainOptions?: readonly string[];
   pagination?: React.ReactNode;
   statusFilters: PlanRow['status'][];
-  riskFilters: RiskTier[];
-  confidenceFilters: ConfidenceTier[];
   triggerDomainFilters: string[];
   filterMenuOpen: boolean;
   setFilterMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -274,8 +234,6 @@ export interface PlansFilterToolbarProps {
   activeFilterCount: number;
   hasActiveFilters: boolean;
   setStatusFilters: React.Dispatch<React.SetStateAction<PlanRow['status'][]>>;
-  setRiskFilters: React.Dispatch<React.SetStateAction<RiskTier[]>>;
-  setConfidenceFilters: React.Dispatch<React.SetStateAction<ConfidenceTier[]>>;
   setTriggerDomainFilters: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
@@ -286,8 +244,6 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   triggerDomainOptions = TRIGGER_DOMAIN_FILTER_OPTIONS,
   pagination,
   statusFilters,
-  riskFilters,
-  confidenceFilters,
   triggerDomainFilters,
   filterMenuOpen,
   setFilterMenuOpen,
@@ -302,8 +258,6 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   activeFilterCount,
   hasActiveFilters,
   setStatusFilters,
-  setRiskFilters,
-  setConfidenceFilters,
   setTriggerDomainFilters,
 }) => {
   const handleFilterSelect = useCallback(
@@ -315,14 +269,6 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
         toggleFilterValue(value as PlanRow['status'], setStatusFilters);
         return;
       }
-      if (RISK_LEVEL_OPTIONS.includes(value as RiskTier)) {
-        toggleFilterValue(value as RiskTier, setRiskFilters);
-        return;
-      }
-      if (CONFIDENCE_OPTIONS.includes(value as ConfidenceTier)) {
-        toggleFilterValue(value as ConfidenceTier, setConfidenceFilters);
-        return;
-      }
       if (includeTriggerDomainFilter && (triggerDomainOptions as readonly string[]).includes(value)) {
         toggleFilterValue(value, setTriggerDomainFilters);
       }
@@ -330,8 +276,6 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
     [
       includeTriggerDomainFilter,
       triggerDomainOptions,
-      setConfidenceFilters,
-      setRiskFilters,
       setStatusFilters,
       setTriggerDomainFilters,
       statusOptions,
@@ -380,20 +324,6 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                       isSelected={statusFilters.includes(opt.value)}
                     >
                       {opt.label}
-                    </SelectOption>
-                  ))}
-
-                  <div style={FILTER_SECTION_TITLE_STYLE}>Risk Level</div>
-                  {RISK_LEVEL_OPTIONS.map((tier) => (
-                    <SelectOption key={tier} hasCheckbox value={tier} isSelected={riskFilters.includes(tier)}>
-                      {tier}
-                    </SelectOption>
-                  ))}
-
-                  <div style={FILTER_SECTION_TITLE_STYLE}>Confidence</div>
-                  {CONFIDENCE_OPTIONS.map((tier) => (
-                    <SelectOption key={tier} hasCheckbox value={tier} isSelected={confidenceFilters.includes(tier)}>
-                      {tier}
                     </SelectOption>
                   ))}
 
@@ -492,24 +422,6 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
               {statusFilters.map((status) => (
                 <Label key={status} isCompact onClose={() => toggleFilterValue(status, setStatusFilters)}>
                   {statusFilterLabel(status)}
-                </Label>
-              ))}
-            </LabelGroup>
-          )}
-          {riskFilters.length > 0 && (
-            <LabelGroup categoryName="Risk Level" isClosable onClick={() => setRiskFilters([])}>
-              {riskFilters.map((tier) => (
-                <Label key={tier} isCompact onClose={() => toggleFilterValue(tier, setRiskFilters)}>
-                  {tier}
-                </Label>
-              ))}
-            </LabelGroup>
-          )}
-          {confidenceFilters.length > 0 && (
-            <LabelGroup categoryName="Confidence" isClosable onClick={() => setConfidenceFilters([])}>
-              {confidenceFilters.map((tier) => (
-                <Label key={tier} isCompact onClose={() => toggleFilterValue(tier, setConfidenceFilters)}>
-                  {tier}
                 </Label>
               ))}
             </LabelGroup>

@@ -1,30 +1,37 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/react-core';
+import {
+  Alert,
+  Breadcrumb,
+  BreadcrumbItem,
+  Content,
+  Flex,
+  FlexItem,
+  Label,
+  Title,
+} from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
-  WaitingApprovalPlanMeta,
 } from './ai-hub-v3/PlansAndApprovalsTab';
-import { AgenticKillSwitchBanner } from '../components/AgenticKillSwitchBanner';
 import {
   buildPrototypeHref,
-  isSingleClusterPerspectiveKey,
-  PLANS_LIST_PATH,
   perspectiveKeyFromShellName,
+  PLANS_LIST_PATH,
   resolveDrillPerspectiveKey,
   writePlanRemediationDrillSession,
 } from './planRemediationDrillSession';
-import { resolvePlanDomainAnnotations } from './ai-hub-v3/domainPlanNavigation';
 import { usePlanBuildRuntime } from '../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../components/AiHubPageHeading';
+import { AgenticKillSwitchBanner } from '../components/AgenticKillSwitchBanner';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../prototypePerspectiveUrl';
 import './ai-hub-page.css';
 
-export const PlanRemediationPage: React.FC = () => {
+/** Stub ACS console view — simulates domain-specific plan detail outside OpenShift console. */
+export const AcsPlanDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { planSlug } = useParams<{ planSlug: string }>();
   const [searchParams] = useSearchParams();
@@ -37,7 +44,7 @@ export const PlanRemediationPage: React.FC = () => {
   );
 
   const isSingleCluster = drillPerspectiveKey
-    ? isSingleClusterPerspectiveKey(drillPerspectiveKey)
+    ? drillPerspectiveKey === 'core-platforms'
     : activePerspective === 'Core platforms';
 
   const planExecutionRuntime = usePlanBuildRuntime();
@@ -46,23 +53,20 @@ export const PlanRemediationPage: React.FC = () => {
     if (!planSlug) {
       return null;
     }
-    return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find((row) => row.name === planSlug) ?? null;
+    return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
+      (row) => row.name === planSlug,
+    ) ?? null;
   }, [isSingleCluster, planSlug, planExecutionRuntime]);
 
-  const planDomain = useMemo(
-    () => (plan ? resolvePlanDomainAnnotations(plan) : null),
-    [plan],
-  );
-
   const navigateBackToPlans = useCallback(() => {
-    const key = drillPerspectiveKey
+    const key =
+      drillPerspectiveKey
       ?? perspectiveKeyFromShellName(activePerspective)
       ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
     writePlanRemediationDrillSession({ perspectiveKey: key });
     setPerspectiveByKey(key);
-    const backPath = planDomain?.listPath ?? PLANS_LIST_PATH;
-    navigate(buildPrototypeHref(backPath, key));
-  }, [activePerspective, drillPerspectiveKey, navigate, planDomain?.listPath, setPerspectiveByKey]);
+    navigate(buildPrototypeHref(PLANS_LIST_PATH, key));
+  }, [activePerspective, drillPerspectiveKey, navigate, setPerspectiveByKey]);
 
   useLayoutEffect(() => {
     if (!drillPerspectiveKey || drillPerspectiveAppliedRef.current) {
@@ -74,32 +78,18 @@ export const PlanRemediationPage: React.FC = () => {
   }, [drillPerspectiveKey]);
 
   useEffect(() => {
-    if (!plan) {
-      return;
-    }
-    const key = drillPerspectiveKey
-      ?? perspectiveKeyFromShellName(activePerspective)
-      ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
-    const domain = resolvePlanDomainAnnotations(plan);
-    if (domain.sourceDomain !== 'cluster-update') {
-      navigate(buildPrototypeHref(domain.detailPath, key), { replace: true });
-    }
-  }, [activePerspective, drillPerspectiveKey, navigate, plan]);
-
-  useEffect(() => {
     if (planSlug && plan) {
       return;
     }
-    const key = drillPerspectiveKey
+    const key =
+      drillPerspectiveKey
       ?? perspectiveKeyFromShellName(activePerspective)
       ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
-    writePlanRemediationDrillSession({ perspectiveKey: key });
-    setPerspectiveByKey(key);
     navigate(buildPrototypeHref(PLANS_LIST_PATH, key), { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- redirect once when plan is missing
   }, [planSlug, plan]);
 
-  if (!planSlug || !plan || planDomain?.sourceDomain !== 'cluster-update') {
+  if (!planSlug || !plan) {
     return null;
   }
 
@@ -110,7 +100,7 @@ export const PlanRemediationPage: React.FC = () => {
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            {planDomain?.listBreadcrumbLabel ?? 'Plans'}
+            Plans
           </BreadcrumbItem>
           <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
         </Breadcrumb>
@@ -118,11 +108,21 @@ export const PlanRemediationPage: React.FC = () => {
 
       <AiHubPageHeading>
         <div className="ols-ai-hub-page-heading-body-content">
+          <Alert
+            variant="info"
+            isInline
+            title="Advanced Cluster Security console (prototype stub)"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            <Content component="p" style={{ margin: 0 }}>
+              Security plans open in the ACS console in production. This stub simulates the domain-specific
+              detail experience linked from the global Agentic Plans list via annotation-based navigation.
+            </Content>
+          </Alert>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             gap={{ default: 'gapSm' }}
             flexWrap={{ default: 'wrap' }}
-            style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}
           >
             <FlexItem>
               <PlanResourceBadge />
@@ -132,32 +132,25 @@ export const PlanRemediationPage: React.FC = () => {
                 {planDisplayName}
               </Title>
             </FlexItem>
+            <FlexItem>
+              <Label color="purple" variant="outline" isCompact>
+                ACS console
+              </Label>
+            </FlexItem>
           </Flex>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             gap={{ default: 'gapSm' }}
-            flexWrap={{ default: 'wrap' }}
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
-            <FlexItem>
-              <StatusLabel status={plan.status} terminatedAt={plan.terminatedAt} />
-            </FlexItem>
+            <StatusLabel status={plan.status} terminatedAt={plan.terminatedAt} />
           </Flex>
-          <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-            <WaitingApprovalPlanMeta plan={plan} />
-          </div>
         </div>
       </AiHubPageHeading>
 
-      <div
-        className="template-page-content"
-        role="main"
-        aria-label={`Plan remediation: ${planDisplayName}`}
-      >
-        <div className="ols-plan-remediation-drilldown">
-          <AgenticKillSwitchBanner />
-          <RemediationBlueprintPanel key={plan.id} plan={plan} />
-        </div>
+      <div className="template-page-content" role="main" aria-label={`ACS plan: ${planDisplayName}`}>
+        <AgenticKillSwitchBanner />
+        <RemediationBlueprintPanel key={plan.id} plan={plan} />
       </div>
     </div>
   );

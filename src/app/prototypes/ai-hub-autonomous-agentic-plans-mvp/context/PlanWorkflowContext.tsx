@@ -57,6 +57,11 @@ type PlanWorkflowContextValue = {
     planId: string,
     approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'> & Partial<Pick<ExecutionApproval, 'approvedAt' | 'approvedBy'>>,
   ) => void;
+  executeRemediation: (
+    planId: string,
+    approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'>,
+  ) => void;
+  acknowledgePlan: (planId: string) => void;
   clearExecutionApproval: (planId: string) => void;
   startExecution: (planId: string) => void;
   startVerification: (planId: string, checks: string[]) => void;
@@ -112,6 +117,34 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
         },
         runtimePhase: 'Approved',
       });
+    },
+    [patchPlan],
+  );
+
+  const executeRemediation = useCallback(
+    (planId: string, approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'>) => {
+      patchPlan(planId, {
+        executionApproval: {
+          ...approval,
+          approvedAt: new Date().toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          }),
+          approvedBy: MOCK_APPROVER,
+        },
+        runtimePhase: 'Executing',
+        verification: null,
+      });
+    },
+    [patchPlan],
+  );
+
+  const acknowledgePlan = useCallback(
+    (planId: string) => {
+      patchPlan(planId, { runtimePhase: 'Acknowledged' });
     },
     [patchPlan],
   );
@@ -226,6 +259,8 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       getPlanWorkflow,
       getRuntimePhase,
       registerExecutionApproval,
+      executeRemediation,
+      acknowledgePlan,
       clearExecutionApproval,
       startExecution,
       startVerification,
@@ -238,6 +273,8 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       getPlanWorkflow,
       getRuntimePhase,
       registerExecutionApproval,
+      executeRemediation,
+      acknowledgePlan,
       clearExecutionApproval,
       startExecution,
       startVerification,
