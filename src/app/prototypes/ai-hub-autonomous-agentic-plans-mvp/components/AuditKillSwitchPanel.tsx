@@ -1,20 +1,8 @@
 import React from 'react';
-import { Alert, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import { AgenticCapabilitiesHeaderSwitch } from '../components/AgenticCapabilitiesHeaderSwitch';
-import {
-  getAgenticAutomationDisabledMessage,
-  resolveAgentCapabilitiesClusterId,
-  useAgenticCapabilities,
-} from '../context/AgenticCapabilitiesContext';
-import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 
 export const AuditKillSwitchPanel: React.FC = () => {
-  const { activePerspective } = useActivePerspective();
-  const isSingleCluster = activePerspective === 'Core platforms';
-  const clusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
-  const { isAgentActiveForCluster } = useAgenticCapabilities();
-  const isAgentActive = isAgentActiveForCluster(clusterId);
-
   return (
     <Stack hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
       <StackItem>
@@ -33,15 +21,6 @@ export const AuditKillSwitchPanel: React.FC = () => {
           <AgenticCapabilitiesHeaderSwitch confirmOnDisable />
         </div>
       </StackItem>
-      {!isAgentActive && (
-        <StackItem>
-          <Alert
-            variant="warning"
-            isInline
-            title={getAgenticAutomationDisabledMessage(isSingleCluster)}
-          />
-        </StackItem>
-      )}
     </Stack>
   );
 };

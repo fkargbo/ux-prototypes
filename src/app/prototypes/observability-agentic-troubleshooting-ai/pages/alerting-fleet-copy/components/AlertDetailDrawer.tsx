@@ -26,6 +26,7 @@ import {
 import type { AlertData } from '../data/types';
 import { AlertTimelineVisualization } from './AlertTimelineVisualization';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../../components/autonomousAiObserve/aiExperienceIconUrl';
+import { getAlertInvestigationActionLabel } from '../../../pages/ai-hub-v3/alertInvestigationBridge';
 
 export interface AlertDetailDrawerProps {
   isExpanded: boolean;
@@ -33,6 +34,7 @@ export interface AlertDetailDrawerProps {
   activeTab: number;
   onClose: () => void;
   onTabChange: (tabKey: number) => void;
+  onInvestigateWithAi?: (alert: AlertData) => void;
 }
 
 export const AlertDetailDrawer: React.FC<AlertDetailDrawerProps> = ({
@@ -41,6 +43,7 @@ export const AlertDetailDrawer: React.FC<AlertDetailDrawerProps> = ({
   activeTab,
   onClose,
   onTabChange,
+  onInvestigateWithAi,
 }) => {
   if (!isExpanded || !selectedAlert) {
     return null;
@@ -470,8 +473,12 @@ export const AlertDetailDrawer: React.FC<AlertDetailDrawerProps> = ({
                             height={14}
                             style={{ display: 'block', flexShrink: 0 }}
                           />
-                          <Button variant="link" isInline>
-                            Investigate with AI
+                          <Button
+                            variant="link"
+                            isInline
+                            onClick={() => onInvestigateWithAi?.(selectedAlert)}
+                          >
+                            {getAlertInvestigationActionLabel(selectedAlert.alertName)}
                           </Button>
                         </Flex>
                       </StackItem>

@@ -50,6 +50,8 @@ import type {
   SortConfig,
   AggregatedAlert,
 } from '../data/types';
+import { AI_EXPERIENCE_ICON_DATA_URL } from '../../../components/autonomousAiObserve/aiExperienceIconUrl';
+import { getAlertInvestigationActionLabel } from '../../../pages/ai-hub-v3/alertInvestigationBridge';
 import {
   getSeverityLabelColor,
   getStatusLabelColor,
@@ -93,6 +95,7 @@ export interface AlertsTableContentProps {
   openAcknowledgeModal: (alertName: string, severity: string, clusterName: string) => void;
   openActionMenuId: string | null;
   setOpenActionMenuId: React.Dispatch<React.SetStateAction<string | null>>;
+  onInvestigateWithAi?: (alert: AlertData) => void;
   singleClusterView?: boolean;
   onClusterFilterChange?: (clusters: string[]) => void;
   onNamespaceFilterChange?: (namespaces: string[]) => void;
@@ -167,6 +170,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
   openAcknowledgeModal,
   openActionMenuId,
   setOpenActionMenuId,
+  onInvestigateWithAi,
   singleClusterView = false,
   onClusterFilterChange,
   onNamespaceFilterChange,
@@ -174,6 +178,64 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
 
   const visibleCols = getVisibleColumns().filter(
     col => col.key !== 'flappingRate'
+  );
+
+  const aiExperienceIcon = (
+    <img
+      src={AI_EXPERIENCE_ICON_DATA_URL}
+      alt=""
+      aria-hidden="true"
+      width={14}
+      height={14}
+      style={{ display: 'block' }}
+    />
+  );
+
+  const renderInvestigateMenuItem = (alert: AlertData | undefined, menuId: string) =>
+    onInvestigateWithAi && alert ? (
+      <>
+        <Divider component="li" />
+        <DropdownItem
+          key="investigate-ai"
+          icon={aiExperienceIcon}
+          onClick={(event) => {
+            event.stopPropagation();
+            onInvestigateWithAi(alert);
+            setOpenActionMenuId(null);
+          }}
+        >
+          {getAlertInvestigationActionLabel(alert.alertName)}
+        </DropdownItem>
+      </>
+    ) : null;
+
+  const renderAlertActionMenu = (menuId: string, alert: AlertData | undefined, alertName: string, severity: string, clusterName: string) => (
+    <Dropdown
+      isOpen={openActionMenuId === menuId}
+      onOpenChange={(isOpen) => setOpenActionMenuId(isOpen ? menuId : null)}
+      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+        <MenuToggle ref={toggleRef} variant="plain" aria-label="Alert actions"
+          onClick={() => setOpenActionMenuId(openActionMenuId === menuId ? null : menuId)}
+          isExpanded={openActionMenuId === menuId}>
+          <EllipsisVIcon />
+        </MenuToggle>
+      )}
+      popperProps={{ position: 'right' }}
+    >
+      <DropdownList>
+        <DropdownItem key="silence" onClick={() => openSilenceModal(alertName, severity, clusterName)}
+          description="Temporarily stop notifications for this alert.">Silence alert</DropdownItem>
+        <DropdownItem key="acknowledge" onClick={() => openAcknowledgeModal(alertName, severity, clusterName)}
+          description="Mark the alert as being addressed by your teammates.">Acknowledge</DropdownItem>
+        <Divider component="li" />
+        <DropdownItem key="rule" onClick={() => setOpenActionMenuId(null)}>View alert rule</DropdownItem>
+        <DropdownItem key="logs" onClick={() => setOpenActionMenuId(null)}>View logs</DropdownItem>
+        <DropdownItem key="metrics" onClick={() => setOpenActionMenuId(null)}>View metrics</DropdownItem>
+        <DropdownItem key="incident" onClick={() => setOpenActionMenuId(null)}>See related incident</DropdownItem>
+        <DropdownItem key="troubleshoot" onClick={() => setOpenActionMenuId(null)}>Troubleshoot with Signal Correlation</DropdownItem>
+        {renderInvestigateMenuItem(alert, menuId)}
+      </DropdownList>
+    </Dropdown>
   );
 
   const renderAggCellContent = (col: ColumnConfig, agg: AggregatedAlert) => {
@@ -250,35 +312,28 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
     }
   };
 
+  const resolveInstanceAlert = (
+    agg: AggregatedAlert,
+    clusterInfo: AggregatedAlert['clusters'][0],
+    instanceIdx: number,
+  ): AlertData | undefined => {
+    const alertInstance = clusterInfo.cluster?.alerts?.find(
+      (entry) => entry.alertName === agg.alertName && entry.severity === agg.severity,
+    );
+    if (!alertInstance) {
+      return undefined;
+    }
+    return {
+      ...alertInstance,
+      clusterName: alertInstance.clusterName || clusterInfo.name,
+      id: alertInstance.id || `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`,
+    };
+  };
+
   const renderInstanceActionMenu = (agg: AggregatedAlert, clusterInfo: AggregatedAlert['clusters'][0], instanceIdx: number) => {
     const menuId = `${agg.alertName}-${clusterInfo.name}-${instanceIdx}`;
-    return (
-      <Dropdown
-        isOpen={openActionMenuId === menuId}
-        onOpenChange={(isOpen) => setOpenActionMenuId(isOpen ? menuId : null)}
-        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-          <MenuToggle ref={toggleRef} variant="plain" aria-label="Alert actions"
-            onClick={() => setOpenActionMenuId(openActionMenuId === menuId ? null : menuId)}
-            isExpanded={openActionMenuId === menuId}>
-            <EllipsisVIcon />
-          </MenuToggle>
-        )}
-        popperProps={{ position: 'right' }}
-      >
-        <DropdownList>
-          <DropdownItem key="silence" onClick={() => openSilenceModal(agg.alertName, agg.severity, clusterInfo.name)}
-            description="Temporarily stop notifications for this alert.">Silence alert</DropdownItem>
-          <DropdownItem key="acknowledge" onClick={() => openAcknowledgeModal(agg.alertName, agg.severity, clusterInfo.name)}
-            description="Mark the alert as being addressed by your teammates.">Acknowledge</DropdownItem>
-          <Divider component="li" />
-          <DropdownItem key="rule" onClick={() => setOpenActionMenuId(null)}>View alert rule</DropdownItem>
-          <DropdownItem key="logs" onClick={() => setOpenActionMenuId(null)}>View logs</DropdownItem>
-          <DropdownItem key="metrics" onClick={() => setOpenActionMenuId(null)}>View metrics</DropdownItem>
-          <DropdownItem key="incident" onClick={() => setOpenActionMenuId(null)}>See related incident</DropdownItem>
-          <DropdownItem key="troubleshoot" onClick={() => setOpenActionMenuId(null)}>Troubleshoot</DropdownItem>
-        </DropdownList>
-      </Dropdown>
-    );
+    const alertInstance = resolveInstanceAlert(agg, clusterInfo, instanceIdx);
+    return renderAlertActionMenu(menuId, alertInstance, agg.alertName, agg.severity, clusterInfo.name);
   };
 
   const renderInstanceRow = (
@@ -289,9 +344,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
     leafIndex: number,
     indent: number,
   ) => {
-    const alertInstance = clusterInfo.cluster?.alerts?.find(
-      a => a.alertName === agg.alertName && a.severity === agg.severity
-    );
+    const alertInstance = resolveInstanceAlert(agg, clusterInfo, instanceIdx);
     const zebraBg = leafIndex % 2 === 1 ? ZEBRA_ODD : ZEBRA_EVEN;
     return (
       <Tr key={`${alertKey}-${clusterInfo.name}-${instanceIdx}`} style={{ backgroundColor: zebraBg }}>
@@ -613,12 +666,13 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                     handleSort,
                   });
                 }
-                return <Th {...thProps}>{col.label}</Th>;
-              })}
-            </Tr>
-          </Thead>
-          <Tbody>
-            {groupedIndividualAlerts.map((group) => {
+              return <Th {...thProps}>{col.label}</Th>;
+            })}
+            <Th screenReaderText="Actions" />
+          </Tr>
+        </Thead>
+        <Tbody>
+          {groupedIndividualAlerts.map((group) => {
               const isGroupExpanded = expandedGroups.has(group.groupName);
               let leafCounter = 0;
 
@@ -663,6 +717,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                       }
                       return <Td key={col.key} modifier="nowrap" />;
                     })}
+                    <Td />
                   </Tr>
 
                   {/* Level 1 (leaf): Individual alert rows — indented 16px, zebra striped */}
@@ -709,6 +764,15 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                         {indivVisibleCols.map(col => (
                           <Td key={col.key} modifier="nowrap">{renderCellContent(col)}</Td>
                         ))}
+                        <Td modifier="nowrap">
+                          {renderAlertActionMenu(
+                            `${alert.id}-${idx}`,
+                            alert,
+                            alert.alertName,
+                            alert.severity,
+                            alert.clusterName,
+                          )}
+                        </Td>
                       </Tr>
                     );
                   })}
@@ -756,6 +820,7 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
               }
               return <Th {...thProps}>{col.label}</Th>;
             })}
+            <Th screenReaderText="Actions" />
           </Tr>
         </Thead>
         <Tbody>
@@ -801,6 +866,15 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
                   if (col.key === 'severity') { tdProps.isStickyColumn = true; tdProps.stickyMinWidth = '120px'; tdProps.stickyLeftOffset = '200px'; }
                   return <Td {...tdProps}>{renderCellContent(col)}</Td>;
                 })}
+                <Td modifier="nowrap">
+                  {renderAlertActionMenu(
+                    `${alert.id}-${idx}`,
+                    alert,
+                    alert.alertName,
+                    alert.severity,
+                    alert.clusterName,
+                  )}
+                </Td>
               </Tr>
             );
           })}

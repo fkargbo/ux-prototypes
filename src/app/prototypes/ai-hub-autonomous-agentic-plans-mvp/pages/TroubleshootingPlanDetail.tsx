@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
@@ -8,6 +8,7 @@ import {
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
+  type PlanRow,
 } from './ai-hub-v3/PlansAndApprovalsTab';
 import { AgenticKillSwitchBanner } from '../components/AgenticKillSwitchBanner';
 import {
@@ -24,8 +25,13 @@ import { AiHubPageHeading } from '../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../prototypePerspectiveUrl';
 import './ai-hub-page.css';
 
+type TroubleshootingPlanDetailLocationState = {
+  plan?: PlanRow;
+};
+
 export const TroubleshootingPlanDetail: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { planId } = useParams<{ planId: string }>();
   const [searchParams] = useSearchParams();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
@@ -41,16 +47,25 @@ export const TroubleshootingPlanDetail: React.FC = () => {
     : activePerspective === 'Core platforms';
 
   const planExecutionRuntime = usePlanBuildRuntime();
+  const navigationState = location.state as TroubleshootingPlanDetailLocationState | null;
 
   const plan = useMemo(() => {
     if (!planId) return null;
     const decoded = decodeURIComponent(planId);
-    return (
-      buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
-        (p) => p.id === decoded,
-      ) ?? null
+
+    const catalogPlan = buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
+      (p) => p.id === decoded,
     );
-  }, [isSingleCluster, planId, planExecutionRuntime]);
+    if (catalogPlan) {
+      return catalogPlan;
+    }
+
+    if (navigationState?.plan?.id === decoded) {
+      return navigationState.plan;
+    }
+
+    return null;
+  }, [isSingleCluster, navigationState?.plan, planExecutionRuntime, planId]);
 
   const planDomain = useMemo(
     () => (plan ? resolvePlanDomainAnnotations(plan) : null),

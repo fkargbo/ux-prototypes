@@ -16,6 +16,8 @@ import {
 import { Content, PageSection } from '@patternfly/react-core';
 import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
+import { TroubleshootingPlansPage } from './pages/TroubleshootingPlansPage';
+import { TroubleshootingPlanDetail } from './pages/TroubleshootingPlanDetail';
 
 const ObserveNavPlaceholder: React.FC = () => (
   <PageSection>
@@ -84,6 +86,21 @@ export const routes: RouteConfig[] = [
     },
   },
   {
+    path: '/core/observe/troubleshooting-plans/:planId',
+    element: <TroubleshootingPlanDetail />,
+    title: 'Troubleshooting plan detail',
+  },
+  {
+    path: '/core/observe/troubleshooting-plans',
+    element: <TroubleshootingPlansPage />,
+    label: 'Troubleshooting plans',
+    title: 'Troubleshooting plans',
+    navigation: {
+      group: 'Observe',
+      order: 3,
+    },
+  },
+  {
     path: '/core/observe/alerting-v2/create-alert-rule',
     element: <CreateAlertRuleFleetManagementGate />,
     title: 'Create alert rule',
@@ -121,7 +138,7 @@ export const routes: RouteConfig[] = [
     title: 'Metrics',
     navigation: {
       group: 'Observe',
-      order: 3,
+      order: 4,
     },
   },
   {
@@ -131,7 +148,7 @@ export const routes: RouteConfig[] = [
     title: 'Dashboards',
     navigation: {
       group: 'Observe',
-      order: 4,
+      order: 5,
     },
   },
   {
@@ -141,7 +158,7 @@ export const routes: RouteConfig[] = [
     title: 'Targets',
     navigation: {
       group: 'Observe',
-      order: 5,
+      order: 6,
     },
   },
   {
@@ -151,7 +168,7 @@ export const routes: RouteConfig[] = [
     title: 'Incidents',
     navigation: {
       group: 'Observe',
-      order: 6,
+      order: 7,
     },
   },
   {
@@ -161,7 +178,7 @@ export const routes: RouteConfig[] = [
     title: 'Dashboards (Perses)',
     navigation: {
       group: 'Observe',
-      order: 7,
+      order: 8,
     },
   },
   {

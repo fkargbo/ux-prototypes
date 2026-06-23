@@ -217,8 +217,9 @@ import { DrillDownContent } from '../components/DrillDownContent';
 import { FleetOverviewTab } from '../components/FleetOverviewTab';
 import { FleetOverviewToolbar } from '../components/FleetOverviewToolbar';
 import { AlertsTabFleetOverviewContent } from '../components/AlertsTabFleetOverviewContent';
-import { mockAlertRules, mockTrendData, buildAlertingFleetMockClusters } from '../data/mockData';
+import { mockAlertRules, mockTrendData, buildAlertingFleetMockClusters, buildCorePlatformsAlertClusters } from '../data/mockData';
 import { CLUSTERS } from '../../../components/autonomousAiObserve/data';
+import { resolveAlertInvestigationNavigation } from '../../../pages/ai-hub-v3/troubleshootingPlansRegistry';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 
 type QuickTimeRange =
@@ -584,6 +585,23 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
   const [selectedAlertDetail, setSelectedAlertDetail] = React.useState<AlertData | null>(null);
   const [alertDetailDrawerTab, setAlertDetailDrawerTab] = React.useState<number>(0);
+
+  const handleInvestigateWithAi = React.useCallback(
+    (alert: AlertData) => {
+      setIsDrawerExpanded(false);
+      setSelectedAlertDetail(null);
+      const payload = {
+        alertName: alert.alertName,
+        alertId: alert.id,
+        clusterName: alert.clusterName,
+        severity: alert.severity,
+        namespace: alert.namespace,
+      };
+      const { href, plan } = resolveAlertInvestigationNavigation(payload, isCorePlatformsPerspective);
+      navigate(href, { state: { plan } });
+    },
+    [navigate, isCorePlatformsPerspective],
+  );
   
   // Alert Rule Drawer state
   const [isAlertRuleDrawerOpen, setIsAlertRuleDrawerOpen] = React.useState(false);
@@ -633,8 +651,23 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
   // Last refresh
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
 
-  /** Rebuild on load / refresh so alert timestamps stay inside default “Last 6h” (module-level mock is frozen at build time). */
-  const mockClusters = React.useMemo(() => buildAlertingFleetMockClusters(new Date()), [lastRefresh]);
+  /** Rebuild on load / refresh; Core platforms uses a single-cluster local dataset. */
+  const mockClusters = React.useMemo(
+    () => (isCorePlatformsPerspective
+      ? buildCorePlatformsAlertClusters(new Date())
+      : buildAlertingFleetMockClusters(new Date())),
+    [lastRefresh, isCorePlatformsPerspective],
+  );
+
+  React.useEffect(() => {
+    if (isCorePlatformsPerspective && mockClusters.length > 0) {
+      setFiringAlertsCardView('single-cluster');
+      setSelectedClusterForAlerts(mockClusters[0]);
+      return;
+    }
+    setFiringAlertsCardView('all-clusters');
+    setSelectedClusterForAlerts(null);
+  }, [isCorePlatformsPerspective, mockClusters]);
 
   // Sync clusterFilter clearing with in-card view states
   // Only reset views when clusterFilter is completely cleared
@@ -1867,6 +1900,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
             setIsDrawerExpanded(true);
             setAlertDetailDrawerTab(initialTab !== undefined ? initialTab : 0);
           }}
+          onInvestigateWithAi={handleInvestigateWithAi}
           setMainPageTab={setMainPageTab}
           setManagementSubTab={setManagementSubTab}
           clearAlertsTabFilters={clearAlertsTabFilters}
@@ -2172,6 +2206,7 @@ const MultiClusterAlertingDashboard: React.FunctionComponent = () => {
           setSelectedAlertDetail(null);
         }}
         onTabChange={setAlertDetailDrawerTab}
+        onInvestigateWithAi={handleInvestigateWithAi}
       />
 
       {/* Alert Rule Details Drawer */}

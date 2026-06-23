@@ -2,14 +2,12 @@ import * as React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Alert,
   Content,
   Pagination,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
 import {
-  getAgenticAutomationDisabledMessage,
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
@@ -25,6 +23,7 @@ import {
   buildPlansForPerspective,
   type PlanRow,
 } from './PlansAndApprovalsTab';
+import { isNewAlertInvestigationPlanVisible } from './alertInvestigationPlans';
 import {
   OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS,
   PlansFilterToolbar,
@@ -52,7 +51,8 @@ export const TroubleshootingPlansTab: React.FC = () => {
     return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).filter(
       (plan) =>
         (OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS as readonly string[]).includes(plan.triggerDomain)
-        && plan.consolidationScope.startsWith('Triggered by alert:'),
+        && plan.consolidationScope.startsWith('Triggered by alert:')
+        && isNewAlertInvestigationPlanVisible(plan),
     );
   }, [isSingleCluster, planExecutionRuntime]);
 
@@ -99,12 +99,6 @@ export const TroubleshootingPlansTab: React.FC = () => {
 
   return (
     <Stack hasGutter>
-      {!isAgenticAutomationEnabled && (
-        <StackItem>
-          <Alert variant="warning" isInline title={getAgenticAutomationDisabledMessage(isSingleCluster)} />
-        </StackItem>
-      )}
-
       <StackItem className="ols-ai-hub-plans-section">
         <PlansFilterToolbar
           filterAriaLabel="Filter troubleshooting plans"

@@ -23,12 +23,17 @@ export function resolveAgentCapabilitiesClusterId(isSingleCluster: boolean): str
   return isSingleCluster ? CORE_PLATFORMS_CLUSTER_ID : FLEET_MANAGEMENT_SCOPE_ID;
 }
 
-/** Inline alert when agentic automation is disabled (kill switch engaged). */
+/** Alert title when agentic automation is disabled (kill switch engaged). */
+export function getAgenticAutomationDisabledTitle(): string {
+  return 'Agentic capabilities disabled';
+}
+
+/** Alert body when agentic automation is disabled (kill switch engaged). */
 export function getAgenticAutomationDisabledMessage(isSingleCluster: boolean): string {
   if (isSingleCluster) {
-    return `Agentic automation is disabled for cluster ${CORE_PLATFORMS_CLUSTER_ID} by administrative policy. Investigate and apply actions on this cluster are unavailable until capabilities are re-enabled.`;
+    return `Administrative policy has paused agentic automation on ${CORE_PLATFORMS_CLUSTER_ID}. Actions and investigations are currently unavailable. Contact your cluster administrator to restore access.`;
   }
-  return 'Agentic automation is disabled fleet-wide by administrative policy. Investigate and apply actions are blocked across all managed clusters until capabilities are re-enabled.';
+  return 'Administrative policy has paused agentic automation fleet-wide. Actions and investigations are currently unavailable. Contact your cluster administrator to restore access.';
 }
 
 export const AgenticCapabilitiesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -18,6 +18,10 @@ export const MVP_PLAN_IDS = new Set([
   'op3',
   'op4',
   'op5',
+  'inv-alert-node-not-ready',
+  'inv-alert-mds-cache-high',
+  'inv-alert-vm-cannot-evict',
+  'inv-alert-node-cpu-high',
 ]);
 
 export const MVP_TRIGGER_DOMAINS = ['Observability', 'Cluster update', 'Security'] as const;
@@ -41,6 +45,10 @@ export const PLAN_TOKEN_BURN: Record<string, PlanTokenBurn> = {
   op3: { analysis: 1120, execution: 760, executionByOption: { 'op3-o1': 760 } },
   op4: { analysis: 890, execution: 1540 },
   op5: { analysis: 480, executionByOption: { 'op5-o1': 620, 'op5-o2': 540 } },
+  'inv-alert-node-not-ready': { analysis: 420 },
+  'inv-alert-mds-cache-high': { analysis: 410 },
+  'inv-alert-vm-cannot-evict': { analysis: 400 },
+  'inv-alert-node-cpu-high': { analysis: 390 },
 };
 
 /** Per-option diagnosis confidence (backend: options[].diagnosis.confidence). */

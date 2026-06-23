@@ -137,16 +137,16 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeader
           variant={ModalVariant.small}
           isOpen={isConfirmOpen}
           onClose={() => setIsConfirmOpen(false)}
-          aria-labelledby="stop-all-ai-title"
+          aria-labelledby="disable-ai-title"
         >
-          <ModalHeader title="Stop all AI?" labelId="stop-all-ai-title" />
+          <ModalHeader title="Disable AI?" labelId="disable-ai-title" />
           <ModalBody>
-            This global kill switch halts background analysis, freezes active executions, and stops API token
-            consumption for this cluster. You can re-enable agentic capabilities when ready.
+            Stops all background analysis, active executions, and API token consumption for this cluster. You can
+            re-enable agentic capabilities at any time.
           </ModalBody>
           <ModalFooter>
             <Button variant="danger" onClick={handleConfirmDisable}>
-              Yes, stop all AI
+              Disable AI
             </Button>
             <Button variant="link" onClick={() => setIsConfirmOpen(false)}>
               Cancel

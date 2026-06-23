@@ -69,6 +69,11 @@ import {
   resolvePlanDrawerData,
   applyScRemediationPatches,
 } from './singleClusterPlanSimulation';
+import {
+  NEW_ALERT_INVESTIGATION_DRAWER_DATA,
+  NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
+  NEW_ALERT_INVESTIGATION_PLANS,
+} from './alertInvestigationPlans';
 import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   clearPlanRemediationDrillSession,
@@ -77,7 +82,6 @@ import {
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
 import {
-  getAgenticAutomationDisabledMessage,
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
@@ -179,6 +183,10 @@ const PLAN_SORT_SCORES: Record<string, number> = {
   op3: 55,
   op4: 24,
   op5: 45,
+  'inv-alert-node-not-ready': 3,
+  'inv-alert-mds-cache-high': 4,
+  'inv-alert-vm-cannot-evict': 5,
+  'inv-alert-node-cpu-high': 6,
 };
 
 /** Simulated plan identity — names, summaries, and scope labels aligned to fleet vs. single-cluster UX. */
@@ -360,6 +368,7 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-monitoring',
   },
+  ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
 };
 
 type RawPlanRow = Omit<PlanRow, 'status'> & { status: string };
@@ -762,6 +771,10 @@ const ALL_PLANS: RawPlanRow[] = [
       { icon: 'alert', text: 'PersesDashboardStorageLocked: database write timeouts on shared persistent volume.' },
     ],
   },
+  ...NEW_ALERT_INVESTIGATION_PLANS.map((plan) => ({
+    ...plan,
+    drawerTargets: ['prod-east-2'],
+  })),
 ];
 
 // ─── Dataset — Single-cluster overrides (Core Platforms perspective) ──────────
@@ -802,6 +815,7 @@ const SC_ALL_PLANS: RawPlanRow[] = [
   { ...ALL_PLANS[20],drawerTargets: ['thanos-compactor-data'] },
   { ...ALL_PLANS[21],drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
   { ...ALL_PLANS[22],drawerTargets: ['perses-6d4f8'] },
+  ...NEW_ALERT_INVESTIGATION_PLANS,
 ];
 
 interface PlanDrawerData {
@@ -1203,6 +1217,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: '~3m',
     confidence: 'High',
   },
+  ...NEW_ALERT_INVESTIGATION_DRAWER_DATA,
 };
 
 // ─── Remediation options data ────────────────────────────────────────────────
@@ -2326,7 +2341,7 @@ const RemediationOptionCard: React.FC<{
             >
               {!isExecutionKilled && (
                 <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)} style={{ margin: 0 }}>
-                  Stop Execution
+                  Stop execution
                 </Button>
               )}
             </div>
@@ -2345,7 +2360,7 @@ const RemediationOptionCard: React.FC<{
             </ModalBody>
             <ModalFooter>
               <Button variant="danger" onClick={handleConfirmStopExecution}>
-                Yes, Stop Execution
+                Yes, stop execution
               </Button>
               <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
                 Cancel
@@ -3219,14 +3234,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             <>
               {retryBanner && (
                 <Alert variant="warning" isInline title={retryBanner} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
-              )}
-              {!isAgenticAutomationEnabled && (
-                <Alert
-                  variant="warning"
-                  isInline
-                  title={getAgenticAutomationDisabledMessage(isSingleCluster)}
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                />
               )}
 
               {workflow.executionApproval && (isExecuting || isVerifying) && (

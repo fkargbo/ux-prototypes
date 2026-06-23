@@ -5,6 +5,7 @@
  */
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
+import { NEW_ALERT_INVESTIGATION_PLAN_IDENTITY } from './alertInvestigationPlans';
 
 export const CORE_PLATFORMS_CLUSTER_ID = 'prod-east-2';
 
@@ -46,6 +47,7 @@ export const SC_PLAN_TABLE_IDENTITY: Record<string, ScPlanTableIdentity> = {
   op3: { name: 'recover-thanos-compactor-pv', synopsis: 'Recover Thanos compactor persistent volume after corrupted block detection', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   op4: { name: 'scale-otel-collector-replicas', synopsis: 'Scale OpenTelemetry collector replicas to relieve trace ingestion backpressure', namespace: 'openshift-opentelemetry-operator', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   op5: { name: 'clear-grafana-sqlite-lock', synopsis: 'Clear Grafana SQLite database lock causing dashboard write timeouts', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
 };
 
 type ExpandedReason = { icon: 'sync' | 'alert' | 'warning' | 'ban' | 'gear' | 'wrench'; text: string };

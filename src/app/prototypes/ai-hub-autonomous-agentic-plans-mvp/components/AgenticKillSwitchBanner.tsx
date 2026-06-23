@@ -3,6 +3,7 @@ import { Alert } from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   getAgenticAutomationDisabledMessage,
+  getAgenticAutomationDisabledTitle,
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../context/AgenticCapabilitiesContext';
@@ -21,8 +22,8 @@ export const AgenticKillSwitchBanner: React.FC = () => {
   return (
     <Alert
       variant="warning"
-      isPlain
-      title="Agentic automation halted"
+      isInline
+      title={getAgenticAutomationDisabledTitle()}
       style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
     >
       {getAgenticAutomationDisabledMessage(isSingleCluster)}
