@@ -1808,6 +1808,8 @@ interface PlansTableCoreProps {
   isAgenticAutomationEnabled: boolean;
   /** When true, granular observability telemetry domains are coalesced to "Observability" in the cell badge. */
   mapObservabilityDomains?: boolean;
+  /** Global Agentic plans list only — domain-scoped lists (e.g. Troubleshooting plans) omit this column. */
+  showTriggerDomainColumn?: boolean;
 }
 
 export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -1817,6 +1819,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   onReviewPlan,
   isAgenticAutomationEnabled,
   mapObservabilityDomains = false,
+  showTriggerDomainColumn = true,
 }) => (
   <Table
     aria-label={ariaLabel}
@@ -1830,13 +1833,15 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   >
     <Thead>
       <Tr>
-        <Th style={{ width: '18%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
-        <Th style={{ width: '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
-        <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
-        <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
-        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
-        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
-        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '18%' : '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '20%' : '26%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
+        {showTriggerDomainColumn ? (
+          <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
+        ) : null}
+        <Th style={{ width: showTriggerDomainColumn ? '10%' : '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '10%' : '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '10%' : '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
       </Tr>
     </Thead>
 
@@ -1877,9 +1882,11 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             />
           </Td>
 
-          <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
-            <TriggerDomainCell domain={row.triggerDomain} mapObservabilityDomains={mapObservabilityDomains} />
-          </Td>
+          {showTriggerDomainColumn ? (
+            <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
+              <TriggerDomainCell domain={row.triggerDomain} mapObservabilityDomains={mapObservabilityDomains} />
+            </Td>
+          ) : null}
 
           <Td dataLabel="Status">
             <StatusLabel status={row.status} terminatedAt={row.terminatedAt} />
@@ -3402,13 +3409,6 @@ export const PlansAndApprovalsTab: React.FC = () => {
   return (
     <Stack>
       <StackItem className="ols-ai-hub-plans-section">
-        <Title
-          headingLevel="h3"
-          size="md"
-          className="ols-aio-fleet-subcard-title ols-ai-hub-plans-section-title"
-        >
-          Plans
-        </Title>
         <PlansTable
           onReviewPlan={openPlanRemediation}
           rows={plans}

@@ -143,6 +143,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={openPlanRemediation}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+            showTriggerDomainColumn={false}
           />
         )}
       </StackItem>
