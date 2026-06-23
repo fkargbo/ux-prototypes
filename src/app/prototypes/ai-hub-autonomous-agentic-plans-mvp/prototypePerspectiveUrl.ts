@@ -82,14 +82,20 @@ export function getPlanRemediationHref(planSlug: string, perspectiveKey: AppShel
   );
 }
 
-export function getTroubleshootingPlanRemediationHref(
-  planSlug: string,
+export function getTroubleshootingPlanDetailHref(
+  planId: string,
   perspectiveKey: AppShellPerspectiveKey,
 ): string {
-  const base = buildPrototypeHref(
-    `/core/observe/ai-hub/plans/${encodeURIComponent(planSlug)}/remediation`,
+  return buildPrototypeHref(
+    `/core/observe/troubleshooting-plans/${encodeURIComponent(planId)}`,
     perspectiveKey,
   );
-  const sep = base.includes('?') ? '&' : '?';
-  return `${base}${sep}${PLAN_REMEDIATION_SOURCE_QUERY_PARAM}=troubleshooting-plans`;
+}
+
+/** @deprecated Use getTroubleshootingPlanDetailHref — observability plans live under Troubleshooting plans. */
+export function getTroubleshootingPlanRemediationHref(
+  planId: string,
+  perspectiveKey: AppShellPerspectiveKey,
+): string {
+  return getTroubleshootingPlanDetailHref(planId, perspectiveKey);
 }

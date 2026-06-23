@@ -147,7 +147,7 @@ export const ProposalApprovalArtifact: React.FC<{ approval: ExecutionApproval }>
         aria-hidden
       />
       <Title headingLevel="h5" size="md">
-        Proposal approved for execution
+        Remediation execution record
       </Title>
     </Flex>
     <DescriptionList isHorizontal isAutoColumnWidths isCompact>
@@ -162,7 +162,7 @@ export const ProposalApprovalArtifact: React.FC<{ approval: ExecutionApproval }>
         <DescriptionListDescription>{approval.maxAttempts}</DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
-        <DescriptionListTerm>Approved by</DescriptionListTerm>
+        <DescriptionListTerm>Executed by</DescriptionListTerm>
         <DescriptionListDescription>
           {approval.approvedBy} · {approval.approvedAt}
         </DescriptionListDescription>

@@ -4,13 +4,12 @@ import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Title } from '@patternfly/r
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
-  PlanConfidenceBadge,
   PlanResourceBadge,
-  PlanRiskBadge,
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
 } from './ai-hub-v3/PlansAndApprovalsTab';
+import { AgenticKillSwitchBanner } from '../components/AgenticKillSwitchBanner';
 import {
   buildPrototypeHref,
   isSingleClusterPerspectiveKey,
@@ -19,6 +18,7 @@ import {
   TROUBLESHOOTING_PLANS_LIST_PATH,
   writePlanRemediationDrillSession,
 } from './planRemediationDrillSession';
+import { resolvePlanDomainAnnotations } from './ai-hub-v3/domainPlanNavigation';
 import { usePlanBuildRuntime } from '../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../prototypePerspectiveUrl';
@@ -52,6 +52,11 @@ export const TroubleshootingPlanDetail: React.FC = () => {
     );
   }, [isSingleCluster, planId, planExecutionRuntime]);
 
+  const planDomain = useMemo(
+    () => (plan ? resolvePlanDomainAnnotations(plan) : null),
+    [plan],
+  );
+
   const navigateBackToPlans = useCallback(() => {
     const key =
       drillPerspectiveKey
@@ -59,8 +64,8 @@ export const TroubleshootingPlanDetail: React.FC = () => {
       ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
     writePlanRemediationDrillSession({ perspectiveKey: key });
     setPerspectiveByKey(key);
-    navigate(buildPrototypeHref(TROUBLESHOOTING_PLANS_LIST_PATH, key));
-  }, [activePerspective, drillPerspectiveKey, navigate, setPerspectiveByKey]);
+    navigate(buildPrototypeHref(planDomain?.listPath ?? TROUBLESHOOTING_PLANS_LIST_PATH, key));
+  }, [activePerspective, drillPerspectiveKey, navigate, planDomain?.listPath, setPerspectiveByKey]);
 
   useLayoutEffect(() => {
     if (!drillPerspectiveKey || drillPerspectiveAppliedRef.current) {
@@ -96,12 +101,9 @@ export const TroubleshootingPlanDetail: React.FC = () => {
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            Observe
+            {planDomain?.listBreadcrumbLabel ?? 'Troubleshooting plans'}
           </BreadcrumbItem>
-          <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            Troubleshooting plans
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>{planDisplayName}</BreadcrumbItem>
+          <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
         </Breadcrumb>
       </div>
 
@@ -131,14 +133,6 @@ export const TroubleshootingPlanDetail: React.FC = () => {
             <FlexItem>
               <StatusLabel status={plan.status} terminatedAt={plan.terminatedAt} />
             </FlexItem>
-            {plan.confidenceTier && (
-              <FlexItem>
-                <PlanConfidenceBadge tier={plan.confidenceTier} />
-              </FlexItem>
-            )}
-            <FlexItem>
-              <PlanRiskBadge level={plan.riskLevel ?? 'Medium'} />
-            </FlexItem>
           </Flex>
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
             <WaitingApprovalPlanMeta plan={plan} />
@@ -152,6 +146,7 @@ export const TroubleshootingPlanDetail: React.FC = () => {
         aria-label={`Troubleshooting plan: ${planDisplayName}`}
       >
         <div className="ols-plan-remediation-drilldown">
+          <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel key={plan.id} plan={plan} />
         </div>
       </div>
