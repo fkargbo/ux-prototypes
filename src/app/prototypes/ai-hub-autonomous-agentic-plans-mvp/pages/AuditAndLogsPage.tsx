@@ -29,11 +29,12 @@ export const AuditAndLogsPage: React.FC = () => {
               Audit & logs
             </Title>
             <Content component="p" className="ols-ai-hub-page-subtitle">
-              Tamper-evident execution ledger for every agentic plan lifecycle transition — from investigation
-              through approval, remediation, and termination.
+              Container stdout from agentic Lightspeed workflows. When cluster central logging is installed, these
+              entries are also forwarded to Loki.
             </Content>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
-              Cryptographic receipts are sealed at write time and cannot be modified post-execution.
+              Tech preview: log format and retention are still evolving. This view mirrors the OpenShift pod log
+              experience until structured audit metadata is available.
             </Content>
           </div>
         </div>

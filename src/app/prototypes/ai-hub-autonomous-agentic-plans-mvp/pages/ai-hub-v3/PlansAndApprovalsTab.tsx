@@ -44,16 +44,16 @@ import {
 } from '@patternfly/react-core';
 import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import type { Reversibility } from '../../types/reversibility';
 import { formatReversibilityLabel, reversibilityLabelColor } from '../../types/reversibility';
 import type { RemediationRisk } from '../../types/riskScore';
 import {
-  formatTokenBurn,
   formatTokenBurnPair,
+  formatOptionalTokenBurn,
   getPlanTokensConsumedView,
+  isPlanTokenBurnAvailable,
 } from '../../types/tokenBurn';
 import {
   AGENTIC_STATUS_FILTER_OPTIONS,
@@ -85,17 +85,15 @@ import {
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
+import { useDeletedPlans } from '../../context/DeletedPlansContext';
 import { usePlanTermination, type PlanExecutionRuntime } from '../../context/PlanTerminationContext';
 import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import type { PlanStatus } from '../../types/planStatus';
 import { normalizePlanStatus } from '../../types/planStatus';
-import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import {
-  buildOptionsSummary,
   ProposalApprovalArtifact,
   resolveVerificationState,
-  RevisionHistoryList,
   VERIFICATION_CHECK_LINES,
   VerificationPanel,
 } from './planWorkflowPanels';
@@ -1537,22 +1535,6 @@ function useStreamingExecutionLog(
   return lines.slice(0, frozen ? visibleCount : visibleCount).join('\n');
 }
 
-const AI_TOOLTIP =
-  'This metric is synthesized by the autonomous AI SRE agent based on live cluster states and historical patterns.';
-
-const AiSparkle: React.FC<{ size?: number }> = ({ size = 14 }) => (
-  <Tooltip content={AI_TOOLTIP} position="top">
-    <span
-      tabIndex={0}
-      role="img"
-      aria-label="AI-synthesized metric"
-      style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', cursor: 'help', flexShrink: 0 }}
-    >
-      <img src={AI_EXPERIENCE_ICON_DATA_URL} alt="" aria-hidden="true" width={size} height={size} style={{ display: 'block' }} />
-    </span>
-  </Tooltip>
-);
-
 // ─── Expanded row: consolidated reason icon ───────────────────────────────────
 
 /** OpenShift console / PatternFly table style: e.g. Jun 9, 2026, 2:32 PM */
@@ -1569,11 +1551,6 @@ const formatPlanCreatedAt = (iso: string): string => {
     minute: '2-digit',
   });
 };
-
-// Standalone AI icon (no tooltip wrapper) used inside drawer sections
-const AiIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
-  <img src={AI_EXPERIENCE_ICON_DATA_URL} alt="" aria-hidden="true" width={size} height={size} style={{ display: 'block', flexShrink: 0 }} />
-);
 
 // ─── Status label ─────────────────────────────────────────────────────────────
 
@@ -1603,10 +1580,13 @@ const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
     },
   );
 
-  if (display === '—') {
+  if (display === '—' || !display) {
+    const ariaLabel = display === '—'
+      ? 'Token consumption in progress'
+      : 'Token consumption not available';
     return (
-      <span aria-label="Token consumption in progress" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-        —
+      <span aria-label={ariaLabel} style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        {display}
       </span>
     );
   }
@@ -1785,7 +1765,11 @@ const PlansTableColumnHeader: React.FC<{
 
 // ─── Core stateless table renderer ───────────────────────────────────────────
 
-const PlanRowActionsMenu: React.FC<{ planName: string }> = ({ planName }) => {
+const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete: (planId: string) => void }> = ({
+  planId,
+  planName,
+  onDelete,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -1807,7 +1791,14 @@ const PlanRowActionsMenu: React.FC<{ planName: string }> = ({ planName }) => {
       )}
     >
       <DropdownList>
-        <DropdownItem key="delete-plan" isDanger onClick={() => setIsOpen(false)}>
+        <DropdownItem
+          key="delete-plan"
+          isDanger
+          onClick={() => {
+            onDelete(planId);
+            setIsOpen(false);
+          }}
+        >
           Delete plan
         </DropdownItem>
       </DropdownList>
@@ -1820,6 +1811,7 @@ interface PlansTableCoreProps {
   ariaLabel: string;
   scopeColumnLabel: 'Cluster' | 'Namespace';
   onReviewPlan: (plan: PlanRow) => void;
+  onDeletePlan: (planId: string) => void;
   isAgenticAutomationEnabled: boolean;
   /** When true, granular observability telemetry domains are coalesced to "Observability" in the cell badge. */
   mapObservabilityDomains?: boolean;
@@ -1832,6 +1824,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   ariaLabel,
   scopeColumnLabel,
   onReviewPlan,
+  onDeletePlan,
   isAgenticAutomationEnabled,
   mapObservabilityDomains = false,
   showTriggerDomainColumn = true,
@@ -1848,15 +1841,15 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   >
     <Thead>
       <Tr>
-        <Th style={{ width: showTriggerDomainColumn ? '18%' : '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '20%' : '26%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '22%' : '28%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '14%' : '16%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
         {showTriggerDomainColumn ? (
-          <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
+          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
         ) : null}
-        <Th style={{ width: showTriggerDomainColumn ? '10%' : '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '10%' : '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '10%' : '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
+        <Th screenReaderText="Actions" />
       </Tr>
     </Thead>
 
@@ -1879,13 +1872,6 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                   {row.name ?? row.id}
                 </Button>
               </FlexItem>
-            </Flex>
-          </Td>
-
-          <Td dataLabel="Plan summary" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-              <FlexItem><AiSparkle /></FlexItem>
-              <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>{row.synopsis}</FlexItem>
             </Flex>
           </Td>
 
@@ -1919,7 +1905,11 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             )}
           </Td>
           <Td dataLabel="Actions" modifier="fitContent" style={{ textAlign: 'right' }}>
-            <PlanRowActionsMenu planName={row.name ?? row.id} />
+            <PlanRowActionsMenu
+              planId={row.id}
+              planName={row.name ?? row.id}
+              onDelete={onDeletePlan}
+            />
           </Td>
         </Tr>
       ))}
@@ -1933,6 +1923,7 @@ const DEFAULT_PER_PAGE = 10;
 
 interface PlansTableProps {
   onReviewPlan: (plan: PlanRow) => void;
+  onDeletePlan: (planId: string) => void;
   rows: PlanRow[];
   isSingleCluster: boolean;
   isAgenticAutomationEnabled: boolean;
@@ -1940,6 +1931,7 @@ interface PlansTableProps {
 
 const PlansTable: React.FC<PlansTableProps> = ({
   onReviewPlan,
+  onDeletePlan,
   rows,
   isSingleCluster,
   isAgenticAutomationEnabled,
@@ -2042,6 +2034,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
             ariaLabel="Plans"
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={onReviewPlan}
+            onDeletePlan={onDeletePlan}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             mapObservabilityDomains
           />
@@ -2236,6 +2229,9 @@ const RemediationOptionCard: React.FC<{
               burn.analysis,
               executionBurn !== undefined && executionBurn > 0 ? executionBurn : undefined,
             );
+            if (!burnLine) {
+              return null;
+            }
             return (
               <Content
                 component="small"
@@ -2502,12 +2498,14 @@ const PostMortemPanel: React.FC<{
               ? getOptionExecutionTokenBurn(plan.id, executionOptionId)
               : undefined;
             const execution = executionFromOption ?? burn.execution ?? 0;
+            const burnLine = formatTokenBurnPair(burn.analysis, execution > 0 ? execution : undefined);
+            if (!burnLine) {
+              return null;
+            }
             return (
               <DescriptionListGroup>
                 <DescriptionListTerm>Token burn</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {formatTokenBurnPair(burn.analysis, execution > 0 ? execution : undefined)}
-                </DescriptionListDescription>
+                <DescriptionListDescription>{burnLine}</DescriptionListDescription>
               </DescriptionListGroup>
             );
           })()}
@@ -2853,7 +2851,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     acknowledgePlan,
     startVerification,
     completeVerification,
-    finishReAnalysis,
   } = usePlanWorkflow();
   const workflow = getPlanWorkflow(plan.id);
   const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
@@ -2869,14 +2866,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     setIsExecutionRunning(false);
     setRetryBanner(null);
   }, [plan.id]);
-
-  useEffect(() => {
-    if (!workflow.isReAnalyzing) {
-      return;
-    }
-    const timer = window.setTimeout(() => finishReAnalysis(plan.id), 3000);
-    return () => window.clearTimeout(timer);
-  }, [workflow.isReAnalyzing, plan.id, finishReAnalysis]);
 
   useEffect(() => {
     if (!isExecuting) {
@@ -2971,20 +2960,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     }
   }, [completeVerification, plan.id, workflow.verification]);
 
-  const handleOpenRevisionDiscussion = () => {
-    if (!drawer) {
-      return;
-    }
-    agenticGlobalAiApi.openRevisionDiscussion?.({
-      planId: plan.id,
-      planSynopsis: plan.synopsis,
-      aggregatedFinding: drawer.aggregatedFinding,
-      rootCauseNarrative: drawer.rootCauseNarrative,
-      optionsSummary: buildOptionsSummary(options),
-      revisionCount: workflow.revisionCount,
-    });
-  };
-
   if (!drawer) return null;
 
   const showExecutionLog = isExecutionPhase && (
@@ -2993,38 +2968,14 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
   return (
     <Stack hasGutter>
-      {/* ── Section A: AI summary ──────────────────────────────────────── */}
-      <StackItem>
-        <Alert
-          variant="info"
-          isInline
-          title="AI summary"
-          customIcon={
-            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-              <AiIcon size={16} />
-            </span>
-          }
-        >
-          <Content component="p" style={{ margin: 0 }}>
-            {plan.synopsis}
-          </Content>
-        </Alert>
-      </StackItem>
-
-      <Divider />
-
-      {/* ── Section B: Root Cause Analysis ────────────────────────────── */}
+      {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
         <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
           Root cause analysis (RCA)
         </Title>
-          {isAnalyzing || workflow.isReAnalyzing ? (
+          {isAnalyzing ? (
             <>
               <RcaLockedPlaceholder />
-              {workflow.isReAnalyzing && (
-                <Alert variant="info" isInline title="Re-analyzing with your feedback…" style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }} />
-              )}
-              {!workflow.isReAnalyzing && (
               <Flex
                 justifyContent={{ default: 'justifyContentFlexEnd' }}
                 style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
@@ -3033,7 +2984,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                   Stop analysis
                 </Button>
               </Flex>
-              )}
               <Modal
                 variant={ModalVariant.small}
                 isOpen={isStopAnalysisModalOpen}
@@ -3063,34 +3013,19 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             </>
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`}>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              justifyContent={{ default: 'justifyContentFlexEnd' }}
-              gap={{ default: 'gapSm' }}
-              flexWrap={{ default: 'wrap' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-            >
-              {workflow.revisionCount > 0 && (
-                <Label color="blue" variant="outline" isCompact>
-                  Analysis rev {workflow.revisionCount + 1}
+            {isPlanTokenBurnAvailable(planTokenBurn) && (
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                justifyContent={{ default: 'justifyContentFlexEnd' }}
+                gap={{ default: 'gapSm' }}
+                flexWrap={{ default: 'wrap' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                <Label color="grey" variant="outline" isCompact>
+                  {formatOptionalTokenBurn(planTokenBurn.analysis, '(analysis)')}
                 </Label>
-              )}
-              <Label color="grey" variant="outline" isCompact>
-                {formatTokenBurn(planTokenBurn.analysis)} (analysis)
-              </Label>
-              {isProposed && (
-                <Button
-                  variant="link"
-                  isInline
-                  icon={<AiIcon size={14} />}
-                  iconPosition="start"
-                  onClick={handleOpenRevisionDiscussion}
-                  style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--xs)' }}
-                >
-                  Revise with AI
-                </Button>
-              )}
-            </Flex>
+              </Flex>
+            )}
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
               style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
@@ -3104,7 +3039,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               {drawer.rootCauseNarrative}
             </Content>
-            <RevisionHistoryList entries={workflow.revisionHistory} revisionCount={workflow.revisionCount + 1} />
 
           </div>
           )}
@@ -3192,7 +3126,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           </Flex>
           <WaitingApprovalPlanMeta plan={plan} />
         </Flex>
-          {isAnalyzing || workflow.isReAnalyzing ? (
+          {isAnalyzing ? (
             <HubLockedPlaceholder />
           ) : isTerminal ? (
             <>
@@ -3385,6 +3319,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
   const { isAgentActiveForCluster } = useAgenticCapabilities();
   const planExecutionRuntime = usePlanBuildRuntime();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
+  const { deletePlan, isPlanDeleted } = useDeletedPlans();
 
   // Breadcrumb return: apply session handoff once on mount, then release control to the switcher.
   useLayoutEffect(() => {
@@ -3398,8 +3333,8 @@ export const PlansAndApprovalsTab: React.FC = () => {
   }, []);
 
   const plans = useMemo(
-    () => buildPlansForPerspective(isSingleCluster, planExecutionRuntime),
-    [isSingleCluster, planExecutionRuntime],
+    () => buildPlansForPerspective(isSingleCluster, planExecutionRuntime).filter((plan) => !isPlanDeleted(plan.id)),
+    [isSingleCluster, planExecutionRuntime, isPlanDeleted],
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
@@ -3418,6 +3353,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
       <StackItem className="ols-ai-hub-plans-section">
         <PlansTable
           onReviewPlan={openPlanRemediation}
+          onDeletePlan={deletePlan}
           rows={plans}
           isSingleCluster={isSingleCluster}
           isAgenticAutomationEnabled={isAgenticAutomationEnabled}

@@ -183,7 +183,18 @@ export function derivePlanRiskLevel(
   return maxRiskLevel(options.map((opt) => mapOptionRisk(opt.risk)));
 }
 
+/** Plans where the configured LLM SDK does not return token counts (cell stays blank). */
+export const PLAN_TOKEN_SDK_UNAVAILABLE = new Set([
+  'op1',
+  'op4',
+  'inv-alert-mds-cache-high',
+  'cp3',
+]);
+
 export function getPlanTokenBurn(planId: string): PlanTokenBurn {
+  if (PLAN_TOKEN_SDK_UNAVAILABLE.has(planId)) {
+    return {};
+  }
   return PLAN_TOKEN_BURN[planId] ?? { analysis: 500 };
 }
 

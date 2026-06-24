@@ -1,17 +1,33 @@
 import type { PlanStatus } from './planStatus';
 
 export interface PlanTokenBurn {
-  analysis: number;
+  analysis?: number;
   execution?: number;
   executionByOption?: Record<string, number>;
+}
+
+export function isPlanTokenBurnAvailable(burn: PlanTokenBurn): boolean {
+  return burn.analysis !== undefined;
 }
 
 export function formatTokenCount(tokens: number): string {
   return tokens.toLocaleString('en-US');
 }
 
-export function formatTokenBurn(tokens: number): string {
+export function formatTokenBurn(tokens: number | undefined): string {
+  if (tokens === undefined) {
+    return '';
+  }
   return `${formatTokenCount(tokens)} tokens`;
+}
+
+/** Renders token burn for detail surfaces — blank when the SDK did not report usage. */
+export function formatOptionalTokenBurn(tokens: number | undefined, suffix?: string): string {
+  if (tokens === undefined) {
+    return '';
+  }
+  const base = formatTokenBurn(tokens);
+  return suffix ? `${base} ${suffix}` : base;
 }
 
 /** Resolves consumed execution tokens for terminal plans when option id is unknown. */
@@ -65,11 +81,19 @@ export function getPlanTokensConsumedView(
     };
   }
 
-  const analysisLine = `Analysis: ${formatTokenBurn(burn.analysis)}`;
+  if (!isPlanTokenBurnAvailable(burn)) {
+    return {
+      display: '',
+      tooltip: 'Token consumption not reported by the configured SDK.',
+    };
+  }
+
+  const analysis = burn.analysis!;
+  const analysisLine = `Analysis: ${formatTokenBurn(analysis)}`;
 
   if (status === 'Acknowledged' || options?.planKind === 'analysis-only') {
     return {
-      display: formatTokenCount(burn.analysis),
+      display: formatTokenCount(analysis),
       tooltip: analysisLine,
     };
   }
@@ -77,32 +101,35 @@ export function getPlanTokensConsumedView(
   if (TERMINAL_EXECUTION_STATUSES.includes(status)) {
     const execution = resolveConsumedExecutionBurn(burn, options?.executionOptionId);
     if (execution !== undefined && execution > 0) {
-      const total = burn.analysis + execution;
+      const total = analysis + execution;
       return {
         display: formatTokenCount(total),
-        tooltip: formatTokenBurnPair(burn.analysis, execution),
+        tooltip: formatTokenBurnPair(analysis, execution),
       };
     }
     return {
-      display: formatTokenCount(burn.analysis),
+      display: formatTokenCount(analysis),
       tooltip: analysisLine,
     };
   }
 
   if (status === 'Executing' || status === 'Verifying') {
     return {
-      display: formatTokenCount(burn.analysis),
+      display: formatTokenCount(analysis),
       tooltip: `${analysisLine}. Execution in progress — total updates when complete.`,
     };
   }
 
   return {
-    display: formatTokenCount(burn.analysis),
+    display: formatTokenCount(analysis),
     tooltip: analysisLine,
   };
 }
 
-export function formatTokenBurnPair(analysis: number, execution?: number): string {
+export function formatTokenBurnPair(analysis: number | undefined, execution?: number): string {
+  if (analysis === undefined) {
+    return '';
+  }
   if (execution === undefined) {
     return `Analysis: ${formatTokenBurn(analysis)}`;
   }
