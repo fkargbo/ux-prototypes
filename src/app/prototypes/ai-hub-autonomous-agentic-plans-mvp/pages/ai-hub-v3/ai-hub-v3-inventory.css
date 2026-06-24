@@ -115,3 +115,21 @@
   padding: 2px 6px;
   border-radius: var(--pf-t--global--border--radius--small);
 }
+
+.ols-audit-log-stream-panel {
+  margin-top: var(--pf-t--global--spacer--md);
+}
+
+.ols-audit-log-stream {
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+.ols-audit-log-stream .pf-v6-c-clipboard-copy {
+  width: 100%;
+}
+
+.ols-audit-log-stream .pf-v6-c-clipboard-copy__text {
+  background: transparent;
+}

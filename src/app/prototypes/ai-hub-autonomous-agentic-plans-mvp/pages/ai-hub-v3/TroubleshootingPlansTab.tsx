@@ -11,6 +11,7 @@ import {
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
+import { useDeletedPlans } from '../../context/DeletedPlansContext';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
@@ -41,6 +42,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
   const { isAgentActiveForCluster } = useAgenticCapabilities();
   const planExecutionRuntime = usePlanBuildRuntime();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
+  const { deletePlan, isPlanDeleted } = useDeletedPlans();
 
   const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true });
 
@@ -50,11 +52,12 @@ export const TroubleshootingPlansTab: React.FC = () => {
   const observabilityPlans = useMemo(() => {
     return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).filter(
       (plan) =>
-        (OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS as readonly string[]).includes(plan.triggerDomain)
+        !isPlanDeleted(plan.id)
+        && (OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS as readonly string[]).includes(plan.triggerDomain)
         && plan.consolidationScope.startsWith('Triggered by alert:')
         && isNewAlertInvestigationPlanVisible(plan),
     );
-  }, [isSingleCluster, planExecutionRuntime]);
+  }, [isSingleCluster, planExecutionRuntime, isPlanDeleted]);
 
   const filteredRows = useMemo(
     () => plansFilter.filterRows(observabilityPlans),
@@ -136,6 +139,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
             ariaLabel="Troubleshooting plans"
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={openPlanRemediation}
+            onDeletePlan={deletePlan}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             showTriggerDomainColumn={false}
           />

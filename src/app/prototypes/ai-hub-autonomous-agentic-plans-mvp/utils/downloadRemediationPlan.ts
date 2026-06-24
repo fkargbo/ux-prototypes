@@ -1,7 +1,7 @@
 import type { PlanRow } from '../pages/ai-hub-v3/PlansAndApprovalsTab';
 import type { Reversibility } from '../types/reversibility';
 import { formatReversibilityLabel } from '../types/reversibility';
-import { formatTokenBurn } from '../types/tokenBurn';
+import { formatTokenBurn, isPlanTokenBurnAvailable } from '../types/tokenBurn';
 import { getPlanTokenBurn } from '../pages/ai-hub-v3/plansMvpConstants';
 
 export type RemediationOptionDownload = {
@@ -39,7 +39,9 @@ export function buildRemediationPlanMarkdown(
     option.description,
     '',
     `**Reversibility:** ${formatReversibilityLabel(option.reversible ?? 'Reversible')}`,
-    `**Analysis token burn:** ${formatTokenBurn(burn.analysis)}`,
+    ...(isPlanTokenBurnAvailable(burn)
+      ? [`**Analysis token burn:** ${formatTokenBurn(burn.analysis)}`]
+      : []),
     '',
     '## Commands',
     '',
@@ -88,8 +90,9 @@ export function buildAnalysisReportMarkdown(
     '',
     rootCause.rootCauseNarrative,
     '',
-    `**Analysis token burn:** ${burn.analysis} tokens`,
-    '',
+    ...(isPlanTokenBurnAvailable(burn)
+      ? [`**Analysis token burn:** ${formatTokenBurn(burn.analysis)}`, '']
+      : []),
     '---',
     '_Investigation-only proposal — no remediation options were generated._',
   ];

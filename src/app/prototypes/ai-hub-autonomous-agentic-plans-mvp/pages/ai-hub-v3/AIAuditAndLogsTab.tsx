@@ -1,508 +1,166 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
+  ClipboardCopy,
+  ClipboardCopyVariant,
   Flex,
   FlexItem,
-  Label,
-  MenuToggle,
-  MenuToggleElement,
-  Pagination,
-  PaginationVariant,
-  Select,
-  SelectList,
-  SelectOption,
-  Stack,
-  StackItem,
   TextInput,
   Title,
-  Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, DownloadIcon, FileAltIcon } from '@patternfly/react-icons';
-import { ExpandableRowContent, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { formatTokenBurn } from '../../types/tokenBurn';
+import { DownloadIcon } from '@patternfly/react-icons';
 import { SC_PLAN_TABLE_IDENTITY } from './singleClusterPlanSimulation';
 import { MVP_PLAN_IDS } from './plansMvpConstants';
 import './ai-hub-v3-inventory.css';
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+type LogLevel = 'INFO' | 'WARN' | 'ERROR';
 
-type LifecycleEvent =
-  | 'Plan submitted'
-  | 'Investigation started'
-  | 'RCA verified'
-  | 'Approval granted'
-  | 'Remediation applied'
-  | 'Verification started'
-  | 'Verification passed'
-  | 'Verification failed'
-  | 'Analysis revision requested'
-  | 'Plan aborted';
-
-interface AuditReceiptItem {
-  key: string;
-  value: string;
-}
-
-interface AuditRow {
+interface AuditLogLine {
   id: number;
   timestamp: string;
-  planSummary: string;
-  event: LifecycleEvent;
-  user: string;
-  tokenBurn: number;
-  receiptHash: string;
-  auditReceipt: AuditReceiptItem[];
+  level: LogLevel;
+  source: string;
+  message: string;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-const DEFAULT_PER_PAGE = 10;
-
-const truncateReceiptHash = (hash: string): string => hash.slice(0, 6);
-
-const PLAN_SUMMARIES = Object.entries(SC_PLAN_TABLE_IDENTITY)
+const PLAN_NAMES = Object.entries(SC_PLAN_TABLE_IDENTITY)
   .filter(([id]) => MVP_PLAN_IDS.has(id))
   .map(([, plan]) => plan.name);
 
-const isSystemUser = (user: string): boolean => user.startsWith('System');
-
-type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
-
-const EVENT_LABEL_COLOR: Record<LifecycleEvent, LabelColor> = {
-  'Plan submitted': 'blue',
-  'Investigation started': 'blue',
-  'RCA verified': 'teal',
-  'Approval granted': 'orange',
-  'Remediation applied': 'green',
-  'Verification started': 'teal',
-  'Verification passed': 'green',
-  'Verification failed': 'red',
-  'Analysis revision requested': 'blue',
-  'Plan aborted': 'red',
-};
-
-const EventLabel: React.FC<{ event: LifecycleEvent; timestamp?: string }> = ({ event, timestamp }) => {
-  if (event === 'Plan aborted') {
-    const tooltipContent = `Execution halted by administrative override at ${timestamp ?? '—'}.`;
-    return (
-      <Tooltip content={tooltipContent} position="top">
-        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
-            Plan aborted
-          </Label>
-        </span>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <Label
-      color={EVENT_LABEL_COLOR[event]}
-      variant="outline"
-      isCompact
-      style={{ whiteSpace: 'nowrap' }}
-    >
-      {event}
-    </Label>
-  );
-};
-
-const LIFECYCLE_EVENT_SEQUENCE: LifecycleEvent[] = [
-  'Plan submitted',
-  'Investigation started',
-  'RCA verified',
-  'Approval granted',
-  'Remediation applied',
-  'Plan aborted',
+const LIFECYCLE_MESSAGES: Array<{ level?: LogLevel }> = [
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  { level: 'WARN' },
+  {},
 ];
 
-const HUMAN_USERS = ['Marcus Chen', 'Sarah Patel', 'James Morrison', 'Elena Vasquez', 'David Okonkwo'];
-
-const COMPLIANCE_BY_EVENT: Record<LifecycleEvent, string> = {
-  'Plan submitted': 'SOC2 Type II / AI-OPS-CTRL-001',
-  'Investigation started': 'SOC2 Type II / AI-OPS-CTRL-001 (Autonomous Investigation)',
-  'RCA verified': 'SOC2 Type II / AI-OPS-CTRL-003 (RCA Verification)',
-  'Approval granted': 'SOC2 Type II / AI-OPS-CTRL-007 (Human Approval Required)',
-  'Remediation applied': 'SOC2 Type II / AI-OPS-CTRL-004',
-  'Verification started': 'SOC2 Type II / AI-OPS-CTRL-005 (Post-Execution Verification)',
-  'Verification passed': 'SOC2 Type II / AI-OPS-CTRL-005 (Post-Execution Verification)',
-  'Verification failed': 'SOC2 Type II / AI-OPS-CTRL-005 (Post-Execution Verification)',
-  'Analysis revision requested': 'SOC2 Type II / AI-OPS-CTRL-002 (Revision Feedback)',
-  'Plan aborted': 'SOC2 Type II / AI-OPS-CTRL-009 (Execution Halt)',
-};
-
-const buildReceiptHash = (id: number, event: LifecycleEvent): string => {
-  const seed = `${id}-${event}`.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return Array.from({ length: 32 }, (_, index) => {
-    const value = (seed * (index + 17) * 31) % 16;
-    return value.toString(16);
-  }).join('');
-};
-
-const formatAuditTimestamp = (index: number): string => {
+const formatLogTimestamp = (index: number): string => {
   const base = new Date('2026-06-09T15:00:00');
   const minutesBack = index * 47 + (index % 5) * 11;
   const date = new Date(base.getTime() - minutesBack * 60_000);
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+  return date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
 };
 
-const buildAuditReceipt = (row: Pick<AuditRow, 'event' | 'user' | 'planSummary' | 'receiptHash' | 'timestamp'>): AuditReceiptItem[] => {
-  const items: AuditReceiptItem[] = [
-    { key: 'SHA-256 Log Hash', value: row.receiptHash },
-    { key: 'Plan summary', value: row.planSummary },
-    { key: 'Compliance Framework', value: COMPLIANCE_BY_EVENT[row.event] },
-    { key: 'OTel Trace', value: `#ot-${row.receiptHash.slice(0, 6)} (span closed: ${row.timestamp})` },
-    { key: 'Immutability Seal', value: 'Ledger entry sealed — no modifications permitted post-write' },
-  ];
+const buildSimulatedAuditLogLines = (count: number): AuditLogLine[] =>
+  Array.from({ length: count }, (_, index) => {
+    const planName = PLAN_NAMES[index % PLAN_NAMES.length];
+    const namespace = 'openshift-monitoring';
+    const user = index % 2 === 0 ? 'marcus.chen' : 'sarah.patel';
+    const lifecycleIndex = index % LIFECYCLE_MESSAGES.length;
+    const level = LIFECYCLE_MESSAGES[lifecycleIndex].level ?? 'INFO';
+    const messages = [
+      `proposal-controller: Plan submitted (proposal=${planName} namespace=${namespace})`,
+      `agentic-ols: Investigation started for proposal=${planName}`,
+      `agentic-ols: Root cause analysis complete for proposal=${planName}`,
+      `agentic-ols: Remediation execution started for proposal=${planName} option=option-1`,
+      `agentic-ols: Verification attempt ${(index % 2) + 1}/2 for proposal=${planName}`,
+      `agentic-ols: Verification passed for proposal=${planName}`,
+      `agentic-ols: Plan aborted by user=${user} for proposal=${planName}`,
+      `agentic-ols: Remediation applied for proposal=${planName}`,
+    ];
 
-  if (row.event === 'Plan aborted') {
-    items.splice(1, 0, { key: 'User identity', value: `${row.user} (OIDC verified)` });
-    items.splice(2, 0, { key: 'Termination Trigger', value: 'User-initiated Stop Execution (Tier-1 kill switch)' });
-  } else if (row.event === 'Approval granted') {
-    items.splice(1, 0, { key: 'Approver identity', value: `${row.user} (OIDC + MFA verified)` });
-  } else if (row.event === 'RCA verified') {
-    items.splice(1, 0, { key: 'Verified by', value: `${row.user} — diagnosis acknowledged via RCA gate` });
-  }
-
-  return items;
-};
-
-const buildSimulatedAuditRows = (count: number): AuditRow[] => {
-  const priorityRows: Array<Pick<AuditRow, 'planSummary' | 'event' | 'user' | 'tokenBurn'>> = [
-    { planSummary: 'ocp-upgrade-4.15-to-4.16', event: 'Plan aborted', user: 'Marcus Chen', tokenBurn: 2450 },
-    { planSummary: 'scale-otel-collector-replicas', event: 'Verification started', user: 'System (Autonomous)', tokenBurn: 1540 },
-    { planSummary: 'fix-alertmanager-webhook-secret', event: 'Analysis revision requested', user: 'Marcus Chen', tokenBurn: 560 },
-    { planSummary: 'recover-thanos-compactor-pv', event: 'Approval granted', user: 'Sarah Patel', tokenBurn: 1880 },
-    { planSummary: 'reconcile-prometheus-targets', event: 'Verification passed', user: 'System (Autonomous)', tokenBurn: 1920 },
-    { planSummary: 'acs-hostnetwork-policy-fix', event: 'Approval granted', user: 'Marcus Chen', tokenBurn: 920 },
-    { planSummary: 'acs-payments-workload-quarantine', event: 'Investigation started', user: 'System (Autonomous)', tokenBurn: 1420 },
-    { planSummary: 'acs-payments-workload-quarantine', event: 'Plan submitted', user: 'System (Autonomous)', tokenBurn: 380 },
-  ];
-
-  return Array.from({ length: count }, (_, index) => {
-    const priority = priorityRows[index];
-    const event = priority?.event ?? LIFECYCLE_EVENT_SEQUENCE[index % LIFECYCLE_EVENT_SEQUENCE.length];
-    const planSummary = priority?.planSummary ?? PLAN_SUMMARIES[index % PLAN_SUMMARIES.length];
-    const user = priority?.user ?? (
-      event === 'Remediation applied'
-        || event === 'Investigation started'
-        || event === 'Plan submitted'
-        || event === 'Verification started'
-        || event === 'Verification passed'
-        ? 'System (Autonomous)'
-        : HUMAN_USERS[index % HUMAN_USERS.length]
-    );
-    const tokenBurn = priority?.tokenBurn ?? 320 + ((index * 173) % 2800);
-    const receiptHash = buildReceiptHash(index + 1, event);
-    const timestamp = formatAuditTimestamp(index);
-
-    const row: AuditRow = {
+    return {
       id: index + 1,
-      timestamp,
-      planSummary,
-      event,
-      user,
-      tokenBurn,
-      receiptHash,
-      auditReceipt: [],
+      timestamp: formatLogTimestamp(index),
+      level: lifecycleIndex === 6 ? 'WARN' : level,
+      source: messages[lifecycleIndex].split(':')[0],
+      message: messages[lifecycleIndex],
     };
-
-    row.auditReceipt = buildAuditReceipt(row);
-    return row;
   });
-};
 
-const AUDIT_ROWS = buildSimulatedAuditRows(30);
+const AUDIT_LOG_LINES = buildSimulatedAuditLogLines(48);
 
-const LIFECYCLE_EVENTS = [
-  'All',
-  'Plan submitted',
-  'Investigation started',
-  'RCA verified',
-  'Approval granted',
-  'Remediation applied',
-  'Verification started',
-  'Verification passed',
-  'Verification failed',
-  'Analysis revision requested',
-  'Plan aborted',
-] as const;
-
-const USER_FILTERS = ['All', 'System (Autonomous)', 'Human users'] as const;
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-const AuditReceiptGrid: React.FC<{ items: AuditReceiptItem[] }> = ({ items }) => (
-  <div className="ols-audit-receipt-grid">
-    {items.map((item) => (
-      <React.Fragment key={item.key}>
-        <div className="ols-audit-receipt-grid__key">{item.key}</div>
-        <div>
-          <code className="ols-audit-receipt-grid__value">{item.value}</code>
-        </div>
-      </React.Fragment>
-    ))}
-  </div>
-);
-
-const CryptographicReceiptLink: React.FC<{ hash: string; onView: () => void }> = ({ hash, onView }) => (
-  <Button
-    variant="link"
-    isInline
-    icon={<FileAltIcon />}
-    iconPosition="start"
-    aria-label={`View cryptographic receipt ${truncateReceiptHash(hash)}`}
-    className="ols-audit-receipt-link"
-    onClick={onView}
-  >
-    {truncateReceiptHash(hash)}
-  </Button>
-);
-
-// ── Main component ─────────────────────────────────────────────────────────────
+const formatLogLine = (line: AuditLogLine): string =>
+  `${line.timestamp} ${line.level.padEnd(5)} ${line.message}`;
 
 export const AIAuditAndLogsTab: React.FC = () => {
-  const [eventFilterOpen, setEventFilterOpen] = useState(false);
-  const [eventFilter, setEventFilter] = useState<string>('All');
-  const [userFilterOpen, setUserFilterOpen] = useState(false);
-  const [userFilter, setUserFilter] = useState<string>('All');
   const [planSearch, setPlanSearch] = useState('');
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
-  const toggleRow = (id: number) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const filteredLines = useMemo(() => {
+    const query = planSearch.trim().toLowerCase();
+    if (!query) {
+      return AUDIT_LOG_LINES;
+    }
+    return AUDIT_LOG_LINES.filter(
+      (line) =>
+        line.message.toLowerCase().includes(query)
+        || line.source.toLowerCase().includes(query),
+    );
+  }, [planSearch]);
 
-  const filteredRows = useMemo(() => AUDIT_ROWS.filter((row) => {
-    if (eventFilter !== 'All' && row.event !== eventFilter) return false;
-    if (userFilter === 'System (Autonomous)' && !isSystemUser(row.user)) return false;
-    if (userFilter === 'Human users' && isSystemUser(row.user)) return false;
-    if (planSearch && !row.planSummary.toLowerCase().includes(planSearch.toLowerCase())) return false;
-    return true;
-  }), [eventFilter, userFilter, planSearch]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filteredRows.length, eventFilter, userFilter, planSearch]);
-
-  const totalItems = filteredRows.length;
-  const start = (page - 1) * perPage;
-  const paginatedRows = filteredRows.slice(start, start + perPage);
-
-  const onSetPage = useCallback(
-    (_evt: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
-      setPage(newPage);
-    },
-    [],
+  const logText = useMemo(
+    () => filteredLines.map(formatLogLine).join('\n'),
+    [filteredLines],
   );
 
-  const onPerPageSelect = useCallback(
-    (
-      _evt: React.MouseEvent | React.KeyboardEvent | MouseEvent,
-      newPerPage: number,
-      newPage: number,
-    ) => {
-      setPerPage(newPerPage);
-      setPage(newPage);
-    },
-    [],
-  );
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([logText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'agentic-audit-log.txt';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }, [logText]);
 
   useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil(totalItems / perPage));
-    if (page > maxPage) setPage(maxPage);
-  }, [perPage, totalItems, page]);
-
-  const paginationProps = {
-    itemCount: totalItems,
-    page,
-    perPage,
-    onSetPage,
-    onPerPageSelect,
-    perPageOptions: [
-      { title: '5', value: 5 },
-      { title: '10', value: 10 },
-      { title: '20', value: 20 },
-    ],
-  };
+    const container = document.getElementById('ols-audit-log-stream');
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [filteredLines.length]);
 
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          flexWrap={{ default: 'wrap' }}
-          gap={{ default: 'gapSm' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+    <div className="ols-audit-log-stream-panel">
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        flexWrap={{ default: 'wrap' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      >
+        <FlexItem>
+          <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
+            Agentic audit log
+          </Title>
+        </FlexItem>
+        <FlexItem>
+          <Button variant="link" icon={<DownloadIcon />} iconPosition="start" onClick={handleDownload}>
+            Download log
+          </Button>
+        </FlexItem>
+      </Flex>
+
+      <TextInput
+        aria-label="Filter audit log"
+        placeholder="Filter log output…"
+        value={planSearch}
+        onChange={(_event, value) => setPlanSearch(value)}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', maxWidth: '420px' }}
+      />
+
+      <div id="ols-audit-log-stream" className="ols-audit-log-stream" role="log" aria-label="Agentic audit log stream">
+        <ClipboardCopy
+          isReadOnly
+          isCode
+          variant={ClipboardCopyVariant.expansion}
+          hoverTip="Copy"
+          clickTip="Copied"
+          style={{
+            fontFamily: 'var(--pf-t--global--font--family--mono)',
+            fontSize: '12px',
+            maxHeight: '520px',
+            overflow: 'auto',
+            whiteSpace: 'pre',
+          }}
         >
-          <FlexItem>
-            <Title headingLevel="h3" size="md" style={{ margin: 0 }}>
-              Execution ledger
-            </Title>
-          </FlexItem>
-          <FlexItem>
-            <Pagination isCompact {...paginationProps} style={{ margin: 0 }} />
-          </FlexItem>
-        </Flex>
-
-        <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
-          <FlexItem>
-            <Select
-              aria-label="Lifecycle event filter"
-              isOpen={eventFilterOpen}
-              onSelect={(_e, val) => { setEventFilter(val as string); setEventFilterOpen(false); }}
-              onOpenChange={setEventFilterOpen}
-              toggle={(ref: React.Ref<MenuToggleElement>) => (
-                <MenuToggle ref={ref} onClick={() => setEventFilterOpen((o) => !o)} isExpanded={eventFilterOpen}>
-                  {eventFilter === 'All' ? 'Event / action' : eventFilter}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                {LIFECYCLE_EVENTS.map((v) => (
-                  <SelectOption key={v} value={v} isSelected={eventFilter === v}>{v}</SelectOption>
-                ))}
-              </SelectList>
-            </Select>
-          </FlexItem>
-
-          <FlexItem>
-            <TextInput
-              aria-label="Plan summary search"
-              placeholder="Search plan summary…"
-              value={planSearch}
-              onChange={(_e, val) => setPlanSearch(val)}
-              style={{ minWidth: 220 }}
-            />
-          </FlexItem>
-
-          <FlexItem>
-            <Select
-              aria-label="User filter"
-              isOpen={userFilterOpen}
-              onSelect={(_e, val) => { setUserFilter(val as string); setUserFilterOpen(false); }}
-              onOpenChange={setUserFilterOpen}
-              toggle={(ref: React.Ref<MenuToggleElement>) => (
-                <MenuToggle ref={ref} onClick={() => setUserFilterOpen((o) => !o)} isExpanded={userFilterOpen}>
-                  {userFilter === 'All' ? 'User' : userFilter}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                {USER_FILTERS.map((v) => (
-                  <SelectOption key={v} value={v} isSelected={userFilter === v}>{v}</SelectOption>
-                ))}
-              </SelectList>
-            </Select>
-          </FlexItem>
-
-          <FlexItem>
-            <Button variant="link" icon={<DownloadIcon />} iconPosition="start">
-              Export SOC2 / AI compliance report
-            </Button>
-          </FlexItem>
-        </Flex>
-      </StackItem>
-
-      <StackItem>
-        <Table aria-label="Execution ledger" variant="compact" className="ols-audit-ledger-table">
-          <Thead>
-            <Tr>
-              <Th screenReaderText="Row expand" />
-              <Th>Timestamp</Th>
-              <Th>Plan summary</Th>
-              <Th>Event / action</Th>
-              <Th>User</Th>
-              <Th>Token burn</Th>
-              <Th>Cryptographic receipt</Th>
-            </Tr>
-          </Thead>
-
-          {paginatedRows.map((row, rowIndex) => {
-            const isExpanded = expandedRows.has(row.id);
-
-            return (
-              <Tbody key={row.id} isExpanded={isExpanded}>
-                <Tr>
-                  <Td
-                    expand={{
-                      rowIndex,
-                      isExpanded,
-                      onToggle: () => toggleRow(row.id),
-                      expandId: `audit-expand-${row.id}`,
-                    }}
-                  />
-                  <Td dataLabel="Timestamp" className="ols-audit-ledger-table__timestamp">
-                    {row.timestamp}
-                  </Td>
-                  <Td dataLabel="Plan summary">
-                    <code className="ols-audit-ledger-table__plan">{row.planSummary}</code>
-                  </Td>
-                  <Td dataLabel="Event / action">
-                    <EventLabel event={row.event} timestamp={row.timestamp} />
-                  </Td>
-                  <Td dataLabel="User">
-                    {isSystemUser(row.user) ? (
-                      <Label color="grey" isCompact>{row.user}</Label>
-                    ) : (
-                      <span className="ols-audit-ledger-table__user">{row.user}</span>
-                    )}
-                  </Td>
-                  <Td dataLabel="Token burn" className="ols-audit-ledger-table__tokens">
-                    {formatTokenBurn(row.tokenBurn)}
-                  </Td>
-                  <Td dataLabel="Cryptographic receipt">
-                    <CryptographicReceiptLink hash={row.receiptHash} onView={() => toggleRow(row.id)} />
-                  </Td>
-                </Tr>
-
-                <Tr isExpanded={isExpanded}>
-                  <Td colSpan={7} noPadding>
-                    <ExpandableRowContent>
-                      <div className="ols-audit-receipt-expand">
-                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                          <FlexItem>
-                            <Label color="green" icon={<CheckCircleIcon />} isCompact>
-                              Immutable — sealed at write time
-                            </Label>
-                          </FlexItem>
-                          <FlexItem>
-                            <Label color="blue" isCompact variant="outline">
-                              {row.auditReceipt.find((i) => i.key === 'Compliance Framework')?.value ?? ''}
-                            </Label>
-                          </FlexItem>
-                        </Flex>
-                        <AuditReceiptGrid items={row.auditReceipt} />
-                      </div>
-                    </ExpandableRowContent>
-                  </Td>
-                </Tr>
-              </Tbody>
-            );
-          })}
-        </Table>
-
-        <Pagination
-          {...paginationProps}
-          variant={PaginationVariant.bottom}
-          style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
-        />
-      </StackItem>
-    </Stack>
+          {logText || 'No log lines match the current filter.'}
+        </ClipboardCopy>
+      </div>
+    </div>
   );
 };
