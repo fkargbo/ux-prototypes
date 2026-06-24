@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -42,26 +42,18 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
-import { confidenceTierLabelColor, formatConfidenceLabel } from '../../types/confidenceTier';
-import type { RollbackPlan } from '../../types/rollbackPlan';
 import type { Reversibility } from '../../types/reversibility';
 import { formatReversibilityLabel, reversibilityLabelColor } from '../../types/reversibility';
-import {
-  formatRiskBadgeLabel,
-  formatRiskLevelLabel,
-  mapOptionRisk,
-  riskLevelLabelColor,
-  type RiskLevel,
-  type RemediationRisk,
-} from '../../types/riskScore';
+import type { RemediationRisk } from '../../types/riskScore';
 import {
   formatTokenBurn,
   formatTokenBurnPair,
+  getPlanTokensConsumedView,
 } from '../../types/tokenBurn';
 import {
   AGENTIC_STATUS_FILTER_OPTIONS,
@@ -77,16 +69,19 @@ import {
   resolvePlanDrawerData,
   applyScRemediationPatches,
 } from './singleClusterPlanSimulation';
+import {
+  NEW_ALERT_INVESTIGATION_DRAWER_DATA,
+  NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
+  NEW_ALERT_INVESTIGATION_PLANS,
+} from './alertInvestigationPlans';
 import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   clearPlanRemediationDrillSession,
-  getPlanRemediationHref,
   perspectiveKeyFromShellName,
   readPlanRemediationDrillSession,
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
 import {
-  getAgenticAutomationDisabledMessage,
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
@@ -105,22 +100,22 @@ import {
   VerificationPanel,
 } from './planWorkflowPanels';
 import {
-  derivePlanRiskLevel,
   enrichRemediationOptionsWithConfidence,
-  resolveOptionRollbackPlan,
   getOptionExecutionTokenBurn,
   getPlanTokenBurn,
   GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
   MVP_PLAN_IDS,
   normalizeTriggerDomain,
 } from './plansMvpConstants';
+import { getPlanDetailHref, resolvePlanDomainAnnotations } from './domainPlanNavigation';
+import { downloadAnalysisReportMarkdown, downloadRemediationPlanMarkdown } from '../../utils/downloadRemediationPlan';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PlanSeverity = 'critical' | 'warning';
 
 /** Icon semantic used in expandable row consolidated reasons. */
-type ReasonIconType = 'sync' | 'alert' | 'warning' | 'gear' | 'ban' | 'wrench';
+type ReasonIconType = 'sync' | 'alert' | 'warning' | 'gear' | 'ban' | 'wrench' | 'search';
 
 interface ExpandedReason {
   icon: ReasonIconType;
@@ -149,12 +144,10 @@ export interface PlanRow {
   namespace?: string;
   /** Perspective-aware scope cell (cluster or namespace). */
   scope?: string;
-  /** RCA confidence tier (from drawer simulation). */
-  confidenceTier?: ConfidenceTier;
-  /** Governance risk level (highest among remediation options). Set in `buildPlansForPerspective`. */
-  riskLevel?: RiskLevel;
   /** Display timestamp when execution was halted (Plan aborted). */
   terminatedAt?: string;
+  /** Investigation-only proposals have analysis but no remediation hub. */
+  planKind?: 'remediation' | 'analysis-only';
 }
 
 /**
@@ -184,11 +177,16 @@ const PLAN_SORT_SCORES: Record<string, number> = {
   cp1: 68,
   cp2: 12,
   cp3: 75,
+  cp4: 72,
   op1: 18,
   op2: 32,
   op3: 55,
   op4: 24,
   op5: 45,
+  'inv-alert-node-not-ready': 3,
+  'inv-alert-mds-cache-high': 4,
+  'inv-alert-vm-cannot-evict': 5,
+  'inv-alert-node-cpu-high': 6,
 };
 
 /** Simulated plan identity — names, summaries, and scope labels aligned to fleet vs. single-cluster UX. */
@@ -334,6 +332,12 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-update',
   },
+  cp4: {
+    name: 'cluster-update-readiness-report',
+    synopsis: 'Autonomous cluster health data gathering for update readiness assessment',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-update',
+  },
   op1: {
     name: 'reconcile-prometheus-targets',
     synopsis: 'Reconcile Prometheus scrape targets after endpoint failures in openshift-monitoring',
@@ -364,6 +368,7 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-monitoring',
   },
+  ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
 };
 
 type RawPlanRow = Omit<PlanRow, 'status'> & { status: string };
@@ -485,6 +490,20 @@ const ALL_PLANS: RawPlanRow[] = [
     expandedReasons: [
       { icon: 'gear', text: 'ClusterVersion: Admin initiated upgrade path evaluation 4.15 → 4.16.' },
       { icon: 'ban', text: 'Administrative override: plan terminated during preflight validation phase.' },
+    ],
+  },
+  {
+    id: 'cp4',
+    severity: 'warning',
+    status: 'Proposed',
+    score: 72,
+    synopsis: 'Autonomous cluster health data gathering for update readiness assessment',
+    consolidationScope: 'Investigation-only · no remediation options',
+    triggerDomain: 'Cluster update',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'gear', text: 'ClusterVersion operator: autonomous readiness probe requested by update controller.' },
+      { icon: 'search', text: 'Analysis complete — structured health report available for operator review.' },
     ],
   },
   {
@@ -752,6 +771,10 @@ const ALL_PLANS: RawPlanRow[] = [
       { icon: 'alert', text: 'PersesDashboardStorageLocked: database write timeouts on shared persistent volume.' },
     ],
   },
+  ...NEW_ALERT_INVESTIGATION_PLANS.map((plan) => ({
+    ...plan,
+    drawerTargets: ['prod-east-2'],
+  })),
 ];
 
 // ─── Dataset — Single-cluster overrides (Core Platforms perspective) ──────────
@@ -771,26 +794,28 @@ const SC_TOP_PLANS: RawPlanRow[] = [
 const SC_ALL_PLANS: RawPlanRow[] = [
   { ...ALL_PLANS[0],drawerTargets: ['version', 'cluster'] },
   { ...ALL_PLANS[1],drawerTargets: ['version', 'cluster'] },
-  { ...ALL_PLANS[2],drawerTargets: ['analytics-api', 'analytics-worker'] },
-  { ...ALL_PLANS[3],drawerTargets: ['build-webhook-listener'] },
-  { ...ALL_PLANS[4],drawerTargets: ['oauth-openshift'] },
-  { ...ALL_PLANS[5],drawerTargets: ['dns-default-7f8c9', 'dns-default-7f8c9-2', 'dns-default-7f8c9-3', 'dns-default-7f8c9-4'] },
-  { ...ALL_PLANS[6],drawerTargets: ['worker-bm-03', 'worker-bm-04'] },
-  { ...ALL_PLANS[7],drawerTargets: ['staging-api', 'staging-db-config', 'staging-api-svc'] },
-  { ...ALL_PLANS[8],drawerTargets: ['router-default-6d4f8', 'router-default-6d4f8-2'] },
-  { ...ALL_PLANS[9],drawerTargets: ['retail-checkout'] },
-  { ...ALL_PLANS[10],drawerTargets: ['worker-logistics-01'] },
-  { ...ALL_PLANS[11],drawerTargets: ['jenkins-0'] },
-  { ...ALL_PLANS[12],drawerTargets: ['api-gateway-hpa'] },
-  { ...ALL_PLANS[13],drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
-  { ...ALL_PLANS[14],drawerTargets: ['postgres-data-0'] },
-  { ...ALL_PLANS[15],drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
-  { ...ALL_PLANS[16],drawerTargets: ['image-registry'] },
-  { ...ALL_PLANS[17],drawerTargets: ['prometheus-k8s-0', 'prometheus-k8s-1'] },
-  { ...ALL_PLANS[18],drawerTargets: ['alertmanager-main-0'] },
-  { ...ALL_PLANS[19],drawerTargets: ['thanos-compactor-data'] },
-  { ...ALL_PLANS[20],drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
-  { ...ALL_PLANS[21],drawerTargets: ['perses-6d4f8'] },
+  { ...ALL_PLANS[2],drawerTargets: ['version', 'cluster'] },
+  { ...ALL_PLANS[3],drawerTargets: ['analytics-api', 'analytics-worker'] },
+  { ...ALL_PLANS[4],drawerTargets: ['build-webhook-listener'] },
+  { ...ALL_PLANS[5],drawerTargets: ['oauth-openshift'] },
+  { ...ALL_PLANS[6],drawerTargets: ['dns-default-7f8c9', 'dns-default-7f8c9-2', 'dns-default-7f8c9-3', 'dns-default-7f8c9-4'] },
+  { ...ALL_PLANS[7],drawerTargets: ['worker-bm-03', 'worker-bm-04'] },
+  { ...ALL_PLANS[8],drawerTargets: ['staging-api', 'staging-db-config', 'staging-api-svc'] },
+  { ...ALL_PLANS[9],drawerTargets: ['router-default-6d4f8', 'router-default-6d4f8-2'] },
+  { ...ALL_PLANS[10],drawerTargets: ['retail-checkout'] },
+  { ...ALL_PLANS[11],drawerTargets: ['worker-logistics-01'] },
+  { ...ALL_PLANS[12],drawerTargets: ['jenkins-0'] },
+  { ...ALL_PLANS[13],drawerTargets: ['api-gateway-hpa'] },
+  { ...ALL_PLANS[14],drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
+  { ...ALL_PLANS[15],drawerTargets: ['postgres-data-0'] },
+  { ...ALL_PLANS[16],drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
+  { ...ALL_PLANS[17],drawerTargets: ['image-registry'] },
+  { ...ALL_PLANS[18],drawerTargets: ['prometheus-k8s-0', 'prometheus-k8s-1'] },
+  { ...ALL_PLANS[19],drawerTargets: ['alertmanager-main-0'] },
+  { ...ALL_PLANS[20],drawerTargets: ['thanos-compactor-data'] },
+  { ...ALL_PLANS[21],drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
+  { ...ALL_PLANS[22],drawerTargets: ['perses-6d4f8'] },
+  ...NEW_ALERT_INVESTIGATION_PLANS,
 ];
 
 interface PlanDrawerData {
@@ -1114,6 +1139,19 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: 'N/A — plan aborted',
     confidence: 'Medium',
   },
+  cp4: {
+    steps: [
+      { id: 's1', time: '11:22:04', status: 'done', icon: 'database', title: 'ClusterVersion operator requested readiness probe', detail: 'Autonomous investigation triggered by update controller' },
+      { id: 's2', time: '11:22:18', status: 'done', icon: 'database', title: 'Collected ClusterOperator health and channel metadata', detail: '38 operators evaluated · 3 advisory warnings surfaced' },
+      { id: 's3', time: '11:22:31', status: 'done', icon: 'search', title: 'Structured readiness report synthesized', detail: 'No remediation paths generated — investigation-only output' },
+    ],
+    aggregatedFinding: 'Autonomous cluster update readiness investigation completed with structured health findings and no remediation options.',
+    rootCauseNarrative: 'The cluster update controller used the proposal resource to gather operator health, channel metadata, and blocking conditions. Analysis is complete; the output is intended for human review before any upgrade is scheduled.',
+    remediationProposal: 'No remediation options — acknowledge this investigation-only proposal after review.',
+    riskAssessment: 'N/A — investigation-only proposal.',
+    estimatedRecovery: 'N/A',
+    confidence: 'High',
+  },
   op1: {
     steps: [
       { id: 's1', time: '08:42:11', status: 'done', icon: 'exclamation', title: 'PrometheusTargetDown alert fired', detail: 'Endpoint scrape failures detected in openshift-monitoring' },
@@ -1179,6 +1217,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: '~3m',
     confidence: 'High',
   },
+  ...NEW_ALERT_INVESTIGATION_DRAWER_DATA,
 };
 
 // ─── Remediation options data ────────────────────────────────────────────────
@@ -1192,8 +1231,6 @@ export interface RemediationOption {
   confidence?: ConfidenceTier;
   /** Rollback assessment (backend: options[].proposal.reversible). */
   reversible: Reversibility;
-  /** Optional rollback plan (backend: options[].proposal.rollbackPlan). */
-  rollbackPlan?: RollbackPlan;
   model: 'smart' | 'fast';
   rawCommands: string;
 }
@@ -1548,9 +1585,39 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Approved':     'orange',
   'Executing':    'teal',
   'Verifying':    'teal',
+  'Acknowledged': 'green',
   'Completed':    'green',
   'Failed':       'red',
   'Plan aborted': 'red',
+};
+
+const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
+  const { getPlanWorkflow } = usePlanWorkflow();
+  const workflow = getPlanWorkflow(row.id);
+  const { display, tooltip } = getPlanTokensConsumedView(
+    row.status,
+    getPlanTokenBurn(row.id),
+    {
+      executionOptionId: workflow.executionApproval?.optionId,
+      planKind: row.planKind,
+    },
+  );
+
+  if (display === '—') {
+    return (
+      <span aria-label="Token consumption in progress" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        —
+      </span>
+    );
+  }
+
+  return (
+    <Tooltip content={tooltip} position="top">
+      <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default', whiteSpace: 'nowrap' }}>
+        {display}
+      </span>
+    </Tooltip>
+  );
 };
 
 export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }> = ({
@@ -1632,25 +1699,6 @@ const OpenShiftResourceBadge: React.FC<{ label: string; backgroundColor: string 
 /** OpenShift console–style resource label for Plan resources. */
 export const PlanResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="P" backgroundColor="#2b9af3" />
-);
-
-export const PlanConfidenceBadge: React.FC<{ tier: ConfidenceTier; showPrefix?: boolean }> = ({
-  tier,
-  showPrefix = true,
-}) => (
-  <Label color={confidenceTierLabelColor(tier)} isCompact>
-    {showPrefix ? formatConfidenceLabel(tier) : tier}
-  </Label>
-);
-
-export const PlanRiskBadge: React.FC<{ level: RiskLevel; isCompact?: boolean; showPrefix?: boolean }> = ({
-  level,
-  isCompact = true,
-  showPrefix = true,
-}) => (
-  <Label color={riskLevelLabelColor(level)} isCompact={isCompact}>
-    {showPrefix ? formatRiskBadgeLabel(level) : formatRiskLevelLabel(level)}
-  </Label>
 );
 
 const NamespaceResourceBadge: React.FC = () => (
@@ -1775,6 +1823,8 @@ interface PlansTableCoreProps {
   isAgenticAutomationEnabled: boolean;
   /** When true, granular observability telemetry domains are coalesced to "Observability" in the cell badge. */
   mapObservabilityDomains?: boolean;
+  /** Global Agentic plans list only — domain-scoped lists (e.g. Troubleshooting plans) omit this column. */
+  showTriggerDomainColumn?: boolean;
 }
 
 export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -1784,6 +1834,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   onReviewPlan,
   isAgenticAutomationEnabled,
   mapObservabilityDomains = false,
+  showTriggerDomainColumn = true,
 }) => (
   <Table
     aria-label={ariaLabel}
@@ -1797,28 +1848,15 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   >
     <Thead>
       <Tr>
-        <Th style={{ width: '17%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
-        <Th style={{ width: '18%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
-        <Th style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
-        <Th style={{ width: '13%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
-        <Th style={{ width: '9%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
-        <Th className="ols-plans-table__metric-header" style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
-          <PlansTableColumnHeader
-            label="Confidence"
-            popoverHeader="How accurate is the fix?"
-            popoverBody="Indicates how certain the AI is that this specific plan will successfully resolve the root cause, based on historical telemetry and event correlation."
-            ariaLabel="More information about Confidence"
-          />
-        </Th>
-        <Th className="ols-plans-table__metric-header" style={{ width: '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>
-          <PlansTableColumnHeader
-            label="Risk"
-            popoverHeader="What is the blast radius?"
-            popoverBody="Indicates the highest risk level among available remediation options for this plan, based on backend RiskLevel assessment of each option's blast radius."
-            ariaLabel="More information about Risk"
-          />
-        </Th>
-        <Th style={{ width: '10%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '18%' : '20%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '20%' : '26%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Plan summary</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
+        {showTriggerDomainColumn ? (
+          <Th style={{ width: '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
+        ) : null}
+        <Th style={{ width: showTriggerDomainColumn ? '10%' : '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '10%' : '11%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '10%' : '12%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
       </Tr>
     </Thead>
 
@@ -1831,24 +1869,15 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                 <PlanResourceBadge />
               </FlexItem>
               <FlexItem style={{ flex: '1 1 auto', minWidth: 0 }}>
-                {row.triggerDomain === 'Observability' ? (
-                  <Link
-                    to={`/core/observe/troubleshooting-plans/${encodeURIComponent(row.id)}`}
-                    style={{ fontWeight: 400, whiteSpace: 'normal', wordBreak: 'break-word' }}
-                  >
-                    {row.name ?? row.id}
-                  </Link>
-                ) : (
-                  <Button
-                    variant="link"
-                    isInline
-                    isDisabled={!isAgenticAutomationEnabled}
-                    onClick={() => onReviewPlan(row)}
-                    style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
-                  >
-                    {row.name ?? row.id}
-                  </Button>
-                )}
+                <Button
+                  variant="link"
+                  isInline
+                  isDisabled={!isAgenticAutomationEnabled}
+                  onClick={() => onReviewPlan(row)}
+                  style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
+                >
+                  {row.name ?? row.id}
+                </Button>
               </FlexItem>
             </Flex>
           </Td>
@@ -1868,24 +1897,18 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             />
           </Td>
 
-          <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
-            <TriggerDomainCell domain={row.triggerDomain} mapObservabilityDomains={mapObservabilityDomains} />
-          </Td>
+          {showTriggerDomainColumn ? (
+            <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
+              <TriggerDomainCell domain={row.triggerDomain} mapObservabilityDomains={mapObservabilityDomains} />
+            </Td>
+          ) : null}
 
           <Td dataLabel="Status">
             <StatusLabel status={row.status} terminatedAt={row.terminatedAt} />
           </Td>
 
-          <Td dataLabel="Confidence">
-            {row.confidenceTier ? (
-              <PlanConfidenceBadge tier={row.confidenceTier} showPrefix={false} />
-            ) : (
-              '—'
-            )}
-          </Td>
-
-          <Td dataLabel="Risk">
-            <PlanRiskBadge level={row.riskLevel ?? 'Medium'} showPrefix={false} />
+          <Td dataLabel="Tokens consumed">
+            <PlanTokensConsumedCell row={row} />
           </Td>
 
           <Td dataLabel="Created">
@@ -1938,8 +1961,6 @@ const PlansTable: React.FC<PlansTableProps> = ({
     plansFilter.searchInputValue,
     plansFilter.searchCategory,
     plansFilter.statusFilters,
-    plansFilter.riskFilters,
-    plansFilter.confidenceFilters,
     plansFilter.triggerDomainFilters,
   ]);
 
@@ -2049,6 +2070,7 @@ const RemediationOptionCard: React.FC<{
   isExecutionPhase: boolean;
   isOptionLocked: boolean;
   showExecutionLog: boolean;
+  rootCause?: { aggregatedFinding: string; rootCauseNarrative: string };
 }> = ({
   option,
   index,
@@ -2061,15 +2083,14 @@ const RemediationOptionCard: React.FC<{
   isExecutionPhase,
   showExecutionLog,
   isOptionLocked,
+  rootCause,
 }) => {
   const isFirst = index === 0;
   const { status } = plan;
-  const isAnalyzing = status === 'Analyzing';
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isExecutionKilled = Boolean(executionKillState);
   const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
-  const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
-  const rollbackPlan = resolveOptionRollbackPlan(plan.id, option);
+  const isProposed = status === 'Proposed';
   const cardRootRef = React.useRef<HTMLDivElement>(null);
   const wasSelectedRef = React.useRef(isSelected);
   const activeExecutionLogLines = useMemo(
@@ -2134,14 +2155,6 @@ const RemediationOptionCard: React.FC<{
           <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
             {formatReversibilityLabel(option.reversible)}
           </Label>
-          <Label color={riskLevelLabelColor(mapOptionRisk(option.risk))} variant="outline" isCompact>
-            Risk: {mapOptionRisk(option.risk)}
-          </Label>
-          {option.confidence && (
-            <Label color={confidenceTierLabelColor(option.confidence)} variant="outline" isCompact>
-              {formatConfidenceLabel(option.confidence)}
-            </Label>
-          )}
         </Flex>
       </Flex>
       <span
@@ -2214,10 +2227,15 @@ const RemediationOptionCard: React.FC<{
           </Content>
 
           {(() => {
-            const executionBurn = getOptionExecutionTokenBurn(plan.id, option.id);
-            const burnLine = executionBurn !== undefined
-              ? formatTokenBurnPair(getPlanTokenBurn(plan.id).analysis, executionBurn)
-              : `Analysis: ${formatTokenBurn(getPlanTokenBurn(plan.id).analysis)}`;
+            const burn = getPlanTokenBurn(plan.id);
+            const executionBurn =
+              isTerminal && isFirst
+                ? getOptionExecutionTokenBurn(plan.id, option.id) ?? burn.execution
+                : undefined;
+            const burnLine = formatTokenBurnPair(
+              burn.analysis,
+              executionBurn !== undefined && executionBurn > 0 ? executionBurn : undefined,
+            );
             return (
               <Content
                 component="small"
@@ -2295,6 +2313,18 @@ const RemediationOptionCard: React.FC<{
               >
                 {option.rawCommands}
               </ClipboardCopy>
+              {isProposed && rootCause && (
+                <Button
+                  variant="secondary"
+                  icon={<DownloadIcon />}
+                  style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+                  onClick={() =>
+                    downloadRemediationPlanMarkdown(plan, option, rootCause)
+                  }
+                >
+                  Download plan
+                </Button>
+              )}
             </div>
           )}
 
@@ -2311,69 +2341,11 @@ const RemediationOptionCard: React.FC<{
             >
               {!isExecutionKilled && (
                 <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)} style={{ margin: 0 }}>
-                  Stop Execution
+                  Stop execution
                 </Button>
               )}
             </div>
           )}
-
-          {rollbackPlan && (
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-              <Button
-                variant="link"
-                isInline
-                onClick={() => setIsRollbackModalOpen(true)}
-                style={{ margin: 0, paddingLeft: 0 }}
-              >
-                View rollback plan
-              </Button>
-            </div>
-          )}
-
-          <Modal
-            variant={ModalVariant.medium}
-            isOpen={isRollbackModalOpen}
-            onClose={() => setIsRollbackModalOpen(false)}
-            aria-labelledby={`rollback-plan-title-${option.id}`}
-          >
-            <ModalHeader title="Rollback plan" labelId={`rollback-plan-title-${option.id}`} />
-            <ModalBody>
-              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                {rollbackPlan?.description}
-              </Content>
-              {rollbackPlan?.command && (
-                <div>
-                  <Content
-                    component="small"
-                    style={{
-                      display: 'block',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      marginBottom: 'var(--pf-t--global--spacer--xs)',
-                    }}
-                  >
-                    Rollback command
-                  </Content>
-                  <ClipboardCopy
-                    isReadOnly
-                    isCode
-                    hoverTip="Copy"
-                    clickTip="Copied"
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                  >
-                    {rollbackPlan.command}
-                  </ClipboardCopy>
-                </div>
-              )}
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="primary" onClick={() => setIsRollbackModalOpen(false)}>
-                Close
-              </Button>
-            </ModalFooter>
-          </Modal>
 
           <Modal
             variant={ModalVariant.small}
@@ -2388,7 +2360,7 @@ const RemediationOptionCard: React.FC<{
             </ModalBody>
             <ModalFooter>
               <Button variant="danger" onClick={handleConfirmStopExecution}>
-                Yes, Stop Execution
+                Yes, stop execution
               </Button>
               <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
                 Cancel
@@ -2448,11 +2420,12 @@ const HubLockedPlaceholder: React.FC = () => (
 const PostMortemPanel: React.FC<{
   plan: PlanRow;
   verification?: import('../../context/PlanWorkflowContext').VerificationState | null;
+  executionOptionId?: string;
   isMetricsExpanded?: boolean;
   onToggleMetrics?: (expanded: boolean) => void;
   isLogsExpanded?: boolean;
   onToggleLogs?: (expanded: boolean) => void;
-}> = ({ plan, verification, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
+}> = ({ plan, verification, executionOptionId, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
   const [localShowLogs, setLocalShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
   // Fall back to a synthesised post-mortem for plans executed live in this session.
@@ -2525,7 +2498,10 @@ const PostMortemPanel: React.FC<{
           )}
           {(() => {
             const burn = getPlanTokenBurn(plan.id);
-            const execution = burn.execution ?? 0;
+            const executionFromOption = executionOptionId
+              ? getOptionExecutionTokenBurn(plan.id, executionOptionId)
+              : undefined;
+            const execution = executionFromOption ?? burn.execution ?? 0;
             return (
               <DescriptionListGroup>
                 <DescriptionListTerm>Token burn</DescriptionListTerm>
@@ -2857,12 +2833,13 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const status = plan.status;
   const isAnalyzing = status === 'Analyzing';
   const isProposed = status === 'Proposed';
-  const isApproved = status === 'Approved';
+  const isAcknowledged = status === 'Acknowledged';
+  const isAnalysisOnly = plan.planKind === 'analysis-only';
   const isExecuting = status === 'Executing';
   const isVerifying = status === 'Verifying';
   const isPlanAborted = status === 'Plan aborted';
   const isExecutionPhase = isExecuting || isPlanAborted;
-  const isOptionLocked = isApproved || isExecutionPhase;
+  const isOptionLocked = isExecutionPhase || isVerifying;
   const isTerminal = status === 'Completed' || status === 'Failed';
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
@@ -2872,8 +2849,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const { registerPlanTermination } = usePlanTermination();
   const {
     getPlanWorkflow,
-    registerExecutionApproval,
-    startExecution,
+    executeRemediation,
+    acknowledgePlan,
     startVerification,
     completeVerification,
     finishReAnalysis,
@@ -2963,11 +2940,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const verificationState = resolveVerificationState(plan.id, workflow.verification);
   const showStaticVerification = isVerifying && verificationState && !workflow.verification;
 
-  const handleApproveForExecution = () => {
+  const handleExecuteRemediation = () => {
     if (!selectedOption || !isAgenticAutomationEnabled) {
       return;
     }
-    registerExecutionApproval(plan.id, {
+    setRetryBanner(null);
+    executeRemediation(plan.id, {
       optionIndex: selectedOptionIndex,
       optionId: selectedOption.id,
       optionTitle: selectedOption.title,
@@ -2975,12 +2953,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     });
   };
 
-  const handleStartExecution = () => {
-    if (!isAgenticAutomationEnabled || !workflow.executionApproval) {
-      return;
-    }
-    setRetryBanner(null);
-    startExecution(plan.id);
+  const handleAcknowledgePlan = () => {
+    acknowledgePlan(plan.id);
   };
 
   const handleVerificationComplete = useCallback(() => {
@@ -3136,8 +3110,56 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           )}
       </StackItem>
 
-      {/* ── Section C: Remediation Hub ─────────────────────────────────── */}
+      {/* ── Section C: Remediation Hub (or investigation-only) ─────────── */}
       <StackItem>
+        {isAnalysisOnly ? (
+          <>
+            <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              Investigation findings
+            </Title>
+            <Alert
+              variant="info"
+              isInline
+              title="Investigation-only proposal"
+              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            >
+              <Content component="p" style={{ margin: 0 }}>
+                This cluster update controller proposal gathered structured health data only. No remediation
+                options were generated — acknowledge after review to clear it from your active plans list.
+              </Content>
+            </Alert>
+            {isAcknowledged ? (
+              <Alert variant="success" isInline title="Plan acknowledged">
+                <Content component="p" style={{ margin: 0 }}>
+                  This investigation-only proposal has been marked as reviewed. No further action is required.
+                </Content>
+              </Alert>
+            ) : (
+              <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                <Button
+                  variant="primary"
+                  isDisabled={!isAgenticAutomationEnabled}
+                  onClick={handleAcknowledgePlan}
+                >
+                  Acknowledge
+                </Button>
+                <Button
+                  variant="secondary"
+                  icon={<DownloadIcon />}
+                  onClick={() =>
+                    downloadAnalysisReportMarkdown(plan, {
+                      aggregatedFinding: drawer.aggregatedFinding,
+                      rootCauseNarrative: drawer.rootCauseNarrative,
+                    })
+                  }
+                >
+                  Download analysis report
+                </Button>
+              </Flex>
+            )}
+          </>
+        ) : (
+        <>
         <Flex
           direction={{ default: 'column' }}
           alignItems={{ default: 'alignItemsFlexStart' }}
@@ -3196,7 +3218,11 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                   })}
                 </Stack>
               )}
-              <PostMortemPanel plan={plan} verification={workflow.verification} />
+              <PostMortemPanel
+                plan={plan}
+                verification={workflow.verification}
+                executionOptionId={workflow.executionApproval?.optionId}
+              />
             </>
           ) : isVerifying && verificationState ? (
             <VerificationPanel
@@ -3209,16 +3235,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               {retryBanner && (
                 <Alert variant="warning" isInline title={retryBanner} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
               )}
-              {!isAgenticAutomationEnabled && (
-                <Alert
-                  variant="warning"
-                  isInline
-                  title={getAgenticAutomationDisabledMessage(isSingleCluster)}
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                />
-              )}
 
-              {workflow.executionApproval && (isApproved || isExecuting) && (
+              {workflow.executionApproval && (isExecuting || isVerifying) && (
                 <ProposalApprovalArtifact approval={workflow.executionApproval} />
               )}
 
@@ -3246,6 +3264,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           isExecutionPhase={isExecutionPhase}
                           isOptionLocked={isOptionLocked}
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
+                          rootCause={{
+                            aggregatedFinding: drawer.aggregatedFinding,
+                            rootCauseNarrative: drawer.rootCauseNarrative,
+                          }}
                         />
                       </StackItem>
                     );
@@ -3257,28 +3279,18 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                 <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <Button
                     variant="primary"
-                    isDisabled={!isAgenticAutomationEnabled}
-                    onClick={handleApproveForExecution}
-                  >
-                    Approve for execution
-                  </Button>
-                </Flex>
-              )}
-
-              {isApproved && workflow.executionApproval && (
-                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                  <Button
-                    variant="primary"
                     isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
                     isLoading={isExecutionRunning}
-                    onClick={handleStartExecution}
+                    onClick={handleExecuteRemediation}
                   >
-                    Start execution
+                    Execute remediation
                   </Button>
                 </Flex>
               )}
             </>
           )}
+        </>
+        )}
       </StackItem>
     </Stack>
   );
@@ -3287,11 +3299,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 // ─── Plan remediation drill-down routes ───────────────────────────────────────
 
 export function getPlanRemediationPath(plan: PlanRow, perspectiveKey?: AppShellPerspectiveKey): string {
-  const slug = plan.name ?? plan.id;
   if (perspectiveKey) {
-    return getPlanRemediationHref(slug, perspectiveKey);
+    return getPlanDetailHref(plan, perspectiveKey);
   }
-  return `/core/observe/ai-hub/plans/${encodeURIComponent(slug)}/remediation`;
+  return resolvePlanDomainAnnotations(plan).detailPath;
 }
 
 /** @deprecated Use getPlanRemediationPath — retained for existing deep links. */
@@ -3331,8 +3342,7 @@ export function buildPlansForPerspective(
         name: identity?.name ?? row.id,
         synopsis: identity?.synopsis ?? normalizedRow.synopsis,
         namespace: identity?.namespace,
-        confidenceTier: drawerData?.confidence,
-        riskLevel: derivePlanRiskLevel(row.id, remediationOptions),
+        planKind: row.id === 'cp4' ? 'analysis-only' : 'remediation',
         cluster: isSingleCluster
           ? CORE_PLATFORMS_CLUSTER_ID
           : identity?.fleetCluster ?? normalizedRow.drawerTargets[0] ?? '—',
@@ -3400,24 +3410,12 @@ export const PlansAndApprovalsTab: React.FC = () => {
       perspectiveKeyFromShellName(activePerspective)
       ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
     writePlanRemediationDrillSession({ perspectiveKey });
-    navigate(getPlanRemediationPath(plan, perspectiveKey));
+    navigate(getPlanDetailHref(plan, perspectiveKey));
   }, [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate]);
 
   return (
     <Stack>
-      {!isAgenticAutomationEnabled && (
-        <StackItem style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-          <Alert variant="warning" isInline title={getAgenticAutomationDisabledMessage(isSingleCluster)} />
-        </StackItem>
-      )}
       <StackItem className="ols-ai-hub-plans-section">
-        <Title
-          headingLevel="h3"
-          size="md"
-          className="ols-aio-fleet-subcard-title ols-ai-hub-plans-section-title"
-        >
-          Plans
-        </Title>
         <PlansTable
           onReviewPlan={openPlanRemediation}
           rows={plans}

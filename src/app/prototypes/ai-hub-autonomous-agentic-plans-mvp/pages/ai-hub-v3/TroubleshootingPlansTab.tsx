@@ -2,29 +2,28 @@ import * as React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Alert,
   Content,
   Pagination,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
 import {
-  getAgenticAutomationDisabledMessage,
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
-  getTroubleshootingPlanRemediationHref,
   perspectiveKeyFromShellName,
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
+import { getPlanDetailHref } from './domainPlanNavigation';
 import {
   PlansTableCore,
   buildPlansForPerspective,
   type PlanRow,
 } from './PlansAndApprovalsTab';
+import { isNewAlertInvestigationPlanVisible } from './alertInvestigationPlans';
 import {
   OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS,
   PlansFilterToolbar,
@@ -52,7 +51,8 @@ export const TroubleshootingPlansTab: React.FC = () => {
     return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).filter(
       (plan) =>
         (OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS as readonly string[]).includes(plan.triggerDomain)
-        && plan.consolidationScope.startsWith('Triggered by alert:'),
+        && plan.consolidationScope.startsWith('Triggered by alert:')
+        && isNewAlertInvestigationPlanVisible(plan),
     );
   }, [isSingleCluster, planExecutionRuntime]);
 
@@ -68,8 +68,6 @@ export const TroubleshootingPlansTab: React.FC = () => {
     plansFilter.searchInputValue,
     plansFilter.searchCategory,
     plansFilter.statusFilters,
-    plansFilter.riskFilters,
-    plansFilter.confidenceFilters,
     plansFilter.triggerDomainFilters,
   ]);
 
@@ -94,19 +92,13 @@ export const TroubleshootingPlansTab: React.FC = () => {
         perspectiveKeyFromShellName(activePerspective)
         ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
       writePlanRemediationDrillSession({ perspectiveKey });
-      navigate(getTroubleshootingPlanRemediationHref(plan.name ?? plan.id, perspectiveKey));
+      navigate(getPlanDetailHref(plan, perspectiveKey));
     },
     [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate],
   );
 
   return (
     <Stack hasGutter>
-      {!isAgenticAutomationEnabled && (
-        <StackItem>
-          <Alert variant="warning" isInline title={getAgenticAutomationDisabledMessage(isSingleCluster)} />
-        </StackItem>
-      )}
-
       <StackItem className="ols-ai-hub-plans-section">
         <PlansFilterToolbar
           filterAriaLabel="Filter troubleshooting plans"
@@ -145,6 +137,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={openPlanRemediation}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+            showTriggerDomainColumn={false}
           />
         )}
       </StackItem>

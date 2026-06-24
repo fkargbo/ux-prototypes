@@ -12,11 +12,16 @@ export const MVP_PLAN_IDS = new Set([
   'cp1',
   'cp2',
   'cp3',
+  'cp4',
   'op1',
   'op2',
   'op3',
   'op4',
   'op5',
+  'inv-alert-node-not-ready',
+  'inv-alert-mds-cache-high',
+  'inv-alert-vm-cannot-evict',
+  'inv-alert-node-cpu-high',
 ]);
 
 export const MVP_TRIGGER_DOMAINS = ['Observability', 'Cluster update', 'Security'] as const;
@@ -34,11 +39,16 @@ export const PLAN_TOKEN_BURN: Record<string, PlanTokenBurn> = {
   cp1: { analysis: 2100, executionByOption: { 'cp1-o1': 4800, 'cp1-o2': 420 } },
   cp2: { analysis: 680, execution: 3200 },
   cp3: { analysis: 1560, execution: 890 },
+  cp4: { analysis: 1240, executionByOption: {} },
   op1: { analysis: 740, execution: 1180 },
   op2: { analysis: 560, executionByOption: { 'op2-o1': 380, 'op2-o2': 290 } },
   op3: { analysis: 1120, execution: 760, executionByOption: { 'op3-o1': 760 } },
   op4: { analysis: 890, execution: 1540 },
   op5: { analysis: 480, executionByOption: { 'op5-o1': 620, 'op5-o2': 540 } },
+  'inv-alert-node-not-ready': { analysis: 420 },
+  'inv-alert-mds-cache-high': { analysis: 410 },
+  'inv-alert-vm-cannot-evict': { analysis: 400 },
+  'inv-alert-node-cpu-high': { analysis: 390 },
 };
 
 /** Per-option diagnosis confidence (backend: options[].diagnosis.confidence). */

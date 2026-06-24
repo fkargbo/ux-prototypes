@@ -128,6 +128,7 @@ export interface AlertsTabFleetOverviewContentProps {
   setAlertsGroupBy: (v: AlertsGroupByOption) => void;
   onClusterClick: (cluster: ClusterData) => void;
   onAlertClick: (alert: import('../data/types').AlertData, initialTab?: number) => void;
+  onInvestigateWithAi?: (alert: import('../data/types').AlertData) => void;
   setMainPageTab: (v: string | number) => void;
   setManagementSubTab: (v: string | number) => void;
   clearAlertsTabFilters: () => void;
@@ -213,6 +214,7 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
     setAlertsGroupBy,
     onClusterClick,
     onAlertClick,
+    onInvestigateWithAi,
     setMainPageTab,
     setManagementSubTab,
     clearAlertsTabFilters,
@@ -382,6 +384,7 @@ export const AlertsTabFleetOverviewContent: React.FunctionComponent<AlertsTabFle
                     onClearComponentFilter={() => setMainComponentFilter(null)}
                     onClusterClick={onClusterClick}
                     onAlertClick={onAlertClick}
+                    onInvestigateWithAi={onInvestigateWithAi}
                     onAlertRuleClick={() => {
                       setMainPageTab('management');
                       setManagementSubTab('alert-rules');

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Content, Title } from '@patternfly/react-core';
 import { AiHubPageHeading } from '../components/AiHubPageHeading';
 import { AuditKillSwitchPanel } from '../components/AuditKillSwitchPanel';
+import { AgenticKillSwitchBanner } from '../components/AgenticKillSwitchBanner';
 import * as Hub from './ai-hub-v3';
 import './ai-hub-page.css';
 
@@ -44,6 +45,7 @@ export const AuditAndLogsPage: React.FC = () => {
         role="main"
         aria-label="Audit and logs content"
       >
+        <AgenticKillSwitchBanner />
         <AuditKillSwitchPanel />
         <Hub.AIAuditAndLogsTab />
       </div>

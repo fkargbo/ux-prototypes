@@ -14,7 +14,7 @@ import type {
   AlertRuleModification,
 } from './types';
 import type { AlertRecord, ClusterHealth } from '../../../components/autonomousAiObserve/data';
-import { ALERTS, CLUSTERS, FLEET_WIDE_REGIONAL_INGRESS } from '../../../components/autonomousAiObserve/data';
+import { ALERTS, CLUSTERS, DEFAULT_CORE_PLATFORMS_CLUSTER_ID, FLEET_WIDE_REGIONAL_INGRESS } from '../../../components/autonomousAiObserve/data';
 import { toFleetRegionFilterLabel } from './utils';
 
 // Mock Alert Rules Data
@@ -503,6 +503,11 @@ export const mockTrendData: TrendData[] = [
 //  R15 ServiceUnavailable   Info      4  4 clusters  Cluster    Quota           Platform
 //  R16 HighMemoryUsage      Info      2  2 clusters  Namespace  Controller      User
 //  R17 PodCrashLoopBackOff  Info      5  3 clusters  Namespace  Workload        User
+//
+// Unmapped alerts (no pre-existing troubleshooting plan — kebab shows "Investigate with AI"):
+//  NodeNotReady       Critical  2  2 clusters  Cluster    Controller      User
+//  MDSCacheUsageHigh  Critical  1  1 cluster   Cluster    Storage         Platform
+//  NodeCPUHigh        Warning   1  1 cluster   Namespace  Controller      User
 // ============================================================
 
 function makeKuklasAlert(
@@ -558,6 +563,7 @@ export function buildKuklasMockClusters(baseTime: Date = new Date()): ClusterDat
       alertDefs: [
         ['e1-r1',   'PodCrashLoopBackOff', 'Critical', 'Cluster',   'Network',        'User',     45],
         ['e1-r2',   'HighMemoryUsage',     'Critical', 'Cluster',   'Pod',            'User',     30],
+        ['e1-r3',   'NodeNotReady',        'Critical', 'Cluster',   'Controller',     'User',     28],
         ['e1-r5',   'HighCPUUsage',        'Warning',  'Cluster',   'Network',        'User',     90],
         ['e1-r6a',  'NetworkLatency',      'Warning',  'Cluster',   'Pod',            'Platform', 120],
         ['e1-r6b',  'NetworkLatency',      'Warning',  'Cluster',   'Pod',            'Platform', 135],
@@ -577,6 +583,7 @@ export function buildKuklasMockClusters(baseTime: Date = new Date()): ClusterDat
       nodeCount: 14, cpuUsage: 58, memUsage: 61,
       alertDefs: [
         ['e2-r1',  'PodCrashLoopBackOff', 'Critical', 'Cluster',   'Network',        'User',     50],
+        ['e2-r3',  'NodeCPUHigh',         'Warning',  'Namespace', 'Controller',     'User',     42],
         ['e2-r5',  'HighCPUUsage',        'Warning',  'Cluster',   'Network',        'User',     85],
         ['e2-r7',  'QuotaWarning',        'Warning',  'Cluster',   'Quota',          'Platform', 210],
         ['e2-r8',  'PodCrashLoopBackOff', 'Warning',  'Cluster',   'Workload',       'User',     60],
@@ -591,6 +598,7 @@ export function buildKuklasMockClusters(baseTime: Date = new Date()): ClusterDat
       nodeCount: 16, cpuUsage: 64, memUsage: 70,
       alertDefs: [
         ['w1-r2',   'HighMemoryUsage',     'Critical', 'Cluster',   'Pod',      'User',     35],
+        ['w1-r3',   'MDSCacheUsageHigh',   'Critical', 'Cluster',   'Storage',  'Platform', 32],
         ['w1-r5',   'HighCPUUsage',        'Warning',  'Cluster',   'Network',  'User',     95],
         ['w1-r6',   'NetworkLatency',      'Warning',  'Cluster',   'Pod',      'Platform', 140],
         ['w1-r7',   'QuotaWarning',        'Warning',  'Cluster',   'Quota',    'Platform', 220],
@@ -633,6 +641,7 @@ export function buildKuklasMockClusters(baseTime: Date = new Date()): ClusterDat
       id: 'kc6', name: 'prod-eu-west-1', region: 'EU West', provider: 'Azure', team: 'Security',
       nodeCount: 12, cpuUsage: 55, memUsage: 59,
       alertDefs: [
+        ['ew1-r1',  'NodeNotReady',        'Critical', 'Cluster',   'Controller','User',     22],
         ['ew1-r3',  'ETCDHighLatency',    'Critical', 'Cluster',   'Pod',     'User',     20],
         ['ew1-r8',  'PodCrashLoopBackOff','Warning',  'Cluster',   'Workload','User',     80],
         ['ew1-r9',  'ETCDHighLatency',    'Warning',  'Namespace', 'Quota',   'User',     170],
@@ -723,6 +732,55 @@ export function buildKuklasMockClusters(baseTime: Date = new Date()): ClusterDat
   }
 
   return result;
+}
+
+/**
+ * Core platforms alerting — single local cluster (`prod-east-2`) with namespace-scoped alerts.
+ * Includes unmapped alerts for “Investigate with AI” demos (no pre-existing troubleshooting plan).
+ */
+export function buildCorePlatformsAlertClusters(baseTime: Date = new Date()): ClusterData[] {
+  type AlertDef = [string, string, AlertSeverity, AlertGroup, AlertComponent, string, number];
+
+  const coreCluster = CLUSTERS.find((c) => c.id === DEFAULT_CORE_PLATFORMS_CLUSTER_ID) ?? CLUSTERS[0];
+
+  const alertDefs: AlertDef[] = [
+    // Unmapped — kebab shows “Investigate with AI”
+    ['cp-r1', 'NodeNotReady', 'Critical', 'Namespace', 'Controller', 'User', 18],
+    ['cp-r2', 'MDSCacheUsageHigh', 'Critical', 'Namespace', 'Storage', 'Platform', 24],
+    ['cp-r3', 'VMCannotBeEvicted', 'Critical', 'Namespace', 'Pod', 'Platform', 28],
+    ['cp-r6', 'NodeCPUHigh', 'Warning', 'Namespace', 'Controller', 'User', 52],
+    // Mapped — kebab shows “View AI investigation”
+    ['cp-r4', 'HighMemoryUsage', 'Critical', 'Namespace', 'Pod', 'User', 34],
+    ['cp-r5', 'PodCrashLoopBackOff', 'Critical', 'Namespace', 'Workload', 'User', 41],
+    ['cp-r7', 'ETCDHighLatency', 'Warning', 'Namespace', 'etcd', 'User', 68],
+    ['cp-r8', 'QuotaWarning', 'Info', 'Namespace', 'Quota', 'Platform', 115],
+  ];
+
+  const alerts: AlertData[] = alertDefs.map(([suffix, name, sev, grp, comp, src, min]) => ({
+    ...makeKuklasAlert(suffix, name, sev, grp, comp, src, min, baseTime),
+    clusterName: coreCluster.name,
+  }));
+
+  return [{
+    id: coreCluster.id,
+    name: coreCluster.name,
+    region: toFleetRegionFilterLabel(coreCluster.region),
+    cloudProvider: coreCluster.provider,
+    team: 'Platform',
+    namespaces: ['openshift-monitoring', 'openshift-storage', 'openshift-virtualization', 'kube-system'],
+    labels: { env: coreCluster.env, tier: 'critical' },
+    alerts,
+    nodeCount: coreCluster.nodes,
+    podCount: coreCluster.nodes * 14,
+    cpuUsage: 68,
+    memoryUsage: 72,
+    cpuCores: coreCluster.nodes * 4,
+    totalMemory: coreCluster.nodes * 16,
+    vmCount: 12,
+    cpuRequests: 420,
+    memoryRequests: 512,
+    acmStatus: 'Ready',
+  }];
 }
 
 /** Full fleet dataset: fixed kuklas-aligned clusters (timestamps anchored to `baseTime`). */

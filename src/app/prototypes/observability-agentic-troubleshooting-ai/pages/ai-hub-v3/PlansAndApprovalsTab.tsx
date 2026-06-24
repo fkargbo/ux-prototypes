@@ -45,11 +45,12 @@ import { ReasoningChainStepGlyph, formatReasoningStepDisplayTime } from '../../c
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
+import { getNewInvestigationPlans, NEW_INVESTIGATION_PLAN_DRAWER_DATA } from './newInvestigationPlans';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PlanSeverity = 'critical' | 'warning';
-type PlanStatus = 'Investigating' | 'Waiting Approval' | 'Remediating' | 'Completed' | 'Failed';
+export type PlanSeverity = 'critical' | 'warning';
+export type PlanStatus = 'Investigating' | 'Waiting Approval' | 'Remediating' | 'Completed' | 'Failed';
 
 /** Icon semantic used in expandable row consolidated reasons. */
 type ReasonIconType = 'sync' | 'alert' | 'warning' | 'gear' | 'ban' | 'wrench';
@@ -59,7 +60,7 @@ interface ExpandedReason {
   text: string;
 }
 
-interface PlanRow {
+export interface PlanRow {
   id: string;
   severity: PlanSeverity;
   status: PlanStatus;
@@ -722,6 +723,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: '~1m',
     confidence: 80,
   },
+  ...NEW_INVESTIGATION_PLAN_DRAWER_DATA,
 };
 
 // ─── Remediation options data ────────────────────────────────────────────────
@@ -1046,7 +1048,8 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Failed':           'red',
 };
 
-const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
+
+export const StatusLabel: React.FC<{ status: PlanStatus }> = ({ status }) => (
   <Label color={STATUS_LABEL_COLOR[status]} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
     {status}
   </Label>
@@ -2449,7 +2452,7 @@ const createInitialSectionState = (
   };
 };
 
-const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isInvestigating = status === 'Investigating';
   const isRemediating = status === 'Remediating';
@@ -3061,3 +3064,21 @@ export const PlansAndApprovalsTab: React.FC = () => {
     </>
   );
 };
+
+export function getCatalogPlans(isSingleCluster: boolean): PlanRow[] {
+  const top = isSingleCluster ? SC_TOP_PLANS : TOP_PLANS;
+  const all = isSingleCluster ? SC_ALL_PLANS : ALL_PLANS;
+  const newInvestigations = getNewInvestigationPlans(isSingleCluster);
+  const seen = new Set<string>();
+  return [...top, ...all, ...newInvestigations].filter((plan) => {
+    if (seen.has(plan.id)) {
+      return false;
+    }
+    seen.add(plan.id);
+    return true;
+  });
+}
+
+export function findCatalogPlanById(planId: string, isSingleCluster: boolean): PlanRow | undefined {
+  return getCatalogPlans(isSingleCluster).find((plan) => plan.id === planId);
+}
