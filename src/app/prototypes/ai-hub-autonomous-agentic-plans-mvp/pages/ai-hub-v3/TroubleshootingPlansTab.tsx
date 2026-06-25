@@ -2,29 +2,29 @@ import * as React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Alert,
   Content,
   Pagination,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
 import {
-  getAgenticAutomationDisabledMessage,
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
-import { usePlanTermination } from '../../context/PlanTerminationContext';
+import { useDeletedPlans } from '../../context/DeletedPlansContext';
+import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
-  getTroubleshootingPlanRemediationHref,
   perspectiveKeyFromShellName,
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
+import { getPlanDetailHref } from './domainPlanNavigation';
 import {
   PlansTableCore,
   buildPlansForPerspective,
   type PlanRow,
 } from './PlansAndApprovalsTab';
+import { isNewAlertInvestigationPlanVisible } from './alertInvestigationPlans';
 import {
   OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS,
   PlansFilterToolbar,
@@ -40,26 +40,24 @@ export const TroubleshootingPlansTab: React.FC = () => {
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster } = useAgenticCapabilities();
-  const { abortedPlans, resumedPlanIds } = usePlanTermination();
+  const planExecutionRuntime = usePlanBuildRuntime();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
+  const { deletePlan, isPlanDeleted } = useDeletedPlans();
 
   const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true });
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
-  const planExecutionRuntime = useMemo(
-    () => ({ abortedPlans, resumedPlanIds }),
-    [abortedPlans, resumedPlanIds],
-  );
-
   const observabilityPlans = useMemo(() => {
     return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).filter(
       (plan) =>
-        (OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS as readonly string[]).includes(plan.triggerDomain)
-        && plan.consolidationScope.startsWith('Triggered by alert:'),
+        !isPlanDeleted(plan.id)
+        && (OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS as readonly string[]).includes(plan.triggerDomain)
+        && plan.consolidationScope.startsWith('Triggered by alert:')
+        && isNewAlertInvestigationPlanVisible(plan),
     );
-  }, [isSingleCluster, planExecutionRuntime]);
+  }, [isSingleCluster, planExecutionRuntime, isPlanDeleted]);
 
   const filteredRows = useMemo(
     () => plansFilter.filterRows(observabilityPlans),
@@ -73,8 +71,6 @@ export const TroubleshootingPlansTab: React.FC = () => {
     plansFilter.searchInputValue,
     plansFilter.searchCategory,
     plansFilter.statusFilters,
-    plansFilter.riskFilters,
-    plansFilter.confidenceFilters,
     plansFilter.triggerDomainFilters,
   ]);
 
@@ -99,19 +95,13 @@ export const TroubleshootingPlansTab: React.FC = () => {
         perspectiveKeyFromShellName(activePerspective)
         ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
       writePlanRemediationDrillSession({ perspectiveKey });
-      navigate(getTroubleshootingPlanRemediationHref(plan.name ?? plan.id, perspectiveKey));
+      navigate(getPlanDetailHref(plan, perspectiveKey));
     },
     [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate],
   );
 
   return (
     <Stack hasGutter>
-      {!isAgenticAutomationEnabled && (
-        <StackItem>
-          <Alert variant="warning" isInline title={getAgenticAutomationDisabledMessage(isSingleCluster)} />
-        </StackItem>
-      )}
-
       <StackItem className="ols-ai-hub-plans-section">
         <PlansFilterToolbar
           filterAriaLabel="Filter troubleshooting plans"
@@ -149,7 +139,9 @@ export const TroubleshootingPlansTab: React.FC = () => {
             ariaLabel="Troubleshooting plans"
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={openPlanRemediation}
+            onDeletePlan={deletePlan}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+            showTriggerDomainColumn={false}
           />
         )}
       </StackItem>

@@ -1,24 +1,13 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, Content, Title } from '@patternfly/react-core';
+import { Content, Title } from '@patternfly/react-core';
 import { AiHubPageHeading } from '../components/AiHubPageHeading';
+import { AgenticKillSwitchBanner } from '../components/AgenticKillSwitchBanner';
 import * as Hub from './ai-hub-v3';
 import './ai-hub-page.css';
 
 export const AIHubPage: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
-    <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
-      <div className="template-page-breadcrumb">
-        <Breadcrumb>
-          <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/ai-hub/plans')}>
-            Agentic plans
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>Plans</BreadcrumbItem>
-        </Breadcrumb>
-      </div>
-
+    <div className="ols-ai-hub-page ols-ai-hub-page--v3 ols-ai-hub-page--list" data-exp-lab-annotation-root>
       <AiHubPageHeading>
         <div className="ols-ai-hub-page-header-primary">
           <Hub.AiExperienceIcon size={40} />
@@ -43,6 +32,7 @@ export const AIHubPage: React.FC = () => {
         role="main"
         aria-label="Agentic plans content"
       >
+        <AgenticKillSwitchBanner />
         <Hub.PlansAndApprovalsTab />
       </div>
     </div>

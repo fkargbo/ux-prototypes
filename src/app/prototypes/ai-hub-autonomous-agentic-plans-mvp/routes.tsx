@@ -10,6 +10,7 @@ import { withPerspectiveUrlSync } from './components/AiHubPerspectiveRouteShell'
 import { SummitFleetAlertingPage } from './pages/alerting-fleet-copy/SummitFleetAlertingPage';
 import { TroubleshootingPlansPage } from './pages/TroubleshootingPlansPage';
 import { TroubleshootingPlanDetail } from './pages/TroubleshootingPlanDetail';
+import { AcsPlanDetailPage } from './pages/AcsPlanDetailPage';
 
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
 
@@ -50,6 +51,11 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/ai-hub/plans/:planSlug/remediation',
     element: withPerspectiveUrlSync(<PlanRemediationPage />),
     title: 'Plan remediation',
+  },
+  {
+    path: '/core/observe/ai-hub/acs-plans/:planSlug',
+    element: withPerspectiveUrlSync(<AcsPlanDetailPage />),
+    title: 'ACS plan detail',
   },
   {
     path: '/core/observe/alerting',

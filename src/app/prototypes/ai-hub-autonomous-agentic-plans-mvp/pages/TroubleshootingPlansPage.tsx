@@ -1,25 +1,14 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, Content, Title } from '@patternfly/react-core';
+import { Content, Title } from '@patternfly/react-core';
 import { AiHubPageHeading } from '../components/AiHubPageHeading';
 import { TroubleshootingPlansTab } from './ai-hub-v3/TroubleshootingPlansTab';
+import { AgenticKillSwitchBanner } from '../components/AgenticKillSwitchBanner';
 import { AiExperienceIcon } from './ai-hub-v3/AiExperienceIcon';
 import './ai-hub-page.css';
 
 export const TroubleshootingPlansPage: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
-    <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
-      <div className="template-page-breadcrumb">
-        <Breadcrumb>
-          <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/troubleshooting-plans')}>
-            Observe
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>Troubleshooting plans</BreadcrumbItem>
-        </Breadcrumb>
-      </div>
-
+    <div className="ols-ai-hub-page ols-ai-hub-page--v3 ols-ai-hub-page--list" data-exp-lab-annotation-root>
       <AiHubPageHeading>
         <div className="ols-ai-hub-page-header-primary">
           <AiExperienceIcon size={40} />
@@ -44,6 +33,7 @@ export const TroubleshootingPlansPage: React.FC = () => {
         role="main"
         aria-label="Troubleshooting plans content"
       >
+        <AgenticKillSwitchBanner />
         <TroubleshootingPlansTab />
       </div>
     </div>

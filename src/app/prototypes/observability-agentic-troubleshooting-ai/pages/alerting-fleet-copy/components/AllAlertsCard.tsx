@@ -158,6 +158,7 @@ interface AllAlertsCardProps {
   onClearComponentFilter: () => void;
   onClusterClick: (cluster: ClusterData) => void;
   onAlertClick: (alert: AlertData, initialTab?: number) => void;
+  onInvestigateWithAi?: (alert: AlertData) => void;
   onAlertRuleClick: (alertName: string) => void;
   onComponentClick: (componentName: string) => void;
   singleClusterView?: boolean;
@@ -203,6 +204,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
   onClearComponentFilter,
   onClusterClick,
   onAlertClick,
+  onInvestigateWithAi,
   onAlertRuleClick,
   onComponentClick,
   singleClusterView = false,
@@ -1285,6 +1287,7 @@ const AllAlertsCard: React.FC<AllAlertsCardProps> = ({
               openAcknowledgeModal={openAcknowledgeModal}
               openActionMenuId={openActionMenuId}
               setOpenActionMenuId={setOpenActionMenuId}
+              onInvestigateWithAi={onInvestigateWithAi}
               singleClusterView={singleClusterView}
               onClusterFilterChange={onClusterFilterChange}
               onNamespaceFilterChange={onNamespaceFilterChange}
