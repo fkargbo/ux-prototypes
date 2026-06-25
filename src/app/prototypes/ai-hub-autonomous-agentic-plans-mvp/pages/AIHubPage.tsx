@@ -16,8 +16,7 @@ export const AIHubPage: React.FC = () => {
               Agentic plans (MVP)
             </Title>
             <Content component="p" className="ols-ai-hub-page-subtitle">
-              Speed up incident response with targeted agent investigations, automated evidence collection, and
-              actionable remediation proposals.
+              Speed up incident response with automated investigations, evidence collection, and remediation.
             </Content>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
               Always review AI-generated content prior to use.
