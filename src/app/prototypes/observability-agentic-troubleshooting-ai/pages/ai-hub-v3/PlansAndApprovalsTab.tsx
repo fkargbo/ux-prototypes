@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Button,
@@ -1725,15 +1725,17 @@ const RemediationOptionCard: React.FC<{
     }, 2000);
   };
 
-  const renderActionButton = () => {
+  const showRemediationActions = !isInvestigating && !isTerminal && !isRemediating;
+
+  const renderApplyAction = () => {
     if (isInvestigating || isTerminal) return null;
     if (isRemediating) {
       return (
         <Button
           variant="primary"
           isDisabled
-          icon={<Spinner size="sm" aria-label="Applying fix" />}
-          style={{ cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
+          isLoading
+          style={{ margin: 0, cursor: 'default', pointerEvents: 'none', opacity: 0.85 }}
         >
           Applying fix…
         </Button>
@@ -1757,46 +1759,24 @@ const RemediationOptionCard: React.FC<{
           variant="primary"
           isDisabled
           icon={<LockIcon />}
-          style={{ pointerEvents: 'none', cursor: 'not-allowed' }}
+          style={{ pointerEvents: 'none', cursor: 'not-allowed', margin: 0 }}
         >
           Insufficient Privileges to Execute
         </Button>
       );
     }
     return (
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-        <Button
-          variant="primary"
-          isDisabled={selectedCount === 0 || isExecuting}
-          isLoading={isExecuting}
-          onClick={handleExecute}
-        >
-          {isExecuting
-            ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
-            : `Apply Remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
-        </Button>
-        {!isExecuting && (
-          <Button
-            variant="link"
-            isInline
-            style={{ fontSize: '14px' }}
-            onClick={() => {
-              const drawer = PLAN_DRAWER_DATA[plan.id];
-              agenticGlobalAiApi.openRemediationDiscussion?.({
-                planSynopsis: plan.synopsis,
-                optionTitle: option.title,
-                rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
-                remediationProposal: drawer?.remediationProposal ?? option.description,
-                riskAssessment: drawer?.riskAssessment ?? '',
-                blastRadius: plan.blastRadius,
-                severity: plan.severity,
-              });
-            }}
-          >
-            Discuss with Lightspeed
-          </Button>
-        )}
-      </Flex>
+      <Button
+        variant="primary"
+        isDisabled={selectedCount === 0 || isExecuting}
+        isLoading={isExecuting}
+        onClick={handleExecute}
+        style={{ margin: 0 }}
+      >
+        {isExecuting
+          ? `Applying to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}…`
+          : `Apply remediation to ${selectedCount} target${selectedCount !== 1 ? 's' : ''}`}
+      </Button>
     );
   };
 
@@ -1896,8 +1876,8 @@ const RemediationOptionCard: React.FC<{
             </Label>
           </Flex>
 
-          {/* Raw commands toggle */}
-          {!isInvestigating && !isTerminal && !isRemediating && (
+          {/* ── View raw commands ── */}
+          {showRemediationActions && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               <Button
                 variant="link"
@@ -1929,8 +1909,8 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── Target Selection (Waiting Approval only) ── */}
-          {!isInvestigating && !isTerminal && !isRemediating && drawerTargets.length > 0 && (
+          {/* ── Target Selection + Sandbox Gate ── */}
+          {showRemediationActions && drawerTargets.length > 0 && (
             <div
               style={{
                 borderRadius: 'var(--pf-t--global--border--radius--small)',
@@ -1950,21 +1930,11 @@ const RemediationOptionCard: React.FC<{
                   Targets ({selectedCount} / {drawerTargets.length})
                 </Content>
                 <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '12px' }}
-                    onClick={() => setSelectedTargets(new Set(drawerTargets))}
-                  >
+                  <Button variant="link" isInline style={{ fontSize: '12px' }} onClick={() => setSelectedTargets(new Set(drawerTargets))}>
                     Select all
                   </Button>
                   <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '12px' }}>·</span>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: '12px' }}
-                    onClick={() => setSelectedTargets(new Set())}
-                  >
+                  <Button variant="link" isInline style={{ fontSize: '12px' }} onClick={() => setSelectedTargets(new Set())}>
                     Deselect all
                   </Button>
                 </Flex>
@@ -2014,7 +1984,6 @@ const RemediationOptionCard: React.FC<{
                     </Button>
                   </Flex>
                 )}
-
                 {sandboxState === 'running' && (
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <Spinner size="sm" aria-label="Running sandbox test" />
@@ -2023,7 +1992,6 @@ const RemediationOptionCard: React.FC<{
                     </Content>
                   </Flex>
                 )}
-
                 {sandboxState === 'passed' && (
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
                     <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)', flexShrink: 0 }} />
@@ -2032,7 +2000,6 @@ const RemediationOptionCard: React.FC<{
                     </Content>
                   </Flex>
                 )}
-
                 {sandboxState === 'bypassed' && (
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
                     <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)', flexShrink: 0 }} />
@@ -2045,10 +2012,65 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* Action button */}
-          {renderActionButton()}
+          {/* ── Apply + Discuss + Download ── */}
+          {showRemediationActions && (
+            <div
+              className="ols-remediation-option-card__actions"
+              style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px' }}
+            >
+              {renderApplyAction()}
+              {!isExecuting && !isExecuted && (sandboxState === 'passed' || sandboxState === 'bypassed') && (
+                <>
+                  <Button
+                    variant="link"
+                    isInline
+                    style={{ fontSize: '14px', margin: 0 }}
+                    onClick={() => {
+                      const drawer = PLAN_DRAWER_DATA[plan.id];
+                      agenticGlobalAiApi.openRemediationDiscussion?.({
+                        planSynopsis: plan.synopsis,
+                        optionTitle: option.title,
+                        rootCause: drawer?.rootCauseNarrative ?? plan.synopsis,
+                        remediationProposal: drawer?.remediationProposal ?? option.description,
+                        riskAssessment: drawer?.riskAssessment ?? '',
+                        blastRadius: plan.blastRadius,
+                        severity: plan.severity,
+                      });
+                    }}
+                  >
+                    Discuss with Lightspeed
+                  </Button>
+                  <Button
+                    variant="link"
+                    isInline
+                    icon={<DownloadIcon />}
+                    iconPosition="end"
+                    style={{ fontSize: '14px', margin: 0 }}
+                    aria-label={`Download remediation guide for option ${index + 1}`}
+                  >
+                    Download remediation guide
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
 
-          {/* ── Post-Mortem Execution Summary (inline, after execution) ── */}
+          {!showRemediationActions && (
+            <div
+              className="ols-remediation-option-card__actions"
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '16px',
+                marginTop: isRemediating ? 'var(--pf-t--global--spacer--sm)' : undefined,
+              }}
+            >
+              {renderApplyAction()}
+            </div>
+          )}
+
+          {/* ── Post-execution summary (inline, after execution) ── */}
           {isExecuted && (
             <PostMortemPanel
               plan={plan}

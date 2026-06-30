@@ -1,0 +1,43 @@
+---
+description: Enforces that all code changes are confined to the single prototype the user is currently working in. Must be checked at the start of every session.
+alwaysApply: true
+---
+
+# Active Prototype Session Rule
+
+## CRITICAL: Always Confirm the Active Prototype Before Making Any Change
+
+At the start of every conversation, identify which prototype the user is working in. All file reads, edits, and creations must be confined **exclusively** to that prototype's directory under `src/app/prototypes/<active-prototype-id>/`.
+
+### Session Setup
+
+When a user says "I've switched agents", "I'm now working on X prototype", or implies a context switch, treat that prototype as the **only** active prototype for the entire conversation. Do NOT carry over changes, assumptions, or components from a previous prototype.
+
+### Hard Rules
+
+- ✅ Only modify files inside `src/app/prototypes/<active-prototype-id>/`
+- ✅ Read other prototypes **only** as a reference/source to scrape patterns from
+- ❌ Never write to, edit, or create files in any other prototype directory
+- ❌ Never modify shared components (`AppLayout`, `PrototypeRegistry`, `PrototypeLayout`, global CSS, etc.) to add prototype-specific behavior
+- ❌ Never assume the active prototype is the same as in a prior conversation
+
+### Before Every Edit, Ask:
+
+> "Is this file inside the active prototype's directory?"
+
+If the answer is no — stop and find a solution within the active prototype's own files.
+
+### Agent-to-Prototype Mapping (Permanent)
+
+This agent chat is permanently dedicated to:
+
+| Agent | Prototype ID | URL |
+|---|---|---|
+| This agent | `observability-agentic-troubleshooting-ai` | `https://fkargbo.github.io/ux-prototypes/core/observe/ai-hub?prototype=observability-agentic-troubleshooting-ai` |
+
+### Example
+
+If the active prototype is `observability-agentic-troubleshooting-ai`:
+- ✅ Edit `src/app/prototypes/observability-agentic-troubleshooting-ai/pages/...`
+- ❌ Edit `src/app/prototypes/ai-hub-autonomous-agentic-plans-mvp/pages/...`
+- ❌ Edit `src/app/core/AppLayout.tsx`

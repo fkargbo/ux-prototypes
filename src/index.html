@@ -27,6 +27,57 @@
     }(window.location))
   </script>
   <!-- End Single Page Apps for GitHub Pages -->
+
+  <!-- OAuth prototype-param restore
+       The exp-lab feedback layer saves the current ?prototype= value to sessionStorage
+       under 'exp-lab-oauth-return-search' before triggering a GitHub OAuth flow.
+       On return, Supabase strips all query params from the redirect URL, so the wrong
+       prototype would load (both this app and AI Hub MVP share the same /core/observe/ai-hub
+       base path). This script runs synchronously — before the React bundle boots — and
+       merges the saved ?prototype= back into window.location so PrototypeContext reads
+       the correct prototype ID on its very first render. -->
+  <script>
+    (function () {
+      try {
+        var currentParams = new URLSearchParams(window.location.search);
+
+        // Only act during an OAuth callback — PKCE appends ?code=, implicit appends #access_token=.
+        // Guarding on this prevents injecting ?prototype= on every normal page load.
+        var isOAuthCallback = currentParams.has('code') ||
+          window.location.hash.indexOf('access_token=') !== -1 ||
+          window.location.hash.indexOf('error=') !== -1;
+        if (!isOAuthCallback) return;
+
+        // Nothing to do if ?prototype= is already present.
+        if (currentParams.has('prototype')) return;
+
+        // Priority 1 — explicit save by exp-lab before the redirect.
+        var prototypeId = null;
+        var OAUTH_KEY = 'exp-lab-oauth-return-search';
+        var saved = sessionStorage.getItem(OAUTH_KEY);
+        if (saved) {
+          prototypeId = new URLSearchParams(saved).get('prototype');
+          if (prototypeId) sessionStorage.removeItem(OAUTH_KEY);
+        }
+
+        // Priority 2 — the active prototype written by PrototypeContext on every load.
+        // Covers the case where the user was at the bare URL (/core/observe/ai-hub) with no
+        // ?prototype= param, so exp-lab had nothing to save before the redirect.
+        if (!prototypeId) {
+          prototypeId = sessionStorage.getItem('activePrototypeId');
+        }
+
+        if (!prototypeId) return;
+
+        // Merge ?prototype= into current params, preserving ?code= for PKCE token exchange.
+        currentParams.set('prototype', prototypeId);
+        window.history.replaceState(
+          null, '',
+          window.location.pathname + '?' + currentParams.toString() + window.location.hash
+        );
+      } catch (e) {}
+    }());
+  </script>
 </head>
 
 <body>
