@@ -27,6 +27,14 @@ When a user says "I've switched agents", "I'm now working on X prototype", or im
 
 If the answer is no — stop and find a solution within the active prototype's own files.
 
+### Agent-to-Prototype Mapping (Permanent)
+
+This agent chat is permanently dedicated to:
+
+| Agent | Prototype ID | URL |
+|---|---|---|
+| This agent | `observability-agentic-troubleshooting-ai` | `https://fkargbo.github.io/ux-prototypes/core/observe/ai-hub?prototype=observability-agentic-troubleshooting-ai` |
+
 ### Example
 
 If the active prototype is `observability-agentic-troubleshooting-ai`:
