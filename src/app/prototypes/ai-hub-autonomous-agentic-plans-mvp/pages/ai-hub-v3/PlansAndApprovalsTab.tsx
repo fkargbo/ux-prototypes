@@ -1485,6 +1485,16 @@ Exit code: 0 — Execution succeeded.`,
   };
 };
 
+/** Deterministic simulated analysis token count for plans without real SDK token data. */
+function simulateAnalysisTokenCount(planId: string): number {
+  let hash = 0;
+  for (let i = 0; i < planId.length; i++) {
+    hash = (hash * 31 + planId.charCodeAt(i)) >>> 0;
+  }
+  // Range: 820 – 3,640 tokens (plausible LLM analysis call)
+  return 820 + (hash % 2820);
+}
+
 const formatExecutionKillTimestamp = (date: Date): string =>
   date.toLocaleString('en-US', {
     month: 'short',
@@ -2994,9 +3004,25 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
-        <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-          Root cause analysis (RCA)
-        </Title>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+            Root cause analysis (RCA)
+          </Title>
+          {!isAnalyzing && (
+            <Label color="grey" variant="outline" isCompact>
+              {formatOptionalTokenBurn(
+                isPlanTokenBurnAvailable(planTokenBurn)
+                  ? planTokenBurn.analysis
+                  : simulateAnalysisTokenCount(plan.id),
+                '(analysis)',
+              )}
+            </Label>
+          )}
+        </Flex>
           {isAnalyzing ? (
             <>
               <RcaLockedPlaceholder />
@@ -3037,23 +3063,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             </>
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`}>
-            {isPlanTokenBurnAvailable(planTokenBurn) ? (
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                flexWrap={{ default: 'wrap' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                <span className="ols-aio-text-overline">Detected Root Cause</span>
-                <Label color="grey" variant="outline" isCompact>
-                  {formatOptionalTokenBurn(planTokenBurn.analysis, '(analysis)')}
-                </Label>
-              </Flex>
-            ) : (
-              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                <span className="ols-aio-text-overline">Detected Root Cause</span>
-              </div>
-            )}
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              <span className="ols-aio-text-overline">Detected Root Cause</span>
+            </div>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer.aggregatedFinding}
             </Content>
