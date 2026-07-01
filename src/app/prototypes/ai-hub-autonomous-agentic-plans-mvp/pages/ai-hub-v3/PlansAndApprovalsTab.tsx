@@ -43,7 +43,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -3037,26 +3037,23 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             </>
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`}>
-            {isPlanTokenBurnAvailable(planTokenBurn) && (
+            {isPlanTokenBurnAvailable(planTokenBurn) ? (
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
-                justifyContent={{ default: 'justifyContentFlexEnd' }}
-                gap={{ default: 'gapSm' }}
+                justifyContent={{ default: 'justifyContentSpaceBetween' }}
                 flexWrap={{ default: 'wrap' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
+                <span className="ols-aio-text-overline">Detected Root Cause</span>
                 <Label color="grey" variant="outline" isCompact>
                   {formatOptionalTokenBurn(planTokenBurn.analysis, '(analysis)')}
                 </Label>
               </Flex>
+            ) : (
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                <span className="ols-aio-text-overline">Detected Root Cause</span>
+              </div>
             )}
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
-              <span className="ols-aio-text-overline">Detected Root Cause</span>
-            </Flex>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer.aggregatedFinding}
             </Content>
