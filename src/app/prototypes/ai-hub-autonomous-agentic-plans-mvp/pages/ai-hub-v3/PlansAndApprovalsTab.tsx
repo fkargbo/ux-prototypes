@@ -2859,6 +2859,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
+  const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -3238,12 +3239,45 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                     variant="primary"
                     isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
                     isLoading={isExecutionRunning}
-                    onClick={handleExecuteRemediation}
+                    onClick={() => setIsExecuteConfirmModalOpen(true)}
                   >
                     Execute remediation
                   </Button>
                 </Flex>
               )}
+
+              <Modal
+                variant={ModalVariant.small}
+                isOpen={isExecuteConfirmModalOpen}
+                onClose={() => setIsExecuteConfirmModalOpen(false)}
+                aria-labelledby="execute-remediation-confirm-title"
+              >
+                <ModalHeader title="Execute remediation?" labelId="execute-remediation-confirm-title" />
+                <ModalBody>
+                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.
+                  </Content>
+                  <Content component="p">
+                    Always review AI generated content prior to use.
+                  </Content>
+                </ModalBody>
+                <ModalFooter>
+                  <Button
+                    variant="primary"
+                    isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
+                    isLoading={isExecutionRunning}
+                    onClick={() => {
+                      setIsExecuteConfirmModalOpen(false);
+                      handleExecuteRemediation();
+                    }}
+                  >
+                    Execute remediation
+                  </Button>
+                  <Button variant="link" onClick={() => setIsExecuteConfirmModalOpen(false)}>
+                    Cancel
+                  </Button>
+                </ModalFooter>
+              </Modal>
             </>
           )}
         </>
