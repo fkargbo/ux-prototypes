@@ -2970,7 +2970,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   );
 
   return (
-    <Stack hasGutter>
+    <Stack style={{ gap: '24px' }}>
       {/* ── Page heading + AI disclaimer ────────────────────────────────── */}
       <StackItem>
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
