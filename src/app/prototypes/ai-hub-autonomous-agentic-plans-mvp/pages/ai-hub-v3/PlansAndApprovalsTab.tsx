@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } fro
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
+  AlertActionCloseButton,
   Button,
   Card,
   CardBody,
@@ -42,7 +43,8 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
@@ -1483,6 +1485,16 @@ Exit code: 0 — Execution succeeded.`,
   };
 };
 
+/** Deterministic simulated analysis token count for plans without real SDK token data. */
+function simulateAnalysisTokenCount(planId: string): number {
+  let hash = 0;
+  for (let i = 0; i < planId.length; i++) {
+    hash = (hash * 31 + planId.charCodeAt(i)) >>> 0;
+  }
+  // Range: 820 – 3,640 tokens (plausible LLM analysis call)
+  return 820 + (hash % 2820);
+}
+
 const formatExecutionKillTimestamp = (date: Date): string =>
   date.toLocaleString('en-US', {
     month: 'short',
@@ -2856,6 +2868,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
+  const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
+  const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -2967,12 +2981,48 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   );
 
   return (
-    <Stack hasGutter>
+    <Stack style={{ gap: '24px' }}>
+      {/* ── Page heading + AI disclaimer ────────────────────────────────── */}
+      <StackItem>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+          <AiExperienceIcon size={20} />
+          <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
+            Plan details
+          </Title>
+        </Flex>
+        {!isAiDisclaimerDismissed && (
+          <Alert
+            variant="info"
+            isInline
+            title="OpenShift Lightspeed uses AI technology to help generate remediation plans."
+            actionClose={<AlertActionCloseButton onClose={() => setIsAiDisclaimerDismissed(true)} />}
+          >
+            Always review AI-generated content prior to use.
+          </Alert>
+        )}
+      </StackItem>
+
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
-        <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-          Root cause analysis (RCA)
-        </Title>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+            Root cause analysis (RCA)
+          </Title>
+          {!isAnalyzing && (
+            <Label color="grey" variant="outline" isCompact>
+              {formatOptionalTokenBurn(
+                isPlanTokenBurnAvailable(planTokenBurn)
+                  ? planTokenBurn.analysis
+                  : simulateAnalysisTokenCount(plan.id),
+                '(analysis)',
+              )}
+            </Label>
+          )}
+        </Flex>
           {isAnalyzing ? (
             <>
               <RcaLockedPlaceholder />
@@ -3013,26 +3063,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             </>
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`}>
-            {isPlanTokenBurnAvailable(planTokenBurn) && (
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                justifyContent={{ default: 'justifyContentFlexEnd' }}
-                gap={{ default: 'gapSm' }}
-                flexWrap={{ default: 'wrap' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-              >
-                <Label color="grey" variant="outline" isCompact>
-                  {formatOptionalTokenBurn(planTokenBurn.analysis, '(analysis)')}
-                </Label>
-              </Flex>
-            )}
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              <BullseyeIcon style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }} />
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               <span className="ols-aio-text-overline">Detected Root Cause</span>
-            </Flex>
+            </div>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer.aggregatedFinding}
             </Content>
@@ -3215,12 +3248,45 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                     variant="primary"
                     isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
                     isLoading={isExecutionRunning}
-                    onClick={handleExecuteRemediation}
+                    onClick={() => setIsExecuteConfirmModalOpen(true)}
                   >
                     Execute remediation
                   </Button>
                 </Flex>
               )}
+
+              <Modal
+                variant={ModalVariant.small}
+                isOpen={isExecuteConfirmModalOpen}
+                onClose={() => setIsExecuteConfirmModalOpen(false)}
+                aria-labelledby="execute-remediation-confirm-title"
+              >
+                <ModalHeader title="Execute remediation?" labelId="execute-remediation-confirm-title" />
+                <ModalBody>
+                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.
+                  </Content>
+                  <Content component="p">
+                    Always review AI generated content prior to use.
+                  </Content>
+                </ModalBody>
+                <ModalFooter>
+                  <Button
+                    variant="primary"
+                    isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
+                    isLoading={isExecutionRunning}
+                    onClick={() => {
+                      setIsExecuteConfirmModalOpen(false);
+                      handleExecuteRemediation();
+                    }}
+                  >
+                    Execute remediation
+                  </Button>
+                  <Button variant="link" onClick={() => setIsExecuteConfirmModalOpen(false)}>
+                    Cancel
+                  </Button>
+                </ModalFooter>
+              </Modal>
             </>
           )}
         </>

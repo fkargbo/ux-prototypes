@@ -57,6 +57,7 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  padding-block-end: 24px;
 }
 
 @media (min-width: 1101px) {
