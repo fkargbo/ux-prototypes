@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } fro
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
+  AlertActionCloseButton,
   Button,
   Card,
   CardBody,
@@ -43,6 +44,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { AngleRightIcon, BullseyeIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
@@ -2856,6 +2858,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
+  const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -2968,6 +2971,26 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
   return (
     <Stack hasGutter>
+      {/* ── Page heading + AI disclaimer ────────────────────────────────── */}
+      <StackItem>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+          <AiExperienceIcon size={20} />
+          <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
+            Plan details
+          </Title>
+        </Flex>
+        {!isAiDisclaimerDismissed && (
+          <Alert
+            variant="info"
+            isInline
+            title="OpenShift Lightspeed uses AI technology to help generate remediation plans."
+            actionClose={<AlertActionCloseButton onClose={() => setIsAiDisclaimerDismissed(true)} />}
+          >
+            Always review AI-generated content prior to use.
+          </Alert>
+        )}
+      </StackItem>
+
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
         <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
