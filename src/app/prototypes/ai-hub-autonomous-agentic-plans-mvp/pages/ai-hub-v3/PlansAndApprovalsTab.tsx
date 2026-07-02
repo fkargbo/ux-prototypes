@@ -391,6 +391,12 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-monitoring',
   },
+  'etcd-defrag-failed': {
+    name: 'etcd-defrag-compaction',
+    synopsis: 'Compact and defragment etcd database to reduce fragmentation ratio below 0.5 threshold',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-etcd',
+  },
   ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
 };
 
@@ -846,6 +852,20 @@ const ALL_PLANS: RawPlanRow[] = [
       { icon: 'ban', text: 'EmergencyStopped: Prometheus WAL repair halted by operator — risk of data loss during active write window.' },
     ],
   },
+  {
+    id: 'etcd-defrag-failed',
+    severity: 'critical',
+    status: 'Failed',
+    score: 63,
+    synopsis: 'Compact and Defragment Etcd Database',
+    consolidationScope: '1 Alert',
+    triggerDomain: 'Cluster update',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'alert', text: 'EtcdDatabaseHighFragmentationRatio: fragmentation ratio 0.67 exceeded 0.5 threshold across 3 control plane nodes.' },
+      { icon: 'ban', text: 'Verification failure: fragmentation metric unchanged after defrag execution.' },
+    ],
+  },
   ...NEW_ALERT_INVESTIGATION_PLANS.map((plan) => ({
     ...plan,
     drawerTargets: ['prod-east-2'],
@@ -894,6 +914,7 @@ const SC_ALL_PLANS: RawPlanRow[] = [
   { ...ALL_PLANS[24],drawerTargets: ['router-default-6d4f8'] },
   { ...ALL_PLANS[25],drawerTargets: ['router-default-6d4f8', 'router-default-7f8c9'] },
   { ...ALL_PLANS[26],drawerTargets: ['prometheus-k8s-0'] },
+  { ...ALL_PLANS[27],drawerTargets: ['etcd-master-01', 'etcd-master-02', 'etcd-master-03'] },
   ...NEW_ALERT_INVESTIGATION_PLANS,
 ];
 
@@ -1322,6 +1343,20 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     remediationProposal: 'Schedule WAL repair during the next off-peak maintenance window (after 04:00 UTC). Use tsdb repair --repair flag with a snapshot taken beforehand.',
     riskAssessment: 'High — WAL repair during active writes risks metric data loss. Must be run offline.',
     estimatedRecovery: '~15m during maintenance window',
+    confidence: 'Medium',
+  },
+  'etcd-defrag-failed': {
+    steps: [
+      { id: 's1', time: '09:14:05', status: 'done', icon: 'exclamation', title: 'EtcdDatabaseHighFragmentationRatio alert fired', detail: 'Fragmentation ratio 0.67 detected across etcd-master-01, etcd-master-02, etcd-master-03' },
+      { id: 's2', time: '09:14:19', status: 'done', icon: 'database', title: 'Queried etcd endpoint defrag statistics', detail: 'DB size: 8.2 GiB · In-use: 3.1 GiB · Fragmentation: 62% — compaction lag confirmed' },
+      { id: 's3', time: '09:14:38', status: 'done', icon: 'network', title: 'Executed etcd defrag across 3 control plane nodes', detail: 'Commands issued sequentially to avoid leadership disruption' },
+      { id: 's4', time: '09:15:10', status: 'done', icon: 'exclamation', title: 'Verification failed: fragmentation ratio unchanged', detail: 'Post-defrag check still at 0.67 — compaction window had not run before execution' },
+    ],
+    aggregatedFinding: 'etcd defragmentation executed across 3 control plane nodes but post-execution verification failed — fragmentation ratio remained at 0.67.',
+    rootCauseNarrative: 'EtcdDatabaseHighFragmentationRatio fired after the fragmentation ratio exceeded 0.5 on all three control plane etcd members. Defragmentation was executed sequentially to minimize leader disruption, but the post-execution check found the fragmentation metric unchanged. The root cause is that the auto-compaction window (configured at 1h) had not run prior to execution, leaving large amounts of unreclaimed logical space that defrag alone cannot recover without a preceding compaction pass.',
+    remediationProposal: 'Trigger a manual etcd compaction before re-running defrag. Run `etcdctl compact <revision>` on the leader member, then re-execute the defragmentation plan during a low-write window.',
+    riskAssessment: 'High — etcd fragmentation above 0.5 degrades API server write latency and can cause quota exhaustion if db-quota-backend-bytes is approached.',
+    estimatedRecovery: 'N/A — plan failed; requires manual compaction before retry',
     confidence: 'Medium',
   },
   ...NEW_ALERT_INVESTIGATION_DRAWER_DATA,

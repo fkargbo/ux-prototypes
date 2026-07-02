@@ -51,6 +51,7 @@ export const SC_PLAN_TABLE_IDENTITY: Record<string, ScPlanTableIdentity> = {
   'quota-exhaustion-escalating':    { name: 'quota-exhaustion-escalating',            synopsis: 'Namespace quota exhaustion escalating to operator after automated remediation failed', namespace: 'openshift-ingress',     fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   'ingress-controller-escalated':   { name: 'ingress-controller-scale-escalated',     synopsis: 'Ingress controller scale-out escalated after retry limit reached',                namespace: 'openshift-ingress',         fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   'prometheus-wal-emergency-stopped': { name: 'prometheus-wal-repair-emergency-stopped', synopsis: 'Prometheus WAL repair halted by emergency stop during active write window',    namespace: 'openshift-monitoring',      fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'etcd-defrag-failed':               { name: 'etcd-defrag-compaction',                  synopsis: 'Compact and defragment etcd database to reduce fragmentation ratio below 0.5', namespace: 'openshift-etcd',             fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
 };
 
@@ -257,6 +258,13 @@ export const SC_PLAN_ROW_PATCHES: Record<string, ScPlanRowPatch> = {
     consolidationScope: '1 Emergency Override',
     expandedReasons: [
       { icon: 'ban', text: 'EmergencyStopped: Prometheus WAL repair halted by operator on prometheus-k8s-0 in openshift-monitoring.' },
+    ],
+  },
+  'etcd-defrag-failed': {
+    consolidationScope: 'Triggered by alert: EtcdDatabaseHighFragmentationRatio · openshift-etcd',
+    expandedReasons: [
+      { icon: 'alert', text: 'EtcdDatabaseHighFragmentationRatio: fragmentation ratio 0.67 on etcd-master-01, etcd-master-02, etcd-master-03.' },
+      { icon: 'ban', text: 'Verification failure: etcd fragmentation metrics unchanged after defrag — compaction pass required.' },
     ],
   },
 };

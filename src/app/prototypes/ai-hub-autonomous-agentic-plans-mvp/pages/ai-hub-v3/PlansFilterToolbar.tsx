@@ -29,6 +29,7 @@ export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['sta
   { label: 'Executing',         value: 'Executing' },
   { label: 'Verifying',         value: 'Verifying' },
   { label: 'Completed',         value: 'Completed' },
+  { label: 'Failed',            value: 'Failed' },
   { label: 'Denied',            value: 'Denied' },
   { label: 'Escalating',        value: 'Escalating' },
   { label: 'Escalated',         value: 'Escalated' },

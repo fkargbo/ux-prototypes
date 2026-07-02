@@ -22,6 +22,7 @@ export const MVP_PLAN_IDS = new Set([
   'quota-exhaustion-escalating',
   'ingress-controller-escalated',
   'prometheus-wal-emergency-stopped',
+  'etcd-defrag-failed',
   'inv-alert-node-not-ready',
   'inv-alert-mds-cache-high',
   'inv-alert-vm-cannot-evict',
@@ -52,6 +53,7 @@ export const PLAN_TOKEN_BURN: Record<string, PlanTokenBurn> = {
   'inv-alert-mds-cache-high': { analysis: 410 },
   'inv-alert-vm-cannot-evict': { analysis: 400 },
   'inv-alert-node-cpu-high': { analysis: 390 },
+  'etcd-defrag-failed': { analysis: 720, execution: 1450 },
 };
 
 /** Per-option diagnosis confidence (backend: options[].diagnosis.confidence). */
@@ -180,6 +182,7 @@ export function derivePlanRiskLevel(
       op3: 'Medium',
       op4: 'Low',
       op5: 'Medium',
+      'etcd-defrag-failed': 'High',
     };
     return fallback[planId] ?? 'Medium';
   }
