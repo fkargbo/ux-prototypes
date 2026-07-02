@@ -3255,40 +3255,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           ) : isAnalyzing ? (
             <>
               <RcaLockedPlaceholder />
-              <Flex
-                justifyContent={{ default: 'justifyContentFlexEnd' }}
-                style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                <Button variant="danger" onClick={() => setIsStopAnalysisModalOpen(true)}>
-                  Stop analysis
-                </Button>
-              </Flex>
-              <Modal
-                variant={ModalVariant.small}
-                isOpen={isStopAnalysisModalOpen}
-                onClose={() => setIsStopAnalysisModalOpen(false)}
-                aria-labelledby="stop-plan-analysis-title"
-              >
-                <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
-                <ModalBody>
-                  This halts root cause investigation for this plan. Partial findings are preserved but no
-                  remediation options will be synthesized.
-                </ModalBody>
-                <ModalFooter>
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                      registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
-                      setIsStopAnalysisModalOpen(false);
-                    }}
-                  >
-                    Yes, stop analysis
-                  </Button>
-                  <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
-                    Cancel
-                  </Button>
-                </ModalFooter>
-              </Modal>
             </>
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`}>
@@ -3597,6 +3563,41 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
         </>
         )}
       </StackItem>
+
+      {/* ── Stop analysis action (Analyzing state only) ──────────────── */}
+      {isAnalyzing && (
+        <StackItem>
+          <Button variant="danger" onClick={() => setIsStopAnalysisModalOpen(true)}>
+            Stop analysis
+          </Button>
+          <Modal
+            variant={ModalVariant.small}
+            isOpen={isStopAnalysisModalOpen}
+            onClose={() => setIsStopAnalysisModalOpen(false)}
+            aria-labelledby="stop-plan-analysis-title"
+          >
+            <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
+            <ModalBody>
+              This halts root cause investigation for this plan. Partial findings are preserved but no
+              remediation options will be synthesized.
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+                  setIsStopAnalysisModalOpen(false);
+                }}
+              >
+                Yes, stop analysis
+              </Button>
+              <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
+        </StackItem>
+      )}
     </Stack>
   );
 };
