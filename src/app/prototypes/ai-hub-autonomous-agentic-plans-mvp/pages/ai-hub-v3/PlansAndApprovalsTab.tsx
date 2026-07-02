@@ -2616,6 +2616,9 @@ const PostMortemPanel: React.FC<{
 }> = ({ plan, verification, executionOptionId, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
   const [localShowLogs, setLocalShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
+  const [logCategory, setLogCategory] = useState<'execution' | 'verification'>('execution');
+  const [logQuery, setLogQuery] = useState('');
+  const [isLogCatOpen, setIsLogCatOpen] = useState(false);
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -2769,7 +2772,7 @@ const PostMortemPanel: React.FC<{
 
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
-            {/* Raw logs — always visible */}
+            {/* Logs — collapsible with category selector and search */}
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               <Button
                 variant="link"
@@ -2785,18 +2788,58 @@ const PostMortemPanel: React.FC<{
                 }
                 style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
               >
-                {showLogs ? 'Hide post-execution logs' : 'View post-execution logs'}
+                {showLogs ? 'Hide logs' : 'View logs'}
               </Button>
               {showLogs && (
                 <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                  <ClipboardCopy
-                    variant={ClipboardCopyVariant.expansion}
-                    isReadOnly
-                    isCode
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                  >
-                    {postMortem.rawLog ?? ''}
-                  </ClipboardCopy>
+                  <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                    <FlexItem>
+                      <Dropdown
+                        isOpen={isLogCatOpen}
+                        onOpenChange={setIsLogCatOpen}
+                        onSelect={(_e, val) => {
+                          setLogCategory(val as 'execution' | 'verification');
+                          setIsLogCatOpen(false);
+                        }}
+                        toggle={(ref) => (
+                          <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
+                            {logCategory === 'execution' ? 'Execution' : 'Verification'}
+                          </MenuToggle>
+                        )}
+                      >
+                        <DropdownList>
+                          <DropdownItem value="execution">Execution logs</DropdownItem>
+                          <DropdownItem value="verification">Verification logs</DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </FlexItem>
+                    <FlexItem grow={{ default: 'grow' }}>
+                      <SearchInput
+                        value={logQuery}
+                        onChange={(_e, val) => setLogQuery(val)}
+                        onClear={() => setLogQuery('')}
+                        placeholder="Search logs..."
+                      />
+                    </FlexItem>
+                  </Flex>
+                  {(() => {
+                    const raw = logCategory === 'execution'
+                      ? (postMortem.rawLog ?? '')
+                      : generateVerificationLogs(plan.id);
+                    const displayed = logQuery.trim()
+                      ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
+                      : raw;
+                    return (
+                      <ClipboardCopy
+                        variant={ClipboardCopyVariant.expansion}
+                        isReadOnly
+                        isCode
+                        style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                      >
+                        {displayed}
+                      </ClipboardCopy>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -2829,7 +2872,7 @@ const PostMortemPanel: React.FC<{
 
               <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
 
-              {/* Raw logs */}
+              {/* Logs */}
               <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                 <Button
                   variant="link"
@@ -2845,18 +2888,58 @@ const PostMortemPanel: React.FC<{
                   }
                   style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
                 >
-                  {showLogs ? 'Hide post-execution logs' : 'View post-execution logs'}
+                  {showLogs ? 'Hide logs' : 'View logs'}
                 </Button>
                 {showLogs && (
                   <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                    <ClipboardCopy
-                      variant={ClipboardCopyVariant.expansion}
-                      isReadOnly
-                      isCode
-                      style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                    >
-                      {postMortem.rawLog ?? ''}
-                    </ClipboardCopy>
+                    <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                      <FlexItem>
+                        <Dropdown
+                          isOpen={isLogCatOpen}
+                          onOpenChange={setIsLogCatOpen}
+                          onSelect={(_e, val) => {
+                            setLogCategory(val as 'execution' | 'verification');
+                            setIsLogCatOpen(false);
+                          }}
+                          toggle={(ref) => (
+                            <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
+                              {logCategory === 'execution' ? 'Execution' : 'Verification'}
+                            </MenuToggle>
+                          )}
+                        >
+                          <DropdownList>
+                            <DropdownItem value="execution">Execution logs</DropdownItem>
+                            <DropdownItem value="verification">Verification logs</DropdownItem>
+                          </DropdownList>
+                        </Dropdown>
+                      </FlexItem>
+                      <FlexItem grow={{ default: 'grow' }}>
+                        <SearchInput
+                          value={logQuery}
+                          onChange={(_e, val) => setLogQuery(val)}
+                          onClear={() => setLogQuery('')}
+                          placeholder="Search logs..."
+                        />
+                      </FlexItem>
+                    </Flex>
+                    {(() => {
+                      const raw = logCategory === 'execution'
+                        ? (postMortem.rawLog ?? '')
+                        : generateVerificationLogs(plan.id);
+                      const displayed = logQuery.trim()
+                        ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
+                        : raw;
+                      return (
+                        <ClipboardCopy
+                          variant={ClipboardCopyVariant.expansion}
+                          isReadOnly
+                          isCode
+                          style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                        >
+                          {displayed}
+                        </ClipboardCopy>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -3061,6 +3144,29 @@ function generateAnalysisLogs(planId: string, finding: string, narrative: string
     `${ts(16)} INFO [rca]      Contributing factor graph traversal complete: 3 factors identified`,
     `${ts(17)} INFO [proposal] Root cause analysis complete. Generating remediation proposal...`,
     `${ts(19)} INFO [proposal] Proposal ready — plan_id=${planId} is available for review.`,
+  ].join('\n');
+}
+
+/** Generates deterministic simulated verification log lines for the post-execution logs panel. */
+function generateVerificationLogs(planId: string): string {
+  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const ts = (offset: number) => {
+    const rawSec = (h % 60) + 20 + offset;
+    const m = String(10 + (h % 49) + Math.floor(rawSec / 60)).padStart(2, '0');
+    const s = String(rawSec % 60).padStart(2, '0');
+    return `2026-07-02T08:${m}:${s}.000000000Z`;
+  };
+  return [
+    `${ts(0)}  INFO [verify]   Starting post-execution verification — plan_id=${planId}`,
+    `${ts(2)}  INFO [verify]   Waiting for reconciliation loop to stabilise (10s)...`,
+    `${ts(12)} INFO [verify]   Querying Prometheus for remediation metric delta...`,
+    `${ts(14)} INFO [verify]   Alert condition re-evaluated — checking firing state`,
+    `${ts(16)} INFO [verify]   Metric sample collected: t=0s post-execution`,
+    `${ts(19)} INFO [verify]   Metric sample collected: t=5s post-execution`,
+    `${ts(24)} INFO [verify]   Metric sample collected: t=10s post-execution`,
+    `${ts(27)} INFO [verify]   Alert resolved — firing=false, pending=0`,
+    `${ts(28)} INFO [verify]   Verification PASSED — remediation confirmed effective.`,
+    `${ts(29)} INFO [verify]   plan_id=${planId} transitioned → Completed`,
   ].join('\n');
 }
 
