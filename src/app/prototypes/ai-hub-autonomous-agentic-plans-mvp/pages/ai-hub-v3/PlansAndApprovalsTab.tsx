@@ -368,31 +368,31 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-monitoring',
   },
-  nx1: {
-    name: 'cert-manager-tls-renewal-pending',
+  'certmgr-renewal-pending': {
+    name: 'certmgr-tls-renewal-pending',
     synopsis: 'Certificate renewal queued for expiring ingress TLS — awaiting agent assignment',
     fleetCluster: 'prod-east-2',
     namespace: 'cert-manager',
   },
-  nx2: {
-    name: 'acs-network-policy-denied',
+  'acs-netpol-remediation-denied': {
+    name: 'acs-netpol-remediation-denied',
     synopsis: 'ACS network policy remediation proposal denied by cluster administrator',
     fleetCluster: 'prod-east-2',
     namespace: 'retail-prod',
   },
-  nx3: {
-    name: 'namespace-quota-escalating',
+  'quota-exhaustion-escalating': {
+    name: 'quota-exhaustion-escalating',
     synopsis: 'Namespace resource quota exhaustion escalating to human operator after automated remediation failed',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-ingress',
   },
-  nx4: {
+  'ingress-controller-escalated': {
     name: 'ingress-controller-scale-escalated',
     synopsis: 'Ingress controller minimum replica scale-out escalated after execution retry limit reached',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-ingress',
   },
-  nx5: {
+  'prometheus-wal-emergency-stopped': {
     name: 'prometheus-wal-repair-emergency-stopped',
     synopsis: 'Prometheus write-ahead log repair halted by emergency stop during active write window',
     fleetCluster: 'prod-east-2',
@@ -803,7 +803,7 @@ const ALL_PLANS: RawPlanRow[] = [
   },
   // ─── New backend phase plans (Pending, Denied, Escalating, Escalated, EmergencyStopped) ───
   {
-    id: 'nx1',
+    id: 'certmgr-renewal-pending',
     severity: 'warning',
     status: 'Pending',
     score: 45,
@@ -816,7 +816,7 @@ const ALL_PLANS: RawPlanRow[] = [
     ],
   },
   {
-    id: 'nx2',
+    id: 'acs-netpol-remediation-denied',
     severity: 'warning',
     status: 'Denied',
     score: 62,
@@ -829,7 +829,7 @@ const ALL_PLANS: RawPlanRow[] = [
     ],
   },
   {
-    id: 'nx3',
+    id: 'quota-exhaustion-escalating',
     severity: 'critical',
     status: 'Escalating',
     score: 70,
@@ -842,7 +842,7 @@ const ALL_PLANS: RawPlanRow[] = [
     ],
   },
   {
-    id: 'nx4',
+    id: 'ingress-controller-escalated',
     severity: 'critical',
     status: 'Escalated',
     score: 77,
@@ -856,7 +856,7 @@ const ALL_PLANS: RawPlanRow[] = [
     ],
   },
   {
-    id: 'nx5',
+    id: 'prometheus-wal-emergency-stopped',
     severity: 'critical',
     status: 'EmergencyStopped',
     score: 68,
@@ -1320,7 +1320,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     confidence: 'High',
   },
   // ─── New backend phase plans ─────────────────────────────────────────────────
-  nx2: {
+  'acs-netpol-remediation-denied': {
     steps: [
       { id: 's1', time: '09:14:03', status: 'done', icon: 'exclamation', title: 'ACS policy violation detected on retail-checkout', detail: 'hostNetwork=true set on workload in retail-prod namespace — violates P-2041' },
       { id: 's2', time: '09:14:18', status: 'done', icon: 'search', title: 'Identified affected deployment', detail: 'retail-checkout uses hostNetwork as DNS workaround' },
@@ -1333,7 +1333,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: '~5m',
     confidence: 'High',
   },
-  nx4: {
+  'ingress-controller-escalated': {
     steps: [
       { id: 's1', time: '14:22:05', status: 'done', icon: 'exclamation', title: 'IngressControllerMinReplicasNotMet alert fired', detail: 'Ingress controller replica count dropped below 2 after node eviction' },
       { id: 's2', time: '14:22:19', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 1', detail: 'Execution failed: insufficient resource quota in openshift-ingress' },
@@ -1347,7 +1347,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: '~10m after quota adjustment',
     confidence: 'High',
   },
-  nx5: {
+  'prometheus-wal-emergency-stopped': {
     steps: [
       { id: 's1', time: '02:07:15', status: 'done', icon: 'exclamation', title: 'PrometheusWALCorruptionDetected alert fired', detail: 'Write-ahead log corruption markers on prometheus-k8s-0' },
       { id: 's2', time: '02:07:28', status: 'done', icon: 'database', title: 'Initiated WAL segment repair via tsdb tool', detail: 'Repair started on /prometheus/wal — active write activity detected' },

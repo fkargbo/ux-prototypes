@@ -46,7 +46,12 @@ export const SC_PLAN_TABLE_IDENTITY: Record<string, ScPlanTableIdentity> = {
   op2: { name: 'fix-alertmanager-webhook-secret', synopsis: 'Rotate Alertmanager PagerDuty webhook credentials after delivery failures', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   op3: { name: 'recover-thanos-compactor-pv', synopsis: 'Recover Thanos compactor persistent volume after corrupted block detection', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   op4: { name: 'scale-otel-collector-replicas', synopsis: 'Scale OpenTelemetry collector replicas to relieve trace ingestion backpressure', namespace: 'openshift-opentelemetry-operator', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
-  op5: { name: 'clear-grafana-sqlite-lock', synopsis: 'Clear Grafana SQLite database lock causing dashboard write timeouts', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op5: { name: 'clear-perses-storage-lock', synopsis: 'Clear Perses storage lock causing dashboard write timeouts', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'certmgr-renewal-pending':        { name: 'certmgr-tls-renewal-pending',           synopsis: 'Certificate renewal queued for expiring ingress TLS — awaiting agent assignment', namespace: 'cert-manager',              fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'acs-netpol-remediation-denied':  { name: 'acs-netpol-remediation-denied',          synopsis: 'ACS network policy remediation proposal denied by cluster administrator',         namespace: 'retail-prod',               fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'quota-exhaustion-escalating':    { name: 'quota-exhaustion-escalating',            synopsis: 'Namespace quota exhaustion escalating to operator after automated remediation failed', namespace: 'openshift-ingress',     fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'ingress-controller-escalated':   { name: 'ingress-controller-scale-escalated',     synopsis: 'Ingress controller scale-out escalated after retry limit reached',                namespace: 'openshift-ingress',         fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'prometheus-wal-emergency-stopped': { name: 'prometheus-wal-repair-emergency-stopped', synopsis: 'Prometheus WAL repair halted by emergency stop during active write window',    namespace: 'openshift-monitoring',      fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
 };
 
@@ -219,9 +224,40 @@ export const SC_PLAN_ROW_PATCHES: Record<string, ScPlanRowPatch> = {
     ],
   },
   op5: {
-    consolidationScope: 'Triggered by alert: GrafanaDatabaseDatabaseLocked (Database write timeouts on shared persistent volume)',
+    consolidationScope: 'Triggered by alert: PersesDashboardStorageLocked (Database write timeouts on shared persistent volume)',
     expandedReasons: [
-      { icon: 'alert', text: 'GrafanaDatabaseDatabaseLocked: database write timeouts on shared persistent volume.' },
+      { icon: 'alert', text: 'PersesDashboardStorageLocked: database write timeouts on shared persistent volume.' },
+    ],
+  },
+  'certmgr-renewal-pending': {
+    consolidationScope: '1 Certificate Event',
+    expandedReasons: [
+      { icon: 'warning', text: 'cert-manager: TLS certificate for ingress-tls expiring in 6 days — renewal not yet initiated in cert-manager namespace.' },
+    ],
+  },
+  'acs-netpol-remediation-denied': {
+    consolidationScope: '1 Compliance Violation',
+    expandedReasons: [
+      { icon: 'ban', text: 'ACS: NetworkPolicy violation on retail-checkout in retail-prod — remediation denied by cluster administrator.' },
+    ],
+  },
+  'quota-exhaustion-escalating': {
+    consolidationScope: '3 Quota Events',
+    expandedReasons: [
+      { icon: 'warning', text: 'ResourceQuota: 3 quota limits exceeded in openshift-ingress — automated remediation failed after max retries.' },
+    ],
+  },
+  'ingress-controller-escalated': {
+    consolidationScope: '2 Alerts / 1 Escalation',
+    expandedReasons: [
+      { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: scale-out failed after 2 attempts in openshift-ingress.' },
+      { icon: 'ban', text: 'MaxRetriesExhausted — escalated for manual quota adjustment.' },
+    ],
+  },
+  'prometheus-wal-emergency-stopped': {
+    consolidationScope: '1 Emergency Override',
+    expandedReasons: [
+      { icon: 'ban', text: 'EmergencyStopped: Prometheus WAL repair halted by operator on prometheus-k8s-0 in openshift-monitoring.' },
     ],
   },
 };
