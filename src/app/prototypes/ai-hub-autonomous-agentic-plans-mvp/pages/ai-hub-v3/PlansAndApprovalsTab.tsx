@@ -176,7 +176,6 @@ const PLAN_SORT_SCORES: Record<string, number> = {
   ap15: 33,
   cp1: 68,
   cp2: 12,
-  cp3: 75,
   cp4: 72,
   op1: 18,
   op2: 32,
@@ -323,12 +322,6 @@ const PLAN_TABLE_IDENTITY: Record<
   cp2: {
     name: 'ocp-patch-4.15.1-to-4.15.8',
     synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation',
-    fleetCluster: 'prod-east-2',
-    namespace: 'openshift-update',
-  },
-  cp3: {
-    name: 'ocp-upgrade-4.15-to-4.16',
-    synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-update',
   },
@@ -505,21 +498,6 @@ const ALL_PLANS: RawPlanRow[] = [
     expandedReasons: [
       { icon: 'alert', text: 'OpenShift Advisory: RHSA-2026-1842 — critical platform CVE patched in 4.15.8.' },
       { icon: 'gear', text: 'ClusterVersion: Recommended patch 4.15.8 available from 4.15.1.' },
-    ],
-  },
-  {
-    id: 'cp3',
-    severity: 'critical',
-    status: 'Plan aborted',
-    terminatedAt: 'Jun 9, 2026, 4:12 PM',
-    score: 74,
-    synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
-    consolidationScope: 'Admin triggered channel update check; manually terminated mid-flight',
-    triggerDomain: 'Cluster update',
-    drawerTargets: ['prod-east-2'],
-    expandedReasons: [
-      { icon: 'gear', text: 'ClusterVersion: Admin initiated upgrade path evaluation 4.15 → 4.16.' },
-      { icon: 'ban', text: 'Administrative override: plan terminated during preflight validation phase.' },
     ],
   },
   {
@@ -1227,19 +1205,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — z-stream patch is a supported in-place update with minimal disruption.',
     estimatedRecovery: '~25m',
     confidence: 'High',
-  },
-  cp3: {
-    steps: [
-      { id: 's1', time: '16:44:02', status: 'done', icon: 'network', title: 'Admin initiated upgrade channel check 4.15 → 4.16', detail: 'Admin triggered channel update check; manually terminated mid-flight' },
-      { id: 's2', time: '16:44:15', status: 'done', icon: 'search', title: 'Preflight validation started for next minor release', detail: 'ClusterOperator health gates evaluated · 2 warnings surfaced' },
-      { id: 's3', time: '16:44:28', status: 'done', icon: 'exclamation', title: 'Plan terminated by administrative override', detail: 'Upgrade aborted before control plane rollout began' },
-    ],
-    aggregatedFinding: 'Administrative channel update check for OpenShift 4.16 was manually terminated during preflight validation.',
-    rootCauseNarrative: 'A platform administrator triggered an upgrade path evaluation from 4.15 to 4.16. Preflight validation surfaced operator warnings and the plan was halted mid-flight before any control plane mutation occurred.',
-    remediationProposal: 'Resolve ClusterOperator warnings and re-submit upgrade plan when maintenance window is approved.',
-    riskAssessment: 'High — next minor upgrade carries elevated control plane blast radius if resumed without remediation.',
-    estimatedRecovery: 'N/A — plan aborted',
-    confidence: 'Medium',
   },
   cp4: {
     steps: [

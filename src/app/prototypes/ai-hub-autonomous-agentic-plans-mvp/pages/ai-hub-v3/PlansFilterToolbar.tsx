@@ -28,25 +28,21 @@ export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['sta
   { label: 'Proposed',          value: 'Proposed' },
   { label: 'Executing',         value: 'Executing' },
   { label: 'Verifying',         value: 'Verifying' },
-  { label: 'Acknowledged',      value: 'Acknowledged' },
   { label: 'Completed',         value: 'Completed' },
-  { label: 'Failed',            value: 'Failed' },
   { label: 'Denied',            value: 'Denied' },
   { label: 'Escalating',        value: 'Escalating' },
   { label: 'Escalated',         value: 'Escalated' },
   { label: 'Emergency stopped', value: 'EmergencyStopped' },
-  { label: 'Plan aborted',      value: 'Plan aborted' },
 ];
 
 export const TROUBLESHOOTING_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
-  { label: 'Pending',           value: 'Pending' },
+  { label: 'Analyzing',         value: 'Analyzing' },
   { label: 'Proposed',          value: 'Proposed' },
+  { label: 'Executing',         value: 'Executing' },
+  { label: 'Verifying',         value: 'Verifying' },
   { label: 'Completed',         value: 'Completed' },
-  { label: 'Failed',            value: 'Failed' },
-  { label: 'Denied',            value: 'Denied' },
   { label: 'Escalated',         value: 'Escalated' },
   { label: 'Emergency stopped', value: 'EmergencyStopped' },
-  { label: 'Plan aborted',      value: 'Plan aborted' },
 ];
 
 export const TRIGGER_DOMAIN_FILTER_OPTIONS = [
