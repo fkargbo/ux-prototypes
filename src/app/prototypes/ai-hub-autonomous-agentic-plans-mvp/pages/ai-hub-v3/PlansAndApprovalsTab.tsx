@@ -2756,7 +2756,7 @@ const PostMortemPanel: React.FC<{
               }
               style={{ padding: 0, fontSize: '14px', marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
             >
-              {isMetricsExpanded ? 'Hide post-execution summary' : 'View post-execution summary'}
+                  {isMetricsExpanded ? 'Hide execution summary' : 'View execution summary'}
             </Button>
 
             {/* Collapsible metrics content (Sections A, B, C) */}
@@ -2819,7 +2819,7 @@ const PostMortemPanel: React.FC<{
                   ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
                   : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
                 }
-                <Title headingLevel="h5" size="md">Post-execution summary</Title>
+                <Title headingLevel="h5" size="md">Execution summary</Title>
               </Flex>
 
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
