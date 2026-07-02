@@ -26,8 +26,6 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
-  Grid,
-  GridItem,
   Label,
   MenuToggle,
   Modal,
@@ -38,7 +36,6 @@ import {
   Pagination,
   PaginationVariant,
   Popover,
-  Progress,
   Skeleton,
   Spinner,
   Stack,
@@ -2994,120 +2991,8 @@ const scrollRemediationSectionIntoView = (
   });
 };
 
-// ─── Escalating state view ────────────────────────────────────────────────────
-// Rendered when no drawer data exists yet (agent has not completed analysis).
-
-const EscalatingPlanView: React.FC<{ plan: PlanRow }> = ({ plan }) => (
-  <Stack style={{ gap: '24px' }}>
-    {/* Page heading */}
-    <StackItem>
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        gap={{ default: 'gapSm' }}
-        style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-      >
-        <AiExperienceIcon size={20} />
-        <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
-          Plan details
-        </Title>
-      </Flex>
-    </StackItem>
-
-    {/* Status banner */}
-    <StackItem>
-      <Alert
-        variant="warning"
-        isInline
-        title="Escalation in progress"
-        customIcon={<ExclamationTriangleIcon />}
-      >
-        Automated remediation failed after reaching the maximum retry limit. This plan has been
-        escalated to a human operator for manual resolution.
-      </Alert>
-    </StackItem>
-
-    {/* Animated escalation progress indicator */}
-    <StackItem>
-      <div
-        aria-live="polite"
-        aria-label="Active escalation status"
-      >
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-        >
-          <ExclamationTriangleIcon
-            aria-hidden
-            style={{ color: '#F0AB00' }}
-          />
-          <Content
-            component="small"
-            style={{ color: '#F0AB00', fontWeight: 'var(--pf-v5-global--FontWeight--bold)' }}
-          >
-            Escalation active — awaiting operator intervention
-          </Content>
-        </Flex>
-        <Progress
-          value={100}
-          variant="warning"
-          aria-label="Active escalation progress"
-          style={{ animationDuration: '1.8s' } as React.CSSProperties}
-        />
-      </div>
-    </StackItem>
-
-    {/* Trigger details */}
-    <StackItem>
-      <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-        Trigger details
-      </Title>
-      <DescriptionList isHorizontal termWidth="20ch">
-        <DescriptionListGroup>
-          <DescriptionListTerm>Signal context</DescriptionListTerm>
-          <DescriptionListDescription>{plan.consolidationScope}</DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Trigger domain</DescriptionListTerm>
-          <DescriptionListDescription>
-            <Label color="grey" variant="outline" isCompact>
-              {plan.triggerDomain}
-            </Label>
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-        {plan.namespace && (
-          <DescriptionListGroup>
-            <DescriptionListTerm>Namespace</DescriptionListTerm>
-            <DescriptionListDescription>{plan.namespace}</DescriptionListDescription>
-          </DescriptionListGroup>
-        )}
-        {plan.drawerTargets.length > 0 && (
-          <DescriptionListGroup>
-            <DescriptionListTerm>Affected resources</DescriptionListTerm>
-            <DescriptionListDescription>{plan.drawerTargets.join(', ')}</DescriptionListDescription>
-          </DescriptionListGroup>
-        )}
-        {plan.expandedReasons.length > 0 && (
-          <DescriptionListGroup>
-            <DescriptionListTerm>Escalation reason</DescriptionListTerm>
-            <DescriptionListDescription>
-              <Stack hasGutter={false}>
-                {plan.expandedReasons.map((r, i) => (
-                  <StackItem key={i}>{r.text}</StackItem>
-                ))}
-              </Stack>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        )}
-      </DescriptionList>
-    </StackItem>
-  </Stack>
-);
-
-// ─── Escalated state — remediation hub ───────────────────────────────────────
-// Renders when a plan is terminally escalated: left panel shows telemetry from
-// existing drawer data; right panel shows the operator playbook card.
-// The lookup below is presentation-only and does not mutate any mock data file.
+// ─── Escalated plan: presentation-only playbook lookup ───────────────────────
+// Maps plan IDs to operator runbook commands. Does not touch mock data files.
 
 const ESCALATED_PLAN_PLAYBOOKS: Record<string, { title: string; command: string }> = {
   'ingress-controller-escalated': {
@@ -3120,126 +3005,6 @@ const ESCALATED_PLAN_PLAYBOOKS: Record<string, { title: string; command: string 
 const DEFAULT_ESCALATION_PLAYBOOK = {
   title: 'Review escalated plan and apply manual remediation',
   command: 'oc describe proposal <plan-name> -n openshift-lightspeed',
-};
-
-const EscalatedRemediationHub: React.FC<{ plan: PlanRow; drawer: PlanDrawerData }> = ({
-  plan,
-  drawer,
-}) => {
-  const playbook = ESCALATED_PLAN_PLAYBOOKS[plan.id] ?? DEFAULT_ESCALATION_PLAYBOOK;
-
-  return (
-    <Grid hasGutter>
-      {/* ── Left 8 cols: investigation telemetry ─────────────────────────── */}
-      <GridItem span={8}>
-        <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-          Escalation details
-        </Title>
-        <DescriptionList isHorizontal termWidth="22ch" style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Root finding</DescriptionListTerm>
-            <DescriptionListDescription>{drawer.aggregatedFinding}</DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Analysis</DescriptionListTerm>
-            <DescriptionListDescription>{drawer.rootCauseNarrative}</DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Proposed action</DescriptionListTerm>
-            <DescriptionListDescription>{drawer.remediationProposal}</DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Risk</DescriptionListTerm>
-            <DescriptionListDescription>{drawer.riskAssessment}</DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Estimated recovery</DescriptionListTerm>
-            <DescriptionListDescription>{drawer.estimatedRecovery}</DescriptionListDescription>
-          </DescriptionListGroup>
-        </DescriptionList>
-
-        {plan.expandedReasons.length > 0 && (
-          <div aria-live="polite" aria-label="Escalation event log">
-            <Title headingLevel="h5" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              Escalation log
-            </Title>
-            <Stack hasGutter={false}>
-              {plan.expandedReasons.map((r, i) => (
-                <StackItem
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    gap: 'var(--pf-t--global--spacer--sm)',
-                    alignItems: 'flex-start',
-                    padding: 'var(--pf-t--global--spacer--xs) 0',
-                  }}
-                >
-                  <ExclamationCircleIcon
-                    aria-label="Escalation event"
-                    style={{ color: '#C9191E', flexShrink: 0, marginTop: '2px' }}
-                  />
-                  <Content component="small">{r.text}</Content>
-                </StackItem>
-              ))}
-            </Stack>
-          </div>
-        )}
-      </GridItem>
-
-      {/* ── Right 4 cols: remediation action card ────────────────────────── */}
-      <GridItem span={4}>
-        <Card
-          id={`remediation-card-${plan.id}`}
-          aria-labelledby={`remediation-card-header-${plan.id}`}
-          isCompact
-          style={{ borderLeft: '3px solid #C9191E' }}
-        >
-          <CardHeader>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <ExclamationCircleIcon aria-hidden style={{ color: '#C9191E' }} />
-              <Title
-                headingLevel="h5"
-                size="md"
-                id={`remediation-card-header-${plan.id}`}
-                style={{ marginBottom: 0 }}
-              >
-                Remediation action required
-              </Title>
-            </Flex>
-          </CardHeader>
-          <CardBody>
-            <Content
-              component="p"
-              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-            >
-              Run the recommended remediation playbook to resolve this cluster escalation.
-            </Content>
-            <Content
-              component="small"
-              style={{
-                display: 'block',
-                marginBottom: 'var(--pf-t--global--spacer--sm)',
-                fontWeight: 'var(--pf-v5-global--FontWeight--bold)',
-              }}
-            >
-              {playbook.title}
-            </Content>
-            <ClipboardCopy
-              isCode
-              variant={ClipboardCopyVariant.expansion}
-              isReadOnly
-              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-            >
-              {playbook.command}
-            </ClipboardCopy>
-            <Button variant="primary" icon={<TerminalIcon />} iconPosition="start">
-              Run playbook
-            </Button>
-          </CardBody>
-        </Card>
-      </GridItem>
-    </Grid>
-  );
 };
 
 export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
@@ -3379,11 +3144,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     }
   }, [completeVerification, plan.id, workflow.verification]);
 
-  if (isEscalating) {
-    return <EscalatingPlanView plan={plan} />;
-  }
+  if (!drawer && !isEscalating) return null;
 
-  if (!drawer) return null;
+  const escalatedPlaybook = ESCALATED_PLAN_PLAYBOOKS[plan.id] ?? DEFAULT_ESCALATION_PLAYBOOK;
 
   const showExecutionLog = isExecutionPhase && (
     approvedOptionId ? selectedOptionId === approvedOptionId : selectedOptionIndex === 0
@@ -3432,7 +3195,34 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             </Label>
           )}
         </Flex>
-          {isAnalyzing ? (
+          {isEscalating ? (
+            <div
+              style={LOCKED_BOX_STYLE}
+              aria-live="polite"
+              aria-label="Escalation status — root cause analysis unavailable"
+            >
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                <ExclamationTriangleIcon
+                  aria-hidden
+                  style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
+                />
+                <Content
+                  component="p"
+                  className="ols-aio-text-subtle-sm"
+                  style={{ margin: 0, fontStyle: 'italic' }}
+                >
+                  Root cause analysis unavailable — this plan has been escalated to a human operator.
+                </Content>
+              </Flex>
+              <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+              <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+              <Skeleton width="75%" />
+            </div>
+          ) : isAnalyzing ? (
             <>
               <RcaLockedPlaceholder />
               <Flex
@@ -3476,10 +3266,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <span className="ols-aio-text-overline">Detected Root Cause</span>
             </div>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              {drawer.aggregatedFinding}
+              {drawer!.aggregatedFinding}
             </Content>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              {drawer.rootCauseNarrative}
+              {drawer!.rootCauseNarrative}
             </Content>
 
           </div>
@@ -3524,8 +3314,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                   icon={<DownloadIcon />}
                   onClick={() =>
                     downloadAnalysisReportMarkdown(plan, {
-                      aggregatedFinding: drawer.aggregatedFinding,
-                      rootCauseNarrative: drawer.rootCauseNarrative,
+                      aggregatedFinding: drawer!.aggregatedFinding,
+                      rootCauseNarrative: drawer!.rootCauseNarrative,
                     })
                   }
                 >
@@ -3562,16 +3352,90 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                 Failed
               </Label>
             )}
+            {isEscalated && (
+              <Label
+                color="orange"
+                isCompact
+                icon={<ExclamationTriangleIcon />}
+              >
+                Escalated
+              </Label>
+            )}
             {!isAnalyzing && !isTerminal && visibleOptionCount > 0 && (
               <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
             )}
           </Flex>
           <WaitingApprovalPlanMeta plan={plan} />
         </Flex>
-          {isAnalyzing ? (
+          {isEscalating ? (
+            <div
+              style={LOCKED_BOX_STYLE}
+              aria-live="polite"
+              aria-label="Remediation hub — escalation active"
+            >
+              <Content
+                component="p"
+                className="ols-aio-text-subtle-sm"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
+              >
+                Remediation options are unavailable while escalation is active. This plan has been
+                forwarded to a human operator for manual intervention.
+              </Content>
+              <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+              <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+              <Skeleton width="55%" />
+            </div>
+          ) : isAnalyzing ? (
             <HubLockedPlaceholder />
           ) : isEscalated ? (
-            <EscalatedRemediationHub plan={plan} drawer={drawer} />
+            <>
+              <Alert
+                variant="warning"
+                isInline
+                title="Remediation action required"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                Automated execution failed after reaching the maximum retry limit. Manual operator
+                intervention is required to resolve this escalation.
+              </Alert>
+              <div
+                style={LOCKED_BOX_STYLE}
+                aria-live="polite"
+                aria-labelledby={`escalated-action-heading-${plan.id}`}
+              >
+                <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                  <span className="ols-aio-text-overline">Recommended action</span>
+                </div>
+                <Content
+                  component="p"
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  {drawer?.remediationProposal}
+                </Content>
+                <Content
+                  id={`escalated-action-heading-${plan.id}`}
+                  component="small"
+                  style={{
+                    display: 'block',
+                    marginBottom: 'var(--pf-t--global--spacer--xs)',
+                    fontWeight: 600,
+                  }}
+                >
+                  {escalatedPlaybook.title}
+                </Content>
+                <ClipboardCopy
+                  isCode
+                  variant={ClipboardCopyVariant.expansion}
+                  isReadOnly
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  {escalatedPlaybook.command}
+                </ClipboardCopy>
+                <Button variant="primary" icon={<TerminalIcon />} iconPosition="start">
+                  Run playbook
+                </Button>
+              </div>
+            </>
           ) : isTerminal ? (
             <>
               {terminalVisibleOptions.length > 0 && (
@@ -3643,8 +3507,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           isOptionLocked={isOptionLocked}
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
                           rootCause={{
-                            aggregatedFinding: drawer.aggregatedFinding,
-                            rootCauseNarrative: drawer.rootCauseNarrative,
+                            aggregatedFinding: drawer!.aggregatedFinding,
+                            rootCauseNarrative: drawer!.rootCauseNarrative,
                           }}
                         />
                       </StackItem>
