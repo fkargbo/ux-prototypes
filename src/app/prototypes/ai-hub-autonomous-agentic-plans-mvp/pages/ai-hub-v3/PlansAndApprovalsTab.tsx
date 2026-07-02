@@ -36,6 +36,7 @@ import {
   Pagination,
   PaginationVariant,
   Popover,
+  SearchInput,
   Skeleton,
   Spinner,
   Stack,
@@ -3037,6 +3038,32 @@ const DEFAULT_ESCALATION_PLAYBOOK = {
   command: 'oc describe proposal <plan-name> -n openshift-lightspeed',
 };
 
+/** Generates deterministic simulated analysis log lines for a plan's RCA section. */
+function generateAnalysisLogs(planId: string, finding: string, narrative: string): string {
+  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const mm = String(10 + (h % 49)).padStart(2, '0');
+  const ts = (offset: number) => {
+    const rawSec = (h % 60) + offset;
+    const m = String(10 + (h % 49) + Math.floor(rawSec / 60)).padStart(2, '0');
+    const s = String(rawSec % 60).padStart(2, '0');
+    return `2026-07-02T08:${m}:${s}.000000000Z`;
+  };
+  void mm;
+  const clip = (str: string, len = 90) => (str.length > len ? str.slice(0, len) + '...' : str);
+  return [
+    `${ts(0)}  INFO [analysis] Initializing investigation pipeline — plan_id=${planId}`,
+    `${ts(2)}  INFO [signals]  Querying Prometheus TSDB for correlated alert signals...`,
+    `${ts(4)}  INFO [signals]  ${clip(finding)}`,
+    `${ts(7)}  INFO [model]    Dispatching signal corpus to LLM reasoning engine`,
+    `${ts(9)}  INFO [model]    Hypothesis generation in progress (temperature=0.2, max_tokens=1024)`,
+    `${ts(12)} INFO [model]    Root cause hypothesis locked — confidence=0.87`,
+    `${ts(14)} INFO [rca]      ${clip(narrative)}`,
+    `${ts(16)} INFO [rca]      Contributing factor graph traversal complete: 3 factors identified`,
+    `${ts(17)} INFO [proposal] Root cause analysis complete. Generating remediation proposal...`,
+    `${ts(19)} INFO [proposal] Proposal ready — plan_id=${planId} is available for review.`,
+  ].join('\n');
+}
+
 export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isAnalyzing = status === 'Analyzing';
@@ -3070,6 +3097,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
+  const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
+  const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -3079,6 +3108,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   useEffect(() => {
     setIsExecutionRunning(false);
     setRetryBanner(null);
+    setShowAnalysisLogs(false);
+    setAnalysisLogsQuery('');
   }, [plan.id]);
 
   useEffect(() => {
@@ -3264,9 +3295,57 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.aggregatedFinding}
             </Content>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.rootCauseNarrative}
             </Content>
+
+            <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
+
+            {/* View analysis logs toggle */}
+            <div style={{ marginBottom: showAnalysisLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => setShowAnalysisLogs(!showAnalysisLogs)}
+                icon={
+                  <AngleRightIcon
+                    style={{
+                      transform: showAnalysisLogs ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 150ms ease',
+                    }}
+                  />
+                }
+                style={{ padding: 0, fontSize: '14px' }}
+              >
+                {showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
+              </Button>
+            </div>
+
+            {showAnalysisLogs && (() => {
+              const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
+              const displayLogs = analysisLogsQuery.trim()
+                ? rawLogs.split('\n').filter(l => l.toLowerCase().includes(analysisLogsQuery.toLowerCase())).join('\n')
+                : rawLogs;
+              return (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                  <SearchInput
+                    value={analysisLogsQuery}
+                    onChange={(_evt, val) => setAnalysisLogsQuery(val)}
+                    onClear={() => setAnalysisLogsQuery('')}
+                    placeholder="Search logs..."
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                  />
+                  <ClipboardCopy
+                    variant={ClipboardCopyVariant.expansion}
+                    isReadOnly
+                    isCode
+                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                  >
+                    {displayLogs}
+                  </ClipboardCopy>
+                </div>
+              );
+            })()}
 
           </div>
           )}
