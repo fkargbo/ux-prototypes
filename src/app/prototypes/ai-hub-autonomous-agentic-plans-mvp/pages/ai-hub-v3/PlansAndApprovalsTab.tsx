@@ -2787,7 +2787,10 @@ const PostMortemPanel: React.FC<{
                 gap={{ default: 'gapSm' }}
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
-                <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
+                {status === 'Failed'
+                  ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
+                  : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
+                }
                 <Title headingLevel="h5" size="md">Post-execution summary</Title>
               </Flex>
 
