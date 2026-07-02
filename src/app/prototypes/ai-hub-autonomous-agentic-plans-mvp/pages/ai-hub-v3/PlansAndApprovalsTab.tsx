@@ -36,6 +36,7 @@ import {
   Pagination,
   PaginationVariant,
   Popover,
+  SearchInput,
   Skeleton,
   Spinner,
   Stack,
@@ -176,7 +177,6 @@ const PLAN_SORT_SCORES: Record<string, number> = {
   ap15: 33,
   cp1: 68,
   cp2: 12,
-  cp3: 75,
   cp4: 72,
   op1: 18,
   op2: 32,
@@ -326,12 +326,6 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-update',
   },
-  cp3: {
-    name: 'ocp-upgrade-4.15-to-4.16',
-    synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
-    fleetCluster: 'prod-east-2',
-    namespace: 'openshift-update',
-  },
   cp4: {
     name: 'cluster-update-readiness-report',
     synopsis: 'Autonomous cluster health data gathering for update readiness assessment',
@@ -367,6 +361,42 @@ const PLAN_TABLE_IDENTITY: Record<
     synopsis: 'Clear Perses dashboard storage lock causing write timeouts on shared persistent volume',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-monitoring',
+  },
+  'certmgr-renewal-pending': {
+    name: 'certmgr-tls-renewal-pending',
+    synopsis: 'Certificate renewal queued for expiring ingress TLS — awaiting agent assignment',
+    fleetCluster: 'prod-east-2',
+    namespace: 'cert-manager',
+  },
+  'acs-netpol-remediation-denied': {
+    name: 'acs-netpol-remediation-denied',
+    synopsis: 'ACS network policy remediation proposal denied by cluster administrator',
+    fleetCluster: 'prod-east-2',
+    namespace: 'retail-prod',
+  },
+  'quota-exhaustion-escalating': {
+    name: 'quota-exhaustion-escalating',
+    synopsis: 'Namespace resource quota exhaustion escalating to human operator after automated remediation failed',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-ingress',
+  },
+  'ingress-controller-escalated': {
+    name: 'ingress-controller-scale-escalated',
+    synopsis: 'Ingress controller minimum replica scale-out escalated after execution retry limit reached',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-ingress',
+  },
+  'prometheus-wal-emergency-stopped': {
+    name: 'prometheus-wal-repair-emergency-stopped',
+    synopsis: 'Prometheus write-ahead log repair halted by emergency stop during active write window',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
+  },
+  'etcd-defrag-failed': {
+    name: 'etcd-defrag-compaction',
+    synopsis: 'Compact and defragment etcd database to reduce fragmentation ratio below 0.5 threshold',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-etcd',
   },
   ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
 };
@@ -475,21 +505,6 @@ const ALL_PLANS: RawPlanRow[] = [
     expandedReasons: [
       { icon: 'alert', text: 'OpenShift Advisory: RHSA-2026-1842 — critical platform CVE patched in 4.15.8.' },
       { icon: 'gear', text: 'ClusterVersion: Recommended patch 4.15.8 available from 4.15.1.' },
-    ],
-  },
-  {
-    id: 'cp3',
-    severity: 'critical',
-    status: 'Plan aborted',
-    terminatedAt: 'Jun 9, 2026, 4:12 PM',
-    score: 74,
-    synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16',
-    consolidationScope: 'Admin triggered channel update check; manually terminated mid-flight',
-    triggerDomain: 'Cluster update',
-    drawerTargets: ['prod-east-2'],
-    expandedReasons: [
-      { icon: 'gear', text: 'ClusterVersion: Admin initiated upgrade path evaluation 4.15 → 4.16.' },
-      { icon: 'ban', text: 'Administrative override: plan terminated during preflight validation phase.' },
     ],
   },
   {
@@ -771,6 +786,87 @@ const ALL_PLANS: RawPlanRow[] = [
       { icon: 'alert', text: 'PersesDashboardStorageLocked: database write timeouts on shared persistent volume.' },
     ],
   },
+  // ─── New backend phase plans (Pending, Denied, Escalating, Escalated, EmergencyStopped) ───
+  {
+    id: 'certmgr-renewal-pending',
+    severity: 'warning',
+    status: 'Pending',
+    score: 45,
+    synopsis: 'Certificate Renewal Pending',
+    consolidationScope: '1 Certificate Event',
+    triggerDomain: 'Security',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'warning', text: 'cert-manager: TLS certificate for ingress-tls expiring in 6 days — renewal not yet initiated.' },
+    ],
+  },
+  {
+    id: 'acs-netpol-remediation-denied',
+    severity: 'warning',
+    status: 'Denied',
+    score: 62,
+    synopsis: 'Deny ACS Network Policy Remediation',
+    consolidationScope: '1 Compliance Violation',
+    triggerDomain: 'Security',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'ban', text: 'ACS: NetworkPolicy violation on hostNetwork workloads — remediation denied by cluster administrator.' },
+    ],
+  },
+  {
+    id: 'quota-exhaustion-escalating',
+    severity: 'critical',
+    status: 'Escalating',
+    score: 70,
+    synopsis: 'Escalate Namespace Quota Exhaustion',
+    consolidationScope: '3 Quota Events',
+    triggerDomain: 'Cluster update',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'warning', text: 'ResourceQuota: 3 namespace quota limits exceeded — automated remediation failed after max retries.' },
+    ],
+  },
+  {
+    id: 'ingress-controller-escalated',
+    severity: 'critical',
+    status: 'Escalated',
+    score: 77,
+    synopsis: 'Escalated Ingress Controller Failure',
+    consolidationScope: '2 Alerts / 1 Escalation',
+    triggerDomain: 'Alertmanager',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: automated scale-out failed after 2 execution attempts.' },
+      { icon: 'ban', text: 'Escalation triggered: MaxRetriesExhausted — requires manual operator intervention.' },
+    ],
+  },
+  {
+    id: 'prometheus-wal-emergency-stopped',
+    severity: 'critical',
+    status: 'EmergencyStopped',
+    score: 68,
+    synopsis: 'Emergency Stop: Prometheus WAL Repair',
+    consolidationScope: '1 Emergency Override',
+    triggerDomain: 'Prometheus',
+    drawerTargets: ['prometheus-k8s-0'],
+    expandedReasons: [
+      { icon: 'ban', text: 'EmergencyStopped: Prometheus WAL repair halted by operator — risk of data loss during active write window.' },
+    ],
+  },
+  {
+    id: 'etcd-defrag-failed',
+    severity: 'critical',
+    status: 'Failed',
+    score: 63,
+    synopsis: 'Compact and Defragment Etcd Database',
+    consolidationScope: '1 Alert',
+    triggerDomain: 'Cluster update',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'alert', text: 'EtcdDatabaseHighFragmentationRatio: fragmentation ratio 0.67 exceeded 0.5 threshold across 3 control plane nodes.' },
+      { icon: 'ban', text: 'Verification failure: fragmentation metric unchanged after defrag execution.' },
+    ],
+  },
   ...NEW_ALERT_INVESTIGATION_PLANS.map((plan) => ({
     ...plan,
     drawerTargets: ['prod-east-2'],
@@ -809,12 +905,17 @@ const SC_ALL_PLANS: RawPlanRow[] = [
   { ...ALL_PLANS[14],drawerTargets: ['ubi9-app', 'ubi9-runtime', 'ubi9-builder'] },
   { ...ALL_PLANS[15],drawerTargets: ['postgres-data-0'] },
   { ...ALL_PLANS[16],drawerTargets: ['worker-01', 'worker-02', 'worker-03', 'master-01', 'master-02', 'master-03'] },
-  { ...ALL_PLANS[17],drawerTargets: ['image-registry'] },
-  { ...ALL_PLANS[18],drawerTargets: ['prometheus-k8s-0', 'prometheus-k8s-1'] },
-  { ...ALL_PLANS[19],drawerTargets: ['alertmanager-main-0'] },
-  { ...ALL_PLANS[20],drawerTargets: ['thanos-compactor-data'] },
-  { ...ALL_PLANS[21],drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
-  { ...ALL_PLANS[22],drawerTargets: ['perses-6d4f8'] },
+  { ...ALL_PLANS[17],drawerTargets: ['prometheus-k8s-0', 'prometheus-k8s-1'] },
+  { ...ALL_PLANS[18],drawerTargets: ['alertmanager-main-0'] },
+  { ...ALL_PLANS[19],drawerTargets: ['thanos-compactor-data'] },
+  { ...ALL_PLANS[20],drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
+  { ...ALL_PLANS[21],drawerTargets: ['perses-6d4f8'] },
+  { ...ALL_PLANS[22],drawerTargets: ['ingress-tls', 'cert-manager'] },
+  { ...ALL_PLANS[23],drawerTargets: ['retail-checkout', 'retail-checkout-svc'] },
+  { ...ALL_PLANS[24],drawerTargets: ['router-default-6d4f8'] },
+  { ...ALL_PLANS[25],drawerTargets: ['router-default-6d4f8', 'router-default-7f8c9'] },
+  { ...ALL_PLANS[26],drawerTargets: ['prometheus-k8s-0'] },
+  { ...ALL_PLANS[27],drawerTargets: ['etcd-master-01', 'etcd-master-02', 'etcd-master-03'] },
   ...NEW_ALERT_INVESTIGATION_PLANS,
 ];
 
@@ -1126,19 +1227,6 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: '~25m',
     confidence: 'High',
   },
-  cp3: {
-    steps: [
-      { id: 's1', time: '16:44:02', status: 'done', icon: 'network', title: 'Admin initiated upgrade channel check 4.15 → 4.16', detail: 'Admin triggered channel update check; manually terminated mid-flight' },
-      { id: 's2', time: '16:44:15', status: 'done', icon: 'search', title: 'Preflight validation started for next minor release', detail: 'ClusterOperator health gates evaluated · 2 warnings surfaced' },
-      { id: 's3', time: '16:44:28', status: 'done', icon: 'exclamation', title: 'Plan terminated by administrative override', detail: 'Upgrade aborted before control plane rollout began' },
-    ],
-    aggregatedFinding: 'Administrative channel update check for OpenShift 4.16 was manually terminated during preflight validation.',
-    rootCauseNarrative: 'A platform administrator triggered an upgrade path evaluation from 4.15 to 4.16. Preflight validation surfaced operator warnings and the plan was halted mid-flight before any control plane mutation occurred.',
-    remediationProposal: 'Resolve ClusterOperator warnings and re-submit upgrade plan when maintenance window is approved.',
-    riskAssessment: 'High — next minor upgrade carries elevated control plane blast radius if resumed without remediation.',
-    estimatedRecovery: 'N/A — plan aborted',
-    confidence: 'Medium',
-  },
   cp4: {
     steps: [
       { id: 's1', time: '11:22:04', status: 'done', icon: 'database', title: 'ClusterVersion operator requested readiness probe', detail: 'Autonomous investigation triggered by update controller' },
@@ -1216,6 +1304,61 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — clearing the lock requires a short Perses write-unavailable window.',
     estimatedRecovery: '~3m',
     confidence: 'High',
+  },
+  // ─── New backend phase plans ─────────────────────────────────────────────────
+  'acs-netpol-remediation-denied': {
+    steps: [
+      { id: 's1', time: '09:14:03', status: 'done', icon: 'exclamation', title: 'ACS policy violation detected on retail-checkout', detail: 'hostNetwork=true set on workload in retail-prod namespace — violates P-2041' },
+      { id: 's2', time: '09:14:18', status: 'done', icon: 'search', title: 'Identified affected deployment', detail: 'retail-checkout uses hostNetwork as DNS workaround' },
+      { id: 's3', time: '09:14:32', status: 'done', icon: 'exclamation', title: 'Remediation proposal denied by administrator', detail: 'Admin flagged for broader network policy review before patching' },
+    ],
+    aggregatedFinding: 'ACS detected a hostNetwork=true workload in the retail-prod namespace violating network isolation policy P-2041.',
+    rootCauseNarrative: 'The retail-checkout deployment was updated with hostNetwork: true to work around a DNS resolution issue. ACS flagged this as a compliance violation. The remediation proposal to patch the deployment was reviewed and denied by the cluster administrator, who requires a broader policy review before any change is applied.',
+    remediationProposal: 'Patch retail-checkout deployment to remove hostNetwork: true and resolve the DNS issue via CoreDNS configuration instead.',
+    riskAssessment: 'Low — patch removes a privilege escalation risk. DNS validation required before apply.',
+    estimatedRecovery: '~5m',
+    confidence: 'High',
+  },
+  'ingress-controller-escalated': {
+    steps: [
+      { id: 's1', time: '14:22:05', status: 'done', icon: 'exclamation', title: 'IngressControllerMinReplicasNotMet alert fired', detail: 'Ingress controller replica count dropped below 2 after node eviction' },
+      { id: 's2', time: '14:22:19', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 1', detail: 'Execution failed: insufficient resource quota in openshift-ingress' },
+      { id: 's3', time: '14:22:41', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 2', detail: 'Execution failed: quota limit unchanged, same error' },
+      { id: 's4', time: '14:23:00', status: 'done', icon: 'exclamation', title: 'MaxRetriesExhausted — escalated to operator', detail: 'Proposal marked Escalated; requires human quota adjustment' },
+    ],
+    aggregatedFinding: 'Ingress controller fell below minimum replicas after node eviction. Two automated scale-out attempts failed due to namespace quota limits.',
+    rootCauseNarrative: 'A node eviction event on worker-bm-03 caused the ingress controller replica count to drop to 1. Two consecutive automated remediation executions failed because the openshift-ingress namespace quota prevented scheduling additional pods. After exhausting the MaxRetries threshold, the proposal was automatically escalated for manual operator intervention.',
+    remediationProposal: 'Increase the openshift-ingress namespace ResourceQuota CPU/memory limits, then re-execute the ingress controller scale-out plan.',
+    riskAssessment: 'Medium — quota change affects other workloads in the namespace. Review before applying.',
+    estimatedRecovery: '~10m after quota adjustment',
+    confidence: 'High',
+  },
+  'prometheus-wal-emergency-stopped': {
+    steps: [
+      { id: 's1', time: '02:07:15', status: 'done', icon: 'exclamation', title: 'PrometheusWALCorruptionDetected alert fired', detail: 'Write-ahead log corruption markers on prometheus-k8s-0' },
+      { id: 's2', time: '02:07:28', status: 'done', icon: 'database', title: 'Initiated WAL segment repair via tsdb tool', detail: 'Repair started on /prometheus/wal — active write activity detected' },
+      { id: 's3', time: '02:08:01', status: 'done', icon: 'exclamation', title: 'Emergency stop issued by on-call operator', detail: 'Halted mid-repair to avoid data loss during peak ingestion window' },
+    ],
+    aggregatedFinding: 'Prometheus WAL showed corruption markers on prometheus-k8s-0. Repair execution was started but stopped mid-flight by an emergency override.',
+    rootCauseNarrative: 'Automated WAL repair was initiated in response to corruption markers detected on prometheus-k8s-0. The on-call team identified that the repair was running during the peak metric ingestion window (02:00–04:00 UTC), creating a risk of write-path data loss. An EmergencyStop was issued, halting execution. The instance remains in a degraded state pending a scheduled maintenance window.',
+    remediationProposal: 'Schedule WAL repair during the next off-peak maintenance window (after 04:00 UTC). Use tsdb repair --repair flag with a snapshot taken beforehand.',
+    riskAssessment: 'High — WAL repair during active writes risks metric data loss. Must be run offline.',
+    estimatedRecovery: '~15m during maintenance window',
+    confidence: 'Medium',
+  },
+  'etcd-defrag-failed': {
+    steps: [
+      { id: 's1', time: '09:14:05', status: 'done', icon: 'exclamation', title: 'EtcdDatabaseHighFragmentationRatio alert fired', detail: 'Fragmentation ratio 0.67 detected across etcd-master-01, etcd-master-02, etcd-master-03' },
+      { id: 's2', time: '09:14:19', status: 'done', icon: 'database', title: 'Queried etcd endpoint defrag statistics', detail: 'DB size: 8.2 GiB · In-use: 3.1 GiB · Fragmentation: 62% — compaction lag confirmed' },
+      { id: 's3', time: '09:14:38', status: 'done', icon: 'network', title: 'Executed etcd defrag across 3 control plane nodes', detail: 'Commands issued sequentially to avoid leadership disruption' },
+      { id: 's4', time: '09:15:10', status: 'done', icon: 'exclamation', title: 'Verification failed: fragmentation ratio unchanged', detail: 'Post-defrag check still at 0.67 — compaction window had not run before execution' },
+    ],
+    aggregatedFinding: 'etcd defragmentation executed across 3 control plane nodes but post-execution verification failed — fragmentation ratio remained at 0.67.',
+    rootCauseNarrative: 'EtcdDatabaseHighFragmentationRatio fired after the fragmentation ratio exceeded 0.5 on all three control plane etcd members. Defragmentation was executed sequentially to minimize leader disruption, but the post-execution check found the fragmentation metric unchanged. The root cause is that the auto-compaction window (configured at 1h) had not run prior to execution, leaving large amounts of unreclaimed logical space that defrag alone cannot recover without a preceding compaction pass.',
+    remediationProposal: 'Trigger a manual etcd compaction before re-running defrag. Run `etcdctl compact <revision>` on the leader member, then re-execute the defragmentation plan during a low-write window.',
+    riskAssessment: 'High — etcd fragmentation above 0.5 degrades API server write latency and can cause quota exhaustion if db-quota-backend-bytes is approached.',
+    estimatedRecovery: 'N/A — plan failed; requires manual compaction before retry',
+    confidence: 'Medium',
   },
   ...NEW_ALERT_INVESTIGATION_DRAWER_DATA,
 };
@@ -1441,6 +1584,34 @@ Exit code: 0 — Execution succeeded.`,
 [03:45:24 UTC] ✓ NTP synchronization restored. NodeClockSkewDetected: resolved.
 Exit code: 0 — Execution succeeded.`,
   },
+  'etcd-defrag-failed': {
+    type: 'failure',
+    failureReason: 'etcd defragmentation executed across etcd-master-01, etcd-master-02, and etcd-master-03, but post-execution verification failed. The fragmentation ratio remained at 0.67 — unchanged from the pre-execution baseline. The auto-compaction window had not completed prior to defrag execution, leaving logical space unreclaimed. Defragmentation cannot recover space that has not been compacted. Manual compaction of the etcd revision history is required before re-executing this plan.',
+    failureTrace:
+`[09:14:38 UTC] Executing etcd defrag on etcd-master-01
+$ etcdctl defrag --endpoints=https://etcd-master-01:2379
+Finished defragmenting etcd member[https://etcd-master-01:2379]
+
+[09:14:43 UTC] Executing etcd defrag on etcd-master-02
+$ etcdctl defrag --endpoints=https://etcd-master-02:2379
+Finished defragmenting etcd member[https://etcd-master-02:2379]
+
+[09:14:48 UTC] Executing etcd defrag on etcd-master-03
+$ etcdctl defrag --endpoints=https://etcd-master-03:2379
+Finished defragmenting etcd member[https://etcd-master-03:2379]
+
+[09:15:05 UTC] Running post-execution verification...
+$ etcdctl endpoint status --endpoints=https://etcd-master-01:2379,https://etcd-master-02:2379,https://etcd-master-03:2379 --write-out=table
+ENDPOINT              | DB SIZE | IN USE  | FRAGMENTATION
+etcd-master-01:2379   | 8.2 GiB | 3.1 GiB | 62%
+etcd-master-02:2379   | 8.1 GiB | 3.1 GiB | 62%
+etcd-master-03:2379   | 8.2 GiB | 3.0 GiB | 63%
+
+VERIFICATION FAILED: fragmentation ratio ≥ 0.5 (threshold) on all members.
+Cause: etcd auto-compaction window (1h) had not completed before defrag.
+Recommendation: run etcdctl compact <latest-revision> then retry.
+Exit code: 1`,
+  },
 };
 
 // ─── Runtime post-mortem synthesis ────────────────────────────────────────────
@@ -1566,18 +1737,23 @@ const formatPlanCreatedAt = (iso: string): string => {
 
 // ─── Status label ─────────────────────────────────────────────────────────────
 
-type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red';
+type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
 
 const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
-  'Analyzing':    'blue',
-  'Proposed':     'orange',
-  'Approved':     'orange',
-  'Executing':    'teal',
-  'Verifying':    'teal',
-  'Acknowledged': 'green',
-  'Completed':    'green',
-  'Failed':       'red',
-  'Plan aborted': 'red',
+  'Pending':          'grey',
+  'Analyzing':        'blue',
+  'Proposed':         'orange',
+  'Approved':         'orange',
+  'Executing':        'teal',
+  'Verifying':        'teal',
+  'Acknowledged':     'green',
+  'Completed':        'green',
+  'Failed':           'red',
+  'Denied':           'red',
+  'Escalating':       'orange',
+  'Escalated':        'orange',
+  'EmergencyStopped': 'red',
+  'Plan aborted':     'red',
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -1616,13 +1792,17 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   status,
   terminatedAt,
 }) => {
-  if (status === 'Plan aborted') {
-    const tooltipContent = `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
+  if (status === 'Plan aborted' || status === 'EmergencyStopped') {
+    const tooltipContent =
+      status === 'EmergencyStopped'
+        ? `Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`
+        : `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
+    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Plan aborted';
     return (
       <Tooltip content={tooltipContent} position="top">
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
           <Label color="red" variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
-            Plan aborted
+            {displayLabel}
           </Label>
         </span>
       </Tooltip>
@@ -2436,6 +2616,9 @@ const PostMortemPanel: React.FC<{
 }> = ({ plan, verification, executionOptionId, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
   const [localShowLogs, setLocalShowLogs] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
+  const [logCategory, setLogCategory] = useState<'execution' | 'verification'>('execution');
+  const [logQuery, setLogQuery] = useState('');
+  const [isLogCatOpen, setIsLogCatOpen] = useState(false);
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -2577,7 +2760,7 @@ const PostMortemPanel: React.FC<{
               }
               style={{ padding: 0, fontSize: '14px', marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
             >
-              {isMetricsExpanded ? 'Hide post-execution summary' : 'View post-execution summary'}
+                  {isMetricsExpanded ? 'Hide execution summary' : 'View execution summary'}
             </Button>
 
             {/* Collapsible metrics content (Sections A, B, C) */}
@@ -2589,7 +2772,7 @@ const PostMortemPanel: React.FC<{
 
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
-            {/* Raw logs — always visible */}
+            {/* Logs — collapsible with category selector and search */}
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               <Button
                 variant="link"
@@ -2605,18 +2788,58 @@ const PostMortemPanel: React.FC<{
                 }
                 style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
               >
-                {showLogs ? 'Hide post-execution logs' : 'View post-execution logs'}
+                {showLogs ? 'Hide logs' : 'View logs'}
               </Button>
               {showLogs && (
                 <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                  <ClipboardCopy
-                    variant={ClipboardCopyVariant.expansion}
-                    isReadOnly
-                    isCode
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                  >
-                    {postMortem.rawLog ?? ''}
-                  </ClipboardCopy>
+                  <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                    <FlexItem>
+                      <Dropdown
+                        isOpen={isLogCatOpen}
+                        onOpenChange={setIsLogCatOpen}
+                        onSelect={(_e, val) => {
+                          setLogCategory(val as 'execution' | 'verification');
+                          setIsLogCatOpen(false);
+                        }}
+                        toggle={(ref) => (
+                          <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
+                            {logCategory === 'execution' ? 'Execution' : 'Verification'}
+                          </MenuToggle>
+                        )}
+                      >
+                        <DropdownList>
+                          <DropdownItem value="execution">Execution logs</DropdownItem>
+                          <DropdownItem value="verification">Verification logs</DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </FlexItem>
+                    <FlexItem grow={{ default: 'grow' }}>
+                      <SearchInput
+                        value={logQuery}
+                        onChange={(_e, val) => setLogQuery(val)}
+                        onClear={() => setLogQuery('')}
+                        placeholder="Search logs..."
+                      />
+                    </FlexItem>
+                  </Flex>
+                  {(() => {
+                    const raw = logCategory === 'execution'
+                      ? (postMortem.rawLog ?? '')
+                      : generateVerificationLogs(plan.id);
+                    const displayed = logQuery.trim()
+                      ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
+                      : raw;
+                    return (
+                      <ClipboardCopy
+                        variant={ClipboardCopyVariant.expansion}
+                        isReadOnly
+                        isCode
+                        style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                      >
+                        {displayed}
+                      </ClipboardCopy>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -2636,8 +2859,11 @@ const PostMortemPanel: React.FC<{
                 gap={{ default: 'gapSm' }}
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
-                <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
-                <Title headingLevel="h5" size="md">Post-execution summary</Title>
+                {status === 'Failed'
+                  ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
+                  : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
+                }
+                <Title headingLevel="h5" size="md">Execution summary</Title>
               </Flex>
 
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -2646,7 +2872,7 @@ const PostMortemPanel: React.FC<{
 
               <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
 
-              {/* Raw logs */}
+              {/* Logs */}
               <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                 <Button
                   variant="link"
@@ -2662,18 +2888,58 @@ const PostMortemPanel: React.FC<{
                   }
                   style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
                 >
-                  {showLogs ? 'Hide post-execution logs' : 'View post-execution logs'}
+                  {showLogs ? 'Hide logs' : 'View logs'}
                 </Button>
                 {showLogs && (
                   <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                    <ClipboardCopy
-                      variant={ClipboardCopyVariant.expansion}
-                      isReadOnly
-                      isCode
-                      style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                    >
-                      {postMortem.rawLog ?? ''}
-                    </ClipboardCopy>
+                    <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                      <FlexItem>
+                        <Dropdown
+                          isOpen={isLogCatOpen}
+                          onOpenChange={setIsLogCatOpen}
+                          onSelect={(_e, val) => {
+                            setLogCategory(val as 'execution' | 'verification');
+                            setIsLogCatOpen(false);
+                          }}
+                          toggle={(ref) => (
+                            <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
+                              {logCategory === 'execution' ? 'Execution' : 'Verification'}
+                            </MenuToggle>
+                          )}
+                        >
+                          <DropdownList>
+                            <DropdownItem value="execution">Execution logs</DropdownItem>
+                            <DropdownItem value="verification">Verification logs</DropdownItem>
+                          </DropdownList>
+                        </Dropdown>
+                      </FlexItem>
+                      <FlexItem grow={{ default: 'grow' }}>
+                        <SearchInput
+                          value={logQuery}
+                          onChange={(_e, val) => setLogQuery(val)}
+                          onClear={() => setLogQuery('')}
+                          placeholder="Search logs..."
+                        />
+                      </FlexItem>
+                    </Flex>
+                    {(() => {
+                      const raw = logCategory === 'execution'
+                        ? (postMortem.rawLog ?? '')
+                        : generateVerificationLogs(plan.id);
+                      const displayed = logQuery.trim()
+                        ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
+                        : raw;
+                      return (
+                        <ClipboardCopy
+                          variant={ClipboardCopyVariant.expansion}
+                          isReadOnly
+                          isCode
+                          style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                        >
+                          {displayed}
+                        </ClipboardCopy>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -2839,6 +3105,71 @@ const scrollRemediationSectionIntoView = (
   });
 };
 
+// ─── Escalated plan: presentation-only playbook lookup ───────────────────────
+// Maps plan IDs to operator runbook commands. Does not touch mock data files.
+
+const ESCALATED_PLAN_PLAYBOOKS: Record<string, { title: string; command: string }> = {
+  'ingress-controller-escalated': {
+    title: 'Increase openshift-ingress namespace resource quota',
+    command:
+      "oc patch resourcequota default -n openshift-ingress --type merge \\\n  -p '{\"spec\":{\"hard\":{\"pods\":\"20\",\"requests.cpu\":\"4\",\"requests.memory\":\"8Gi\"}}}'",
+  },
+};
+
+const DEFAULT_ESCALATION_PLAYBOOK = {
+  title: 'Review escalated plan and apply manual remediation',
+  command: 'oc describe proposal <plan-name> -n openshift-lightspeed',
+};
+
+/** Generates deterministic simulated analysis log lines for a plan's RCA section. */
+function generateAnalysisLogs(planId: string, finding: string, narrative: string): string {
+  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const mm = String(10 + (h % 49)).padStart(2, '0');
+  const ts = (offset: number) => {
+    const rawSec = (h % 60) + offset;
+    const m = String(10 + (h % 49) + Math.floor(rawSec / 60)).padStart(2, '0');
+    const s = String(rawSec % 60).padStart(2, '0');
+    return `2026-07-02T08:${m}:${s}.000000000Z`;
+  };
+  void mm;
+  const clip = (str: string, len = 90) => (str.length > len ? str.slice(0, len) + '...' : str);
+  return [
+    `${ts(0)}  INFO [analysis] Initializing investigation pipeline — plan_id=${planId}`,
+    `${ts(2)}  INFO [signals]  Querying Prometheus TSDB for correlated alert signals...`,
+    `${ts(4)}  INFO [signals]  ${clip(finding)}`,
+    `${ts(7)}  INFO [model]    Dispatching signal corpus to LLM reasoning engine`,
+    `${ts(9)}  INFO [model]    Hypothesis generation in progress (temperature=0.2, max_tokens=1024)`,
+    `${ts(12)} INFO [model]    Root cause hypothesis locked — confidence=0.87`,
+    `${ts(14)} INFO [rca]      ${clip(narrative)}`,
+    `${ts(16)} INFO [rca]      Contributing factor graph traversal complete: 3 factors identified`,
+    `${ts(17)} INFO [proposal] Root cause analysis complete. Generating remediation proposal...`,
+    `${ts(19)} INFO [proposal] Proposal ready — plan_id=${planId} is available for review.`,
+  ].join('\n');
+}
+
+/** Generates deterministic simulated verification log lines for the post-execution logs panel. */
+function generateVerificationLogs(planId: string): string {
+  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const ts = (offset: number) => {
+    const rawSec = (h % 60) + 20 + offset;
+    const m = String(10 + (h % 49) + Math.floor(rawSec / 60)).padStart(2, '0');
+    const s = String(rawSec % 60).padStart(2, '0');
+    return `2026-07-02T08:${m}:${s}.000000000Z`;
+  };
+  return [
+    `${ts(0)}  INFO [verify]   Starting post-execution verification — plan_id=${planId}`,
+    `${ts(2)}  INFO [verify]   Waiting for reconciliation loop to stabilise (10s)...`,
+    `${ts(12)} INFO [verify]   Querying Prometheus for remediation metric delta...`,
+    `${ts(14)} INFO [verify]   Alert condition re-evaluated — checking firing state`,
+    `${ts(16)} INFO [verify]   Metric sample collected: t=0s post-execution`,
+    `${ts(19)} INFO [verify]   Metric sample collected: t=5s post-execution`,
+    `${ts(24)} INFO [verify]   Metric sample collected: t=10s post-execution`,
+    `${ts(27)} INFO [verify]   Alert resolved — firing=false, pending=0`,
+    `${ts(28)} INFO [verify]   Verification PASSED — remediation confirmed effective.`,
+    `${ts(29)} INFO [verify]   plan_id=${planId} transitioned → Completed`,
+  ].join('\n');
+}
+
 export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
   const status = plan.status;
   const isAnalyzing = status === 'Analyzing';
@@ -2848,6 +3179,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const isExecuting = status === 'Executing';
   const isVerifying = status === 'Verifying';
   const isPlanAborted = status === 'Plan aborted';
+  const isEscalating = status === 'Escalating';
+  const isEscalated  = status === 'Escalated';
   const isExecutionPhase = isExecuting || isPlanAborted;
   const isOptionLocked = isExecutionPhase || isVerifying;
   const isTerminal = status === 'Completed' || status === 'Failed';
@@ -2870,6 +3203,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
+  const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
+  const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -2879,6 +3214,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   useEffect(() => {
     setIsExecutionRunning(false);
     setRetryBanner(null);
+    setShowAnalysisLogs(false);
+    setAnalysisLogsQuery('');
   }, [plan.id]);
 
   useEffect(() => {
@@ -2974,7 +3311,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     }
   }, [completeVerification, plan.id, workflow.verification]);
 
-  if (!drawer) return null;
+  if (!drawer && !isEscalating) return null;
+
+  const escalatedPlaybook = ESCALATED_PLAN_PLAYBOOKS[plan.id] ?? DEFAULT_ESCALATION_PLAYBOOK;
 
   const showExecutionLog = isExecutionPhase && (
     approvedOptionId ? selectedOptionId === approvedOptionId : selectedOptionIndex === 0
@@ -3023,43 +3362,36 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             </Label>
           )}
         </Flex>
-          {isAnalyzing ? (
+          {isEscalating ? (
+            <div
+              style={LOCKED_BOX_STYLE}
+              aria-live="polite"
+              aria-label="Escalation status — root cause analysis unavailable"
+            >
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                <ExclamationTriangleIcon
+                  aria-hidden
+                  style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
+                />
+                <Content
+                  component="p"
+                  className="ols-aio-text-subtle-sm"
+                  style={{ margin: 0, fontStyle: 'italic' }}
+                >
+                  Root cause analysis unavailable — this plan has been escalated to a human operator.
+                </Content>
+              </Flex>
+              <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+              <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+              <Skeleton width="75%" />
+            </div>
+          ) : isAnalyzing ? (
             <>
               <RcaLockedPlaceholder />
-              <Flex
-                justifyContent={{ default: 'justifyContentFlexEnd' }}
-                style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                <Button variant="danger" onClick={() => setIsStopAnalysisModalOpen(true)}>
-                  Stop analysis
-                </Button>
-              </Flex>
-              <Modal
-                variant={ModalVariant.small}
-                isOpen={isStopAnalysisModalOpen}
-                onClose={() => setIsStopAnalysisModalOpen(false)}
-                aria-labelledby="stop-plan-analysis-title"
-              >
-                <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
-                <ModalBody>
-                  This halts root cause investigation for this plan. Partial findings are preserved but no
-                  remediation options will be synthesized.
-                </ModalBody>
-                <ModalFooter>
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                      registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
-                      setIsStopAnalysisModalOpen(false);
-                    }}
-                  >
-                    Yes, stop analysis
-                  </Button>
-                  <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
-                    Cancel
-                  </Button>
-                </ModalFooter>
-              </Modal>
             </>
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`}>
@@ -3067,11 +3399,59 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <span className="ols-aio-text-overline">Detected Root Cause</span>
             </div>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              {drawer.aggregatedFinding}
+              {drawer!.aggregatedFinding}
             </Content>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              {drawer.rootCauseNarrative}
+            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              {drawer!.rootCauseNarrative}
             </Content>
+
+            <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
+
+            {/* View analysis logs toggle */}
+            <div style={{ marginBottom: showAnalysisLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => setShowAnalysisLogs(!showAnalysisLogs)}
+                icon={
+                  <AngleRightIcon
+                    style={{
+                      transform: showAnalysisLogs ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 150ms ease',
+                    }}
+                  />
+                }
+                style={{ padding: 0, fontSize: '14px' }}
+              >
+                {showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
+              </Button>
+            </div>
+
+            {showAnalysisLogs && (() => {
+              const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
+              const displayLogs = analysisLogsQuery.trim()
+                ? rawLogs.split('\n').filter(l => l.toLowerCase().includes(analysisLogsQuery.toLowerCase())).join('\n')
+                : rawLogs;
+              return (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                  <SearchInput
+                    value={analysisLogsQuery}
+                    onChange={(_evt, val) => setAnalysisLogsQuery(val)}
+                    onClear={() => setAnalysisLogsQuery('')}
+                    placeholder="Search logs..."
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                  />
+                  <ClipboardCopy
+                    variant={ClipboardCopyVariant.expansion}
+                    isReadOnly
+                    isCode
+                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                  >
+                    {displayLogs}
+                  </ClipboardCopy>
+                </div>
+              );
+            })()}
 
           </div>
           )}
@@ -3115,8 +3495,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                   icon={<DownloadIcon />}
                   onClick={() =>
                     downloadAnalysisReportMarkdown(plan, {
-                      aggregatedFinding: drawer.aggregatedFinding,
-                      rootCauseNarrative: drawer.rootCauseNarrative,
+                      aggregatedFinding: drawer!.aggregatedFinding,
+                      rootCauseNarrative: drawer!.rootCauseNarrative,
                     })
                   }
                 >
@@ -3153,14 +3533,90 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                 Failed
               </Label>
             )}
+            {isEscalated && (
+              <Label
+                color="orange"
+                isCompact
+                icon={<ExclamationTriangleIcon />}
+              >
+                Escalated
+              </Label>
+            )}
             {!isAnalyzing && !isTerminal && visibleOptionCount > 0 && (
               <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
             )}
           </Flex>
           <WaitingApprovalPlanMeta plan={plan} />
         </Flex>
-          {isAnalyzing ? (
+          {isEscalating ? (
+            <div
+              style={LOCKED_BOX_STYLE}
+              aria-live="polite"
+              aria-label="Remediation hub — escalation active"
+            >
+              <Content
+                component="p"
+                className="ols-aio-text-subtle-sm"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
+              >
+                Remediation options are unavailable while escalation is active. This plan has been
+                forwarded to a human operator for manual intervention.
+              </Content>
+              <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+              <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+              <Skeleton width="55%" />
+            </div>
+          ) : isAnalyzing ? (
             <HubLockedPlaceholder />
+          ) : isEscalated ? (
+            <>
+              <Alert
+                variant="warning"
+                isInline
+                title="Remediation action required"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                Automated execution failed after reaching the maximum retry limit. Manual operator
+                intervention is required to resolve this escalation.
+              </Alert>
+              <div
+                style={LOCKED_BOX_STYLE}
+                aria-live="polite"
+                aria-labelledby={`escalated-action-heading-${plan.id}`}
+              >
+                <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                  <span className="ols-aio-text-overline">Recommended action</span>
+                </div>
+                <Content
+                  component="p"
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  {drawer?.remediationProposal}
+                </Content>
+                <Content
+                  id={`escalated-action-heading-${plan.id}`}
+                  component="small"
+                  style={{
+                    display: 'block',
+                    marginBottom: 'var(--pf-t--global--spacer--xs)',
+                    fontWeight: 600,
+                  }}
+                >
+                  {escalatedPlaybook.title}
+                </Content>
+                <ClipboardCopy
+                  isCode
+                  variant={ClipboardCopyVariant.expansion}
+                  isReadOnly
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  {escalatedPlaybook.command}
+                </ClipboardCopy>
+                <Button variant="primary" icon={<TerminalIcon />} iconPosition="start">
+                  Run playbook
+                </Button>
+              </div>
+            </>
           ) : isTerminal ? (
             <>
               {terminalVisibleOptions.length > 0 && (
@@ -3232,8 +3688,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           isOptionLocked={isOptionLocked}
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
                           rootCause={{
-                            aggregatedFinding: drawer.aggregatedFinding,
-                            rootCauseNarrative: drawer.rootCauseNarrative,
+                            aggregatedFinding: drawer!.aggregatedFinding,
+                            rootCauseNarrative: drawer!.rootCauseNarrative,
                           }}
                         />
                       </StackItem>
@@ -3292,6 +3748,41 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
         </>
         )}
       </StackItem>
+
+      {/* ── Stop analysis action (Analyzing state only) ──────────────── */}
+      {isAnalyzing && (
+        <StackItem>
+          <Button variant="danger" onClick={() => setIsStopAnalysisModalOpen(true)}>
+            Stop analysis
+          </Button>
+          <Modal
+            variant={ModalVariant.small}
+            isOpen={isStopAnalysisModalOpen}
+            onClose={() => setIsStopAnalysisModalOpen(false)}
+            aria-labelledby="stop-plan-analysis-title"
+          >
+            <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
+            <ModalBody>
+              This halts root cause investigation for this plan. Partial findings are preserved but no
+              remediation options will be synthesized.
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+                  setIsStopAnalysisModalOpen(false);
+                }}
+              >
+                Yes, stop analysis
+              </Button>
+              <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
+        </StackItem>
+      )}
     </Stack>
   );
 };

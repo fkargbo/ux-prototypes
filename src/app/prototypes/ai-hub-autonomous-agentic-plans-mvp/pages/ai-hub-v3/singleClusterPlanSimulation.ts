@@ -40,13 +40,18 @@ export const SC_PLAN_TABLE_IDENTITY: Record<string, ScPlanTableIdentity> = {
   ap15: { name: 'image-stream-tag-cleanup', synopsis: 'Prune obsolete image stream tags', namespace: 'openshift-image-registry', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   cp1: { name: 'ocp-upgrade-4.14-to-4.15', synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   cp2: { name: 'ocp-patch-4.15.1-to-4.15.8', synopsis: 'Apply z-stream patch 4.15.1 to 4.15.8 for critical CVE remediation', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
-  cp3: { name: 'ocp-upgrade-4.15-to-4.16', synopsis: 'Evaluate next minor upgrade from OpenShift 4.15 to 4.16', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   cp4: { name: 'cluster-update-readiness-report', synopsis: 'Autonomous cluster health data gathering for update readiness assessment', namespace: 'openshift-update', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   op1: { name: 'reconcile-prometheus-targets', synopsis: 'Reconcile Prometheus scrape targets after endpoint failures in openshift-monitoring', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   op2: { name: 'fix-alertmanager-webhook-secret', synopsis: 'Rotate Alertmanager PagerDuty webhook credentials after delivery failures', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   op3: { name: 'recover-thanos-compactor-pv', synopsis: 'Recover Thanos compactor persistent volume after corrupted block detection', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   op4: { name: 'scale-otel-collector-replicas', synopsis: 'Scale OpenTelemetry collector replicas to relieve trace ingestion backpressure', namespace: 'openshift-opentelemetry-operator', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
-  op5: { name: 'clear-grafana-sqlite-lock', synopsis: 'Clear Grafana SQLite database lock causing dashboard write timeouts', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  op5: { name: 'clear-perses-storage-lock', synopsis: 'Clear Perses storage lock causing dashboard write timeouts', namespace: 'openshift-monitoring', fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'certmgr-renewal-pending':        { name: 'certmgr-tls-renewal-pending',           synopsis: 'Certificate renewal queued for expiring ingress TLS — awaiting agent assignment', namespace: 'cert-manager',              fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'acs-netpol-remediation-denied':  { name: 'acs-netpol-remediation-denied',          synopsis: 'ACS network policy remediation proposal denied by cluster administrator',         namespace: 'retail-prod',               fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'quota-exhaustion-escalating':    { name: 'quota-exhaustion-escalating',            synopsis: 'Namespace quota exhaustion escalating to operator after automated remediation failed', namespace: 'openshift-ingress',     fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'ingress-controller-escalated':   { name: 'ingress-controller-scale-escalated',     synopsis: 'Ingress controller scale-out escalated after retry limit reached',                namespace: 'openshift-ingress',         fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'prometheus-wal-emergency-stopped': { name: 'prometheus-wal-repair-emergency-stopped', synopsis: 'Prometheus WAL repair halted by emergency stop during active write window',    namespace: 'openshift-monitoring',      fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'etcd-defrag-failed':               { name: 'etcd-defrag-compaction',                  synopsis: 'Compact and defragment etcd database to reduce fragmentation ratio below 0.5', namespace: 'openshift-etcd',             fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
 };
 
@@ -219,9 +224,47 @@ export const SC_PLAN_ROW_PATCHES: Record<string, ScPlanRowPatch> = {
     ],
   },
   op5: {
-    consolidationScope: 'Triggered by alert: GrafanaDatabaseDatabaseLocked (Database write timeouts on shared persistent volume)',
+    consolidationScope: 'Triggered by alert: PersesDashboardStorageLocked (Database write timeouts on shared persistent volume)',
     expandedReasons: [
-      { icon: 'alert', text: 'GrafanaDatabaseDatabaseLocked: database write timeouts on shared persistent volume.' },
+      { icon: 'alert', text: 'PersesDashboardStorageLocked: database write timeouts on shared persistent volume.' },
+    ],
+  },
+  'certmgr-renewal-pending': {
+    consolidationScope: '1 Certificate Event',
+    expandedReasons: [
+      { icon: 'warning', text: 'cert-manager: TLS certificate for ingress-tls expiring in 6 days — renewal not yet initiated in cert-manager namespace.' },
+    ],
+  },
+  'acs-netpol-remediation-denied': {
+    consolidationScope: '1 Compliance Violation',
+    expandedReasons: [
+      { icon: 'ban', text: 'ACS: NetworkPolicy violation on retail-checkout in retail-prod — remediation denied by cluster administrator.' },
+    ],
+  },
+  'quota-exhaustion-escalating': {
+    consolidationScope: '3 Quota Events',
+    expandedReasons: [
+      { icon: 'warning', text: 'ResourceQuota: 3 quota limits exceeded in openshift-ingress — automated remediation failed after max retries.' },
+    ],
+  },
+  'ingress-controller-escalated': {
+    consolidationScope: '2 Alerts / 1 Escalation',
+    expandedReasons: [
+      { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: scale-out failed after 2 attempts in openshift-ingress.' },
+      { icon: 'ban', text: 'MaxRetriesExhausted — escalated for manual quota adjustment.' },
+    ],
+  },
+  'prometheus-wal-emergency-stopped': {
+    consolidationScope: '1 Emergency Override',
+    expandedReasons: [
+      { icon: 'ban', text: 'EmergencyStopped: Prometheus WAL repair halted by operator on prometheus-k8s-0 in openshift-monitoring.' },
+    ],
+  },
+  'etcd-defrag-failed': {
+    consolidationScope: 'Triggered by alert: EtcdDatabaseHighFragmentationRatio · openshift-etcd',
+    expandedReasons: [
+      { icon: 'alert', text: 'EtcdDatabaseHighFragmentationRatio: fragmentation ratio 0.67 on etcd-master-01, etcd-master-02, etcd-master-03.' },
+      { icon: 'ban', text: 'Verification failure: etcd fragmentation metrics unchanged after defrag — compaction pass required.' },
     ],
   },
 };

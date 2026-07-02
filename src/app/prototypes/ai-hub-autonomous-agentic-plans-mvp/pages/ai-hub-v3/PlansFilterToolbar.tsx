@@ -23,20 +23,27 @@ import type { PlanRow } from './PlansAndApprovalsTab';
 export type PlansSearchCategory = 'name' | 'label';
 
 export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
-  { label: 'Analyzing', value: 'Analyzing' },
-  { label: 'Proposed', value: 'Proposed' },
-  { label: 'Executing', value: 'Executing' },
-  { label: 'Verifying', value: 'Verifying' },
-  { label: 'Acknowledged', value: 'Acknowledged' },
-  { label: 'Plan aborted', value: 'Plan aborted' },
-  { label: 'Completed', value: 'Completed' },
-  { label: 'Failed', value: 'Failed' },
+  { label: 'Pending',           value: 'Pending' },
+  { label: 'Analyzing',         value: 'Analyzing' },
+  { label: 'Proposed',          value: 'Proposed' },
+  { label: 'Executing',         value: 'Executing' },
+  { label: 'Verifying',         value: 'Verifying' },
+  { label: 'Completed',         value: 'Completed' },
+  { label: 'Failed',            value: 'Failed' },
+  { label: 'Denied',            value: 'Denied' },
+  { label: 'Escalating',        value: 'Escalating' },
+  { label: 'Escalated',         value: 'Escalated' },
+  { label: 'Emergency stopped', value: 'EmergencyStopped' },
 ];
 
 export const TROUBLESHOOTING_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
-  { label: 'Completed', value: 'Completed' },
-  { label: 'Proposed', value: 'Proposed' },
-  { label: 'Plan aborted', value: 'Plan aborted' },
+  { label: 'Analyzing',         value: 'Analyzing' },
+  { label: 'Proposed',          value: 'Proposed' },
+  { label: 'Executing',         value: 'Executing' },
+  { label: 'Verifying',         value: 'Verifying' },
+  { label: 'Completed',         value: 'Completed' },
+  { label: 'Escalated',         value: 'Escalated' },
+  { label: 'Emergency stopped', value: 'EmergencyStopped' },
 ];
 
 export const TRIGGER_DOMAIN_FILTER_OPTIONS = [

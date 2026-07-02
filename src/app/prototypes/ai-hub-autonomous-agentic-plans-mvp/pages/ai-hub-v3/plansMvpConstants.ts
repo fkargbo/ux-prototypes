@@ -11,13 +11,18 @@ export const MVP_PLAN_IDS = new Set([
   'ap8',
   'cp1',
   'cp2',
-  'cp3',
   'cp4',
   'op1',
   'op2',
   'op3',
   'op4',
   'op5',
+  'certmgr-renewal-pending',
+  'acs-netpol-remediation-denied',
+  'quota-exhaustion-escalating',
+  'ingress-controller-escalated',
+  'prometheus-wal-emergency-stopped',
+  'etcd-defrag-failed',
   'inv-alert-node-not-ready',
   'inv-alert-mds-cache-high',
   'inv-alert-vm-cannot-evict',
@@ -38,7 +43,6 @@ export const PLAN_TOKEN_BURN: Record<string, PlanTokenBurn> = {
   ap8: { analysis: 920, executionByOption: { 'ap8-o1': 640, 'ap8-o2': 1100 } },
   cp1: { analysis: 2100, executionByOption: { 'cp1-o1': 4800, 'cp1-o2': 420 } },
   cp2: { analysis: 680, execution: 3200 },
-  cp3: { analysis: 1560, execution: 890 },
   cp4: { analysis: 1240, executionByOption: {} },
   op1: { analysis: 740, execution: 1180 },
   op2: { analysis: 560, executionByOption: { 'op2-o1': 380, 'op2-o2': 290 } },
@@ -49,6 +53,7 @@ export const PLAN_TOKEN_BURN: Record<string, PlanTokenBurn> = {
   'inv-alert-mds-cache-high': { analysis: 410 },
   'inv-alert-vm-cannot-evict': { analysis: 400 },
   'inv-alert-node-cpu-high': { analysis: 390 },
+  'etcd-defrag-failed': { analysis: 720, execution: 1450 },
 };
 
 /** Per-option diagnosis confidence (backend: options[].diagnosis.confidence). */
@@ -171,12 +176,13 @@ export function derivePlanRiskLevel(
       ap8: 'High',
       cp1: 'High',
       cp2: 'Low',
-      cp3: 'High',
+      cp4: 'High',
       op1: 'Low',
       op2: 'Low',
       op3: 'Medium',
       op4: 'Low',
       op5: 'Medium',
+      'etcd-defrag-failed': 'High',
     };
     return fallback[planId] ?? 'Medium';
   }
@@ -188,7 +194,6 @@ export const PLAN_TOKEN_SDK_UNAVAILABLE = new Set([
   'op1',
   'op4',
   'inv-alert-mds-cache-high',
-  'cp3',
 ]);
 
 export function getPlanTokenBurn(planId: string): PlanTokenBurn {
