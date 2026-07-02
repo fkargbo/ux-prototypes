@@ -1583,6 +1583,34 @@ Exit code: 0 — Execution succeeded.`,
 [03:45:24 UTC] ✓ NTP synchronization restored. NodeClockSkewDetected: resolved.
 Exit code: 0 — Execution succeeded.`,
   },
+  'etcd-defrag-failed': {
+    type: 'failure',
+    failureReason: 'etcd defragmentation executed across etcd-master-01, etcd-master-02, and etcd-master-03, but post-execution verification failed. The fragmentation ratio remained at 0.67 — unchanged from the pre-execution baseline. The auto-compaction window had not completed prior to defrag execution, leaving logical space unreclaimed. Defragmentation cannot recover space that has not been compacted. Manual compaction of the etcd revision history is required before re-executing this plan.',
+    failureTrace:
+`[09:14:38 UTC] Executing etcd defrag on etcd-master-01
+$ etcdctl defrag --endpoints=https://etcd-master-01:2379
+Finished defragmenting etcd member[https://etcd-master-01:2379]
+
+[09:14:43 UTC] Executing etcd defrag on etcd-master-02
+$ etcdctl defrag --endpoints=https://etcd-master-02:2379
+Finished defragmenting etcd member[https://etcd-master-02:2379]
+
+[09:14:48 UTC] Executing etcd defrag on etcd-master-03
+$ etcdctl defrag --endpoints=https://etcd-master-03:2379
+Finished defragmenting etcd member[https://etcd-master-03:2379]
+
+[09:15:05 UTC] Running post-execution verification...
+$ etcdctl endpoint status --endpoints=https://etcd-master-01:2379,https://etcd-master-02:2379,https://etcd-master-03:2379 --write-out=table
+ENDPOINT              | DB SIZE | IN USE  | FRAGMENTATION
+etcd-master-01:2379   | 8.2 GiB | 3.1 GiB | 62%
+etcd-master-02:2379   | 8.1 GiB | 3.1 GiB | 62%
+etcd-master-03:2379   | 8.2 GiB | 3.0 GiB | 63%
+
+VERIFICATION FAILED: fragmentation ratio ≥ 0.5 (threshold) on all members.
+Cause: etcd auto-compaction window (1h) had not completed before defrag.
+Recommendation: run etcdctl compact <latest-revision> then retry.
+Exit code: 1`,
+  },
 };
 
 // ─── Runtime post-mortem synthesis ────────────────────────────────────────────
