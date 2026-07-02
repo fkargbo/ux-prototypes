@@ -368,6 +368,36 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-monitoring',
   },
+  nx1: {
+    name: 'cert-manager-tls-renewal-pending',
+    synopsis: 'Certificate renewal queued for expiring ingress TLS — awaiting agent assignment',
+    fleetCluster: 'prod-east-2',
+    namespace: 'cert-manager',
+  },
+  nx2: {
+    name: 'acs-network-policy-denied',
+    synopsis: 'ACS network policy remediation proposal denied by cluster administrator',
+    fleetCluster: 'prod-east-2',
+    namespace: 'retail-prod',
+  },
+  nx3: {
+    name: 'namespace-quota-escalating',
+    synopsis: 'Namespace resource quota exhaustion escalating to human operator after automated remediation failed',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-ingress',
+  },
+  nx4: {
+    name: 'ingress-controller-scale-escalated',
+    synopsis: 'Ingress controller minimum replica scale-out escalated after execution retry limit reached',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-ingress',
+  },
+  nx5: {
+    name: 'prometheus-wal-repair-emergency-stopped',
+    synopsis: 'Prometheus write-ahead log repair halted by emergency stop during active write window',
+    fleetCluster: 'prod-east-2',
+    namespace: 'openshift-monitoring',
+  },
   ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
 };
 
@@ -771,6 +801,73 @@ const ALL_PLANS: RawPlanRow[] = [
       { icon: 'alert', text: 'PersesDashboardStorageLocked: database write timeouts on shared persistent volume.' },
     ],
   },
+  // ─── New backend phase plans (Pending, Denied, Escalating, Escalated, EmergencyStopped) ───
+  {
+    id: 'nx1',
+    severity: 'warning',
+    status: 'Pending',
+    score: 45,
+    synopsis: 'Certificate Renewal Pending',
+    consolidationScope: '1 Certificate Event',
+    triggerDomain: 'Security',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'warning', text: 'cert-manager: TLS certificate for ingress-tls expiring in 6 days — renewal not yet initiated.' },
+    ],
+  },
+  {
+    id: 'nx2',
+    severity: 'warning',
+    status: 'Denied',
+    score: 62,
+    synopsis: 'Deny ACS Network Policy Remediation',
+    consolidationScope: '1 Compliance Violation',
+    triggerDomain: 'Security',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'ban', text: 'ACS: NetworkPolicy violation on hostNetwork workloads — remediation denied by cluster administrator.' },
+    ],
+  },
+  {
+    id: 'nx3',
+    severity: 'critical',
+    status: 'Escalating',
+    score: 70,
+    synopsis: 'Escalate Namespace Quota Exhaustion',
+    consolidationScope: '3 Quota Events',
+    triggerDomain: 'Cluster update',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'warning', text: 'ResourceQuota: 3 namespace quota limits exceeded — automated remediation failed after max retries.' },
+    ],
+  },
+  {
+    id: 'nx4',
+    severity: 'critical',
+    status: 'Escalated',
+    score: 77,
+    synopsis: 'Escalated Ingress Controller Failure',
+    consolidationScope: '2 Alerts / 1 Escalation',
+    triggerDomain: 'Alertmanager',
+    drawerTargets: ['prod-east-2'],
+    expandedReasons: [
+      { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: automated scale-out failed after 2 execution attempts.' },
+      { icon: 'ban', text: 'Escalation triggered: MaxRetriesExhausted — requires manual operator intervention.' },
+    ],
+  },
+  {
+    id: 'nx5',
+    severity: 'critical',
+    status: 'EmergencyStopped',
+    score: 68,
+    synopsis: 'Emergency Stop: Prometheus WAL Repair',
+    consolidationScope: '1 Emergency Override',
+    triggerDomain: 'Prometheus',
+    drawerTargets: ['prometheus-k8s-0'],
+    expandedReasons: [
+      { icon: 'ban', text: 'EmergencyStopped: Prometheus WAL repair halted by operator — risk of data loss during active write window.' },
+    ],
+  },
   ...NEW_ALERT_INVESTIGATION_PLANS.map((plan) => ({
     ...plan,
     drawerTargets: ['prod-east-2'],
@@ -815,6 +912,11 @@ const SC_ALL_PLANS: RawPlanRow[] = [
   { ...ALL_PLANS[20],drawerTargets: ['thanos-compactor-data'] },
   { ...ALL_PLANS[21],drawerTargets: ['otel-collector-7f8c9', 'otel-collector-7f8c9-2', 'otel-collector-7f8c9-3'] },
   { ...ALL_PLANS[22],drawerTargets: ['perses-6d4f8'] },
+  { ...ALL_PLANS[23],drawerTargets: ['ingress-tls', 'cert-manager'] },
+  { ...ALL_PLANS[24],drawerTargets: ['retail-checkout', 'retail-checkout-svc'] },
+  { ...ALL_PLANS[25],drawerTargets: ['router-default-6d4f8'] },
+  { ...ALL_PLANS[26],drawerTargets: ['router-default-6d4f8', 'router-default-7f8c9'] },
+  { ...ALL_PLANS[27],drawerTargets: ['prometheus-k8s-0'] },
   ...NEW_ALERT_INVESTIGATION_PLANS,
 ];
 
@@ -1217,6 +1319,47 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     estimatedRecovery: '~3m',
     confidence: 'High',
   },
+  // ─── New backend phase plans ─────────────────────────────────────────────────
+  nx2: {
+    steps: [
+      { id: 's1', time: '09:14:03', status: 'done', icon: 'exclamation', title: 'ACS policy violation detected on retail-checkout', detail: 'hostNetwork=true set on workload in retail-prod namespace — violates P-2041' },
+      { id: 's2', time: '09:14:18', status: 'done', icon: 'search', title: 'Identified affected deployment', detail: 'retail-checkout uses hostNetwork as DNS workaround' },
+      { id: 's3', time: '09:14:32', status: 'done', icon: 'exclamation', title: 'Remediation proposal denied by administrator', detail: 'Admin flagged for broader network policy review before patching' },
+    ],
+    aggregatedFinding: 'ACS detected a hostNetwork=true workload in the retail-prod namespace violating network isolation policy P-2041.',
+    rootCauseNarrative: 'The retail-checkout deployment was updated with hostNetwork: true to work around a DNS resolution issue. ACS flagged this as a compliance violation. The remediation proposal to patch the deployment was reviewed and denied by the cluster administrator, who requires a broader policy review before any change is applied.',
+    remediationProposal: 'Patch retail-checkout deployment to remove hostNetwork: true and resolve the DNS issue via CoreDNS configuration instead.',
+    riskAssessment: 'Low — patch removes a privilege escalation risk. DNS validation required before apply.',
+    estimatedRecovery: '~5m',
+    confidence: 'High',
+  },
+  nx4: {
+    steps: [
+      { id: 's1', time: '14:22:05', status: 'done', icon: 'exclamation', title: 'IngressControllerMinReplicasNotMet alert fired', detail: 'Ingress controller replica count dropped below 2 after node eviction' },
+      { id: 's2', time: '14:22:19', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 1', detail: 'Execution failed: insufficient resource quota in openshift-ingress' },
+      { id: 's3', time: '14:22:41', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 2', detail: 'Execution failed: quota limit unchanged, same error' },
+      { id: 's4', time: '14:23:00', status: 'done', icon: 'exclamation', title: 'MaxRetriesExhausted — escalated to operator', detail: 'Proposal marked Escalated; requires human quota adjustment' },
+    ],
+    aggregatedFinding: 'Ingress controller fell below minimum replicas after node eviction. Two automated scale-out attempts failed due to namespace quota limits.',
+    rootCauseNarrative: 'A node eviction event on worker-bm-03 caused the ingress controller replica count to drop to 1. Two consecutive automated remediation executions failed because the openshift-ingress namespace quota prevented scheduling additional pods. After exhausting the MaxRetries threshold, the proposal was automatically escalated for manual operator intervention.',
+    remediationProposal: 'Increase the openshift-ingress namespace ResourceQuota CPU/memory limits, then re-execute the ingress controller scale-out plan.',
+    riskAssessment: 'Medium — quota change affects other workloads in the namespace. Review before applying.',
+    estimatedRecovery: '~10m after quota adjustment',
+    confidence: 'High',
+  },
+  nx5: {
+    steps: [
+      { id: 's1', time: '02:07:15', status: 'done', icon: 'exclamation', title: 'PrometheusWALCorruptionDetected alert fired', detail: 'Write-ahead log corruption markers on prometheus-k8s-0' },
+      { id: 's2', time: '02:07:28', status: 'done', icon: 'database', title: 'Initiated WAL segment repair via tsdb tool', detail: 'Repair started on /prometheus/wal — active write activity detected' },
+      { id: 's3', time: '02:08:01', status: 'done', icon: 'exclamation', title: 'Emergency stop issued by on-call operator', detail: 'Halted mid-repair to avoid data loss during peak ingestion window' },
+    ],
+    aggregatedFinding: 'Prometheus WAL showed corruption markers on prometheus-k8s-0. Repair execution was started but stopped mid-flight by an emergency override.',
+    rootCauseNarrative: 'Automated WAL repair was initiated in response to corruption markers detected on prometheus-k8s-0. The on-call team identified that the repair was running during the peak metric ingestion window (02:00–04:00 UTC), creating a risk of write-path data loss. An EmergencyStop was issued, halting execution. The instance remains in a degraded state pending a scheduled maintenance window.',
+    remediationProposal: 'Schedule WAL repair during the next off-peak maintenance window (after 04:00 UTC). Use tsdb repair --repair flag with a snapshot taken beforehand.',
+    riskAssessment: 'High — WAL repair during active writes risks metric data loss. Must be run offline.',
+    estimatedRecovery: '~15m during maintenance window',
+    confidence: 'Medium',
+  },
   ...NEW_ALERT_INVESTIGATION_DRAWER_DATA,
 };
 
@@ -1566,18 +1709,23 @@ const formatPlanCreatedAt = (iso: string): string => {
 
 // ─── Status label ─────────────────────────────────────────────────────────────
 
-type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red';
+type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
 
 const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
-  'Analyzing':    'blue',
-  'Proposed':     'orange',
-  'Approved':     'orange',
-  'Executing':    'teal',
-  'Verifying':    'teal',
-  'Acknowledged': 'green',
-  'Completed':    'green',
-  'Failed':       'red',
-  'Plan aborted': 'red',
+  'Pending':          'grey',
+  'Analyzing':        'blue',
+  'Proposed':         'orange',
+  'Approved':         'orange',
+  'Executing':        'teal',
+  'Verifying':        'teal',
+  'Acknowledged':     'green',
+  'Completed':        'green',
+  'Failed':           'red',
+  'Denied':           'red',
+  'Escalating':       'orange',
+  'Escalated':        'orange',
+  'EmergencyStopped': 'red',
+  'Plan aborted':     'red',
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -1616,13 +1764,17 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   status,
   terminatedAt,
 }) => {
-  if (status === 'Plan aborted') {
-    const tooltipContent = `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
+  if (status === 'Plan aborted' || status === 'EmergencyStopped') {
+    const tooltipContent =
+      status === 'EmergencyStopped'
+        ? `Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`
+        : `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
+    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Plan aborted';
     return (
       <Tooltip content={tooltipContent} position="top">
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
           <Label color="red" variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
-            Plan aborted
+            {displayLabel}
           </Label>
         </span>
       </Tooltip>
