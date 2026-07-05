@@ -16,7 +16,7 @@ export const config: PrototypeConfig = {
       { key: 'v1', label: 'v1 — Stakeholder baseline' },
       { key: 'v2', label: 'v2 — Iteration workspace' },
     ],
-    defaultKey: 'v1',
+    defaultKey: 'v2',
   },
   status: 'in-progress',
   persona: {
