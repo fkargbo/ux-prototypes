@@ -51,8 +51,24 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { CubesIcon, UserIcon, TagIcon, SearchIcon, ThIcon, ListIcon } from '@patternfly/react-icons';
 import { usePrototype } from './PrototypeContext';
 import { PrototypeModule, PrototypeStatus } from './types';
+import { readBannerVersionKey } from './bannerVersionPicker';
 
 type ViewMode = 'card' | 'table';
+
+/**
+ * For prototypes that use `bannerVersionPicker`, returns the label of the
+ * currently-active version (read from sessionStorage). Falls back to the
+ * static `config.version` string for all other prototypes.
+ */
+function getDisplayVersion(proto: PrototypeModule): string {
+  const picker = proto.config.bannerVersionPicker;
+  if (!picker || !picker.options.length) {
+    return proto.config.version;
+  }
+  const activeKey = readBannerVersionKey(proto.config.id, picker.defaultKey ?? picker.options[0].key);
+  const match = picker.options.find(o => o.key === activeKey);
+  return match ? match.label : proto.config.version;
+}
 
 const PrototypeLauncher: React.FC = () => {
   const { availablePrototypes, loadPrototype } = usePrototype();
@@ -511,7 +527,7 @@ const PrototypeLauncher: React.FC = () => {
                             `${displayPrototype.config.persona.name} (${displayPrototype.config.persona.role})`
                           )}
                         </Td>
-                        <Td dataLabel="Version">{displayPrototype.config.version}</Td>
+                        <Td dataLabel="Version">{getDisplayVersion(displayPrototype)}</Td>
                         <Td dataLabel="Actions">
                           {card.type === 'parent' && hasChildren ? (
                             <div style={{ display: 'flex', gap: 0 }}>
@@ -978,7 +994,7 @@ const PrototypeLauncher: React.FC = () => {
                                 );
                               })()
                             ) : (
-                              displayPrototype.config.version
+                              getDisplayVersion(displayPrototype)
                             )}
                           </DescriptionListDescription>
                         </DescriptionListGroup>
