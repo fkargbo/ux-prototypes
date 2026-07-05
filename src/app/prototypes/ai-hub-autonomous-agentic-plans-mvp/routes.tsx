@@ -12,6 +12,22 @@ import { TroubleshootingPlansPage } from './pages/TroubleshootingPlansPage';
 import { TroubleshootingPlanDetail } from './pages/TroubleshootingPlanDetail';
 import { AcsPlanDetailPage } from './pages/AcsPlanDetailPage';
 
+// ── V1 frozen baseline page wrappers ──────────────────────────────────────────
+import { AIHubPageV1 } from './pages/v1/AIHubPageV1';
+import { AuditAndLogsPageV1 } from './pages/v1/AuditAndLogsPageV1';
+import { PlanRemediationPageV1 } from './pages/v1/PlanRemediationPageV1';
+import { AcsPlanDetailPageV1 } from './pages/v1/AcsPlanDetailPageV1';
+import { TroubleshootingPlansPageV1 } from './pages/v1/TroubleshootingPlansPageV1';
+import { TroubleshootingPlanDetailV1 } from './pages/v1/TroubleshootingPlanDetailV1';
+
+// ── V2 iteration workspace page wrappers ──────────────────────────────────────
+import { AIHubPageV2 } from './pages/v2/AIHubPageV2';
+import { AuditAndLogsPageV2 } from './pages/v2/AuditAndLogsPageV2';
+import { PlanRemediationPageV2 } from './pages/v2/PlanRemediationPageV2';
+import { AcsPlanDetailPageV2 } from './pages/v2/AcsPlanDetailPageV2';
+import { TroubleshootingPlansPageV2 } from './pages/v2/TroubleshootingPlansPageV2';
+import { TroubleshootingPlanDetailV2 } from './pages/v2/TroubleshootingPlanDetailV2';
+
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
 
 export const routes: RouteConfig[] = [
@@ -101,6 +117,114 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/alerting-v2/create-silence',
     element: <SummitFleetAlertingPage />,
     title: 'Create Silence',
+  },
+
+  // ── V1 frozen baseline — /v1/ai-hub/observe/* ────────────────────────────────
+  {
+    path: '/v1/ai-hub',
+    element: <Navigate to={`/v1/ai-hub/observe/plans?perspective=${DEFAULT_PROTOTYPE_PERSPECTIVE}`} replace />,
+    title: 'AI Hub v1',
+  },
+  {
+    path: '/v1/ai-hub/observe/plans',
+    element: withPerspectiveUrlSync(<AIHubPageV1 />),
+    label: 'Plans (v1 baseline)',
+    title: 'Plans — v1 baseline',
+    navigation: {
+      group: 'Agentic plans (v1)',
+      order: 1,
+      insertAfterGroup: 'Agentic plans',
+    },
+  },
+  {
+    path: '/v1/ai-hub/observe/audit-logs',
+    element: withPerspectiveUrlSync(<AuditAndLogsPageV1 />),
+    label: 'Audit & logs (v1)',
+    title: 'Audit & logs — v1 baseline',
+    navigation: {
+      group: 'Agentic plans (v1)',
+      order: 2,
+      insertAfterGroup: 'Agentic plans',
+    },
+  },
+  {
+    path: '/v1/ai-hub/observe/plans/:planSlug/remediation',
+    element: withPerspectiveUrlSync(<PlanRemediationPageV1 />),
+    title: 'Plan remediation — v1',
+  },
+  {
+    path: '/v1/ai-hub/observe/acs-plans/:planSlug',
+    element: withPerspectiveUrlSync(<AcsPlanDetailPageV1 />),
+    title: 'ACS plan detail — v1',
+  },
+  {
+    path: '/v1/ai-hub/observe/troubleshooting-plans',
+    element: withPerspectiveUrlSync(<TroubleshootingPlansPageV1 />),
+    label: 'Troubleshooting plans (v1)',
+    title: 'Troubleshooting plans — v1 baseline',
+    navigation: {
+      group: 'Observe (v1)',
+      order: 1,
+    },
+  },
+  {
+    path: '/v1/ai-hub/observe/troubleshooting-plans/:planId',
+    element: withPerspectiveUrlSync(<TroubleshootingPlanDetailV1 />),
+    title: 'Troubleshooting plan detail — v1',
+  },
+
+  // ── V2 iteration workspace — /v2/ai-hub/observe/* ────────────────────────────
+  {
+    path: '/v2/ai-hub',
+    element: <Navigate to={`/v2/ai-hub/observe/plans?perspective=${DEFAULT_PROTOTYPE_PERSPECTIVE}`} replace />,
+    title: 'AI Hub v2',
+  },
+  {
+    path: '/v2/ai-hub/observe/plans',
+    element: withPerspectiveUrlSync(<AIHubPageV2 />),
+    label: 'Plans (v2)',
+    title: 'Plans — v2 workspace',
+    navigation: {
+      group: 'Agentic plans (v2)',
+      order: 1,
+      insertAfterGroup: 'Agentic plans (v1)',
+    },
+  },
+  {
+    path: '/v2/ai-hub/observe/audit-logs',
+    element: withPerspectiveUrlSync(<AuditAndLogsPageV2 />),
+    label: 'Audit & logs (v2)',
+    title: 'Audit & logs — v2 workspace',
+    navigation: {
+      group: 'Agentic plans (v2)',
+      order: 2,
+      insertAfterGroup: 'Agentic plans (v1)',
+    },
+  },
+  {
+    path: '/v2/ai-hub/observe/plans/:planSlug/remediation',
+    element: withPerspectiveUrlSync(<PlanRemediationPageV2 />),
+    title: 'Plan remediation — v2',
+  },
+  {
+    path: '/v2/ai-hub/observe/acs-plans/:planSlug',
+    element: withPerspectiveUrlSync(<AcsPlanDetailPageV2 />),
+    title: 'ACS plan detail — v2',
+  },
+  {
+    path: '/v2/ai-hub/observe/troubleshooting-plans',
+    element: withPerspectiveUrlSync(<TroubleshootingPlansPageV2 />),
+    label: 'Troubleshooting plans (v2)',
+    title: 'Troubleshooting plans — v2 workspace',
+    navigation: {
+      group: 'Observe (v2)',
+      order: 1,
+    },
+  },
+  {
+    path: '/v2/ai-hub/observe/troubleshooting-plans/:planId',
+    element: withPerspectiveUrlSync(<TroubleshootingPlanDetailV2 />),
+    title: 'Troubleshooting plan detail — v2',
   },
 ];
 
