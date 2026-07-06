@@ -187,6 +187,8 @@ export const routes: RouteConfig[] = [
       group: 'Agentic plans (v2)',
       order: 1,
       insertAfterGroup: 'Agentic plans (v1)',
+      // Keep "Plans" active when drilling into a plan detail (Option A path).
+      activeMatchPaths: ['/v2/ai-hub/agentic-plans/plans'],
     },
   },
   {

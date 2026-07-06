@@ -114,6 +114,11 @@ export interface RouteConfig {
     subMenuOrder?: number;
     /** Insert this nav group immediately after an existing sidebar group label (e.g. `Home`). */
     insertAfterGroup?: string;
+    /**
+     * Extra path prefixes that keep this nav item highlighted when the user is on a detail
+     * page whose URL root differs from the list path (forwarded to IAppRoute.activeMatchPaths).
+     */
+    activeMatchPaths?: string[];
   };
 }
 

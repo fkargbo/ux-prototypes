@@ -599,6 +599,10 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
         return true;
       }
     }
+    // Extra prefixes declared by the route (e.g. plan detail at a different URL root).
+    if (route.activeMatchPaths?.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`))) {
+      return true;
+    }
     if (route.routes?.length) {
       return route.routes.some((child) => navRouteMatchesLocation(child));
     }
@@ -796,6 +800,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
       label: route.label || '',
       path: route.path,
       title: route.title || '',
+      activeMatchPaths: route.navigation?.activeMatchPaths,
     });
 
     /** Flatten `navigation.subMenu` into nested `IAppRoute.routes` (e.g. Observe → AI Hub → …). */

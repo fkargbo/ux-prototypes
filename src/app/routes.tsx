@@ -24,6 +24,12 @@ export interface IAppRoute {
   disabled?: boolean;
   /** When set, sidebar renders this entry as a nested expandable (sub-menu) with these child links. */
   routes?: IAppRoute[];
+  /**
+   * Additional path prefixes that should trigger the active state for this nav item.
+   * Useful when a detail page lives under a different URL root than its list page
+   * (e.g. Plans list at /v2/…/observe/plans, detail at /v2/…/agentic-plans/plans/:id).
+   */
+  activeMatchPaths?: string[];
 }
 
 export interface IAppRouteGroup {
