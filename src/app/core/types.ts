@@ -119,6 +119,11 @@ export interface RouteConfig {
      * page whose URL root differs from the list path (forwarded to IAppRoute.activeMatchPaths).
      */
     activeMatchPaths?: string[];
+    /**
+     * When set, this nav item is only rendered when the prototype's banner version picker
+     * has one of the listed version keys active. Omit to show for all versions.
+     */
+    showForBannerVersionKeys?: string[];
   };
 }
 

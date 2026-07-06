@@ -52,6 +52,7 @@ import {
 import { IAppRoute, IAppRouteGroup, routes } from '@app/routes';
 import { prototypeRegistry } from '@app/core/PrototypeRegistry';
 import { RouteConfig } from '@app/core/types';
+import { getBannerVersionStorageKey, BANNER_VERSION_CHANGE_EVENT } from '@app/core/bannerVersionPicker';
 // DEPRECATED: These components have been moved to prototypes. Each prototype uses its own local copy.
 // import { VirtualMachines } from '@app/VirtualMachines/VirtualMachines';
 // import { HubVirtualMachines } from '@app/CorePlatforms/HubVirtualMachines';
@@ -125,6 +126,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
   const [perspectiveOpen, setPerspectiveOpen] = React.useState(false);
   const [activePerspective, setActivePerspective] = React.useState('Fleet management');
   const [isTaskModalOpen, setIsTaskModalOpen] = React.useState(false);
+  /** Increments whenever the prototype banner version changes, so nav re-evaluates showForBannerVersionKeys. */
+  const [bannerVersionTick, setBannerVersionTick] = React.useState(0);
   const { impersonatingUser, impersonatingGroups, isLoading, stopImpersonation } = useImpersonation();
   const { useCase } = useUseCaseContext();
   const navigate = useNavigate();
@@ -196,6 +199,12 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
     }
   }, [useCase, enabledPerspectives, currentPrototypeId]);
 
+  // Re-evaluate version-gated nav items (showForBannerVersionKeys) when the banner version changes.
+  React.useEffect(() => {
+    const onVersionChange = () => setBannerVersionTick((t) => t + 1);
+    window.addEventListener(BANNER_VERSION_CHANGE_EVENT, onVersionChange);
+    return () => window.removeEventListener(BANNER_VERSION_CHANGE_EVENT, onVersionChange);
+  }, []);
 
   // All perspectives - mark as disabled if not in enabledPerspectives
   const allPerspectives = [
@@ -1077,7 +1086,19 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
             route.navigation !== undefined
           );
         }
-        
+
+        // Remove nav items that are gated to specific banner version keys.
+        if (currentPrototypeId) {
+          // Reference bannerVersionTick so a version change (BANNER_VERSION_CHANGE_EVENT) re-evaluates this block.
+          const storedVersion = bannerVersionTick >= 0
+            ? (sessionStorage.getItem(getBannerVersionStorageKey(currentPrototypeId)) ?? '')
+            : '';
+          filteredRoutes = filteredRoutes.filter(route => {
+            const keys = route.navigation?.showForBannerVersionKeys;
+            return !keys || keys.includes(storedVersion);
+          });
+        }
+
         // If prototype has routes for this perspective, merge them with default routes
         if (filteredRoutes.length > 0) {
           const prototypeNavGroups = convertPrototypeRoutesToNavigation(filteredRoutes);

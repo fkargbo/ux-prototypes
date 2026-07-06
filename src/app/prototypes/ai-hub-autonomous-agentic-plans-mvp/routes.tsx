@@ -104,6 +104,8 @@ export const routes: RouteConfig[] = [
       order: 1,
       // Keep highlighted when viewing a plan detail under the v1-versioned path.
       activeMatchPaths: ['/v1/ai-hub/observe/troubleshooting-plans'],
+      // Only surface this nav item when v1 is the active banner version.
+      showForBannerVersionKeys: ['v1'],
     },
   },
   {
