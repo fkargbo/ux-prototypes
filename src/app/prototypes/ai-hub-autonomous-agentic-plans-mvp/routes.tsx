@@ -59,6 +59,7 @@ export const routes: RouteConfig[] = [
         '/v2/ai-hub/observe/plans',
         '/v2/ai-hub/agentic-plans/plans',
         '/v2/ai-hub/observe/acs-plans',
+        '/core/observe/ai-hub/acs-plans',
       ],
     },
   },
