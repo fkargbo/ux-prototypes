@@ -54,10 +54,11 @@ export const routes: RouteConfig[] = [
       insertAfterGroup: 'Home',
       // Keep "Plans" highlighted when the user is on any v2 URL (list or drilldown).
       // The redirect from /core takes users to /v2/... so the base nav item must track
-      // the v2 paths to maintain sidebar focus in both Core platforms and Fleet management.
+      // all v2 paths to maintain sidebar focus in both Core platforms and Fleet management.
       activeMatchPaths: [
         '/v2/ai-hub/observe/plans',
         '/v2/ai-hub/agentic-plans/plans',
+        '/v2/ai-hub/observe/acs-plans',
       ],
     },
   },
@@ -195,7 +196,7 @@ export const routes: RouteConfig[] = [
       order: 1,
       insertAfterGroup: 'Agentic plans (v1)',
       // Keep "Plans" active when drilling into a plan detail (Option A path).
-      activeMatchPaths: ['/v2/ai-hub/agentic-plans/plans'],
+      activeMatchPaths: ['/v2/ai-hub/agentic-plans/plans', '/v2/ai-hub/observe/acs-plans'],
     },
   },
   {
