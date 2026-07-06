@@ -100,10 +100,11 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
       <div className="template-page-breadcrumb">
         <Breadcrumb>
+          <BreadcrumbItem>Agentic plans</BreadcrumbItem>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            {planDomain?.listBreadcrumbLabel ?? 'Troubleshooting plans'}
+            Plans
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
+          <BreadcrumbItem isActive>{planDisplayName}</BreadcrumbItem>
         </Breadcrumb>
       </div>
 

@@ -1,7 +1,11 @@
 /**
- * V2 iteration workspace — all internal navigation scoped to /v2/ai-hub/observe/.
+ * V2 iteration workspace — all internal navigation scoped to /v2/ai-hub/.
  * Re-exports shared URL utilities and overrides the path constants + builders.
- * Import from THIS file (not prototypePerspectiveUrl) inside pages/v2/ and pages/ai-hub-v2/.
+ * Import from THIS file (not prototypePerspectiveUrl) inside pages/v2/ and pages/ai-hub-plans-v2/.
+ *
+ * Option A architectural change: plan details now live under
+ * /v2/ai-hub/agentic-plans/plans/:planId (consolidated under Agentic Plans,
+ * removed from the Observe domain).
  */
 import type { AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import { buildPrototypeHref } from '../prototypePerspectiveUrl';
@@ -22,7 +26,12 @@ export {
 } from '../prototypePerspectiveUrl';
 
 export const PLANS_LIST_PATH = '/v2/ai-hub/observe/plans';
-export const TROUBLESHOOTING_PLANS_LIST_PATH = '/v2/ai-hub/observe/troubleshooting-plans';
+
+/**
+ * Option A: plan details are consolidated under the Agentic Plans workspace.
+ * The list itself is the main Agentic Plans page (PLANS_LIST_PATH).
+ */
+export const TROUBLESHOOTING_PLANS_LIST_PATH = PLANS_LIST_PATH;
 
 export function getPlanRemediationHref(planSlug: string, perspectiveKey: AppShellPerspectiveKey): string {
   return buildPrototypeHref(
@@ -33,7 +42,7 @@ export function getPlanRemediationHref(planSlug: string, perspectiveKey: AppShel
 
 export function getTroubleshootingPlanDetailHref(planId: string, perspectiveKey: AppShellPerspectiveKey): string {
   return buildPrototypeHref(
-    `/v2/ai-hub/observe/troubleshooting-plans/${encodeURIComponent(planId)}`,
+    `/v2/ai-hub/agentic-plans/plans/${encodeURIComponent(planId)}`,
     perspectiveKey,
   );
 }

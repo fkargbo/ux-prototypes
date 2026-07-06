@@ -40,9 +40,10 @@ export function resolvePlanDomainAnnotations(plan: PlanRow): PlanDomainAnnotatio
   if (isObservabilityPlan(plan)) {
     return {
       sourceDomain: 'observability',
-      detailPath: `/v2/ai-hub/observe/troubleshooting-plans/${encodeURIComponent(plan.id)}`,
+      // Option A: plan details consolidated under Agentic Plans workspace
+      detailPath: `/v2/ai-hub/agentic-plans/plans/${encodeURIComponent(plan.id)}`,
       listPath: TROUBLESHOOTING_PLANS_LIST_PATH,
-      listBreadcrumbLabel: 'Troubleshooting plans',
+      listBreadcrumbLabel: 'Plans',
     };
   }
 

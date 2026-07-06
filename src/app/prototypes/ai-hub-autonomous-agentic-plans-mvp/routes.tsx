@@ -25,8 +25,10 @@ import { AIHubPageV2 } from './pages/v2/AIHubPageV2';
 import { AuditAndLogsPageV2 } from './pages/v2/AuditAndLogsPageV2';
 import { PlanRemediationPageV2 } from './pages/v2/PlanRemediationPageV2';
 import { AcsPlanDetailPageV2 } from './pages/v2/AcsPlanDetailPageV2';
-import { TroubleshootingPlansPageV2 } from './pages/v2/TroubleshootingPlansPageV2';
 import { TroubleshootingPlanDetailV2 } from './pages/v2/TroubleshootingPlanDetailV2';
+
+// ── Shared alerting navigation shim (redirects v2 users to consolidated path) ─
+import { PlanDetailVersionRouter } from './pages/PlanDetailVersionRouter';
 
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
 
@@ -95,7 +97,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/troubleshooting-plans/:planId',
-    element: withPerspectiveUrlSync(<TroubleshootingPlanDetail />),
+    element: withPerspectiveUrlSync(<PlanDetailVersionRouter />),
     title: 'Troubleshooting plan detail',
   },
   {
@@ -211,20 +213,12 @@ export const routes: RouteConfig[] = [
     element: withPerspectiveUrlSync(<AcsPlanDetailPageV2 />),
     title: 'ACS plan detail — v2',
   },
+  // Option A: plan details consolidated under Agentic Plans workspace.
+  // Replaces /v2/ai-hub/observe/troubleshooting-plans/:planId (removed).
   {
-    path: '/v2/ai-hub/observe/troubleshooting-plans',
-    element: withPerspectiveUrlSync(<TroubleshootingPlansPageV2 />),
-    label: 'Troubleshooting plans (v2)',
-    title: 'Troubleshooting plans — v2 workspace',
-    navigation: {
-      group: 'Observe (v2)',
-      order: 1,
-    },
-  },
-  {
-    path: '/v2/ai-hub/observe/troubleshooting-plans/:planId',
+    path: '/v2/ai-hub/agentic-plans/plans/:planId',
     element: withPerspectiveUrlSync(<TroubleshootingPlanDetailV2 />),
-    title: 'Troubleshooting plan detail — v2',
+    title: 'Plan details — v2',
   },
 ];
 
