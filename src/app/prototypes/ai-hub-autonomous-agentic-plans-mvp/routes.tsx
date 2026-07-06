@@ -97,9 +97,14 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/troubleshooting-plans',
     element: withPerspectiveUrlSync(<TroubleshootingPlansPage />),
+    label: 'Troubleshooting plans',
     title: 'Troubleshooting plans',
-    // Option A (v2): navigation entry removed — Troubleshooting plans is no longer surfaced
-    // in the Observe sidebar. V1 retains its own Observe (v1) group entry.
+    navigation: {
+      group: 'Observe',
+      order: 1,
+      // Keep highlighted when viewing a plan detail under the v1-versioned path.
+      activeMatchPaths: ['/v1/ai-hub/observe/troubleshooting-plans'],
+    },
   },
   {
     path: '/core/observe/troubleshooting-plans/:planId',
@@ -168,12 +173,7 @@ export const routes: RouteConfig[] = [
   {
     path: '/v1/ai-hub/observe/troubleshooting-plans',
     element: withPerspectiveUrlSync(<TroubleshootingPlansPageV1 />),
-    label: 'Troubleshooting plans (v1)',
     title: 'Troubleshooting plans — v1 baseline',
-    navigation: {
-      group: 'Observe (v1)',
-      order: 1,
-    },
   },
   {
     path: '/v1/ai-hub/observe/troubleshooting-plans/:planId',
