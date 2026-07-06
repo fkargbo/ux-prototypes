@@ -103,7 +103,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
             Plans
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>{planDisplayName}</BreadcrumbItem>
+          <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
         </Breadcrumb>
       </div>
 
