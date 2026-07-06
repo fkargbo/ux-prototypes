@@ -88,12 +88,9 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/troubleshooting-plans',
     element: withPerspectiveUrlSync(<TroubleshootingPlansPage />),
-    label: 'Troubleshooting plans',
     title: 'Troubleshooting plans',
-    navigation: {
-      group: 'Observe',
-      order: 1,
-    },
+    // Option A (v2): navigation entry removed — Troubleshooting plans is no longer surfaced
+    // in the Observe sidebar. V1 retains its own Observe (v1) group entry.
   },
   {
     path: '/core/observe/troubleshooting-plans/:planId',
