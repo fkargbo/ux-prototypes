@@ -13,8 +13,8 @@ export const config: PrototypeConfig = {
   version: '1.0.0',
   bannerVersionPicker: {
     options: [
-      { key: 'v1', label: 'v1 — Stakeholder baseline' },
-      { key: 'v2', label: 'v2 — Iteration workspace' },
+      { key: 'v2', label: 'v2.0 — Option A' },
+      { key: 'v1', label: 'v1.0 — Option B' },
     ],
     defaultKey: 'v2',
   },
