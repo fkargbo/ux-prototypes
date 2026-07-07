@@ -155,9 +155,16 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
         role="main"
         aria-label={`Troubleshooting plan: ${planDisplayName}`}
       >
-        <div className="ols-plan-remediation-drilldown">
-          <AgenticKillSwitchBanner />
-          {plan.status === 'Pending' ? (
+        {plan.status === 'Pending' ? (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '320px',
+              padding: 'var(--pf-t--global--spacer--2xl) var(--pf-t--global--spacer--lg)',
+            }}
+          >
             <EmptyState
               titleText="Initializing plan..."
               icon={PendingSpinnerIcon}
@@ -168,10 +175,13 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
                 analysis engine to dispatch.
               </EmptyStateBody>
             </EmptyState>
-          ) : (
+          </div>
+        ) : (
+          <div className="ols-plan-remediation-drilldown">
+            <AgenticKillSwitchBanner />
             <RemediationBlueprintPanel key={plan.id} plan={plan} />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
