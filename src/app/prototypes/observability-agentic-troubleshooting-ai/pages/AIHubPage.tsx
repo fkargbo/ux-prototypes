@@ -31,11 +31,6 @@ export const AIHubPage: React.FC = () => {
     prototypeConfig.bannerVersionPicker?.defaultKey ?? 'v2'
   );
   const { activePerspective } = useActivePerspective();
-  // v4 lives at its own route — redirect immediately when selected.
-  if (bannerVersionKey === 'v4') {
-    return <Navigate to="/v4/agentic-plans/recommendation-hub" replace />;
-  }
-
   const isHubV2 = bannerVersionKey === 'v2';
   const isHubV3 = bannerVersionKey === 'v3';
   const isHubModern = isHubV2 || isHubV3;
@@ -53,6 +48,12 @@ export const AIHubPage: React.FC = () => {
   const handleTabClick = (_event: React.MouseEvent<HTMLElement>, tabIndex: string | number) => {
     setActiveTabKey(tabIndex);
   };
+
+  // v4 lives at its own standalone route. The redirect must come after all
+  // hooks above so the Rules of Hooks are never violated.
+  if (bannerVersionKey === 'v4') {
+    return <Navigate to="/v4/agentic-plans/recommendation-hub" replace />;
+  }
 
   const pageBackground = isGlassContrast ? 'transparent' : '#f5f5f5';
   const mainBackground = isGlassContrast ? 'transparent' : '#ffffff';
