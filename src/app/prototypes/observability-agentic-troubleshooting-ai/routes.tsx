@@ -189,16 +189,12 @@ export const routes: RouteConfig[] = [
   },
   // ── v4.0 — Recommendation Hub (HPUX-1653) ──────────────────────────────────
   // Unique shareable URL isolated from all prior versions.
-  // Entry point: banner version picker → v4.0, or navigate directly to this path.
+  // Entry point: banner version picker → v4.0 — Recommendation Hub (redirects from AIHubPage).
+  // No sidebar nav entry — AI Hub remains the single menu item for all versions.
   {
     path: '/v4/agentic-plans/recommendation-hub',
     element: <RecommendationHubPage />,
-    label: 'Recommendation Hub',
     title: 'Recommendation / AI Investigation Hub',
-    navigation: {
-      group: 'Home',
-      order: 3,
-    },
   },
 ];
 
