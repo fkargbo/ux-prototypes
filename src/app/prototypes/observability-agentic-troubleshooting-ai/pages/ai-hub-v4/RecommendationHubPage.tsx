@@ -14,6 +14,7 @@
  * import from ai-hub-v3, ai-hub-v2, or any other prototype directory.
  */
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import {
   Badge,
   Content,
@@ -25,13 +26,28 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
+import { config as prototypeConfig } from '../../prototype.config';
 import { FleetInventoryBar } from './FleetInventoryBar';
 import { DiagnosticsSummaryCard } from './DiagnosticsSummaryCard';
 import { ActivePlansTable } from './ActivePlansTable';
 
 // ─── Page shell ───────────────────────────────────────────────────────────────
 
-export const RecommendationHubPage: React.FC = () => (
+export const RecommendationHubPage: React.FC = () => {
+  // Mirror the same version key used by AIHubPage so that picking v1/v2/v3
+  // from the banner while on this route redirects back to the AI Hub page,
+  // which renders the correct version-gated UI.
+  const bannerVersionKey = useBannerVersionSelection(
+    prototypeConfig.id,
+    prototypeConfig.bannerVersionPicker?.defaultKey ?? 'v3'
+  );
+
+  if (bannerVersionKey !== 'v4') {
+    return <Navigate to="/core/observe/ai-hub" replace />;
+  }
+
+  return (
   <div
     style={{
       height: '100vh',
@@ -131,4 +147,5 @@ export const RecommendationHubPage: React.FC = () => (
       </StackItem>
     </Stack>
   </div>
-);
+  );
+};
