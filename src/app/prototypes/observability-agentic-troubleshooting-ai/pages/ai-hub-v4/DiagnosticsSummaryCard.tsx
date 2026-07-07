@@ -1,28 +1,22 @@
 /**
- * v4.0 — Plans Overview KPI card.
- * Right card in Row 1 of the Recommendation Hub layout.
- * Tracks: Active Plans · Plans in Sandbox · Estimated MTTR Saved.
+ * v4.0 — Plans Overview KPI card (right, Row 1).
+ * Active Plans · Plans in Sandbox · Est. MTTR Saved.
+ * Flat, borderless design matching v3 "Fleet health & diagnostics".
  */
 import React, { useMemo } from 'react';
 import {
   Card,
   CardBody,
+  Content,
   Divider,
   Flex,
   FlexItem,
   Title,
   Tooltip,
-  Content,
 } from '@patternfly/react-core';
 import { V4_PLANS_KPI } from './v4Data';
 import { AI_EXPERIENCE_ICON_DATA_URL } from '../../components/autonomousAiObserve/aiExperienceIconUrl';
 import '../ai-hub-v3/ai-hub-v3-inventory.css';
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
-
-const SUBTLE = 'var(--pf-t--global--text--color--subtle)';
-
-// ─── AI disclosure icon ───────────────────────────────────────────────────────
 
 const AI_TOOLTIP =
   'These metrics are synthesized by the autonomous AI agent based on active plan states and historical resolution data.';
@@ -35,71 +29,39 @@ const AiDisclosureIcon: React.FC = () => (
       aria-label="AI-synthesized metric"
       className="ols-ai-diagnostics-disclosure-icon"
     >
-      <img
-        src={AI_EXPERIENCE_ICON_DATA_URL}
-        alt=""
-        aria-hidden="true"
-        width={14}
-        height={14}
-        style={{ display: 'block' }}
-      />
+      <img src={AI_EXPERIENCE_ICON_DATA_URL} alt="" aria-hidden="true" width={14} height={14} style={{ display: 'block' }} />
     </span>
   </Tooltip>
 );
-
-// ─── KPI cell ─────────────────────────────────────────────────────────────────
 
 interface KpiCellProps {
   label: string;
   value: React.ReactNode;
   ariaLabel: string;
   valueColor?: string;
-  isAi?: boolean;
 }
 
-const KpiCell: React.FC<KpiCellProps> = ({ label, value, ariaLabel, valueColor, isAi }) => (
+const KpiCell: React.FC<KpiCellProps> = ({ label, value, ariaLabel, valueColor }) => (
   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }} aria-label={ariaLabel}>
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-      {isAi && (
-        <FlexItem>
-          <AiDisclosureIcon />
-        </FlexItem>
-      )}
-      <Content
-        component="p"
-        className="ols-ai-hub-fleet-inventory-label ols-ai-diagnostics-kpi-label"
-        style={{ margin: 0 }}
-      >
+      <FlexItem><AiDisclosureIcon /></FlexItem>
+      <Content component="p" className="ols-ai-hub-fleet-inventory-label ols-ai-diagnostics-kpi-label" style={{ margin: 0 }}>
         {label}
       </Content>
     </Flex>
-    <span
-      className="ols-aio-card-stat-number--readonly"
-      style={valueColor ? { color: valueColor } : undefined}
-    >
+    <span className="ols-aio-card-stat-number--readonly" style={valueColor ? { color: valueColor } : undefined}>
       {value}
     </span>
   </Flex>
 );
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export const DiagnosticsSummaryCard: React.FC = () => {
   const kpi = useMemo(() => V4_PLANS_KPI, []);
 
   return (
-    <Card
-      isCompact
-      component="section"
-      aria-label="Plans overview"
-      className="ols-ai-hub-diagnostics-card"
-    >
+    <Card isCompact component="section" aria-label="Plans overview" className="ols-ai-hub-diagnostics-card">
       <CardBody>
-        <Title
-          headingLevel="h2"
-          size="md"
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-        >
+        <Title headingLevel="h2" size="lg" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
           Plans overview
         </Title>
 
@@ -111,52 +73,28 @@ export const DiagnosticsSummaryCard: React.FC = () => {
           role="list"
           aria-label="Plans overview KPI summary"
         >
-          {/* ── Active plans ──────────────────────────────────────────────── */}
           <FlexItem role="listitem" style={{ flex: '1 1 0', minWidth: 0 }}>
-            <KpiCell
-              label="Active plans"
-              ariaLabel={`Active plans: ${kpi.activePlans}`}
-              value={kpi.activePlans}
-              isAi
-            />
+            <KpiCell label="Active plans" ariaLabel={`Active plans: ${kpi.activePlans}`} value={kpi.activePlans} />
           </FlexItem>
 
-          {/* ── Visual guardrail ──────────────────────────────────────────── */}
-          <FlexItem
-            alignSelf={{ default: 'alignSelfStretch' }}
-            style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0 }}
-            aria-hidden="true"
-          >
+          <FlexItem alignSelf={{ default: 'alignSelfStretch' }} style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0 }} aria-hidden="true">
             <Divider orientation={{ default: 'vertical' }} />
           </FlexItem>
 
-          {/* ── Plans in sandbox ──────────────────────────────────────────── */}
           <FlexItem role="listitem" style={{ flex: '1 1 0', minWidth: 0 }}>
-            <KpiCell
-              label="Plans in sandbox"
-              ariaLabel={`Plans currently in sandbox: ${kpi.plansInSandbox}`}
-              value={kpi.plansInSandbox}
-              isAi
-            />
+            <KpiCell label="Plans in sandbox" ariaLabel={`Plans in sandbox: ${kpi.plansInSandbox}`} value={kpi.plansInSandbox} />
           </FlexItem>
 
-          {/* ── Visual guardrail ──────────────────────────────────────────── */}
-          <FlexItem
-            alignSelf={{ default: 'alignSelfStretch' }}
-            style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0 }}
-            aria-hidden="true"
-          >
+          <FlexItem alignSelf={{ default: 'alignSelfStretch' }} style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0 }} aria-hidden="true">
             <Divider orientation={{ default: 'vertical' }} />
           </FlexItem>
 
-          {/* ── Est. MTTR saved ───────────────────────────────────────────── */}
           <FlexItem role="listitem" style={{ flex: '1 1 0', minWidth: 0 }}>
             <KpiCell
               label="Est. MTTR saved"
               ariaLabel={`Estimated MTTR saved: ${kpi.estMttrSaved}`}
               value={kpi.estMttrSaved}
-              valueColor={SUBTLE}
-              isAi
+              valueColor="var(--pf-t--global--color--status--success--default)"
             />
           </FlexItem>
         </Flex>
