@@ -11,14 +11,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Button,
-  ChipGroup,
-  Chip,
   Dropdown,
   DropdownItem,
   DropdownList,
   Flex,
   FlexItem,
   Label,
+  LabelGroup,
   MenuToggle,
   type MenuToggleElement,
   Pagination,
@@ -300,16 +299,18 @@ export const ActivePlansTable: React.FC = () => {
         >
           {chipGroups.map((g) => (
             <FlexItem key={g.category}>
-              <ChipGroup categoryName={g.category} isClosable={false}>
+              <LabelGroup categoryName={g.category} aria-label={`Active ${g.category} filters`}>
                 {g.chips.map((chip) => (
-                  <Chip
+                  <Label
                     key={chip}
-                    onClick={() => g.onRemove(chip)}
+                    isCompact
+                    onClose={() => g.onRemove(chip)}
+                    closeBtnAriaLabel={`Remove ${chip} filter`}
                   >
                     {chip}
-                  </Chip>
+                  </Label>
                 ))}
-              </ChipGroup>
+              </LabelGroup>
             </FlexItem>
           ))}
           <FlexItem>
