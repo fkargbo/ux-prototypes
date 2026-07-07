@@ -2,7 +2,7 @@ import { PrototypeConfig } from '@app/core/types';
 
 export const config: PrototypeConfig = {
   id: 'observability-agentic-troubleshooting-ai',
-  name: 'Observability Agentic Troubleshooting',
+  name: 'Post 5.0 - Autonomous agentic plans',
   description:
     'Prototype for AI-assisted, agent-style troubleshooting flows in cluster observability—guided investigation, evidence gathering, and recommended next steps.',
   owner: {
@@ -15,7 +15,7 @@ export const config: PrototypeConfig = {
     options: [
       { key: 'v1', label: 'v1.0' },
       { key: 'v2', label: 'v2.0' },
-      { key: 'v3', label: 'v3.0 · Post 5.0' },
+      { key: 'v3', label: 'v3.0' },
     ],
     defaultKey: 'v3',
   },
