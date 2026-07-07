@@ -16,6 +16,7 @@ export const config: PrototypeConfig = {
       { key: 'v1', label: 'v1.0' },
       { key: 'v2', label: 'v2.0' },
       { key: 'v3', label: 'v3.0' },
+      { key: 'v4', label: 'v4.0 — Recommendation Hub' },
     ],
     defaultKey: 'v3',
   },
