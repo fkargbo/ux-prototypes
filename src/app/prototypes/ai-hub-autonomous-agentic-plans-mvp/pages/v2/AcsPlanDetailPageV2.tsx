@@ -5,9 +5,12 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Content,
+  EmptyState,
+  EmptyStateBody,
   Flex,
   FlexItem,
   Label,
+  Spinner,
   Title,
 } from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
@@ -29,6 +32,9 @@ import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import '../ai-hub-page.css';
+
+/** PF6 EmptyState.icon expects a component ref; this wrapper sizes the Spinner to xl. */
+const PendingSpinnerIcon: React.FC = () => <Spinner size="xl" />;
 
 export const AcsPlanDetailPageV2: React.FC = () => {
   const navigate = useNavigate();
@@ -134,7 +140,20 @@ export const AcsPlanDetailPageV2: React.FC = () => {
       <div className="template-page-content" role="main" aria-label={`ACS plan: ${planDisplayName}`}>
         <div className="ols-plan-remediation-drilldown">
           <AgenticKillSwitchBanner />
-          <RemediationBlueprintPanel key={plan.id} plan={plan} />
+          {plan.status === 'Pending' ? (
+            <EmptyState
+              titleText="Initializing plan..."
+              icon={PendingSpinnerIcon}
+              headingLevel="h2"
+            >
+              <EmptyStateBody>
+                The proposal custom resource has been created on the cluster. Waiting for the AI
+                analysis engine to dispatch.
+              </EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <RemediationBlueprintPanel key={plan.id} plan={plan} />
+          )}
         </div>
       </div>
     </div>
