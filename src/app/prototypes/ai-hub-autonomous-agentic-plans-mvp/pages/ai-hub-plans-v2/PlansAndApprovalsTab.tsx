@@ -2505,10 +2505,7 @@ const RemediationOptionCard: React.FC<{
                 <Button
                   variant="secondary"
                   icon={<DownloadIcon />}
-                  style={{
-                    marginTop: 'var(--pf-t--global--spacer--md)',
-                    marginBottom: 'var(--pf-t--global--spacer--md)',
-                  }}
+                  style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
                   onClick={() =>
                     downloadRemediationPlanMarkdown(plan, option, rootCause)
                   }
