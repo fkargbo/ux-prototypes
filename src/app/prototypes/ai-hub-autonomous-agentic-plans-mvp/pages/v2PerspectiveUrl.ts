@@ -42,7 +42,7 @@ export function getPlanRemediationHref(planSlug: string, perspectiveKey: AppShel
 
 export function getTroubleshootingPlanDetailHref(planId: string, perspectiveKey: AppShellPerspectiveKey): string {
   return buildPrototypeHref(
-    `/v2/ai-hub/agentic-plans/plans/${encodeURIComponent(planId)}`,
+    `/v2/ai-hub/agentic-runs/runs/${encodeURIComponent(planId)}`,
     perspectiveKey,
   );
 }

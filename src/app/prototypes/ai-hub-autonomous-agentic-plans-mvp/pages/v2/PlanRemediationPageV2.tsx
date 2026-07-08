@@ -7,6 +7,7 @@ import {
   EmptyStateBody,
   Flex,
   FlexItem,
+  Label,
   Spinner,
   Title,
 } from '@patternfly/react-core';
@@ -125,9 +126,9 @@ export const PlanRemediationPageV2: React.FC = () => {
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            {planDomain?.listBreadcrumbLabel ?? 'Plans'}
+            {planDomain?.listBreadcrumbLabel ?? 'Agentic runs'}
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
+          <BreadcrumbItem isActive>Agentic run details</BreadcrumbItem>
         </Breadcrumb>
       </div>
 
@@ -144,6 +145,9 @@ export const PlanRemediationPageV2: React.FC = () => {
               <Title headingLevel="h1" size="2xl" style={{ marginBottom: 0, wordBreak: 'break-word' }}>
                 {planDisplayName}
               </Title>
+            </FlexItem>
+            <FlexItem>
+              <Label color="grey" variant="outline" isCompact>{plan.triggerDomain}</Label>
             </FlexItem>
           </Flex>
           <Flex

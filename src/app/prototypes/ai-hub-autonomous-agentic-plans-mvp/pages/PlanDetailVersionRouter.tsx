@@ -32,7 +32,7 @@ export const PlanDetailVersionRouter: React.FC = () => {
   const activeVersion = readActiveBannerVersion();
 
   if (activeVersion === 'v2' && planId) {
-    const newPath = `/v2/ai-hub/agentic-plans/plans/${planId}`;
+    const newPath = `/v2/ai-hub/agentic-runs/runs/${planId}`;
     const query = searchParams.toString();
     return <Navigate to={query ? `${newPath}?${query}` : newPath} replace />;
   }

@@ -44,7 +44,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -2256,6 +2256,7 @@ const RemediationOptionCard: React.FC<{
   isOptionLocked: boolean;
   showExecutionLog: boolean;
   rootCause?: { aggregatedFinding: string; rootCauseNarrative: string };
+  onExecute?: () => void;
 }> = ({
   option,
   index,
@@ -2269,6 +2270,7 @@ const RemediationOptionCard: React.FC<{
   showExecutionLog,
   isOptionLocked,
   rootCause,
+  onExecute,
 }) => {
   const isFirst = index === 0;
   const { status } = plan;
@@ -2501,17 +2503,35 @@ const RemediationOptionCard: React.FC<{
               >
                 {option.rawCommands}
               </ClipboardCopy>
-              {isProposed && rootCause && (
-                <Button
-                  variant="secondary"
-                  icon={<DownloadIcon />}
+              {(onExecute || (isProposed && rootCause)) && (
+                <Flex
+                  gap={{ default: 'gapSm' }}
+                  flexWrap={{ default: 'wrap' }}
                   style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
-                  onClick={() =>
-                    downloadRemediationPlanMarkdown(plan, option, rootCause)
-                  }
                 >
-                  Download plan
-                </Button>
+                  {onExecute && (
+                    <FlexItem>
+                      <Button
+                        variant="primary"
+                        isDisabled={!isAgenticAutomationEnabled}
+                        onClick={onExecute}
+                      >
+                        Execute remediation
+                      </Button>
+                    </FlexItem>
+                  )}
+                  {isProposed && rootCause && (
+                    <FlexItem>
+                      <Button
+                        variant="secondary"
+                        icon={<DownloadIcon />}
+                        onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
+                      >
+                        Download plan
+                      </Button>
+                    </FlexItem>
+                  )}
+                </Flex>
               )}
             </div>
           )}
@@ -3326,7 +3346,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
           <AiExperienceIcon size={20} />
           <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
-            Plan details
+            Agentic run details
           </Title>
         </Flex>
         {!isAiDisclaimerDismissed && (
@@ -3612,8 +3632,13 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 >
                   {escalatedPlaybook.command}
                 </ClipboardCopy>
-                <Button variant="primary" icon={<TerminalIcon />} iconPosition="start">
-                  Run playbook
+                <Button variant="secondary" icon={<DownloadIcon />} iconPosition="start"
+                  onClick={() => downloadAnalysisReportMarkdown(plan, {
+                    aggregatedFinding: drawer?.aggregatedFinding ?? '',
+                    rootCauseNarrative: drawer?.rootCauseNarrative ?? '',
+                  })}
+                >
+                  Download plan
                 </Button>
               </div>
             </>
@@ -3691,6 +3716,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                             aggregatedFinding: drawer!.aggregatedFinding,
                             rootCauseNarrative: drawer!.rootCauseNarrative,
                           }}
+                          onExecute={isProposed ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
                         />
                       </StackItem>
                     );
@@ -3698,25 +3724,13 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 </Stack>
               </div>
 
-              {isProposed && selectedOption && (
-                <Flex gap={{ default: 'gapSm' }} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              {isProposed && onRejectPlan && (
+                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <FlexItem>
-                    <Button
-                      variant="primary"
-                      isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
-                      isLoading={isExecutionRunning}
-                      onClick={() => setIsExecuteConfirmModalOpen(true)}
-                    >
-                      Execute remediation
+                    <Button variant="secondary" onClick={onRejectPlan}>
+                      Deny plan
                     </Button>
                   </FlexItem>
-                  {onRejectPlan && (
-                    <FlexItem>
-                      <Button variant="secondary" onClick={onRejectPlan}>
-                        Reject plan
-                      </Button>
-                    </FlexItem>
-                  )}
                 </Flex>
               )}
 

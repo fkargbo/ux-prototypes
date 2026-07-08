@@ -57,7 +57,7 @@ export const routes: RouteConfig[] = [
       // all v2 paths to maintain sidebar focus in both Core platforms and Fleet management.
       activeMatchPaths: [
         '/v2/ai-hub/observe/plans',
-        '/v2/ai-hub/agentic-plans/plans',
+        '/v2/ai-hub/agentic-runs/runs',
         '/v2/ai-hub/observe/acs-plans',
         '/core/observe/ai-hub/acs-plans',
       ],
@@ -198,8 +198,8 @@ export const routes: RouteConfig[] = [
       group: 'Agentic plans (v2)',
       order: 1,
       insertAfterGroup: 'Agentic plans (v1)',
-      // Keep "Plans" active when drilling into a plan detail (Option A path).
-      activeMatchPaths: ['/v2/ai-hub/agentic-plans/plans', '/v2/ai-hub/observe/acs-plans'],
+      // Keep "Plans" active when drilling into a run detail (Option A path).
+      activeMatchPaths: ['/v2/ai-hub/agentic-runs/runs', '/v2/ai-hub/observe/acs-plans'],
     },
   },
   {
@@ -223,12 +223,12 @@ export const routes: RouteConfig[] = [
     element: withPerspectiveUrlSync(<AcsPlanDetailPageV2 />),
     title: 'ACS plan detail — v2',
   },
-  // Option A: plan details consolidated under Agentic Plans workspace.
+  // Option A: run details consolidated under Agentic Runs workspace.
   // Replaces /v2/ai-hub/observe/troubleshooting-plans/:planId (removed).
   {
-    path: '/v2/ai-hub/agentic-plans/plans/:planId',
+    path: '/v2/ai-hub/agentic-runs/runs/:planId',
     element: withPerspectiveUrlSync(<TroubleshootingPlanDetailV2 />),
-    title: 'Plan details — v2',
+    title: 'Agentic run details — v2',
   },
 ];
 

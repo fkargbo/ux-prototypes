@@ -40,10 +40,10 @@ export function resolvePlanDomainAnnotations(plan: PlanRow): PlanDomainAnnotatio
   if (isObservabilityPlan(plan)) {
     return {
       sourceDomain: 'observability',
-      // Option A: plan details consolidated under Agentic Plans workspace
-      detailPath: `/v2/ai-hub/agentic-plans/plans/${encodeURIComponent(plan.id)}`,
+      // Option A: run details consolidated under Agentic Runs workspace
+      detailPath: `/v2/ai-hub/agentic-runs/runs/${encodeURIComponent(plan.id)}`,
       listPath: TROUBLESHOOTING_PLANS_LIST_PATH,
-      listBreadcrumbLabel: 'Plans',
+      listBreadcrumbLabel: 'Agentic runs',
     };
   }
 
@@ -53,7 +53,7 @@ export function resolvePlanDomainAnnotations(plan: PlanRow): PlanDomainAnnotatio
       sourceDomain: 'acs',
       detailPath: `/v2/ai-hub/observe/acs-plans/${encodeURIComponent(slug)}`,
       listPath: PLANS_LIST_PATH,
-      listBreadcrumbLabel: 'Plans',
+      listBreadcrumbLabel: 'Agentic runs',
     };
   }
 
@@ -62,7 +62,7 @@ export function resolvePlanDomainAnnotations(plan: PlanRow): PlanDomainAnnotatio
     sourceDomain: 'cluster-update',
     detailPath: `/v2/ai-hub/observe/plans/${encodeURIComponent(slug)}/remediation`,
     listPath: PLANS_LIST_PATH,
-    listBreadcrumbLabel: 'Plans',
+    listBreadcrumbLabel: 'Agentic runs',
   };
 }
 
