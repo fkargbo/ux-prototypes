@@ -30,6 +30,7 @@ import {
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { DeniedPlanBanner, EmergencyStoppedPlanBanner } from './PlanStatusBanners';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import '../ai-hub-page.css';
 
@@ -162,6 +163,8 @@ export const AcsPlanDetailPageV2: React.FC = () => {
         ) : (
           <div className="ols-plan-remediation-drilldown">
             <AgenticKillSwitchBanner />
+            {plan.status === 'Denied' && <DeniedPlanBanner />}
+            {plan.status === 'EmergencyStopped' && <EmergencyStoppedPlanBanner />}
             <RemediationBlueprintPanel key={plan.id} plan={plan} />
           </div>
         )}
