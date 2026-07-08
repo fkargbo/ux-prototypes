@@ -46,13 +46,13 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/ai-hub/plans',
     element: withPerspectiveUrlSync(<AIHubPage />),
-    label: 'Plans',
-    title: 'Plans',
+    label: 'Agentic runs',
+    title: 'Agentic runs',
     navigation: {
-      group: 'Agentic plans',
+      group: 'Agentic runs',
       order: 1,
       insertAfterGroup: 'Home',
-      // Keep "Plans" highlighted when the user is on any v2 URL (list or drilldown).
+      // Keep "Agentic runs" highlighted when the user is on any v2 URL (list or drilldown).
       // The redirect from /core takes users to /v2/... so the base nav item must track
       // all v2 paths to maintain sidebar focus in both Core platforms and Fleet management.
       activeMatchPaths: [
@@ -69,7 +69,7 @@ export const routes: RouteConfig[] = [
     label: 'Audit & logs',
     title: 'Audit & logs',
     navigation: {
-      group: 'Agentic plans',
+      group: 'Agentic runs',
       order: 2,
       insertAfterGroup: 'Home',
     },
@@ -195,10 +195,10 @@ export const routes: RouteConfig[] = [
     label: 'Agentic runs',
     title: 'Agentic runs — v2 workspace',
     navigation: {
-      group: 'Agentic plans (v2)',
+      group: 'Agentic runs (v2)',
       order: 1,
       insertAfterGroup: 'Agentic plans (v1)',
-      // Keep "Plans" active when drilling into a run detail (Option A path).
+      // Keep "Agentic runs" active when drilling into a run detail (Option A path).
       activeMatchPaths: ['/v2/ai-hub/agentic-runs/runs', '/v2/ai-hub/observe/acs-plans'],
     },
   },
@@ -208,7 +208,7 @@ export const routes: RouteConfig[] = [
     label: 'Audit & logs (v2)',
     title: 'Audit & logs — v2 workspace',
     navigation: {
-      group: 'Agentic plans (v2)',
+      group: 'Agentic runs (v2)',
       order: 2,
       insertAfterGroup: 'Agentic plans (v1)',
     },
