@@ -49,7 +49,7 @@ export const routes: RouteConfig[] = [
     label: 'Agentic runs',
     title: 'Agentic runs',
     navigation: {
-      group: 'Agentic runs',
+      group: 'AI Hub',
       order: 1,
       insertAfterGroup: 'Home',
       // Keep "Agentic runs" highlighted when the user is on any v2 URL (list or drilldown).
@@ -69,7 +69,7 @@ export const routes: RouteConfig[] = [
     label: 'Audit & logs',
     title: 'Audit & logs',
     navigation: {
-      group: 'Agentic runs',
+      group: 'AI Hub',
       order: 2,
       insertAfterGroup: 'Home',
     },
@@ -195,7 +195,7 @@ export const routes: RouteConfig[] = [
     label: 'Agentic runs',
     title: 'Agentic runs — v2 workspace',
     navigation: {
-      group: 'Agentic runs (v2)',
+      group: 'AI Hub (v2)',
       order: 1,
       insertAfterGroup: 'Agentic plans (v1)',
       // Keep "Agentic runs" active when drilling into a run detail (Option A path).
@@ -208,7 +208,7 @@ export const routes: RouteConfig[] = [
     label: 'Audit & logs (v2)',
     title: 'Audit & logs — v2 workspace',
     navigation: {
-      group: 'Agentic runs (v2)',
+      group: 'AI Hub (v2)',
       order: 2,
       insertAfterGroup: 'Agentic plans (v1)',
     },
