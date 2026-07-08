@@ -1523,6 +1523,24 @@ FATAL: Node drain failed after 3 attempts.
 BareMetalHost state: provisioning-error
 Rollback: node taint removed, workloads rescheduled to compute-node-7
 Exit code: 1`,
+    rawLog:
+`[10:31:04 UTC] Initiating Metal3 BareMetalHost remediation for node master-node-3
+[10:31:05 UTC] Fetching BareMetalHost object: baremetalhost/master-node-3 (openshift-machine-api)
+[10:31:06 UTC] Current BareMetalHost state: provisioning-error
+[10:31:07 UTC] Attempting node drain: oc adm drain master-node-3 --ignore-daemonsets --delete-emptydir-data
+[10:31:37 UTC] ERROR: connection timeout — node unreachable after 30s
+[10:31:37 UTC] Retry 1/3: waiting 10s before re-attempt...
+[10:31:47 UTC] Retry 1/3: oc adm drain master-node-3 (attempt 2)
+[10:32:17 UTC] ERROR: connection refused
+[10:32:17 UTC] Retry 2/3: waiting 10s before re-attempt...
+[10:32:27 UTC] Retry 2/3: oc adm drain master-node-3 (attempt 3)
+[10:32:57 UTC] ERROR: connection refused
+[10:32:57 UTC] Max retries exhausted. Initiating rollback sequence.
+[10:32:58 UTC] Rollback: removing taint node-role.kubernetes.io/unschedulable from master-node-3
+[10:32:59 UTC] Rollback: rescheduling workloads to compute-node-7
+[10:33:01 UTC] Rollback complete. 4 pods migrated to compute-node-7.
+[10:33:01 UTC] Execution terminated — manual operator intervention required.
+Exit code: 1 — Execution failed after 3 attempts.`,
   },
   ap6: {
     type: 'success',
@@ -1610,6 +1628,30 @@ VERIFICATION FAILED: fragmentation ratio ≥ 0.5 (threshold) on all members.
 Cause: etcd auto-compaction window (1h) had not completed before defrag.
 Recommendation: run etcdctl compact <latest-revision> then retry.
 Exit code: 1`,
+    rawLog:
+`[09:14:30 UTC] Agentic run started: etcd defragmentation sequence (3 members)
+[09:14:31 UTC] Resolving etcd endpoints from cluster: prod-east-1
+[09:14:32 UTC] Discovered 3 etcd members: etcd-master-01, etcd-master-02, etcd-master-03
+[09:14:33 UTC] Pre-flight check: verifying etcd quorum... PASS
+[09:14:34 UTC] Pre-flight check: checking compaction status...
+[09:14:35 UTC] WARN: latest compaction revision: 8302441 — auto-compaction window in progress (next: 09:15:00 UTC)
+[09:14:36 UTC] Proceeding with defragmentation (compaction window incomplete)
+[09:14:38 UTC] Defragmenting etcd-master-01 (172.16.0.11:2379)
+[09:14:43 UTC] ✓ etcd-master-01 defragmented (5.1 GiB → 5.1 GiB — no logical space freed)
+[09:14:43 UTC] Defragmenting etcd-master-02 (172.16.0.12:2379)
+[09:14:48 UTC] ✓ etcd-master-02 defragmented (5.0 GiB → 5.0 GiB — no logical space freed)
+[09:14:48 UTC] Defragmenting etcd-master-03 (172.16.0.13:2379)
+[09:14:53 UTC] ✓ etcd-master-03 defragmented (5.2 GiB → 5.2 GiB — no logical space freed)
+[09:14:53 UTC] All defragmentation commands completed without error.
+[09:15:05 UTC] Running post-execution verification: checking fragmentation ratios...
+[09:15:08 UTC] etcd-master-01: fragmentation 62% (threshold: 50%) — FAIL
+[09:15:08 UTC] etcd-master-02: fragmentation 62% (threshold: 50%) — FAIL
+[09:15:08 UTC] etcd-master-03: fragmentation 63% (threshold: 50%) — FAIL
+[09:15:08 UTC] VERIFICATION FAILED: fragmentation above threshold on all 3 members.
+[09:15:09 UTC] Root cause: auto-compaction did not complete before defrag; logical space unreclaimed.
+[09:15:09 UTC] No rollback performed — defrag commands are non-destructive.
+[09:15:09 UTC] Recommendation: run etcdctl compact <latest-revision> then re-execute this plan.
+Exit code: 1 — Verification failed.`,
   },
 };
 
