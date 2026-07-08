@@ -23,7 +23,6 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
-  ExpandableSection,
   Flex,
   FlexItem,
   Label,
@@ -2587,10 +2586,11 @@ const PostMortemPanel: React.FC<{
   onToggleLogs?: (expanded: boolean) => void;
 }> = ({ plan, verification, executionOptionId, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
   const [localShowLogs, setLocalShowLogs] = useState(false);
-  const [showTrace, setShowTrace] = useState(false);
   const [logCategory, setLogCategory] = useState<'execution' | 'verification'>('execution');
   const [logQuery, setLogQuery] = useState('');
   const [isLogCatOpen, setIsLogCatOpen] = useState(false);
+  const [failureLogCategory, setFailureLogCategory] = useState<'trace' | 'execution'>('trace');
+  const [isFailureLogCatOpen, setIsFailureLogCatOpen] = useState(false);
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -2951,23 +2951,76 @@ const PostMortemPanel: React.FC<{
 
         <StackItem><Divider /></StackItem>
 
-        {/* ── Failure trace ── */}
+        {/* ── Logs (traces + execution) ── */}
         <StackItem>
-          <ExpandableSection
-            toggleText={showTrace ? 'Hide failure trace' : 'View failure trace'}
-            isExpanded={showTrace}
-            onToggle={(_e, v) => setShowTrace(v)}
+          <Button
+            variant="link"
+            isInline
+            onClick={() => toggleLogs(!showLogs)}
+            icon={
+              <AngleRightIcon
+                style={{
+                  transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 150ms ease',
+                }}
+              />
+            }
+            style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
           >
-            {/* No variant="expansion" — ExpandableSection owns the toggle;
-                ClipboardCopy renders the text directly without a nested expand. */}
-            <ClipboardCopy
-              isReadOnly
-              isCode
-              style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px', marginTop: 'var(--pf-t--global--spacer--xs)' }}
-            >
-              {postMortem.failureTrace ?? ''}
-            </ClipboardCopy>
-          </ExpandableSection>
+            {showLogs ? 'Hide logs' : 'View logs'}
+          </Button>
+          {showLogs && (
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+              <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                <FlexItem>
+                  <Dropdown
+                    isOpen={isFailureLogCatOpen}
+                    onOpenChange={setIsFailureLogCatOpen}
+                    onSelect={(_e, val) => {
+                      setFailureLogCategory(val as 'trace' | 'execution');
+                      setIsFailureLogCatOpen(false);
+                    }}
+                    toggle={(ref) => (
+                      <MenuToggle ref={ref} onClick={() => setIsFailureLogCatOpen(!isFailureLogCatOpen)} isExpanded={isFailureLogCatOpen}>
+                        {failureLogCategory === 'trace' ? 'Traces' : 'Execution logs'}
+                      </MenuToggle>
+                    )}
+                  >
+                    <DropdownList>
+                      <DropdownItem value="trace">Traces</DropdownItem>
+                      <DropdownItem value="execution">Execution logs</DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </FlexItem>
+                <FlexItem grow={{ default: 'grow' }}>
+                  <SearchInput
+                    value={logQuery}
+                    onChange={(_e, val) => setLogQuery(val)}
+                    onClear={() => setLogQuery('')}
+                    placeholder="Search logs..."
+                  />
+                </FlexItem>
+              </Flex>
+              {(() => {
+                const raw = failureLogCategory === 'trace'
+                  ? (postMortem.failureTrace ?? '')
+                  : (postMortem.rawLog ?? '');
+                const displayed = logQuery.trim()
+                  ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
+                  : raw;
+                return (
+                  <ClipboardCopy
+                    variant={ClipboardCopyVariant.expansion}
+                    isReadOnly
+                    isCode
+                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                  >
+                    {displayed}
+                  </ClipboardCopy>
+                );
+              })()}
+            </div>
+          )}
         </StackItem>
       </Stack>
     </div>
