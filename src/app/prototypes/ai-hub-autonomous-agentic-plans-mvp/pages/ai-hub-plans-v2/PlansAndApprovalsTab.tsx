@@ -2248,7 +2248,6 @@ const RemediationOptionCard: React.FC<{
   index: number;
   plan: PlanRow;
   executionKillState?: { killedAt: string } | null;
-  onConfirmStopExecution?: (killedAt: string) => void;
   isSelected: boolean;
   isAgenticAutomationEnabled: boolean;
   onSelect: (id: string) => void;
@@ -2262,7 +2261,6 @@ const RemediationOptionCard: React.FC<{
   index,
   plan,
   executionKillState,
-  onConfirmStopExecution,
   isSelected,
   isAgenticAutomationEnabled,
   onSelect,
@@ -2276,7 +2274,6 @@ const RemediationOptionCard: React.FC<{
   const { status } = plan;
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isExecutionKilled = Boolean(executionKillState);
-  const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
   const isProposed = status === 'Proposed';
   const cardRootRef = React.useRef<HTMLDivElement>(null);
   const wasSelectedRef = React.useRef(isSelected);
@@ -2357,12 +2354,6 @@ const RemediationOptionCard: React.FC<{
       </span>
     </Flex>
   );
-
-  const handleConfirmStopExecution = () => {
-    const killedAt = formatExecutionKillTimestamp(new Date());
-    onConfirmStopExecution?.(killedAt);
-    setIsStopExecutionModalOpen(false);
-  };
 
   return (
     <div ref={cardRootRef}>
@@ -2536,45 +2527,6 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {isExecutionPhase && isFirst && (
-            <div
-              className="ols-remediation-option-card__actions"
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '16px',
-                marginTop: 'var(--pf-t--global--spacer--sm)',
-              }}
-            >
-              {!isExecutionKilled && (
-                <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)} style={{ margin: 0 }}>
-                  Stop execution
-                </Button>
-              )}
-            </div>
-          )}
-
-          <Modal
-            variant={ModalVariant.small}
-            isOpen={isStopExecutionModalOpen}
-            onClose={() => setIsStopExecutionModalOpen(false)}
-            aria-labelledby="stop-plan-execution-title"
-          >
-            <ModalHeader title="Stop Plan Execution?" labelId="stop-plan-execution-title" />
-            <ModalBody>
-              This will instantly halt the agent&apos;s in-flight mutations on this cluster. Completed steps will
-              remain in their current state. This action cannot be undone.
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="danger" onClick={handleConfirmStopExecution}>
-                Yes, stop execution
-              </Button>
-              <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </Modal>
         </CardBody>
       )}
     </Card>
@@ -3219,6 +3171,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   } = usePlanWorkflow();
   const workflow = getPlanWorkflow(plan.id);
   const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
+  const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
@@ -3236,6 +3189,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
     setRetryBanner(null);
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
+    setIsStopExecutionModalOpen(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -3705,7 +3659,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                           index={optionIndex}
                           plan={plan}
                           executionKillState={executionKillState}
-                          onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt)}
                           isSelected={isOptionLocked || selectedOptionId === opt.id}
                           isAgenticAutomationEnabled={isAgenticAutomationEnabled}
                           onSelect={setSelectedOptionId}
@@ -3772,6 +3725,41 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
         </>
         )}
       </StackItem>
+
+      {/* ── Stop execution action (Executing state only) ──────────────── */}
+      {isExecutionPhase && !executionKillState && (
+        <StackItem>
+          <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)}>
+            Stop execution
+          </Button>
+          <Modal
+            variant={ModalVariant.small}
+            isOpen={isStopExecutionModalOpen}
+            onClose={() => setIsStopExecutionModalOpen(false)}
+            aria-labelledby="stop-plan-execution-title"
+          >
+            <ModalHeader title="Stop plan execution?" labelId="stop-plan-execution-title" />
+            <ModalBody>
+              This will instantly halt the agent&apos;s in-flight mutations on this cluster. Completed steps will
+              remain in their current state. This action cannot be undone.
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+                  setIsStopExecutionModalOpen(false);
+                }}
+              >
+                Yes, stop execution
+              </Button>
+              <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
+        </StackItem>
+      )}
 
       {/* ── Stop analysis action (Analyzing state only) ──────────────── */}
       {isAnalyzing && (
