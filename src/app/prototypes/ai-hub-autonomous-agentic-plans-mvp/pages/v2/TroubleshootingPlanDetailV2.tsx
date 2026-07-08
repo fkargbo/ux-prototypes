@@ -180,7 +180,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
         ) : (
           <div className="ols-plan-remediation-drilldown">
             <AgenticKillSwitchBanner />
-            {plan.status === 'Denied' && <DeniedPlanBanner />}
+            {plan.status === 'Denied' && <DeniedPlanBanner onStartNewInvestigation={navigateBackToPlans} />}
             {plan.status === 'EmergencyStopped' && <EmergencyStoppedPlanBanner />}
             <RemediationBlueprintPanel key={plan.id} plan={plan} />
           </div>

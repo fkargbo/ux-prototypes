@@ -1,13 +1,22 @@
 import React from 'react';
 import { Alert, Button, Content } from '@patternfly/react-core';
 
+import React from 'react';
+import { Alert, Button, Content } from '@patternfly/react-core';
+
+interface DeniedPlanBannerProps {
+  /** Called when the user clicks "Start new investigation". Pass the page's back-navigation handler. */
+  onStartNewInvestigation?: () => void;
+}
+
 /**
  * Denial callout rendered above the RCA panel when a plan is in the `Denied` state.
  *
- * Who denied / exact timestamp are not yet tracked by the AgenticRun API (future feature).
- * The prototype shows the intended UX pattern using available context.
+ * Denied is a terminal state — the proposal was explicitly rejected by a human operator while
+ * in the Proposed phase. The plan is now archived as read-only with all execution actions
+ * stripped. To act on the underlying issue, a new investigation must be started.
  */
-export const DeniedPlanBanner: React.FC = () => (
+export const DeniedPlanBanner: React.FC<DeniedPlanBannerProps> = ({ onStartNewInvestigation }) => (
   <Alert
     variant="warning"
     isInline
@@ -15,13 +24,15 @@ export const DeniedPlanBanner: React.FC = () => (
     style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
   >
     <Content component="p" style={{ margin: '0 0 var(--pf-t--global--spacer--sm)' }}>
-      This proposal was reviewed and denied by a cluster administrator. No formal denial reason
-      was captured — denial attribution and reasoning will be surfaced once the operator API
-      supports denial metadata.
+      This proposal was explicitly denied by a cluster administrator and is now archived as
+      read-only. No further execution actions are available on this object. To act on the
+      underlying issue, start a new investigation to generate a fresh proposal.
     </Content>
-    <Button variant="link" isInline>
-      Request re-evaluation
-    </Button>
+    {onStartNewInvestigation && (
+      <Button variant="link" isInline onClick={onStartNewInvestigation}>
+        Start new investigation
+      </Button>
+    )}
   </Alert>
 );
 
