@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ActionGroup,
   Alert,
   AlertActionCloseButton,
   Button,
@@ -3700,21 +3699,25 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               </div>
 
               {isProposed && selectedOption && (
-                <ActionGroup style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                  <Button
-                    variant="primary"
-                    isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
-                    isLoading={isExecutionRunning}
-                    onClick={() => setIsExecuteConfirmModalOpen(true)}
-                  >
-                    Execute remediation
-                  </Button>
-                  {onRejectPlan && (
-                    <Button variant="secondary" onClick={onRejectPlan}>
-                      Reject plan
+                <Flex gap={{ default: 'gapSm' }} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                  <FlexItem>
+                    <Button
+                      variant="primary"
+                      isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
+                      isLoading={isExecutionRunning}
+                      onClick={() => setIsExecuteConfirmModalOpen(true)}
+                    >
+                      Execute remediation
                     </Button>
+                  </FlexItem>
+                  {onRejectPlan && (
+                    <FlexItem>
+                      <Button variant="secondary" onClick={onRejectPlan}>
+                        Reject plan
+                      </Button>
+                    </FlexItem>
                   )}
-                </ActionGroup>
+                </Flex>
               )}
 
               <Modal
