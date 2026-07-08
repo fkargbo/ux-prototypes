@@ -755,7 +755,8 @@ span.ols-aio-card-stat-number {
 }
 
 .ols-aio-rca-box {
-  border-radius: var(--pf-t--global--border--radius--small);
+  border-radius: 16px;
+  overflow: hidden;
   padding: var(--pf-t--global--spacer--md);
 }
 

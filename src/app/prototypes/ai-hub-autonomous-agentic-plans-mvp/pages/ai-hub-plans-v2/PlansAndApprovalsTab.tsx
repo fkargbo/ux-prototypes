@@ -23,7 +23,6 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
-  ExpandableSection,
   Flex,
   FlexItem,
   Label,
@@ -1524,6 +1523,24 @@ FATAL: Node drain failed after 3 attempts.
 BareMetalHost state: provisioning-error
 Rollback: node taint removed, workloads rescheduled to compute-node-7
 Exit code: 1`,
+    rawLog:
+`[10:31:04 UTC] Initiating Metal3 BareMetalHost remediation for node master-node-3
+[10:31:05 UTC] Fetching BareMetalHost object: baremetalhost/master-node-3 (openshift-machine-api)
+[10:31:06 UTC] Current BareMetalHost state: provisioning-error
+[10:31:07 UTC] Attempting node drain: oc adm drain master-node-3 --ignore-daemonsets --delete-emptydir-data
+[10:31:37 UTC] ERROR: connection timeout — node unreachable after 30s
+[10:31:37 UTC] Retry 1/3: waiting 10s before re-attempt...
+[10:31:47 UTC] Retry 1/3: oc adm drain master-node-3 (attempt 2)
+[10:32:17 UTC] ERROR: connection refused
+[10:32:17 UTC] Retry 2/3: waiting 10s before re-attempt...
+[10:32:27 UTC] Retry 2/3: oc adm drain master-node-3 (attempt 3)
+[10:32:57 UTC] ERROR: connection refused
+[10:32:57 UTC] Max retries exhausted. Initiating rollback sequence.
+[10:32:58 UTC] Rollback: removing taint node-role.kubernetes.io/unschedulable from master-node-3
+[10:32:59 UTC] Rollback: rescheduling workloads to compute-node-7
+[10:33:01 UTC] Rollback complete. 4 pods migrated to compute-node-7.
+[10:33:01 UTC] Execution terminated — manual operator intervention required.
+Exit code: 1 — Execution failed after 3 attempts.`,
   },
   ap6: {
     type: 'success',
@@ -1611,6 +1628,30 @@ VERIFICATION FAILED: fragmentation ratio ≥ 0.5 (threshold) on all members.
 Cause: etcd auto-compaction window (1h) had not completed before defrag.
 Recommendation: run etcdctl compact <latest-revision> then retry.
 Exit code: 1`,
+    rawLog:
+`[09:14:30 UTC] Agentic run started: etcd defragmentation sequence (3 members)
+[09:14:31 UTC] Resolving etcd endpoints from cluster: prod-east-1
+[09:14:32 UTC] Discovered 3 etcd members: etcd-master-01, etcd-master-02, etcd-master-03
+[09:14:33 UTC] Pre-flight check: verifying etcd quorum... PASS
+[09:14:34 UTC] Pre-flight check: checking compaction status...
+[09:14:35 UTC] WARN: latest compaction revision: 8302441 — auto-compaction window in progress (next: 09:15:00 UTC)
+[09:14:36 UTC] Proceeding with defragmentation (compaction window incomplete)
+[09:14:38 UTC] Defragmenting etcd-master-01 (172.16.0.11:2379)
+[09:14:43 UTC] ✓ etcd-master-01 defragmented (5.1 GiB → 5.1 GiB — no logical space freed)
+[09:14:43 UTC] Defragmenting etcd-master-02 (172.16.0.12:2379)
+[09:14:48 UTC] ✓ etcd-master-02 defragmented (5.0 GiB → 5.0 GiB — no logical space freed)
+[09:14:48 UTC] Defragmenting etcd-master-03 (172.16.0.13:2379)
+[09:14:53 UTC] ✓ etcd-master-03 defragmented (5.2 GiB → 5.2 GiB — no logical space freed)
+[09:14:53 UTC] All defragmentation commands completed without error.
+[09:15:05 UTC] Running post-execution verification: checking fragmentation ratios...
+[09:15:08 UTC] etcd-master-01: fragmentation 62% (threshold: 50%) — FAIL
+[09:15:08 UTC] etcd-master-02: fragmentation 62% (threshold: 50%) — FAIL
+[09:15:08 UTC] etcd-master-03: fragmentation 63% (threshold: 50%) — FAIL
+[09:15:08 UTC] VERIFICATION FAILED: fragmentation above threshold on all 3 members.
+[09:15:09 UTC] Root cause: auto-compaction did not complete before defrag; logical space unreclaimed.
+[09:15:09 UTC] No rollback performed — defrag commands are non-destructive.
+[09:15:09 UTC] Recommendation: run etcdctl compact <latest-revision> then re-execute this plan.
+Exit code: 1 — Verification failed.`,
   },
 };
 
@@ -2248,7 +2289,6 @@ const RemediationOptionCard: React.FC<{
   index: number;
   plan: PlanRow;
   executionKillState?: { killedAt: string } | null;
-  onConfirmStopExecution?: (killedAt: string) => void;
   isSelected: boolean;
   isAgenticAutomationEnabled: boolean;
   onSelect: (id: string) => void;
@@ -2262,7 +2302,6 @@ const RemediationOptionCard: React.FC<{
   index,
   plan,
   executionKillState,
-  onConfirmStopExecution,
   isSelected,
   isAgenticAutomationEnabled,
   onSelect,
@@ -2276,7 +2315,6 @@ const RemediationOptionCard: React.FC<{
   const { status } = plan;
   const isTerminal = status === 'Completed' || status === 'Failed';
   const isExecutionKilled = Boolean(executionKillState);
-  const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
   const isProposed = status === 'Proposed';
   const cardRootRef = React.useRef<HTMLDivElement>(null);
   const wasSelectedRef = React.useRef(isSelected);
@@ -2358,12 +2396,6 @@ const RemediationOptionCard: React.FC<{
     </Flex>
   );
 
-  const handleConfirmStopExecution = () => {
-    const killedAt = formatExecutionKillTimestamp(new Date());
-    onConfirmStopExecution?.(killedAt);
-    setIsStopExecutionModalOpen(false);
-  };
-
   return (
     <div ref={cardRootRef}>
     <Card
@@ -2371,6 +2403,7 @@ const RemediationOptionCard: React.FC<{
       isSelectable={isInteractive}
       isSelected={isSelected}
       isExpanded={isBodyVisible}
+      style={{ borderRadius: '16px' }}
     >
       <CardHeader
         selectableActions={
@@ -2536,45 +2569,6 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {isExecutionPhase && isFirst && (
-            <div
-              className="ols-remediation-option-card__actions"
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '16px',
-                marginTop: 'var(--pf-t--global--spacer--sm)',
-              }}
-            >
-              {!isExecutionKilled && (
-                <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)} style={{ margin: 0 }}>
-                  Stop execution
-                </Button>
-              )}
-            </div>
-          )}
-
-          <Modal
-            variant={ModalVariant.small}
-            isOpen={isStopExecutionModalOpen}
-            onClose={() => setIsStopExecutionModalOpen(false)}
-            aria-labelledby="stop-plan-execution-title"
-          >
-            <ModalHeader title="Stop Plan Execution?" labelId="stop-plan-execution-title" />
-            <ModalBody>
-              This will instantly halt the agent&apos;s in-flight mutations on this cluster. Completed steps will
-              remain in their current state. This action cannot be undone.
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="danger" onClick={handleConfirmStopExecution}>
-                Yes, stop execution
-              </Button>
-              <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </Modal>
         </CardBody>
       )}
     </Card>
@@ -2585,7 +2579,7 @@ const RemediationOptionCard: React.FC<{
 // ─── Drawer: locked section placeholders ─────────────────────────────────────
 
 const LOCKED_BOX_STYLE: React.CSSProperties = {
-  borderRadius: 'var(--pf-t--global--border--radius--small)',
+  borderRadius: '16px',
   border: '1px dashed var(--pf-t--global--border--color--default)',
   padding: 'var(--pf-t--global--spacer--md)',
 };
@@ -2635,10 +2629,11 @@ const PostMortemPanel: React.FC<{
   onToggleLogs?: (expanded: boolean) => void;
 }> = ({ plan, verification, executionOptionId, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
   const [localShowLogs, setLocalShowLogs] = useState(false);
-  const [showTrace, setShowTrace] = useState(false);
   const [logCategory, setLogCategory] = useState<'execution' | 'verification'>('execution');
   const [logQuery, setLogQuery] = useState('');
   const [isLogCatOpen, setIsLogCatOpen] = useState(false);
+  const [failureLogCategory, setFailureLogCategory] = useState<'trace' | 'execution'>('trace');
+  const [isFailureLogCatOpen, setIsFailureLogCatOpen] = useState(false);
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -2868,7 +2863,7 @@ const PostMortemPanel: React.FC<{
           /* ── Terminal drawer view: bordered card ── */
           <div
             style={{
-              borderRadius: 'var(--pf-t--global--border--radius--small)',
+              borderRadius: '16px',
               border: '1px solid var(--pf-t--global--color--status--success--default)',
               overflow: 'hidden',
             }}
@@ -2973,7 +2968,7 @@ const PostMortemPanel: React.FC<{
   return (
     <div
       style={{
-        borderRadius: 'var(--pf-t--global--border--radius--small)',
+        borderRadius: '16px',
         border: '1px solid var(--pf-t--global--color--status--danger--default)',
       }}
     >
@@ -2999,30 +2994,76 @@ const PostMortemPanel: React.FC<{
 
         <StackItem><Divider /></StackItem>
 
-        {/* ── Escalation ── */}
+        {/* ── Logs (traces + execution) ── */}
         <StackItem>
-          <Button variant="secondary">Escalate</Button>
-        </StackItem>
-
-        <StackItem><Divider /></StackItem>
-
-        {/* ── Failure trace ── */}
-        <StackItem>
-          <ExpandableSection
-            toggleText={showTrace ? 'Hide failure trace' : 'View failure trace'}
-            isExpanded={showTrace}
-            onToggle={(_e, v) => setShowTrace(v)}
+          <Button
+            variant="link"
+            isInline
+            onClick={() => toggleLogs(!showLogs)}
+            icon={
+              <AngleRightIcon
+                style={{
+                  transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 150ms ease',
+                }}
+              />
+            }
+            style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
           >
-            {/* No variant="expansion" — ExpandableSection owns the toggle;
-                ClipboardCopy renders the text directly without a nested expand. */}
-            <ClipboardCopy
-              isReadOnly
-              isCode
-              style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px', marginTop: 'var(--pf-t--global--spacer--xs)' }}
-            >
-              {postMortem.failureTrace ?? ''}
-            </ClipboardCopy>
-          </ExpandableSection>
+            {showLogs ? 'Hide logs' : 'View logs'}
+          </Button>
+          {showLogs && (
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+              <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                <FlexItem>
+                  <Dropdown
+                    isOpen={isFailureLogCatOpen}
+                    onOpenChange={setIsFailureLogCatOpen}
+                    onSelect={(_e, val) => {
+                      setFailureLogCategory(val as 'trace' | 'execution');
+                      setIsFailureLogCatOpen(false);
+                    }}
+                    toggle={(ref) => (
+                      <MenuToggle ref={ref} onClick={() => setIsFailureLogCatOpen(!isFailureLogCatOpen)} isExpanded={isFailureLogCatOpen}>
+                        {failureLogCategory === 'trace' ? 'Traces' : 'Execution logs'}
+                      </MenuToggle>
+                    )}
+                  >
+                    <DropdownList>
+                      <DropdownItem value="trace">Traces</DropdownItem>
+                      <DropdownItem value="execution">Execution logs</DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </FlexItem>
+                <FlexItem grow={{ default: 'grow' }}>
+                  <SearchInput
+                    value={logQuery}
+                    onChange={(_e, val) => setLogQuery(val)}
+                    onClear={() => setLogQuery('')}
+                    placeholder="Search logs..."
+                  />
+                </FlexItem>
+              </Flex>
+              {(() => {
+                const raw = failureLogCategory === 'trace'
+                  ? (postMortem.failureTrace ?? '')
+                  : (postMortem.rawLog ?? '');
+                const displayed = logQuery.trim()
+                  ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
+                  : raw;
+                return (
+                  <ClipboardCopy
+                    variant={ClipboardCopyVariant.expansion}
+                    isReadOnly
+                    isCode
+                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                  >
+                    {displayed}
+                  </ClipboardCopy>
+                );
+              })()}
+            </div>
+          )}
         </StackItem>
       </Stack>
     </div>
@@ -3219,6 +3260,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   } = usePlanWorkflow();
   const workflow = getPlanWorkflow(plan.id);
   const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
+  const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
@@ -3236,6 +3278,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
     setRetryBanner(null);
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
+    setIsStopExecutionModalOpen(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -3414,7 +3457,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               <RcaLockedPlaceholder />
             </>
           ) : (
-          <div className={`ols-aio-rca-box ${rcaVariant}`}>
+          <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               <span className="ols-aio-text-overline">Detected Root Cause</span>
             </div>
@@ -3705,7 +3748,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                           index={optionIndex}
                           plan={plan}
                           executionKillState={executionKillState}
-                          onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt)}
                           isSelected={isOptionLocked || selectedOptionId === opt.id}
                           isAgenticAutomationEnabled={isAgenticAutomationEnabled}
                           onSelect={setSelectedOptionId}
@@ -3773,6 +3815,41 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
         )}
       </StackItem>
 
+      {/* ── Stop execution action (Executing state only) ──────────────── */}
+      {isExecutionPhase && !executionKillState && (
+        <StackItem>
+          <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)}>
+            Stop execution
+          </Button>
+          <Modal
+            variant={ModalVariant.small}
+            isOpen={isStopExecutionModalOpen}
+            onClose={() => setIsStopExecutionModalOpen(false)}
+            aria-labelledby="stop-plan-execution-title"
+          >
+            <ModalHeader title="Stop plan execution?" labelId="stop-plan-execution-title" />
+            <ModalBody>
+              This will instantly halt the agent&apos;s in-flight mutations on this cluster. Completed steps will
+              remain in their current state. This action cannot be undone.
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+                  setIsStopExecutionModalOpen(false);
+                }}
+              >
+                Yes, stop execution
+              </Button>
+              <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
+        </StackItem>
+      )}
+
       {/* ── Stop analysis action (Analyzing state only) ──────────────── */}
       {isAnalyzing && (
         <StackItem>
@@ -3805,6 +3882,15 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               </Button>
             </ModalFooter>
           </Modal>
+        </StackItem>
+      )}
+
+      {/* ── Escalate to human action (Failed state only) ──────────────── */}
+      {status === 'Failed' && (
+        <StackItem>
+          <Button variant="secondary">
+            Escalate to human
+          </Button>
         </StackItem>
       )}
     </Stack>
