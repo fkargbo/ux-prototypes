@@ -3729,10 +3729,14 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 <ModalHeader title="Execute remediation?" labelId="execute-remediation-confirm-title" />
                 <ModalBody>
                   <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                    You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
+                    {selectedOption?.title}.
+                  </Content>
+                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                     OpenShift Lightspeed uses AI technology to help generate this remediation plan.
                   </Content>
                   <Content component="p">
-                    Always review AI generated content prior to use.
+                    Always review AI-generated content prior to use.
                   </Content>
                 </ModalBody>
                 <ModalFooter>
