@@ -3730,12 +3730,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 <ModalBody>
                   <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                     You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
-                    {selectedOption?.title}.
+                    <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
                   </Content>
-                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                     OpenShift Lightspeed uses AI technology to help generate this remediation plan.
                   </Content>
-                  <Content component="p">
+                  <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                     Always review AI-generated content prior to use.
                   </Content>
                 </ModalBody>
