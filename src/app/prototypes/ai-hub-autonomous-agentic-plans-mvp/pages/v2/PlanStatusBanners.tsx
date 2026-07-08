@@ -32,15 +32,14 @@ export const DeniedPlanBanner: React.FC = () => (
  */
 export const EmergencyStoppedPlanBanner: React.FC = () => (
   <Alert
-    variant="danger"
+    variant="warning"
     isInline
-    title="Execution halted — emergency stop issued"
+    title="Agentic operations globally halted"
     style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
   >
     <Content component="p" style={{ margin: 0 }}>
-      An operator emergency stop was issued during active plan execution. No further automated
-      actions will be taken on this proposal. Review the execution timeline below, then schedule a
-      retry during a planned maintenance window to avoid data loss.
+      All operations are halted and new proposals will be terminated. Remove or update the
+      AgenticOLSConfig to resume.
     </Content>
   </Alert>
 );
