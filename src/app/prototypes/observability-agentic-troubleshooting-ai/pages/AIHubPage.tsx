@@ -11,6 +11,7 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
+import { Navigate } from 'react-router-dom';
 import { useBannerVersionSelection } from '@app/core/bannerVersionPicker';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { AutonomousAiObserveWidget } from '../components/autonomousAiObserve/AutonomousAiObserveWidget';
@@ -47,6 +48,12 @@ export const AIHubPage: React.FC = () => {
   const handleTabClick = (_event: React.MouseEvent<HTMLElement>, tabIndex: string | number) => {
     setActiveTabKey(tabIndex);
   };
+
+  // v4 lives at its own standalone route. The redirect must come after all
+  // hooks above so the Rules of Hooks are never violated.
+  if (bannerVersionKey === 'v4') {
+    return <Navigate to="/v4/agentic-plans/recommendation-hub" replace />;
+  }
 
   const pageBackground = isGlassContrast ? 'transparent' : '#f5f5f5';
   const mainBackground = isGlassContrast ? 'transparent' : '#ffffff';

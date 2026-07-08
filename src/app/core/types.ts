@@ -114,6 +114,16 @@ export interface RouteConfig {
     subMenuOrder?: number;
     /** Insert this nav group immediately after an existing sidebar group label (e.g. `Home`). */
     insertAfterGroup?: string;
+    /**
+     * Extra path prefixes that keep this nav item highlighted when the user is on a detail
+     * page whose URL root differs from the list path (forwarded to IAppRoute.activeMatchPaths).
+     */
+    activeMatchPaths?: string[];
+    /**
+     * When set, this nav item is only rendered when the prototype's banner version picker
+     * has one of the listed version keys active. Omit to show for all versions.
+     */
+    showForBannerVersionKeys?: string[];
   };
 }
 

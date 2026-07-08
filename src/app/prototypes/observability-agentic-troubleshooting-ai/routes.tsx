@@ -18,6 +18,7 @@ import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 import { TroubleshootingPlansPage } from './pages/TroubleshootingPlansPage';
 import { TroubleshootingPlanDetail } from './pages/TroubleshootingPlanDetail';
+import { RecommendationHubPage } from './pages/ai-hub-v4/RecommendationHubPage';
 
 const ObserveNavPlaceholder: React.FC = () => (
   <PageSection>
@@ -185,6 +186,15 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/pod-detail',
     element: <PodDetailDashboardPage />,
     title: 'Pod detail',
+  },
+  // ── v4.0 — Recommendation Hub (HPUX-1653) ──────────────────────────────────
+  // Unique shareable URL isolated from all prior versions.
+  // Entry point: banner version picker → v4.0 — Recommendation Hub (redirects from AIHubPage).
+  // No sidebar nav entry — AI Hub remains the single menu item for all versions.
+  {
+    path: '/v4/agentic-plans/recommendation-hub',
+    element: <RecommendationHubPage />,
+    title: 'Recommendation / AI Investigation Hub',
   },
 ];
 

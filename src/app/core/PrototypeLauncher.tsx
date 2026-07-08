@@ -51,8 +51,24 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { CubesIcon, UserIcon, TagIcon, SearchIcon, ThIcon, ListIcon } from '@patternfly/react-icons';
 import { usePrototype } from './PrototypeContext';
 import { PrototypeModule, PrototypeStatus } from './types';
+import { readBannerVersionKey, getBannerVersionStorageKey, BANNER_VERSION_CHANGE_EVENT } from './bannerVersionPicker';
 
 type ViewMode = 'card' | 'table';
+
+/**
+ * For prototypes that use `bannerVersionPicker`, returns the label of the
+ * currently-active version (read from sessionStorage). Falls back to the
+ * static `config.version` string for all other prototypes.
+ */
+function getDisplayVersion(proto: PrototypeModule): string {
+  const picker = proto.config.bannerVersionPicker;
+  if (!picker || !picker.options.length) {
+    return proto.config.version;
+  }
+  const activeKey = readBannerVersionKey(proto.config.id, picker.defaultKey ?? picker.options[0].key);
+  const match = picker.options.find(o => o.key === activeKey);
+  return match ? match.label : proto.config.version;
+}
 
 const PrototypeLauncher: React.FC = () => {
   const { availablePrototypes, loadPrototype } = usePrototype();
@@ -511,7 +527,7 @@ const PrototypeLauncher: React.FC = () => {
                             `${displayPrototype.config.persona.name} (${displayPrototype.config.persona.role})`
                           )}
                         </Td>
-                        <Td dataLabel="Version">{displayPrototype.config.version}</Td>
+                        <Td dataLabel="Version">{getDisplayVersion(displayPrototype)}</Td>
                         <Td dataLabel="Actions">
                           {card.type === 'parent' && hasChildren ? (
                             <div style={{ display: 'flex', gap: 0 }}>
@@ -977,8 +993,73 @@ const PrototypeLauncher: React.FC = () => {
                                   </Select>
                                 );
                               })()
+                            ) : displayPrototype.config.bannerVersionPicker ? (
+                              (() => {
+                                const picker = displayPrototype.config.bannerVersionPicker!;
+                                const protoId = displayPrototype.config.id;
+                                const isBannerPickerOpen = openDropdowns.has(`${protoId}-banner`);
+                                const activeBannerKey =
+                                  selectedVersions.get(`${protoId}-banner`) ??
+                                  readBannerVersionKey(protoId, picker.defaultKey ?? picker.options[0].key);
+                                return (
+                                  <Select
+                                    isOpen={isBannerPickerOpen}
+                                    onSelect={(_, value) => {
+                                      const key = value as string;
+                                      handleVersionSelect(`${protoId}-banner`, key);
+                                      try {
+                                        sessionStorage.setItem(getBannerVersionStorageKey(protoId), key);
+                                        // Mark migration done so the in-app hook respects this explicit choice
+                                        sessionStorage.setItem(`hpux.bannerDefaultMigration.${protoId}.v2`, '1');
+                                        window.dispatchEvent(
+                                          new CustomEvent(BANNER_VERSION_CHANGE_EVENT, { detail: { prototypeId: protoId } }),
+                                        );
+                                      } catch { /* ignore */ }
+                                      setOpenDropdowns(prev => {
+                                        const next = new Set(prev);
+                                        next.delete(`${protoId}-banner`);
+                                        return next;
+                                      });
+                                    }}
+                                    onOpenChange={(isOpen) => {
+                                      if (isOpen) {
+                                        setOpenDropdowns(prev => new Set(prev).add(`${protoId}-banner`));
+                                      } else {
+                                        setOpenDropdowns(prev => {
+                                          const next = new Set(prev);
+                                          next.delete(`${protoId}-banner`);
+                                          return next;
+                                        });
+                                      }
+                                    }}
+                                    toggle={(toggleRef) => (
+                                      <MenuToggle
+                                        ref={toggleRef}
+                                        onClick={() => toggleDropdown(`${protoId}-banner`)}
+                                        isExpanded={isBannerPickerOpen}
+                                        variant="secondary"
+                                        style={{ minWidth: '210px' }}
+                                      >
+                                        {picker.options.find(o => o.key === activeBannerKey)?.label ?? activeBannerKey}
+                                      </MenuToggle>
+                                    )}
+                                  >
+                                    <SelectList>
+                                      {picker.options.map(option => (
+                                        <SelectOption
+                                          key={option.key}
+                                          value={option.key}
+                                          isSelected={option.key === activeBannerKey}
+                                        >
+                                          {option.label}
+                                        </SelectOption>
+                                      ))}
+                                    </SelectList>
+                                  </Select>
+                                );
+                              })()
                             ) : (
-                              displayPrototype.config.version
+                              getDisplayVersion(displayPrototype)
                             )}
                           </DescriptionListDescription>
                         </DescriptionListGroup>
