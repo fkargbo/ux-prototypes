@@ -59,7 +59,7 @@ const STATUS_COLOR: Record<StatusPhase, React.ComponentProps<typeof Label>['colo
 
 const ENV_COLOR: Record<EnvironmentType, React.ComponentProps<typeof Label>['color']> = {
   Prod:    'purple',
-  Test:    'cyan',
+  Test:    'teal',
   Sandbox: 'grey',
 };
 
@@ -276,7 +276,7 @@ export const ActivePlansTable: React.FC = () => {
           <Tr>
             {/* Expander column */}
             <Th screenReaderText="Row expander" />
-            <Th width={8}>
+            <Th width={10}>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
                 <FlexItem><BoltIcon color="var(--pf-t--global--color--status--warning--default)" aria-hidden="true" /></FlexItem>
                 <FlexItem>Impact score</FlexItem>
@@ -284,9 +284,9 @@ export const ActivePlansTable: React.FC = () => {
             </Th>
             <Th>Plan synopsis</Th>
             <Th width={20}>Trigger source</Th>
-            <Th width={16}>Target cluster</Th>
+            <Th width={15}>Target cluster</Th>
             <Th width={10}>Environment</Th>
-            <Th width={12}>Status phase</Th>
+            <Th width={15}>Status phase</Th>
           </Tr>
         </Thead>
 

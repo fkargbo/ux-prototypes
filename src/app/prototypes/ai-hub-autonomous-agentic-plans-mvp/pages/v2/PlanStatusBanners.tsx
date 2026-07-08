@@ -1,9 +1,6 @@
 import React from 'react';
 import { Alert, Button, Content } from '@patternfly/react-core';
 
-import React from 'react';
-import { Alert, Button, Content } from '@patternfly/react-core';
-
 interface DeniedPlanBannerProps {
   /** Called when the user clicks "Start new investigation". Pass the page's back-navigation handler. */
   onStartNewInvestigation?: () => void;
