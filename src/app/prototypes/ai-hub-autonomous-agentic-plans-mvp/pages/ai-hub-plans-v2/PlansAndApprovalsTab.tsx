@@ -2951,13 +2951,6 @@ const PostMortemPanel: React.FC<{
 
         <StackItem><Divider /></StackItem>
 
-        {/* ── Escalation ── */}
-        <StackItem>
-          <Button variant="secondary">Escalate</Button>
-        </StackItem>
-
-        <StackItem><Divider /></StackItem>
-
         {/* ── Failure trace ── */}
         <StackItem>
           <ExpandableSection
@@ -3793,6 +3786,15 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               </Button>
             </ModalFooter>
           </Modal>
+        </StackItem>
+      )}
+
+      {/* ── Escalate to human action (Failed state only) ──────────────── */}
+      {status === 'Failed' && (
+        <StackItem>
+          <Button variant="secondary">
+            Escalate to human
+          </Button>
         </StackItem>
       )}
     </Stack>
