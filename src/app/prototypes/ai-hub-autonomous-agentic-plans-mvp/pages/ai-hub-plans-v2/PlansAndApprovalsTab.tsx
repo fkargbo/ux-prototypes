@@ -2403,6 +2403,7 @@ const RemediationOptionCard: React.FC<{
       isSelectable={isInteractive}
       isSelected={isSelected}
       isExpanded={isBodyVisible}
+      style={{ borderRadius: '16px' }}
     >
       <CardHeader
         selectableActions={
@@ -2578,7 +2579,7 @@ const RemediationOptionCard: React.FC<{
 // ─── Drawer: locked section placeholders ─────────────────────────────────────
 
 const LOCKED_BOX_STYLE: React.CSSProperties = {
-  borderRadius: 'var(--pf-t--global--border--radius--small)',
+  borderRadius: '16px',
   border: '1px dashed var(--pf-t--global--border--color--default)',
   padding: 'var(--pf-t--global--spacer--md)',
 };
@@ -2862,7 +2863,7 @@ const PostMortemPanel: React.FC<{
           /* ── Terminal drawer view: bordered card ── */
           <div
             style={{
-              borderRadius: 'var(--pf-t--global--border--radius--small)',
+              borderRadius: '16px',
               border: '1px solid var(--pf-t--global--color--status--success--default)',
               overflow: 'hidden',
             }}
@@ -2967,7 +2968,7 @@ const PostMortemPanel: React.FC<{
   return (
     <div
       style={{
-        borderRadius: 'var(--pf-t--global--border--radius--small)',
+        borderRadius: '16px',
         border: '1px solid var(--pf-t--global--color--status--danger--default)',
       }}
     >
