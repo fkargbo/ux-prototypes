@@ -192,8 +192,8 @@ export const routes: RouteConfig[] = [
   {
     path: '/v2/ai-hub/observe/plans',
     element: withPerspectiveUrlSync(<AIHubPageV2 />),
-    label: 'Plans (v2)',
-    title: 'Plans — v2 workspace',
+    label: 'Agentic runs',
+    title: 'Agentic runs — v2 workspace',
     navigation: {
       group: 'Agentic plans (v2)',
       order: 1,

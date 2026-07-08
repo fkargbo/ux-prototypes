@@ -2523,7 +2523,7 @@ const RemediationOptionCard: React.FC<{
                   {isProposed && rootCause && (
                     <FlexItem>
                       <Button
-                        variant="secondary"
+                        variant="link"
                         icon={<DownloadIcon />}
                         onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
                       >
@@ -3632,7 +3632,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 >
                   {escalatedPlaybook.command}
                 </ClipboardCopy>
-                <Button variant="secondary" icon={<DownloadIcon />} iconPosition="start"
+                <Button variant="link" icon={<DownloadIcon />} iconPosition="start"
                   onClick={() => downloadAnalysisReportMarkdown(plan, {
                     aggregatedFinding: drawer?.aggregatedFinding ?? '',
                     rootCauseNarrative: drawer?.rootCauseNarrative ?? '',
