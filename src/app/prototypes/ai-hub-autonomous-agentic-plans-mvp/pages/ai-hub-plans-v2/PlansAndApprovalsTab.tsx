@@ -3457,7 +3457,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               <RcaLockedPlaceholder />
             </>
           ) : (
-          <div className={`ols-aio-rca-box ${rcaVariant}`}>
+          <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               <span className="ols-aio-text-overline">Detected Root Cause</span>
             </div>
