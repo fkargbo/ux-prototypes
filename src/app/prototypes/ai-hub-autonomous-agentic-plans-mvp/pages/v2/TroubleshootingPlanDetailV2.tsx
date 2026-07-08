@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -60,6 +60,13 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
   const planExecutionRuntime = usePlanBuildRuntime();
   const navigationState = location.state as TroubleshootingPlanDetailLocationState | null;
 
+  /** Local denial override — transitions a Proposed plan to Denied without mutating mock data. */
+  const [locallyDenied, setLocallyDenied] = useState(false);
+
+  useEffect(() => {
+    setLocallyDenied(false);
+  }, [planId]);
+
   const plan = useMemo(() => {
     if (!planId) return null;
     const decoded = decodeURIComponent(planId);
@@ -107,6 +114,10 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
 
   if (!planId || !plan) return null;
 
+  const effectivePlan: PlanRow = locallyDenied
+    ? { ...plan, status: 'Denied' as PlanRow['status'] }
+    : plan;
+
   const planDisplayName = plan.name ?? plan.id;
 
   return (
@@ -142,11 +153,11 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
             <FlexItem>
-              <StatusLabel status={plan.status} terminatedAt={plan.terminatedAt} />
+              <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
             </FlexItem>
           </Flex>
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-            <WaitingApprovalPlanMeta plan={plan} />
+            <WaitingApprovalPlanMeta plan={effectivePlan} />
           </div>
         </div>
       </AiHubPageHeading>
@@ -156,7 +167,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
         role="main"
         aria-label={`Troubleshooting plan: ${planDisplayName}`}
       >
-        {plan.status === 'Pending' ? (
+        {effectivePlan.status === 'Pending' ? (
           <div
             style={{
               display: 'flex',
@@ -180,9 +191,13 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
         ) : (
           <div className="ols-plan-remediation-drilldown">
             <AgenticKillSwitchBanner />
-            {plan.status === 'Denied' && <DeniedPlanBanner onStartNewInvestigation={navigateBackToPlans} />}
-            {plan.status === 'EmergencyStopped' && <EmergencyStoppedPlanBanner />}
-            <RemediationBlueprintPanel key={plan.id} plan={plan} />
+            {effectivePlan.status === 'Denied' && <DeniedPlanBanner onStartNewInvestigation={navigateBackToPlans} />}
+            {effectivePlan.status === 'EmergencyStopped' && <EmergencyStoppedPlanBanner />}
+            <RemediationBlueprintPanel
+              key={plan.id}
+              plan={effectivePlan}
+              onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
+            />
           </div>
         )}
       </div>

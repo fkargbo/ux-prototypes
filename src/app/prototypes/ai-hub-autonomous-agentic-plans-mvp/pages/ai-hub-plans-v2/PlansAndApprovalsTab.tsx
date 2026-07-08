@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ActionGroup,
   Alert,
   AlertActionCloseButton,
   Button,
@@ -3170,7 +3171,7 @@ function generateVerificationLogs(planId: string): string {
   ].join('\n');
 }
 
-export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan }) => {
+export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?: () => void }> = ({ plan, onRejectPlan }) => {
   const status = plan.status;
   const isAnalyzing = status === 'Analyzing';
   const isProposed = status === 'Proposed';
@@ -3699,7 +3700,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               </div>
 
               {isProposed && selectedOption && (
-                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                <ActionGroup style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <Button
                     variant="primary"
                     isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
@@ -3708,7 +3709,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                   >
                     Execute remediation
                   </Button>
-                </Flex>
+                  {onRejectPlan && (
+                    <Button variant="secondary" onClick={onRejectPlan}>
+                      Reject plan
+                    </Button>
+                  )}
+                </ActionGroup>
               )}
 
               <Modal

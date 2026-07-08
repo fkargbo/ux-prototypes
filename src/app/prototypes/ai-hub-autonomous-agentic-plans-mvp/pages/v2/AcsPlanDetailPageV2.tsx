@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Alert,
@@ -19,6 +19,7 @@ import {
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
+  type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
 import {
   buildPrototypeHref,
@@ -89,7 +90,18 @@ export const AcsPlanDetailPageV2: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- redirect once when plan is missing
   }, [planSlug, plan]);
 
+  /** Local denial override — transitions a Proposed plan to Denied without mutating mock data. */
+  const [locallyDenied, setLocallyDenied] = useState(false);
+
+  useEffect(() => {
+    setLocallyDenied(false);
+  }, [planSlug]);
+
   if (!planSlug || !plan) return null;
+
+  const effectivePlan: PlanRow = locallyDenied
+    ? { ...plan, status: 'Denied' as PlanRow['status'] }
+    : plan;
 
   const planDisplayName = plan.name ?? plan.id;
 
@@ -133,13 +145,13 @@ export const AcsPlanDetailPageV2: React.FC = () => {
             gap={{ default: 'gapSm' }}
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
-            <StatusLabel status={plan.status} terminatedAt={plan.terminatedAt} />
+            <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
           </Flex>
         </div>
       </AiHubPageHeading>
 
       <div className="template-page-content" role="main" aria-label={`ACS plan: ${planDisplayName}`}>
-        {plan.status === 'Pending' ? (
+        {effectivePlan.status === 'Pending' ? (
           <div
             style={{
               display: 'flex',
@@ -163,9 +175,13 @@ export const AcsPlanDetailPageV2: React.FC = () => {
         ) : (
           <div className="ols-plan-remediation-drilldown">
             <AgenticKillSwitchBanner />
-            {plan.status === 'Denied' && <DeniedPlanBanner onStartNewInvestigation={navigateBackToPlans} />}
-            {plan.status === 'EmergencyStopped' && <EmergencyStoppedPlanBanner />}
-            <RemediationBlueprintPanel key={plan.id} plan={plan} />
+            {effectivePlan.status === 'Denied' && <DeniedPlanBanner onStartNewInvestigation={navigateBackToPlans} />}
+            {effectivePlan.status === 'EmergencyStopped' && <EmergencyStoppedPlanBanner />}
+            <RemediationBlueprintPanel
+              key={plan.id}
+              plan={effectivePlan}
+              onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
+            />
           </div>
         )}
       </div>
