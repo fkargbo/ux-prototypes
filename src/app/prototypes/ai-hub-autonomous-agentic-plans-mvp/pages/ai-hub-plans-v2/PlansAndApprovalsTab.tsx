@@ -2318,6 +2318,7 @@ const RemediationOptionCard: React.FC<{
   const isFirst = index === 0;
   const { status } = plan;
   const isTerminal = status === 'Completed' || status === 'Failed';
+  const isDenied   = status === 'Denied';
   const isExecutionKilled = Boolean(executionKillState);
   const isProposed = status === 'Proposed';
   const cardRootRef = React.useRef<HTMLDivElement>(null);
@@ -2540,7 +2541,7 @@ const RemediationOptionCard: React.FC<{
               >
                 {option.rawCommands}
               </ClipboardCopy>
-              {(onExecute || (isProposed && rootCause)) && (
+              {(onExecute || ((isProposed || isDenied) && rootCause)) && (
                 <Flex
                   gap={{ default: 'gapSm' }}
                   flexWrap={{ default: 'wrap' }}
@@ -2557,7 +2558,7 @@ const RemediationOptionCard: React.FC<{
                       </Button>
                     </FlexItem>
                   )}
-                  {isProposed && rootCause && (
+                  {(isProposed || isDenied) && rootCause && (
                     <FlexItem>
                       <Button
                         variant="link"
@@ -3709,12 +3710,16 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                       option={opt}
                       index={optionIndex}
                       plan={plan}
-                      isSelected
+                      isSelected={selectedOptionId === opt.id}
                       isAgenticAutomationEnabled={isAgenticAutomationEnabled}
-                      onSelect={() => undefined}
+                      onSelect={setSelectedOptionId}
                       isExecutionPhase={false}
                       isOptionLocked={false}
                       showExecutionLog={false}
+                      rootCause={{
+                        aggregatedFinding: drawer!.aggregatedFinding,
+                        rootCauseNarrative: drawer!.rootCauseNarrative,
+                      }}
                     />
                   </StackItem>
                 );
