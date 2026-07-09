@@ -1462,6 +1462,10 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
     { id: 'op5-o1', title: 'Clear stale Grafana SQLite WAL lock + controlled restart', description: 'Scale grafana to zero, remove the stale SQLite WAL lock file on the shared PVC, verify filesystem consistency, and restart the deployment.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal && oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
     { id: 'op5-o2', title: 'Snapshot PVC then force WAL checkpoint', description: 'Take a volume snapshot of the Grafana PVC and run a forced SQLite checkpoint before clearing the lock — slower but preserves rollback capability.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: 'oc create -f grafana-pvc-snapshot.yaml && oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
   ],
+  'acs-netpol-remediation-denied': [
+    { id: 'acs-netpol-o1', title: 'Patch deployment to remove hostNetwork + CoreDNS config fix', description: 'Set hostNetwork: false on the retail-checkout deployment and resolve the underlying DNS resolution issue by adding a CoreDNS stub zone for the affected service domain.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: "oc patch deployment/retail-checkout -n retail-prod --type='json' -p='[{\"op\": \"replace\", \"path\": \"/spec/template/spec/hostNetwork\", \"value\": false}]' && oc apply -f coredns-stub-zone.yaml" },
+    { id: 'acs-netpol-o2', title: 'Add ACS admission controller policy exception (temporary)', description: 'Add a scoped policy exception in ACS to silence the P-2041 violation alert for retail-checkout while the DNS issue is resolved separately — shorter blast radius, does not fix the root cause.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: "roxctl policy add-exception --policy=P-2041 --deployment=retail-checkout --namespace=retail-prod --expiry='24h'" },
+  ],
 };
 
 // ─── Drawer: post-mortem data (Completed / Failed plans) ─────────────────────
@@ -3245,6 +3249,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const isExecutionPhase = isExecuting || isPlanAborted;
   const isOptionLocked = isExecutionPhase || isVerifying;
   const isTerminal = status === 'Completed' || status === 'Failed';
+  const isDenied   = status === 'Denied';
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
@@ -3605,7 +3610,16 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 Escalated
               </Label>
             )}
-            {!isAnalyzing && !isTerminal && visibleOptionCount > 0 && (
+            {isDenied && (
+              <Label
+                color="red"
+                isCompact
+                icon={<ExclamationCircleIcon />}
+              >
+                Denied
+              </Label>
+            )}
+            {!isAnalyzing && !isTerminal && !isDenied && visibleOptionCount > 0 && (
               <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
             )}
           </Flex>
@@ -3685,6 +3699,27 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 </Button>
               </div>
             </>
+          ) : isDenied ? (
+            <Stack hasGutter>
+              {options.map((opt) => {
+                const optionIndex = options.findIndex((o) => o.id === opt.id);
+                return (
+                  <StackItem key={opt.id}>
+                    <RemediationOptionCard
+                      option={opt}
+                      index={optionIndex}
+                      plan={plan}
+                      isSelected
+                      isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+                      onSelect={() => undefined}
+                      isExecutionPhase={false}
+                      isOptionLocked={false}
+                      showExecutionLog={false}
+                    />
+                  </StackItem>
+                );
+              })}
+            </Stack>
           ) : isTerminal ? (
             <>
               {terminalVisibleOptions.length > 0 && (
