@@ -1466,6 +1466,15 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
     { id: 'acs-netpol-o1', title: 'Patch deployment to remove hostNetwork + CoreDNS config fix', description: 'Set hostNetwork: false on the retail-checkout deployment and resolve the underlying DNS resolution issue by adding a CoreDNS stub zone for the affected service domain.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: "oc patch deployment/retail-checkout -n retail-prod --type='json' -p='[{\"op\": \"replace\", \"path\": \"/spec/template/spec/hostNetwork\", \"value\": false}]' && oc apply -f coredns-stub-zone.yaml" },
     { id: 'acs-netpol-o2', title: 'Add ACS admission controller policy exception (temporary)', description: 'Add a scoped policy exception in ACS to silence the P-2041 violation alert for retail-checkout while the DNS issue is resolved separately — shorter blast radius, does not fix the root cause.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: "roxctl policy add-exception --policy=P-2041 --deployment=retail-checkout --namespace=retail-prod --expiry='24h'" },
   ],
+  'prometheus-wal-emergency-stopped': [
+    { id: 'prom-wal-o1', title: 'Full WAL repair with pre-execution snapshot (recommended)', description: 'Take a volume snapshot of the Prometheus PVC before initiating repair, then run tsdb repair on the corrupted WAL segments. The snapshot provides a rollback point if the repair corrupts additional data. Must be run in an offline write-isolated window (after 04:00 UTC).', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: `oc create -f prometheus-pvc-snapshot.yaml -n openshift-monitoring
+oc scale statefulset/prometheus-k8s --replicas=0 -n openshift-monitoring
+oc rsh -n openshift-monitoring prometheus-k8s-0 -- tsdb repair --repair /prometheus
+oc scale statefulset/prometheus-k8s --replicas=2 -n openshift-monitoring` },
+    { id: 'prom-wal-o2', title: 'Segment-by-segment WAL repair in write-isolated mode', description: 'Cordon the Prometheus node, isolate the write path via remote-write disablement, then repair individual corrupted WAL segments. Faster than a full repair but requires manual segment identification. Riskier if additional corruption exists outside the identified segments.', risk: 'high', reversible: 'Partial', model: 'fast', rawCommands: `oc annotate pod/prometheus-k8s-0 -n openshift-monitoring prometheus.io/remote-write-disabled=true
+oc rsh -n openshift-monitoring prometheus-k8s-0 -- tsdb repair --repair /prometheus/wal/00000001
+oc annotate pod/prometheus-k8s-0 -n openshift-monitoring prometheus.io/remote-write-disabled-` },
+  ],
 };
 
 // ─── Drawer: post-mortem data (Completed / Failed plans) ─────────────────────
@@ -2317,8 +2326,9 @@ const RemediationOptionCard: React.FC<{
 }) => {
   const isFirst = index === 0;
   const { status } = plan;
-  const isTerminal = status === 'Completed' || status === 'Failed';
-  const isDenied   = status === 'Denied';
+  const isTerminal         = status === 'Completed' || status === 'Failed';
+  const isDenied           = status === 'Denied';
+  const isEmergencyStopped = status === 'EmergencyStopped';
   const isExecutionKilled = Boolean(executionKillState);
   const isProposed = status === 'Proposed';
   const cardRootRef = React.useRef<HTMLDivElement>(null);
@@ -2541,7 +2551,7 @@ const RemediationOptionCard: React.FC<{
               >
                 {option.rawCommands}
               </ClipboardCopy>
-              {(onExecute || ((isProposed || isDenied) && rootCause)) && (
+              {(onExecute || ((isProposed || isDenied || isEmergencyStopped) && rootCause)) && (
                 <Flex
                   gap={{ default: 'gapSm' }}
                   flexWrap={{ default: 'wrap' }}
@@ -2558,7 +2568,7 @@ const RemediationOptionCard: React.FC<{
                       </Button>
                     </FlexItem>
                   )}
-                  {(isProposed || isDenied) && rootCause && (
+                  {(isProposed || isDenied || isEmergencyStopped) && rootCause && (
                     <FlexItem>
                       <Button
                         variant="link"
@@ -3250,7 +3260,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const isExecutionPhase = isExecuting || isPlanAborted;
   const isOptionLocked = isExecutionPhase || isVerifying;
   const isTerminal = status === 'Completed' || status === 'Failed';
-  const isDenied   = status === 'Denied';
+  const isDenied           = status === 'Denied';
+  const isEmergencyStopped = status === 'EmergencyStopped';
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
@@ -3620,6 +3631,15 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 Denied
               </Label>
             )}
+            {isEmergencyStopped && (
+              <Label
+                color="orange"
+                isCompact
+                icon={<ExclamationTriangleIcon />}
+              >
+                Emergency stopped
+              </Label>
+            )}
             {!isAnalyzing && !isTerminal && !isDenied && visibleOptionCount > 0 && (
               <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
             )}
@@ -3699,6 +3719,43 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                   Download plan
                 </Button>
               </div>
+            </>
+          ) : isEmergencyStopped ? (
+            <>
+              <Alert
+                variant="warning"
+                isInline
+                title="Execution halted mid-flight"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                This agentic run was stopped while execution was in progress. The cluster may be in
+                a partially modified state. Review the proposed agent commands below and complete or
+                roll back the operation manually during a scheduled maintenance window.
+              </Alert>
+              <Stack hasGutter>
+                {options.map((opt) => {
+                  const optionIndex = options.findIndex((o) => o.id === opt.id);
+                  return (
+                    <StackItem key={opt.id}>
+                      <RemediationOptionCard
+                        option={opt}
+                        index={optionIndex}
+                        plan={plan}
+                        isSelected={selectedOptionId === opt.id}
+                        isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+                        onSelect={setSelectedOptionId}
+                        isExecutionPhase={false}
+                        isOptionLocked={false}
+                        showExecutionLog={false}
+                        rootCause={{
+                          aggregatedFinding: drawer!.aggregatedFinding,
+                          rootCauseNarrative: drawer!.rootCauseNarrative,
+                        }}
+                      />
+                    </StackItem>
+                  );
+                })}
+              </Stack>
             </>
           ) : isDenied ? (
             <Stack hasGutter>
