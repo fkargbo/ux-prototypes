@@ -48,6 +48,23 @@
   white-space: nowrap;
 }
 
+/*
+ * app.css sets background-color and border-bottom with `!important` on the
+ * bare `div.template-page-*` selectors (specificity 0,1,1).  To override
+ * those inside the AI Hub prototype without touching app.css we add a parent
+ * class prefix, raising specificity to 0,2,1 — enough to win the !important
+ * cascade without affecting any other prototype.
+ */
+.ols-ai-hub-page div.template-page-breadcrumb {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+}
+
+.ols-ai-hub-page div.template-page-heading {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+}
+
 .ols-ai-hub-page div.template-page-content {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
