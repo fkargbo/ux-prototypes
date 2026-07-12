@@ -1,0 +1,43 @@
+/*
+ * Beat shared app.css table fills (`#ffffff !important` on thead/tbody).
+ * Mirror the AI Hub plans override so Alerting tables follow theme tokens
+ * (light, dark, Felt, contrast).
+ */
+.alerting-page-container .pf-v6-c-table,
+.alerting-page-container .pf-v6-c-table thead,
+.alerting-page-container .pf-v6-c-table thead tr,
+.alerting-page-container .pf-v6-c-table thead th,
+.alerting-page-container .pf-v6-c-table tbody,
+.alerting-page-container .pf-v6-c-table tbody tr {
+  background-color: transparent !important;
+}
+
+.alerting-page-container .pf-v6-c-table thead th {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+.alerting-page-container .pf-v6-c-table tbody tr {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+}
+
+.alerting-page-container .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
+}
+
+.alerting-page-container .pf-v6-c-table tbody td {
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+.alerting-page-container .pf-v6-c-toolbar {
+  background-color: transparent !important;
+}
+
+.alerting-page-container .table-content-card,
+.alerting-page-container .table-content-card .pf-v6-c-toolbar,
+.alerting-page-container .table-content-card .pf-v6-c-table,
+.alerting-page-container .table-content-card .pf-v6-c-toolbar:last-child {
+  background-color: transparent !important;
+  border-color: var(--pf-t--global--border--color--default) !important;
+  box-shadow: none !important;
+}
