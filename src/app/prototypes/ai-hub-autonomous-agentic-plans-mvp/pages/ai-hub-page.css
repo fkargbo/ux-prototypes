@@ -49,7 +49,7 @@
 }
 
 .ols-ai-hub-page div.template-page-content {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
 /* Drill-down remediation page: full width on tablet; 60% on wide desktops. */

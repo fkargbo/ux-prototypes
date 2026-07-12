@@ -686,24 +686,28 @@ html:not(:has(.hpux-prototype-chrome-scroll)) .pf-v6-c-page__main-container {
   visibility: visible !important;
 }
 
-/* Template page breadcrumb section - white background, 16px padding */
+/* Template page breadcrumb section — 16px padding.
+ * Background and border use PF global tokens so dark / high-contrast / Felt modes
+ * cascade automatically without any extra override rules. */
 .template-page-breadcrumb {
   padding: 16px !important;
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #e0e0e0 !important;
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  border-bottom: 1px solid var(--pf-t--global--border--color--default) !important;
 }
 
-/* Template page heading section - white background, 24px padding */
+/* Template page heading section — 24px padding. */
 .template-page-heading {
   padding: 24px !important;
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #e0e0e0 !important;
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  border-bottom: 1px solid var(--pf-t--global--border--color--default) !important;
 }
 
-/* Template page content section - gray background, 24px padding */
+/* Template page content section — 24px padding.
+ * Secondary background creates the "content well" beneath the white heading strip.
+ * Cards/tables inside sit on this canvas (floating token provides their surface). */
 .template-page-content {
   padding: 24px !important;
-  background-color: #f5f5f5 !important;
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
 /* Perses "edit mode" action bar (blue background section) */
