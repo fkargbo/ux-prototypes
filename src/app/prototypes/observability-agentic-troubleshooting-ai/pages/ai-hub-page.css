@@ -287,18 +287,29 @@ body:has(.ols-ai-hub-page),
   background-color: transparent !important;
 }
 
-/* Non-glass: restore opaque regions so margins/gaps match normal app shell (see app.css). */
+/*
+ * Non-glass shell — PatternFly Page color roles (dashboard basic demo):
+ * - Chrome (masthead + sidebar) + page gutters/footer: secondary (seamless L-frame)
+ * - Main content canvas: primary (distinct from chrome and footer gutters)
+ */
 :root:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
   background-image: none !important;
 }
 
-:root:not(.pf-v6-theme-glass) .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
+  --pf-v6-c-masthead--BackgroundColor: var(--pf-t--global--background--color--secondary--default);
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-/* Non-glass: main region reads as standard Page main (primary fill), not transparent over html */
-:root:not(.pf-v6-theme-glass) .pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar,
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+  --pf-v6-c-page__sidebar--BackgroundColor: var(--pf-t--global--background--color--secondary--default);
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page__main-container:has(.ols-ai-hub-page),
+:root:not(.pf-v6-theme-glass) .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: var(--pf-t--global--background--color--primary--default) !important;
 }
 
@@ -600,50 +611,72 @@ body:has(.ols-ai-hub-page),
  * other prototype is affected.
  */
 
-.ols-ai-hub-page {
-  background-color: var(--pf-t--global--background--color--secondary--default);
-}
-
+/*
+ * Content canvas fills the primary main region (heading + body).
+ * Beat app.css hardcoded #fff on create-policy-header with PF tokens.
+ */
+.ols-ai-hub-page,
 .ols-ai-hub-page__main {
   background-color: var(--pf-t--global--background--color--primary--default);
 }
 
+.ols-ai-hub-page div.create-policy-header {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  border-top-color: var(--pf-t--global--border--color--default) !important;
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+}
+
+.ols-ai-hub-page div.create-policy-breadcrumb {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+.ols-ai-hub-page div.template-page-breadcrumb,
+.ols-ai-hub-page div.template-page-heading,
+.ols-ai-hub-page div.template-page-content {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+}
+
 :root.pf-v6-theme-glass .ols-ai-hub-page,
-:root.pf-v6-theme-glass .ols-ai-hub-page__main {
-  background-color: transparent;
+:root.pf-v6-theme-glass .ols-ai-hub-page__main,
+:root.pf-v6-theme-glass .ols-ai-hub-page div.create-policy-header,
+:root.pf-v6-theme-glass .ols-ai-hub-page div.create-policy-breadcrumb,
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-breadcrumb,
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-heading,
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content {
+  background-color: transparent !important;
 }
 
-:root.pf-v6-theme-dark body:has(.ols-ai-hub-page),
-:root.pf-v6-theme-dark #root:has(.ols-ai-hub-page) {
+/* Dark: keep PF roles — chrome/footer secondary, content primary (do not invert). */
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) body:has(.ols-ai-hub-page),
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) #root:has(.ols-ai-hub-page) {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) {
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-:root.pf-v6-theme-dark .pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
-}
-
-:root.pf-v6-theme-dark .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
+  --pf-v6-c-masthead--BackgroundColor: var(--pf-t--global--background--color--secondary--default);
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
-}
-
-:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
-}
-
-:root.pf-v6-theme-dark .ols-ai-hub-page,
-:root.pf-v6-theme-dark .ols-ai-hub-page__main {
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar,
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+  --pf-v6-c-page__sidebar--BackgroundColor: var(--pf-t--global--background--color--secondary--default);
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-:root.pf-v6-theme-dark .ols-ai-hub-page__main {
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .pf-v6-c-page__main-container:has(.ols-ai-hub-page),
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page),
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .ols-ai-hub-page,
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .ols-ai-hub-page__main,
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .ols-ai-hub-page div.create-policy-header,
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .ols-ai-hub-page div.create-policy-breadcrumb,
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .ols-ai-hub-page div.template-page-breadcrumb,
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .ols-ai-hub-page div.template-page-heading,
+:root.pf-v6-theme-dark:not(.pf-v6-theme-glass) .ols-ai-hub-page div.template-page-content {
   background-color: var(--pf-t--global--background--color--primary--default) !important;
 }
 

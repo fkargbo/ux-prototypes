@@ -707,7 +707,7 @@ html:not(:has(.hpux-prototype-chrome-scroll)) .pf-v6-c-page__main-container {
  * Cards/tables inside sit on this canvas (floating token provides their surface). */
 .template-page-content {
   padding: 24px !important;
-  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
 }
 
 /* Perses "edit mode" action bar (blue background section) */

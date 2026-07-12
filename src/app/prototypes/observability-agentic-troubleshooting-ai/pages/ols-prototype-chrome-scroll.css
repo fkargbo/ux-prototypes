@@ -75,9 +75,10 @@ html:has(.hpux-prototype-chrome-scroll) #root {
   flex: 0 0 auto;
   position: relative;
   z-index: var(--pf-v6-c-page--masthead--ZIndex, 200);
+  /* Match PF Page masthead (secondary) so chrome flows into the sidebar. */
   background-color: var(
     --pf-v6-c-masthead--BackgroundColor,
-    var(--pf-t--global--background--color--primary--default)
+    var(--pf-t--global--background--color--secondary--default)
   );
 }
 
