@@ -34,6 +34,8 @@
     "new-prototype": "node scripts/create-prototype.cjs"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.11.2",
+    "@emnapi/runtime": "^1.11.2",
     "@eslint/js": "^9.29.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
