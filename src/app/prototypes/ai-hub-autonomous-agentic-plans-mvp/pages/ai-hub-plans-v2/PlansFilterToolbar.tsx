@@ -17,7 +17,7 @@ import {
   SelectOption,
   TextInput,
 } from '@patternfly/react-core';
-import { CheckIcon } from '@patternfly/react-icons';
+import { CheckIcon, FilterIcon } from '@patternfly/react-icons';
 import type { PlanRow } from './PlansAndApprovalsTab';
 
 export type PlansSearchCategory = 'name' | 'label';
@@ -315,6 +315,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                     ref={ref}
                     onClick={() => setFilterMenuOpen((open) => !open)}
                     isExpanded={filterMenuOpen}
+                    icon={<FilterIcon />}
                     badge={activeFilterCount > 0 ? activeFilterCount : undefined}
                   >
                     Filter

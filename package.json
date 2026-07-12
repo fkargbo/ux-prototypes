@@ -34,6 +34,8 @@
     "new-prototype": "node scripts/create-prototype.cjs"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.11.2",
+    "@emnapi/runtime": "^1.11.2",
     "@eslint/js": "^9.29.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -82,13 +84,13 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
-    "@patternfly/chatbot": "^6.4.1",
-    "@patternfly/react-charts": "^8.4.0",
-    "@patternfly/react-core": "^6.3.0",
-    "@patternfly/react-icons": "^6.3.0",
-    "@patternfly/react-styles": "^6.3.0",
-    "@patternfly/react-table": "^6.3.1",
-    "@patternfly/react-templates": "^6.4.1",
+    "@patternfly/chatbot": "^6.7.1",
+    "@patternfly/react-charts": "^8.6.0",
+    "@patternfly/react-core": "^6.6.0",
+    "@patternfly/react-icons": "^6.6.0",
+    "@patternfly/react-styles": "^6.6.0",
+    "@patternfly/react-table": "^6.6.0",
+    "@patternfly/react-templates": "^6.6.0",
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",
     "react": "^18",

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import redHatOpenShiftLogoDarkSvg from '../assets/redhatopenshift-dark.svg';
 
 export type ThemeColorMode = 'system' | 'light' | 'dark';
 export type ThemeVariantMode = 'theme-default' | 'theme-felt';
@@ -7,6 +8,12 @@ export type ThemeContrastMode = 'contrast-system' | 'contrast-default' | 'contra
 const COLOR_PREFERENCE_KEY = 'theme-preference';
 const VARIANT_PREFERENCE_KEY = 'theme-variant-preference';
 const CONTRAST_PREFERENCE_KEY = 'contrast-preference';
+const MASTHEAD_LOGO_LIGHT_SRC_ATTR = 'data-ols-ai-hub-logo-light-src';
+
+/** Webpack loads project SVGs as raw XML (`raw-loader`). */
+const RED_HAT_OPENSHIFT_LOGO_DARK_DATA_URL = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+  redHatOpenShiftLogoDarkSvg,
+)}`;
 
 function readColorMode(): ThemeColorMode {
   if (typeof window === 'undefined') {
@@ -172,6 +179,28 @@ export const AiHubAppearanceProvider: React.FC<{ children: React.ReactNode }> = 
     html.classList.toggle('pf-v6-theme-high-contrast', enableHighContrast);
     html.classList.toggle('pf-v6-theme-glass', enableGlass);
     html.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+
+    // Swap masthead logo: white wordmark in dark mode, keep red fedora (no CSS invert).
+    const brandImg = document.querySelector('.pf-v6-c-masthead__brand img') as HTMLImageElement | null;
+    if (brandImg) {
+      if (!brandImg.getAttribute(MASTHEAD_LOGO_LIGHT_SRC_ATTR)) {
+        brandImg.setAttribute(MASTHEAD_LOGO_LIGHT_SRC_ATTR, brandImg.currentSrc || brandImg.src);
+      }
+      const lightSrc = brandImg.getAttribute(MASTHEAD_LOGO_LIGHT_SRC_ATTR) || brandImg.src;
+      brandImg.src = enableDark ? RED_HAT_OPENSHIFT_LOGO_DARK_DATA_URL : lightSrc;
+    }
+
+    return () => {
+      const img = document.querySelector(
+        `.pf-v6-c-masthead__brand img[${MASTHEAD_LOGO_LIGHT_SRC_ATTR}]`,
+      ) as HTMLImageElement | null;
+      if (img) {
+        const lightSrc = img.getAttribute(MASTHEAD_LOGO_LIGHT_SRC_ATTR);
+        if (lightSrc) {
+          img.src = lightSrc;
+        }
+      }
+    };
   }, [resolvedColorMode, themeVariantMode, themeContrastMode, hasSystemHighContrast, isRtl]);
 
   const themeTriggerAriaLabel = useMemo(() => {

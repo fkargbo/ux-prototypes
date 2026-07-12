@@ -1330,7 +1330,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       <div ref={olsChromeDockRef} className={olsChromeDockClassName}>
         {isDrawerOpen && (
         <div className="ols-prototype-ai-drawer">
-          <div className="ols-prototype-ai-drawer-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#ffffff' }}>
+          <div className="ols-prototype-ai-drawer-inner" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--pf-t--global--background--color--primary--default)' }}>
             <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <Chatbot displayMode={ChatbotDisplayMode.drawer}>
               <ChatbotHeader style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>

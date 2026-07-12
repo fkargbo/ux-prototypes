@@ -11,7 +11,6 @@ import {
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import { AutonomousAiObserveWidgetV3 } from '../components/autonomousAiObserve/AutonomousAiObserveWidgetV3';
 import { getClusterById } from '../components/autonomousAiObserve/data';
-import { useAiHubAppearance } from '../context/AiHubAppearanceContext';
 import * as HubV3 from './ai-hub-v3';
 import { useFocusedClusterId } from './ai-hub-v2/useFocusedClusterId';
 import './ai-hub-page.css';
@@ -21,16 +20,12 @@ export const AIInsightsPage: React.FC = () => {
   const [fleetClusterDrillDown, setFleetClusterDrillDown] = React.useState(false);
   const focusedClusterId = useFocusedClusterId();
   const focusedCluster = React.useMemo(() => getClusterById(focusedClusterId), [focusedClusterId]);
-  const { isGlassContrast } = useAiHubAppearance();
 
   const showFleetBreadcrumb = activePerspective === 'Fleet management' && fleetClusterDrillDown;
   const showFleetInventory = activePerspective === 'Fleet management' && !fleetClusterDrillDown;
   const showClusterSummary =
     activePerspective === 'Core platforms' ||
     (activePerspective === 'Fleet management' && fleetClusterDrillDown);
-
-  const pageBackground = isGlassContrast ? 'transparent' : '#f5f5f5';
-  const mainBackground = isGlassContrast ? 'transparent' : '#ffffff';
 
   return (
     <div
@@ -39,7 +34,6 @@ export const AIInsightsPage: React.FC = () => {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: pageBackground,
       }}
     >
       <div className="create-policy-header">
@@ -82,7 +76,6 @@ export const AIInsightsPage: React.FC = () => {
         className="ols-ai-hub-page__main"
         role="main"
         aria-label="AI Insights (Conceptual design) content"
-        style={{ backgroundColor: mainBackground }}
       >
         <div
           style={{

@@ -31,11 +31,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Match local lockfile generation (npm 11 / lockfileVersion 3).
+          # Node 20's npm 10 rejects the current package-lock.json during `npm ci`.
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          node -v
+          npm -v
+          npm ci
 
       - name: Build
         run: npm run build
