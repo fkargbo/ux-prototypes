@@ -769,3 +769,42 @@ body:has(.ols-ai-hub-page),
 :root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
   background-color: var(--pf-t--global--background--color--primary--default) !important;
 }
+
+/*
+ * Stubborn dark-mode surfaces — four classes whose tokens were already correct but
+ * whose specificity or cascade origin (SVG img, portal form, etc.) prevents automatic
+ * dark-mode evaluation.  These rules are the absolute tie-breakers.
+ */
+
+/* 1. Content canvas — secondary (gray-95) in dark mode; higher specificity than app.css 0,1,1 */
+:root.pf-v6-theme-dark .ols-ai-hub-page div.template-page-content {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+/*
+ * 2. Masthead brand logo ("Red Hat OpenShift").
+ *    The SVG is loaded as <img> (no fill="currentColor"), so it cannot inherit
+ *    the PF color token cascade.  brightness(0) reduces all paths to pure black,
+ *    invert(1) then flips them to pure white — a standard "white logo on dark" treatment.
+ */
+:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-masthead__brand img {
+  filter: brightness(0) invert(1);
+}
+
+/*
+ * 3. AI Experience icon in the page heading (rh-ui-icon-ai-experience-black.svg).
+ *    Same issue: black-fill SVG delivered as a data-URL <img>.  Same filter.
+ */
+:root.pf-v6-theme-dark .ols-ai-hub-page .ols-ai-hub-page-header-primary img {
+  filter: brightness(0) invert(1);
+}
+
+/*
+ * 4. Appearance-settings FormGroup labels ("Theme", "Color scheme", "Contrast mode").
+ *    The panel is a Popper portal appended to <body>; without !important the inherited
+ *    `color` on the menu container can beat the PF token, locking them to a dark shade.
+ */
+:root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__label,
+:root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__label-text {
+  color: var(--pf-t--global--text--color--regular) !important;
+}
