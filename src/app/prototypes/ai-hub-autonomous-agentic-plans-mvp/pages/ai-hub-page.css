@@ -860,10 +860,11 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * 2. AI Experience icon in the page heading (black-fill SVG as <img>).
+ * 2. AI Experience icon (black-fill SVG as <img>) — page heading + Agentic run details, etc.
  *    Monochrome invert is correct here — there is no brand-red to preserve.
  */
-:root.pf-v6-theme-dark .ols-ai-hub-page .ols-ai-hub-page-header-primary img {
+:root.pf-v6-theme-dark .ols-ai-hub-page .ols-ai-hub-page-header-primary img,
+:root.pf-v6-theme-dark .ols-ai-hub-page .ols-ai-hub-experience-icon {
   filter: brightness(0) invert(1);
 }
 

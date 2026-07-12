@@ -15,7 +15,7 @@ export const AiExperienceIcon: React.FC<AiExperienceIconProps> = ({ size = 32, c
     aria-hidden="true"
     width={size}
     height={size}
-    className={className}
+    className={['ols-ai-hub-experience-icon', className].filter(Boolean).join(' ')}
     style={{ display: 'block', flexShrink: 0 }}
   />
 );
