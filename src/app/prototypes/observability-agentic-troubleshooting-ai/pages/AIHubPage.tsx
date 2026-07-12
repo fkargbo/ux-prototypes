@@ -19,7 +19,6 @@ import { AutonomousAiObserveWidgetV2 } from '../components/autonomousAiObserve/A
 import { AutonomousAiObserveWidgetV3 } from '../components/autonomousAiObserve/AutonomousAiObserveWidgetV3';
 import { getClusterById } from '../components/autonomousAiObserve/data';
 import { config as prototypeConfig } from '../prototype.config';
-import { useAiHubAppearance } from '../context/AiHubAppearanceContext';
 import * as HubV2 from './ai-hub-v2';
 import * as HubV3 from './ai-hub-v3';
 import { useFocusedClusterId } from './ai-hub-v2/useFocusedClusterId';
@@ -38,7 +37,6 @@ export const AIHubPage: React.FC = () => {
   const [fleetClusterDrillDown, setFleetClusterDrillDown] = React.useState(false);
   const focusedClusterId = useFocusedClusterId();
   const focusedCluster = React.useMemo(() => getClusterById(focusedClusterId), [focusedClusterId]);
-  const { isGlassContrast } = useAiHubAppearance();
   const showFleetBreadcrumb = isHubModern && activePerspective === 'Fleet management' && fleetClusterDrillDown;
   const showFleetInventory = isHubModern && activePerspective === 'Fleet management' && !fleetClusterDrillDown;
   const showClusterSummary =
@@ -55,8 +53,6 @@ export const AIHubPage: React.FC = () => {
     return <Navigate to="/v4/agentic-plans/recommendation-hub" replace />;
   }
 
-  const pageBackground = isGlassContrast ? 'transparent' : '#f5f5f5';
-  const mainBackground = isGlassContrast ? 'transparent' : '#ffffff';
   const pageVersionClass = isHubV3 ? ' ols-ai-hub-page--v3' : isHubV2 ? ' ols-ai-hub-page--v2' : '';
 
   return (
@@ -66,7 +62,6 @@ export const AIHubPage: React.FC = () => {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: pageBackground,
       }}
     >
       <div className="create-policy-header">
@@ -111,7 +106,6 @@ export const AIHubPage: React.FC = () => {
         className="ols-ai-hub-page__main"
         role="main"
         aria-label="AI Hub (Conceptual design) content"
-        style={{ backgroundColor: mainBackground }}
       >
         <Tabs
           activeKey={activeTabKey}

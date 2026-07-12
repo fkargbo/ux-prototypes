@@ -568,12 +568,11 @@ body:has(.ols-ai-hub-page),
 }
 
 .ols-ai-hub-banner-appearance__dropdown.pf-v6-c-menu {
-  color-scheme: light;
-  background-color: #fff !important;
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
   border-color: var(--pf-t--global--border--color--default) !important;
 }
 
-/* FormGroup section headings — explicit text color on white popper */
+/* FormGroup section headings — follow active color scheme */
 .ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__label {
   color: var(--pf-t--global--text--color--regular);
 }
@@ -590,4 +589,79 @@ body:has(.ols-ai-hub-page),
 /* Legacy portaled full-page utils panel — superseded by banner control */
 .ws-full-page-utils.ols-ai-hub-full-page-utils {
   display: none !important;
+}
+
+/*
+ * Dark mode — AI Hub page overrides.
+ *
+ * app.css hard-codes light-mode background colors on generic PF classes with !important,
+ * preventing PF6 dark-mode design tokens from taking effect. The rules below re-assert
+ * those surfaces using the correct dark-mode tokens, scoped to AI Hub pages so no
+ * other prototype is affected.
+ */
+
+.ols-ai-hub-page {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.ols-ai-hub-page__main {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page,
+:root.pf-v6-theme-glass .ols-ai-hub-page__main {
+  background-color: transparent;
+}
+
+:root.pf-v6-theme-dark body:has(.ols-ai-hub-page),
+:root.pf-v6-theme-dark #root:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-page,
+:root.pf-v6-theme-dark .ols-ai-hub-page__main {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-page__main {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+/*
+ * Masthead brand logo ("Red Hat OpenShift").
+ * Defeat invert filters (e.g. leaked from other prototypes). Logo src is swapped in
+ * AiHubAppearanceContext to a dark SVG with white wordmark and unchanged #e00 fedora.
+ */
+:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-masthead__brand img {
+  filter: none !important;
+}
+
+/* AI Experience icon in the page heading — black SVG needs light treatment in dark mode */
+:root.pf-v6-theme-dark .ols-ai-hub-page .ols-ai-hub-page-header-primary img {
+  filter: brightness(0) invert(1);
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__label,
+:root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__label-text {
+  color: var(--pf-t--global--text--color--regular) !important;
 }
