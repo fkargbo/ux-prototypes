@@ -754,25 +754,34 @@ span.ols-aio-card-stat-number {
   border: 1px solid var(--pf-t--global--border--color--default);
 }
 
-.ols-aio-rca-box {
+/* Detected Root Cause / remediation surfaces — PF tokens (dark + glass safe). */
+.ols-ai-hub-page .ols-aio-rca-box {
   border-radius: 16px;
   overflow: hidden;
   padding: var(--pf-t--global--spacer--md);
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  color: var(--pf-t--global--text--color--regular);
 }
 
-.ols-aio-rca-box--critical {
-  background-color: #F5F5F5;
+.ols-ai-hub-page .ols-aio-rca-box--critical,
+.ols-ai-hub-page .ols-aio-rca-box--warning,
+.ols-ai-hub-page .ols-aio-rca-box--info {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-.ols-aio-rca-box--warning {
-  background-color: #F5F5F5;
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-rca-box,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-rca-box--critical,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-rca-box--warning,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-rca-box--info {
+  background-color: var(--ols-ai-hub-glass-surface-tint, rgb(255 255 255 / 50%)) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+  border: 1px solid var(
+    --ols-ai-hub-glass-chrome-border-color,
+    var(--pf-t--global--border--color--default)
+  );
 }
 
-.ols-aio-rca-box--info {
-  background-color: #F5F5F5;
-}
-
-.ols-aio-code-block {
+.ols-ai-hub-page .ols-aio-code-block {
   margin: 0;
   padding: var(--pf-t--global--spacer--sm);
   border: 1px solid var(--pf-t--global--border--color--default);
@@ -782,11 +791,22 @@ span.ols-aio-card-stat-number {
   font-size: var(--pf-t--global--font--size--body--sm);
   overflow: auto;
   white-space: pre-wrap;
+  color: var(--pf-t--global--text--color--regular);
 }
 
-.ols-aio-remediation-box {
+.ols-ai-hub-page .ols-aio-remediation-box {
   border-radius: var(--pf-t--global--border--radius--small);
   padding: var(--pf-t--global--spacer--md);
-  background-color: #F5F5F5;
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-remediation-box {
+  background-color: var(--ols-ai-hub-glass-surface-tint, rgb(255 255 255 / 50%)) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+  border: 1px solid var(
+    --ols-ai-hub-glass-chrome-border-color,
+    var(--pf-t--global--border--color--default)
+  );
 }
 

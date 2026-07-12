@@ -123,35 +123,12 @@
 }
 
 /*
- * Sidebar nav carets — PF 6.6 hardcodes RhMicronsCaretDownIcon (thin "v").
- * Restore the classic AngleDown chevron via mask so expandables match prior PF nav.
- * Rotation for expanded state still comes from `.pf-v6-c-nav__toggle-icon` transforms.
- * (Nav current-item accent bar + scale animation: keep PF 6.6 defaults — do not zero them.)
+ * Sidebar nav carets — keep PatternFly 6.6 RhMicronsCaretDownIcon (do not mask over it).
  */
 .pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-nav__toggle-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-nav__toggle-icon > svg {
-  display: none;
-}
-
-.pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-nav__toggle-icon::after {
-  content: '';
-  display: block;
-  width: 0.75rem;
-  height: 0.75rem;
-  background-color: currentColor;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='black' d='M143 352.3L7 216.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.2 9.4-24.4 9.4-33.8 0z'/%3E%3C/svg%3E");
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='black' d='M143 352.3L7 216.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.2 9.4-24.4 9.4-33.8 0z'/%3E%3C/svg%3E");
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  -webkit-mask-size: contain;
 }
 
 /* Drill-down remediation page: full width on tablet; 60% on wide desktops. */
@@ -524,25 +501,33 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * Glass + AI Hub: transparent Page, masthead full-bleed top, sidebar + main inset. Scoped with :has(.ols-ai-hub-page).
- * Frosted panels: 50% white over workspace + blur (align with PF dashboard glass demo).
- * Uses !important to win over app.css global Page zeroing.
+ * Glass + AI Hub: transparent Page, masthead full-bleed top, sidebar + main inset.
+ * Gutters use PF glass tokens (gutter between regions, inset at page edges) — not a
+ * hardcoded 24px that stacks with PF sidebar-main margins.
+ * Frost lives on `.pf-v6-c-page__sidebar-main` (PF glass surface), not sidebar-body.
  */
 
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
-  --ols-ai-hub-glass-chrome-gutter: 24px;
+  --ols-ai-hub-glass-chrome-gutter: var(--pf-t--global--spacer--gutter--default) !important;
+  --ols-ai-hub-glass-chrome-inset: var(--pf-t--global--spacer--inset--page-chrome) !important;
   --ols-ai-hub-glass-surface-tint: rgb(255 255 255 / 50%);
-  /* Same tokens as PF Page glass sidebar-main / panels (dashboard basic demo). */
   --ols-ai-hub-glass-chrome-border-color: var(
     --pf-t--global--border--color--glass--default,
     var(--pf-t--global--border--color--default)
   );
   --ols-ai-hub-glass-chrome-border-width: var(--pf-t--global--border--width--glass--default, 1px);
+  --ols-ai-hub-glass-chrome-radius: var(
+    --pf-t--global--border--radius--glass--default,
+    var(--pf-t--global--border--radius--medium)
+  );
+  --ols-ai-hub-glass-chrome-shadow: var(
+    --pf-t--global--box-shadow--glass--default,
+    var(--pf-t--global--box-shadow--lg)
+  );
   box-sizing: border-box !important;
-  /* Masthead flush to viewport top; 24px inset sides + bottom; gutter below masthead and between columns. */
   padding-top: 0 !important;
-  padding-inline: var(--ols-ai-hub-glass-chrome-gutter) !important;
-  padding-bottom: var(--ols-ai-hub-glass-chrome-gutter) !important;
+  padding-inline: var(--ols-ai-hub-glass-chrome-inset) !important;
+  padding-bottom: var(--ols-ai-hub-glass-chrome-inset) !important;
   row-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
   background-color: transparent !important;
   background-image: none !important;
@@ -551,8 +536,8 @@ body:has(.ols-ai-hub-page),
 @media (min-width: 75rem) {
   :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) {
     padding-top: 0 !important;
-    padding-inline: var(--ols-ai-hub-glass-chrome-gutter) !important;
-    padding-bottom: var(--ols-ai-hub-glass-chrome-gutter) !important;
+    padding-inline: var(--ols-ai-hub-glass-chrome-inset) !important;
+    padding-bottom: var(--ols-ai-hub-glass-chrome-inset) !important;
     row-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
     column-gap: var(--ols-ai-hub-glass-chrome-gutter) !important;
   }
@@ -562,19 +547,13 @@ body:has(.ols-ai-hub-page),
   }
 }
 
-/*
- * Masthead: edge-to-edge horizontally (see masthead.css).
- * Dropdown / expandable toolbar shadow: masthead.css sets
- * `--pf-v6-c-masthead__expandable-content--BoxShadow` → `--pf-t--global--box-shadow--md--bottom` on
- * `.pf-v6-c-masthead .pf-v6-c-toolbar__expandable-content` — restore by not forcing BoxShadow/border to none.
- */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
   --pf-v6-c-masthead--BorderWidth: 0 !important;
   --pf-v6-c-masthead__brand--BorderBlockEnd: 0 !important;
   --pf-v6-c-masthead--m-display-stack__brand--BorderBlockEnd: 0 !important;
   --pf-v6-c-masthead--m-display-inline__brand--BorderBlockEnd: 0 !important;
-  margin-inline: calc(-1 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
-  width: calc(100% + 2 * var(--ols-ai-hub-glass-chrome-gutter)) !important;
+  margin-inline: calc(-1 * var(--ols-ai-hub-glass-chrome-inset)) !important;
+  width: calc(100% + 2 * var(--ols-ai-hub-glass-chrome-inset)) !important;
   max-width: none !important;
   box-sizing: border-box !important;
   background-color: var(--ols-ai-hub-glass-surface-tint) !important;
@@ -582,24 +561,14 @@ body:has(.ols-ai-hub-page),
   border-radius: 0 !important;
   border-block-end: none !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
-  /* Elevated chrome like dashboard glass panels */
   box-shadow: var(--pf-t--global--box-shadow--sm--bottom);
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead .pf-v6-c-toolbar__expandable-content {
-  /* masthead.css: border-block-start + box-shadow from --pf-v6-c-masthead__expandable-content--BoxShadow */
   border-block-start: var(--pf-v6-c-masthead__expandable-content--BorderBlockStart);
   box-shadow: var(--pf-v6-c-masthead__expandable-content--BoxShadow);
 }
 
-/*
- * Sidebar shell: structural only (same grid slot as page.css `.pf-v6-c-page__sidebar`). Frost + elevation live on
- * `.pf-v6-c-page__sidebar-body` to mirror `.pf-v6-c-page__main-container` + `.pf-v6-c-page__main`.
- *
- * PatternFly `page.css` sets `.pf-v6-c-page__sidebar { overflow-x: hidden; overflow-y: auto; }` — that clips
- * `box-shadow` on child `.pf-v6-c-page__sidebar-body` (only a bottom sliver may show). Override to
- * `overflow: visible` here and move scrolling onto `.pf-v6-c-page__sidebar-body` below.
- */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar {
   background-color: transparent !important;
   border: none !important;
@@ -607,54 +576,64 @@ body:has(.ols-ai-hub-page),
   backdrop-filter: none !important;
   box-shadow: none !important;
   overflow: visible !important;
-  /* Single glass card; drop default divider border between sidebar and main (gutter = grid column-gap). */
   --pf-v6-c-page__sidebar--BorderInlineEndWidth: 0 !important;
   margin-inline-end: 0 !important;
+  margin-block-start: 0 !important;
+  padding-block-end: 0 !important;
 }
 
-/*
- * Sidebar body: same frosted surface + `--pf-t--global--box-shadow--lg` as `.pf-v6-c-page__main-container`
- * (see base.css `--pf-t--global--box-shadow--lg` composite shadow).
- * Scroll container moved here from `.pf-v6-c-page__sidebar` so elevation isn’t clipped.
- */
-:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+/* Single glass card on sidebar-main (PF surface). Do not frost sidebar-body. */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-main {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
   background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border: var(--ols-ai-hub-glass-chrome-border-width) solid var(--ols-ai-hub-glass-chrome-border-color) !important;
+  border-radius: var(--ols-ai-hub-glass-chrome-radius) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  box-shadow: var(--ols-ai-hub-glass-chrome-shadow) !important;
+  overflow: hidden !important;
+}
+
+/* Transparent scrollport inside the single glass card — beats stale HMR frost-on-body rules. */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar > .pf-v6-c-page__sidebar-main > .pf-v6-c-page__sidebar-body {
+  background-color: transparent !important;
   border: none !important;
   outline: none !important;
-  border-radius: var(--pf-t--global--border--radius--medium) !important;
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
-  box-shadow: var(--pf-t--global--box-shadow--lg);
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
   position: relative;
-  z-index: var(--pf-t--global--z-index--xs);
+  z-index: auto;
 }
 
-/* Sidebar body: remove gray frame from inline perspective control (AppLayout). */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body .perspective-selector button {
   border: none !important;
   background: transparent !important;
 }
 
-/*
- * Main region: frosted fill — elevated shell (same token family as dropdown / menu surfaces:
- * `--pf-t--global--box-shadow--lg`).
- */
 :root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__main-container {
   background-color: var(--ols-ai-hub-glass-surface-tint) !important;
-  border: none !important;
-  border-radius: var(--pf-t--global--border--radius--medium) !important;
+  border: var(--ols-ai-hub-glass-chrome-border-width) solid var(--ols-ai-hub-glass-chrome-border-color) !important;
+  border-radius: var(--ols-ai-hub-glass-chrome-radius) !important;
   outline: none !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
-  box-shadow: var(--pf-t--global--box-shadow--lg);
-  /* Override app.css + PF main-container frame; inner cards carry borders. */
+  box-shadow: var(--ols-ai-hub-glass-chrome-shadow) !important;
   --pf-v6-c-page__main-container--BorderBlockStartWidth: 0 !important;
   --pf-v6-c-page__main-container--BorderBlockEndWidth: 0 !important;
   --pf-v6-c-page__main-container--BorderInlineStartWidth: 0 !important;
   --pf-v6-c-page__main-container--BorderInlineEndWidth: 0 !important;
+  margin-block-start: 0 !important;
   margin-inline-start: 0 !important;
   margin-inline-end: 0 !important;
 }
