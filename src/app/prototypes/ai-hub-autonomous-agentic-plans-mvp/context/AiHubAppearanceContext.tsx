@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import redHatOpenShiftLogoDarkSvg from '../assets/redhatopenshift-dark.svg';
 
 export type ThemeColorMode = 'system' | 'light' | 'dark';
 export type ThemeVariantMode = 'theme-default' | 'theme-felt';
@@ -7,6 +8,12 @@ export type ThemeContrastMode = 'contrast-system' | 'contrast-default' | 'contra
 const COLOR_PREFERENCE_KEY = 'theme-preference';
 const VARIANT_PREFERENCE_KEY = 'theme-variant-preference';
 const CONTRAST_PREFERENCE_KEY = 'contrast-preference';
+const MASTHEAD_LOGO_LIGHT_SRC_ATTR = 'data-ols-ai-hub-logo-light-src';
+
+/** Webpack loads project SVGs as raw XML (`raw-loader`). */
+const RED_HAT_OPENSHIFT_LOGO_DARK_DATA_URL = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+  redHatOpenShiftLogoDarkSvg,
+)}`;
 
 function readColorMode(): ThemeColorMode {
   if (typeof window === 'undefined') {
@@ -172,6 +179,62 @@ export const AiHubAppearanceProvider: React.FC<{ children: React.ReactNode }> = 
     html.classList.toggle('pf-v6-theme-high-contrast', enableHighContrast);
     html.classList.toggle('pf-v6-theme-glass', enableGlass);
     html.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+
+    /**
+     * Masthead logo lives in shared AppLayout (outside React ownership of this provider).
+     * AppLayout re-renders reset <img src> to the light SVG, so we must re-apply the dark
+     * asset whenever src drifts while dark mode is on. Keep the red fedora (#e00) — never invert.
+     */
+    const applyMastheadLogo = () => {
+      const brandImg = document.querySelector('.pf-v6-c-masthead__brand img') as HTMLImageElement | null;
+      if (!brandImg) {
+        return;
+      }
+      // Never invert the brand mark — that bleaches the #e00 fedora.
+      brandImg.style.setProperty('filter', 'none', 'important');
+
+      const current = brandImg.getAttribute('src') || brandImg.currentSrc || brandImg.src;
+      const isDarkSrc = current === RED_HAT_OPENSHIFT_LOGO_DARK_DATA_URL;
+
+      if (!brandImg.getAttribute(MASTHEAD_LOGO_LIGHT_SRC_ATTR) && current && !isDarkSrc) {
+        brandImg.setAttribute(MASTHEAD_LOGO_LIGHT_SRC_ATTR, current);
+      }
+
+      const lightSrc = brandImg.getAttribute(MASTHEAD_LOGO_LIGHT_SRC_ATTR);
+      if (enableDark) {
+        if (!isDarkSrc) {
+          brandImg.setAttribute('src', RED_HAT_OPENSHIFT_LOGO_DARK_DATA_URL);
+        }
+      } else if (lightSrc && current !== lightSrc) {
+        brandImg.setAttribute('src', lightSrc);
+        brandImg.style.removeProperty('filter');
+      }
+    };
+
+    applyMastheadLogo();
+
+    const observer = new MutationObserver(() => {
+      applyMastheadLogo();
+    });
+    const brandImg = document.querySelector('.pf-v6-c-masthead__brand img');
+    if (brandImg) {
+      observer.observe(brandImg, { attributes: true, attributeFilter: ['src'] });
+    } else {
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    return () => {
+      observer.disconnect();
+      const img = document.querySelector(
+        `.pf-v6-c-masthead__brand img[${MASTHEAD_LOGO_LIGHT_SRC_ATTR}]`,
+      ) as HTMLImageElement | null;
+      if (img) {
+        const lightSrc = img.getAttribute(MASTHEAD_LOGO_LIGHT_SRC_ATTR);
+        if (lightSrc) {
+          img.setAttribute('src', lightSrc);
+        }
+      }
+    };
   }, [resolvedColorMode, themeVariantMode, themeContrastMode, hasSystemHighContrast, isRtl]);
 
   const themeTriggerAriaLabel = useMemo(() => {

@@ -771,39 +771,89 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * Stubborn dark-mode surfaces — four classes whose tokens were already correct but
- * whose specificity or cascade origin (SVG img, portal form, etc.) prevents automatic
- * dark-mode evaluation.  These rules are the absolute tie-breakers.
+ * Stubborn dark-mode surfaces — tokens alone are not enough because:
+ * - app.css hard-codes #fff on tables with !important
+ * - masthead logo / AI icon are <img> SVGs (no currentColor inheritance)
+ * - appearance menu is a body portal that can miss component token remaps
  */
 
-/* 1. Content canvas — secondary (gray-95) in dark mode; higher specificity than app.css 0,1,1 */
+/* 1. Content canvas + plans table well.
+ *    app.css locks `.pf-v6-c-table thead/tbody` to #ffffff !important globally.
+ *    That is what still reads as a solid white "plans" block in the screenshot. */
 :root.pf-v6-theme-dark .ols-ai-hub-page div.template-page-content {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-/*
- * 2. Masthead brand logo ("Red Hat OpenShift").
- *    The SVG is loaded as <img> (no fill="currentColor"), so it cannot inherit
- *    the PF color token cascade.  brightness(0) reduces all paths to pure black,
- *    invert(1) then flips them to pure white — a standard "white logo on dark" treatment.
- */
-:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-masthead__brand img {
-  filter: brightness(0) invert(1);
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table,
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table thead,
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table thead tr,
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table thead th,
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody,
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody tr {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table thead th {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody tr {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody td {
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-page .ols-ai-hub-plans-toolbar.pf-v6-c-toolbar,
+:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-toolbar {
+  background-color: transparent !important;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-page .table-content-card,
+:root.pf-v6-theme-dark .ols-ai-hub-page .table-content-card .pf-v6-c-toolbar,
+:root.pf-v6-theme-dark .ols-ai-hub-page .table-content-card .pf-v6-c-table,
+:root.pf-v6-theme-dark .ols-ai-hub-page .table-content-card .pf-v6-c-toolbar:last-child {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  border-color: var(--pf-t--global--border--color--default) !important;
 }
 
 /*
- * 3. AI Experience icon in the page heading (rh-ui-icon-ai-experience-black.svg).
- *    Same issue: black-fill SVG delivered as a data-URL <img>.  Same filter.
+ * 2. Masthead brand logo — dark SVG is swapped in AiHubAppearanceContext (white wordmark + red fedora).
+ *    Defeat any invert filters so the brand-red fedora is never bleached.
+ */
+:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-masthead__brand img {
+  filter: none !important;
+}
+
+/*
+ * 3. AI Experience icon in the page heading (black-fill SVG as <img>).
+ *    Monochrome invert is correct here — there is no brand-red to preserve.
  */
 :root.pf-v6-theme-dark .ols-ai-hub-page .ols-ai-hub-page-header-primary img {
   filter: brightness(0) invert(1);
 }
 
 /*
- * 4. Appearance-settings FormGroup labels ("Theme", "Color scheme", "Contrast mode").
- *    The panel is a Popper portal appended to <body>; without !important the inherited
- *    `color` on the menu container can beat the PF token, locking them to a dark shade.
+ * 4. Appearance settings dropdown (body portal) — force menu surface + labels.
  */
+:root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__dropdown.pf-v6-c-menu,
+:root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__dropdown.pf-v6-c-menu .pf-v6-c-menu__content {
+  background-color: var(--pf-t--global--background--color--floating--default) !important;
+  border-color: var(--pf-t--global--border--color--default) !important;
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+:root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__menu-form {
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
 :root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__label,
 :root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__menu-form .pf-v6-c-form__label-text {
   color: var(--pf-t--global--text--color--regular) !important;
