@@ -130,6 +130,14 @@ export default (env) => {
     ],
     resolve: {
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
+      alias: {
+        // PatternFly FileUpload imports named `ErrorCode`; webpack otherwise resolves the
+        // CJS UMD build which only exposes `default` / `useDropzone` to ESM importers.
+        'react-dropzone': path.resolve('./node_modules/react-dropzone/dist/es/index.js'),
+        // Prefer the prebuilt bundle for bare `import 'echarts'` only (`$` = exact).
+        // Do not alias `echarts/core` — PatternFly react-charts needs the ESM package graph.
+        echarts$: path.resolve('./node_modules/echarts/dist/echarts.js'),
+      },
       plugins: [
         new TsconfigPathsPlugin({
           configFile: path.resolve('./tsconfig.json'),
