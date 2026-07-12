@@ -100,25 +100,17 @@
 }
 
 /*
- * Plans filter bar — re-bind MenuToggle / form-control borders + focus rings to PF
- * control tokens (neutral border, blue focus/expanded). Strips any washed-out or
- * hardcoded outline leftovers without inventing custom colors.
+ * Plans filter bar — do NOT set `--pf-v6-c-menu-toggle--BorderColor` (or the form
+ * control `before` color) on the resting selector. PF remaps that same variable on
+ * `:hover` / `:focus` / `.pf-m-expanded`; a higher-specificity resting assignment
+ * locks the border to control-gray and blocks the blue focus/expanded ring.
+ *
+ * TextInput has no built-in `:focus-within` in form-control.css — only hover and
+ * `.pf-m-expanded` — so add focus using the same clicked tokens PF uses for expanded.
  */
-.ols-ai-hub-page .ols-ai-hub-plans-toolbar .pf-v6-c-menu-toggle {
-  --pf-v6-c-menu-toggle--BorderColor: var(--pf-t--global--border--color--control--default);
-  --pf-v6-c-menu-toggle--hover--BorderColor: var(--pf-t--global--border--color--hover);
-  --pf-v6-c-menu-toggle--expanded--BorderColor: var(--pf-t--global--border--color--clicked);
-  --pf-v6-c-menu-toggle--m-expanded--BorderColor: var(--pf-t--global--border--color--clicked);
-}
-
-.ols-ai-hub-page .ols-ai-hub-plans-toolbar .pf-v6-c-form-control {
-  --pf-v6-c-form-control--before--BorderColor: var(--pf-t--global--border--color--control--default);
-  --pf-v6-c-form-control--hover--after--BorderColor: var(--pf-t--global--border--color--hover);
-  --pf-v6-c-form-control--m-expanded--after--BorderColor: var(--pf-t--global--border--color--clicked);
-}
-
 .ols-ai-hub-page .ols-ai-hub-plans-toolbar .pf-v6-c-form-control:focus-within {
   --pf-v6-c-form-control--after--BorderColor: var(--pf-t--global--border--color--clicked);
+  --pf-v6-c-form-control--after--BorderWidth: var(--pf-t--global--border--width--control--clicked);
 }
 
 .ols-ai-hub-page .table-content-card,
@@ -131,19 +123,10 @@
 }
 
 /*
- * Sidebar nav — PF 6.6 draws a brand-accent vertical bar on current items via
- * `.pf-v6-c-nav__item::before`. Console/AI Hub expects background-only current
- * states (classic nav). Hide the accent; keep PF current background + color tokens.
- */
-.pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-nav__item {
-  --pf-v6-c-nav__item--current--accent--ScaleY: 0;
-  --pf-v6-c-nav__item--accent--content: none;
-}
-
-/*
  * Sidebar nav carets — PF 6.6 hardcodes RhMicronsCaretDownIcon (thin "v").
  * Restore the classic AngleDown chevron via mask so expandables match prior PF nav.
  * Rotation for expanded state still comes from `.pf-v6-c-nav__toggle-icon` transforms.
+ * (Nav current-item accent bar + scale animation: keep PF 6.6 defaults — do not zero them.)
  */
 .pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-nav__toggle-icon {
   display: inline-flex;
