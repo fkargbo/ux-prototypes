@@ -49,7 +49,7 @@
 }
 
 .ols-ai-hub-page div.template-page-content {
-  background-color: #ffffff !important;
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
 }
 
 /* Drill-down remediation page: full width on tablet; 60% on wide desktops. */
@@ -96,7 +96,7 @@
 /* Keep subtitle readable in very narrow viewports. */
 .ols-ai-hub-page-subtitle {
   margin: 0;
-  color: #6a6e73;
+  color: var(--pf-t--global--text--color--subtle);
   overflow-wrap: anywhere;
   word-break: normal;
 }
@@ -104,7 +104,7 @@
 .ols-ai-hub-page-disclaimer {
   margin: 0;
   font-size: 12px;
-  color: #4d4d4d;
+  color: var(--pf-t--global--text--color--subtle);
 }
 
 /* Plans list page — tighter vertical rhythm between page chrome and table. */
@@ -711,4 +711,45 @@ body:has(.ols-ai-hub-page),
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
+}
+
+/*
+ * Dark mode — AI Hub page overrides.
+ *
+ * app.css hard-codes light-mode background colors on generic PF classes with !important,
+ * preventing PF6 dark-mode design tokens from taking effect. The rules below re-assert
+ * those surfaces using the correct dark-mode tokens, scoped to AI Hub pages so no
+ * other prototype is affected. Specificity is intentionally one class higher than
+ * the app.css originals to win the cascade without resorting to inline styles.
+ */
+
+/* Page shell (html/body/root) — strip any light-locked overrides so PF tokens cascade */
+:root.pf-v6-theme-dark body:has(.ols-ai-hub-page),
+:root.pf-v6-theme-dark #root:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+/* Page component root */
+:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+/* Page main-container (app.css zeroes its background for non-glass mode) */
+:root.pf-v6-theme-dark .pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+/* Page main section — app.css sets #f5f5f5 !important; override it with the dark token */
+:root.pf-v6-theme-dark .pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+/* Masthead — ensure dark mode token surfaces through chrome overrides */
+:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-masthead {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+/* Sidebar body — standard dark surface */
+:root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
 }
