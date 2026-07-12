@@ -221,6 +221,7 @@ import { mockAlertRules, mockTrendData, buildAlertingFleetMockClusters, buildCor
 import { CLUSTERS } from '../../../components/autonomousAiObserve/data';
 import { resolveAlertInvestigationNavigation } from '../../../pages/ai-hub-v3/troubleshootingPlansRegistry';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
+import '../alerting-page.css';
 
 type QuickTimeRange =
   | 'last-5m'
