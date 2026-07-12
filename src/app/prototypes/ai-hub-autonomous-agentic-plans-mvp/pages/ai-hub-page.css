@@ -69,6 +69,115 @@
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
+/*
+ * Unify the plans content well: app.css forces white table rows, which reads as a
+ * detached card on the secondary canvas. Keep the table transparent so the entire
+ * content section is one surface (works in light, dark, Felt, and contrast).
+ */
+.ols-ai-hub-page .pf-v6-c-table,
+.ols-ai-hub-page .pf-v6-c-table thead,
+.ols-ai-hub-page .pf-v6-c-table thead tr,
+.ols-ai-hub-page .pf-v6-c-table thead th,
+.ols-ai-hub-page .pf-v6-c-table tbody,
+.ols-ai-hub-page .pf-v6-c-table tbody tr {
+  background-color: transparent !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table thead th {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table tbody tr {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table tbody td {
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+.ols-ai-hub-page .ols-ai-hub-plans-toolbar,
+.ols-ai-hub-page .ols-ai-hub-plans-toolbar.pf-v6-c-toolbar,
+.ols-ai-hub-page .pf-v6-c-toolbar {
+  background-color: transparent !important;
+}
+
+/*
+ * Plans filter bar — re-bind MenuToggle / form-control borders + focus rings to PF
+ * control tokens (neutral border, blue focus/expanded). Strips any washed-out or
+ * hardcoded outline leftovers without inventing custom colors.
+ */
+.ols-ai-hub-page .ols-ai-hub-plans-toolbar .pf-v6-c-menu-toggle {
+  --pf-v6-c-menu-toggle--BorderColor: var(--pf-t--global--border--color--control--default);
+  --pf-v6-c-menu-toggle--hover--BorderColor: var(--pf-t--global--border--color--hover);
+  --pf-v6-c-menu-toggle--expanded--BorderColor: var(--pf-t--global--border--color--clicked);
+  --pf-v6-c-menu-toggle--m-expanded--BorderColor: var(--pf-t--global--border--color--clicked);
+}
+
+.ols-ai-hub-page .ols-ai-hub-plans-toolbar .pf-v6-c-form-control {
+  --pf-v6-c-form-control--before--BorderColor: var(--pf-t--global--border--color--control--default);
+  --pf-v6-c-form-control--hover--after--BorderColor: var(--pf-t--global--border--color--hover);
+  --pf-v6-c-form-control--m-expanded--after--BorderColor: var(--pf-t--global--border--color--clicked);
+}
+
+.ols-ai-hub-page .ols-ai-hub-plans-toolbar .pf-v6-c-form-control:focus-within {
+  --pf-v6-c-form-control--after--BorderColor: var(--pf-t--global--border--color--clicked);
+}
+
+.ols-ai-hub-page .table-content-card,
+.ols-ai-hub-page .table-content-card .pf-v6-c-toolbar,
+.ols-ai-hub-page .table-content-card .pf-v6-c-table,
+.ols-ai-hub-page .table-content-card .pf-v6-c-toolbar:last-child {
+  background-color: transparent !important;
+  border-color: var(--pf-t--global--border--color--default) !important;
+  box-shadow: none !important;
+}
+
+/*
+ * Sidebar nav — PF 6.6 draws a brand-accent vertical bar on current items via
+ * `.pf-v6-c-nav__item::before`. Console/AI Hub expects background-only current
+ * states (classic nav). Hide the accent; keep PF current background + color tokens.
+ */
+.pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-nav__item {
+  --pf-v6-c-nav__item--current--accent--ScaleY: 0;
+  --pf-v6-c-nav__item--accent--content: none;
+}
+
+/*
+ * Sidebar nav carets — PF 6.6 hardcodes RhMicronsCaretDownIcon (thin "v").
+ * Restore the classic AngleDown chevron via mask so expandables match prior PF nav.
+ * Rotation for expanded state still comes from `.pf-v6-c-nav__toggle-icon` transforms.
+ */
+.pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-nav__toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-nav__toggle-icon > svg {
+  display: none;
+}
+
+.pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-nav__toggle-icon::after {
+  content: '';
+  display: block;
+  width: 0.75rem;
+  height: 0.75rem;
+  background-color: currentColor;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='black' d='M143 352.3L7 216.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.2 9.4-24.4 9.4-33.8 0z'/%3E%3C/svg%3E");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='black' d='M143 352.3L7 216.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.2 9.4-24.4 9.4-33.8 0z'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
 /* Drill-down remediation page: full width on tablet; 60% on wide desktops. */
 .ols-plan-remediation-drilldown {
   width: 100%;
@@ -422,9 +531,9 @@ body:has(.ols-ai-hub-page),
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-/* Non-glass: main region reads as standard Page main (primary fill), not transparent over html */
+/* Non-glass: main region matches the content well (secondary) so the table is not a detached card */
 :root:not(.pf-v6-theme-glass) .pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
 /*
@@ -750,9 +859,9 @@ body:has(.ols-ai-hub-page),
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-/* Page main-container (app.css zeroes its background for non-glass mode) */
+/* Page main-container — match unified content well */
 :root.pf-v6-theme-dark .pf-v6-c-page__main-container:has(.ols-ai-hub-page) {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
 /* Page main section — app.css sets #f5f5f5 !important; override it with the dark token */
@@ -772,60 +881,19 @@ body:has(.ols-ai-hub-page),
 
 /*
  * Stubborn dark-mode surfaces — tokens alone are not enough because:
- * - app.css hard-codes #fff on tables with !important
  * - masthead logo / AI icon are <img> SVGs (no currentColor inheritance)
  * - appearance menu is a body portal that can miss component token remaps
+ *
+ * Table / content well unification lives in the shared (all-theme) rules above.
  */
 
-/* 1. Content canvas + plans table well.
- *    app.css locks `.pf-v6-c-table thead/tbody` to #ffffff !important globally.
- *    That is what still reads as a solid white "plans" block in the screenshot. */
+/* Content canvas — secondary; higher specificity than app.css 0,1,1 */
 :root.pf-v6-theme-dark .ols-ai-hub-page div.template-page-content {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
 }
 
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table,
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table thead,
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table thead tr,
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table thead th,
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody,
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody tr {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
-}
-
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table thead th {
-  border-bottom-color: var(--pf-t--global--border--color--default) !important;
-  color: var(--pf-t--global--text--color--regular) !important;
-}
-
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody tr {
-  border-bottom-color: var(--pf-t--global--border--color--default) !important;
-}
-
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
-  background-color: var(--pf-t--global--background--color--primary--hover) !important;
-}
-
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-table tbody td {
-  color: var(--pf-t--global--text--color--regular) !important;
-}
-
-:root.pf-v6-theme-dark .ols-ai-hub-page .ols-ai-hub-plans-toolbar.pf-v6-c-toolbar,
-:root.pf-v6-theme-dark .ols-ai-hub-page .pf-v6-c-toolbar {
-  background-color: transparent !important;
-  color: var(--pf-t--global--text--color--regular);
-}
-
-:root.pf-v6-theme-dark .ols-ai-hub-page .table-content-card,
-:root.pf-v6-theme-dark .ols-ai-hub-page .table-content-card .pf-v6-c-toolbar,
-:root.pf-v6-theme-dark .ols-ai-hub-page .table-content-card .pf-v6-c-table,
-:root.pf-v6-theme-dark .ols-ai-hub-page .table-content-card .pf-v6-c-toolbar:last-child {
-  background-color: var(--pf-t--global--background--color--primary--default) !important;
-  border-color: var(--pf-t--global--border--color--default) !important;
-}
-
 /*
- * 2. Masthead brand logo — dark SVG is swapped in AiHubAppearanceContext (white wordmark + red fedora).
+ * 1. Masthead brand logo — dark SVG is swapped in AiHubAppearanceContext (white wordmark + red fedora).
  *    Defeat any invert filters so the brand-red fedora is never bleached.
  */
 :root.pf-v6-theme-dark .pf-v6-c-page:has(.ols-ai-hub-page) .pf-v6-c-masthead__brand img {
@@ -833,7 +901,7 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * 3. AI Experience icon in the page heading (black-fill SVG as <img>).
+ * 2. AI Experience icon in the page heading (black-fill SVG as <img>).
  *    Monochrome invert is correct here — there is no brand-red to preserve.
  */
 :root.pf-v6-theme-dark .ols-ai-hub-page .ols-ai-hub-page-header-primary img {
@@ -841,7 +909,7 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * 4. Appearance settings dropdown (body portal) — force menu surface + labels.
+ * 3. Appearance settings dropdown (body portal) — force menu surface + labels.
  */
 :root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__dropdown.pf-v6-c-menu,
 :root.pf-v6-theme-dark .ols-ai-hub-banner-appearance__dropdown.pf-v6-c-menu .pf-v6-c-menu__content {
