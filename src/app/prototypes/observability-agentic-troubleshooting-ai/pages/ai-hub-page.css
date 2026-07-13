@@ -515,33 +515,12 @@ body:has(.ols-ai-hub-page),
   box-shadow: none !important;
 }
 
-/*
- * Glass contrast: row/header separators use PF glass boundary highlight
- * (`--pf-t--global--border--color--glass--default`), not hardcoded #e0e0e0 / #f0f0f0
- * (see PatternFly glass mode handbook).
- */
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table {
-  --pf-v6-c-table--BorderColor: var(--pf-t--global--border--color--glass--default);
-  --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--border--color--glass--default);
-  --pf-v6-c-table--cell--m-border-right--before--BorderInlineEndColor: var(
-    --pf-t--global--border--color--glass--default
-  );
-  --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartColor: var(
-    --pf-t--global--border--color--glass--default
-  );
-}
-
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th,
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr {
-  border-bottom-color: var(--pf-t--global--border--color--glass--default) !important;
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-divider {
   --pf-v6-c-divider--BackgroundColor: var(--pf-t--global--border--color--glass--default);
-}
-
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
-  background-color: var(--pf-t--global--background--color--primary--hover) !important;
 }
 
 /*
@@ -709,6 +688,37 @@ body:has(.ols-ai-hub-page),
 
 .ols-ai-hub-page .pf-v6-c-table tbody td {
   color: var(--pf-t--global--text--color--regular) !important;
+}
+
+/*
+ * Glass contrast (PF glass mode handbook): boundary highlight =
+ * `--pf-t--global--border--color--glass--default`. Beat app.css
+ * `border-bottom: … #e0e0e0|#f0f0f0 !important` with the full shorthand +
+ * PF Table `border-block-end` vars (must come after the default-token rules above).
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table {
+  --pf-v6-c-table--BorderColor: var(--pf-t--global--border--color--glass--default);
+  --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--border--color--glass--default);
+  --pf-v6-c-table--cell--m-border-right--before--BorderInlineEndColor: var(
+    --pf-t--global--border--color--glass--default
+  );
+  --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartColor: var(
+    --pf-t--global--border--color--glass--default
+  );
+  --pf-v6-c-table__expandable-row--m-expanded--BorderBlockEndColor: var(
+    --pf-t--global--border--color--glass--default
+  );
+  --pf-v6-c-table__control-row__tbody--BorderBlockEndColor: var(
+    --pf-t--global--border--color--glass--default
+  );
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr {
+  border-bottom: var(--pf-t--global--border--width--divider--default, 1px) solid
+    var(--pf-t--global--border--color--glass--default) !important;
+  border-block-end: var(--pf-t--global--border--width--divider--default, 1px) solid
+    var(--pf-t--global--border--color--glass--default) !important;
 }
 
 .ols-ai-hub-page .ols-ai-hub-plans-toolbar,
