@@ -154,7 +154,7 @@ export const AIAuditAndLogsTab: React.FC = () => {
           style={{
             fontFamily: 'var(--pf-t--global--font--family--mono)',
             fontSize: '12px',
-            maxHeight: '100%',
+            maxHeight: '520px',
             overflow: 'auto',
             whiteSpace: 'pre',
           }}

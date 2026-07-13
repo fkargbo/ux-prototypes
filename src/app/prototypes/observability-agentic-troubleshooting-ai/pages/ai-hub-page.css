@@ -517,8 +517,8 @@ body:has(.ols-ai-hub-page),
    */
   min-height: 0 !important;
   overflow: auto !important;
-  display: flex;
-  flex-direction: column;
+  /* Match default-contrast stacking; avoid flex-grow gaps between sections. */
+  display: block;
 }
 
 /*
