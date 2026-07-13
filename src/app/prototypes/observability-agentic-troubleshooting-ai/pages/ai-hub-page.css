@@ -484,7 +484,9 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * Frosted surfaces. Card border is drawn on `::before` via `--pf-v6-c-card--BorderColor` (card.css).
+ * Frosted nested cards only. Do NOT frost tables/toolbars — main-container already
+ * provides the glass sheet; a second 50% white + blur reads as the Agentic runs
+ * "whiter" slab under Filter / Name / Search.
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card {
   --pf-v6-c-card--BorderColor: #e0e0e0;
@@ -494,10 +496,25 @@ body:has(.ols-ai-hub-page),
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-expandable-section,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table,
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
-  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead tr,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody td,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table .pf-v6-c-table__button,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-pagination,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-ai-hub-plans-section,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-ai-hub-main-stack {
+  background-color: transparent !important;
   border-color: var(--ols-ai-hub-glass-chrome-border-color) !important;
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
 }
 
 /*
@@ -637,14 +654,67 @@ body:has(.ols-ai-hub-page),
   border-bottom-color: var(--pf-t--global--border--color--default) !important;
 }
 
+/*
+ * Unify content well: app.css forces #fff table rows. Keep table chrome transparent
+ * so Glass (and other themes) share one surface with the frosted main-container.
+ */
+.ols-ai-hub-page .pf-v6-c-table,
+.ols-ai-hub-page .pf-v6-c-table thead,
+.ols-ai-hub-page .pf-v6-c-table thead tr,
+.ols-ai-hub-page .pf-v6-c-table thead th,
+.ols-ai-hub-page .pf-v6-c-table tbody,
+.ols-ai-hub-page .pf-v6-c-table tbody tr {
+  background-color: transparent !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table thead th {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table tbody tr {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table tbody td {
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+.ols-ai-hub-page .ols-ai-hub-plans-toolbar,
+.ols-ai-hub-page .ols-ai-hub-plans-toolbar.pf-v6-c-toolbar,
+.ols-ai-hub-page .pf-v6-c-toolbar {
+  background-color: transparent !important;
+}
+
 :root.pf-v6-theme-glass .ols-ai-hub-page,
 :root.pf-v6-theme-glass .ols-ai-hub-page__main,
 :root.pf-v6-theme-glass .ols-ai-hub-page div.create-policy-header,
 :root.pf-v6-theme-glass .ols-ai-hub-page div.create-policy-breadcrumb,
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-breadcrumb,
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-heading,
-:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content {
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
+:root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-main.template-page-content {
   background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+/* Keep PF glass primary (60% white) from filling the Agentic runs content well. */
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
+:root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-main.template-page-content {
+  --pf-t--global--background--color--primary--default: transparent;
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--m-ghost-row--BackgroundColor: transparent;
+  --pf-v6-c-toolbar--BackgroundColor: transparent;
+  --pf-v6-c-pagination--BackgroundColor: transparent;
 }
 
 /* Dark: keep PF roles — chrome/footer secondary, content primary (do not invert). */
