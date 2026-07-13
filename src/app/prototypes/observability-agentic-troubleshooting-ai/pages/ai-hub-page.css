@@ -810,8 +810,12 @@ body:has(.ols-ai-hub-page),
   box-shadow: none !important;
 }
 
-/* Keep PF glass primary (60% white) from filling the Agentic runs content well. */
-:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
+/*
+ * Token remap for the Agentic runs / table page (#ols-ai-hub-main).
+ * Prevents Glass primary (60% semi-transparent white) from stacking on the
+ * main-container frost for table rows, toolbar, and pagination.
+ * Scoped to the table page ID so any future content pages get full Glass treatment.
+ */
 :root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-main.template-page-content {
   --pf-t--global--background--color--primary--default: transparent;
   --pf-v6-c-table--BackgroundColor: transparent;

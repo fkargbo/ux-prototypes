@@ -723,21 +723,28 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * Template sections: transparent in glass so the frosted `.pf-v6-c-page__main-container` layer
- * provides the glass effect (see PF dashboard basic demo). Beat app.css `div.template-page-*`.
- * Do not paint PF glass primary (60% white) here — that stacks on the main-container frost.
+ * Glass: structural reset — keep section wrappers transparent so the frosted
+ * main-container surface provides the glass effect. Applied to ALL pages.
+ * (See PF dashboard basic demo — pf-v6-c-page__main-container carries the frost.)
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-breadcrumb,
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-heading,
-:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
-:root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-main.template-page-content {
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content {
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
   border-bottom: none !important;
   backdrop-filter: none !important;
   box-shadow: none !important;
-  /* Local token remap so any descendant using primary as a fill stays clear of the shell. */
+}
+
+/*
+ * Token remap for the Agentic runs / table pages (id=ols-ai-hub-main).
+ * Keeps Glass primary (60% semi-transparent white) from stacking on the
+ * main-container frost for table rows, toolbar, and pagination.
+ * NOT applied to the Audit & logs page so its components receive full Glass treatment.
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-main.template-page-content {
   --pf-t--global--background--color--primary--default: transparent;
   --pf-v6-c-table--BackgroundColor: transparent;
   --pf-v6-c-table__tr--BackgroundColor: transparent;
