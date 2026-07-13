@@ -652,78 +652,71 @@ body:has(.ols-ai-hub-page),
    */
   --pf-v6-c-page__main-container--AlignSelf: stretch;
   align-self: stretch !important;
+  /*
+   * Keep height:100% so pf-v6-c-page__main can fill it with height:100% and
+   * scroll within the glass panel. overflow:hidden clips the frosted backdrop-filter
+   * to the border-radius so the glass card shape looks correct.
+   */
   height: 100% !important;
-  max-height: 100% !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
   overflow: hidden !important;
 }
 
-:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page),
+/*
+ * Glass + AI Hub layout:
+ *
+ * main-container: frosted glass card, height:100% fills the grid row (sidebar height),
+ *                 overflow:hidden clips backdrop-filter to border-radius.
+ * pf-v6-c-page__main: fills main-container (height:100%) and IS the scroll container
+ *                     (overflow-y:auto). All page content scrolls within the glass card.
+ * pf-v6-c-page__main-section / ols-ai-hub-page: normal block flow — no flex chain.
+ *                     min-height:100% on ols-ai-hub-page fills the glass panel on short
+ *                     pages so main-container bottom matches sidebar.
+ * template-page-content: beat app.css min-height:calc(100vh - 200px) so Audit & logs
+ *                        flows naturally without forcing extra scroll area.
+ */
+:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  flex: 1 1 auto !important;
+  /*
+   * app.css forces min-height: calc(100vh - 200px) on pf-v6-c-page__main-section.
+   * In Glass the glass panel fills the viewport (align-self: stretch), so a large
+   * min-height is redundant and causes forced scroll even when content fits.
+   */
   min-height: 0 !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
-  flex: 1 1 auto;
-  min-height: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  /*
+   * min-height: 100% of pf-v6-c-page__main (which is height:100% of main-container)
+   * ensures the page fills the glass panel even on short-content pages.
+   */
+  min-height: 100%;
+  display: block;
   box-sizing: border-box;
 }
 
-/* Keep page chrome from shrinking so the main region owns remaining height. */
-:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-breadcrumb,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-heading,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .create-policy-header,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .ols-ai-hub-page-heading {
-  flex: 0 0 auto;
-}
-
-:root.pf-v6-theme-glass .ols-ai-hub-page__main,
-:root.pf-v6-theme-glass .ols-ai-hub-page [role='main'],
+/* Beat app.css `min-height: calc(100vh - 200px) !important` on template-page-content */
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
-:root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-audit-main {
-  flex: 1 1 auto;
-  /*
-   * app.css forces `min-height: calc(100vh - 200px) !important` on
-   * `div.template-page-content`. Combined with the glass main-container
-   * `overflow: hidden` + fixed height stretch, that clips Audit & logs
-   * instead of letting the content region scroll.
-   */
+:root.pf-v6-theme-glass .ols-ai-hub-page [role='main'] {
   min-height: 0 !important;
-  overflow: auto !important;
-  /*
-   * Keep normal block stacking (same rhythm as default contrast). A column flex
-   * + flex-grow on the audit log panel opened a large empty gap under the
-   * Agentic Capabilities toggle.
-   */
-  display: block;
 }
 
 /*
- * Audit & logs in Glass: readable log surface only — do not flex-grow the panel
- * (that created the oversized gap under Agentic Capabilities).
+ * Audit & logs: ensure log surface stays readable — primary→transparent remap
+ * on the content well would make ClipboardCopy backgrounds invisible.
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .ols-audit-log-stream {
-  /* Avoid inheriting content-well primary→transparent remap for readability. */
   background-color: var(--pf-t--global--background--color--secondary--default);
 }
 
-:root.pf-v6-theme-glass .ols-ai-hub-page .ols-audit-log-stream .pf-v6-c-clipboard-copy,
 :root.pf-v6-theme-glass .ols-ai-hub-page .ols-audit-log-stream .pf-v6-c-clipboard-copy__expandable-content {
-  /* control--default chains to primary; content well remaps primary to transparent. */
-  --pf-t--global--background--color--primary--default: var(
-    --pf-t--global--background--color--control--read-only
-  );
   --pf-v6-c-clipboard-copy__expandable-content--BackgroundColor: var(
     --pf-t--global--background--color--control--read-only
   );

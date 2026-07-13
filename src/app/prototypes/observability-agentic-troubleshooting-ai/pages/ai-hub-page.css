@@ -471,54 +471,38 @@ body:has(.ols-ai-hub-page),
   --pf-v6-c-page__main-container--AlignSelf: stretch;
   align-self: stretch !important;
   height: 100% !important;
-  max-height: 100% !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
   overflow: hidden !important;
 }
 
-:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page),
+/*
+ * Glass + AI Hub layout — same model as MVP prototype:
+ * pf-v6-c-page__main fills the glass card (height:100%) and is the scroll container.
+ * ols-ai-hub-page uses block flow (same as default contrast) with min-height:100%.
+ */
+:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  flex: 1 1 auto !important;
+  /* Beat app.css min-height: calc(100vh - 200px) — glass panel fills viewport via align-self: stretch */
   min-height: 0 !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
-  flex: 1 1 auto;
-  min-height: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  min-height: 100%;
+  display: block;
   box-sizing: border-box;
 }
 
-:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-breadcrumb,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-heading,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .create-policy-header,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .ols-ai-hub-page-heading {
-  flex: 0 0 auto;
-}
-
-:root.pf-v6-theme-glass .ols-ai-hub-page__main,
-:root.pf-v6-theme-glass .ols-ai-hub-page [role='main'],
-:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content {
-  flex: 1 1 auto;
-  /*
-   * app.css forces `min-height: calc(100vh - 200px) !important` on
-   * `div.template-page-content`. Combined with the glass main-container
-   * `overflow: hidden` + fixed height stretch, that clips long main regions
-   * (e.g. Audit & logs) instead of letting them scroll inside the glass card.
-   */
+/* Beat app.css `min-height: calc(100vh - 200px) !important` on template-page-content */
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
+:root.pf-v6-theme-glass .ols-ai-hub-page [role='main'] {
   min-height: 0 !important;
-  overflow: auto !important;
-  /* Match default-contrast stacking; avoid flex-grow gaps between sections. */
-  display: block;
 }
 
 /*
