@@ -471,6 +471,8 @@ body:has(.ols-ai-hub-page),
   --pf-v6-c-page__main-container--AlignSelf: stretch;
   align-self: stretch !important;
   height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
   overflow: hidden !important;
 }
 
@@ -480,15 +482,14 @@ body:has(.ols-ai-hub-page),
  * ols-ai-hub-page uses block flow (same as default contrast) with min-height:100%.
  */
 /*
- * Glass + AI Hub layout — same scroll-container + fill pattern as MVP:
- * pf-v6-c-page__main: flex column scroll container (height:100% of main-container).
- * pf-v6-c-page__main-section: flex:1 0 auto — grows to fill panel (bottom alignment),
- *   never shrinks below content (tall pages like Audit & logs scroll correctly).
- * ols-ai-hub-page: min-height:100% fills the section (% resolves because flex item is definite).
+ * Glass + AI Hub layout — full flex chain (same as MVP):
+ * main-container → pf-v6-c-page__main (scroll) → section → ols-ai-hub-page
+ * → template-page-content (display:block, no nested flex column).
  */
 :root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  height: 100% !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   overflow-y: auto !important;
@@ -499,19 +500,32 @@ body:has(.ols-ai-hub-page),
   background-color: transparent !important;
   flex: 1 0 auto !important;
   min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
-  min-height: 100%;
-  display: block;
+  flex: 1 0 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
 }
 
-/* Beat app.css `min-height: calc(100vh - 200px) !important` on template-page-content */
+/* Chrome bands: fixed height */
+:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-breadcrumb,
+:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-heading,
+:root.pf-v6-theme-glass .ols-ai-hub-page > .ols-ai-hub-page-heading {
+  flex: 0 0 auto;
+}
+
+/* template-page-content: fills remaining height, display:block prevents gap above audit log */
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
 :root.pf-v6-theme-glass .ols-ai-hub-page [role='main'] {
+  flex: 1 0 auto;
   min-height: 0 !important;
+  display: block;
 }
 
 /*
