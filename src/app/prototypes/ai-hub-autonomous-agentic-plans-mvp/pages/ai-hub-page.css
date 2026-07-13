@@ -652,7 +652,8 @@ body:has(.ols-ai-hub-page),
  * provides the glass effect (see PF dashboard basic demo).
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .template-page-breadcrumb,
-:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-heading {
+:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-heading,
+:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-content {
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
@@ -674,7 +675,9 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * Frosted surfaces. Card border is drawn on `::before` via `--pf-v6-c-card--BorderColor` (card.css).
+ * Frosted nested cards. Do NOT frost tables/toolbars here — main-container already
+ * provides the glass sheet; a second 50% white + blur on `.pf-v6-c-table` reads as an
+ * opaque white slab on Agentic plans (same stacking issue as fleet-summary tables).
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card {
   --pf-v6-c-card--BorderColor: #e0e0e0;
@@ -684,10 +687,20 @@ body:has(.ols-ai-hub-page),
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-expandable-section,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead tr,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody td,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
-  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  background-color: transparent !important;
   border-color: var(--ols-ai-hub-glass-chrome-border-color) !important;
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+  backdrop-filter: none !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
 }
 
 /*
