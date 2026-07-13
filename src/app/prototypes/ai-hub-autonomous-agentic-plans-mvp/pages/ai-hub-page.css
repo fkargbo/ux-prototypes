@@ -665,8 +665,16 @@ body:has(.ols-ai-hub-page),
  */
 :root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
   background-color: transparent !important;
+  /* flex:1 0 auto fills main-container when content is short; grows past it when tall (overflows into main-container scroll). */
   flex: 1 0 auto !important;
   min-height: 0 !important;
+  /*
+   * PF sets overflow:auto on __main, making it a competing scroll container.
+   * Some browsers swallow wheel events at an overflow:auto element even when it has
+   * no scrollable content, preventing them from reaching main-container (the real scroll
+   * container with overflow-y:auto). overflow:visible removes __main as an interceptor.
+   */
+  overflow: visible !important;
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
