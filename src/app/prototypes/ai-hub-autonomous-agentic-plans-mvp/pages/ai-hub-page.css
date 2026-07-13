@@ -681,9 +681,16 @@ body:has(.ols-ai-hub-page),
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page__main,
-:root.pf-v6-theme-glass .ols-ai-hub-page [role='main'] {
+:root.pf-v6-theme-glass .ols-ai-hub-page [role='main'],
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content {
   flex: 1 1 auto;
-  min-height: 0;
+  /*
+   * app.css forces `min-height: calc(100vh - 200px) !important` on
+   * `div.template-page-content`. Combined with the glass main-container
+   * `overflow: hidden` + fixed height stretch, that clips Agentic audit log
+   * (and other long main regions) instead of letting them scroll.
+   */
+  min-height: 0 !important;
   overflow: auto;
 }
 
