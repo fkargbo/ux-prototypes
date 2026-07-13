@@ -470,16 +470,19 @@ body:has(.ols-ai-hub-page),
   backdrop-filter: none !important;
 }
 
-/* v3 hub: unified light border for all cards, dividers, and border-color token uses. */
-.ols-ai-hub-page--v3 {
+/*
+ * v3 hub: unified light border outside Glass. In Glass contrast mode, keep PF
+ * `--pf-t--global--border--color--*` tokens (incl. glass boundary highlight).
+ */
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page--v3 {
   --pf-t--global--border--color--default: #e0e0e0;
 }
 
-.ols-ai-hub-page--v3 .pf-v6-c-card {
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page--v3 .pf-v6-c-card {
   --pf-v6-c-card--BorderColor: #e0e0e0;
 }
 
-.ols-ai-hub-page--v3 .pf-v6-c-divider {
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page--v3 .pf-v6-c-divider {
   --pf-v6-c-divider--BackgroundColor: #e0e0e0;
 }
 
@@ -489,7 +492,7 @@ body:has(.ols-ai-hub-page),
  * "whiter" slab under Filter / Name / Search.
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card {
-  --pf-v6-c-card--BorderColor: #e0e0e0;
+  --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--glass--default);
   background-color: var(--ols-ai-hub-glass-surface-tint) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
 }
@@ -508,9 +511,33 @@ body:has(.ols-ai-hub-page),
 :root.pf-v6-theme-glass .ols-ai-hub-page .ols-ai-hub-plans-section,
 :root.pf-v6-theme-glass .ols-ai-hub-page .ols-ai-hub-main-stack {
   background-color: transparent !important;
-  border-color: var(--ols-ai-hub-glass-chrome-border-color) !important;
   backdrop-filter: none !important;
   box-shadow: none !important;
+}
+
+/*
+ * Glass contrast: row/header separators use PF glass boundary highlight
+ * (`--pf-t--global--border--color--glass--default`), not hardcoded #e0e0e0 / #f0f0f0
+ * (see PatternFly glass mode handbook).
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table {
+  --pf-v6-c-table--BorderColor: var(--pf-t--global--border--color--glass--default);
+  --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--border--color--glass--default);
+  --pf-v6-c-table--cell--m-border-right--before--BorderInlineEndColor: var(
+    --pf-t--global--border--color--glass--default
+  );
+  --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartColor: var(
+    --pf-t--global--border--color--glass--default
+  );
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr {
+  border-bottom-color: var(--pf-t--global--border--color--glass--default) !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-divider {
+  --pf-v6-c-divider--BackgroundColor: var(--pf-t--global--border--color--glass--default);
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
