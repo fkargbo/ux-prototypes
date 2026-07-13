@@ -674,33 +674,34 @@ body:has(.ols-ai-hub-page),
  * template-page-content: beat app.css min-height:calc(100vh - 200px) so Audit & logs
  *                        flows naturally without forcing extra scroll area.
  */
+/*
+ * Glass + AI Hub layout (scroll-container + fill pattern):
+ *
+ * pf-v6-c-page__main is the scroll container: flex column, height:100% of main-container.
+ * pf-v6-c-page__main-section uses flex:1 0 auto — the "fill but never shrink below
+ * content" pattern. flex-grow:1 fills the panel on short pages (so main-container bottom
+ * aligns with the sidebar); flex-shrink:0 lets it grow beyond the panel for tall pages
+ * (Audit & logs) so the scroll container handles overflow.
+ * ols-ai-hub-page uses min-height:100% — resolves correctly because the flex item
+ * (pf-v6-c-page__main-section) has a definite height from flex layout.
+ */
 :root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
   background-color: transparent !important;
   height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  /*
-   * height:100% gives ols-ai-hub-page a concrete % basis (CSS % heights require an
-   * explicit height on the parent, not just min-height). Inside the scroll container
-   * (pf-v6-c-page__main, height:100%), this equals the visible glass panel height.
-   * Content taller than the panel overflows and is scrolled normally.
-   * min-height:0 beats app.css calc(100vh - 200px).
-   */
-  height: 100%;
+  flex: 1 0 auto !important;
   min-height: 0 !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
-  /*
-   * min-height:100% fills the glass panel on short-content pages (e.g. Agentic runs
-   * list) so the main-container bottom aligns with the sidebar.
-   * Taller pages (Audit & logs) grow beyond 100% and the scroll container handles it.
-   */
   min-height: 100%;
   display: block;
   box-sizing: border-box;

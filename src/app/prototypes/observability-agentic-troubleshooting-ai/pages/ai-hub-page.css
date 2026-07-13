@@ -479,26 +479,30 @@ body:has(.ols-ai-hub-page),
  * pf-v6-c-page__main fills the glass card (height:100%) and is the scroll container.
  * ols-ai-hub-page uses block flow (same as default contrast) with min-height:100%.
  */
+/*
+ * Glass + AI Hub layout — same scroll-container + fill pattern as MVP:
+ * pf-v6-c-page__main: flex column scroll container (height:100% of main-container).
+ * pf-v6-c-page__main-section: flex:1 0 auto — grows to fill panel (bottom alignment),
+ *   never shrinks below content (tall pages like Audit & logs scroll correctly).
+ * ols-ai-hub-page: min-height:100% fills the section (% resolves because flex item is definite).
+ */
 :root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
   background-color: transparent !important;
   height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  /*
-   * height:100% gives ols-ai-hub-page a concrete % basis inside the scroll container.
-   * min-height:0 beats app.css calc(100vh - 200px).
-   */
-  height: 100%;
+  flex: 1 0 auto !important;
   min-height: 0 !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
-  /* min-height:100% fills the glass panel on short pages; taller pages scroll. */
   min-height: 100%;
   display: block;
   box-sizing: border-box;
