@@ -584,6 +584,11 @@ body:has(.ols-ai-hub-page),
   margin-inline-end: 0 !important;
   margin-block-start: 0 !important;
   padding-block-end: 0 !important;
+  align-self: stretch !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /* Single glass card on sidebar-main (PF surface). Do not frost sidebar-body. */
@@ -640,15 +645,46 @@ body:has(.ols-ai-hub-page),
   margin-block-start: 0 !important;
   margin-inline-start: 0 !important;
   margin-inline-end: 0 !important;
+  /*
+   * PF defaults AlignSelf:start so the main glass card only grows with content while
+   * the sidebar column stretches — bottoms misalign. Stretch to the shared grid row
+   * so main-container / ols-ai-hub-page bottoms match sidebar-body / sidebar-main.
+   */
+  --pf-v6-c-page__main-container--AlignSelf: stretch;
+  align-self: stretch !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page),
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page__main,
+:root.pf-v6-theme-glass .ols-ai-hub-page [role='main'] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 /*
