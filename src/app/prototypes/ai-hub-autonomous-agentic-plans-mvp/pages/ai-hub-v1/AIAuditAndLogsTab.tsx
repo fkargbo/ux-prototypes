@@ -147,13 +147,14 @@ export const AIAuditAndLogsTab: React.FC = () => {
         <ClipboardCopy
           isReadOnly
           isCode
+          isExpanded
           variant={ClipboardCopyVariant.expansion}
           hoverTip="Copy"
           clickTip="Copied"
           style={{
             fontFamily: 'var(--pf-t--global--font--family--mono)',
             fontSize: '12px',
-            maxHeight: '520px',
+            maxHeight: '100%',
             overflow: 'auto',
             whiteSpace: 'pre',
           }}

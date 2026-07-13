@@ -498,6 +498,13 @@ body:has(.ols-ai-hub-page),
   box-sizing: border-box;
 }
 
+:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-breadcrumb,
+:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-heading,
+:root.pf-v6-theme-glass .ols-ai-hub-page > .create-policy-header,
+:root.pf-v6-theme-glass .ols-ai-hub-page > .ols-ai-hub-page-heading {
+  flex: 0 0 auto;
+}
+
 :root.pf-v6-theme-glass .ols-ai-hub-page__main,
 :root.pf-v6-theme-glass .ols-ai-hub-page [role='main'],
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content {
@@ -509,7 +516,9 @@ body:has(.ols-ai-hub-page),
    * (e.g. Audit & logs) instead of letting them scroll inside the glass card.
    */
   min-height: 0 !important;
-  overflow: auto;
+  overflow: auto !important;
+  display: flex;
+  flex-direction: column;
 }
 
 /*
