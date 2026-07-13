@@ -465,34 +465,30 @@ body:has(.ols-ai-hub-page),
   margin-inline-end: 0 !important;
   /*
    * PF Glass sets --pf-v6-c-page__main-container--MaxHeight to (100% − inset − gutter),
-   * cutting the card short of the sidebar. Our page already uses padding-bottom on
-   * .pf-v6-c-page for the visual gutter, so remove the extra height cap.
+   * cutting the card short of the sidebar. Our page already handles the visual gutter via
+   * padding-bottom on .pf-v6-c-page, so remove the extra height cap.
    * align-self:stretch fills the shared 1fr grid row for bottom alignment.
-   * PF already sets display:flex, flex-direction:column, overflow-y:auto — preserve them.
+   * overflow:hidden lets border-radius clip the backdrop-filter; scrolling lives on __main.
+   * PF already sets display:flex and flex-direction:column.
    */
   --pf-v6-c-page__main-container--MaxHeight: none;
   --pf-v6-c-page__main-container--AlignSelf: stretch;
   align-self: stretch !important;
+  overflow: hidden !important;
 }
 
 /*
- * Glass inner chain — minimal overrides.
- * main-container (PF: display:flex column, overflow-y:auto) is the sole scroll container.
- * flex:1 0 auto on __main: grows to fill the card on short pages; grows past it on tall
- * pages so content overflows into main-container's scroll (flex-shrink:0 prevents collapsing).
+ * Glass scroll container — __main fills main-container exactly via flex:1 1 auto
+ * (definite height = sidebar height). overflow-y:auto makes __main THE scroll container.
+ * No display:flex here — block flow prevents the gap that a flex column created above
+ * the audit log content on previous iterations.
  */
 :root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  /* flex:1 0 auto fills main-container when content is short; grows past it when tall (overflows into main-container scroll). */
-  flex: 1 0 auto !important;
+  flex: 1 1 auto !important;
   min-height: 0 !important;
-  /*
-   * PF sets overflow:auto on __main, making it a competing scroll container.
-   * Some browsers swallow wheel events at an overflow:auto element even when it has
-   * no scrollable content, preventing them from reaching main-container (the real scroll
-   * container with overflow-y:auto). overflow:visible removes __main as an interceptor.
-   */
-  overflow: visible !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
