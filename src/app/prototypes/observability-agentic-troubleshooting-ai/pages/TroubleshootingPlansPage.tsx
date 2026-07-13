@@ -35,7 +35,11 @@ export const TroubleshootingPlansPage: React.FC = () => {
                 Observability-triggered remediation plans generated from firing platform monitoring alerts —
                 scoped to signal correlation, alert root cause, and targeted recovery actions.
               </Content>
-              <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--xs)', marginBottom: 0, fontSize: '12px', color: '#4D4D4D' }}>
+              <Content
+                component="p"
+                className="ols-ai-hub-page-disclaimer"
+                style={{ marginTop: 0, marginBottom: 0, fontSize: '12px', color: '#4D4D4D' }}
+              >
                 Always review AI-generated content prior to use.
               </Content>
             </div>

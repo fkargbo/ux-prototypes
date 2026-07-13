@@ -38,6 +38,16 @@
   word-break: normal;
 }
 
+/* PF Content adds spacer--md under non-last `.pf-v6-c-content--p`; keep disclaimer close. */
+.ols-ai-hub-page-header-copy > .ols-ai-hub-page-subtitle {
+  margin-block-end: var(--pf-t--global--spacer--xs) !important;
+}
+
+.ols-ai-hub-page-header-copy > .ols-ai-hub-page-disclaimer {
+  margin-block-start: 0 !important;
+  margin-block-end: 0 !important;
+}
+
 /* Increase vertical spacing between inventory bar and widget cards. */
 .ols-ai-hub-main-stack.pf-v6-l-stack.pf-m-gutter {
   gap: 24px;
