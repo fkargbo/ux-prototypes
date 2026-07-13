@@ -54,10 +54,14 @@
  * those inside the AI Hub prototype without touching app.css we add a parent
  * class prefix, raising specificity to 0,2,1 — enough to win the !important
  * cascade without affecting any other prototype.
+ *
+ * Skip Glass: PF glass remaps primary to rgb(255 255 255 / 60%). Applying that
+ * token on heading/content stacks a second white sheet on the frosted
+ * main-container and reads as the inset "whiter" block on Agentic runs.
  */
-.ols-ai-hub-page div.template-page-breadcrumb,
-.ols-ai-hub-page div.template-page-heading,
-.ols-ai-hub-page div.template-page-content {
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page div.template-page-breadcrumb,
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page div.template-page-heading,
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page div.template-page-content {
   background-color: var(--pf-t--global--background--color--primary--default) !important;
   border-bottom-color: var(--pf-t--global--border--color--default) !important;
 }
@@ -649,15 +653,26 @@ body:has(.ols-ai-hub-page),
 
 /*
  * Template sections: transparent in glass so the frosted `.pf-v6-c-page__main-container` layer
- * provides the glass effect (see PF dashboard basic demo).
+ * provides the glass effect (see PF dashboard basic demo). Beat app.css `div.template-page-*`.
+ * Do not paint PF glass primary (60% white) here — that stacks on the main-container frost.
  */
-:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-breadcrumb,
-:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-heading,
-:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-content {
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-breadcrumb,
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-heading,
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
+:root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-main.template-page-content {
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
+  border-bottom: none !important;
   backdrop-filter: none !important;
+  box-shadow: none !important;
+  /* Local token remap so any descendant using primary as a fill stays clear of the shell. */
+  --pf-t--global--background--color--primary--default: transparent;
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--m-ghost-row--BackgroundColor: transparent;
+  --pf-v6-c-toolbar--BackgroundColor: transparent;
+  --pf-v6-c-pagination--BackgroundColor: transparent;
 }
 
 /* v3 hub: unified light border for all cards, dividers, and border-color token uses.
@@ -693,10 +708,14 @@ body:has(.ols-ai-hub-page),
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody td,
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table .pf-v6-c-table__button,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-pagination,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-ai-hub-plans-section {
   background-color: transparent !important;
   border-color: var(--ols-ai-hub-glass-chrome-border-color) !important;
   backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
