@@ -492,7 +492,9 @@ body:has(.ols-ai-hub-page),
  * "whiter" slab under Filter / Name / Search.
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card {
-  --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--glass--default);
+  /* Not glass--default: content well remaps primary→transparent, and glass
+   * border chains through alt→primary. Use the Table/divider semantic token. */
+  --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--default);
   background-color: var(--ols-ai-hub-glass-surface-tint) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
 }
@@ -520,7 +522,7 @@ body:has(.ols-ai-hub-page),
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-divider {
-  --pf-v6-c-divider--BackgroundColor: var(--pf-t--global--border--color--glass--default);
+  --pf-v6-c-divider--BackgroundColor: var(--pf-t--global--border--color--default);
 }
 
 /*
@@ -691,34 +693,52 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * Glass contrast (PF glass mode handbook): boundary highlight =
- * `--pf-t--global--border--color--glass--default`. Beat app.css
- * `border-bottom: … #e0e0e0|#f0f0f0 !important` with the full shorthand +
- * PF Table `border-block-end` vars (must come after the default-token rules above).
+ * Glass contrast — Agentic runs expandable table separators.
+ *
+ * Why prior glass-token overrides failed: `#ols-ai-hub-main.template-page-content`
+ * remaps `--pf-t--global--background--color--primary--default: transparent`, and
+ * `--border--color--glass--default` → alt → primary, so glass borders became
+ * transparent inside the content well. Table dividers must use
+ * `--pf-t--global--border--color--default` (PF Table’s divider token).
+ *
+ * Also crush app.css `th/#e0e0e0` and `tr/#f0f0f0` hardcodes. On expandable
+ * tables, drop per-row bottoms and keep the PF separator on each `tbody`.
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table {
-  --pf-v6-c-table--BorderColor: var(--pf-t--global--border--color--glass--default);
-  --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--border--color--glass--default);
+  --pf-v6-c-table--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--border--color--default);
   --pf-v6-c-table--cell--m-border-right--before--BorderInlineEndColor: var(
-    --pf-t--global--border--color--glass--default
+    --pf-t--global--border--color--default
   );
   --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartColor: var(
-    --pf-t--global--border--color--glass--default
+    --pf-t--global--border--color--default
   );
   --pf-v6-c-table__expandable-row--m-expanded--BorderBlockEndColor: var(
-    --pf-t--global--border--color--glass--default
+    --pf-t--global--border--color--default
   );
   --pf-v6-c-table__control-row__tbody--BorderBlockEndColor: var(
-    --pf-t--global--border--color--glass--default
+    --pf-t--global--border--color--default
   );
 }
 
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th,
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr {
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th {
   border-bottom: var(--pf-t--global--border--width--divider--default, 1px) solid
-    var(--pf-t--global--border--color--glass--default) !important;
+    var(--pf-t--global--border--color--default) !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table.pf-m-expandable tbody > tr {
+  border-bottom: none !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table.pf-m-expandable > tbody,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table.pf-m-expandable > .pf-v6-c-table__tbody {
   border-block-end: var(--pf-t--global--border--width--divider--default, 1px) solid
-    var(--pf-t--global--border--color--glass--default) !important;
+    var(--pf-t--global--border--color--default) !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table:not(.pf-m-expandable) tbody tr {
+  border-bottom: var(--pf-t--global--border--width--divider--default, 1px) solid
+    var(--pf-t--global--border--color--default) !important;
 }
 
 .ols-ai-hub-page .ols-ai-hub-plans-toolbar,
