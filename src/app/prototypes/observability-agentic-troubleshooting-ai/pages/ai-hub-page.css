@@ -38,6 +38,16 @@
   word-break: normal;
 }
 
+/* PF Content adds spacer--md under non-last `.pf-v6-c-content--p`; keep disclaimer close. */
+.ols-ai-hub-page-header-copy > .ols-ai-hub-page-subtitle {
+  margin-block-end: var(--pf-t--global--spacer--xs) !important;
+}
+
+.ols-ai-hub-page-header-copy > .ols-ai-hub-page-disclaimer {
+  margin-block-start: 0 !important;
+  margin-block-end: 0 !important;
+}
+
 /* Increase vertical spacing between inventory bar and widget cards. */
 .ols-ai-hub-main-stack.pf-v6-l-stack.pf-m-gutter {
   gap: 24px;
@@ -400,6 +410,11 @@ body:has(.ols-ai-hub-page),
   /* Single glass card; drop default divider border between sidebar and main (gutter = grid column-gap). */
   --pf-v6-c-page__sidebar--BorderInlineEndWidth: 0 !important;
   margin-inline-end: 0 !important;
+  align-self: stretch !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /*
@@ -416,6 +431,7 @@ body:has(.ols-ai-hub-page),
   box-shadow: var(--pf-t--global--box-shadow--lg);
   flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
@@ -447,15 +463,48 @@ body:has(.ols-ai-hub-page),
   --pf-v6-c-page__main-container--BorderInlineEndWidth: 0 !important;
   margin-inline-start: 0 !important;
   margin-inline-end: 0 !important;
+  /*
+   * PF Glass sets --pf-v6-c-page__main-container--MaxHeight to (100% − inset − gutter),
+   * cutting the card short of the sidebar. Our page already handles the visual gutter via
+   * padding-bottom on .pf-v6-c-page, so remove the extra height cap.
+   * align-self:stretch fills the shared 1fr grid row for bottom alignment.
+   * overflow:hidden lets border-radius clip the backdrop-filter; scrolling lives on __main.
+   * PF already sets display:flex and flex-direction:column.
+   */
+  --pf-v6-c-page__main-container--MaxHeight: none;
+  --pf-v6-c-page__main-container--AlignSelf: stretch;
+  align-self: stretch !important;
+  overflow: hidden !important;
 }
 
-:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page),
+/*
+ * Glass scroll container — __main fills main-container exactly via flex:1 1 auto
+ * (definite height = sidebar height). overflow-y:auto makes __main THE scroll container.
+ * No display:flex here — block flow prevents the gap that a flex column created above
+ * the audit log content on previous iterations.
+ */
+:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
+  /* Beat app.css min-height:calc(100vh - 200px) inside the glass scroll container. */
+  min-height: 0 !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
+}
+
+/* Beat app.css min-height:calc(100vh - 200px) on template-page-content. */
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
+:root.pf-v6-theme-glass .ols-ai-hub-page [role='main'] {
+  min-height: 0 !important;
 }
 
 /*
@@ -470,34 +519,59 @@ body:has(.ols-ai-hub-page),
   backdrop-filter: none !important;
 }
 
-/* v3 hub: unified light border for all cards, dividers, and border-color token uses. */
-.ols-ai-hub-page--v3 {
+/*
+ * v3 hub: unified light border outside Glass. In Glass contrast mode, keep PF
+ * `--pf-t--global--border--color--*` tokens (incl. glass boundary highlight).
+ */
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page--v3 {
   --pf-t--global--border--color--default: #e0e0e0;
 }
 
-.ols-ai-hub-page--v3 .pf-v6-c-card {
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page--v3 .pf-v6-c-card {
   --pf-v6-c-card--BorderColor: #e0e0e0;
 }
 
-.ols-ai-hub-page--v3 .pf-v6-c-divider {
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page--v3 .pf-v6-c-divider {
   --pf-v6-c-divider--BackgroundColor: #e0e0e0;
 }
 
 /*
- * Frosted surfaces. Card border is drawn on `::before` via `--pf-v6-c-card--BorderColor` (card.css).
+ * Frosted nested cards only. Do NOT frost tables/toolbars — main-container already
+ * provides the glass sheet; a second 50% white + blur reads as the Agentic runs
+ * "whiter" slab under Filter / Name / Search.
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card {
-  --pf-v6-c-card--BorderColor: #e0e0e0;
+  /* Not glass--default: content well remaps primary→transparent, and glass
+   * border chains through alt→primary. Use the Table/divider semantic token. */
+  --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--default);
   background-color: var(--ols-ai-hub-glass-surface-tint) !important;
   backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-expandable-section,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table,
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
-  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
-  border-color: var(--ols-ai-hub-glass-chrome-border-color) !important;
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead tr,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody td,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table .pf-v6-c-table__button,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-pagination,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-ai-hub-plans-section,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-ai-hub-main-stack {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-divider {
+  --pf-v6-c-divider--BackgroundColor: var(--pf-t--global--border--color--default);
 }
 
 /*
@@ -637,14 +711,120 @@ body:has(.ols-ai-hub-page),
   border-bottom-color: var(--pf-t--global--border--color--default) !important;
 }
 
+/*
+ * Unify content well: app.css forces #fff table rows. Keep table chrome transparent
+ * so Glass (and other themes) share one surface with the frosted main-container.
+ */
+.ols-ai-hub-page .pf-v6-c-table,
+.ols-ai-hub-page .pf-v6-c-table thead,
+.ols-ai-hub-page .pf-v6-c-table thead tr,
+.ols-ai-hub-page .pf-v6-c-table thead th,
+.ols-ai-hub-page .pf-v6-c-table tbody,
+.ols-ai-hub-page .pf-v6-c-table tbody tr {
+  background-color: transparent !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table thead th {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table tbody tr {
+  border-bottom-color: var(--pf-t--global--border--color--default) !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
+}
+
+.ols-ai-hub-page .pf-v6-c-table tbody td {
+  color: var(--pf-t--global--text--color--regular) !important;
+}
+
+/*
+ * Glass contrast — Agentic runs expandable table separators.
+ *
+ * Why prior glass-token overrides failed: `#ols-ai-hub-main.template-page-content`
+ * remaps `--pf-t--global--background--color--primary--default: transparent`, and
+ * `--border--color--glass--default` → alt → primary, so glass borders became
+ * transparent inside the content well. Table dividers must use
+ * `--pf-t--global--border--color--default` (PF Table’s divider token).
+ *
+ * Also crush app.css `th/#e0e0e0` and `tr/#f0f0f0` hardcodes. On expandable
+ * tables, drop per-row bottoms and keep the PF separator on each `tbody`.
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table {
+  --pf-v6-c-table--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-table--cell--m-border-right--before--BorderInlineEndColor: var(
+    --pf-t--global--border--color--default
+  );
+  --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartColor: var(
+    --pf-t--global--border--color--default
+  );
+  --pf-v6-c-table__expandable-row--m-expanded--BorderBlockEndColor: var(
+    --pf-t--global--border--color--default
+  );
+  --pf-v6-c-table__control-row__tbody--BorderBlockEndColor: var(
+    --pf-t--global--border--color--default
+  );
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th {
+  border-bottom: var(--pf-t--global--border--width--divider--default, 1px) solid
+    var(--pf-t--global--border--color--default) !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table.pf-m-expandable tbody > tr {
+  border-bottom: none !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table.pf-m-expandable > tbody,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table.pf-m-expandable > .pf-v6-c-table__tbody {
+  border-block-end: var(--pf-t--global--border--width--divider--default, 1px) solid
+    var(--pf-t--global--border--color--default) !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table:not(.pf-m-expandable) tbody tr {
+  border-bottom: var(--pf-t--global--border--width--divider--default, 1px) solid
+    var(--pf-t--global--border--color--default) !important;
+}
+
+.ols-ai-hub-page .ols-ai-hub-plans-toolbar,
+.ols-ai-hub-page .ols-ai-hub-plans-toolbar.pf-v6-c-toolbar,
+.ols-ai-hub-page .pf-v6-c-toolbar {
+  background-color: transparent !important;
+}
+
 :root.pf-v6-theme-glass .ols-ai-hub-page,
 :root.pf-v6-theme-glass .ols-ai-hub-page__main,
 :root.pf-v6-theme-glass .ols-ai-hub-page div.create-policy-header,
 :root.pf-v6-theme-glass .ols-ai-hub-page div.create-policy-breadcrumb,
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-breadcrumb,
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-heading,
-:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content {
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
+:root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-main.template-page-content {
   background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+/*
+ * Token remap for the Agentic runs / table page (#ols-ai-hub-main).
+ * Prevents Glass primary (60% semi-transparent white) from stacking on the
+ * main-container frost for table rows, toolbar, and pagination.
+ * Scoped to the table page ID so any future content pages get full Glass treatment.
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-main.template-page-content {
+  --pf-t--global--background--color--primary--default: transparent;
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--m-ghost-row--BackgroundColor: transparent;
+  --pf-v6-c-toolbar--BackgroundColor: transparent;
+  --pf-v6-c-pagination--BackgroundColor: transparent;
 }
 
 /* Dark: keep PF roles — chrome/footer secondary, content primary (do not invert). */

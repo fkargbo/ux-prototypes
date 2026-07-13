@@ -54,10 +54,14 @@
  * those inside the AI Hub prototype without touching app.css we add a parent
  * class prefix, raising specificity to 0,2,1 — enough to win the !important
  * cascade without affecting any other prototype.
+ *
+ * Skip Glass: PF glass remaps primary to rgb(255 255 255 / 60%). Applying that
+ * token on heading/content stacks a second white sheet on the frosted
+ * main-container and reads as the inset "whiter" block on Agentic runs.
  */
-.ols-ai-hub-page div.template-page-breadcrumb,
-.ols-ai-hub-page div.template-page-heading,
-.ols-ai-hub-page div.template-page-content {
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page div.template-page-breadcrumb,
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page div.template-page-heading,
+:root:not(.pf-v6-theme-glass) .ols-ai-hub-page div.template-page-content {
   background-color: var(--pf-t--global--background--color--primary--default) !important;
   border-bottom-color: var(--pf-t--global--border--color--default) !important;
 }
@@ -580,6 +584,11 @@ body:has(.ols-ai-hub-page),
   margin-inline-end: 0 !important;
   margin-block-start: 0 !important;
   padding-block-end: 0 !important;
+  align-self: stretch !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /* Single glass card on sidebar-main (PF surface). Do not frost sidebar-body. */
@@ -636,27 +645,93 @@ body:has(.ols-ai-hub-page),
   margin-block-start: 0 !important;
   margin-inline-start: 0 !important;
   margin-inline-end: 0 !important;
+  /*
+   * PF Glass sets --pf-v6-c-page__main-container--MaxHeight to (100% − inset − gutter),
+   * cutting the card short of the sidebar. Our page already handles the visual gutter via
+   * padding-bottom on .pf-v6-c-page, so remove the extra height cap.
+   * align-self:stretch fills the shared 1fr grid row for bottom alignment.
+   * overflow:hidden lets border-radius clip the backdrop-filter; scrolling lives on __main.
+   * PF already sets display:flex and flex-direction:column.
+   */
+  --pf-v6-c-page__main-container--MaxHeight: none;
+  --pf-v6-c-page__main-container--AlignSelf: stretch;
+  align-self: stretch !important;
+  overflow: hidden !important;
 }
 
-:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page),
+/*
+ * Glass scroll container — __main fills main-container exactly via flex:1 1 auto
+ * (definite height = sidebar height). overflow-y:auto makes __main THE scroll container.
+ * No display:flex here — block flow prevents the gap that a flex column created above
+ * the audit log content on previous iterations.
+ */
+:root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
+  background-color: transparent !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
+  /* Beat app.css min-height:calc(100vh - 200px) inside the glass scroll container. */
+  min-height: 0 !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
 }
 
+/* Beat app.css min-height:calc(100vh - 200px) on template-page-content. */
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
+:root.pf-v6-theme-glass .ols-ai-hub-page [role='main'] {
+  min-height: 0 !important;
+}
+
 /*
- * Template sections: transparent in glass so the frosted `.pf-v6-c-page__main-container` layer
- * provides the glass effect (see PF dashboard basic demo).
+ * Audit & logs: ensure log surface stays readable — primary→transparent remap
+ * on the content well would make ClipboardCopy backgrounds invisible.
  */
-:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-breadcrumb,
-:root.pf-v6-theme-glass .ols-ai-hub-page .template-page-heading {
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-audit-log-stream {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-audit-log-stream .pf-v6-c-clipboard-copy__expandable-content {
+  --pf-v6-c-clipboard-copy__expandable-content--BackgroundColor: var(
+    --pf-t--global--background--color--control--read-only
+  );
+}
+
+/*
+ * Glass: structural reset — keep section wrappers transparent so the frosted
+ * main-container surface provides the glass effect. Applied to ALL pages.
+ * (See PF dashboard basic demo — pf-v6-c-page__main-container carries the frost.)
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-breadcrumb,
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-heading,
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content {
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
+  border-bottom: none !important;
   backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+/*
+ * Token remap for the Agentic runs / table pages (id=ols-ai-hub-main).
+ * Keeps Glass primary (60% semi-transparent white) from stacking on the
+ * main-container frost for table rows, toolbar, and pagination.
+ * NOT applied to the Audit & logs page so its components receive full Glass treatment.
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page #ols-ai-hub-main.template-page-content {
+  --pf-t--global--background--color--primary--default: transparent;
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--m-ghost-row--BackgroundColor: transparent;
+  --pf-v6-c-toolbar--BackgroundColor: transparent;
+  --pf-v6-c-pagination--BackgroundColor: transparent;
 }
 
 /* v3 hub: unified light border for all cards, dividers, and border-color token uses.
@@ -674,7 +749,9 @@ body:has(.ols-ai-hub-page),
 }
 
 /*
- * Frosted surfaces. Card border is drawn on `::before` via `--pf-v6-c-card--BorderColor` (card.css).
+ * Frosted nested cards. Do NOT frost tables/toolbars here — main-container already
+ * provides the glass sheet; a second 50% white + blur on `.pf-v6-c-table` reads as an
+ * opaque white slab on Agentic plans (same stacking issue as fleet-summary tables).
  */
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-card {
   --pf-v6-c-card--BorderColor: #e0e0e0;
@@ -684,10 +761,24 @@ body:has(.ols-ai-hub-page),
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-expandable-section,
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table,
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar {
-  background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead tr,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table thead th,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody td,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table .pf-v6-c-table__button,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-toolbar,
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-pagination,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-ai-hub-plans-section {
+  background-color: transparent !important;
   border-color: var(--ols-ai-hub-glass-chrome-border-color) !important;
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
+  background-color: var(--pf-t--global--background--color--primary--hover) !important;
 }
 
 /*

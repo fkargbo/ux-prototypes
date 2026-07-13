@@ -82,8 +82,9 @@ export const AIHubPage: React.FC = () => {
               </Content>
               <Content
                 component="p"
+                className="ols-ai-hub-page-disclaimer"
                 style={{
-                  marginTop: 'var(--pf-t--global--spacer--xs)',
+                  marginTop: 0,
                   marginBottom: 0,
                   fontSize: '12px',
                   color: '#4D4D4D',
