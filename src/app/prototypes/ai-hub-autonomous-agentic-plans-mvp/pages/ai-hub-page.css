@@ -684,18 +684,22 @@ body:has(.ols-ai-hub-page),
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
   /*
-   * app.css forces min-height: calc(100vh - 200px) on pf-v6-c-page__main-section.
-   * In Glass the glass panel fills the viewport (align-self: stretch), so a large
-   * min-height is redundant and causes forced scroll even when content fits.
+   * height:100% gives ols-ai-hub-page a concrete % basis (CSS % heights require an
+   * explicit height on the parent, not just min-height). Inside the scroll container
+   * (pf-v6-c-page__main, height:100%), this equals the visible glass panel height.
+   * Content taller than the panel overflows and is scrolled normally.
+   * min-height:0 beats app.css calc(100vh - 200px).
    */
+  height: 100%;
   min-height: 0 !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
   /*
-   * min-height: 100% of pf-v6-c-page__main (which is height:100% of main-container)
-   * ensures the page fills the glass panel even on short-content pages.
+   * min-height:100% fills the glass panel on short-content pages (e.g. Agentic runs
+   * list) so the main-container bottom aligns with the sidebar.
+   * Taller pages (Audit & logs) grow beyond 100% and the scroll container handles it.
    */
   min-height: 100%;
   display: block;
