@@ -464,68 +464,43 @@ body:has(.ols-ai-hub-page),
   margin-inline-start: 0 !important;
   margin-inline-end: 0 !important;
   /*
-   * PF defaults AlignSelf:start so the main glass card only grows with content while
-   * the sidebar column stretches — bottoms misalign. Stretch to the shared grid row
-   * so main / ols-ai-hub-page bottoms match sidebar-body.
+   * PF Glass sets --pf-v6-c-page__main-container--MaxHeight to (100% − inset − gutter),
+   * cutting the card short of the sidebar. Our page already uses padding-bottom on
+   * .pf-v6-c-page for the visual gutter, so remove the extra height cap.
+   * align-self:stretch fills the shared 1fr grid row for bottom alignment.
+   * PF already sets display:flex, flex-direction:column, overflow-y:auto — preserve them.
    */
+  --pf-v6-c-page__main-container--MaxHeight: none;
   --pf-v6-c-page__main-container--AlignSelf: stretch;
   align-self: stretch !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
 }
 
 /*
- * Glass + AI Hub layout — same model as MVP prototype:
- * pf-v6-c-page__main fills the glass card (height:100%) and is the scroll container.
- * ols-ai-hub-page uses block flow (same as default contrast) with min-height:100%.
- */
-/*
- * Glass + AI Hub layout — full flex chain (same as MVP):
- * main-container → pf-v6-c-page__main (scroll) → section → ols-ai-hub-page
- * → template-page-content (display:block, no nested flex column).
+ * Glass inner chain — minimal overrides.
+ * main-container (PF: display:flex column, overflow-y:auto) is the sole scroll container.
+ * flex:1 0 auto on __main: grows to fill the card on short pages; grows past it on tall
+ * pages so content overflows into main-container's scroll (flex-shrink:0 prevents collapsing).
  */
 :root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  flex: 1 1 auto !important;
+  flex: 1 0 auto !important;
   min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  flex: 1 0 auto !important;
+  /* Beat app.css min-height:calc(100vh - 200px) inside the glass scroll container. */
   min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
-  flex: 1 0 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
 }
 
-/* Chrome bands: fixed height */
-:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-breadcrumb,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-heading,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .ols-ai-hub-page-heading {
-  flex: 0 0 auto;
-}
-
-/* template-page-content: fills remaining height, display:block prevents gap above audit log */
+/* Beat app.css min-height:calc(100vh - 200px) on template-page-content. */
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
 :root.pf-v6-theme-glass .ols-ai-hub-page [role='main'] {
-  flex: 1 0 auto;
   min-height: 0 !important;
-  display: block;
 }
 
 /*

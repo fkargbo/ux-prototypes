@@ -646,78 +646,43 @@ body:has(.ols-ai-hub-page),
   margin-inline-start: 0 !important;
   margin-inline-end: 0 !important;
   /*
-   * PF defaults AlignSelf:start so the main glass card only grows with content while
-   * the sidebar column stretches — bottoms misalign. Stretch to the shared grid row
-   * so main-container / ols-ai-hub-page bottoms match sidebar-body / sidebar-main.
+   * PF Glass sets --pf-v6-c-page__main-container--MaxHeight to (100% − inset − gutter),
+   * cutting the card short of the sidebar. Our page already uses padding-bottom on
+   * .pf-v6-c-page for the visual gutter, so remove the extra height cap.
+   * align-self:stretch fills the shared 1fr grid row for bottom alignment.
+   * PF already sets display:flex, flex-direction:column, overflow-y:auto — preserve them.
    */
+  --pf-v6-c-page__main-container--MaxHeight: none;
   --pf-v6-c-page__main-container--AlignSelf: stretch;
   align-self: stretch !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
 }
 
 /*
- * Glass + AI Hub layout — full flex chain from main-container down to template-page-content.
- *
- * Why flex chain is required: only a flex (or grid) container with a definite height
- * propagates height to children; block/min-height chains break at intermediate levels.
- *
- * main-container: flex column, height:100%, overflow:hidden (clips backdrop-filter radius).
- * pf-v6-c-page__main: flex:1 1 auto (fills container), flex column, overflow-y:auto
- *   → THE scroll container. All page content scrolls here as one unit.
- * pf-v6-c-page__main-section: flex:1 0 auto — grows to fill panel (bottom alignment on
- *   short pages); flex-shrink:0 so tall pages (Audit & logs) overflow into the scroll container.
- * ols-ai-hub-page: flex:1 0 auto, flex column — same fill/grow pattern.
- * heading / breadcrumb direct children: flex:0 0 auto (fixed chrome).
- * template-page-content: flex:1 0 auto, display:block — fills remaining space without
- *   becoming a nested flex column (which previously created a gap above the audit log).
+ * Glass inner chain — minimal overrides.
+ * main-container (PF: display:flex column, overflow-y:auto) is the sole scroll container.
+ * flex:1 0 auto on __main: grows to fill the card on short pages; grows past it on tall
+ * pages so content overflows into main-container's scroll (flex-shrink:0 prevents collapsing).
  */
 :root.pf-v6-theme-glass .pf-v6-c-page__main:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  flex: 1 1 auto !important;
+  flex: 1 0 auto !important;
   min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
 }
 
 :root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-ai-hub-page) {
   background-color: transparent !important;
-  flex: 1 0 auto !important;
+  /* Beat app.css min-height:calc(100vh - 200px) inside the glass scroll container. */
   min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page {
   background: transparent;
-  flex: 1 0 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
 }
 
-/* Chrome bands: fixed height, don't participate in flex-grow distribution */
-:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-breadcrumb,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .template-page-heading,
-:root.pf-v6-theme-glass .ols-ai-hub-page > .ols-ai-hub-page-heading {
-  flex: 0 0 auto;
-}
-
-/*
- * template-page-content: fills remaining height (flex:1 0 auto) but uses display:block
- * so inner children (capabilities toggle, audit log panel) stack naturally with no gaps.
- * Beat app.css min-height:calc(100vh - 200px).
- */
+/* Beat app.css min-height:calc(100vh - 200px) on template-page-content. */
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content,
 :root.pf-v6-theme-glass .ols-ai-hub-page [role='main'] {
-  flex: 1 0 auto;
   min-height: 0 !important;
-  display: block;
 }
 
 /*
