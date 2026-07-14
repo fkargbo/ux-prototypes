@@ -120,6 +120,8 @@ import '../pages/dashboards-perses.css';
 // Import custom profile images
 import userProfilePicUrl from '../assets/user-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
+import olsLogoDarkUrl from '../assets/ols-logo-dark.svg';
+import { useAiHubAppearance } from '../context/AiHubAppearanceContext';
 import {
   persesAgenticBridge,
   agenticGlobalAiApi,
@@ -218,8 +220,6 @@ const robotIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 5
 
 // Avatar configuration - use custom images, fallback to icon data URLs if images fail to load
 const userAvatarSrc = userProfilePicUrl || createIconDataUrl(userIconSvg);
-/** Lightspeed assistant avatar in message threads — matches header / launcher branding. */
-const botAvatarSrc = olsLogoUrl || createIconDataUrl(robotIconSvg);
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
@@ -227,13 +227,13 @@ const botAvatarSrc = olsLogoUrl || createIconDataUrl(robotIconSvg);
 const BOT_DISPLAY_NAME = 'OpenShift Lightspeed';
 
 /** OLS logo for panel header and empty-state intro (48×48; matches launcher control size). */
-const LightspeedHeaderMark = () => (
-  <img src={olsLogoUrl} alt="" className="lightspeed-header-ols-logo" width={48} height={48} />
+const LightspeedHeaderMark = ({ src }: { src: string }) => (
+  <img src={src} alt="" className="lightspeed-header-ols-logo" width={48} height={48} />
 );
 
 /** Full-size logo inside the floating launcher button (closed state). */
-const OlsFloatingLauncherLogo = () => (
-  <img src={olsLogoUrl} alt="" className="ols-floating-launcher__logo" />
+const OlsFloatingLauncherLogo = ({ src }: { src: string }) => (
+  <img src={src} alt="" className="ols-floating-launcher__logo" />
 );
 
 /** Reusable disclaimer shown before manual instructions (info Alert). */
@@ -418,6 +418,12 @@ type MessageWithCustomPills = MessageProps & {
  */
 export const AgenticGlobalAiAssistant: React.FC = () => {
   const simulation = useSimulation();
+  const { resolvedColorMode } = useAiHubAppearance();
+
+  /** Swap to the official OLS dark-mode logo when dark color scheme is active. */
+  const activeOlsLogoUrl = resolvedColorMode === 'dark' ? olsLogoDarkUrl : olsLogoUrl;
+  /** Lightspeed assistant avatar in message threads — matches header / launcher branding. */
+  const botAvatarSrc = activeOlsLogoUrl || createIconDataUrl(robotIconSvg);
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedQuickResponses, setSelectedQuickResponses] = useState<Array<{ containerId: string; content: string }>>([]);
@@ -1406,7 +1412,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
               <ChatbotHeader style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
                 <ChatbotHeaderMain className="lightspeed-header-main">
                   <span className="lightspeed-header-mark" aria-hidden>
-                    <LightspeedHeaderMark />
+                    <LightspeedHeaderMark src={activeOlsLogoUrl} />
                   </span>
                   <ChatbotHeaderTitle className="lightspeed-header-title">
                     <Title headingLevel="h2" size="2xl" className="lightspeed-header-title-text">
@@ -1453,7 +1459,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                     <React.Fragment key={`ols-empty-intro-${emptyIntroMountKey}`}>
                       <div className="lightspeed-empty-intro">
                         <div className="lightspeed-empty-mark" aria-hidden>
-                          <LightspeedHeaderMark />
+                          <LightspeedHeaderMark src={activeOlsLogoUrl} />
                         </div>
                         <Content>
                           <p>
@@ -1601,7 +1607,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
               aria-expanded={isDrawerOpen}
               onToggleChatbot={toggleChatDrawer}
               isRound={false}
-              closedToggleIcon={OlsFloatingLauncherLogo}
+              closedToggleIcon={() => <OlsFloatingLauncherLogo src={activeOlsLogoUrl} />}
               toggleButtonLabel="Red Hat OpenShift Lightspeed"
               tooltipLabel="Red Hat OpenShift Lightspeed"
               tooltipProps={{
