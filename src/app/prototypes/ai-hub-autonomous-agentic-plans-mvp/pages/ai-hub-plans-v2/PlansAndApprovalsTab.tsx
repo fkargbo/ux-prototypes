@@ -42,7 +42,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -3408,6 +3408,15 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           </Title>
         </Flex>
         <Content component="p" className="ols-ai-hub-page-disclaimer">
+          <InfoCircleIcon
+            style={{
+              color: 'var(--pf-t--global--icon--color--status--info--default)',
+              marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+              verticalAlign: 'middle',
+              flexShrink: 0,
+            }}
+            aria-hidden
+          />
           Always review AI-generated content prior to use.
         </Content>
       </StackItem>
@@ -3877,7 +3886,17 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                     <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
                   </Content>
                   <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    OpenShift Lightspeed uses AI technology to help generate this remediation plan. Always review AI-generated content prior to use.
+                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.{' '}
+                    <InfoCircleIcon
+                      style={{
+                        color: 'var(--pf-t--global--icon--color--status--info--default)',
+                        marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+                        verticalAlign: 'middle',
+                        flexShrink: 0,
+                      }}
+                      aria-hidden
+                    />
+                    Always review AI-generated content prior to use.
                   </Content>
                 </ModalBody>
                 <ModalFooter>
