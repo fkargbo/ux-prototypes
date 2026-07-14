@@ -3867,7 +3867,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <FlexItem>
                     <Button variant="secondary" onClick={onRejectPlan}>
-                      Deny plan
+                      Deny run
                     </Button>
                   </FlexItem>
                 </Flex>
