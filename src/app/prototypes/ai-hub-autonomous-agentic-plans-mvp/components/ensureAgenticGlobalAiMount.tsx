@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { AgenticGlobalAiAssistant } from './AgenticGlobalAiAssistant';
 import { SimulationProvider } from '../simulation/SimulationProvider';
+import { AiHubAppearanceProvider } from '../context/AiHubAppearanceContext';
 
 const HOST_ID = 'observability-agentic-global-ai-root';
 
@@ -23,9 +24,11 @@ export function ensureAgenticGlobalAiMounted(): void {
   }
   root = createRoot(el);
   root.render(
-    <SimulationProvider>
-      <AgenticGlobalAiAssistant />
-    </SimulationProvider>
+    <AiHubAppearanceProvider>
+      <SimulationProvider>
+        <AgenticGlobalAiAssistant />
+      </SimulationProvider>
+    </AiHubAppearanceProvider>
   );
 }
 
