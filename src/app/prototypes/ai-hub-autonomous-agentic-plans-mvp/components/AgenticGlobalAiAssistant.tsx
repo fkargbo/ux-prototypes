@@ -120,8 +120,11 @@ import '../pages/dashboards-perses.css';
 // Import custom profile images
 import userProfilePicUrl from '../assets/user-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
-import olsLogoDarkUrl from '../assets/ols-logo-dark.svg';
+import olsLogoDarkSvgRaw from '../assets/ols-logo-dark.svg';
 import { useAiHubAppearance } from '../context/AiHubAppearanceContext';
+
+/** raw-loader returns the SVG XML string — convert to a data URL so it works as <img src>. */
+const olsLogoDarkUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(olsLogoDarkSvgRaw)}`;
 import {
   persesAgenticBridge,
   agenticGlobalAiApi,
