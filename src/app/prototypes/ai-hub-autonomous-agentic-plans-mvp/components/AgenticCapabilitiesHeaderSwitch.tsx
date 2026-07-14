@@ -105,16 +105,16 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeader
                   whiteSpace: 'nowrap',
                 }}
               >
-                Agentic Capabilities
+                Agentic capabilities
               </span>
               <Popover
-                headerContent="Cluster Agentic Capabilities"
+                headerContent="Cluster agentic capabilities"
                 bodyContent={AgenticCapabilitiesPopoverBody}
                 position="bottom-end"
               >
                 <Button
                   variant="plain"
-                  aria-label="More information about Agentic Capabilities"
+                  aria-label="More information about Agentic capabilities"
                   icon={<HelpIcon />}
                   style={AGENTIC_CAPABILITIES_HELP_BUTTON_STYLE}
                 />
@@ -124,7 +124,7 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeader
           <FlexItem>
             <Switch
               id={`agentic-capabilities-${clusterId}`}
-              aria-label="Agentic Capabilities"
+              aria-label="Agentic capabilities"
               isChecked={isChecked}
               onChange={handleChange}
             />

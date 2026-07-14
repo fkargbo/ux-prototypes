@@ -45,6 +45,7 @@ export const AuditAndLogsPage: React.FC = () => {
         className="template-page-content"
         role="main"
         aria-label="Audit and logs content"
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', minHeight: 0 }}
       >
         <AgenticKillSwitchBanner />
         <AuditKillSwitchPanel />
