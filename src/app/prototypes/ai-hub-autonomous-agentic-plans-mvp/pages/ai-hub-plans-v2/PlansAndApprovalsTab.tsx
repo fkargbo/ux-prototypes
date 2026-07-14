@@ -3915,10 +3915,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             onClose={() => setIsStopExecutionModalOpen(false)}
             aria-labelledby="stop-plan-execution-title"
           >
-            <ModalHeader title="Stop plan execution?" labelId="stop-plan-execution-title" />
+            <ModalHeader title="Stop execution?" labelId="stop-plan-execution-title" />
             <ModalBody>
-              This will instantly halt the agent&apos;s in-flight mutations on this cluster. Completed steps will
-              remain in their current state. This action cannot be undone.
+              This will halt the execution plan. This may result in partial execution. You may need to manually
+              complete or undo any partial changes.
             </ModalBody>
             <ModalFooter>
               <Button
