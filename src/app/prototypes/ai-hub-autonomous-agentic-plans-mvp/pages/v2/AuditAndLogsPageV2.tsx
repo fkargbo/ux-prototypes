@@ -40,11 +40,27 @@ export const AuditAndLogsPageV2: React.FC = () => {
         </div>
       </AiHubPageHeading>
 
+      {/*
+       * Inline flex-column layout is intentional and theme-agnostic.
+       *
+       * Root cause of recurring Glass-mode gap: app.css forces
+       * min-height:calc(100vh - 200px) on div.template-page-content, and previous
+       * Glass CSS iterations made .ols-ai-hub-page a flex column with this div as a
+       * flex:1 0 auto child — distributing the excess height as whitespace between
+       * the capabilities toggle and the audit log section.
+       *
+       * Inline display:flex + flex-direction:column overrides any cascade-injected
+       * flex-grow or justify-content and keeps children in tight natural stacking
+       * order regardless of contrast mode, theme, or color scheme.
+       * min-height:0 beats the app.css min-height hardcode without relying on
+       * Glass-specific CSS selector overrides.
+       */}
       <div
         id="ols-ai-hub-audit-main"
         className="template-page-content"
         role="main"
         aria-label="Audit and logs content"
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', minHeight: 0 }}
       >
         <AgenticKillSwitchBanner />
         <AuditKillSwitchPanel />
