@@ -121,10 +121,29 @@ import '../pages/dashboards-perses.css';
 import userProfilePicUrl from '../assets/user-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
 import olsLogoDarkSvgRaw from '../assets/ols-logo-dark.svg';
-import { useAiHubAppearance } from '../context/AiHubAppearanceContext';
 
 /** raw-loader returns the SVG XML string — convert to a data URL so it works as <img src>. */
 const olsLogoDarkUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(olsLogoDarkSvgRaw)}`;
+
+/**
+ * Read-only hook: returns 'dark' when the main AiHubAppearanceProvider has applied
+ * `pf-v6-theme-dark` to <html>. Uses a MutationObserver so it reacts to changes without
+ * writing anything to the DOM — safe to use in an isolated React root where the full
+ * provider cannot be mounted without causing a mutual-write infinite loop.
+ */
+function useResolvedColorMode(): 'light' | 'dark' {
+  const [isDark, setIsDark] = React.useState(
+    () => document.documentElement.classList.contains('pf-v6-theme-dark'),
+  );
+  React.useEffect(() => {
+    const obs = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('pf-v6-theme-dark'));
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+  return isDark ? 'dark' : 'light';
+}
 import {
   persesAgenticBridge,
   agenticGlobalAiApi,
@@ -421,7 +440,7 @@ type MessageWithCustomPills = MessageProps & {
  */
 export const AgenticGlobalAiAssistant: React.FC = () => {
   const simulation = useSimulation();
-  const { resolvedColorMode } = useAiHubAppearance();
+  const resolvedColorMode = useResolvedColorMode();
 
   /** Swap to the official OLS dark-mode logo when dark color scheme is active. */
   const activeOlsLogoUrl = resolvedColorMode === 'dark' ? olsLogoDarkUrl : olsLogoUrl;
