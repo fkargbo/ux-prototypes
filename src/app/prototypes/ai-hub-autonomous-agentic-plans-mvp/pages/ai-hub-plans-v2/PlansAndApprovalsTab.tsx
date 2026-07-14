@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } fro
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
-  AlertActionCloseButton,
   Button,
   Card,
   CardBody,
@@ -3280,7 +3279,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
-  const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
@@ -3409,16 +3407,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             Agentic run details
           </Title>
         </Flex>
-        {!isAiDisclaimerDismissed && (
-          <Alert
-            variant="info"
-            isInline
-            title="OpenShift Lightspeed uses AI technology to help generate remediation plans."
-            actionClose={<AlertActionCloseButton onClose={() => setIsAiDisclaimerDismissed(true)} />}
-          >
-            Always review AI-generated content prior to use.
-          </Alert>
-        )}
+        <Content component="p" className="ols-ai-hub-page-disclaimer">
+          Always review AI-generated content prior to use.
+        </Content>
       </StackItem>
 
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
