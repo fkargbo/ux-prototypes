@@ -3905,51 +3905,41 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
 
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
-            {/* View analysis logs toggle */}
-            <div style={{ marginBottom: showAnalysisLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}>
-              <Button
-                variant="link"
-                isInline
-                onClick={() => setShowAnalysisLogs(!showAnalysisLogs)}
-                icon={
-                  <AngleRightIcon
-                    style={{
-                      transform: showAnalysisLogs ? 'rotate(90deg)' : 'rotate(0deg)',
-                      transition: 'transform 150ms ease',
-                    }}
-                  />
-                }
-                style={{ padding: 0, fontSize: '14px' }}
-              >
-                {showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
-              </Button>
-            </div>
-
-            {showAnalysisLogs && (() => {
-              const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
-              const displayLogs = analysisLogsQuery.trim()
-                ? rawLogs.split('\n').filter(l => l.toLowerCase().includes(analysisLogsQuery.toLowerCase())).join('\n')
-                : rawLogs;
-              return (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                  <SearchInput
-                    value={analysisLogsQuery}
-                    onChange={(_evt, val) => setAnalysisLogsQuery(val)}
-                    onClear={() => setAnalysisLogsQuery('')}
-                    placeholder="Search logs..."
-                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                  />
-                  <ClipboardCopy
-                    variant={ClipboardCopyVariant.expansion}
-                    isReadOnly
-                    isCode
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                  >
-                    {displayLogs}
-                  </ClipboardCopy>
-                </div>
-              );
-            })()}
+            {/* View analysis logs */}
+            <ExpandableSection
+              toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
+              isExpanded={showAnalysisLogs}
+              onToggle={(_e, expanded) => {
+                setShowAnalysisLogs(expanded);
+                if (!expanded) setAnalysisLogsQuery('');
+              }}
+            >
+              {(() => {
+                const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
+                const displayLogs = analysisLogsQuery.trim()
+                  ? rawLogs.split('\n').filter(l => l.toLowerCase().includes(analysisLogsQuery.toLowerCase())).join('\n')
+                  : rawLogs;
+                return (
+                  <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                    <SearchInput
+                      value={analysisLogsQuery}
+                      onChange={(_evt, val) => setAnalysisLogsQuery(val)}
+                      onClear={() => setAnalysisLogsQuery('')}
+                      placeholder="Search logs..."
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                    />
+                    <ClipboardCopy
+                      variant={ClipboardCopyVariant.expansion}
+                      isReadOnly
+                      isCode
+                      style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                    >
+                      {displayLogs}
+                    </ClipboardCopy>
+                  </div>
+                );
+              })()}
+            </ExpandableSection>
 
           </div>
           )}
