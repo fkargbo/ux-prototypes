@@ -1915,6 +1915,7 @@ const OpenShiftResourceBadge: React.FC<{ label: string; backgroundColor: string 
       height: 20,
       padding: '0 6px',
       textAlign: 'center',
+      whiteSpace: 'nowrap',
     }}
   >
     {label}
