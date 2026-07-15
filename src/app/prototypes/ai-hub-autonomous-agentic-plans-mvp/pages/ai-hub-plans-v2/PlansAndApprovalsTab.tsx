@@ -1149,6 +1149,31 @@ status:
     riskAssessment: 'High — minor upgrade requires control plane restarts and workload disruption during node rotation.',
     estimatedRecovery: '~45m',
     confidence: 'High',
+    rawEvidence: `# ClusterVersion resource — upgrade channel and condition
+# kubectl get clusterversion version -o yaml
+apiVersion: config.openshift.io/v1
+kind: ClusterVersion
+metadata:
+  name: version
+spec:
+  channel: fast-4.14
+  clusterID: 9f2d1b4e-3a7c-4e8f-b2d1-6c4a9e3f7b2d
+status:
+  conditions:
+    - type: Upgradeable
+      status: "False"
+      reason: MinorVersionNotInChannel
+      message: "Channel fast-4.14 has reached end of life. Upgrade to 4.15 to resume receiving updates."
+    - type: Available
+      status: "True"
+  desired:
+    channel: fast-4.14
+    version: "4.14.37"
+  history:
+    - version: "4.14.37"
+      state: Completed
+      startedTime: "2026-01-15T08:00:00Z"
+      completionTime: "2026-01-15T09:47:00Z"`,
   },
 
   // ── All plans ──────────────────────────────────────────────────────────────
@@ -1286,6 +1311,25 @@ status:
     riskAssessment: 'Medium — policy enforcement will trigger pod restarts on the affected deployment.',
     estimatedRecovery: '~1m',
     confidence: 'Medium',
+    rawEvidence: `// ACS violation alert — hostNetwork=true (roxctl central export alerts --severity HIGH)
+{
+  "policy": { "name": "CIS-L3-HostNetwork", "severity": "HIGH_SEVERITY", "categories": ["CIS Benchmarks", "Network Isolation"] },
+  "clusterId": "prod-east-2",
+  "namespace": "production",
+  "deployment": { "name": "api-gateway", "type": "Deployment", "replicas": 3 },
+  "violations": [
+    { "message": "Container 'api-gateway' uses hostNetwork: true — node network namespace directly exposed" }
+  ],
+  "firstObserved": "2026-04-29T09:23:05Z"
+}
+// Deployment spec excerpt (kubectl get deployment api-gateway -n production -o yaml | grep -A4 spec.template.spec)
+spec:
+  template:
+    spec:
+      hostNetwork: true   # ← CIS Level 3 violation
+      containers:
+        - name: api-gateway
+          image: quay.io/production/api-gateway:v2.3.1`,
   },
   ap9: {
     steps: [
@@ -1392,6 +1436,28 @@ status:
     riskAssessment: 'Low — z-stream patch is a supported in-place update with minimal disruption.',
     estimatedRecovery: '~25m',
     confidence: 'High',
+    rawEvidence: `# ClusterVersion — available z-stream update (kubectl get clusterversion version -o yaml)
+apiVersion: config.openshift.io/v1
+kind: ClusterVersion
+spec:
+  channel: stable-4.15
+status:
+  desired:
+    version: "4.15.1"
+    image: quay.io/openshift-release-dev/ocp-release:4.15.1-x86_64
+  availableUpdates:
+    - version: "4.15.8"
+      image: quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64
+      channels: ["stable-4.15", "fast-4.15"]
+  conditions:
+    - type: Upgradeable
+      status: "True"
+    - type: Available
+      status: "True"
+# CVE advisory — RHSA-2026-1842
+# Affected component: openshift-apiserver
+# CVE: CVE-2026-3142 (CVSS 9.1 — unauthenticated API server privilege escalation via crafted PATCH request)
+# Fixed in: 4.15.8`,
   },
   cp4: {
     steps: [
@@ -1418,6 +1484,29 @@ status:
     riskAssessment: 'Low — target reconciliation is rolling and non-destructive to workloads.',
     estimatedRecovery: '~2m',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — scrape target up status (openshift-monitoring)
+// Query: up{job=~"prometheus-k8s|alertmanager-main",namespace="openshift-monitoring"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "job": "prometheus-k8s",    "instance": "10.128.0.42:9090", "namespace": "openshift-monitoring" }, "value": [1745942000, "0"] },
+      { "metric": { "job": "prometheus-k8s",    "instance": "10.128.0.43:9090", "namespace": "openshift-monitoring" }, "value": [1745942000, "0"] },
+      { "metric": { "job": "alertmanager-main", "instance": "10.128.0.50:9093", "namespace": "openshift-monitoring" }, "value": [1745942000, "1"] }
+    ]
+  }
+}
+// ServiceMonitor TLS config — prometheus-k8s (kubectl get servicemonitor prometheus-k8s -n openshift-monitoring -o yaml)
+spec:
+  endpoints:
+    - port: web
+      scheme: https
+      tlsConfig:
+        caFile: /etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt
+        certFile: /etc/prometheus/secrets/prometheus-k8s-tls/tls.crt
+        keyFile: /etc/prometheus/secrets/prometheus-k8s-tls/tls.key
+        serverName: prometheus-k8s.openshift-monitoring.svc   # ← SAN mismatch after cert rotation`,
   },
   op2: {
     steps: [
@@ -1431,6 +1520,19 @@ status:
     riskAssessment: 'Low — secret rotation is reversible and scoped to notification routing only.',
     estimatedRecovery: '~5m',
     confidence: 'High',
+    rawEvidence: `// Alertmanager delivery failure log (kubectl logs alertmanager-main-0 -n openshift-monitoring | tail -20)
+ts=2026-04-29T10:18:04.312Z caller=notify.go:732 level=error component=dispatcher msg="Error on notify" receiver=pagerduty timeout=10s err="pagerduty: unexpected status code 400: Invalid integration key"
+ts=2026-04-29T10:18:09.887Z caller=notify.go:732 level=error component=dispatcher msg="Error on notify" receiver=pagerduty timeout=10s err="pagerduty: unexpected status code 400: Invalid integration key"
+ts=2026-04-29T10:18:14.412Z caller=notify.go:732 level=error component=dispatcher msg="Error on notify" receiver=pagerduty timeout=10s err="pagerduty: unexpected status code 400: Invalid integration key"
+
+// Secret rotation audit — alertmanager-pagerduty (kubectl get secret alertmanager-pagerduty -n openshift-monitoring -o yaml)
+metadata:
+  name: alertmanager-pagerduty
+  namespace: openshift-monitoring
+  annotations:
+    last-rotated: "2026-03-18T00:00:00Z"   # ← 11 days past 30-day rotation window
+data:
+  pagerduty.integration-key: <redacted>     # expired token`,
   },
   op3: {
     steps: [
@@ -1444,6 +1546,20 @@ status:
     riskAssessment: 'Medium — PVC recovery may require brief metrics query degradation.',
     estimatedRecovery: '~15m',
     confidence: 'Medium',
+    rawEvidence: `// Thanos compactor log excerpt (kubectl logs thanos-compactor-0 -n openshift-monitoring | grep -i error | tail -15)
+ts=2026-04-29T11:05:02.108Z caller=compact.go:519 level=error msg="compaction failed" err="open /var/thanos/compact/data/01HX4K9RQVTM2N3P8W6Y0BZJA4/meta.json: no such file or directory"
+ts=2026-04-29T11:05:02.214Z caller=compact.go:519 level=error msg="compaction failed" err="unexpected end of JSON input at /var/thanos/compact/data/01HX4K9RQVTM2N3P8W6Y0BZJA4/chunks/000001"
+ts=2026-04-29T11:05:07.003Z caller=compact.go:519 level=error msg="halting compactor — block integrity check failed" ulid=01HX4K9RQVTM2N3P8W6Y0BZJA4
+
+// Prometheus metric — thanos compactor last run time
+// Query: thanos_compact_halted{job="thanos-compactor"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [{ "metric": { "job": "thanos-compactor", "namespace": "openshift-monitoring" }, "value": [1745942000, "1"] }]
+  }
+}`,
   },
   op4: {
     steps: [
@@ -1457,6 +1573,28 @@ status:
     riskAssessment: 'Low — horizontal scale-out is rolling and reversible.',
     estimatedRecovery: '~4m',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — OpenTelemetry collector batch queue utilization
+// Query: otelcol_exporter_queue_size / otelcol_exporter_queue_capacity
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "pod": "otel-collector-0", "namespace": "opentelemetry-operator-system" }, "value": [1745942000, "0.98"] },
+      { "metric": { "pod": "otel-collector-1", "namespace": "opentelemetry-operator-system" }, "value": [1745942000, "0.97"] },
+      { "metric": { "pod": "otel-collector-2", "namespace": "opentelemetry-operator-system" }, "value": [1745942000, "0.96"] }
+    ]
+  }
+}
+// OpenTelemetryCollector resource spec (kubectl get opentelemetrycollector otel-collector -n opentelemetry-operator-system -o yaml)
+spec:
+  replicas: 3    # current
+  config: |
+    processors:
+      batch:
+        send_batch_size: 10000
+        timeout: 10s
+        send_batch_max_size: 0   # ← unlimited batch size causing memory pressure`,
   },
   op5: {
     steps: [
@@ -1470,6 +1608,18 @@ status:
     riskAssessment: 'Medium — clearing the lock requires a short Perses write-unavailable window.',
     estimatedRecovery: '~3m',
     confidence: 'High',
+    rawEvidence: `// Perses pod logs — storage lock error (kubectl logs perses-0 -n openshift-monitoring | grep -i lock | tail -10)
+2026-04-29T16:03:12Z ERR  unable to acquire SQLite WAL lock path=/var/lib/grafana/grafana.db-wal err="database is locked"
+2026-04-29T16:03:17Z ERR  unable to acquire SQLite WAL lock path=/var/lib/grafana/grafana.db-wal err="database is locked"
+2026-04-29T16:03:22Z ERR  write timeout on persistent volume — dashboards save disabled
+
+// PVC mount state (kubectl describe pvc perses-pvc -n openshift-monitoring | grep -A5 Events)
+Events:
+  Type    Reason              Age    From                         Message
+  Normal  SuccessfulAttach    48m    attachdetach-controller      Successfully attached volume "pvc-6b2e1d4f-3c7a-4e8f-b1d2-9a4c7e3f6b1d"
+// Lock file on volume:
+// kubectl exec -n openshift-monitoring perses-debug -- ls -lh /var/lib/grafana/grafana.db-wal
+// -rw-r--r-- 1 nobody nobody 32M Apr 29 15:54 /var/lib/grafana/grafana.db-wal   # ← stale from ungraceful eviction`,
   },
   // ─── New backend phase plans ─────────────────────────────────────────────────
   'acs-netpol-remediation-denied': {
@@ -1484,6 +1634,23 @@ status:
     riskAssessment: 'Low — patch removes a privilege escalation risk. DNS validation required before apply.',
     estimatedRecovery: '~5m',
     confidence: 'High',
+    rawEvidence: `// ACS policy violation — JSON alert payload
+// roxctl central export alerts --severity HIGH --cluster prod-east-2 --deployment retail-checkout
+{
+  "policy": { "name": "P-2041", "severity": "HIGH_SEVERITY", "categories": ["Network Isolation"] },
+  "clusterId": "prod-east-2",
+  "namespace": "retail-prod",
+  "deployment": { "name": "retail-checkout", "type": "Deployment" },
+  "violations": [
+    { "message": "Container 'retail-checkout' uses hostNetwork: true, bypassing pod network namespace isolation" }
+  ],
+  "firstObserved": "2026-04-29T09:14:03Z"
+}
+// Deployment spec — retail-checkout (kubectl get deployment retail-checkout -n retail-prod -o yaml | grep hostNetwork -A2)
+spec:
+  template:
+    spec:
+      hostNetwork: true   # ← violates network isolation policy P-2041`,
   },
   'ingress-controller-escalated': {
     steps: [
@@ -1498,6 +1665,27 @@ status:
     riskAssessment: 'Medium — quota change affects other workloads in the namespace. Review before applying.',
     estimatedRecovery: '~10m after quota adjustment',
     confidence: 'High',
+    rawEvidence: `// Kubernetes events — ingress controller scale failure (kubectl get events -n openshift-ingress --sort-by=.lastTimestamp | tail -10)
+LAST SEEN   TYPE      REASON              OBJECT                                MESSAGE
+14m         Warning   FailedCreate        replicaset/router-default-7d8f9b      Error creating: pods "router-default-7d8f9b-" is forbidden: exceeded quota: default-quota, requested: pods=1, used: pods=10, limited: pods=10
+14m         Warning   FailedCreate        replicaset/router-default-7d8f9b      Error creating: pods "router-default-7d8f9b-" is forbidden: exceeded quota: default-quota, requested: pods=1, used: pods=10, limited: pods=10
+
+// ResourceQuota — openshift-ingress (kubectl get resourcequota -n openshift-ingress -o yaml)
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: default-quota
+  namespace: openshift-ingress
+spec:
+  hard:
+    pods: "10"           # ← hard ceiling reached; scale-out blocked
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+status:
+  used:
+    pods: "10"
+    requests.cpu: "3800m"
+    requests.memory: "7680Mi"`,
   },
   'prometheus-wal-emergency-stopped': {
     steps: [
@@ -1511,6 +1699,20 @@ status:
     riskAssessment: 'High — WAL repair during active writes risks metric data loss. Must be run offline.',
     estimatedRecovery: '~15m during maintenance window',
     confidence: 'Medium',
+    rawEvidence: `// Prometheus WAL corruption markers (kubectl exec -n openshift-monitoring prometheus-k8s-0 -- tsdb analyze /prometheus | head -20)
+Block Id    Min Time                Max Time                Duration    Num Samples  Num Series  Mint
+01HX3K8NQS  2026-04-28 22:00:00 UTC  2026-04-28 23:00:00 UTC  1h          1842920      12048
+01HX3KQVTM  CORRUPTED               CORRUPTED               —           —            —
+  └─ /prometheus/wal/00000014: unexpected EOF at offset 4096
+  └─ /prometheus/wal/00000015: checksum mismatch — expected 0x4f2b1a3d got 0x00000000
+01HX3KRFBN  2026-04-29 00:00:00 UTC  2026-04-29 01:00:00 UTC  1h          1924110      12341
+
+// PrometheusWALCorruptionDetected alert — raw Alertmanager payload
+{
+  "labels": { "alertname": "PrometheusWALCorruptionDetected", "namespace": "openshift-monitoring", "pod": "prometheus-k8s-0" },
+  "annotations": { "summary": "WAL corruption markers detected on prometheus-k8s-0", "runbook_url": "https://github.com/openshift-monitoring/runbooks/blob/main/alerts/PrometheusWALCorruptionDetected.md" },
+  "startsAt": "2026-04-29T02:07:15Z"
+}`,
   },
   'etcd-defrag-failed': {
     steps: [
@@ -1525,6 +1727,21 @@ status:
     riskAssessment: 'High — etcd fragmentation above 0.5 degrades API server write latency and can cause quota exhaustion if db-quota-backend-bytes is approached.',
     estimatedRecovery: 'N/A — plan failed; requires manual compaction before retry',
     confidence: 'Medium',
+    rawEvidence: `// etcd endpoint status — pre-defrag (etcdctl endpoint status --write-out=json)
+[
+  { "endpoint": "https://etcd-master-01:2381", "dbSize": 8808038400, "dbSizeInUse": 3354722304, "leader": true,  "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-02:2381", "dbSize": 8808038400, "dbSizeInUse": 3221225472, "leader": false, "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-03:2381", "dbSize": 8808038400, "dbSizeInUse": 3489660928, "leader": false, "raftTerm": 42 }
+]
+// Post-defrag verification — fragmentation unchanged (etcdctl endpoint status --write-out=json)
+[
+  { "endpoint": "https://etcd-master-01:2381", "dbSize": 8808038400, "dbSizeInUse": 3321888768, "leader": true,  "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-02:2381", "dbSize": 8808038400, "dbSizeInUse": 3221225472, "leader": false, "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-03:2381", "dbSize": 8808038400, "dbSizeInUse": 3506438144, "leader": false, "raftTerm": 42 }
+]
+// Root cause: compaction not run prior to defrag
+// etcdctl endpoint status --write-out=json | jq .[].Status.header.revision
+// 8423104   ← auto-compact set to 1h; last compaction was at revision 7891200 (>1h ago)`,
   },
   ...NEW_ALERT_INVESTIGATION_DRAWER_DATA,
 };
