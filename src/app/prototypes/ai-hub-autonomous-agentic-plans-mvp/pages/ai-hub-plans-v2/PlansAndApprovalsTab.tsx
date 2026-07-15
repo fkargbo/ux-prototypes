@@ -4260,6 +4260,17 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                     You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
                     <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
                   </Content>
+                  {selectedOption?.reversible === 'Irreversible' && (
+                    <Alert
+                      isInline
+                      variant="warning"
+                      title="This action is irreversible"
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                    >
+                      You will not be able to roll back or automatically undo this remediation once
+                      execution begins. Ensure you have taken a full cluster backup if required.
+                    </Alert>
+                  )}
                   <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                     OpenShift Lightspeed uses AI technology to help generate this remediation plan.
                   </Content>
@@ -4282,7 +4293,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 </ModalBody>
                 <ModalFooter>
                   <Button
-                    variant="primary"
+                    variant={selectedOption?.reversible === 'Irreversible' ? 'danger' : 'primary'}
                     isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
                     isLoading={isExecutionRunning}
                     onClick={() => {
