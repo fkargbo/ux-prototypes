@@ -1723,9 +1723,9 @@ Block Id    Min Time                Max Time                Duration    Num Samp
     ],
     aggregatedFinding: 'etcd defragmentation executed across 3 control plane nodes but post-execution verification failed — fragmentation ratio remained at 0.67.',
     rootCauseNarrative: 'EtcdDatabaseHighFragmentationRatio fired after the fragmentation ratio exceeded 0.5 on all three control plane etcd members. Defragmentation was executed sequentially to minimize leader disruption, but the post-execution check found the fragmentation metric unchanged. The root cause is that the auto-compaction window (configured at 1h) had not run prior to execution, leaving large amounts of unreclaimed logical space that defrag alone cannot recover without a preceding compaction pass.',
-    remediationProposal: 'Trigger a manual etcd compaction before re-running defrag. Run `etcdctl compact <revision>` on the leader member, then re-execute the defragmentation plan during a low-write window.',
+    remediationProposal: 'Trigger a manual etcd compaction before re-running defrag. Run `etcdctl compact <revision>` on the leader member, then re-execute the defragmentation run during a low-write window.',
     riskAssessment: 'High — etcd fragmentation above 0.5 degrades API server write latency and can cause quota exhaustion if db-quota-backend-bytes is approached.',
-    estimatedRecovery: 'N/A — plan failed; requires manual compaction before retry',
+    estimatedRecovery: 'N/A — run failed; requires manual compaction before retry',
     confidence: 'Medium',
     rawEvidence: `// etcd endpoint status — pre-defrag (etcdctl endpoint status --write-out=json)
 [
@@ -2000,7 +2000,7 @@ Exit code: 0 — Execution succeeded.`,
   },
   'etcd-defrag-failed': {
     type: 'failure',
-    failureReason: 'etcd defragmentation executed across etcd-master-01, etcd-master-02, and etcd-master-03, but post-execution verification failed. The fragmentation ratio remained at 0.67 — unchanged from the pre-execution baseline. The auto-compaction window had not completed prior to defrag execution, leaving logical space unreclaimed. Defragmentation cannot recover space that has not been compacted. Manual compaction of the etcd revision history is required before re-executing this plan.',
+    failureReason: 'etcd defragmentation executed across etcd-master-01, etcd-master-02, and etcd-master-03, but post-execution verification failed. The fragmentation ratio remained at 0.67 — unchanged from the pre-execution baseline. The auto-compaction window had not completed prior to defrag execution, leaving logical space unreclaimed. Defragmentation cannot recover space that has not been compacted. Manual compaction of the etcd revision history is required before re-executing this run.',
     failureTrace:
 `[09:14:38 UTC] Executing etcd defrag on etcd-master-01
 $ etcdctl defrag --endpoints=https://etcd-master-01:2379
@@ -2047,7 +2047,7 @@ Exit code: 1`,
 [09:15:08 UTC] VERIFICATION FAILED: fragmentation above threshold on all 3 members.
 [09:15:09 UTC] Root cause: auto-compaction did not complete before defrag; logical space unreclaimed.
 [09:15:09 UTC] No rollback performed — defrag commands are non-destructive.
-[09:15:09 UTC] Recommendation: run etcdctl compact <latest-revision> then re-execute this plan.
+[09:15:09 UTC] Recommendation: run etcdctl compact <latest-revision> then re-execute this run.
 Exit code: 1 — Verification failed.`,
   },
 };
@@ -2235,7 +2235,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
       status === 'EmergencyStopped'
         ? `Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`
         : `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
-    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Plan aborted';
+    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Run aborted';
     return (
       <Tooltip content={tooltipContent} position="top">
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
@@ -3582,7 +3582,7 @@ const ESCALATED_PLAN_PLAYBOOKS: Record<string, { title: string; command: string 
 };
 
 const DEFAULT_ESCALATION_PLAYBOOK = {
-  title: 'Review escalated plan and apply manual remediation',
+  title: 'Review escalated run and apply manual remediation',
   command: 'oc describe proposal <plan-name> -n openshift-lightspeed',
 };
 
@@ -3857,7 +3857,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                   className="ols-aio-text-subtle-sm"
                   style={{ margin: 0, fontStyle: 'italic' }}
                 >
-                  Root cause analysis unavailable — this plan has been escalated to a human operator.
+                  Root cause analysis unavailable — this run has been escalated to a human operator.
                 </Content>
               </Flex>
               <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -3960,7 +3960,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             >
               <Content component="p" style={{ margin: 0 }}>
                 This cluster update controller proposal gathered structured health data only. No remediation
-                options were generated — acknowledge after review to clear it from your active plans list.
+                options were generated — acknowledge after review to clear it from your active runs list.
               </Content>
             </Alert>
             {isAcknowledged ? (
@@ -4065,7 +4065,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 className="ols-aio-text-subtle-sm"
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
               >
-                Remediation options are unavailable while escalation is active. This plan has been
+                Remediation options are unavailable while escalation is active. This run has been
                 forwarded to a human operator for manual intervention.
               </Content>
               <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -4366,7 +4366,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           >
             <ModalHeader title="Stop execution?" labelId="stop-plan-execution-title" />
             <ModalBody>
-              This will halt the execution plan. This may result in partial execution. You may need to manually
+              This will halt the execution run. This may result in partial execution. You may need to manually
               complete or undo any partial changes.
             </ModalBody>
             <ModalFooter>
@@ -4401,7 +4401,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           >
             <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
             <ModalBody>
-              This halts root cause investigation for this plan. Partial findings are preserved but no
+              This halts root cause investigation for this run. Partial findings are preserved but no
               remediation options will be synthesized.
             </ModalBody>
             <ModalFooter>
