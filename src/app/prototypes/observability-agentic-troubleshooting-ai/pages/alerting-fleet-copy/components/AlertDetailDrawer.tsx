@@ -482,6 +482,30 @@ export const AlertDetailDrawer: React.FC<AlertDetailDrawerProps> = ({
                           </Button>
                         </Flex>
                       </StackItem>
+                      <StackItem>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                          <FlexItem>
+                            <InfoCircleIcon
+                              style={{
+                                color: 'var(--pf-t--global--icon--color--status--info--default)',
+                                fontSize: '12px',
+                              }}
+                              aria-hidden
+                            />
+                          </FlexItem>
+                          <FlexItem>
+                            <Content
+                              component="small"
+                              style={{
+                                color: 'var(--pf-t--global--text--color--subtle)',
+                                fontSize: 'var(--pf-t--global--font--size--xs)',
+                              }}
+                            >
+                              Always review AI-generated content prior to use.
+                            </Content>
+                          </FlexItem>
+                        </Flex>
+                      </StackItem>
                     </Stack>
                   </StackItem>
                 </Stack>

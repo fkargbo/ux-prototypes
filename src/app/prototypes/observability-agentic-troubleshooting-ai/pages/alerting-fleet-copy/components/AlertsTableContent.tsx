@@ -234,6 +234,32 @@ const AlertsTableContent: React.FC<AlertsTableContentProps> = ({
         <DropdownItem key="incident" onClick={() => setOpenActionMenuId(null)}>See related incident</DropdownItem>
         <DropdownItem key="troubleshoot" onClick={() => setOpenActionMenuId(null)}>Troubleshoot with Signal Correlation</DropdownItem>
         {renderInvestigateMenuItem(alert, menuId)}
+        {onInvestigateWithAi && alert && (
+          <li role="none" style={{ padding: 'var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md)' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+              <FlexItem>
+                <InfoCircleIcon
+                  style={{
+                    color: 'var(--pf-t--global--icon--color--status--info--default)',
+                    fontSize: '12px',
+                  }}
+                  aria-hidden
+                />
+              </FlexItem>
+              <FlexItem>
+                <Content
+                  component="small"
+                  style={{
+                    color: 'var(--pf-t--global--text--color--subtle)',
+                    fontSize: 'var(--pf-t--global--font--size--xs)',
+                  }}
+                >
+                  Always review AI-generated content prior to use.
+                </Content>
+              </FlexItem>
+            </Flex>
+          </li>
+        )}
       </DropdownList>
     </Dropdown>
   );
