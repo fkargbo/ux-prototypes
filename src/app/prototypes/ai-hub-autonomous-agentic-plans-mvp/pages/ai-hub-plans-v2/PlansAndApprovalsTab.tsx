@@ -43,7 +43,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -3164,52 +3164,118 @@ const PostMortemPanel: React.FC<{
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
             {/* Collapsible metrics toggle */}
-            <Button
-              variant="link"
-              isInline
-              onClick={() => onToggleMetrics!(!isMetricsExpanded)}
-              icon={
-                <AngleRightIcon
-                  style={{
-                    transform: isMetricsExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                    transition: 'transform 150ms ease',
-                  }}
-                />
-              }
-              style={{ padding: 0, fontSize: '14px', marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
+            <ExpandableSection
+              toggleText={isMetricsExpanded ? 'Hide execution summary' : 'View execution summary'}
+              isExpanded={isMetricsExpanded}
+              onToggle={(_e, expanded) => onToggleMetrics!(expanded)}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
             >
-                  {isMetricsExpanded ? 'Hide execution summary' : 'View execution summary'}
-            </Button>
-
-            {/* Collapsible metrics content (Sections A, B, C) */}
-            {isMetricsExpanded && (
-              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                {metricsBlock}
-              </div>
-            )}
+              {metricsBlock}
+            </ExpandableSection>
 
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
             {/* Logs — collapsible with category selector and search */}
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <Button
-                variant="link"
-                isInline
-                onClick={() => toggleLogs(!showLogs)}
-                icon={
-                  <AngleRightIcon
-                    style={{
-                      transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
-                      transition: 'transform 150ms ease',
-                    }}
-                  />
-                }
-                style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
+            <ExpandableSection
+              toggleText={showLogs ? 'Hide logs' : 'View logs'}
+              isExpanded={showLogs}
+              onToggle={(_e, expanded) => toggleLogs(expanded)}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                  <FlexItem>
+                    <Dropdown
+                      isOpen={isLogCatOpen}
+                      onOpenChange={setIsLogCatOpen}
+                      onSelect={(_e, val) => {
+                        setLogCategory(val as 'execution' | 'verification');
+                        setIsLogCatOpen(false);
+                      }}
+                      toggle={(ref) => (
+                        <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
+                          {logCategory === 'execution' ? 'Execution' : 'Verification'}
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        <DropdownItem value="execution">Execution logs</DropdownItem>
+                        <DropdownItem value="verification">Verification logs</DropdownItem>
+                      </DropdownList>
+                    </Dropdown>
+                  </FlexItem>
+                  <FlexItem grow={{ default: 'grow' }}>
+                    <SearchInput
+                      value={logQuery}
+                      onChange={(_e, val) => setLogQuery(val)}
+                      onClear={() => setLogQuery('')}
+                      placeholder="Search logs..."
+                    />
+                  </FlexItem>
+                </Flex>
+                {(() => {
+                  const raw = logCategory === 'execution'
+                    ? (postMortem.rawLog ?? '')
+                    : generateVerificationLogs(plan.id);
+                  const displayed = logQuery.trim()
+                    ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
+                    : raw;
+                  return (
+                    <ClipboardCopy
+                      variant={ClipboardCopyVariant.expansion}
+                      isReadOnly
+                      isCode
+                      style={{
+                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        fontSize: '12px',
+                        maxHeight: '280px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {displayed}
+                    </ClipboardCopy>
+                  );
+                })()}
+              </div>
+            </ExpandableSection>
+          </>
+        ) : (
+          /* ── Terminal drawer view: bordered card ── */
+          <div
+            style={{
+              borderRadius: '16px',
+              border: '1px solid var(--pf-t--global--color--status--success--default)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
-                {showLogs ? 'Hide logs' : 'View logs'}
-              </Button>
-              {showLogs && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                {status === 'Failed'
+                  ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
+                  : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
+                }
+                <Title headingLevel="h5" size="md">Execution summary</Title>
+                <Label color="grey" isCompact>AI-generated</Label>
+              </Flex>
+
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+
+              {metricsBlock}
+
+              <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
+
+              {/* Logs */}
+              <ExpandableSection
+                toggleText={showLogs ? 'Hide logs' : 'View logs'}
+                isExpanded={showLogs}
+                onToggle={(_e, expanded) => toggleLogs(expanded)}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
                   <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                     <FlexItem>
                       <Dropdown
@@ -3252,116 +3318,19 @@ const PostMortemPanel: React.FC<{
                         variant={ClipboardCopyVariant.expansion}
                         isReadOnly
                         isCode
-                        style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                        style={{
+                          fontFamily: 'var(--pf-t--global--font--family--mono)',
+                          fontSize: '12px',
+                          maxHeight: '280px',
+                          overflowY: 'auto',
+                        }}
                       >
                         {displayed}
                       </ClipboardCopy>
                     );
                   })()}
                 </div>
-              )}
-            </div>
-          </>
-        ) : (
-          /* ── Terminal drawer view: bordered card ── */
-          <div
-            style={{
-              borderRadius: '16px',
-              border: '1px solid var(--pf-t--global--color--status--success--default)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                {status === 'Failed'
-                  ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
-                  : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
-                }
-                <Title headingLevel="h5" size="md">Execution summary</Title>
-                <Label color="grey" isCompact>AI-generated</Label>
-              </Flex>
-
-              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-
-              {metricsBlock}
-
-              <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
-
-              {/* Logs */}
-              <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                <Button
-                  variant="link"
-                  isInline
-                  onClick={() => toggleLogs(!showLogs)}
-                  icon={
-                    <AngleRightIcon
-                      style={{
-                        transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
-                        transition: 'transform 150ms ease',
-                      }}
-                    />
-                  }
-                  style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
-                >
-                  {showLogs ? 'Hide logs' : 'View logs'}
-                </Button>
-                {showLogs && (
-                  <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                    <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                      <FlexItem>
-                        <Dropdown
-                          isOpen={isLogCatOpen}
-                          onOpenChange={setIsLogCatOpen}
-                          onSelect={(_e, val) => {
-                            setLogCategory(val as 'execution' | 'verification');
-                            setIsLogCatOpen(false);
-                          }}
-                          toggle={(ref) => (
-                            <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
-                              {logCategory === 'execution' ? 'Execution' : 'Verification'}
-                            </MenuToggle>
-                          )}
-                        >
-                          <DropdownList>
-                            <DropdownItem value="execution">Execution logs</DropdownItem>
-                            <DropdownItem value="verification">Verification logs</DropdownItem>
-                          </DropdownList>
-                        </Dropdown>
-                      </FlexItem>
-                      <FlexItem grow={{ default: 'grow' }}>
-                        <SearchInput
-                          value={logQuery}
-                          onChange={(_e, val) => setLogQuery(val)}
-                          onClear={() => setLogQuery('')}
-                          placeholder="Search logs..."
-                        />
-                      </FlexItem>
-                    </Flex>
-                    {(() => {
-                      const raw = logCategory === 'execution'
-                        ? (postMortem.rawLog ?? '')
-                        : generateVerificationLogs(plan.id);
-                      const displayed = logQuery.trim()
-                        ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
-                        : raw;
-                      return (
-                        <ClipboardCopy
-                          variant={ClipboardCopyVariant.expansion}
-                          isReadOnly
-                          isCode
-                          style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                        >
-                          {displayed}
-                        </ClipboardCopy>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
+              </ExpandableSection>
             </div>
           </div>
         )}
@@ -3400,24 +3369,13 @@ const PostMortemPanel: React.FC<{
 
         {/* ── Logs (traces + execution) ── */}
         <StackItem>
-          <Button
-            variant="link"
-            isInline
-            onClick={() => toggleLogs(!showLogs)}
-            icon={
-              <AngleRightIcon
-                style={{
-                  transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
-                  transition: 'transform 150ms ease',
-                }}
-              />
-            }
-            style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
+          <ExpandableSection
+            toggleText={showLogs ? 'Hide logs' : 'View logs'}
+            isExpanded={showLogs}
+            onToggle={(_e, expanded) => toggleLogs(expanded)}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
           >
-            {showLogs ? 'Hide logs' : 'View logs'}
-          </Button>
-          {showLogs && (
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
               <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                 <FlexItem>
                   <Dropdown
@@ -3460,14 +3418,19 @@ const PostMortemPanel: React.FC<{
                     variant={ClipboardCopyVariant.expansion}
                     isReadOnly
                     isCode
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                    style={{
+                      fontFamily: 'var(--pf-t--global--font--family--mono)',
+                      fontSize: '12px',
+                      maxHeight: '280px',
+                      overflowY: 'auto',
+                    }}
                   >
                     {displayed}
                   </ClipboardCopy>
                 );
               })()}
             </div>
-          )}
+          </ExpandableSection>
         </StackItem>
       </Stack>
     </div>
