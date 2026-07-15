@@ -481,9 +481,11 @@ export const AlertDetailDrawer: React.FC<AlertDetailDrawerProps> = ({
                             {getAlertInvestigationActionLabel(selectedAlert.alertName)}
                           </Button>
                         </Flex>
-                      </StackItem>
-                      <StackItem>
-                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                        <Flex
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          gap={{ default: 'gapXs' }}
+                          style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
+                        >
                           <FlexItem>
                             <InfoCircleIcon
                               style={{
