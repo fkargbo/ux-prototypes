@@ -22,6 +22,7 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
+  ExpandableSection,
   Flex,
   FlexItem,
   Label,
@@ -42,7 +43,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -925,6 +926,12 @@ interface PlanDrawerData {
   riskAssessment: string;
   estimatedRecovery: string;
   confidence: ConfidenceTier;
+  /**
+   * Raw JSON / YAML / Prometheus metric snippet that drove the AI diagnosis.
+   * When present, a "View raw evidence" expandable section is rendered inside
+   * the RCA block and the execute-remediation confirmation modal.
+   */
+  rawEvidence?: string;
 }
 
 const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
@@ -942,6 +949,39 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — GitOps rollback is reversible and non-destructive.',
     estimatedRecovery: '~45s',
     confidence: 'High',
+    rawEvidence: `# ArgoCD ApplicationSet — cluster-gitops-policies (revision r4892)
+# Fetched via: kubectl get applicationset cluster-gitops-policies -n openshift-gitops -o yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-gitops-policies
+  namespace: openshift-gitops
+  resourceVersion: "4892"
+spec:
+  generators:
+    - clusterDecisionResource:
+        configMapRef: argocd-application-controller
+        labelSelector:
+          matchLabels:
+            env: production
+  template:
+    metadata:
+      name: "{{name}}-policies"
+    spec:
+      project: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+      source:
+        repoURL: https://github.com/redhat-openshift/gitops-policies
+        targetRevision: r4892   # ← malformed Kustomize overlay introduced here
+        path: overlays/prod/{{name}}
+status:
+  conditions:
+    - type: ResourcesUpToDate
+      status: "False"
+      message: "4 of 4 applications out of sync — NetworkPolicy deny-all-ingress conflicts with openshift-ingress allow rule"`,
   },
   tp2: {
     steps: [
@@ -956,6 +996,31 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — isolation will require pod eviction, causing brief service disruption.',
     estimatedRecovery: '~3m',
     confidence: 'Medium',
+    rawEvidence: `// ACS alert payload — KernelModuleLoad (Falco rule: kernel_module_load_detected)
+// Fetched via: roxctl central export alerts --severity CRITICAL --cluster prod-east-2
+{
+  "alertName": "KernelModuleLoad",
+  "severity": "CRITICAL_SEVERITY",
+  "clusterId": "prod-east-2",
+  "firstObserved": "2026-04-29T09:47:03Z",
+  "violations": [
+    {
+      "podName": "analytics-worker-7d9b4c8f6-xk2qt",
+      "namespace": "analytics",
+      "image": {
+        "name": "quay.io/analytics/worker",
+        "digest": "sha256:a3f1b9d4e8c2f0d3a7b1e5c9f4d6a2b8e3c7f1d0a4b9e6c2f8d5a3b7e1c4f9d2"
+      },
+      "syscalls": ["init_module", "finit_module"],
+      "egressConnection": { "dst": "104.21.x.x", "port": 443, "protocol": "TCP" },
+      "falcoRule": "kernel_module_load_detected",
+      "cveMatch": "CVE-2024-1086"
+    }
+  ],
+  "processActivity": [
+    { "pid": 3814, "name": "insmod", "args": ["rootkit.ko"], "uid": 0 }
+  ]
+}`,
   },
   tp3: {
     steps: [
@@ -970,6 +1035,40 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — resource limit adjustments are rolling and reversible.',
     estimatedRecovery: '~90s',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — container memory usage vs. configured limits
+// Query: container_memory_usage_bytes{namespace="payments",container=~"payments-api|auth-svc"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "matrix",
+    "result": [
+      {
+        "metric": { "pod": "payments-api-7d6f9b-xk9tz", "container": "payments-api", "namespace": "payments" },
+        "values": [
+          [1745931200, "524288000"],
+          [1745934800, "697532416"],
+          [1745938400, "851345408"],
+          [1745942000, "964689920"]
+        ]
+      },
+      {
+        "metric": { "pod": "auth-svc-5c4b8d-qr7vw", "container": "auth-svc", "namespace": "payments" },
+        "values": [
+          [1745931200, "268435456"],
+          [1745934800, "356515840"],
+          [1745938400, "481036288"],
+          [1745942000, "536870912"]
+        ]
+      }
+    ]
+  }
+}
+// Deployment resource spec — payments-api (at time of alert)
+// kubectl get deployment payments-api -n payments -o jsonpath='{.spec.template.spec.containers[0].resources}'
+{
+  "limits":   { "memory": "512Mi", "cpu": "500m" },
+  "requests": { "memory": "256Mi", "cpu": "250m" }
+}`,
   },
   tp4: {
     steps: [
@@ -984,6 +1083,26 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — storage expansion requires OSD reconfiguration and a brief I/O suspension period.',
     estimatedRecovery: '~2m',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — Ceph pool utilization
+// Query: ceph_pool_percent_used{pool="ocs-storagecluster-cephblockpool"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "pool": "ocs-storagecluster-cephblockpool", "cluster": "prod-us-east-1" }, "value": [1745942000, "0.83"] },
+      { "metric": { "pool": "ocs-storagecluster-cephblockpool", "cluster": "prod-eu-west-1" }, "value": [1745942000, "0.81"] }
+    ]
+  }
+}
+// PersistentVolumeClaim — affected StatefulSet volumes (kubectl get pvc -n openshift-storage)
+[
+  { "name": "data-ocs-storagecluster-cephblockpool-0", "status": "Bound", "capacity": "500Gi", "usedBytes": 415000000000 },
+  { "name": "data-ocs-storagecluster-cephblockpool-1", "status": "Bound", "capacity": "500Gi", "usedBytes": 405000000000 }
+]
+// StatefulSet log emission rate — no logrotate configured
+// kubectl exec -n analytics analytics-datastore-0 -- du -sh /var/log/app
+// 38G   /var/log/app  (growing at ~9.5GB/hour)`,
   },
   tp5: {
     steps: [
@@ -998,6 +1117,25 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — etcd defragmentation is a supported operational procedure.',
     estimatedRecovery: '~45s',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — etcd fragmentation ratio
+// Query: 1 - (etcd_db_total_size_in_use_in_bytes / etcd_db_total_size_in_bytes)
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "job": "etcd", "instance": "etcd-prod-master-0:2381" }, "value": [1745942000, "0.68"] },
+      { "metric": { "job": "etcd", "instance": "etcd-prod-master-1:2381" }, "value": [1745942000, "0.71"] },
+      { "metric": { "job": "etcd", "instance": "etcd-prod-master-2:2381" }, "value": [1745942000, "0.65"] }
+    ]
+  }
+}
+// etcd endpoint status (etcdctl endpoint status --write-out=json)
+[
+  { "endpoint": "https://etcd-prod-master-0:2381", "dbSize": 8589934592, "dbSizeInUse": 2752512000, "leader": true,  "raftTerm": 42, "raftIndex": 3814920 },
+  { "endpoint": "https://etcd-prod-master-1:2381", "dbSize": 8589934592, "dbSizeInUse": 2490368000, "leader": false, "raftTerm": 42, "raftIndex": 3814918 },
+  { "endpoint": "https://etcd-prod-master-2:2381", "dbSize": 8589934592, "dbSizeInUse": 3006478336, "leader": false, "raftTerm": 42, "raftIndex": 3814919 }
+]`,
   },
   cp1: {
     steps: [
@@ -1011,6 +1149,31 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'High — minor upgrade requires control plane restarts and workload disruption during node rotation.',
     estimatedRecovery: '~45m',
     confidence: 'High',
+    rawEvidence: `# ClusterVersion resource — upgrade channel and condition
+# kubectl get clusterversion version -o yaml
+apiVersion: config.openshift.io/v1
+kind: ClusterVersion
+metadata:
+  name: version
+spec:
+  channel: fast-4.14
+  clusterID: 9f2d1b4e-3a7c-4e8f-b2d1-6c4a9e3f7b2d
+status:
+  conditions:
+    - type: Upgradeable
+      status: "False"
+      reason: MinorVersionNotInChannel
+      message: "Channel fast-4.14 has reached end of life. Upgrade to 4.15 to resume receiving updates."
+    - type: Available
+      status: "True"
+  desired:
+    channel: fast-4.14
+    version: "4.14.37"
+  history:
+    - version: "4.14.37"
+      state: Completed
+      startedTime: "2026-01-15T08:00:00Z"
+      completionTime: "2026-01-15T09:47:00Z"`,
   },
 
   // ── All plans ──────────────────────────────────────────────────────────────
@@ -1066,6 +1229,36 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'TBD — root cause under active investigation.',
     estimatedRecovery: 'TBD',
     confidence: 'Medium',
+    rawEvidence: `// Prometheus query — CoreDNS P99 lookup latency (last 15 min)
+// Query: histogram_quantile(0.99, rate(coredns_dns_request_duration_seconds_bucket[5m]))
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "cluster": "prod-east-2",    "pod": "coredns-7d4b9f-lm2qp", "server": ":53" }, "value": [1745942000, "0.234"] },
+      { "metric": { "cluster": "prod-eu-west-1", "pod": "coredns-5c8d2b-xp9rz", "server": ":53" }, "value": [1745942000, "0.218"] },
+      { "metric": { "cluster": "edge-apac-1",    "pod": "coredns-9a1e3c-bw4kn", "server": ":53" }, "value": [1745942000, "0.201"] }
+    ]
+  }
+}
+// CoreDNS ConfigMap diff — openshift-dns/dns-default (last 15 min)
+// kubectl get configmap dns-default -n openshift-dns -o yaml
+---
+ .:53 {
+   errors
+   health
+   ready
+   kubernetes cluster.local in-addr.arpa ip6.arpa {
+     pods insecure
+     fallthrough in-addr.arpa ip6.arpa
+     ttl 30
+   }
+-  cache 30
++  cache 0   # cache TTL zeroed in ConfigMap edit at 15:09:42 UTC
+   reload
+   loadbalance
+ }`,
   },
   ap5: {
     steps: [
@@ -1118,6 +1311,25 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — policy enforcement will trigger pod restarts on the affected deployment.',
     estimatedRecovery: '~1m',
     confidence: 'Medium',
+    rawEvidence: `// ACS violation alert — hostNetwork=true (roxctl central export alerts --severity HIGH)
+{
+  "policy": { "name": "CIS-L3-HostNetwork", "severity": "HIGH_SEVERITY", "categories": ["CIS Benchmarks", "Network Isolation"] },
+  "clusterId": "prod-east-2",
+  "namespace": "production",
+  "deployment": { "name": "api-gateway", "type": "Deployment", "replicas": 3 },
+  "violations": [
+    { "message": "Container 'api-gateway' uses hostNetwork: true — node network namespace directly exposed" }
+  ],
+  "firstObserved": "2026-04-29T09:23:05Z"
+}
+// Deployment spec excerpt (kubectl get deployment api-gateway -n production -o yaml | grep -A4 spec.template.spec)
+spec:
+  template:
+    spec:
+      hostNetwork: true   # ← CIS Level 3 violation
+      containers:
+        - name: api-gateway
+          image: quay.io/production/api-gateway:v2.3.1`,
   },
   ap9: {
     steps: [
@@ -1224,6 +1436,28 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — z-stream patch is a supported in-place update with minimal disruption.',
     estimatedRecovery: '~25m',
     confidence: 'High',
+    rawEvidence: `# ClusterVersion — available z-stream update (kubectl get clusterversion version -o yaml)
+apiVersion: config.openshift.io/v1
+kind: ClusterVersion
+spec:
+  channel: stable-4.15
+status:
+  desired:
+    version: "4.15.1"
+    image: quay.io/openshift-release-dev/ocp-release:4.15.1-x86_64
+  availableUpdates:
+    - version: "4.15.8"
+      image: quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64
+      channels: ["stable-4.15", "fast-4.15"]
+  conditions:
+    - type: Upgradeable
+      status: "True"
+    - type: Available
+      status: "True"
+# CVE advisory — RHSA-2026-1842
+# Affected component: openshift-apiserver
+# CVE: CVE-2026-3142 (CVSS 9.1 — unauthenticated API server privilege escalation via crafted PATCH request)
+# Fixed in: 4.15.8`,
   },
   cp4: {
     steps: [
@@ -1250,6 +1484,29 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — target reconciliation is rolling and non-destructive to workloads.',
     estimatedRecovery: '~2m',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — scrape target up status (openshift-monitoring)
+// Query: up{job=~"prometheus-k8s|alertmanager-main",namespace="openshift-monitoring"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "job": "prometheus-k8s",    "instance": "10.128.0.42:9090", "namespace": "openshift-monitoring" }, "value": [1745942000, "0"] },
+      { "metric": { "job": "prometheus-k8s",    "instance": "10.128.0.43:9090", "namespace": "openshift-monitoring" }, "value": [1745942000, "0"] },
+      { "metric": { "job": "alertmanager-main", "instance": "10.128.0.50:9093", "namespace": "openshift-monitoring" }, "value": [1745942000, "1"] }
+    ]
+  }
+}
+// ServiceMonitor TLS config — prometheus-k8s (kubectl get servicemonitor prometheus-k8s -n openshift-monitoring -o yaml)
+spec:
+  endpoints:
+    - port: web
+      scheme: https
+      tlsConfig:
+        caFile: /etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt
+        certFile: /etc/prometheus/secrets/prometheus-k8s-tls/tls.crt
+        keyFile: /etc/prometheus/secrets/prometheus-k8s-tls/tls.key
+        serverName: prometheus-k8s.openshift-monitoring.svc   # ← SAN mismatch after cert rotation`,
   },
   op2: {
     steps: [
@@ -1263,6 +1520,19 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — secret rotation is reversible and scoped to notification routing only.',
     estimatedRecovery: '~5m',
     confidence: 'High',
+    rawEvidence: `// Alertmanager delivery failure log (kubectl logs alertmanager-main-0 -n openshift-monitoring | tail -20)
+ts=2026-04-29T10:18:04.312Z caller=notify.go:732 level=error component=dispatcher msg="Error on notify" receiver=pagerduty timeout=10s err="pagerduty: unexpected status code 400: Invalid integration key"
+ts=2026-04-29T10:18:09.887Z caller=notify.go:732 level=error component=dispatcher msg="Error on notify" receiver=pagerduty timeout=10s err="pagerduty: unexpected status code 400: Invalid integration key"
+ts=2026-04-29T10:18:14.412Z caller=notify.go:732 level=error component=dispatcher msg="Error on notify" receiver=pagerduty timeout=10s err="pagerduty: unexpected status code 400: Invalid integration key"
+
+// Secret rotation audit — alertmanager-pagerduty (kubectl get secret alertmanager-pagerduty -n openshift-monitoring -o yaml)
+metadata:
+  name: alertmanager-pagerduty
+  namespace: openshift-monitoring
+  annotations:
+    last-rotated: "2026-03-18T00:00:00Z"   # ← 11 days past 30-day rotation window
+data:
+  pagerduty.integration-key: <redacted>     # expired token`,
   },
   op3: {
     steps: [
@@ -1276,6 +1546,20 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — PVC recovery may require brief metrics query degradation.',
     estimatedRecovery: '~15m',
     confidence: 'Medium',
+    rawEvidence: `// Thanos compactor log excerpt (kubectl logs thanos-compactor-0 -n openshift-monitoring | grep -i error | tail -15)
+ts=2026-04-29T11:05:02.108Z caller=compact.go:519 level=error msg="compaction failed" err="open /var/thanos/compact/data/01HX4K9RQVTM2N3P8W6Y0BZJA4/meta.json: no such file or directory"
+ts=2026-04-29T11:05:02.214Z caller=compact.go:519 level=error msg="compaction failed" err="unexpected end of JSON input at /var/thanos/compact/data/01HX4K9RQVTM2N3P8W6Y0BZJA4/chunks/000001"
+ts=2026-04-29T11:05:07.003Z caller=compact.go:519 level=error msg="halting compactor — block integrity check failed" ulid=01HX4K9RQVTM2N3P8W6Y0BZJA4
+
+// Prometheus metric — thanos compactor last run time
+// Query: thanos_compact_halted{job="thanos-compactor"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [{ "metric": { "job": "thanos-compactor", "namespace": "openshift-monitoring" }, "value": [1745942000, "1"] }]
+  }
+}`,
   },
   op4: {
     steps: [
@@ -1289,6 +1573,28 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — horizontal scale-out is rolling and reversible.',
     estimatedRecovery: '~4m',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — OpenTelemetry collector batch queue utilization
+// Query: otelcol_exporter_queue_size / otelcol_exporter_queue_capacity
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "pod": "otel-collector-0", "namespace": "opentelemetry-operator-system" }, "value": [1745942000, "0.98"] },
+      { "metric": { "pod": "otel-collector-1", "namespace": "opentelemetry-operator-system" }, "value": [1745942000, "0.97"] },
+      { "metric": { "pod": "otel-collector-2", "namespace": "opentelemetry-operator-system" }, "value": [1745942000, "0.96"] }
+    ]
+  }
+}
+// OpenTelemetryCollector resource spec (kubectl get opentelemetrycollector otel-collector -n opentelemetry-operator-system -o yaml)
+spec:
+  replicas: 3    # current
+  config: |
+    processors:
+      batch:
+        send_batch_size: 10000
+        timeout: 10s
+        send_batch_max_size: 0   # ← unlimited batch size causing memory pressure`,
   },
   op5: {
     steps: [
@@ -1302,6 +1608,18 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — clearing the lock requires a short Perses write-unavailable window.',
     estimatedRecovery: '~3m',
     confidence: 'High',
+    rawEvidence: `// Perses pod logs — storage lock error (kubectl logs perses-0 -n openshift-monitoring | grep -i lock | tail -10)
+2026-04-29T16:03:12Z ERR  unable to acquire SQLite WAL lock path=/var/lib/grafana/grafana.db-wal err="database is locked"
+2026-04-29T16:03:17Z ERR  unable to acquire SQLite WAL lock path=/var/lib/grafana/grafana.db-wal err="database is locked"
+2026-04-29T16:03:22Z ERR  write timeout on persistent volume — dashboards save disabled
+
+// PVC mount state (kubectl describe pvc perses-pvc -n openshift-monitoring | grep -A5 Events)
+Events:
+  Type    Reason              Age    From                         Message
+  Normal  SuccessfulAttach    48m    attachdetach-controller      Successfully attached volume "pvc-6b2e1d4f-3c7a-4e8f-b1d2-9a4c7e3f6b1d"
+// Lock file on volume:
+// kubectl exec -n openshift-monitoring perses-debug -- ls -lh /var/lib/grafana/grafana.db-wal
+// -rw-r--r-- 1 nobody nobody 32M Apr 29 15:54 /var/lib/grafana/grafana.db-wal   # ← stale from ungraceful eviction`,
   },
   // ─── New backend phase plans ─────────────────────────────────────────────────
   'acs-netpol-remediation-denied': {
@@ -1316,6 +1634,23 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — patch removes a privilege escalation risk. DNS validation required before apply.',
     estimatedRecovery: '~5m',
     confidence: 'High',
+    rawEvidence: `// ACS policy violation — JSON alert payload
+// roxctl central export alerts --severity HIGH --cluster prod-east-2 --deployment retail-checkout
+{
+  "policy": { "name": "P-2041", "severity": "HIGH_SEVERITY", "categories": ["Network Isolation"] },
+  "clusterId": "prod-east-2",
+  "namespace": "retail-prod",
+  "deployment": { "name": "retail-checkout", "type": "Deployment" },
+  "violations": [
+    { "message": "Container 'retail-checkout' uses hostNetwork: true, bypassing pod network namespace isolation" }
+  ],
+  "firstObserved": "2026-04-29T09:14:03Z"
+}
+// Deployment spec — retail-checkout (kubectl get deployment retail-checkout -n retail-prod -o yaml | grep hostNetwork -A2)
+spec:
+  template:
+    spec:
+      hostNetwork: true   # ← violates network isolation policy P-2041`,
   },
   'ingress-controller-escalated': {
     steps: [
@@ -1330,6 +1665,27 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — quota change affects other workloads in the namespace. Review before applying.',
     estimatedRecovery: '~10m after quota adjustment',
     confidence: 'High',
+    rawEvidence: `// Kubernetes events — ingress controller scale failure (kubectl get events -n openshift-ingress --sort-by=.lastTimestamp | tail -10)
+LAST SEEN   TYPE      REASON              OBJECT                                MESSAGE
+14m         Warning   FailedCreate        replicaset/router-default-7d8f9b      Error creating: pods "router-default-7d8f9b-" is forbidden: exceeded quota: default-quota, requested: pods=1, used: pods=10, limited: pods=10
+14m         Warning   FailedCreate        replicaset/router-default-7d8f9b      Error creating: pods "router-default-7d8f9b-" is forbidden: exceeded quota: default-quota, requested: pods=1, used: pods=10, limited: pods=10
+
+// ResourceQuota — openshift-ingress (kubectl get resourcequota -n openshift-ingress -o yaml)
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: default-quota
+  namespace: openshift-ingress
+spec:
+  hard:
+    pods: "10"           # ← hard ceiling reached; scale-out blocked
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+status:
+  used:
+    pods: "10"
+    requests.cpu: "3800m"
+    requests.memory: "7680Mi"`,
   },
   'prometheus-wal-emergency-stopped': {
     steps: [
@@ -1343,6 +1699,20 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'High — WAL repair during active writes risks metric data loss. Must be run offline.',
     estimatedRecovery: '~15m during maintenance window',
     confidence: 'Medium',
+    rawEvidence: `// Prometheus WAL corruption markers (kubectl exec -n openshift-monitoring prometheus-k8s-0 -- tsdb analyze /prometheus | head -20)
+Block Id    Min Time                Max Time                Duration    Num Samples  Num Series  Mint
+01HX3K8NQS  2026-04-28 22:00:00 UTC  2026-04-28 23:00:00 UTC  1h          1842920      12048
+01HX3KQVTM  CORRUPTED               CORRUPTED               —           —            —
+  └─ /prometheus/wal/00000014: unexpected EOF at offset 4096
+  └─ /prometheus/wal/00000015: checksum mismatch — expected 0x4f2b1a3d got 0x00000000
+01HX3KRFBN  2026-04-29 00:00:00 UTC  2026-04-29 01:00:00 UTC  1h          1924110      12341
+
+// PrometheusWALCorruptionDetected alert — raw Alertmanager payload
+{
+  "labels": { "alertname": "PrometheusWALCorruptionDetected", "namespace": "openshift-monitoring", "pod": "prometheus-k8s-0" },
+  "annotations": { "summary": "WAL corruption markers detected on prometheus-k8s-0", "runbook_url": "https://github.com/openshift-monitoring/runbooks/blob/main/alerts/PrometheusWALCorruptionDetected.md" },
+  "startsAt": "2026-04-29T02:07:15Z"
+}`,
   },
   'etcd-defrag-failed': {
     steps: [
@@ -1353,10 +1723,25 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     ],
     aggregatedFinding: 'etcd defragmentation executed across 3 control plane nodes but post-execution verification failed — fragmentation ratio remained at 0.67.',
     rootCauseNarrative: 'EtcdDatabaseHighFragmentationRatio fired after the fragmentation ratio exceeded 0.5 on all three control plane etcd members. Defragmentation was executed sequentially to minimize leader disruption, but the post-execution check found the fragmentation metric unchanged. The root cause is that the auto-compaction window (configured at 1h) had not run prior to execution, leaving large amounts of unreclaimed logical space that defrag alone cannot recover without a preceding compaction pass.',
-    remediationProposal: 'Trigger a manual etcd compaction before re-running defrag. Run `etcdctl compact <revision>` on the leader member, then re-execute the defragmentation plan during a low-write window.',
+    remediationProposal: 'Trigger a manual etcd compaction before re-running defrag. Run `etcdctl compact <revision>` on the leader member, then re-execute the defragmentation run during a low-write window.',
     riskAssessment: 'High — etcd fragmentation above 0.5 degrades API server write latency and can cause quota exhaustion if db-quota-backend-bytes is approached.',
-    estimatedRecovery: 'N/A — plan failed; requires manual compaction before retry',
+    estimatedRecovery: 'N/A — run failed; requires manual compaction before retry',
     confidence: 'Medium',
+    rawEvidence: `// etcd endpoint status — pre-defrag (etcdctl endpoint status --write-out=json)
+[
+  { "endpoint": "https://etcd-master-01:2381", "dbSize": 8808038400, "dbSizeInUse": 3354722304, "leader": true,  "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-02:2381", "dbSize": 8808038400, "dbSizeInUse": 3221225472, "leader": false, "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-03:2381", "dbSize": 8808038400, "dbSizeInUse": 3489660928, "leader": false, "raftTerm": 42 }
+]
+// Post-defrag verification — fragmentation unchanged (etcdctl endpoint status --write-out=json)
+[
+  { "endpoint": "https://etcd-master-01:2381", "dbSize": 8808038400, "dbSizeInUse": 3321888768, "leader": true,  "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-02:2381", "dbSize": 8808038400, "dbSizeInUse": 3221225472, "leader": false, "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-03:2381", "dbSize": 8808038400, "dbSizeInUse": 3506438144, "leader": false, "raftTerm": 42 }
+]
+// Root cause: compaction not run prior to defrag
+// etcdctl endpoint status --write-out=json | jq .[].Status.header.revision
+// 8423104   ← auto-compact set to 1h; last compaction was at revision 7891200 (>1h ago)`,
   },
   ...NEW_ALERT_INVESTIGATION_DRAWER_DATA,
 };
@@ -1615,7 +2000,7 @@ Exit code: 0 — Execution succeeded.`,
   },
   'etcd-defrag-failed': {
     type: 'failure',
-    failureReason: 'etcd defragmentation executed across etcd-master-01, etcd-master-02, and etcd-master-03, but post-execution verification failed. The fragmentation ratio remained at 0.67 — unchanged from the pre-execution baseline. The auto-compaction window had not completed prior to defrag execution, leaving logical space unreclaimed. Defragmentation cannot recover space that has not been compacted. Manual compaction of the etcd revision history is required before re-executing this plan.',
+    failureReason: 'etcd defragmentation executed across etcd-master-01, etcd-master-02, and etcd-master-03, but post-execution verification failed. The fragmentation ratio remained at 0.67 — unchanged from the pre-execution baseline. The auto-compaction window had not completed prior to defrag execution, leaving logical space unreclaimed. Defragmentation cannot recover space that has not been compacted. Manual compaction of the etcd revision history is required before re-executing this run.',
     failureTrace:
 `[09:14:38 UTC] Executing etcd defrag on etcd-master-01
 $ etcdctl defrag --endpoints=https://etcd-master-01:2379
@@ -1662,7 +2047,7 @@ Exit code: 1`,
 [09:15:08 UTC] VERIFICATION FAILED: fragmentation above threshold on all 3 members.
 [09:15:09 UTC] Root cause: auto-compaction did not complete before defrag; logical space unreclaimed.
 [09:15:09 UTC] No rollback performed — defrag commands are non-destructive.
-[09:15:09 UTC] Recommendation: run etcdctl compact <latest-revision> then re-execute this plan.
+[09:15:09 UTC] Recommendation: run etcdctl compact <latest-revision> then re-execute this run.
 Exit code: 1 — Verification failed.`,
   },
 };
@@ -1850,7 +2235,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
       status === 'EmergencyStopped'
         ? `Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`
         : `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
-    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Plan aborted';
+    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Run aborted';
     return (
       <Tooltip content={tooltipContent} position="top">
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
@@ -2779,52 +3164,118 @@ const PostMortemPanel: React.FC<{
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
             {/* Collapsible metrics toggle */}
-            <Button
-              variant="link"
-              isInline
-              onClick={() => onToggleMetrics!(!isMetricsExpanded)}
-              icon={
-                <AngleRightIcon
-                  style={{
-                    transform: isMetricsExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                    transition: 'transform 150ms ease',
-                  }}
-                />
-              }
-              style={{ padding: 0, fontSize: '14px', marginBottom: isMetricsExpanded ? 'var(--pf-t--global--spacer--sm)' : 0 }}
+            <ExpandableSection
+              toggleText={isMetricsExpanded ? 'Hide execution summary' : 'View execution summary'}
+              isExpanded={isMetricsExpanded}
+              onToggle={(_e, expanded) => onToggleMetrics!(expanded)}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
             >
-                  {isMetricsExpanded ? 'Hide execution summary' : 'View execution summary'}
-            </Button>
-
-            {/* Collapsible metrics content (Sections A, B, C) */}
-            {isMetricsExpanded && (
-              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                {metricsBlock}
-              </div>
-            )}
+              {metricsBlock}
+            </ExpandableSection>
 
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
             {/* Logs — collapsible with category selector and search */}
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <Button
-                variant="link"
-                isInline
-                onClick={() => toggleLogs(!showLogs)}
-                icon={
-                  <AngleRightIcon
-                    style={{
-                      transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
-                      transition: 'transform 150ms ease',
-                    }}
-                  />
-                }
-                style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
+            <ExpandableSection
+              toggleText={showLogs ? 'Hide logs' : 'View logs'}
+              isExpanded={showLogs}
+              onToggle={(_e, expanded) => toggleLogs(expanded)}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                  <FlexItem>
+                    <Dropdown
+                      isOpen={isLogCatOpen}
+                      onOpenChange={setIsLogCatOpen}
+                      onSelect={(_e, val) => {
+                        setLogCategory(val as 'execution' | 'verification');
+                        setIsLogCatOpen(false);
+                      }}
+                      toggle={(ref) => (
+                        <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
+                          {logCategory === 'execution' ? 'Execution' : 'Verification'}
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        <DropdownItem value="execution">Execution logs</DropdownItem>
+                        <DropdownItem value="verification">Verification logs</DropdownItem>
+                      </DropdownList>
+                    </Dropdown>
+                  </FlexItem>
+                  <FlexItem grow={{ default: 'grow' }}>
+                    <SearchInput
+                      value={logQuery}
+                      onChange={(_e, val) => setLogQuery(val)}
+                      onClear={() => setLogQuery('')}
+                      placeholder="Search logs..."
+                    />
+                  </FlexItem>
+                </Flex>
+                {(() => {
+                  const raw = logCategory === 'execution'
+                    ? (postMortem.rawLog ?? '')
+                    : generateVerificationLogs(plan.id);
+                  const displayed = logQuery.trim()
+                    ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
+                    : raw;
+                  return (
+                    <ClipboardCopy
+                      variant={ClipboardCopyVariant.expansion}
+                      isReadOnly
+                      isCode
+                      style={{
+                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        fontSize: '12px',
+                        maxHeight: '280px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {displayed}
+                    </ClipboardCopy>
+                  );
+                })()}
+              </div>
+            </ExpandableSection>
+          </>
+        ) : (
+          /* ── Terminal drawer view: bordered card ── */
+          <div
+            style={{
+              borderRadius: '16px',
+              border: '1px solid var(--pf-t--global--color--status--success--default)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
-                {showLogs ? 'Hide logs' : 'View logs'}
-              </Button>
-              {showLogs && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                {status === 'Failed'
+                  ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
+                  : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
+                }
+                <Title headingLevel="h5" size="md">Execution summary</Title>
+                <Label color="grey" isCompact>AI-generated</Label>
+              </Flex>
+
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
+
+              {metricsBlock}
+
+              <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
+
+              {/* Logs */}
+              <ExpandableSection
+                toggleText={showLogs ? 'Hide logs' : 'View logs'}
+                isExpanded={showLogs}
+                onToggle={(_e, expanded) => toggleLogs(expanded)}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
                   <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                     <FlexItem>
                       <Dropdown
@@ -2867,116 +3318,19 @@ const PostMortemPanel: React.FC<{
                         variant={ClipboardCopyVariant.expansion}
                         isReadOnly
                         isCode
-                        style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                        style={{
+                          fontFamily: 'var(--pf-t--global--font--family--mono)',
+                          fontSize: '12px',
+                          maxHeight: '280px',
+                          overflowY: 'auto',
+                        }}
                       >
                         {displayed}
                       </ClipboardCopy>
                     );
                   })()}
                 </div>
-              )}
-            </div>
-          </>
-        ) : (
-          /* ── Terminal drawer view: bordered card ── */
-          <div
-            style={{
-              borderRadius: '16px',
-              border: '1px solid var(--pf-t--global--color--status--success--default)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                {status === 'Failed'
-                  ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
-                  : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
-                }
-                <Title headingLevel="h5" size="md">Execution summary</Title>
-                <Label color="grey" isCompact>AI-generated</Label>
-              </Flex>
-
-              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-
-              {metricsBlock}
-
-              <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
-
-              {/* Logs */}
-              <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                <Button
-                  variant="link"
-                  isInline
-                  onClick={() => toggleLogs(!showLogs)}
-                  icon={
-                    <AngleRightIcon
-                      style={{
-                        transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
-                        transition: 'transform 150ms ease',
-                      }}
-                    />
-                  }
-                  style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
-                >
-                  {showLogs ? 'Hide logs' : 'View logs'}
-                </Button>
-                {showLogs && (
-                  <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                    <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                      <FlexItem>
-                        <Dropdown
-                          isOpen={isLogCatOpen}
-                          onOpenChange={setIsLogCatOpen}
-                          onSelect={(_e, val) => {
-                            setLogCategory(val as 'execution' | 'verification');
-                            setIsLogCatOpen(false);
-                          }}
-                          toggle={(ref) => (
-                            <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
-                              {logCategory === 'execution' ? 'Execution' : 'Verification'}
-                            </MenuToggle>
-                          )}
-                        >
-                          <DropdownList>
-                            <DropdownItem value="execution">Execution logs</DropdownItem>
-                            <DropdownItem value="verification">Verification logs</DropdownItem>
-                          </DropdownList>
-                        </Dropdown>
-                      </FlexItem>
-                      <FlexItem grow={{ default: 'grow' }}>
-                        <SearchInput
-                          value={logQuery}
-                          onChange={(_e, val) => setLogQuery(val)}
-                          onClear={() => setLogQuery('')}
-                          placeholder="Search logs..."
-                        />
-                      </FlexItem>
-                    </Flex>
-                    {(() => {
-                      const raw = logCategory === 'execution'
-                        ? (postMortem.rawLog ?? '')
-                        : generateVerificationLogs(plan.id);
-                      const displayed = logQuery.trim()
-                        ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
-                        : raw;
-                      return (
-                        <ClipboardCopy
-                          variant={ClipboardCopyVariant.expansion}
-                          isReadOnly
-                          isCode
-                          style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                        >
-                          {displayed}
-                        </ClipboardCopy>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
+              </ExpandableSection>
             </div>
           </div>
         )}
@@ -3015,24 +3369,13 @@ const PostMortemPanel: React.FC<{
 
         {/* ── Logs (traces + execution) ── */}
         <StackItem>
-          <Button
-            variant="link"
-            isInline
-            onClick={() => toggleLogs(!showLogs)}
-            icon={
-              <AngleRightIcon
-                style={{
-                  transform: showLogs ? 'rotate(90deg)' : 'rotate(0deg)',
-                  transition: 'transform 150ms ease',
-                }}
-              />
-            }
-            style={{ padding: 0, fontSize: '14px', marginBottom: showLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}
+          <ExpandableSection
+            toggleText={showLogs ? 'Hide logs' : 'View logs'}
+            isExpanded={showLogs}
+            onToggle={(_e, expanded) => toggleLogs(expanded)}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
           >
-            {showLogs ? 'Hide logs' : 'View logs'}
-          </Button>
-          {showLogs && (
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
               <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                 <FlexItem>
                   <Dropdown
@@ -3075,14 +3418,19 @@ const PostMortemPanel: React.FC<{
                     variant={ClipboardCopyVariant.expansion}
                     isReadOnly
                     isCode
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                    style={{
+                      fontFamily: 'var(--pf-t--global--font--family--mono)',
+                      fontSize: '12px',
+                      maxHeight: '280px',
+                      overflowY: 'auto',
+                    }}
                   >
                     {displayed}
                   </ClipboardCopy>
                 );
               })()}
             </div>
-          )}
+          </ExpandableSection>
         </StackItem>
       </Stack>
     </div>
@@ -3197,7 +3545,7 @@ const ESCALATED_PLAN_PLAYBOOKS: Record<string, { title: string; command: string 
 };
 
 const DEFAULT_ESCALATION_PLAYBOOK = {
-  title: 'Review escalated plan and apply manual remediation',
+  title: 'Review escalated run and apply manual remediation',
   command: 'oc describe proposal <plan-name> -n openshift-lightspeed',
 };
 
@@ -3287,6 +3635,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
+  const [isRawEvidenceExpanded, setIsRawEvidenceExpanded] = useState(false);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -3299,6 +3648,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
     setIsStopExecutionModalOpen(false);
+    setIsRawEvidenceExpanded(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -3468,7 +3818,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                   className="ols-aio-text-subtle-sm"
                   style={{ margin: 0, fontStyle: 'italic' }}
                 >
-                  Root cause analysis unavailable — this plan has been escalated to a human operator.
+                  Root cause analysis unavailable — this run has been escalated to a human operator.
                 </Content>
               </Flex>
               <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -3491,53 +3841,72 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               {drawer!.rootCauseNarrative}
             </Content>
 
+            {drawer!.rawEvidence && (
+              <ExpandableSection
+                toggleText={isRawEvidenceExpanded ? 'Hide raw evidence' : 'View raw evidence'}
+                isExpanded={isRawEvidenceExpanded}
+                onToggle={(_e, expanded) => setIsRawEvidenceExpanded(expanded)}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                <ClipboardCopy
+                  variant={ClipboardCopyVariant.expansion}
+                  isReadOnly
+                  isCode
+                  style={{
+                    fontFamily: 'var(--pf-t--global--font--family--mono)',
+                    fontSize: '12px',
+                    maxHeight: '280px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {drawer!.rawEvidence}
+                </ClipboardCopy>
+              </ExpandableSection>
+            )}
+
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
-            {/* View analysis logs toggle */}
-            <div style={{ marginBottom: showAnalysisLogs ? 'var(--pf-t--global--spacer--xs)' : 0 }}>
-              <Button
-                variant="link"
-                isInline
-                onClick={() => setShowAnalysisLogs(!showAnalysisLogs)}
-                icon={
-                  <AngleRightIcon
-                    style={{
-                      transform: showAnalysisLogs ? 'rotate(90deg)' : 'rotate(0deg)',
-                      transition: 'transform 150ms ease',
-                    }}
-                  />
-                }
-                style={{ padding: 0, fontSize: '14px' }}
-              >
-                {showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
-              </Button>
-            </div>
-
-            {showAnalysisLogs && (() => {
-              const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
-              const displayLogs = analysisLogsQuery.trim()
-                ? rawLogs.split('\n').filter(l => l.toLowerCase().includes(analysisLogsQuery.toLowerCase())).join('\n')
-                : rawLogs;
-              return (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                  <SearchInput
-                    value={analysisLogsQuery}
-                    onChange={(_evt, val) => setAnalysisLogsQuery(val)}
-                    onClear={() => setAnalysisLogsQuery('')}
-                    placeholder="Search logs..."
-                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                  />
-                  <ClipboardCopy
-                    variant={ClipboardCopyVariant.expansion}
-                    isReadOnly
-                    isCode
-                    style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-                  >
-                    {displayLogs}
-                  </ClipboardCopy>
-                </div>
-              );
-            })()}
+            {/* View analysis logs */}
+            <ExpandableSection
+              toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
+              isExpanded={showAnalysisLogs}
+              onToggle={(_e, expanded) => {
+                setShowAnalysisLogs(expanded);
+                if (!expanded) setAnalysisLogsQuery('');
+              }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              {(() => {
+                const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
+                const displayLogs = analysisLogsQuery.trim()
+                  ? rawLogs.split('\n').filter(l => l.toLowerCase().includes(analysisLogsQuery.toLowerCase())).join('\n')
+                  : rawLogs;
+                return (
+                  <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                    <SearchInput
+                      value={analysisLogsQuery}
+                      onChange={(_evt, val) => setAnalysisLogsQuery(val)}
+                      onClear={() => setAnalysisLogsQuery('')}
+                      placeholder="Search logs..."
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                    />
+                    <ClipboardCopy
+                      variant={ClipboardCopyVariant.expansion}
+                      isReadOnly
+                      isCode
+                      style={{
+                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        fontSize: '12px',
+                        maxHeight: '280px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {displayLogs}
+                    </ClipboardCopy>
+                  </div>
+                );
+              })()}
+            </ExpandableSection>
 
           </div>
           )}
@@ -3558,7 +3927,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             >
               <Content component="p" style={{ margin: 0 }}>
                 This cluster update controller proposal gathered structured health data only. No remediation
-                options were generated — acknowledge after review to clear it from your active plans list.
+                options were generated — acknowledge after review to clear it from your active runs list.
               </Content>
             </Alert>
             {isAcknowledged ? (
@@ -3663,7 +4032,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 className="ols-aio-text-subtle-sm"
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
               >
-                Remediation options are unavailable while escalation is active. This plan has been
+                Remediation options are unavailable while escalation is active. This run has been
                 forwarded to a human operator for manual intervention.
               </Content>
               <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -3891,19 +4260,25 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                     You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
                     <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
                   </Content>
-                  <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.{' '}
-                    <InfoCircleIcon
-                      style={{
-                        color: 'var(--pf-t--global--icon--color--status--info--default)',
-                        marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
-                        verticalAlign: 'middle',
-                        flexShrink: 0,
-                      }}
-                      aria-hidden
-                    />
-                    Always review AI-generated content prior to use.
+                  <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.
                   </Content>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                    <FlexItem>
+                      <InfoCircleIcon
+                        style={{
+                          color: 'var(--pf-t--global--icon--color--status--info--default)',
+                          fontSize: '12px',
+                        }}
+                        aria-hidden
+                      />
+                    </FlexItem>
+                    <FlexItem>
+                      <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', margin: 0 }}>
+                        Always review AI-generated content prior to use.
+                      </Content>
+                    </FlexItem>
+                  </Flex>
                 </ModalBody>
                 <ModalFooter>
                   <Button
@@ -3942,7 +4317,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           >
             <ModalHeader title="Stop execution?" labelId="stop-plan-execution-title" />
             <ModalBody>
-              This will halt the execution plan. This may result in partial execution. You may need to manually
+              This will halt the execution run. This may result in partial execution. You may need to manually
               complete or undo any partial changes.
             </ModalBody>
             <ModalFooter>
@@ -3977,7 +4352,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           >
             <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
             <ModalBody>
-              This halts root cause investigation for this plan. Partial findings are preserved but no
+              This halts root cause investigation for this run. Partial findings are preserved but no
               remediation options will be synthesized.
             </ModalBody>
             <ModalFooter>

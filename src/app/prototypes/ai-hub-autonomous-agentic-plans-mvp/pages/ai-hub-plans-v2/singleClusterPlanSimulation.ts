@@ -277,6 +277,12 @@ export interface PlanDrawerData {
   riskAssessment: string;
   estimatedRecovery: string;
   confidence: ConfidenceTier;
+  /**
+   * Raw JSON / YAML / Prometheus metric snippet that drove the AI diagnosis.
+   * When present, a "View raw evidence" expandable section is rendered inside
+   * the RCA block and the execute-remediation confirmation modal.
+   */
+  rawEvidence?: string;
 }
 
 /** Full drawer narratives for Core platforms — replaces fleet-wide language. */
@@ -294,6 +300,32 @@ export const SC_PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — GitOps rollback is reversible and limited to this cluster.',
     estimatedRecovery: '~45s',
     confidence: 'High',
+    rawEvidence: `# Argo CD Application — payments-prod (revision r4892)
+# kubectl get application payments-prod -n openshift-gitops -o yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-prod
+  namespace: openshift-gitops
+  resourceVersion: "4892"
+spec:
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  source:
+    repoURL: https://github.com/redhat-openshift/gitops-policies
+    targetRevision: r4892   # ← malformed Kustomize overlay introduced here
+    path: overlays/prod/payments
+status:
+  conditions:
+    - type: SyncError
+      message: "NetworkPolicy deny-all-ingress conflicts with openshift-ingress allow rule — router traffic blocked for retail-prod and logistics-prod"
+  health:
+    status: Degraded
+  sync:
+    status: OutOfSync`,
   },
   tp2: {
     steps: [
@@ -308,6 +340,31 @@ export const SC_PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — isolation will evict pods in payments-prod, causing brief checkout disruption.',
     estimatedRecovery: '~3m',
     confidence: 'Medium',
+    rawEvidence: `// ACS alert payload — KernelModuleLoad (Falco rule: kernel_module_load_detected)
+// roxctl central export alerts --severity CRITICAL --cluster prod-east-2
+{
+  "alertName": "KernelModuleLoad",
+  "severity": "CRITICAL_SEVERITY",
+  "clusterId": "prod-east-2",
+  "firstObserved": "2026-04-29T09:47:03Z",
+  "violations": [
+    {
+      "podName": "payment-api-7d9b4c8f6-xk2qt",
+      "namespace": "payments-prod",
+      "image": {
+        "name": "quay.io/payments/api",
+        "digest": "sha256:a3f1b9d4e8c2f0d3a7b1e5c9f4d6a2b8e3c7f1d0a4b9e6c2f8d5a3b7e1c4f9d2"
+      },
+      "syscalls": ["init_module", "finit_module"],
+      "egressConnection": { "dst": "104.21.x.x", "port": 443, "protocol": "TCP" },
+      "falcoRule": "kernel_module_load_detected",
+      "cveMatch": "CVE-2024-1086"
+    }
+  ],
+  "processActivity": [
+    { "pid": 3814, "name": "insmod", "args": ["rootkit.ko"], "uid": 0 }
+  ]
+}`,
   },
   tp3: {
     steps: [
@@ -322,6 +379,40 @@ export const SC_PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — rolling resource adjustments on this cluster.',
     estimatedRecovery: '~90s',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — container memory usage vs. configured limits (prod-east-2)
+// container_memory_usage_bytes{namespace="payments-prod",container=~"payment-api|payment-worker"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "matrix",
+    "result": [
+      {
+        "metric": { "pod": "payment-api-7d6f9b-xk9tz", "container": "payment-api", "namespace": "payments-prod" },
+        "values": [
+          [1745931200, "524288000"],
+          [1745934800, "697532416"],
+          [1745938400, "851345408"],
+          [1745942000, "964689920"]
+        ]
+      },
+      {
+        "metric": { "pod": "payment-worker-5c4b8d-qr7vw", "container": "payment-worker", "namespace": "payments-prod" },
+        "values": [
+          [1745931200, "268435456"],
+          [1745934800, "356515840"],
+          [1745938400, "481036288"],
+          [1745942000, "536870912"]
+        ]
+      }
+    ]
+  }
+}
+// Deployment resource spec — payment-api (at time of alert)
+// kubectl get deployment payment-api -n payments-prod -o jsonpath='{.spec.template.spec.containers[0].resources}'
+{
+  "limits":   { "memory": "512Mi", "cpu": "500m" },
+  "requests": { "memory": "256Mi", "cpu": "250m" }
+}`,
   },
   tp4: {
     steps: [
@@ -336,6 +427,25 @@ export const SC_PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — OSD expansion requires brief I/O suspension on prod-east-2.',
     estimatedRecovery: '~2m',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — Ceph pool utilization (prod-east-2)
+// ceph_pool_percent_used{pool="ocs-storagecluster-ceph-rbd",cluster="prod-east-2"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "pool": "ocs-storagecluster-ceph-rbd", "cluster": "prod-east-2" }, "value": [1745942000, "0.83"] }
+    ]
+  }
+}
+// PersistentVolumeClaim — openshift-storage (kubectl get pvc -n openshift-storage)
+[
+  { "name": "data-ocs-storagecluster-ceph-rbd-0", "status": "Bound", "capacity": "500Gi", "usedBytes": 415000000000 },
+  { "name": "data-ocs-storagecluster-ceph-rbd-1", "status": "Bound", "capacity": "500Gi", "usedBytes": 405000000000 }
+]
+// StatefulSet log emission — no logrotate configured
+// kubectl exec -n openshift-storage analytics-datastore-0 -- du -sh /var/log/app
+// 38G   /var/log/app  (growing at ~9.5GB/hour)`,
   },
   tp5: {
     steps: [
@@ -350,6 +460,25 @@ export const SC_PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — supported operational procedure on this cluster.',
     estimatedRecovery: '~45s',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — etcd fragmentation ratio (prod-east-2)
+// 1 - (etcd_db_total_size_in_use_in_bytes / etcd_db_total_size_in_bytes)
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "job": "etcd", "instance": "etcd-master-01:2381" }, "value": [1745942000, "0.68"] },
+      { "metric": { "job": "etcd", "instance": "etcd-master-02:2381" }, "value": [1745942000, "0.71"] },
+      { "metric": { "job": "etcd", "instance": "etcd-master-03:2381" }, "value": [1745942000, "0.65"] }
+    ]
+  }
+}
+// etcd endpoint status — prod-east-2 (etcdctl endpoint status --write-out=json)
+[
+  { "endpoint": "https://etcd-master-01:2381", "dbSize": 8589934592, "dbSizeInUse": 2752512000, "leader": true,  "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-02:2381", "dbSize": 8589934592, "dbSizeInUse": 2490368000, "leader": false, "raftTerm": 42 },
+  { "endpoint": "https://etcd-master-03:2381", "dbSize": 8589934592, "dbSizeInUse": 3006478336, "leader": false, "raftTerm": 42 }
+]`,
   },
   ap1: {
     steps: [
@@ -403,6 +532,34 @@ export const SC_PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'TBD — investigation active on this cluster.',
     estimatedRecovery: 'TBD',
     confidence: 'Medium',
+    rawEvidence: `// Prometheus query — CoreDNS P99 lookup latency (prod-east-2, last 15 min)
+// histogram_quantile(0.99, rate(coredns_dns_request_duration_seconds_bucket{cluster="prod-east-2"}[5m]))
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "cluster": "prod-east-2", "pod": "dns-default-7d4b9f-lm2qp", "server": ":53" }, "value": [1745942000, "0.234"] }
+    ]
+  }
+}
+// CoreDNS ConfigMap diff — openshift-dns/dns-default (change at 15:09:42 UTC)
+// kubectl diff -f dns-default-configmap.yaml
+---
+ .:53 {
+   errors
+   health
+   ready
+   kubernetes cluster.local in-addr.arpa ip6.arpa {
+     pods insecure
+     fallthrough in-addr.arpa ip6.arpa
+     ttl 30
+   }
+-  cache 30
++  cache 0   # ← cache TTL zeroed, causing resolver cache thrash
+   reload
+   loadbalance
+ }`,
   },
   ap5: {
     steps: [
