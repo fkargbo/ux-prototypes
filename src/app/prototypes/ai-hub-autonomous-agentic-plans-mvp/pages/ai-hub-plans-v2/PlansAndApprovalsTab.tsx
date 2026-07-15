@@ -3636,7 +3636,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
   const [isRawEvidenceExpanded, setIsRawEvidenceExpanded] = useState(false);
-  const [isModalRawEvidenceExpanded, setIsModalRawEvidenceExpanded] = useState(false);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -3650,7 +3649,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
     setAnalysisLogsQuery('');
     setIsStopExecutionModalOpen(false);
     setIsRawEvidenceExpanded(false);
-    setIsModalRawEvidenceExpanded(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -4262,28 +4260,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                     You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
                     <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
                   </Content>
-                  {drawer?.rawEvidence && (
-                    <ExpandableSection
-                      toggleText={isModalRawEvidenceExpanded ? 'Hide raw evidence' : 'View raw evidence'}
-                      isExpanded={isModalRawEvidenceExpanded}
-                      onToggle={(_e, expanded) => setIsModalRawEvidenceExpanded(expanded)}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                    >
-                      <ClipboardCopy
-                        variant={ClipboardCopyVariant.expansion}
-                        isReadOnly
-                        isCode
-                        style={{
-                          fontFamily: 'var(--pf-t--global--font--family--mono)',
-                          fontSize: '12px',
-                          maxHeight: '200px',
-                          overflowY: 'auto',
-                        }}
-                      >
-                        {drawer.rawEvidence}
-                      </ClipboardCopy>
-                    </ExpandableSection>
-                  )}
                   <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                     OpenShift Lightspeed uses AI technology to help generate this remediation plan.{' '}
                     <InfoCircleIcon
