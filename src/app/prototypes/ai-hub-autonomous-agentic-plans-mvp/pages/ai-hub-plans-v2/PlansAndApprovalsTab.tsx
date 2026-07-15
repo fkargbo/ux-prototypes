@@ -1921,9 +1921,9 @@ const OpenShiftResourceBadge: React.FC<{ label: string; backgroundColor: string 
   </span>
 );
 
-/** OpenShift console–style resource label for Plan resources. */
+/** OpenShift console–style resource label for Agentic Run resources. */
 export const PlanResourceBadge: React.FC = () => (
-  <OpenShiftResourceBadge label="P" backgroundColor="#2b9af3" />
+  <OpenShiftResourceBadge label="AR" backgroundColor="#2b9af3" />
 );
 
 const NamespaceResourceBadge: React.FC = () => (
