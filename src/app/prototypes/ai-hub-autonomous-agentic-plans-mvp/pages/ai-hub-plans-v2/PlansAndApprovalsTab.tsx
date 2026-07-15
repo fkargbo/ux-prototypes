@@ -3913,6 +3913,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 setShowAnalysisLogs(expanded);
                 if (!expanded) setAnalysisLogsQuery('');
               }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
             >
               {(() => {
                 const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
@@ -3920,7 +3921,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                   ? rawLogs.split('\n').filter(l => l.toLowerCase().includes(analysisLogsQuery.toLowerCase())).join('\n')
                   : rawLogs;
                 return (
-                  <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                  <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
                     <SearchInput
                       value={analysisLogsQuery}
                       onChange={(_evt, val) => setAnalysisLogsQuery(val)}
@@ -3932,7 +3933,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                       variant={ClipboardCopyVariant.expansion}
                       isReadOnly
                       isCode
-                      style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+                      style={{
+                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        fontSize: '12px',
+                        maxHeight: '280px',
+                        overflowY: 'auto',
+                      }}
                     >
                       {displayLogs}
                     </ClipboardCopy>
