@@ -51,16 +51,16 @@ export const TroubleshootingPlanDetail: React.FC = () => {
         <div className="create-policy-breadcrumb">
           <Breadcrumb>
             <BreadcrumbItem component="button" onClick={() => navigate(TROUBLESHOOTING_PLANS_LIST_PATH)}>
-              Troubleshooting plans
+              Agentic runs
             </BreadcrumbItem>
-            <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
+            <BreadcrumbItem isActive>Run details</BreadcrumbItem>
           </Breadcrumb>
         </div>
         <div style={{ padding: '24px', boxSizing: 'border-box' }}>
           <Content component="p">
-            This troubleshooting plan could not be found.{' '}
+            This agentic run could not be found.{' '}
             <Button variant="link" isInline onClick={() => navigate(TROUBLESHOOTING_PLANS_LIST_PATH)}>
-              Return to troubleshooting plans
+              Return to agentic runs
             </Button>
           </Content>
         </div>
@@ -73,9 +73,9 @@ export const TroubleshootingPlanDetail: React.FC = () => {
       <div className="create-policy-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem component="button" onClick={() => navigate(TROUBLESHOOTING_PLANS_LIST_PATH)}>
-            Troubleshooting plans
+            Agentic runs
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
+          <BreadcrumbItem isActive>Run details</BreadcrumbItem>
         </Breadcrumb>
       </div>
 

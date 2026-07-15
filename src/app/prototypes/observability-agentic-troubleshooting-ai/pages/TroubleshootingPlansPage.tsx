@@ -29,10 +29,10 @@ export const TroubleshootingPlansPage: React.FC = () => {
             <AiExperienceIcon size={40} />
             <div className="ols-ai-hub-page-header-copy">
               <Title headingLevel="h1" size="2xl">
-                Troubleshooting plans
+                Agentic runs
               </Title>
               <Content component="p" className="ols-ai-hub-page-subtitle">
-                Observability-triggered remediation plans generated from firing platform monitoring alerts —
+                Observability-triggered agentic runs generated from firing platform monitoring alerts —
                 scoped to signal correlation, alert root cause, and targeted recovery actions.
               </Content>
               <Content
@@ -50,18 +50,18 @@ export const TroubleshootingPlansPage: React.FC = () => {
       <div
         id="ols-troubleshooting-plans-main"
         role="main"
-        aria-label="Troubleshooting plans content"
+        aria-label="Agentic runs content"
         style={{ padding: '24px', boxSizing: 'border-box' }}
       >
         {plans.length === 0 ? (
           <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            No troubleshooting plans yet. Start an investigation from an alert in Alerting.
+            No agentic runs yet. Start an investigation from an alert in Alerting.
           </Content>
         ) : (
-          <Table aria-label="Troubleshooting plans" variant="compact">
+          <Table aria-label="Agentic runs" variant="compact">
             <Thead>
               <Tr>
-                <Th>Plan summary</Th>
+                <Th>Run summary</Th>
                 <Th>Blast radius</Th>
                 <Th>Consolidation scope</Th>
                 <Th>Status</Th>
@@ -71,7 +71,7 @@ export const TroubleshootingPlansPage: React.FC = () => {
             <Tbody>
               {plans.map((plan) => (
                 <Tr key={plan.id}>
-                  <Td dataLabel="Plan summary">{plan.synopsis}</Td>
+                  <Td dataLabel="Run summary">{plan.synopsis}</Td>
                   <Td dataLabel="Blast radius">{plan.blastRadius}</Td>
                   <Td dataLabel="Consolidation scope">{plan.consolidationScope}</Td>
                   <Td dataLabel="Status">
@@ -86,7 +86,7 @@ export const TroubleshootingPlansPage: React.FC = () => {
                         navigate(getTroubleshootingPlanDetailHref(plan.id, isSingleCluster), { state: { plan } });
                       }}
                     >
-                      View plan details
+                      View run details
                     </Button>
                   </Td>
                 </Tr>

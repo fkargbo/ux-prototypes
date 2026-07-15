@@ -89,13 +89,13 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/troubleshooting-plans/:planId',
     element: <TroubleshootingPlanDetail />,
-    title: 'Troubleshooting plan detail',
+    title: 'Agentic run details',
   },
   {
     path: '/core/observe/troubleshooting-plans',
     element: <TroubleshootingPlansPage />,
-    label: 'Troubleshooting plans',
-    title: 'Troubleshooting plans',
+    label: 'Agentic runs',
+    title: 'Agentic runs',
     navigation: {
       group: 'Observe',
       order: 3,
