@@ -22,6 +22,7 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
+  ExpandableSection,
   Flex,
   FlexItem,
   Label,
@@ -925,6 +926,12 @@ interface PlanDrawerData {
   riskAssessment: string;
   estimatedRecovery: string;
   confidence: ConfidenceTier;
+  /**
+   * Raw JSON / YAML / Prometheus metric snippet that drove the AI diagnosis.
+   * When present, a "View raw evidence" expandable section is rendered inside
+   * the RCA block and the execute-remediation confirmation modal.
+   */
+  rawEvidence?: string;
 }
 
 const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
@@ -942,6 +949,39 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — GitOps rollback is reversible and non-destructive.',
     estimatedRecovery: '~45s',
     confidence: 'High',
+    rawEvidence: `# ArgoCD ApplicationSet — cluster-gitops-policies (revision r4892)
+# Fetched via: kubectl get applicationset cluster-gitops-policies -n openshift-gitops -o yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-gitops-policies
+  namespace: openshift-gitops
+  resourceVersion: "4892"
+spec:
+  generators:
+    - clusterDecisionResource:
+        configMapRef: argocd-application-controller
+        labelSelector:
+          matchLabels:
+            env: production
+  template:
+    metadata:
+      name: "{{name}}-policies"
+    spec:
+      project: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+      source:
+        repoURL: https://github.com/redhat-openshift/gitops-policies
+        targetRevision: r4892   # ← malformed Kustomize overlay introduced here
+        path: overlays/prod/{{name}}
+status:
+  conditions:
+    - type: ResourcesUpToDate
+      status: "False"
+      message: "4 of 4 applications out of sync — NetworkPolicy deny-all-ingress conflicts with openshift-ingress allow rule"`,
   },
   tp2: {
     steps: [
@@ -956,6 +996,31 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — isolation will require pod eviction, causing brief service disruption.',
     estimatedRecovery: '~3m',
     confidence: 'Medium',
+    rawEvidence: `// ACS alert payload — KernelModuleLoad (Falco rule: kernel_module_load_detected)
+// Fetched via: roxctl central export alerts --severity CRITICAL --cluster prod-east-2
+{
+  "alertName": "KernelModuleLoad",
+  "severity": "CRITICAL_SEVERITY",
+  "clusterId": "prod-east-2",
+  "firstObserved": "2026-04-29T09:47:03Z",
+  "violations": [
+    {
+      "podName": "analytics-worker-7d9b4c8f6-xk2qt",
+      "namespace": "analytics",
+      "image": {
+        "name": "quay.io/analytics/worker",
+        "digest": "sha256:a3f1b9d4e8c2f0d3a7b1e5c9f4d6a2b8e3c7f1d0a4b9e6c2f8d5a3b7e1c4f9d2"
+      },
+      "syscalls": ["init_module", "finit_module"],
+      "egressConnection": { "dst": "104.21.x.x", "port": 443, "protocol": "TCP" },
+      "falcoRule": "kernel_module_load_detected",
+      "cveMatch": "CVE-2024-1086"
+    }
+  ],
+  "processActivity": [
+    { "pid": 3814, "name": "insmod", "args": ["rootkit.ko"], "uid": 0 }
+  ]
+}`,
   },
   tp3: {
     steps: [
@@ -970,6 +1035,40 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — resource limit adjustments are rolling and reversible.',
     estimatedRecovery: '~90s',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — container memory usage vs. configured limits
+// Query: container_memory_usage_bytes{namespace="payments",container=~"payments-api|auth-svc"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "matrix",
+    "result": [
+      {
+        "metric": { "pod": "payments-api-7d6f9b-xk9tz", "container": "payments-api", "namespace": "payments" },
+        "values": [
+          [1745931200, "524288000"],
+          [1745934800, "697532416"],
+          [1745938400, "851345408"],
+          [1745942000, "964689920"]
+        ]
+      },
+      {
+        "metric": { "pod": "auth-svc-5c4b8d-qr7vw", "container": "auth-svc", "namespace": "payments" },
+        "values": [
+          [1745931200, "268435456"],
+          [1745934800, "356515840"],
+          [1745938400, "481036288"],
+          [1745942000, "536870912"]
+        ]
+      }
+    ]
+  }
+}
+// Deployment resource spec — payments-api (at time of alert)
+// kubectl get deployment payments-api -n payments -o jsonpath='{.spec.template.spec.containers[0].resources}'
+{
+  "limits":   { "memory": "512Mi", "cpu": "500m" },
+  "requests": { "memory": "256Mi", "cpu": "250m" }
+}`,
   },
   tp4: {
     steps: [
@@ -984,6 +1083,26 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Medium — storage expansion requires OSD reconfiguration and a brief I/O suspension period.',
     estimatedRecovery: '~2m',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — Ceph pool utilization
+// Query: ceph_pool_percent_used{pool="ocs-storagecluster-cephblockpool"}
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "pool": "ocs-storagecluster-cephblockpool", "cluster": "prod-us-east-1" }, "value": [1745942000, "0.83"] },
+      { "metric": { "pool": "ocs-storagecluster-cephblockpool", "cluster": "prod-eu-west-1" }, "value": [1745942000, "0.81"] }
+    ]
+  }
+}
+// PersistentVolumeClaim — affected StatefulSet volumes (kubectl get pvc -n openshift-storage)
+[
+  { "name": "data-ocs-storagecluster-cephblockpool-0", "status": "Bound", "capacity": "500Gi", "usedBytes": 415000000000 },
+  { "name": "data-ocs-storagecluster-cephblockpool-1", "status": "Bound", "capacity": "500Gi", "usedBytes": 405000000000 }
+]
+// StatefulSet log emission rate — no logrotate configured
+// kubectl exec -n analytics analytics-datastore-0 -- du -sh /var/log/app
+// 38G   /var/log/app  (growing at ~9.5GB/hour)`,
   },
   tp5: {
     steps: [
@@ -998,6 +1117,25 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'Low — etcd defragmentation is a supported operational procedure.',
     estimatedRecovery: '~45s',
     confidence: 'High',
+    rawEvidence: `// Prometheus query — etcd fragmentation ratio
+// Query: 1 - (etcd_db_total_size_in_use_in_bytes / etcd_db_total_size_in_bytes)
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "job": "etcd", "instance": "etcd-prod-master-0:2381" }, "value": [1745942000, "0.68"] },
+      { "metric": { "job": "etcd", "instance": "etcd-prod-master-1:2381" }, "value": [1745942000, "0.71"] },
+      { "metric": { "job": "etcd", "instance": "etcd-prod-master-2:2381" }, "value": [1745942000, "0.65"] }
+    ]
+  }
+}
+// etcd endpoint status (etcdctl endpoint status --write-out=json)
+[
+  { "endpoint": "https://etcd-prod-master-0:2381", "dbSize": 8589934592, "dbSizeInUse": 2752512000, "leader": true,  "raftTerm": 42, "raftIndex": 3814920 },
+  { "endpoint": "https://etcd-prod-master-1:2381", "dbSize": 8589934592, "dbSizeInUse": 2490368000, "leader": false, "raftTerm": 42, "raftIndex": 3814918 },
+  { "endpoint": "https://etcd-prod-master-2:2381", "dbSize": 8589934592, "dbSizeInUse": 3006478336, "leader": false, "raftTerm": 42, "raftIndex": 3814919 }
+]`,
   },
   cp1: {
     steps: [
@@ -1066,6 +1204,36 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
     riskAssessment: 'TBD — root cause under active investigation.',
     estimatedRecovery: 'TBD',
     confidence: 'Medium',
+    rawEvidence: `// Prometheus query — CoreDNS P99 lookup latency (last 15 min)
+// Query: histogram_quantile(0.99, rate(coredns_dns_request_duration_seconds_bucket[5m]))
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      { "metric": { "cluster": "prod-east-2",    "pod": "coredns-7d4b9f-lm2qp", "server": ":53" }, "value": [1745942000, "0.234"] },
+      { "metric": { "cluster": "prod-eu-west-1", "pod": "coredns-5c8d2b-xp9rz", "server": ":53" }, "value": [1745942000, "0.218"] },
+      { "metric": { "cluster": "edge-apac-1",    "pod": "coredns-9a1e3c-bw4kn", "server": ":53" }, "value": [1745942000, "0.201"] }
+    ]
+  }
+}
+// CoreDNS ConfigMap diff — openshift-dns/dns-default (last 15 min)
+// kubectl get configmap dns-default -n openshift-dns -o yaml
+---
+ .:53 {
+   errors
+   health
+   ready
+   kubernetes cluster.local in-addr.arpa ip6.arpa {
+     pods insecure
+     fallthrough in-addr.arpa ip6.arpa
+     ttl 30
+   }
+-  cache 30
++  cache 0   # cache TTL zeroed in ConfigMap edit at 15:09:42 UTC
+   reload
+   loadbalance
+ }`,
   },
   ap5: {
     steps: [
@@ -3287,6 +3455,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
+  const [isRawEvidenceExpanded, setIsRawEvidenceExpanded] = useState(false);
+  const [isModalRawEvidenceExpanded, setIsModalRawEvidenceExpanded] = useState(false);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -3299,6 +3469,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
     setIsStopExecutionModalOpen(false);
+    setIsRawEvidenceExpanded(false);
+    setIsModalRawEvidenceExpanded(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -3490,6 +3662,29 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.rootCauseNarrative}
             </Content>
+
+            {drawer!.rawEvidence && (
+              <ExpandableSection
+                toggleText={isRawEvidenceExpanded ? 'Hide raw evidence' : 'View raw evidence'}
+                isExpanded={isRawEvidenceExpanded}
+                onToggle={(_e, expanded) => setIsRawEvidenceExpanded(expanded)}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                <ClipboardCopy
+                  variant={ClipboardCopyVariant.expansion}
+                  isReadOnly
+                  isCode
+                  style={{
+                    fontFamily: 'var(--pf-t--global--font--family--mono)',
+                    fontSize: '12px',
+                    maxHeight: '280px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {drawer!.rawEvidence}
+                </ClipboardCopy>
+              </ExpandableSection>
+            )}
 
             <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
 
@@ -3891,6 +4086,28 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                     You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
                     <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
                   </Content>
+                  {drawer?.rawEvidence && (
+                    <ExpandableSection
+                      toggleText={isModalRawEvidenceExpanded ? 'Hide raw evidence' : 'View raw evidence'}
+                      isExpanded={isModalRawEvidenceExpanded}
+                      onToggle={(_e, expanded) => setIsModalRawEvidenceExpanded(expanded)}
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                    >
+                      <ClipboardCopy
+                        variant={ClipboardCopyVariant.expansion}
+                        isReadOnly
+                        isCode
+                        style={{
+                          fontFamily: 'var(--pf-t--global--font--family--mono)',
+                          fontSize: '12px',
+                          maxHeight: '200px',
+                          overflowY: 'auto',
+                        }}
+                      >
+                        {drawer.rawEvidence}
+                      </ClipboardCopy>
+                    </ExpandableSection>
+                  )}
                   <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                     OpenShift Lightspeed uses AI technology to help generate this remediation plan.{' '}
                     <InfoCircleIcon
