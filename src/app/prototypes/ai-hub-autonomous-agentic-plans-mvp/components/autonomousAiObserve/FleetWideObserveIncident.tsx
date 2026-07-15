@@ -52,6 +52,8 @@ export interface FleetWideObserveIncidentProps {
   onDiscussWithLightspeed?: (payload: { alertId: string; cardId: string; diagnosisName: string }) => void;
   /** Expands Active Reasoning Chain, RCA, and Remediation Hub when drilling from Top firing alerts. */
   expandAllInnerSectionsInitially?: boolean;
+  /** When true, renders a persistent gray "AI-generated" label alongside the agent status badge. */
+  showAiGeneratedLabel?: boolean;
 }
 
 export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> = ({
@@ -61,6 +63,7 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
   onToggle,
   onDiscussWithLightspeed,
   expandAllInnerSectionsInitially,
+  showAiGeneratedLabel,
 }) => {
   const [openChain, setOpenChain] = useState(false);
   const [openRca, setOpenRca] = useState(false);
@@ -90,7 +93,14 @@ export const FleetWideObserveIncident: React.FC<FleetWideObserveIncidentProps> =
           'aria-label': isExpanded ? `Collapse fleet incident ${incident.id}` : `Expand fleet incident ${incident.id}`,
         }}
         actions={{
-          actions: <AgentPulseLabel status={incident.agentStatus} id={`${incident.id}-agent-pulse`} />,
+          actions: (
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+              {showAiGeneratedLabel && (
+                <Label color="grey" isCompact>AI-generated</Label>
+              )}
+              <AgentPulseLabel status={incident.agentStatus} id={`${incident.id}-agent-pulse`} />
+            </Flex>
+          ),
         }}
       >
         <Flex

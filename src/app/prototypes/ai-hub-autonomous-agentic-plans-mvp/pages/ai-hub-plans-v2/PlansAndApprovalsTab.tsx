@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } fro
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
-  AlertActionCloseButton,
   Button,
   Card,
   CardBody,
@@ -43,7 +42,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -1916,15 +1915,16 @@ const OpenShiftResourceBadge: React.FC<{ label: string; backgroundColor: string 
       height: 20,
       padding: '0 6px',
       textAlign: 'center',
+      whiteSpace: 'nowrap',
     }}
   >
     {label}
   </span>
 );
 
-/** OpenShift console–style resource label for Plan resources. */
+/** OpenShift console–style resource label for Agentic Run resources. */
 export const PlanResourceBadge: React.FC = () => (
-  <OpenShiftResourceBadge label="P" backgroundColor="#2b9af3" />
+  <OpenShiftResourceBadge label="AR" backgroundColor="#2b9af3" />
 );
 
 const NamespaceResourceBadge: React.FC = () => (
@@ -2378,9 +2378,12 @@ const RemediationOptionCard: React.FC<{
       id={`${cardId}-title`}
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-          Option {index + 1}
-        </span>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+            Option {index + 1}
+          </span>
+          <Label color="grey" isCompact>AI-generated</Label>
+        </Flex>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
           {isTerminal && isFirst && (
             <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
@@ -2894,6 +2897,7 @@ const PostMortemPanel: React.FC<{
                   : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
                 }
                 <Title headingLevel="h5" size="md">Execution summary</Title>
+                <Label color="grey" isCompact>AI-generated</Label>
               </Flex>
 
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -3280,7 +3284,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
-  const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
@@ -3409,16 +3412,18 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             Agentic run details
           </Title>
         </Flex>
-        {!isAiDisclaimerDismissed && (
-          <Alert
-            variant="info"
-            isInline
-            title="OpenShift Lightspeed uses AI technology to help generate remediation plans."
-            actionClose={<AlertActionCloseButton onClose={() => setIsAiDisclaimerDismissed(true)} />}
-          >
-            Always review AI-generated content prior to use.
-          </Alert>
-        )}
+        <Content component="p" className="ols-ai-hub-page-disclaimer">
+          <InfoCircleIcon
+            style={{
+              color: 'var(--pf-t--global--icon--color--status--info--default)',
+              marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+              verticalAlign: 'middle',
+              flexShrink: 0,
+            }}
+            aria-hidden
+          />
+          Always review AI-generated content prior to use.
+        </Content>
       </StackItem>
 
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
@@ -3431,6 +3436,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
             Root cause analysis (RCA)
           </Title>
+          <Label color="grey" isCompact>AI-generated</Label>
           {!isAnalyzing && (
             <Label color="grey" variant="outline" isCompact>
               {formatOptionalTokenBurn(
@@ -3867,7 +3873,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <FlexItem>
                     <Button variant="secondary" onClick={onRejectPlan}>
-                      Deny plan
+                      Deny run
                     </Button>
                   </FlexItem>
                 </Flex>
@@ -3886,7 +3892,17 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                     <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
                   </Content>
                   <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    OpenShift Lightspeed uses AI technology to help generate this remediation plan. Always review AI-generated content prior to use.
+                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.{' '}
+                    <InfoCircleIcon
+                      style={{
+                        color: 'var(--pf-t--global--icon--color--status--info--default)',
+                        marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+                        verticalAlign: 'middle',
+                        flexShrink: 0,
+                      }}
+                      aria-hidden
+                    />
+                    Always review AI-generated content prior to use.
                   </Content>
                 </ModalBody>
                 <ModalFooter>
@@ -3924,10 +3940,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             onClose={() => setIsStopExecutionModalOpen(false)}
             aria-labelledby="stop-plan-execution-title"
           >
-            <ModalHeader title="Stop plan execution?" labelId="stop-plan-execution-title" />
+            <ModalHeader title="Stop execution?" labelId="stop-plan-execution-title" />
             <ModalBody>
-              This will instantly halt the agent&apos;s in-flight mutations on this cluster. Completed steps will
-              remain in their current state. This action cannot be undone.
+              This will halt the execution plan. This may result in partial execution. You may need to manually
+              complete or undo any partial changes.
             </ModalBody>
             <ModalFooter>
               <Button
