@@ -79,6 +79,8 @@ export interface ObserveAlertItemProps {
   onDiscussWithLightspeed?: (payload: { alertId: string; cardId: string; diagnosisName: string }) => void;
   /** When true, expands Active Reasoning Chain, RCA, and Remediation Hub (e.g. drill from Top firing alerts). */
   expandAllInnerSectionsInitially?: boolean;
+  /** When true, renders a persistent gray "AI-generated" label alongside the agent status badge. */
+  showAiGeneratedLabel?: boolean;
 }
 
 export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
@@ -87,6 +89,7 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
   onToggle,
   onDiscussWithLightspeed,
   expandAllInnerSectionsInitially,
+  showAiGeneratedLabel,
 }) => {
   const [openChain, setOpenChain] = useState(false);
   const [openRca, setOpenRca] = useState(false);
@@ -117,7 +120,12 @@ export const ObserveAlertItem: React.FC<ObserveAlertItemProps> = ({
         }}
         actions={{
           actions: (
-            <AgentPulseLabel status={alert.agentStatus} id={`${alert.id}-agent-pulse`} />
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+              {showAiGeneratedLabel && (
+                <Label color="grey" isCompact>AI-generated</Label>
+              )}
+              <AgentPulseLabel status={alert.agentStatus} id={`${alert.id}-agent-pulse`} />
+            </Flex>
           ),
         }}
       >

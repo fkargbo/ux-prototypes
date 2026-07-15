@@ -2396,17 +2396,20 @@ const RemediationOptionCard: React.FC<{
           </Label>
         </Flex>
       </Flex>
-      <span
-        style={{
-          fontWeight: 600,
-          fontSize: '14px',
-          lineHeight: 1.4,
-          whiteSpace: 'normal',
-          wordBreak: 'break-word',
-        }}
-      >
-        {option.title}
-      </span>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+        <span
+          style={{
+            fontWeight: 600,
+            fontSize: '14px',
+            lineHeight: 1.4,
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+          }}
+        >
+          {option.title}
+        </span>
+        <Label color="grey" isCompact>AI-generated</Label>
+      </Flex>
     </Flex>
   );
 
@@ -2893,6 +2896,7 @@ const PostMortemPanel: React.FC<{
                   : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
                 }
                 <Title headingLevel="h5" size="md">Execution summary</Title>
+                <Label color="grey" isCompact>AI-generated</Label>
               </Flex>
 
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
@@ -3431,6 +3435,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
             Root cause analysis (RCA)
           </Title>
+          <Label color="grey" isCompact>AI-generated</Label>
           {!isAnalyzing && (
             <Label color="grey" variant="outline" isCompact>
               {formatOptionalTokenBurn(
@@ -3476,7 +3481,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <span className="ols-aio-text-overline">Detected Root Cause</span>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <span className="ols-aio-text-overline">Detected Root Cause</span>
+                <Label color="grey" isCompact>AI-generated</Label>
+              </Flex>
             </div>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.aggregatedFinding}

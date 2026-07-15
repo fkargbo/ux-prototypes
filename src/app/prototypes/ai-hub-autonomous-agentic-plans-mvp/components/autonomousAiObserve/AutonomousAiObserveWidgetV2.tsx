@@ -919,6 +919,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                               }}
                               expandAllInnerSectionsInitially={expandFleetDrillAllInnerSections}
                               onDiscussWithLightspeed={discussLightspeed}
+                              showAiGeneratedLabel
                             />
                           ) : null}
                           {alertsForTopAlertsCard.map((a) => (
@@ -929,6 +930,7 @@ export const AutonomousAiObserveWidgetV2: React.FC<AutonomousAiObserveWidgetV2Pr
                               onToggle={(open) => toggleAlert(a.id, open)}
                               onDiscussWithLightspeed={discussLightspeed}
                               expandAllInnerSectionsInitially={expandObserveRemediationAlertId === a.id}
+                              showAiGeneratedLabel
                             />
                           ))}
                         </Stack>
