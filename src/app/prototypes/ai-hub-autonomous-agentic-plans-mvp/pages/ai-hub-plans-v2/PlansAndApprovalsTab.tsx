@@ -4260,19 +4260,25 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                     You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
                     <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
                   </Content>
-                  <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.{' '}
-                    <InfoCircleIcon
-                      style={{
-                        color: 'var(--pf-t--global--icon--color--status--info--default)',
-                        marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
-                        verticalAlign: 'middle',
-                        flexShrink: 0,
-                      }}
-                      aria-hidden
-                    />
-                    Always review AI-generated content prior to use.
+                  <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.
                   </Content>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                    <FlexItem>
+                      <InfoCircleIcon
+                        style={{
+                          color: 'var(--pf-t--global--icon--color--status--info--default)',
+                          fontSize: '12px',
+                        }}
+                        aria-hidden
+                      />
+                    </FlexItem>
+                    <FlexItem>
+                      <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', margin: 0 }}>
+                        Always review AI-generated content prior to use.
+                      </Content>
+                    </FlexItem>
+                  </Flex>
                 </ModalBody>
                 <ModalFooter>
                   <Button
