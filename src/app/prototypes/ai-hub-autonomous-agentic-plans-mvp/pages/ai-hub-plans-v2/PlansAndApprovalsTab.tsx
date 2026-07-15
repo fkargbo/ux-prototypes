@@ -3481,10 +3481,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                <span className="ols-aio-text-overline">Detected Root Cause</span>
-                <Label color="grey" isCompact>AI-generated</Label>
-              </Flex>
+              <span className="ols-aio-text-overline">Detected Root Cause</span>
             </div>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.aggregatedFinding}
