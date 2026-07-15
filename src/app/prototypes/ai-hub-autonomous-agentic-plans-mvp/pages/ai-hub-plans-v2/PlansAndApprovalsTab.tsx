@@ -2377,9 +2377,12 @@ const RemediationOptionCard: React.FC<{
       id={`${cardId}-title`}
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-          Option {index + 1}
-        </span>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+            Option {index + 1}
+          </span>
+          <Label color="grey" isCompact>AI-generated</Label>
+        </Flex>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
           {isTerminal && isFirst && (
             <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
@@ -2396,20 +2399,17 @@ const RemediationOptionCard: React.FC<{
           </Label>
         </Flex>
       </Flex>
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <span
-          style={{
-            fontWeight: 600,
-            fontSize: '14px',
-            lineHeight: 1.4,
-            whiteSpace: 'normal',
-            wordBreak: 'break-word',
-          }}
-        >
-          {option.title}
-        </span>
-        <Label color="grey" isCompact>AI-generated</Label>
-      </Flex>
+      <span
+        style={{
+          fontWeight: 600,
+          fontSize: '14px',
+          lineHeight: 1.4,
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
+        }}
+      >
+        {option.title}
+      </span>
     </Flex>
   );
 
