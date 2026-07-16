@@ -3779,6 +3779,119 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
         </Content>
       </StackItem>
 
+      {/* ── Section D: Reasoning chain ────────────────────────────────── */}
+      {drawer?.steps && drawer.steps.length > 0 && (
+        <StackItem>
+          <ExpandableSection
+            toggleText=""
+            isExpanded={isReasoningChainExpanded}
+            onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
+            toggleContent={
+              <Title headingLevel="h4" size="md">
+                Reasoning chain
+              </Title>
+            }
+          >
+            <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              {drawer.steps.map((step) => (
+                <li key={step.id} className="ols-aio-reasoning-timeline__item">
+                  <span className="ols-aio-reasoning-timeline__node">
+                    <ReasoningChainStepGlyph step={step} />
+                  </span>
+                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
+                    <FlexItem>
+                      <span
+                        className="ols-aio-text-subtle-sm"
+                        style={{ fontVariantNumeric: 'tabular-nums' }}
+                      >
+                        {formatReasoningStepDisplayTime(step)}
+                      </span>
+                    </FlexItem>
+                  </Flex>
+                  <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                    {step.title}
+                  </Title>
+                  {step.detail && (
+                    <Content
+                      component="p"
+                      style={{
+                        marginTop: 'var(--pf-t--global--spacer--xs)',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        marginBottom: 0,
+                      }}
+                    >
+                      {step.detail}
+                    </Content>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </ExpandableSection>
+          <Divider style={{ marginTop: 'var(--pf-t--global--spacer--md)' }} />
+        </StackItem>
+      )}
+
+      {/* Reasoning chain — static fallback for plans without drawer.steps */}
+      {(!drawer?.steps || drawer.steps.length === 0) && (() => {
+        const FALLBACK_STEPS: ReasoningStep[] = [
+          { id: 'rc-s1', time: '10:03:02', status: 'done', icon: 'exclamation', title: 'Detected ArgoCD LiveStateOutOfSync event', detail: '4 IngressControllerDegraded alerts firing fleet-wide' },
+          { id: 'rc-s2', time: '10:03:25', status: 'done', icon: 'database',    title: 'Fetched GitOps revision history',               detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
+          { id: 'rc-s3', time: '10:03:41', status: 'done', icon: 'search',      title: 'Diffed live vs. declared NetworkPolicy objects',  detail: 'Kustomize overlay conflict found across 4 fleet namespaces' },
+          { id: 'rc-s4', time: '10:03:55', status: 'done', icon: 'check',       title: 'Scored blast radius and causal confidence',       detail: '4 fleets affected · 94% confidence in GitOps root cause' },
+          { id: 'rc-s5', time: '10:04:12', status: 'done', icon: 'network',     title: 'Governor approval for fleet rollback',            detail: 'Remediation options generated' },
+        ];
+        return (
+          <StackItem>
+            <ExpandableSection
+              toggleText=""
+              isExpanded={isReasoningChainExpanded}
+              onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
+              toggleContent={
+                <Title headingLevel="h4" size="md">
+                  Reasoning chain
+                </Title>
+              }
+            >
+              <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                {FALLBACK_STEPS.map((step) => (
+                  <li key={step.id} className="ols-aio-reasoning-timeline__item">
+                    <span className="ols-aio-reasoning-timeline__node">
+                      <ReasoningChainStepGlyph step={step} />
+                    </span>
+                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
+                      <FlexItem>
+                        <span
+                          className="ols-aio-text-subtle-sm"
+                          style={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
+                          {formatReasoningStepDisplayTime(step)}
+                        </span>
+                      </FlexItem>
+                    </Flex>
+                    <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                      {step.title}
+                    </Title>
+                    {step.detail && (
+                      <Content
+                        component="p"
+                        style={{
+                          marginTop: 'var(--pf-t--global--spacer--xs)',
+                          color: 'var(--pf-t--global--text--color--subtle)',
+                          marginBottom: 0,
+                        }}
+                      >
+                        {step.detail}
+                      </Content>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </ExpandableSection>
+            <Divider style={{ marginTop: 'var(--pf-t--global--spacer--md)' }} />
+          </StackItem>
+        );
+      })()}
+
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
         <Flex
@@ -4316,119 +4429,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
         </>
         )}
       </StackItem>
-
-      {/* ── Section D: Reasoning chain ────────────────────────────────── */}
-      {drawer?.steps && drawer.steps.length > 0 && (
-        <StackItem>
-          <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
-          <ExpandableSection
-            toggleText=""
-            isExpanded={isReasoningChainExpanded}
-            onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
-            toggleContent={
-              <Title headingLevel="h4" size="md">
-                Reasoning chain
-              </Title>
-            }
-          >
-            <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-              {drawer.steps.map((step) => (
-                <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                  <span className="ols-aio-reasoning-timeline__node">
-                    <ReasoningChainStepGlyph step={step} />
-                  </span>
-                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
-                    <FlexItem>
-                      <span
-                        className="ols-aio-text-subtle-sm"
-                        style={{ fontVariantNumeric: 'tabular-nums' }}
-                      >
-                        {formatReasoningStepDisplayTime(step)}
-                      </span>
-                    </FlexItem>
-                  </Flex>
-                  <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                    {step.title}
-                  </Title>
-                  {step.detail && (
-                    <Content
-                      component="p"
-                      style={{
-                        marginTop: 'var(--pf-t--global--spacer--xs)',
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                        marginBottom: 0,
-                      }}
-                    >
-                      {step.detail}
-                    </Content>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </ExpandableSection>
-        </StackItem>
-      )}
-
-      {/* Reasoning chain — static fallback for plans without drawer.steps */}
-      {(!drawer?.steps || drawer.steps.length === 0) && (() => {
-        const FALLBACK_STEPS: ReasoningStep[] = [
-          { id: 'rc-s1', time: '10:03:02', status: 'done', icon: 'exclamation', title: 'Detected ArgoCD LiveStateOutOfSync event', detail: '4 IngressControllerDegraded alerts firing fleet-wide' },
-          { id: 'rc-s2', time: '10:03:25', status: 'done', icon: 'database',    title: 'Fetched GitOps revision history',               detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
-          { id: 'rc-s3', time: '10:03:41', status: 'done', icon: 'search',      title: 'Diffed live vs. declared NetworkPolicy objects',  detail: 'Kustomize overlay conflict found across 4 fleet namespaces' },
-          { id: 'rc-s4', time: '10:03:55', status: 'done', icon: 'check',       title: 'Scored blast radius and causal confidence',       detail: '4 fleets affected · 94% confidence in GitOps root cause' },
-          { id: 'rc-s5', time: '10:04:12', status: 'done', icon: 'network',     title: 'Governor approval for fleet rollback',            detail: 'Remediation options generated' },
-        ];
-        return (
-          <StackItem>
-            <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
-            <ExpandableSection
-              toggleText=""
-              isExpanded={isReasoningChainExpanded}
-              onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
-              toggleContent={
-                <Title headingLevel="h4" size="md">
-                  Reasoning chain
-                </Title>
-              }
-            >
-              <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                {FALLBACK_STEPS.map((step) => (
-                  <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                    <span className="ols-aio-reasoning-timeline__node">
-                      <ReasoningChainStepGlyph step={step} />
-                    </span>
-                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
-                      <FlexItem>
-                        <span
-                          className="ols-aio-text-subtle-sm"
-                          style={{ fontVariantNumeric: 'tabular-nums' }}
-                        >
-                          {formatReasoningStepDisplayTime(step)}
-                        </span>
-                      </FlexItem>
-                    </Flex>
-                    <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                      {step.title}
-                    </Title>
-                    {step.detail && (
-                      <Content
-                        component="p"
-                        style={{
-                          marginTop: 'var(--pf-t--global--spacer--xs)',
-                          color: 'var(--pf-t--global--text--color--subtle)',
-                          marginBottom: 0,
-                        }}
-                      >
-                        {step.detail}
-                      </Content>
-                    )}
-                  </li>
-                ))}
-              </ol>
-            </ExpandableSection>
-          </StackItem>
-        );
-      })()}
 
       {/* ── Stop execution action (Executing state only) ──────────────── */}
       {isExecutionPhase && !executionKillState && (
