@@ -3819,7 +3819,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                 {stepsToRender.map((step) => {
                   const isAwaitingApproval = step.status === 'pending' && step.title.startsWith('Awaiting');
-                  const isWarning = step.status === 'alert';
+                  const isCritical = step.status === 'alert' && status === 'Failed';
+                  const isWarning  = step.status === 'alert' && !isCritical;
                   return (
                     <li key={step.id} className="ols-aio-reasoning-timeline__item">
                       <span
@@ -3829,6 +3830,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                             ? { borderColor: 'var(--pf-t--global--color--status--info--default)',    color: 'var(--pf-t--global--color--status--info--default)' }
                             : isWarning
                             ? { borderColor: 'var(--pf-t--global--color--status--warning--default)', color: 'var(--pf-t--global--color--status--warning--default)' }
+                            : isCritical
+                            ? { borderColor: 'var(--pf-t--global--color--status--danger--default)',  color: 'var(--pf-t--global--color--status--danger--default)' }
                             : undefined
                         }
                       >
@@ -3841,6 +3844,11 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                           <ExclamationTriangleIcon
                             aria-hidden
                             style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
+                          />
+                        ) : isCritical ? (
+                          <ExclamationCircleIcon
+                            aria-hidden
+                            style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
                           />
                         ) : (
                           <ReasoningChainStepGlyph step={step} />
