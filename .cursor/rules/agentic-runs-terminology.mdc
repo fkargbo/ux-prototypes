@@ -72,7 +72,37 @@ These regressions surface because several files serve **dual routing purposes**:
 
 ---
 
+---
+
+## Disclaimer Icon Rule — "Always review AI-generated content prior to use."
+
+Every instance of this legal disclaimer string **must** be preceded by a blue `InfoCircleIcon`.
+The canonical pattern (copy exactly):
+
+```tsx
+import { InfoCircleIcon } from '@patternfly/react-icons';
+
+<Content component="p" className="ols-ai-hub-page-disclaimer">
+  <InfoCircleIcon
+    style={{
+      color: 'var(--pf-t--global--icon--color--status--info--default)',
+      marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+      verticalAlign: 'middle',
+      flexShrink: 0,
+    }}
+    aria-hidden
+  />
+  Always review AI-generated content prior to use.
+</Content>
+```
+
+The reference implementation is `AIHubPageV2.tsx`. Any page-level file that adds or retains
+this disclaimer without the icon is non-compliant and must be corrected.
+
+---
+
 ## Summary
 
 **One rule to remember:** If it's visible to the user and it lives outside a `v1/` or `v3/` directory,
-it must say **"run"**, not **"plan"**.
+it must say **"run"**, not **"plan"** — and every "Always review AI-generated content prior to use."
+disclaimer must have the blue `InfoCircleIcon` prefix.

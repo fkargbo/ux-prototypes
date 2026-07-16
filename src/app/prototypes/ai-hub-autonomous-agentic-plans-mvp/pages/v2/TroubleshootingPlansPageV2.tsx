@@ -1,5 +1,6 @@
 import React from 'react';
 import { Content, Title } from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { TroubleshootingPlansTab } from '../ai-hub-plans-v2/TroubleshootingPlansTab';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
@@ -21,6 +22,15 @@ export const TroubleshootingPlansPageV2: React.FC = () => {
               scoped to signal correlation, alert root cause, and targeted recovery actions.
             </Content>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
+              <InfoCircleIcon
+                style={{
+                  color: 'var(--pf-t--global--icon--color--status--info--default)',
+                  marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+                  verticalAlign: 'middle',
+                  flexShrink: 0,
+                }}
+                aria-hidden
+              />
               Always review AI-generated content prior to use.
             </Content>
           </div>
