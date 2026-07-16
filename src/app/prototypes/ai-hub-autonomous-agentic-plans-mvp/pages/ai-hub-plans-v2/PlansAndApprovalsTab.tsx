@@ -3989,17 +3989,19 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
             >
               {/*
-               * The wrapper below mirrors the exact background + border tokens used by
-               * ClipboardCopy variant="expansion" isCode — ensuring the citations panel
-               * transitions identically across Light, Dark, and Glass contrast modes.
-               *   Background: --pf-t--global--background--color--secondary--default
-               *   Border:     --pf-t--global--border--color--default (1px solid)
+               * Mirrors the exact CSS tokens applied by ClipboardCopy variant="expansion"
+               * isReadOnly isCode (.pf-v6-c-clipboard-copy__expandable-content with
+               * .pf-m-readonly override) — verified from clipboard-copy.css in react-styles:
+               *   Background: --pf-t--global--background--color--control--read-only
+               *   Border:     --pf-t--global--border--color--control--read-only
+               *   Radius:     --pf-t--global--border--radius--control--form-element
+               *   Width:      --pf-t--global--border--width--control--default
                */}
               <div
                 style={{
-                  backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-                  border: '1px solid var(--pf-t--global--border--color--default)',
-                  borderRadius: 'var(--pf-t--global--border--radius--small)',
+                  backgroundColor: 'var(--pf-t--global--background--color--control--read-only)',
+                  border: 'var(--pf-t--global--border--width--control--default) solid var(--pf-t--global--border--color--control--read-only)',
+                  borderRadius: 'var(--pf-t--global--border--radius--control--form-element)',
                   padding: 'var(--pf-t--global--spacer--md)',
                   marginTop: 'var(--pf-t--global--spacer--sm)',
                 }}
