@@ -3787,9 +3787,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             isExpanded={isReasoningChainExpanded}
             onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
             toggleContent={
-              <Title headingLevel="h4" size="md">
-                Reasoning chain
-              </Title>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <Title headingLevel="h4" size="md">
+                  Reasoning chain
+                </Title>
+                <Label color="grey" isCompact>AI-generated</Label>
+              </Flex>
             }
           >
             <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
@@ -3846,9 +3849,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               isExpanded={isReasoningChainExpanded}
               onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
               toggleContent={
-                <Title headingLevel="h4" size="md">
-                  Reasoning chain
-                </Title>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  <Title headingLevel="h4" size="md">
+                    Reasoning chain
+                  </Title>
+                  <Label color="grey" isCompact>AI-generated</Label>
+                </Flex>
               }
             >
               <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
