@@ -6,7 +6,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Alert,
   Button,
   Card,
   CardBody,
@@ -542,29 +541,6 @@ export const AutonomousAiObserveWidgetV3: React.FC<AutonomousAiObserveWidgetV3Pr
                     <CardBody>
                       {remediationScope === 'fleet' || topAlertsRemediationsAlerts.length > 0 ? (
                         <Stack hasGutter>
-                          {alertsForTopAlertsCard.some((a) => a.agentStatus === 'investigating') && (
-                            <StackItem>
-                              <Alert
-                                isInline
-                                variant="info"
-                                title="AI-driven investigation in progress"
-                              >
-                                <Flex
-                                  alignItems={{ default: 'alignItemsCenter' }}
-                                  gap={{ default: 'gapSm' }}
-                                  flexWrap={{ default: 'wrap' }}
-                                  style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
-                                >
-                                  <Label color="grey" isCompact>AI-generated</Label>
-                                  <Content component="p" style={{ margin: 0 }}>
-                                    We are currently conducting an AI-driven investigation on one or more
-                                    active alerts. Autonomous evidence collection and root cause analysis
-                                    are running — review AI findings before taking manual action.
-                                  </Content>
-                                </Flex>
-                              </Alert>
-                            </StackItem>
-                          )}
                           {remediationScope === 'fleet' ? (
                             <FleetWideObserveIncident
                               incident={FLEET_WIDE_REGIONAL_INGRESS}
