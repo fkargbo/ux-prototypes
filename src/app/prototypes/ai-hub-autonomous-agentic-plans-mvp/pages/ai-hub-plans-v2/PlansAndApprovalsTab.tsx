@@ -3637,7 +3637,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
   const [isRawEvidenceExpanded, setIsRawEvidenceExpanded] = useState(false);
-  const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(true);
+  const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -3651,7 +3651,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
     setAnalysisLogsQuery('');
     setIsStopExecutionModalOpen(false);
     setIsRawEvidenceExpanded(false);
-    setIsReasoningChainExpanded(true);
+    setIsReasoningChainExpanded(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -3827,7 +3827,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               ))}
             </ol>
           </ExpandableSection>
-          <Divider style={{ marginTop: 'var(--pf-t--global--spacer--md)' }} />
+          <Divider style={{ marginTop: isReasoningChainExpanded ? 'var(--pf-t--global--spacer--md)' : 'var(--pf-t--global--spacer--xs)' }} />
         </StackItem>
       )}
 
@@ -3887,7 +3887,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 ))}
               </ol>
             </ExpandableSection>
-            <Divider style={{ marginTop: 'var(--pf-t--global--spacer--md)' }} />
+            <Divider style={{ marginTop: isReasoningChainExpanded ? 'var(--pf-t--global--spacer--md)' : 'var(--pf-t--global--spacer--xs)' }} />
           </StackItem>
         );
       })()}
