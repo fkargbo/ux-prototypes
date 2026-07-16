@@ -1,5 +1,6 @@
 import React from 'react';
 import { Content, Title } from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { TroubleshootingPlansTab } from '../ai-hub-plans-v2/TroubleshootingPlansTab';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
@@ -14,13 +15,22 @@ export const TroubleshootingPlansPageV2: React.FC = () => {
           <AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
             <Title headingLevel="h1" size="2xl">
-              Troubleshooting plans
+              Agentic runs
             </Title>
             <Content component="p" className="ols-ai-hub-page-subtitle">
-              Observability-triggered remediation plans generated from firing platform monitoring alerts —
+              Observability-triggered agentic runs generated from firing platform monitoring alerts —
               scoped to signal correlation, alert root cause, and targeted recovery actions.
             </Content>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
+              <InfoCircleIcon
+                style={{
+                  color: 'var(--pf-t--global--icon--color--status--info--default)',
+                  marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+                  verticalAlign: 'middle',
+                  flexShrink: 0,
+                }}
+                aria-hidden
+              />
               Always review AI-generated content prior to use.
             </Content>
           </div>
@@ -31,7 +41,7 @@ export const TroubleshootingPlansPageV2: React.FC = () => {
         id="ols-troubleshooting-plans-main"
         className="template-page-content"
         role="main"
-        aria-label="Troubleshooting plans content"
+        aria-label="Agentic runs content"
       >
         <AgenticKillSwitchBanner />
         <TroubleshootingPlansTab />

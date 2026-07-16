@@ -116,9 +116,9 @@ export const TroubleshootingPlanDetail: React.FC = () => {
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            {planDomain?.listBreadcrumbLabel ?? 'Troubleshooting plans'}
+            {planDomain?.listBreadcrumbLabel ?? 'Agentic runs'}
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
+          <BreadcrumbItem isActive>Run details</BreadcrumbItem>
         </Breadcrumb>
       </div>
 
@@ -158,7 +158,7 @@ export const TroubleshootingPlanDetail: React.FC = () => {
       <div
         className="template-page-content"
         role="main"
-        aria-label={`Troubleshooting plan: ${planDisplayName}`}
+        aria-label={`Agentic run: ${planDisplayName}`}
       >
         <div className="ols-plan-remediation-drilldown">
           <AgenticKillSwitchBanner />

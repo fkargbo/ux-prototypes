@@ -97,8 +97,8 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/troubleshooting-plans',
     element: withPerspectiveUrlSync(<TroubleshootingPlansPage />),
-    label: 'Troubleshooting plans',
-    title: 'Troubleshooting plans',
+    label: 'Agentic runs',
+    title: 'Agentic runs',
     navigation: {
       group: 'Observe',
       order: 1,
@@ -111,7 +111,7 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/troubleshooting-plans/:planId',
     element: withPerspectiveUrlSync(<PlanDetailVersionRouter />),
-    title: 'Troubleshooting plan detail',
+    title: 'Agentic run detail',
   },
   {
     path: '/core/observe/alerting/:clusterId/components',

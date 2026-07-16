@@ -169,7 +169,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
       <div
         className="template-page-content"
         role="main"
-        aria-label={`Troubleshooting plan: ${planDisplayName}`}
+        aria-label={`Agentic run: ${planDisplayName}`}
       >
         {effectivePlan.status === 'Pending' ? (
           <div

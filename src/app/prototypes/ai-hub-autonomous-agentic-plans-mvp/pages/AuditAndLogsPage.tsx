@@ -15,7 +15,7 @@ export const AuditAndLogsPage: React.FC = () => {
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem to="#" onClick={() => navigate('/core/observe/ai-hub/plans')}>
-            Agentic plans
+            Agentic runs
           </BreadcrumbItem>
           <BreadcrumbItem isActive>Audit & logs</BreadcrumbItem>
         </Breadcrumb>

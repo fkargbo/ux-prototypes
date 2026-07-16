@@ -100,9 +100,9 @@ export const AcsPlanDetailPage: React.FC = () => {
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
-            Plans
+            Agentic runs
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
+          <BreadcrumbItem isActive>Run details</BreadcrumbItem>
         </Breadcrumb>
       </div>
 

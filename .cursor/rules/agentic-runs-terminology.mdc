@@ -1,0 +1,108 @@
+# Agentic Runs Terminology Rule
+
+## CRITICAL: The Terminology Has Changed — "Plans" Is Deprecated
+
+The entire AI Hub feature set has migrated away from the "plans" naming convention.
+Any use of deprecated terms in **user-facing UI strings** (labels, headings, breadcrumbs, button text, aria-labels,
+toast messages, empty-state copy) is a **regression bug**.
+
+---
+
+## Banned User-Facing Terms (non-v1/v3 files)
+
+| ❌ BANNED | ✅ USE INSTEAD |
+|---|---|
+| `Agentic plans` | `Agentic runs` |
+| `Agentic plan` | `Agentic run` |
+| `Troubleshooting plans` | `Agentic runs` |
+| `Troubleshooting plan` | `Agentic run` |
+| `Plan details` | `Run details` |
+| `plan detail` (in breadcrumbs/titles) | `run detail` |
+| `Deny plan` | `Deny run` |
+
+### Legitimate Uses (do NOT change these)
+
+- **v1 frozen baseline files** under `pages/v1/`, `pages/ai-hub-v1/`, `pages/ai-hub-v3/`, `pages/ai-hub-v4/`
+  — those directories are deliberately frozen and reflect the historic v1 state.
+- **Internal code identifiers** like variable names (`planId`, `planDomain`, `planSlug`),
+  function names, TypeScript type names, CSS class names, and URL path segments (`/troubleshooting-plans/`).
+  Only user-visible strings are in scope.
+- **"Stop analysis"** — this refers to halting the AI analysis *operation*, not the "plan" entity.
+  It is correct terminology for the Analyzing state and should NOT be changed.
+- **"remediation plan"** in body copy that describes a multi-step remediation strategy document
+  (as opposed to the agentic run entity itself) — context dependent, use judgment.
+
+---
+
+## How to Audit Before Every Edit
+
+Before writing or editing any user-visible string in these prototype directories:
+
+```
+src/app/prototypes/ai-hub-autonomous-agentic-plans-mvp/pages/
+src/app/prototypes/observability-agentic-troubleshooting-ai/pages/
+```
+
+Run this command and confirm zero results:
+
+```bash
+rg -n "Plan details|Agentic plans\b|Troubleshooting plans\b|Troubleshooting plan:" \
+  src/app/prototypes/ai-hub-autonomous-agentic-plans-mvp/pages/ \
+  src/app/prototypes/observability-agentic-troubleshooting-ai/pages/ \
+  -g "*.tsx" -g "*.ts" | grep -v "/v1/\|/ai-hub-v1/\|/ai-hub-v3/\|/ai-hub-v4/"
+```
+
+**Zero results = clean.** Any result outside the v1/v3/v4 paths is a bug that must be fixed
+before the change is committed.
+
+---
+
+## Root Cause of Recurring Regressions
+
+These regressions surface because several files serve **dual routing purposes**:
+
+- Non-versioned pages like `TroubleshootingPlanDetail.tsx`, `AcsPlanDetailPage.tsx`,
+  `TroubleshootingPlansPage.tsx`, and `PlanRemediationPage.tsx` are reached by both
+  the legacy `/core/observe/troubleshooting-plans/` route *and* the v2 route via
+  `PlanDetailVersionRouter`.
+- When editing these shared-but-non-v1 pages, always update their breadcrumbs, headings,
+  and aria-labels to use the current "runs" terminology.
+- `domainPlanNavigation.ts` controls `listBreadcrumbLabel` — if you add a new domain entry,
+  its `listBreadcrumbLabel` must say `'Agentic runs'` not `'Troubleshooting plans'`.
+
+---
+
+---
+
+## Disclaimer Icon Rule — "Always review AI-generated content prior to use."
+
+Every instance of this legal disclaimer string **must** be preceded by a blue `InfoCircleIcon`.
+The canonical pattern (copy exactly):
+
+```tsx
+import { InfoCircleIcon } from '@patternfly/react-icons';
+
+<Content component="p" className="ols-ai-hub-page-disclaimer">
+  <InfoCircleIcon
+    style={{
+      color: 'var(--pf-t--global--icon--color--status--info--default)',
+      marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+      verticalAlign: 'middle',
+      flexShrink: 0,
+    }}
+    aria-hidden
+  />
+  Always review AI-generated content prior to use.
+</Content>
+```
+
+The reference implementation is `AIHubPageV2.tsx`. Any page-level file that adds or retains
+this disclaimer without the icon is non-compliant and must be corrected.
+
+---
+
+## Summary
+
+**One rule to remember:** If it's visible to the user and it lives outside a `v1/` or `v3/` directory,
+it must say **"run"**, not **"plan"** — and every "Always review AI-generated content prior to use."
+disclaimer must have the blue `InfoCircleIcon` prefix.
