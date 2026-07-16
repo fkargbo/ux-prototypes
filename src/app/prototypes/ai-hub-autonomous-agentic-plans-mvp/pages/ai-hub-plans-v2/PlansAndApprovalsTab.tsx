@@ -25,10 +25,6 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
-  Form,
-  FormGroup,
-  FormSelect,
-  FormSelectOption,
   Label,
   MenuToggle,
   Modal,
@@ -3676,6 +3672,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
   const [isDenyModalOpen, setIsDenyModalOpen] = useState(false);
+  const [isDenySelectOpen, setIsDenySelectOpen] = useState(false);
   const [denyReason, setDenyReason] = useState('');
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
@@ -4373,7 +4370,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               <Modal
                 variant={ModalVariant.small}
                 isOpen={isDenyModalOpen}
-                onClose={() => { setIsDenyModalOpen(false); setDenyReason(''); }}
+                onClose={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
                 aria-labelledby="deny-run-confirm-title"
               >
                 <ModalHeader title="Confirm remediation denial" labelId="deny-run-confirm-title" />
@@ -4382,32 +4379,54 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                     Denying this run will cancel all proposed automated actions. The associated alerts
                     must then be investigated and resolved manually.
                   </Content>
-                  <Form>
-                    <FormGroup
-                      label="Reason for denial (optional)"
-                      fieldId="deny-reason-select"
-                    >
-                      <FormSelect
-                        id="deny-reason-select"
-                        value={denyReason}
-                        onChange={(_e, val) => setDenyReason(val)}
-                        aria-label="Reason for denial"
+                  <Content
+                    component="p"
+                    style={{
+                      marginBottom: 'var(--pf-t--global--spacer--xs)',
+                      fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                    }}
+                  >
+                    Reason for denial (optional)
+                  </Content>
+                  <Dropdown
+                    isOpen={isDenySelectOpen}
+                    onOpenChange={setIsDenySelectOpen}
+                    onSelect={(_e, val) => {
+                      setDenyReason(val as string);
+                      setIsDenySelectOpen(false);
+                    }}
+                    toggle={(ref) => (
+                      <MenuToggle
+                        ref={ref}
+                        onClick={() => setIsDenySelectOpen(!isDenySelectOpen)}
+                        isExpanded={isDenySelectOpen}
+                        style={{ width: '100%' }}
                       >
-                        <FormSelectOption value="" label="Select a reason" />
-                        <FormSelectOption value="incorrect-rca" label="Incorrect root cause diagnosis" />
-                        <FormSelectOption value="too-risky" label="Remediation too risky" />
-                        <FormSelectOption value="prefer-manual" label="Prefer manual fix" />
-                        <FormSelectOption value="false-positive" label="False positive" />
-                        <FormSelectOption value="other" label="Other" />
-                      </FormSelect>
-                    </FormGroup>
-                  </Form>
+                        {({
+                          'incorrect-rca': 'Incorrect root cause diagnosis',
+                          'too-risky': 'Remediation too risky',
+                          'prefer-manual': 'Prefer manual fix',
+                          'false-positive': 'False positive',
+                          'other': 'Other',
+                        } as Record<string, string>)[denyReason] ?? 'Select a reason'}
+                      </MenuToggle>
+                    )}
+                  >
+                    <DropdownList>
+                      <DropdownItem value="incorrect-rca">Incorrect root cause diagnosis</DropdownItem>
+                      <DropdownItem value="too-risky">Remediation too risky</DropdownItem>
+                      <DropdownItem value="prefer-manual">Prefer manual fix</DropdownItem>
+                      <DropdownItem value="false-positive">False positive</DropdownItem>
+                      <DropdownItem value="other">Other</DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
                 </ModalBody>
                 <ModalFooter>
                   <Button
                     variant="danger"
                     onClick={() => {
                       setIsDenyModalOpen(false);
+                      setIsDenySelectOpen(false);
                       setDenyReason('');
                       onRejectPlan?.();
                     }}
@@ -4416,7 +4435,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                   </Button>
                   <Button
                     variant="link"
-                    onClick={() => { setIsDenyModalOpen(false); setDenyReason(''); }}
+                    onClick={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
                   >
                     Cancel
                   </Button>
