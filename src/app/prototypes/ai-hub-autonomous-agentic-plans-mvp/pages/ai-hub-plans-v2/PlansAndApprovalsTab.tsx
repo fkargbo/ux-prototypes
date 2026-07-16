@@ -25,6 +25,10 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
+  Form,
+  FormGroup,
+  FormSelect,
+  FormSelectOption,
   Label,
   MenuToggle,
   Modal,
@@ -3671,6 +3675,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
+  const [isDenyModalOpen, setIsDenyModalOpen] = useState(false);
+  const [denyReason, setDenyReason] = useState('');
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
   const [isRawEvidenceExpanded, setIsRawEvidenceExpanded] = useState(false);
@@ -4356,12 +4362,66 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               {isProposed && onRejectPlan && (
                 <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <FlexItem>
-                    <Button variant="secondary" onClick={onRejectPlan}>
+                    <Button variant="secondary" onClick={() => setIsDenyModalOpen(true)}>
                       Deny run
                     </Button>
                   </FlexItem>
                 </Flex>
               )}
+
+              {/* ── Deny run confirmation modal ────────────────────────────── */}
+              <Modal
+                variant={ModalVariant.small}
+                isOpen={isDenyModalOpen}
+                onClose={() => { setIsDenyModalOpen(false); setDenyReason(''); }}
+                aria-labelledby="deny-run-confirm-title"
+              >
+                <ModalHeader title="Confirm remediation denial" labelId="deny-run-confirm-title" />
+                <ModalBody>
+                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                    Denying this run will cancel all proposed automated actions. The associated alerts
+                    must then be investigated and resolved manually.
+                  </Content>
+                  <Form>
+                    <FormGroup
+                      label="Reason for denial (optional)"
+                      fieldId="deny-reason-select"
+                    >
+                      <FormSelect
+                        id="deny-reason-select"
+                        value={denyReason}
+                        onChange={(_e, val) => setDenyReason(val)}
+                        aria-label="Reason for denial"
+                      >
+                        <FormSelectOption value="" label="Select a reason" />
+                        <FormSelectOption value="incorrect-rca" label="Incorrect root cause diagnosis" />
+                        <FormSelectOption value="too-risky" label="Remediation too risky" />
+                        <FormSelectOption value="prefer-manual" label="Prefer manual fix" />
+                        <FormSelectOption value="false-positive" label="False positive" />
+                        <FormSelectOption value="other" label="Other" />
+                      </FormSelect>
+                    </FormGroup>
+                  </Form>
+                </ModalBody>
+                <ModalFooter>
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      setIsDenyModalOpen(false);
+                      setDenyReason('');
+                      onRejectPlan?.();
+                    }}
+                  >
+                    Deny run
+                  </Button>
+                  <Button
+                    variant="link"
+                    onClick={() => { setIsDenyModalOpen(false); setDenyReason(''); }}
+                  >
+                    Cancel
+                  </Button>
+                </ModalFooter>
+              </Modal>
 
               <Modal
                 variant={ModalVariant.small}
