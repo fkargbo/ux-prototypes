@@ -4058,8 +4058,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                   Acknowledge
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="link"
                   icon={<DownloadIcon />}
+                  iconPosition="start"
                   onClick={() =>
                     downloadAnalysisReportMarkdown(plan, {
                       aggregatedFinding: drawer!.aggregatedFinding,
