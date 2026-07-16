@@ -3609,7 +3609,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const isEscalated  = status === 'Escalated';
   const isExecutionPhase = isExecuting || isPlanAborted;
   const isOptionLocked = isExecutionPhase || isVerifying;
-  const isTerminal = status === 'Completed' || status === 'Failed';
+  const isTerminal  = status === 'Completed' || status === 'Failed';
+  const isCompleted = status === 'Completed';
   const isDenied           = status === 'Denied';
   const isEmergencyStopped = status === 'EmergencyStopped';
   const { activePerspective } = useActivePerspective();
@@ -3794,7 +3795,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
 
         const stepsToRender: ReasoningStep[] = isProposed
           ? PROPOSED_STEPS
-          : isTerminal
+          : isCompleted
           ? COMPLETED_STEPS
           : (drawer?.steps ?? []);
 
