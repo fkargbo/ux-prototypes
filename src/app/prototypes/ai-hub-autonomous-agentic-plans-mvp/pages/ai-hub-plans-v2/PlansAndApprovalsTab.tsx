@@ -2764,12 +2764,9 @@ const RemediationOptionCard: React.FC<{
       id={`${cardId}-title`}
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-            Option {index + 1}
-          </span>
-          <Label color="grey" isCompact>AI-generated</Label>
-        </Flex>
+        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+          Option {index + 1}
+        </span>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
           {isTerminal && isFirst && (
             <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
@@ -4090,6 +4087,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
         >
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
             <Title headingLevel="h4" size="md">Remediation hub</Title>
+            <Label color="grey" isCompact>AI-generated</Label>
             {status === 'Completed' && (
               <Label
                 color="green"
