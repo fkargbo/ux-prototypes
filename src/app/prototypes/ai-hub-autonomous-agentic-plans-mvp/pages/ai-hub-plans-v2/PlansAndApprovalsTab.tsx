@@ -1717,6 +1717,36 @@ Block Id    Min Time                Max Time                Duration    Num Samp
   "startsAt": "2026-04-29T02:07:15Z"
 }`,
   },
+  'quota-exhaustion-escalating': {
+    steps: [
+      { id: 's1', time: '08:44:02', status: 'done',    icon: 'exclamation', title: '3 ResourceQuota limit-exceeded events detected',          detail: 'cpu and memory quotas exhausted in retail-prod, payments-staging, auth-dev namespaces' },
+      { id: 's2', time: '08:44:16', status: 'done',    icon: 'database',    title: 'Queried Kubernetes resource quota utilization',            detail: 'Quota headroom: CPU 0m remaining, memory 0Mi remaining across 3 namespaces' },
+      { id: 's3', time: '08:44:29', status: 'done',    icon: 'search',      title: 'Identified workload contributing to exhaustion',          detail: 'payments-api StatefulSet expanded from 3→9 replicas during flash traffic event' },
+      { id: 's4', time: '08:44:44', status: 'alert',   icon: 'exclamation', title: 'Automated quota adjustment failed — attempt 1 of 3',      detail: 'Execution blocked: ResourceQuota patch requires cluster-admin binding' },
+      { id: 's5', time: '08:44:58', status: 'alert',   icon: 'exclamation', title: 'Automated quota adjustment failed — attempt 2 of 3',      detail: 'Retry failed: RBAC denial unchanged after permission re-check' },
+      { id: 's6', time: '08:45:11', status: 'alert',   icon: 'exclamation', title: 'Automated quota adjustment failed — attempt 3 of 3',      detail: 'Max retries exhausted — escalating to human operator' },
+    ],
+    aggregatedFinding: 'Namespace resource quotas are fully exhausted across 3 namespaces. Three automated remediation attempts failed due to RBAC permission restrictions.',
+    rootCauseNarrative: 'A sudden scale-out of the payments-api StatefulSet consumed all remaining CPU and memory quota headroom across retail-prod, payments-staging, and auth-dev. The autonomous agent attempted to patch the ResourceQuota objects directly but was blocked by a missing cluster-admin binding on the automation service account. All 3 retry attempts failed with the same RBAC denial. Escalation to a human operator with the correct permissions is required.',
+    remediationProposal: 'Grant the automation service account a scoped cluster-admin or quota-editor ClusterRole binding, then re-trigger the quota adjustment. Alternatively, manually patch the affected ResourceQuota objects to increase CPU and memory limits.',
+    riskAssessment: 'High — quota exhaustion is blocking new pod scheduling and causing evictions across 3 namespaces.',
+    estimatedRecovery: 'N/A — manual operator intervention required',
+    confidence: 'High',
+    rawEvidence: `// kubectl describe resourcequota -n retail-prod
+Name: compute-resources
+Namespace: retail-prod
+Resource         Used    Hard
+--------         ----    ----
+requests.cpu     7980m   8000m   ← 20m remaining
+requests.memory  31Gi    32Gi    ← 1Gi remaining
+limits.cpu       15960m  16000m  ← 40m remaining
+limits.memory    62Gi    64Gi
+
+// RBAC denial from kubectl patch resourcequota/compute-resources:
+// Error from server (Forbidden): resourcequotas "compute-resources" is forbidden:
+// User "system:serviceaccount:openshift-agentic:quota-agent" cannot patch resource
+// "resourcequotas" in API group "" in the namespace "retail-prod"`,
+  },
   'etcd-defrag-failed': {
     steps: [
       { id: 's1', time: '09:14:05', status: 'done', icon: 'exclamation', title: 'EtcdDatabaseHighFragmentationRatio alert fired', detail: 'Fragmentation ratio 0.67 detected across etcd-master-01, etcd-master-02, etcd-master-03' },
@@ -1848,6 +1878,13 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
   op5: [
     { id: 'op5-o1', title: 'Clear stale Grafana SQLite WAL lock + controlled restart', description: 'Scale grafana to zero, remove the stale SQLite WAL lock file on the shared PVC, verify filesystem consistency, and restart the deployment.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal && oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
     { id: 'op5-o2', title: 'Snapshot PVC then force WAL checkpoint', description: 'Take a volume snapshot of the Grafana PVC and run a forced SQLite checkpoint before clearing the lock — slower but preserves rollback capability.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: 'oc create -f grafana-pvc-snapshot.yaml && oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
+  ],
+  'quota-exhaustion-escalating': [
+    { id: 'quota-esc-o1', title: 'Grant scoped quota-editor ClusterRole binding to automation service account', description: 'Create a ClusterRole with resourcequotas patch permissions and bind it to the automation service account. This unblocks the agent from self-remediating future quota events without requiring full cluster-admin.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: `oc create clusterrole quota-editor --verb=get,list,watch,update,patch --resource=resourcequotas
+oc create clusterrolebinding quota-agent-editor --clusterrole=quota-editor --serviceaccount=openshift-agentic:quota-agent` },
+    { id: 'quota-esc-o2', title: 'Manually increase ResourceQuota limits across affected namespaces', description: 'Directly patch the ResourceQuota objects in retail-prod, payments-staging, and auth-dev to increase CPU and memory limits by 50% to restore pod scheduling headroom.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: `oc patch resourcequota/compute-resources -n retail-prod -p '{"spec":{"hard":{"requests.cpu":"12","requests.memory":"48Gi"}}}'
+oc patch resourcequota/compute-resources -n payments-staging -p '{"spec":{"hard":{"requests.cpu":"8","requests.memory":"32Gi"}}}'
+oc patch resourcequota/compute-resources -n auth-dev -p '{"spec":{"hard":{"requests.cpu":"4","requests.memory":"16Gi"}}}'` },
   ],
   'acs-netpol-remediation-denied': [
     { id: 'acs-netpol-o1', title: 'Patch deployment to remove hostNetwork + CoreDNS config fix', description: 'Set hostNetwork: false on the retail-checkout deployment and resolve the underlying DNS resolution issue by adding a CoreDNS stub zone for the affected service domain.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: "oc patch deployment/retail-checkout -n retail-prod --type='json' -p='[{\"op\": \"replace\", \"path\": \"/spec/template/spec/hostNetwork\", \"value\": false}]' && oc apply -f coredns-stub-zone.yaml" },
@@ -3779,6 +3816,21 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
         </Content>
       </StackItem>
 
+      {/* ── Escalation alert ─────────────────────────────────────────────── */}
+      {isEscalating && (
+        <StackItem>
+          <Alert
+            isInline
+            variant="danger"
+            title="Automated remediation retries exhausted"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+          >
+            The autonomous agent failed to resolve this issue after 3 retry attempts. Escalation
+            handoff is in progress, and human intervention is now required.
+          </Alert>
+        </StackItem>
+      )}
+
       {/* ── Section D: Reasoning chain ────────────────────────────────── */}
       {(() => {
         const COMPLETED_STEPS: ReasoningStep[] = [
@@ -3904,34 +3956,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             </Label>
           )}
         </Flex>
-          {isEscalating ? (
-            <div
-              style={LOCKED_BOX_STYLE}
-              aria-live="polite"
-              aria-label="Escalation status — root cause analysis unavailable"
-            >
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                <ExclamationTriangleIcon
-                  aria-hidden
-                  style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
-                />
-                <Content
-                  component="p"
-                  className="ols-aio-text-subtle-sm"
-                  style={{ margin: 0, fontStyle: 'italic' }}
-                >
-                  Root cause analysis unavailable — this run has been escalated to a human operator.
-                </Content>
-              </Flex>
-              <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-              <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-              <Skeleton width="75%" />
-            </div>
-          ) : isAnalyzing ? (
+          {isAnalyzing ? (
             <>
               <RcaLockedPlaceholder />
             </>
@@ -4129,25 +4154,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           </Flex>
           <WaitingApprovalPlanMeta plan={plan} />
         </Flex>
-          {isEscalating ? (
-            <div
-              style={LOCKED_BOX_STYLE}
-              aria-live="polite"
-              aria-label="Remediation hub — escalation active"
-            >
-              <Content
-                component="p"
-                className="ols-aio-text-subtle-sm"
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
-              >
-                Remediation options are unavailable while escalation is active. This run has been
-                forwarded to a human operator for manual intervention.
-              </Content>
-              <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-              <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-              <Skeleton width="55%" />
-            </div>
-          ) : isAnalyzing ? (
+          {isAnalyzing ? (
             <HubLockedPlaceholder />
           ) : isEscalated ? (
             <>
