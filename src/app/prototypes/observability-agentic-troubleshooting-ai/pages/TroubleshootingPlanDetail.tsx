@@ -109,7 +109,7 @@ export const TroubleshootingPlanDetail: React.FC = () => {
       <div
         className="ols-plan-remediation-drilldown"
         role="main"
-        aria-label={`Troubleshooting plan: ${plan.synopsis}`}
+        aria-label={`Agentic run: ${plan.synopsis}`}
         style={{ padding: '24px', boxSizing: 'border-box' }}
       >
         <RemediationBlueprintPanel key={plan.id} plan={plan} />

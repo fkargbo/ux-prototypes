@@ -2486,7 +2486,7 @@ interface PlansTableCoreProps {
   isAgenticAutomationEnabled: boolean;
   /** When true, granular observability telemetry domains are coalesced to "Observability" in the cell badge. */
   mapObservabilityDomains?: boolean;
-  /** Global Agentic plans list only — domain-scoped lists (e.g. Troubleshooting plans) omit this column. */
+  /** Global Agentic runs list only — domain-scoped lists (e.g. Agentic runs) omit this column. */
   showTriggerDomainColumn?: boolean;
 }
 

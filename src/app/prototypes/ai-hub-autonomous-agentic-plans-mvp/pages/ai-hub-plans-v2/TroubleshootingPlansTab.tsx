@@ -131,12 +131,12 @@ export const TroubleshootingPlansTab: React.FC = () => {
 
         {paginatedRows.length === 0 ? (
           <Content component="p" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
-            No troubleshooting plans match the current filters.
+            No agentic runs match the current filters.
           </Content>
         ) : (
           <PlansTableCore
             rows={paginatedRows}
-            ariaLabel="Troubleshooting plans"
+            ariaLabel="Agentic runs"
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={openPlanRemediation}
             onDeletePlan={deletePlan}

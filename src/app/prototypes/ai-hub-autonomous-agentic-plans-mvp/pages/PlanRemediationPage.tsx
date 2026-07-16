@@ -112,7 +112,7 @@ export const PlanRemediationPage: React.FC = () => {
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
             {planDomain?.listBreadcrumbLabel ?? 'Plans'}
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Plan details</BreadcrumbItem>
+          <BreadcrumbItem isActive>Run details</BreadcrumbItem>
         </Breadcrumb>
       </div>
 

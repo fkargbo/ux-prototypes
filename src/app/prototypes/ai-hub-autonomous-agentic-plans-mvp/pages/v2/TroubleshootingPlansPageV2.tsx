@@ -14,10 +14,10 @@ export const TroubleshootingPlansPageV2: React.FC = () => {
           <AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
             <Title headingLevel="h1" size="2xl">
-              Troubleshooting plans
+              Agentic runs
             </Title>
             <Content component="p" className="ols-ai-hub-page-subtitle">
-              Observability-triggered remediation plans generated from firing platform monitoring alerts —
+              Observability-triggered agentic runs generated from firing platform monitoring alerts —
               scoped to signal correlation, alert root cause, and targeted recovery actions.
             </Content>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
@@ -31,7 +31,7 @@ export const TroubleshootingPlansPageV2: React.FC = () => {
         id="ols-troubleshooting-plans-main"
         className="template-page-content"
         role="main"
-        aria-label="Troubleshooting plans content"
+        aria-label="Agentic runs content"
       >
         <AgenticKillSwitchBanner />
         <TroubleshootingPlansTab />

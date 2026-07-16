@@ -13,7 +13,7 @@ export const AIHubPage: React.FC = () => {
           <Hub.AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
             <Title headingLevel="h1" size="2xl">
-              Agentic plans
+              Agentic runs
             </Title>
             <Content component="p" className="ols-ai-hub-page-subtitle">
               Speed up incident response with automated investigations, evidence collection, and remediation.
@@ -29,7 +29,7 @@ export const AIHubPage: React.FC = () => {
         id="ols-ai-hub-main"
         className="template-page-content"
         role="main"
-        aria-label="Agentic plans content"
+        aria-label="Agentic runs content"
       >
         <AgenticKillSwitchBanner />
         <Hub.PlansAndApprovalsTab />
