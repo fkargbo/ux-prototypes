@@ -755,7 +755,32 @@ span.ols-aio-card-stat-number {
 }
 
 /* Detected Root Cause / remediation surfaces — PF tokens (dark + glass safe). */
-.ols-ai-hub-page .ols-aio-rca-box {
+.ols-ai-hub-page /*
+ * Fitted-line variant for the Reasoning chain section (v2 detail panel).
+ * Suppresses the full-height OL::before line and replaces it with per-item
+ * connectors that run only between adjacent node centers — the line no longer
+ * overshoots above the first circle or below the last circle.
+ *
+ * Geometry (node: inset-block-start 2px, height 24px):
+ *   connector start = 2px + 24px = 26px  (bottom edge of node)
+ *   connector end   = 0               (bottom of item = top of next item)
+ *   horizontal      = -17px           (center of 24px node at -28px: -28 + 12 = -16px center; 2px line left edge -17px)
+ */
+.ols-aio-reasoning-timeline--fitted::before {
+  display: none;
+}
+
+.ols-aio-reasoning-timeline--fitted .ols-aio-reasoning-timeline__item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: -17px;
+  inset-block-start: 26px;
+  inset-block-end: 0;
+  width: 2px;
+  background-color: var(--pf-t--global--border--color--default);
+}
+
+.ols-aio-rca-box {
   border-radius: 16px;
   overflow: hidden;
   padding: var(--pf-t--global--spacer--md);

@@ -43,7 +43,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, CodeBranchIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -4326,19 +4326,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             isExpanded={isReasoningChainExpanded}
             onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
             toggleContent={
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                style={{ width: '100%' }}
-              >
-                <CodeBranchIcon />
-                <Title headingLevel="h4" size="md">
-                  Reasoning chain
-                </Title>
-              </Flex>
+              <Title headingLevel="h4" size="md">
+                Reasoning chain
+              </Title>
             }
           >
-            <ol className="ols-aio-reasoning-timeline" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+            <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
               {drawer.steps.map((step) => (
                 <li key={step.id} className="ols-aio-reasoning-timeline__item">
                   <span className="ols-aio-reasoning-timeline__node">
@@ -4393,19 +4386,12 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               isExpanded={isReasoningChainExpanded}
               onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
               toggleContent={
-                <Flex
-                  alignItems={{ default: 'alignItemsCenter' }}
-                  gap={{ default: 'gapSm' }}
-                  style={{ width: '100%' }}
-                >
-                  <CodeBranchIcon />
-                  <Title headingLevel="h4" size="md">
-                    Reasoning chain
-                  </Title>
-                </Flex>
+                <Title headingLevel="h4" size="md">
+                  Reasoning chain
+                </Title>
               }
             >
-              <ol className="ols-aio-reasoning-timeline" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                 {FALLBACK_STEPS.map((step) => (
                   <li key={step.id} className="ols-aio-reasoning-timeline__item">
                     <span className="ols-aio-reasoning-timeline__node">
