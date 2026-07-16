@@ -1140,9 +1140,10 @@ status:
   },
   cp1: {
     steps: [
-      { id: 's1', time: '14:02:11', status: 'done', icon: 'exclamation', title: 'ClusterVersion channel reports EndOfLife on 4.14', detail: 'Cluster is EOL or behind upgrade channel' },
-      { id: 's2', time: '14:02:24', status: 'done', icon: 'database', title: 'Evaluated supported upgrade graph to 4.15', detail: 'Upgradeable=False — minor version outside supported window' },
-      { id: 's3', time: '14:02:38', status: 'done', icon: 'search', title: 'Scored control plane blast radius for minor bump', detail: 'Single-cluster scope · High confidence in channel signal' },
+      { id: 's1', time: '14:02:11', status: 'done',    icon: 'exclamation', title: 'ClusterVersion channel reports EndOfLife on 4.14', detail: 'Cluster is EOL or behind upgrade channel' },
+      { id: 's2', time: '14:02:24', status: 'done',    icon: 'database',    title: 'Evaluated supported upgrade graph to 4.15', detail: 'Upgradeable=False — minor version outside supported window' },
+      { id: 's3', time: '14:02:38', status: 'done',    icon: 'search',      title: 'Scored control plane blast radius for minor bump', detail: 'Single-cluster scope · High confidence in channel signal' },
+      { id: 's4', time: '14:02:51', status: 'pending', icon: 'search',      title: 'Awaiting approval to execute minor upgrade', detail: 'Control plane rolling upgrade requires platform admin authorization' },
     ],
     aggregatedFinding: 'ClusterVersion reports fast-4.14 channel EndOfLife with no further z-stream releases available.',
     rootCauseNarrative: 'The cluster remains on OpenShift 4.14 while the subscribed channel has reached end of life. Without a minor version upgrade to 4.15, the platform cannot receive security or bug-fix releases.',
@@ -1305,6 +1306,7 @@ status:
       { id: 's1', time: '09:23:05', status: 'done',    icon: 'exclamation', title: 'ACS flagged hostNetwork: true on production deployment', detail: 'CIS Level 3 violation · node network namespace exposed' },
       { id: 's2', time: '09:23:18', status: 'done',    icon: 'database',    title: 'Inspected deployment spec and admission audit log', detail: 'Misconfigured hostNetwork added in last rollout by dev team' },
       { id: 's3', time: '09:23:32', status: 'done',    icon: 'search',      title: 'Confirmed no legitimate use case for host networking', detail: '3 low-priority ACS alerts corroborated the posture violation' },
+      { id: 's4', time: '09:23:45', status: 'pending', icon: 'search',      title: 'Awaiting approval to patch deployment', detail: 'Disabling hostNetwork triggers pod restart — security team sign-off required' },
     ],
     aggregatedFinding: 'ACS detected a host network namespace sharing violation — a CIS benchmark Level 3 non-compliance — on 1 cluster.',
     rootCauseNarrative: 'A new deployment was misconfigured with hostNetwork: true, granting the container direct access to the node network stack. ACS enforcement policy flagged this as a critical security posture violation.',
@@ -3779,12 +3781,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
 
       {/* ── Section D: Reasoning chain ────────────────────────────────── */}
       {(() => {
-        const PROPOSED_STEPS: ReasoningStep[] = [
-          { id: 'rc-p1', time: '10:03:02', status: 'done',    icon: 'exclamation', title: 'Detected Alertmanager Webhook sync failures',     detail: 'AlertmanagerDeliveryFailing alert active on prod-east-2' },
-          { id: 'rc-p2', time: '10:03:25', status: 'done',    icon: 'database',    title: 'Identified expired API token in cluster secrets', detail: 'PagerDuty integration key past rotation window by 11 days' },
-          { id: 'rc-p3', time: '10:03:41', status: 'pending', icon: 'search',      title: 'Awaiting approval to rotate webhook secret',     detail: 'Secret rotation requires platform admin approval' },
-        ];
-
         const COMPLETED_STEPS: ReasoningStep[] = [
           { id: 'rc-c1', time: '10:03:02', status: 'done', icon: 'exclamation', title: 'Detected ArgoCD LiveStateOutOfSync event',                    detail: '4 IngressControllerDegraded alerts firing fleet-wide' },
           { id: 'rc-c2', time: '10:03:25', status: 'done', icon: 'database',    title: 'Fetched GitOps revision history',                             detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
@@ -3793,9 +3789,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           { id: 'rc-c5', time: '10:04:12', status: 'done', icon: 'network',     title: 'Cluster state reconciled successfully; health checks passing', detail: 'All IngressControllerDegraded alerts resolved' },
         ];
 
-        const stepsToRender: ReasoningStep[] = isProposed
-          ? PROPOSED_STEPS
-          : isCompleted
+        const stepsToRender: ReasoningStep[] = isCompleted
           ? COMPLETED_STEPS
           : (drawer?.steps ?? []);
 
@@ -4058,8 +4052,9 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                   Acknowledge
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="link"
                   icon={<DownloadIcon />}
+                  iconPosition="start"
                   onClick={() =>
                     downloadAnalysisReportMarkdown(plan, {
                       aggregatedFinding: drawer!.aggregatedFinding,
