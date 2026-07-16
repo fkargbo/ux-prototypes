@@ -4166,8 +4166,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               </ExpandableSection>
             )}
 
-            <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
-
             {/* View analysis logs */}
             <ExpandableSection
               toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
