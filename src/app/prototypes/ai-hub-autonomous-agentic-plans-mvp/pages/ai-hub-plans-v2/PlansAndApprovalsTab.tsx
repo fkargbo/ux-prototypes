@@ -3827,7 +3827,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               ))}
             </ol>
           </ExpandableSection>
-          <Divider style={{ marginTop: isReasoningChainExpanded ? 'var(--pf-t--global--spacer--md)' : 'var(--pf-t--global--spacer--xs)' }} />
         </StackItem>
       )}
 
@@ -3887,7 +3886,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 ))}
               </ol>
             </ExpandableSection>
-            <Divider style={{ marginTop: isReasoningChainExpanded ? 'var(--pf-t--global--spacer--md)' : 'var(--pf-t--global--spacer--xs)' }} />
           </StackItem>
         );
       })()}
