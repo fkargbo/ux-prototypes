@@ -3988,7 +3988,23 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               onToggle={(_e, expanded) => setIsCitationsExpanded(expanded)}
               style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
             >
-              <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+              {/*
+               * The wrapper below mirrors the exact background + border tokens used by
+               * ClipboardCopy variant="expansion" isCode — ensuring the citations panel
+               * transitions identically across Light, Dark, and Glass contrast modes.
+               *   Background: --pf-t--global--background--color--secondary--default
+               *   Border:     --pf-t--global--border--color--default (1px solid)
+               */}
+              <div
+                style={{
+                  backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                  border: '1px solid var(--pf-t--global--border--color--default)',
+                  borderRadius: 'var(--pf-t--global--border--radius--small)',
+                  padding: 'var(--pf-t--global--spacer--md)',
+                  marginTop: 'var(--pf-t--global--spacer--sm)',
+                }}
+              >
+              <Stack hasGutter>
 
                 {/* Telemetry correlation */}
                 <StackItem>
@@ -4120,6 +4136,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 </StackItem>
 
               </Stack>
+              </div>
             </ExpandableSection>
 
             {drawer!.rawEvidence && (
