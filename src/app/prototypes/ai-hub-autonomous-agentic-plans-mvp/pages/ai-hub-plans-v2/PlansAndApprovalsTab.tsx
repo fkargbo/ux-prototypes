@@ -3989,18 +3989,20 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
               style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
             >
               {/*
-               * Mirrors the exact CSS tokens applied by ClipboardCopy variant="expansion"
-               * isReadOnly isCode (.pf-v6-c-clipboard-copy__expandable-content with
-               * .pf-m-readonly override) — verified from clipboard-copy.css in react-styles:
-               *   Background: --pf-t--global--background--color--control--read-only
-               *   Border:     --pf-t--global--border--color--control--read-only
+               * Mirrors the default ClipboardCopy expandable-content tokens
+               * (.pf-v6-c-clipboard-copy__expandable-content, line 11 of clipboard-copy.css):
+               *   Background: --pf-t--global--background--color--control--default
+               *     → white in Light/System, dark in Dark/Glass
+               *   Border:     --pf-t--global--border--color--control--default
                *   Radius:     --pf-t--global--border--radius--control--form-element
                *   Width:      --pf-t--global--border--width--control--default
+               * Using --control--default (not --control--read-only) so Light/System mode
+               * renders white (high-contrast) rather than the read-only grey tint.
                */}
               <div
                 style={{
-                  backgroundColor: 'var(--pf-t--global--background--color--control--read-only)',
-                  border: 'var(--pf-t--global--border--width--control--default) solid var(--pf-t--global--border--color--control--read-only)',
+                  backgroundColor: 'var(--pf-t--global--background--color--control--default)',
+                  border: 'var(--pf-t--global--border--width--control--default) solid var(--pf-t--global--border--color--control--default)',
                   borderRadius: 'var(--pf-t--global--border--radius--control--form-element)',
                   padding: 'var(--pf-t--global--spacer--md)',
                   marginTop: 'var(--pf-t--global--spacer--sm)',
