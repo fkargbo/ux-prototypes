@@ -1513,7 +1513,7 @@ spec:
     steps: [
       { id: 's1', time: '10:18:04', status: 'done', icon: 'exclamation', title: 'AlertmanagerDeliveryFailing alert detected', detail: 'Expired integration tokens for PagerDuty receiver' },
       { id: 's2', time: '10:18:17', status: 'done', icon: 'database', title: 'Validated Alertmanager receiver secret references', detail: 'PagerDuty integration key past rotation window by 11 days' },
-      { id: 's3', time: '10:18:31', status: 'active', icon: 'search', title: 'Awaiting approval to rotate webhook secret', detail: 'Secret rotation requires platform admin approval' },
+      { id: 's3', time: '10:18:31', status: 'pending', icon: 'search', title: 'Awaiting approval to rotate webhook secret', detail: 'Secret rotation requires platform admin approval' },
     ],
     aggregatedFinding: 'Alertmanager notification delivery failures correlate with an expired PagerDuty integration token in openshift-monitoring.',
     rootCauseNarrative: 'The Alertmanager PagerDuty receiver references a Kubernetes secret whose integration token expired, causing sustained AlertmanagerDeliveryFailing alerts and missed pages.',
@@ -1601,7 +1601,7 @@ spec:
     steps: [
       { id: 's1', time: '16:03:12', status: 'done', icon: 'exclamation', title: 'PersesDashboardStorageLocked alert fired', detail: 'Database write timeouts on shared persistent volume' },
       { id: 's2', time: '16:03:26', status: 'done', icon: 'database', title: 'Inspected Perses storage volume and PVC mount state', detail: 'Stale lock file held after ungraceful perses pod eviction' },
-      { id: 's3', time: '16:03:41', status: 'active', icon: 'search', title: 'Awaiting approval to remove storage lock', detail: 'Lock removal requires a brief Perses write-unavailable window' },
+      { id: 's3', time: '16:03:41', status: 'pending', icon: 'search', title: 'Awaiting approval to remove storage lock', detail: 'Lock removal requires a brief Perses write-unavailable window' },
     ],
     aggregatedFinding: 'Perses dashboard persistence failures trace to a storage lock on the shared monitoring PVC.',
     rootCauseNarrative: 'An ungraceful Perses pod eviction left a stale lock file on the shared persistent volume, causing PersesDashboardStorageLocked alerts and dashboard write timeouts.',
@@ -3793,38 +3793,54 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             }
           >
             <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-              {drawer.steps.map((step) => (
-                <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                  <span className="ols-aio-reasoning-timeline__node">
-                    <ReasoningChainStepGlyph step={step} />
-                  </span>
-                  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
-                    <FlexItem>
-                      <span
-                        className="ols-aio-text-subtle-sm"
-                        style={{ fontVariantNumeric: 'tabular-nums' }}
-                      >
-                        {formatReasoningStepDisplayTime(step)}
-                      </span>
-                    </FlexItem>
-                  </Flex>
-                  <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                    {step.title}
-                  </Title>
-                  {step.detail && (
-                    <Content
-                      component="p"
-                      style={{
-                        marginTop: 'var(--pf-t--global--spacer--xs)',
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                        marginBottom: 0,
-                      }}
+              {drawer.steps.map((step) => {
+                const isAwaitingApproval = step.status === 'pending' && step.title.startsWith('Awaiting');
+                return (
+                  <li key={step.id} className="ols-aio-reasoning-timeline__item">
+                    <span
+                      className="ols-aio-reasoning-timeline__node"
+                      style={isAwaitingApproval ? {
+                        borderColor: 'var(--pf-t--global--color--status--info--default)',
+                        color: 'var(--pf-t--global--color--status--info--default)',
+                      } : undefined}
                     >
-                      {step.detail}
-                    </Content>
-                  )}
-                </li>
-              ))}
+                      {isAwaitingApproval ? (
+                        <InfoCircleIcon
+                          aria-hidden
+                          style={{ color: 'var(--pf-t--global--color--status--info--default)' }}
+                        />
+                      ) : (
+                        <ReasoningChainStepGlyph step={step} />
+                      )}
+                    </span>
+                    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
+                      <FlexItem>
+                        <span
+                          className="ols-aio-text-subtle-sm"
+                          style={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
+                          {isAwaitingApproval ? (step.time ?? '—') : formatReasoningStepDisplayTime(step)}
+                        </span>
+                      </FlexItem>
+                    </Flex>
+                    <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                      {step.title}
+                    </Title>
+                    {step.detail && (
+                      <Content
+                        component="p"
+                        style={{
+                          marginTop: 'var(--pf-t--global--spacer--xs)',
+                          color: 'var(--pf-t--global--text--color--subtle)',
+                          marginBottom: 0,
+                        }}
+                      >
+                        {step.detail}
+                      </Content>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           </ExpandableSection>
         </StackItem>
