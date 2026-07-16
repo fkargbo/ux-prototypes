@@ -3677,6 +3677,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
   const [isRawEvidenceExpanded, setIsRawEvidenceExpanded] = useState(false);
+  const [isCitationsExpanded, setIsCitationsExpanded] = useState(false);
   const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
 
   const executionKillState =
@@ -3691,6 +3692,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
     setAnalysisLogsQuery('');
     setIsStopExecutionModalOpen(false);
     setIsRawEvidenceExpanded(false);
+    setIsCitationsExpanded(false);
     setIsReasoningChainExpanded(false);
   }, [plan.id]);
 
@@ -3974,6 +3976,151 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.rootCauseNarrative}
             </Content>
+
+            {/* ── Telemetry and resource citations (Legal requirement C) ─────────── */}
+            <ExpandableSection
+              toggleText={
+                isCitationsExpanded
+                  ? 'Hide telemetry and resource citations'
+                  : 'View telemetry and resource citations'
+              }
+              isExpanded={isCitationsExpanded}
+              onToggle={(_e, expanded) => setIsCitationsExpanded(expanded)}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+
+                {/* Telemetry correlation */}
+                <StackItem>
+                  <span className="ols-aio-text-overline">Telemetry correlation</span>
+                  <Content
+                    component="p"
+                    style={{ marginTop: 'var(--pf-t--global--spacer--xs)', marginBottom: 0 }}
+                  >
+                    The fleet-wide onset of{' '}
+                    <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
+                      alertname=&quot;IngressControllerDegraded&quot;
+                    </code>{' '}
+                    occurred exactly 9 minutes after ArgoCD applied ApplicationSet revision r4892,
+                    establishing a 94% causal correlation.
+                  </Content>
+                </StackItem>
+
+                {/* Diagnostic finding citations */}
+                <StackItem>
+                  <span className="ols-aio-text-overline">Diagnostic finding citations</span>
+                  <DescriptionList
+                    isCompact
+                    style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
+                  >
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Finding 1 — Ingress controller routing failure</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Stack>
+                          <StackItem>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                              <FlexItem>Prometheus Alert:</FlexItem>
+                              <FlexItem>
+                                <Label color="grey" isCompact variant="outline">
+                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
+                                    alertname=&quot;IngressControllerDegraded&quot;
+                                  </code>
+                                </Label>
+                              </FlexItem>
+                            </Flex>
+                          </StackItem>
+                          <StackItem>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                              <FlexItem>Kubernetes Resource:</FlexItem>
+                              <FlexItem>
+                                <Label color="grey" isCompact variant="outline">
+                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
+                                    Deployment/ingress-nginx-controller
+                                  </code>
+                                </Label>
+                              </FlexItem>
+                              <FlexItem>in namespace</FlexItem>
+                              <FlexItem>
+                                <Label color="grey" isCompact variant="outline">
+                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
+                                    ingress-nginx
+                                  </code>
+                                </Label>
+                              </FlexItem>
+                            </Flex>
+                          </StackItem>
+                          <StackItem>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                              <FlexItem>Operator Condition:</FlexItem>
+                              <FlexItem>
+                                <Label color="grey" isCompact variant="outline">
+                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
+                                    IngressControllerDegraded=True
+                                  </code>
+                                </Label>
+                              </FlexItem>
+                            </Flex>
+                          </StackItem>
+                        </Stack>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Finding 2 — ArgoCD LiveState synchronization block</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Stack>
+                          <StackItem>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                              <FlexItem>Kubernetes Resource:</FlexItem>
+                              <FlexItem>
+                                <Label color="grey" isCompact variant="outline">
+                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
+                                    Application/root-app
+                                  </code>
+                                </Label>
+                              </FlexItem>
+                            </Flex>
+                          </StackItem>
+                          <StackItem>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                              <FlexItem>Metric Value:</FlexItem>
+                              <FlexItem>
+                                <Label color="grey" isCompact variant="outline">
+                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
+                                    {`gitops_sync_status{status="OutOfSync"} = 1`}
+                                  </code>
+                                </Label>
+                              </FlexItem>
+                            </Flex>
+                          </StackItem>
+                        </Stack>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  </DescriptionList>
+                </StackItem>
+
+                {/* Remediation action justifications */}
+                <StackItem>
+                  <span className="ols-aio-text-overline">Remediation action justifications</span>
+                  <DescriptionList
+                    isCompact
+                    style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
+                  >
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Proposed action — Roll back deployment to revision r4891</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Content component="p" style={{ marginBottom: 0 }}>
+                          Justified by Finding 1 &amp; Finding 2. The overlay conflict introduced in
+                          revision r4892 is the sole driver of both the synchronization block and
+                          ingress degradation.
+                        </Content>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  </DescriptionList>
+                </StackItem>
+
+              </Stack>
+            </ExpandableSection>
 
             {drawer!.rawEvidence && (
               <ExpandableSection
