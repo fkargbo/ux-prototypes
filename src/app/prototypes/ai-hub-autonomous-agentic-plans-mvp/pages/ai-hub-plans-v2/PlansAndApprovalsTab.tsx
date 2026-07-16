@@ -47,6 +47,7 @@ import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, Ex
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
+import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import type { Reversibility } from '../../types/reversibility';
 import { formatReversibilityLabel, reversibilityLabelColor } from '../../types/reversibility';
@@ -1512,7 +1513,7 @@ spec:
     steps: [
       { id: 's1', time: '10:18:04', status: 'done', icon: 'exclamation', title: 'AlertmanagerDeliveryFailing alert detected', detail: 'Expired integration tokens for PagerDuty receiver' },
       { id: 's2', time: '10:18:17', status: 'done', icon: 'database', title: 'Validated Alertmanager receiver secret references', detail: 'PagerDuty integration key past rotation window by 11 days' },
-      { id: 's3', time: '10:18:31', status: 'active', icon: 'search', title: 'Awaiting approval to rotate webhook secret', detail: 'Secret rotation requires platform admin approval' },
+      { id: 's3', time: '10:18:31', status: 'pending', icon: 'search', title: 'Awaiting approval to rotate webhook secret', detail: 'Secret rotation requires platform admin approval' },
     ],
     aggregatedFinding: 'Alertmanager notification delivery failures correlate with an expired PagerDuty integration token in openshift-monitoring.',
     rootCauseNarrative: 'The Alertmanager PagerDuty receiver references a Kubernetes secret whose integration token expired, causing sustained AlertmanagerDeliveryFailing alerts and missed pages.',
@@ -1600,7 +1601,7 @@ spec:
     steps: [
       { id: 's1', time: '16:03:12', status: 'done', icon: 'exclamation', title: 'PersesDashboardStorageLocked alert fired', detail: 'Database write timeouts on shared persistent volume' },
       { id: 's2', time: '16:03:26', status: 'done', icon: 'database', title: 'Inspected Perses storage volume and PVC mount state', detail: 'Stale lock file held after ungraceful perses pod eviction' },
-      { id: 's3', time: '16:03:41', status: 'active', icon: 'search', title: 'Awaiting approval to remove storage lock', detail: 'Lock removal requires a brief Perses write-unavailable window' },
+      { id: 's3', time: '16:03:41', status: 'pending', icon: 'search', title: 'Awaiting approval to remove storage lock', detail: 'Lock removal requires a brief Perses write-unavailable window' },
     ],
     aggregatedFinding: 'Perses dashboard persistence failures trace to a storage lock on the shared monitoring PVC.',
     rootCauseNarrative: 'An ungraceful Perses pod eviction left a stale lock file on the shared persistent volume, causing PersesDashboardStorageLocked alerts and dashboard write timeouts.',
@@ -1626,7 +1627,7 @@ Events:
     steps: [
       { id: 's1', time: '09:14:03', status: 'done', icon: 'exclamation', title: 'ACS policy violation detected on retail-checkout', detail: 'hostNetwork=true set on workload in retail-prod namespace — violates P-2041' },
       { id: 's2', time: '09:14:18', status: 'done', icon: 'search', title: 'Identified affected deployment', detail: 'retail-checkout uses hostNetwork as DNS workaround' },
-      { id: 's3', time: '09:14:32', status: 'done', icon: 'exclamation', title: 'Remediation proposal denied by administrator', detail: 'Admin flagged for broader network policy review before patching' },
+      { id: 's3', time: '09:14:32', status: 'alert', icon: 'exclamation', title: 'Remediation proposal denied by administrator', detail: 'Admin flagged for broader network policy review before patching' },
     ],
     aggregatedFinding: 'ACS detected a hostNetwork=true workload in the retail-prod namespace violating network isolation policy P-2041.',
     rootCauseNarrative: 'The retail-checkout deployment was updated with hostNetwork: true to work around a DNS resolution issue. ACS flagged this as a compliance violation. The remediation proposal to patch the deployment was reviewed and denied by the cluster administrator, who requires a broader policy review before any change is applied.',
@@ -1655,9 +1656,9 @@ spec:
   'ingress-controller-escalated': {
     steps: [
       { id: 's1', time: '14:22:05', status: 'done', icon: 'exclamation', title: 'IngressControllerMinReplicasNotMet alert fired', detail: 'Ingress controller replica count dropped below 2 after node eviction' },
-      { id: 's2', time: '14:22:19', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 1', detail: 'Execution failed: insufficient resource quota in openshift-ingress' },
-      { id: 's3', time: '14:22:41', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 2', detail: 'Execution failed: quota limit unchanged, same error' },
-      { id: 's4', time: '14:23:00', status: 'done', icon: 'exclamation', title: 'MaxRetriesExhausted — escalated to operator', detail: 'Proposal marked Escalated; requires human quota adjustment' },
+      { id: 's2', time: '14:22:19', status: 'alert', icon: 'database', title: 'Attempted automated scale-out — attempt 1', detail: 'Execution failed: insufficient resource quota in openshift-ingress' },
+      { id: 's3', time: '14:22:41', status: 'alert', icon: 'database', title: 'Attempted automated scale-out — attempt 2', detail: 'Execution failed: quota limit unchanged, same error' },
+      { id: 's4', time: '14:23:00', status: 'alert', icon: 'exclamation', title: 'MaxRetriesExhausted — escalated to operator', detail: 'Proposal marked Escalated; requires human quota adjustment' },
     ],
     aggregatedFinding: 'Ingress controller fell below minimum replicas after node eviction. Two automated scale-out attempts failed due to namespace quota limits.',
     rootCauseNarrative: 'A node eviction event on worker-bm-03 caused the ingress controller replica count to drop to 1. Two consecutive automated remediation executions failed because the openshift-ingress namespace quota prevented scheduling additional pods. After exhausting the MaxRetries threshold, the proposal was automatically escalated for manual operator intervention.',
@@ -1691,7 +1692,7 @@ status:
     steps: [
       { id: 's1', time: '02:07:15', status: 'done', icon: 'exclamation', title: 'PrometheusWALCorruptionDetected alert fired', detail: 'Write-ahead log corruption markers on prometheus-k8s-0' },
       { id: 's2', time: '02:07:28', status: 'done', icon: 'database', title: 'Initiated WAL segment repair via tsdb tool', detail: 'Repair started on /prometheus/wal — active write activity detected' },
-      { id: 's3', time: '02:08:01', status: 'done', icon: 'exclamation', title: 'Emergency stop issued by on-call operator', detail: 'Halted mid-repair to avoid data loss during peak ingestion window' },
+      { id: 's3', time: '02:08:01', status: 'alert', icon: 'exclamation', title: 'Emergency stop issued by on-call operator', detail: 'Halted mid-repair to avoid data loss during peak ingestion window' },
     ],
     aggregatedFinding: 'Prometheus WAL showed corruption markers on prometheus-k8s-0. Repair execution was started but stopped mid-flight by an emergency override.',
     rootCauseNarrative: 'Automated WAL repair was initiated in response to corruption markers detected on prometheus-k8s-0. The on-call team identified that the repair was running during the peak metric ingestion window (02:00–04:00 UTC), creating a risk of write-path data loss. An EmergencyStop was issued, halting execution. The instance remains in a degraded state pending a scheduled maintenance window.',
@@ -1719,7 +1720,7 @@ Block Id    Min Time                Max Time                Duration    Num Samp
       { id: 's1', time: '09:14:05', status: 'done', icon: 'exclamation', title: 'EtcdDatabaseHighFragmentationRatio alert fired', detail: 'Fragmentation ratio 0.67 detected across etcd-master-01, etcd-master-02, etcd-master-03' },
       { id: 's2', time: '09:14:19', status: 'done', icon: 'database', title: 'Queried etcd endpoint defrag statistics', detail: 'DB size: 8.2 GiB · In-use: 3.1 GiB · Fragmentation: 62% — compaction lag confirmed' },
       { id: 's3', time: '09:14:38', status: 'done', icon: 'network', title: 'Executed etcd defrag across 3 control plane nodes', detail: 'Commands issued sequentially to avoid leadership disruption' },
-      { id: 's4', time: '09:15:10', status: 'done', icon: 'exclamation', title: 'Verification failed: fragmentation ratio unchanged', detail: 'Post-defrag check still at 0.67 — compaction window had not run before execution' },
+      { id: 's4', time: '09:15:10', status: 'alert', icon: 'exclamation', title: 'Verification failed: fragmentation ratio unchanged', detail: 'Post-defrag check still at 0.67 — compaction window had not run before execution' },
     ],
     aggregatedFinding: 'etcd defragmentation executed across 3 control plane nodes but post-execution verification failed — fragmentation ratio remained at 0.67.',
     rootCauseNarrative: 'EtcdDatabaseHighFragmentationRatio fired after the fragmentation ratio exceeded 0.5 on all three control plane etcd members. Defragmentation was executed sequentially to minimize leader disruption, but the post-execution check found the fragmentation metric unchanged. The root cause is that the auto-compaction window (configured at 1h) had not run prior to execution, leaving large amounts of unreclaimed logical space that defrag alone cannot recover without a preceding compaction pass.',
@@ -2763,12 +2764,9 @@ const RemediationOptionCard: React.FC<{
       id={`${cardId}-title`}
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-            Option {index + 1}
-          </span>
-          <Label color="grey" isCompact>AI-generated</Label>
-        </Flex>
+        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+          Option {index + 1}
+        </span>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
           {isTerminal && isFirst && (
             <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
@@ -3611,7 +3609,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const isEscalated  = status === 'Escalated';
   const isExecutionPhase = isExecuting || isPlanAborted;
   const isOptionLocked = isExecutionPhase || isVerifying;
-  const isTerminal = status === 'Completed' || status === 'Failed';
+  const isTerminal  = status === 'Completed' || status === 'Failed';
+  const isCompleted = status === 'Completed';
   const isDenied           = status === 'Denied';
   const isEmergencyStopped = status === 'EmergencyStopped';
   const { activePerspective } = useActivePerspective();
@@ -3636,6 +3635,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
   const [isRawEvidenceExpanded, setIsRawEvidenceExpanded] = useState(false);
+  const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -3649,6 +3649,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
     setAnalysisLogsQuery('');
     setIsStopExecutionModalOpen(false);
     setIsRawEvidenceExpanded(false);
+    setIsReasoningChainExpanded(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -3775,6 +3776,117 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           Always review AI-generated content prior to use.
         </Content>
       </StackItem>
+
+      {/* ── Section D: Reasoning chain ────────────────────────────────── */}
+      {(() => {
+        const PROPOSED_STEPS: ReasoningStep[] = [
+          { id: 'rc-p1', time: '10:03:02', status: 'done',    icon: 'exclamation', title: 'Detected Alertmanager Webhook sync failures',     detail: 'AlertmanagerDeliveryFailing alert active on prod-east-2' },
+          { id: 'rc-p2', time: '10:03:25', status: 'done',    icon: 'database',    title: 'Identified expired API token in cluster secrets', detail: 'PagerDuty integration key past rotation window by 11 days' },
+          { id: 'rc-p3', time: '10:03:41', status: 'pending', icon: 'search',      title: 'Awaiting approval to rotate webhook secret',     detail: 'Secret rotation requires platform admin approval' },
+        ];
+
+        const COMPLETED_STEPS: ReasoningStep[] = [
+          { id: 'rc-c1', time: '10:03:02', status: 'done', icon: 'exclamation', title: 'Detected ArgoCD LiveStateOutOfSync event',                    detail: '4 IngressControllerDegraded alerts firing fleet-wide' },
+          { id: 'rc-c2', time: '10:03:25', status: 'done', icon: 'database',    title: 'Fetched GitOps revision history',                             detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
+          { id: 'rc-c3', time: '10:03:41', status: 'done', icon: 'search',      title: 'Diffed live vs. declared NetworkPolicy objects',               detail: 'Kustomize overlay conflict found across 4 fleet namespaces' },
+          { id: 'rc-c4', time: '10:03:55', status: 'done', icon: 'check',       title: 'Automated rollback applied via GitOps engine',                 detail: 'Rollback to r4891 applied across all 4 affected fleets' },
+          { id: 'rc-c5', time: '10:04:12', status: 'done', icon: 'network',     title: 'Cluster state reconciled successfully; health checks passing', detail: 'All IngressControllerDegraded alerts resolved' },
+        ];
+
+        const stepsToRender: ReasoningStep[] = isProposed
+          ? PROPOSED_STEPS
+          : isCompleted
+          ? COMPLETED_STEPS
+          : (drawer?.steps ?? []);
+
+        if (stepsToRender.length === 0) return null;
+
+        return (
+          <StackItem>
+            <ExpandableSection
+              toggleText=""
+              isExpanded={isReasoningChainExpanded}
+              onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
+              toggleContent={
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  <Title headingLevel="h4" size="md">
+                    Reasoning chain
+                  </Title>
+                  <Label color="grey" isCompact>AI-generated</Label>
+                </Flex>
+              }
+            >
+              <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                {stepsToRender.map((step) => {
+                  const isAwaitingApproval = step.status === 'pending' && step.title.startsWith('Awaiting');
+                  const isCritical = step.status === 'alert' && status === 'Failed';
+                  const isWarning  = step.status === 'alert' && !isCritical;
+                  return (
+                    <li key={step.id} className="ols-aio-reasoning-timeline__item">
+                      <span
+                        className="ols-aio-reasoning-timeline__node"
+                        style={
+                          isAwaitingApproval
+                            ? { borderColor: 'var(--pf-t--global--color--status--info--default)',    color: 'var(--pf-t--global--color--status--info--default)' }
+                            : isWarning
+                            ? { borderColor: 'var(--pf-t--global--color--status--warning--default)', color: 'var(--pf-t--global--color--status--warning--default)' }
+                            : isCritical
+                            ? { borderColor: 'var(--pf-t--global--color--status--danger--default)',  color: 'var(--pf-t--global--color--status--danger--default)' }
+                            : undefined
+                        }
+                      >
+                        {isAwaitingApproval ? (
+                          <InfoCircleIcon
+                            aria-hidden
+                            style={{ color: 'var(--pf-t--global--color--status--info--default)' }}
+                          />
+                        ) : isWarning ? (
+                          <ExclamationTriangleIcon
+                            aria-hidden
+                            style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
+                          />
+                        ) : isCritical ? (
+                          <ExclamationCircleIcon
+                            aria-hidden
+                            style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
+                          />
+                        ) : (
+                          <ReasoningChainStepGlyph step={step} />
+                        )}
+                      </span>
+                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
+                        <FlexItem>
+                          <span
+                            className="ols-aio-text-subtle-sm"
+                            style={{ fontVariantNumeric: 'tabular-nums' }}
+                          >
+                            {isAwaitingApproval ? (step.time ?? '—') : formatReasoningStepDisplayTime(step)}
+                          </span>
+                        </FlexItem>
+                      </Flex>
+                      <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                        {step.title}
+                      </Title>
+                      {step.detail && (
+                        <Content
+                          component="p"
+                          style={{
+                            marginTop: 'var(--pf-t--global--spacer--xs)',
+                            color: 'var(--pf-t--global--text--color--subtle)',
+                            marginBottom: 0,
+                          }}
+                        >
+                          {step.detail}
+                        </Content>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </ExpandableSection>
+          </StackItem>
+        );
+      })()}
 
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
@@ -3970,6 +4082,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
         >
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
             <Title headingLevel="h4" size="md">Remediation hub</Title>
+            <Label color="grey" isCompact>AI-generated</Label>
             {status === 'Completed' && (
               <Label
                 color="green"
@@ -4260,6 +4373,17 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                     You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
                     <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
                   </Content>
+                  {selectedOption?.reversible === 'Irreversible' && (
+                    <Alert
+                      isInline
+                      variant="warning"
+                      title="This action is irreversible"
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+                    >
+                      You will not be able to roll back or automatically undo this remediation once
+                      execution begins. Ensure you have taken a full cluster backup if required.
+                    </Alert>
+                  )}
                   <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                     OpenShift Lightspeed uses AI technology to help generate this remediation plan.
                   </Content>
@@ -4282,7 +4406,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
                 </ModalBody>
                 <ModalFooter>
                   <Button
-                    variant="primary"
+                    variant={selectedOption?.reversible === 'Irreversible' ? 'danger' : 'primary'}
                     isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
                     isLoading={isExecutionRunning}
                     onClick={() => {
