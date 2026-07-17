@@ -3333,7 +3333,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
           <Alert
             variant="info"
             isInline
-            title="OpenShift Lightspeed uses AI technology to help generate remediation plans."
+            title="The autonomous features of OpenShift Lightspeed use AI technology to generate output."
             actionClose={<AlertActionCloseButton onClose={() => setIsAiDisclaimerDismissed(true)} />}
           >
             Always review AI-generated content prior to use.
