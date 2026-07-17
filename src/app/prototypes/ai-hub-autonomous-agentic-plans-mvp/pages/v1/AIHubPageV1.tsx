@@ -2,6 +2,7 @@ import React from 'react';
 import { Content, Title } from '@patternfly/react-core';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { AuditKillSwitchPanel } from '../../components/AuditKillSwitchPanel';
 import * as Hub from '../ai-hub-v1';
 import '../ai-hub-page.css';
 
@@ -15,11 +16,9 @@ export const AIHubPageV1: React.FC = () => {
             <Title headingLevel="h1" size="2xl">
               Agentic plans
             </Title>
-            <Content component="p" className="ols-ai-hub-page-subtitle">
-              Speed up incident response with automated investigations, evidence collection, and remediation.
-            </Content>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
-              Always review AI-generated content prior to use.
+              The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
+              review AI-generated content prior to use.
             </Content>
           </div>
         </div>
@@ -32,6 +31,7 @@ export const AIHubPageV1: React.FC = () => {
         aria-label="Agentic plans content"
       >
         <AgenticKillSwitchBanner />
+        <AuditKillSwitchPanel />
         <Hub.PlansAndApprovalsTab />
       </div>
     </div>

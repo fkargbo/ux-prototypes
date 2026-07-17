@@ -21,7 +21,8 @@ export const TroubleshootingPlansPageV1: React.FC = () => {
               scoped to signal correlation, alert root cause, and targeted recovery actions.
             </Content>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
-              Always review AI-generated content prior to use.
+              The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
+              review AI-generated content prior to use.
             </Content>
           </div>
         </div>

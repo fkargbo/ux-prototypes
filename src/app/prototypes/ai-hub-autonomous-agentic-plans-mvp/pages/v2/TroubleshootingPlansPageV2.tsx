@@ -31,7 +31,8 @@ export const TroubleshootingPlansPageV2: React.FC = () => {
                 }}
                 aria-hidden
               />
-              Always review AI-generated content prior to use.
+              The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
+              review AI-generated content prior to use.
             </Content>
           </div>
         </div>

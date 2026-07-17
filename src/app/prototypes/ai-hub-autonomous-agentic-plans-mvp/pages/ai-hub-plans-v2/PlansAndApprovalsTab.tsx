@@ -3793,7 +3793,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             }}
             aria-hidden
           />
-          Always review AI-generated content prior to use.
+          The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
+          review AI-generated content prior to use.
         </Content>
       </StackItem>
 
