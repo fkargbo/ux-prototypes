@@ -107,9 +107,9 @@ export const routes: RouteConfig[] = [
     label: 'Agentic runs',
     title: 'Agentic runs',
     navigation: {
-      group: 'AI Hub',
+      group: 'Agentic Runs',
       order: 1,
-      insertAfterGroup: 'Home',
+      insertAfterGroup: 'Compute',
       // Keep "Agentic runs" active when drilling into a run detail (Option A path).
       activeMatchPaths: [
         '/v2/ai-hub/agentic-runs/runs',
@@ -124,9 +124,9 @@ export const routes: RouteConfig[] = [
     label: 'Audit & logs',
     title: 'Audit & logs',
     navigation: {
-      group: 'AI Hub',
+      group: 'Agentic Runs',
       order: 2,
-      insertAfterGroup: 'Home',
+      insertAfterGroup: 'Compute',
     },
   },
   {

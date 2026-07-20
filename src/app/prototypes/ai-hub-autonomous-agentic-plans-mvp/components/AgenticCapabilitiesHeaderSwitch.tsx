@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Content, Flex, FlexItem, Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant, Popover, Switch } from '@patternfly/react-core';
+import { Button, Content, Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant, Popover, Switch } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
 import { useLocation } from 'react-router-dom';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
@@ -13,14 +13,11 @@ import {
   useAgenticCapabilities,
 } from '../context/AgenticCapabilitiesContext';
 
-const AGENTIC_CAPABILITIES_HELP_BUTTON_STYLE: React.CSSProperties = {
-  padding: 0,
-  height: '1em',
-  minHeight: 'unset',
-  display: 'inline-flex',
-  alignItems: 'center',
-};
-
+/**
+ * Cluster-scoped agentic kill switch.
+ * Layout mirrors OpenShift Virtualization → Overview → Settings feature rows:
+ * feature name + help on the left, PatternFly Switch on the right (no custom chip chrome).
+ */
 const AgenticCapabilitiesPopoverBody = (
   <>
     <Content component="p" style={{ margin: '0 0 var(--pf-t--global--spacer--sm)' }}>
@@ -48,7 +45,7 @@ const AgenticCapabilitiesPopoverBody = (
 );
 
 type AgenticCapabilitiesHeaderSwitchProps = {
-  /** When true, turning the switch off opens a confirmation modal (Audit & logs kill switch). */
+  /** When true, turning the switch off opens a confirmation modal. */
   confirmOnDisable?: boolean;
 };
 
@@ -80,56 +77,46 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeader
     setIsConfirmOpen(false);
   };
 
+  const labelId = `agentic-capabilities-label-${clusterId}`;
+
   return (
     <>
-      <div className="ols-agentic-capabilities-header-switch">
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          flexWrap={{ default: 'nowrap' }}
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 'var(--pf-t--global--spacer--md)',
+          flexWrap: 'wrap',
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--pf-t--global--spacer--xs)',
+          }}
         >
-          <FlexItem>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--pf-t--global--spacer--xs)',
-                lineHeight: 'var(--pf-t--global--line-height--body)',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                  fontWeight: 600,
-                  color: 'var(--pf-t--global--text--color--regular)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Agentic capabilities
-              </span>
-              <Popover
-                headerContent="Cluster agentic capabilities"
-                bodyContent={AgenticCapabilitiesPopoverBody}
-                position="bottom-end"
-              >
-                <Button
-                  variant="plain"
-                  aria-label="More information about Agentic capabilities"
-                  icon={<HelpIcon />}
-                  style={AGENTIC_CAPABILITIES_HELP_BUTTON_STYLE}
-                />
-              </Popover>
-            </span>
-          </FlexItem>
-          <FlexItem>
-            <Switch
-              id={`agentic-capabilities-${clusterId}`}
-              aria-label="Agentic capabilities"
-              isChecked={isChecked}
-              onChange={handleChange}
+          <span id={labelId}>Agentic capabilities</span>
+          <Popover
+            headerContent="Cluster agentic capabilities"
+            bodyContent={AgenticCapabilitiesPopoverBody}
+            position="bottom-end"
+          >
+            <Button
+              variant="plain"
+              aria-label="More information about Agentic capabilities"
+              icon={<HelpIcon />}
+              style={{ padding: 0 }}
             />
-          </FlexItem>
-        </Flex>
+          </Popover>
+        </span>
+        <Switch
+          id={`agentic-capabilities-${clusterId}`}
+          aria-labelledby={labelId}
+          isChecked={isChecked}
+          onChange={handleChange}
+          hasCheckIcon
+        />
       </div>
 
       {confirmOnDisable && (

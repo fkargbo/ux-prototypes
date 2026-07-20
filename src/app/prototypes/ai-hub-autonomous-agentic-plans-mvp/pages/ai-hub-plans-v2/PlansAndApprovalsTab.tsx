@@ -2886,30 +2886,6 @@ const RemediationOptionCard: React.FC<{
             {option.description}
           </Content>
 
-          {(() => {
-            const burn = getPlanTokenBurn(plan.id);
-            const executionBurn =
-              isTerminal && isFirst
-                ? getOptionExecutionTokenBurn(plan.id, option.id) ?? burn.execution
-                : undefined;
-            const burnLine = formatTokenBurnPair(
-              burn.analysis,
-              executionBurn !== undefined && executionBurn > 0 ? executionBurn : undefined,
-            );
-            if (!burnLine) {
-              return null;
-            }
-            return (
-              <Content
-                component="small"
-                className="ols-aio-text-subtle-sm"
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                {burnLine}
-              </Content>
-            );
-          })()}
-
           {/* Execution status (Executing only) */}
           {isExecutionPhase && isFirst && isExecutionKilled && (
             <Alert
@@ -3817,7 +3793,8 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             }}
             aria-hidden
           />
-          Always review AI-generated content prior to use.
+          The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
+          review AI-generated content prior to use.
         </Content>
       </StackItem>
 

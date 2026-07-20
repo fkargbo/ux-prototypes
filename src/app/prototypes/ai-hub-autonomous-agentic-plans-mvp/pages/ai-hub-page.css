@@ -39,15 +39,6 @@
   min-width: 0;
 }
 
-.ols-agentic-capabilities-header-switch {
-  box-sizing: border-box;
-  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
-  border-radius: var(--pf-t--global--border--radius--small);
-  border: 1px solid var(--pf-t--global--border--color--default);
-  background-color: var(--pf-t--global--background--color--secondary--default);
-  white-space: nowrap;
-}
-
 /*
  * app.css sets background-color and border-bottom with `!important` on the
  * bare `div.template-page-*` selectors (specificity 0,1,1).  To override
