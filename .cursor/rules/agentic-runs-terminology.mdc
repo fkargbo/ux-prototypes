@@ -8,7 +8,7 @@ toast messages, empty-state copy) is a **regression bug**.
 
 ---
 
-## Banned User-Facing Terms (non-v1/v3 files)
+## Banned User-Facing Terms (non-v3 files)
 
 | ❌ BANNED | ✅ USE INSTEAD |
 |---|---|
@@ -22,8 +22,10 @@ toast messages, empty-state copy) is a **regression bug**.
 
 ### Legitimate Uses (do NOT change these)
 
-- **v1 frozen baseline files** under `pages/v1/`, `pages/ai-hub-v1/`, `pages/ai-hub-v3/`, `pages/ai-hub-v4/`
-  — those directories are deliberately frozen and reflect the historic v1 state.
+- **`pages/ai-hub-v3/`** — this is the foundational shared library (fleet inventory bars, cluster
+  summaries, audit/log tab, plan simulation types) that the v2 workspace's own components import
+  from directly. It is not a standalone routed page anymore, but its internal identifiers/strings
+  may still say "plan" — leave those alone unless a specific user-visible string leaks through v2.
 - **Internal code identifiers** like variable names (`planId`, `planDomain`, `planSlug`),
   function names, TypeScript type names, CSS class names, and URL path segments (`/troubleshooting-plans/`).
   Only user-visible strings are in scope.
@@ -49,28 +51,33 @@ Run this command and confirm zero results:
 rg -n "Plan details|Agentic plans\b|Troubleshooting plans\b|Troubleshooting plan:" \
   src/app/prototypes/ai-hub-autonomous-agentic-plans-mvp/pages/ \
   src/app/prototypes/observability-agentic-troubleshooting-ai/pages/ \
-  -g "*.tsx" -g "*.ts" | grep -v "/v1/\|/ai-hub-v1/\|/ai-hub-v3/\|/ai-hub-v4/"
+  -g "*.tsx" -g "*.ts" | grep -v "/ai-hub-v3/"
 ```
 
-**Zero results = clean.** Any result outside the v1/v3/v4 paths is a bug that must be fixed
+**Zero results = clean.** Any result outside the `ai-hub-v3/` path is a bug that must be fixed
 before the change is committed.
 
 ---
 
-## Root Cause of Recurring Regressions
+## History: v1 Baseline and Legacy Bridge Pages Have Been Removed
 
-These regressions surface because several files serve **dual routing purposes**:
+As of 2026-07-20, the `ai-hub-autonomous-agentic-plans-mvp` prototype supports **only the v2
+workspace** (`/v2/ai-hub/observe/*`, backed by `pages/v2/` and `pages/ai-hub-plans-v2/`). The
+following were permanently deleted because they were the actual root cause of prior recurring
+"deprecated UI randomly appears" regressions — a duplicate, non-versioned nav track
+(`/core/observe/ai-hub/plans`, `/core/observe/troubleshooting-plans`, etc.) was live in the
+sidebar at all times, alongside the v2 nav group, and pointed at stale "plan" terminology pages:
 
-- Non-versioned pages like `TroubleshootingPlanDetail.tsx`, `AcsPlanDetailPage.tsx`,
-  `TroubleshootingPlansPage.tsx`, and `PlanRemediationPage.tsx` are reached by both
-  the legacy `/core/observe/troubleshooting-plans/` route *and* the v2 route via
-  `PlanDetailVersionRouter`.
-- When editing these shared-but-non-v1 pages, always update their breadcrumbs, headings,
-  and aria-labels to use the current "runs" terminology.
-- `domainPlanNavigation.ts` controls `listBreadcrumbLabel` — if you add a new domain entry,
-  its `listBreadcrumbLabel` must say `'Agentic runs'` not `'Troubleshooting plans'`.
+- `pages/v1/`, `pages/ai-hub-v1/` — the frozen "v1.0 — Option B" baseline and its banner version
+  picker (`prototype.config.bannerVersionPicker`).
+- `pages/AIHubPage.tsx`, `pages/TroubleshootingPlansPage.tsx`, `pages/AuditAndLogsPage.tsx`,
+  `pages/PlanRemediationPage.tsx`, `pages/AcsPlanDetailPage.tsx`, `pages/TroubleshootingPlanDetail.tsx`,
+  `pages/PlanDetailVersionRouter.tsx` — the non-versioned "bridge" pages built on `ai-hub-v3`.
 
----
+Their routes now live only as `<BridgeRedirect>` entries in `routes.tsx` (see `pages/BridgeRedirect.tsx`)
+so that old bookmarks/cross-links still resolve, redirecting straight to the equivalent `/v2/ai-hub/...`
+path. **Do not recreate a second, non-versioned copy of any Agentic runs page.** If a new entry point
+into this feature is needed, route it directly to a `v2/` page.
 
 ---
 
@@ -103,6 +110,6 @@ this disclaimer without the icon is non-compliant and must be corrected.
 
 ## Summary
 
-**One rule to remember:** If it's visible to the user and it lives outside a `v1/` or `v3/` directory,
-it must say **"run"**, not **"plan"** — and every "Always review AI-generated content prior to use."
-disclaimer must have the blue `InfoCircleIcon` prefix.
+**One rule to remember:** There is only one Agentic runs UI now — the v2 workspace. If it's
+visible to the user, it must say **"run"**, not **"plan"** — and every "Always review AI-generated
+content prior to use." disclaimer must have the blue `InfoCircleIcon` prefix.
