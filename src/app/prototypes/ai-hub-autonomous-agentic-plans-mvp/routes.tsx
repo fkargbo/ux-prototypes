@@ -23,10 +23,11 @@ export const routes: RouteConfig[] = [
     title: 'AI Hub',
   },
 
-  // ── Legacy non-versioned bridge paths — redirected to the v2 workspace ─────
-  // These paths predate the v1/v2 split. They are kept only so old bookmarks
-  // and cross-links (e.g. from the Alerting page) keep working; none of them
-  // render their own UI or appear in navigation anymore.
+  // ── Sidebar entry points — redirect to the v2 workspace ────────────────────
+  // The "Core platforms" perspective filter (AppLayout.tsx) only surfaces nav
+  // items whose path starts with `/core`, so the sidebar entry MUST live here
+  // (not on the /v2/... routes) even though the real page content renders at
+  // /v2/ai-hub/observe/*. Do not move `navigation`/`label` off these routes.
   {
     path: '/core/observe/ai-hub',
     element: <Navigate to={`/v2/ai-hub/observe/plans?perspective=${DEFAULT_PROTOTYPE_PERSPECTIVE}`} replace />,
@@ -35,12 +36,31 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/ai-hub/plans',
     element: <BridgeRedirect to="/v2/ai-hub/observe/plans" />,
+    label: 'Agentic runs',
     title: 'Agentic runs',
+    navigation: {
+      group: 'Agentic Runs',
+      order: 1,
+      insertAfterGroup: 'Compute',
+      // Keep "Agentic runs" active when drilling into a run detail (Option A path).
+      activeMatchPaths: [
+        '/v2/ai-hub/observe/plans',
+        '/v2/ai-hub/agentic-runs/runs',
+        '/v2/ai-hub/observe/acs-plans',
+        '/core/observe/ai-hub/acs-plans',
+      ],
+    },
   },
   {
     path: '/core/observe/ai-hub/audit-logs',
     element: <BridgeRedirect to="/v2/ai-hub/observe/audit-logs" />,
+    label: 'Audit & logs',
     title: 'Audit & logs',
+    navigation: {
+      group: 'Agentic Runs',
+      order: 2,
+      insertAfterGroup: 'Compute',
+    },
   },
   {
     path: '/core/observe/ai-hub/plans/:planSlug/remediation',
@@ -104,30 +124,14 @@ export const routes: RouteConfig[] = [
   {
     path: '/v2/ai-hub/observe/plans',
     element: withPerspectiveUrlSync(<AIHubPageV2 />),
-    label: 'Agentic runs',
+    // No sidebar entry here — the "Agentic Runs" nav item lives on the
+    // /core/observe/ai-hub/plans route above (see comment there for why).
     title: 'Agentic runs',
-    navigation: {
-      group: 'Agentic Runs',
-      order: 1,
-      insertAfterGroup: 'Compute',
-      // Keep "Agentic runs" active when drilling into a run detail (Option A path).
-      activeMatchPaths: [
-        '/v2/ai-hub/agentic-runs/runs',
-        '/v2/ai-hub/observe/acs-plans',
-        '/core/observe/ai-hub/acs-plans',
-      ],
-    },
   },
   {
     path: '/v2/ai-hub/observe/audit-logs',
     element: withPerspectiveUrlSync(<AuditAndLogsPageV2 />),
-    label: 'Audit & logs',
     title: 'Audit & logs',
-    navigation: {
-      group: 'Agentic Runs',
-      order: 2,
-      insertAfterGroup: 'Compute',
-    },
   },
   {
     path: '/v2/ai-hub/observe/plans/:planSlug/remediation',
