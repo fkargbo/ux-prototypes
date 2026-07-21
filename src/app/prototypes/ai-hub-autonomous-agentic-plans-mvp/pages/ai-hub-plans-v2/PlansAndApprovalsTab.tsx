@@ -3816,6 +3816,18 @@ export const RemediationBlueprintPanel: React.FC<{
           </Alert>
         </StackItem>
       )}
+      {isEscalated && (
+        <StackItem>
+          <Alert
+            isInline
+            variant="warning"
+            title="Remediation action required"
+          >
+            Automated execution failed after reaching the maximum retry limit. Manual operator
+            intervention is required to resolve this escalation.
+          </Alert>
+        </StackItem>
+      )}
       {isDenied && (
         <StackItem>
           <DeniedPlanBanner onStartNewInvestigation={onStartNewInvestigation} />
@@ -4318,15 +4330,6 @@ export const RemediationBlueprintPanel: React.FC<{
             <HubLockedPlaceholder />
           ) : isEscalated ? (
             <>
-              <Alert
-                variant="warning"
-                isInline
-                title="Remediation action required"
-                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-              >
-                Automated execution failed after reaching the maximum retry limit. Manual operator
-                intervention is required to resolve this escalation.
-              </Alert>
               <div
                 style={LOCKED_BOX_STYLE}
                 aria-live="polite"
