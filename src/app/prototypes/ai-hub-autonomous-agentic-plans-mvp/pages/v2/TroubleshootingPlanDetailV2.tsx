@@ -21,7 +21,6 @@ import {
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
-import { EmergencyStoppedPlanBanner } from './PlanStatusBanners';
 import {
   buildPrototypeHref,
   isSingleClusterPerspectiveKey,
@@ -195,7 +194,6 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
         ) : (
           <div className="ols-plan-remediation-drilldown">
             <AgenticKillSwitchBanner />
-            {effectivePlan.status === 'EmergencyStopped' && <EmergencyStoppedPlanBanner />}
             <RemediationBlueprintPanel
               key={plan.id}
               plan={effectivePlan}

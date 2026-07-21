@@ -45,7 +45,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
-import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
+import { DeniedPlanBanner, EmergencyStoppedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from '../../components/autonomousAiObserve/reasoningChainTimeline';
@@ -3803,18 +3803,27 @@ export const RemediationBlueprintPanel: React.FC<{
         </Content>
       </StackItem>
 
-      {/* ── Escalation alert ─────────────────────────────────────────────── */}
+      {/* ── Status alerts (below heading, above Reasoning chain) ────────── */}
       {isEscalating && (
         <StackItem>
           <Alert
             isInline
             variant="danger"
             title="Automated remediation retries exhausted"
-            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
           >
             The autonomous agent failed to resolve this issue after 3 retry attempts. Escalation
             handoff is in progress, and human intervention is now required.
           </Alert>
+        </StackItem>
+      )}
+      {isDenied && (
+        <StackItem>
+          <DeniedPlanBanner onStartNewInvestigation={onStartNewInvestigation} />
+        </StackItem>
+      )}
+      {isEmergencyStopped && (
+        <StackItem>
+          <EmergencyStoppedPlanBanner />
         </StackItem>
       )}
 
@@ -3920,13 +3929,6 @@ export const RemediationBlueprintPanel: React.FC<{
           </StackItem>
         );
       })()}
-
-      {/* ── Proposal denied alert (below heading + Reasoning chain, above RCA) ── */}
-      {isDenied && (
-        <StackItem>
-          <DeniedPlanBanner onStartNewInvestigation={onStartNewInvestigation} />
-        </StackItem>
-      )}
 
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
