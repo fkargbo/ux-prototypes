@@ -145,6 +145,11 @@ export const PlanRemediationPageV2: React.FC = () => {
                 {planDisplayName}
               </Title>
             </FlexItem>
+            {plan.namespace && (
+              <FlexItem>
+                <Label color="grey" variant="outline" isCompact>{plan.namespace}</Label>
+              </FlexItem>
+            )}
             <FlexItem>
               <Label color="grey" variant="outline" isCompact>{plan.triggerDomain}</Label>
             </FlexItem>
