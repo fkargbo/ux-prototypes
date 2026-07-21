@@ -2221,7 +2221,7 @@ type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
 const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Pending':          'grey',
   'Analyzing':        'blue',
-  'Proposed':         'orange',
+  'Proposed':         'blue',
   'Approved':         'orange',
   'Executing':        'teal',
   'Verifying':        'teal',
@@ -2280,7 +2280,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
     return (
       <Tooltip content={tooltipContent} position="top">
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+          <Label color="red" isCompact style={{ whiteSpace: 'nowrap' }}>
             {displayLabel}
           </Label>
         </span>
@@ -2289,7 +2289,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   }
 
   return (
-    <Label color={STATUS_LABEL_COLOR[status]} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+    <Label color={STATUS_LABEL_COLOR[status]} isCompact style={{ whiteSpace: 'nowrap' }}>
       {status}
     </Label>
   );
@@ -2809,12 +2809,12 @@ const RemediationOptionCard: React.FC<{
         </span>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
           {isTerminal && isFirst && (
-            <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
+            <Label color={status === 'Completed' ? 'green' : 'red'} isCompact>
               {status === 'Completed' ? 'Executed' : 'Failed'}
             </Label>
           )}
           {isOptionLocked && isFirst && (
-            <Label color="orange" variant="outline" isCompact>
+            <Label color="orange" isCompact>
               Approved option
             </Label>
           )}

@@ -141,10 +141,22 @@ export const PlanRemediationPageV2: React.FC = () => {
           >
             <FlexItem><PlanResourceBadge /></FlexItem>
             <FlexItem style={{ minWidth: 0 }}>
-              <Title headingLevel="h1" size="2xl" style={{ marginBottom: 0, wordBreak: 'break-word' }}>
-                {planDisplayName}
-              </Title>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                <FlexItem>
+                  <Title headingLevel="h1" size="2xl" style={{ marginBottom: 0, wordBreak: 'break-word' }}>
+                    {planDisplayName}
+                  </Title>
+                </FlexItem>
+                <FlexItem>
+                  <Label color="orange" isCompact>Tech preview</Label>
+                </FlexItem>
+              </Flex>
             </FlexItem>
+            {plan.namespace && (
+              <FlexItem>
+                <Label color="grey" variant="outline" isCompact>{plan.namespace}</Label>
+              </FlexItem>
+            )}
             <FlexItem>
               <Label color="grey" variant="outline" isCompact>{plan.triggerDomain}</Label>
             </FlexItem>
