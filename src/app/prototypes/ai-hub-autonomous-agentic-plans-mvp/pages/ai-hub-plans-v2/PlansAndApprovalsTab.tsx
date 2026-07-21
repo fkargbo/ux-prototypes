@@ -45,6 +45,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
+import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from '../../components/autonomousAiObserve/reasoningChainTimeline';
@@ -3611,7 +3612,11 @@ function generateVerificationLogs(planId: string): string {
   ].join('\n');
 }
 
-export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?: () => void }> = ({ plan, onRejectPlan }) => {
+export const RemediationBlueprintPanel: React.FC<{
+  plan: PlanRow;
+  onRejectPlan?: () => void;
+  onStartNewInvestigation?: () => void;
+}> = ({ plan, onRejectPlan, onStartNewInvestigation }) => {
   const status = plan.status;
   const isAnalyzing = status === 'Analyzing';
   const isProposed = status === 'Proposed';
@@ -3915,6 +3920,13 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
           </StackItem>
         );
       })()}
+
+      {/* ── Proposal denied alert (below heading + Reasoning chain, above RCA) ── */}
+      {isDenied && (
+        <StackItem>
+          <DeniedPlanBanner onStartNewInvestigation={onStartNewInvestigation} />
+        </StackItem>
+      )}
 
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
