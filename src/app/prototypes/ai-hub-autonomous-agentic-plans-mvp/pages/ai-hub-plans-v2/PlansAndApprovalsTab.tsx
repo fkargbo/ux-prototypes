@@ -2221,7 +2221,7 @@ type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
 const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Pending':          'grey',
   'Analyzing':        'blue',
-  'Proposed':         'orange',
+  'Proposed':         'blue',
   'Approved':         'orange',
   'Executing':        'teal',
   'Verifying':        'teal',
