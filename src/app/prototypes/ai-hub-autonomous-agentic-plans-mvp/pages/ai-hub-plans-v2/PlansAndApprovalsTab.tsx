@@ -45,7 +45,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
-import { DeniedPlanBanner, EmergencyStoppedPlanBanner } from '../v2/PlanStatusBanners';
+import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from '../../components/autonomousAiObserve/reasoningChainTimeline';
@@ -3835,7 +3835,15 @@ export const RemediationBlueprintPanel: React.FC<{
       )}
       {isEmergencyStopped && (
         <StackItem>
-          <EmergencyStoppedPlanBanner />
+          <Alert
+            isInline
+            variant="warning"
+            title="Execution halted mid-flight"
+          >
+            This agentic run was stopped while execution was in progress. The cluster may be in a
+            partially modified state. Review the proposed agent commands below and complete or roll
+            back the operation manually during a scheduled maintenance window.
+          </Alert>
         </StackItem>
       )}
 
@@ -4375,16 +4383,6 @@ export const RemediationBlueprintPanel: React.FC<{
             </>
           ) : isEmergencyStopped ? (
             <>
-              <Alert
-                variant="warning"
-                isInline
-                title="Execution halted mid-flight"
-                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-              >
-                This agentic run was stopped while execution was in progress. The cluster may be in
-                a partially modified state. Review the proposed agent commands below and complete or
-                roll back the operation manually during a scheduled maintenance window.
-              </Alert>
               <Stack hasGutter>
                 {options.map((opt) => {
                   const optionIndex = options.findIndex((o) => o.id === opt.id);
