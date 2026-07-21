@@ -1,5 +1,5 @@
 import React from 'react';
-import { Content, Title } from '@patternfly/react-core';
+import { Content, Flex, FlexItem, Label, Title } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { TroubleshootingPlansTab } from '../ai-hub-plans-v2/TroubleshootingPlansTab';
@@ -14,9 +14,16 @@ export const TroubleshootingPlansPageV2: React.FC = () => {
         <div className="ols-ai-hub-page-header-primary">
           <AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
-            <Title headingLevel="h1" size="2xl">
-              Agentic runs
-            </Title>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <FlexItem>
+                <Title headingLevel="h1" size="2xl">
+                  Agentic runs
+                </Title>
+              </FlexItem>
+              <FlexItem>
+                <Label color="orange" isCompact>Tech preview</Label>
+              </FlexItem>
+            </Flex>
             <Content component="p" className="ols-ai-hub-page-subtitle">
               Observability-triggered agentic runs generated from firing platform monitoring alerts —
               scoped to signal correlation, alert root cause, and targeted recovery actions.
