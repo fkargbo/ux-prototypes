@@ -45,6 +45,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
+import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from '../../components/autonomousAiObserve/reasoningChainTimeline';
@@ -3611,7 +3612,11 @@ function generateVerificationLogs(planId: string): string {
   ].join('\n');
 }
 
-export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?: () => void }> = ({ plan, onRejectPlan }) => {
+export const RemediationBlueprintPanel: React.FC<{
+  plan: PlanRow;
+  onRejectPlan?: () => void;
+  onStartNewInvestigation?: () => void;
+}> = ({ plan, onRejectPlan, onStartNewInvestigation }) => {
   const status = plan.status;
   const isAnalyzing = status === 'Analyzing';
   const isProposed = status === 'Proposed';
@@ -3798,17 +3803,46 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
         </Content>
       </StackItem>
 
-      {/* ── Escalation alert ─────────────────────────────────────────────── */}
+      {/* ── Status alerts (below heading, above Reasoning chain) ────────── */}
       {isEscalating && (
         <StackItem>
           <Alert
             isInline
             variant="danger"
             title="Automated remediation retries exhausted"
-            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
           >
             The autonomous agent failed to resolve this issue after 3 retry attempts. Escalation
             handoff is in progress, and human intervention is now required.
+          </Alert>
+        </StackItem>
+      )}
+      {isEscalated && (
+        <StackItem>
+          <Alert
+            isInline
+            variant="warning"
+            title="Remediation action required"
+          >
+            Automated execution failed after reaching the maximum retry limit. Manual operator
+            intervention is required to resolve this escalation.
+          </Alert>
+        </StackItem>
+      )}
+      {isDenied && (
+        <StackItem>
+          <DeniedPlanBanner onStartNewInvestigation={onStartNewInvestigation} />
+        </StackItem>
+      )}
+      {isEmergencyStopped && (
+        <StackItem>
+          <Alert
+            isInline
+            variant="warning"
+            title="Execution halted mid-flight"
+          >
+            This agentic run was stopped while execution was in progress. The cluster may be in a
+            partially modified state. Review the proposed agent commands below and complete or roll
+            back the operation manually during a scheduled maintenance window.
           </Alert>
         </StackItem>
       )}
@@ -4304,15 +4338,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             <HubLockedPlaceholder />
           ) : isEscalated ? (
             <>
-              <Alert
-                variant="warning"
-                isInline
-                title="Remediation action required"
-                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-              >
-                Automated execution failed after reaching the maximum retry limit. Manual operator
-                intervention is required to resolve this escalation.
-              </Alert>
               <div
                 style={LOCKED_BOX_STYLE}
                 aria-live="polite"
@@ -4358,16 +4383,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow; onRejectPlan?:
             </>
           ) : isEmergencyStopped ? (
             <>
-              <Alert
-                variant="warning"
-                isInline
-                title="Execution halted mid-flight"
-                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-              >
-                This agentic run was stopped while execution was in progress. The cluster may be in
-                a partially modified state. Review the proposed agent commands below and complete or
-                roll back the operation manually during a scheduled maintenance window.
-              </Alert>
               <Stack hasGutter>
                 {options.map((opt) => {
                   const optionIndex = options.findIndex((o) => o.id === opt.id);

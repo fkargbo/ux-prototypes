@@ -11,13 +11,6 @@ export const config: PrototypeConfig = {
     email: 'fkargbo@redhat.com',
   },
   version: '1.0.0',
-  bannerVersionPicker: {
-    options: [
-      { key: 'v2', label: 'v2.0 — Option A' },
-      { key: 'v1', label: 'v1.0 — Option B' },
-    ],
-    defaultKey: 'v2',
-  },
   status: 'in-progress',
   persona: {
     name: 'SRE / Platform engineer',

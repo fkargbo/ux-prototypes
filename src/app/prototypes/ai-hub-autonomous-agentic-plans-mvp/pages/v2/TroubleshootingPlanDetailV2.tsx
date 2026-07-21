@@ -21,7 +21,6 @@ import {
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
-import { DeniedPlanBanner, EmergencyStoppedPlanBanner } from './PlanStatusBanners';
 import {
   buildPrototypeHref,
   isSingleClusterPerspectiveKey,
@@ -195,12 +194,11 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
         ) : (
           <div className="ols-plan-remediation-drilldown">
             <AgenticKillSwitchBanner />
-            {effectivePlan.status === 'Denied' && <DeniedPlanBanner onStartNewInvestigation={navigateBackToPlans} />}
-            {effectivePlan.status === 'EmergencyStopped' && <EmergencyStoppedPlanBanner />}
             <RemediationBlueprintPanel
               key={plan.id}
               plan={effectivePlan}
               onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
+              onStartNewInvestigation={navigateBackToPlans}
             />
           </div>
         )}

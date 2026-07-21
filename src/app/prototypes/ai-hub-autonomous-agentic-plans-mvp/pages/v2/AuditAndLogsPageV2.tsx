@@ -1,5 +1,6 @@
 import React from 'react';
 import { Content, Title } from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AuditKillSwitchPanel } from '../../components/AuditKillSwitchPanel';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
@@ -17,6 +18,15 @@ export const AuditAndLogsPageV2: React.FC = () => {
               Audit & logs
             </Title>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
+              <InfoCircleIcon
+                style={{
+                  color: 'var(--pf-t--global--icon--color--status--info--default)',
+                  marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+                  verticalAlign: 'middle',
+                  flexShrink: 0,
+                }}
+                aria-hidden
+              />
               The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
               review AI-generated content prior to use.
             </Content>
