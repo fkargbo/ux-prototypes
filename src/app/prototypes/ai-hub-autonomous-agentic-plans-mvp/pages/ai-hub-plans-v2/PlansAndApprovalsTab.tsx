@@ -3658,7 +3658,6 @@ export const RemediationBlueprintPanel: React.FC<{
   const [denyReason, setDenyReason] = useState('');
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
-  const [isRawEvidenceExpanded, setIsRawEvidenceExpanded] = useState(false);
   const [isCitationsExpanded, setIsCitationsExpanded] = useState(false);
   const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
 
@@ -3673,7 +3672,6 @@ export const RemediationBlueprintPanel: React.FC<{
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
     setIsStopExecutionModalOpen(false);
-    setIsRawEvidenceExpanded(false);
     setIsCitationsExpanded(false);
     setIsReasoningChainExpanded(false);
   }, [plan.id]);
@@ -4154,29 +4152,6 @@ export const RemediationBlueprintPanel: React.FC<{
               </Stack>
               </div>
             </ExpandableSection>
-
-            {drawer!.rawEvidence && (
-              <ExpandableSection
-                toggleText={isRawEvidenceExpanded ? 'Hide raw evidence' : 'View raw evidence'}
-                isExpanded={isRawEvidenceExpanded}
-                onToggle={(_e, expanded) => setIsRawEvidenceExpanded(expanded)}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                <ClipboardCopy
-                  variant={ClipboardCopyVariant.expansion}
-                  isReadOnly
-                  isCode
-                  style={{
-                    fontFamily: 'var(--pf-t--global--font--family--mono)',
-                    fontSize: '12px',
-                    maxHeight: '280px',
-                    overflowY: 'auto',
-                  }}
-                >
-                  {drawer!.rawEvidence}
-                </ClipboardCopy>
-              </ExpandableSection>
-            )}
 
             {/* View analysis logs */}
             <ExpandableSection
