@@ -43,7 +43,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -3049,8 +3049,6 @@ const PostMortemPanel: React.FC<{
   const [logCategory, setLogCategory] = useState<'execution' | 'verification'>('execution');
   const [logQuery, setLogQuery] = useState('');
   const [isLogCatOpen, setIsLogCatOpen] = useState(false);
-  const [failureLogCategory, setFailureLogCategory] = useState<'trace' | 'execution'>('trace');
-  const [isFailureLogCatOpen, setIsFailureLogCatOpen] = useState(false);
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -3362,9 +3360,23 @@ const PostMortemPanel: React.FC<{
       <Stack hasGutter style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
         {/* ── Header ── */}
         <StackItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
             <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
-            <Title headingLevel="h5" size="md">Critical Automation Failure</Title>
+            <Title headingLevel="h5" size="md" style={{ marginBottom: 0 }}>Critical automation failure</Title>
+            <FlexItem style={{ marginLeft: 'auto' }}>
+              <Button
+                variant="link"
+                icon={<ExternalLinkAltIcon />}
+                iconPosition="end"
+                component="a"
+                href="/observe/traces"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ padding: 0 }}
+              >
+                View trace
+              </Button>
+            </FlexItem>
           </Flex>
         </StackItem>
 
@@ -3381,7 +3393,7 @@ const PostMortemPanel: React.FC<{
 
         <StackItem><Divider /></StackItem>
 
-        {/* ── Logs (traces + execution) ── */}
+        {/* ── Execution logs ── */}
         <StackItem>
           <ExpandableSection
             toggleText={showLogs ? 'Hide logs' : 'View logs'}
@@ -3391,26 +3403,6 @@ const PostMortemPanel: React.FC<{
           >
             <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
               <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                <FlexItem>
-                  <Dropdown
-                    isOpen={isFailureLogCatOpen}
-                    onOpenChange={setIsFailureLogCatOpen}
-                    onSelect={(_e, val) => {
-                      setFailureLogCategory(val as 'trace' | 'execution');
-                      setIsFailureLogCatOpen(false);
-                    }}
-                    toggle={(ref) => (
-                      <MenuToggle ref={ref} onClick={() => setIsFailureLogCatOpen(!isFailureLogCatOpen)} isExpanded={isFailureLogCatOpen}>
-                        {failureLogCategory === 'trace' ? 'Traces' : 'Execution logs'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      <DropdownItem value="trace">Traces</DropdownItem>
-                      <DropdownItem value="execution">Execution logs</DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
-                </FlexItem>
                 <FlexItem grow={{ default: 'grow' }}>
                   <SearchInput
                     value={logQuery}
@@ -3421,9 +3413,7 @@ const PostMortemPanel: React.FC<{
                 </FlexItem>
               </Flex>
               {(() => {
-                const raw = failureLogCategory === 'trace'
-                  ? (postMortem.failureTrace ?? '')
-                  : (postMortem.rawLog ?? '');
+                const raw = postMortem.rawLog ?? '';
                 const displayed = logQuery.trim()
                   ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
                   : raw;
