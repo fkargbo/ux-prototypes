@@ -18,7 +18,7 @@ import {
   SelectOption,
   TextInput,
 } from '@patternfly/react-core';
-import { CheckIcon, FilterIcon } from '@patternfly/react-icons';
+import { FilterIcon } from '@patternfly/react-icons';
 import type { PlanRow } from './PlansAndApprovalsTab';
 
 export type PlansSearchCategory = 'name' | 'label';
@@ -415,12 +415,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                           setSearchCategoryOpen(false);
                         }}
                       >
-                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
-                          Name
-                          {searchCategory === 'name' && (
-                            <CheckIcon style={{ color: 'var(--pf-t--global--color--brand--default)' }} />
-                          )}
-                        </span>
+                        Name
                       </DropdownItem>
                       <DropdownItem
                         key="label"
@@ -430,12 +425,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                           setSearchCategoryOpen(false);
                         }}
                       >
-                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
-                          Label
-                          {searchCategory === 'label' && (
-                            <CheckIcon style={{ color: 'var(--pf-t--global--color--brand--default)' }} />
-                          )}
-                        </span>
+                        Label
                       </DropdownItem>
                     </DropdownList>
                   </Dropdown>
