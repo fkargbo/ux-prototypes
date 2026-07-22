@@ -31,6 +31,7 @@ import {
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import '../ai-hub-page.css';
 
@@ -138,7 +139,7 @@ export const AcsPlanDetailPageV2: React.FC = () => {
                   </Title>
                 </FlexItem>
                 <FlexItem>
-                  <Label color="orange" isCompact>Tech preview</Label>
+                  <TechPreviewBadge />
                 </FlexItem>
               </Flex>
             </FlexItem>

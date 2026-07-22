@@ -21,6 +21,7 @@ import {
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import {
   buildPrototypeHref,
   isSingleClusterPerspectiveKey,
@@ -148,7 +149,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
                   </Title>
                 </FlexItem>
                 <FlexItem>
-                  <Label color="orange" isCompact>Tech preview</Label>
+                  <TechPreviewBadge />
                 </FlexItem>
               </Flex>
             </FlexItem>
