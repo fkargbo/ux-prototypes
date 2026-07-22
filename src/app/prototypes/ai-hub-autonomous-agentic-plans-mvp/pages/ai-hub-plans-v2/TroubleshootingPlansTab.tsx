@@ -107,6 +107,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
           filterAriaLabel="Filter troubleshooting plans"
           statusOptions={TROUBLESHOOTING_STATUS_FILTER_OPTIONS}
           triggerDomainOptions={OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS}
+          rows={observabilityPlans}
           pagination={
             <Pagination
               itemCount={filteredRows.length}

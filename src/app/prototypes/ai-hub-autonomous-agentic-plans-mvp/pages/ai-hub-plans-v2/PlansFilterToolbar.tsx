@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Badge,
   Button,
   Dropdown,
   DropdownItem,
@@ -225,6 +226,8 @@ export interface PlansFilterToolbarProps {
   includeTriggerDomainFilter?: boolean;
   /** Override the default trigger-domain option list. Defaults to TRIGGER_DOMAIN_FILTER_OPTIONS. */
   triggerDomainOptions?: readonly string[];
+  /** Full unfiltered row set — used to compute per-option counts in the filter dropdowns. */
+  rows?: PlanRow[];
   pagination?: React.ReactNode;
   statusFilters: PlanRow['status'][];
   triggerDomainFilters: string[];
@@ -250,6 +253,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   includeTriggerDomainFilter = false,
   triggerDomainOptions = TRIGGER_DOMAIN_FILTER_OPTIONS,
   pagination,
+  rows = [],
   statusFilters,
   triggerDomainFilters,
   filterMenuOpen,
@@ -267,6 +271,25 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   setStatusFilters,
   setTriggerDomainFilters,
 }) => {
+  /** Count of runs per status across the full unfiltered dataset. */
+  const countsByStatus = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      counts[row.status] = (counts[row.status] ?? 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
+  /** Count of runs per trigger domain (after macro-category mapping) across the full dataset. */
+  const countsByDomain = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      const domain = resolveDisplayDomain(row.triggerDomain);
+      counts[domain] = (counts[domain] ?? 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
   const handleFilterSelect = useCallback(
     (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
       if (typeof value !== 'string') {
@@ -324,30 +347,42 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
               >
                 <SelectList className="ols-ai-hub-plans-filter-select-list">
                   <div style={FILTER_SECTION_TITLE_STYLE}>Status</div>
-                  {statusOptions.map((opt) => (
-                    <SelectOption
-                      key={opt.value}
-                      hasCheckbox
-                      value={opt.value}
-                      isSelected={statusFilters.includes(opt.value)}
-                    >
-                      {opt.label}
-                    </SelectOption>
-                  ))}
+                  {statusOptions.map((opt) => {
+                    const count = countsByStatus[opt.value] ?? 0;
+                    return (
+                      <SelectOption
+                        key={opt.value}
+                        hasCheckbox
+                        value={opt.value}
+                        isSelected={statusFilters.includes(opt.value)}
+                      >
+                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                          <span>{opt.label}</span>
+                          {count > 0 && <Badge isRead>{count}</Badge>}
+                        </span>
+                      </SelectOption>
+                    );
+                  })}
 
                   {includeTriggerDomainFilter && (
                     <>
                       <div style={FILTER_SECTION_TITLE_STYLE}>Trigger Domain</div>
-                      {triggerDomainOptions.map((domain) => (
-                        <SelectOption
-                          key={domain}
-                          hasCheckbox
-                          value={domain}
-                          isSelected={triggerDomainFilters.includes(domain)}
-                        >
-                          {domain}
-                        </SelectOption>
-                      ))}
+                      {triggerDomainOptions.map((domain) => {
+                        const count = countsByDomain[domain] ?? 0;
+                        return (
+                          <SelectOption
+                            key={domain}
+                            hasCheckbox
+                            value={domain}
+                            isSelected={triggerDomainFilters.includes(domain)}
+                          >
+                            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                              <span>{domain}</span>
+                              {count > 0 && <Badge isRead>{count}</Badge>}
+                            </span>
+                          </SelectOption>
+                        );
+                      })}
                     </>
                   )}
                 </SelectList>

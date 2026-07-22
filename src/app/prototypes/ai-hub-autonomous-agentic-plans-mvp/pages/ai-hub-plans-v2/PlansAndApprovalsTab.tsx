@@ -2685,6 +2685,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
         filterAriaLabel="Filter plans"
         statusOptions={AGENTIC_STATUS_FILTER_OPTIONS}
         includeTriggerDomainFilter
+        rows={rows}
         pagination={<Pagination isCompact {...paginationProps} style={{ margin: 0 }} />}
         {...plansFilter}
       />
