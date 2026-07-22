@@ -8,7 +8,11 @@ import {
   CardHeader,
   Checkbox,
   ClipboardCopy,
+  ClipboardCopyButton,
   ClipboardCopyVariant,
+  CodeBlock,
+  CodeBlockAction,
+  CodeBlockCode,
   Content,
   DescriptionList,
   DescriptionListDescription,
@@ -2770,6 +2774,8 @@ const RemediationOptionCard: React.FC<{
   const isProposed = status === 'Proposed';
   const cardRootRef = React.useRef<HTMLDivElement>(null);
   const wasSelectedRef = React.useRef(isSelected);
+  const [cmdCopied, setCmdCopied] = useState(false);
+  const [execLogCopied, setExecLogCopied] = useState(false);
   const activeExecutionLogLines = useMemo(
     () => buildActiveExecutionLogLines(plan, option),
     [plan, option],
@@ -2923,19 +2929,32 @@ const RemediationOptionCard: React.FC<{
               >
                 Active execution log
               </Content>
-              <ClipboardCopy
-                isReadOnly
-                isCode
-                hoverTip="Copy"
-                clickTip="Copied"
-                style={{
-                  fontFamily: 'var(--pf-t--global--font--family--mono)',
-                  fontSize: '12px',
-                  marginBottom: 'var(--pf-t--global--spacer--sm)',
-                }}
+              <CodeBlock
+                actions={
+                  <CodeBlockAction>
+                    <ClipboardCopyButton
+                      id={`exec-log-copy-${option.id}`}
+                      textId={`exec-log-${option.id}`}
+                      aria-label="Copy execution log"
+                      variant="plain"
+                      exitDelay={execLogCopied ? 1500 : 600}
+                      maxWidth="110px"
+                      onClick={() => {
+                        navigator.clipboard.writeText(streamedExecutionLog);
+                        setExecLogCopied(true);
+                      }}
+                      onTooltipHidden={() => setExecLogCopied(false)}
+                    >
+                      {execLogCopied ? 'Copied!' : 'Copy to clipboard'}
+                    </ClipboardCopyButton>
+                  </CodeBlockAction>
+                }
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
-                {streamedExecutionLog}
-              </ClipboardCopy>
+                <CodeBlockCode id={`exec-log-${option.id}`} style={{ fontSize: '12px' }}>
+                  {streamedExecutionLog}
+                </CodeBlockCode>
+              </CodeBlock>
             </>
           )}
 
@@ -2953,17 +2972,33 @@ const RemediationOptionCard: React.FC<{
                   marginBottom: 'var(--pf-t--global--spacer--xs)',
                 }}
               >
-                PROPOSED AGENT COMMAND
+                Proposed agent command
               </Content>
-              <ClipboardCopy
-                isReadOnly
-                isCode
-                hoverTip="Copy"
-                clickTip="Copied"
-                style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
+              <CodeBlock
+                actions={
+                  <CodeBlockAction>
+                    <ClipboardCopyButton
+                      id={`cmd-copy-${option.id}`}
+                      textId={`cmd-${option.id}`}
+                      aria-label="Copy command"
+                      variant="plain"
+                      exitDelay={cmdCopied ? 1500 : 600}
+                      maxWidth="110px"
+                      onClick={() => {
+                        navigator.clipboard.writeText(option.rawCommands);
+                        setCmdCopied(true);
+                      }}
+                      onTooltipHidden={() => setCmdCopied(false)}
+                    >
+                      {cmdCopied ? 'Copied!' : 'Copy to clipboard'}
+                    </ClipboardCopyButton>
+                  </CodeBlockAction>
+                }
               >
-                {option.rawCommands}
-              </ClipboardCopy>
+                <CodeBlockCode id={`cmd-${option.id}`} style={{ fontSize: '12px' }}>
+                  {option.rawCommands}
+                </CodeBlockCode>
+              </CodeBlock>
               {(onExecute || ((isProposed || isDenied || isEmergencyStopped) && rootCause)) && (
                 <Flex
                   gap={{ default: 'gapSm' }}
