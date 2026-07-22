@@ -33,6 +33,13 @@ export const PLANS_LIST_PATH = '/v2/ai-hub/observe/plans';
  */
 export const TROUBLESHOOTING_PLANS_LIST_PATH = PLANS_LIST_PATH;
 
+/** Administration → Cluster Update (domain UI; not under /v2/ai-hub). */
+export const CLUSTER_UPDATE_PATH = '/core/administration/cluster-update';
+
+export function getClusterUpdateHref(perspectiveKey: AppShellPerspectiveKey): string {
+  return buildPrototypeHref(CLUSTER_UPDATE_PATH, perspectiveKey);
+}
+
 export function getPlanRemediationHref(planSlug: string, perspectiveKey: AppShellPerspectiveKey): string {
   return buildPrototypeHref(
     `/v2/ai-hub/observe/plans/${encodeURIComponent(planSlug)}/remediation`,

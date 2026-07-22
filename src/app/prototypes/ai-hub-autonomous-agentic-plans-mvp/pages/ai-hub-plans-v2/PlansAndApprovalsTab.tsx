@@ -316,7 +316,7 @@ const PLAN_TABLE_IDENTITY: Record<
     namespace: 'openshift-image-registry',
   },
   cp1: {
-    name: 'ocp-upgrade-4.14-to-4.15',
+    name: 'ota-5-0-0-ec-4-to-5-1-0',
     synopsis: 'Upgrade OpenShift 4.14 to 4.15 before channel end of life',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-update',
@@ -328,7 +328,7 @@ const PLAN_TABLE_IDENTITY: Record<
     namespace: 'openshift-update',
   },
   cp4: {
-    name: 'cluster-update-readiness-report',
+    name: 'ota-5-0-0-ec-4-to-5-0-1',
     synopsis: 'Autonomous cluster health data gathering for update readiness assessment',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-update',
@@ -3616,7 +3616,9 @@ export const RemediationBlueprintPanel: React.FC<{
   plan: PlanRow;
   onRejectPlan?: () => void;
   onStartNewInvestigation?: () => void;
-}> = ({ plan, onRejectPlan, onStartNewInvestigation }) => {
+  /** Cluster-update runs: open Administration → Cluster Update from Remediation hub. */
+  onRemediateInClusterUpdates?: () => void;
+}> = ({ plan, onRejectPlan, onStartNewInvestigation, onRemediateInClusterUpdates }) => {
   const status = plan.status;
   const isAnalyzing = status === 'Analyzing';
   const isProposed = status === 'Proposed';
@@ -3633,6 +3635,7 @@ export const RemediationBlueprintPanel: React.FC<{
   const isCompleted = status === 'Completed';
   const isDenied           = status === 'Denied';
   const isEmergencyStopped = status === 'EmergencyStopped';
+  const isClusterUpdatePlan = resolvePlanDomainAnnotations(plan).sourceDomain === 'cluster-update';
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
@@ -3771,6 +3774,88 @@ export const RemediationBlueprintPanel: React.FC<{
   }, [completeVerification, plan.id, workflow.verification]);
 
   if (!drawer && !isEscalating) return null;
+
+  // Cluster-update domain: RCA + handoff to Administration → Cluster Update (shared for all these runs).
+  if (isClusterUpdatePlan) {
+    return (
+      <Stack style={{ gap: '24px' }}>
+        <StackItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+            <AiExperienceIcon size={20} />
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
+              Agentic run details
+            </Title>
+          </Flex>
+          <Content component="p" className="ols-ai-hub-page-disclaimer">
+            <InfoCircleIcon
+              style={{
+                color: 'var(--pf-t--global--icon--color--status--info--default)',
+                marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+                verticalAlign: 'middle',
+                flexShrink: 0,
+              }}
+              aria-hidden
+            />
+            The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
+            review AI-generated content prior to use.
+          </Content>
+        </StackItem>
+
+        <StackItem>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapSm' }}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+              Root cause analysis (RCA)
+            </Title>
+            <Label color="grey" isCompact>AI-generated</Label>
+            {!isAnalyzing && (
+              <Label color="grey" variant="outline" isCompact>
+                {formatOptionalTokenBurn(
+                  isPlanTokenBurnAvailable(planTokenBurn)
+                    ? planTokenBurn.analysis
+                    : simulateAnalysisTokenCount(plan.id),
+                  '(analysis)',
+                )}
+              </Label>
+            )}
+          </Flex>
+          {isAnalyzing || !drawer ? (
+            <RcaLockedPlaceholder />
+          ) : (
+            <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                <span className="ols-aio-text-overline">Detected Root Cause</span>
+              </div>
+              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                {drawer.aggregatedFinding}
+              </Content>
+              <Content component="p" style={{ marginBottom: 0 }}>
+                {drawer.rootCauseNarrative}
+              </Content>
+            </div>
+          )}
+        </StackItem>
+
+        <StackItem>
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Remediation hub
+          </Title>
+          {onRemediateInClusterUpdates ? (
+            <Button variant="link" isInline onClick={onRemediateInClusterUpdates}>
+              Remediate in Cluster Updates
+            </Button>
+          ) : (
+            <Content component="p" style={{ margin: 0 }}>
+              Continue remediation from Administration → Cluster Update.
+            </Content>
+          )}
+        </StackItem>
+      </Stack>
+    );
+  }
 
   const escalatedPlaybook = ESCALATED_PLAN_PLAYBOOKS[plan.id] ?? DEFAULT_ESCALATION_PLAYBOOK;
 
