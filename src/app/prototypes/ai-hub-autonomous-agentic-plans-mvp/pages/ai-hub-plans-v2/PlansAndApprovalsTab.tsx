@@ -43,7 +43,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, SearchIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiDownloadIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -2985,7 +2985,7 @@ const RemediationOptionCard: React.FC<{
                     <FlexItem>
                       <Button
                         variant="link"
-                        icon={<DownloadIcon />}
+                        icon={<RhUiDownloadIcon />}
                         onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
                       >
                         Download plan
@@ -4259,7 +4259,7 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Button>
                 <Button
                   variant="link"
-                  icon={<DownloadIcon />}
+                  icon={<RhUiDownloadIcon />}
                   iconPosition="start"
                   onClick={() =>
                     downloadAnalysisReportMarkdown(plan, {
@@ -4372,7 +4372,7 @@ export const RemediationBlueprintPanel: React.FC<{
                 >
                   {escalatedPlaybook.command}
                 </ClipboardCopy>
-                <Button variant="link" icon={<DownloadIcon />} iconPosition="start"
+                <Button variant="link" icon={<RhUiDownloadIcon />} iconPosition="start"
                   onClick={() => downloadAnalysisReportMarkdown(plan, {
                     aggregatedFinding: drawer?.aggregatedFinding ?? '',
                     rootCauseNarrative: drawer?.rootCauseNarrative ?? '',
