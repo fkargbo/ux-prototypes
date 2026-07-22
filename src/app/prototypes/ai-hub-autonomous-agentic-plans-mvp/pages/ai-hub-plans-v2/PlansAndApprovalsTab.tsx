@@ -43,7 +43,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -2571,7 +2571,17 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
           <Td dataLabel="Created">
             {row.createdAt ? (
-              <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                <FlexItem>
+                  <OutlinedClockIcon
+                    style={{ color: 'var(--pf-t--global--icon--color--subtle)', verticalAlign: 'middle' }}
+                    aria-hidden
+                  />
+                </FlexItem>
+                <FlexItem>
+                  <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
+                </FlexItem>
+              </Flex>
             ) : (
               '—'
             )}
