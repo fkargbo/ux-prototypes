@@ -3728,7 +3728,7 @@ export const RemediationBlueprintPanel: React.FC<{
     }
   }, [completeVerification, plan.id, workflow.verification]);
 
-  if (!drawer && !isEscalating && !isPending) return null;
+  if (!drawer && !isEscalating && !isPending && !isAnalyzing) return null;
 
   // Cluster-update domain: RCA + handoff to Administration → Cluster Update (shared for all these runs).
   if (isClusterUpdatePlan) {
