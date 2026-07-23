@@ -68,6 +68,8 @@ type PlanWorkflowContextValue = {
   completeVerification: (planId: string, success: boolean) => PlanStatus;
   submitRevisionFeedback: (planId: string, text: string) => void;
   finishReAnalysis: (planId: string) => void;
+  /** HITL: manually dispatches the AI analysis engine for a Pending run. Transitions runtimePhase → 'Analyzing'. */
+  dispatchAnalysis: (planId: string) => void;
 };
 
 const PlanWorkflowContext = createContext<PlanWorkflowContextValue | null>(null);
@@ -253,6 +255,14 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
     [patchPlan],
   );
 
+  /** HITL manual dispatch: transitions a Pending run into the Analyzing phase. */
+  const dispatchAnalysis = useCallback(
+    (planId: string) => {
+      patchPlan(planId, { runtimePhase: 'Analyzing' });
+    },
+    [patchPlan],
+  );
+
   const value = useMemo(
     () => ({
       workflowByPlanId,
@@ -267,6 +277,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       completeVerification,
       submitRevisionFeedback,
       finishReAnalysis,
+      dispatchAnalysis,
     }),
     [
       workflowByPlanId,
@@ -281,6 +292,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       completeVerification,
       submitRevisionFeedback,
       finishReAnalysis,
+      dispatchAnalysis,
     ],
   );
 

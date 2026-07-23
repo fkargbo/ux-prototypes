@@ -83,7 +83,7 @@ export function getPlanTokensConsumedView(
 
   if (!isPlanTokenBurnAvailable(burn)) {
     return {
-      display: '',
+      display: '—',
       tooltip: 'Token consumption not reported by the configured SDK.',
     };
   }

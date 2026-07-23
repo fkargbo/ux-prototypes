@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ClipboardCopy,
   Content,
   DescriptionList,
   DescriptionListDescription,
@@ -11,6 +10,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
+import { ExpandableCodeBlock } from '../../components/ExpandableCodeBlock';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import type { ExecutionApproval, VerificationState } from '../../context/PlanWorkflowContext';
 import type { RemediationOption } from './PlansAndApprovalsTab';
@@ -111,18 +111,11 @@ export const VerificationPanel: React.FC<{
       <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
         Attempt {verification.attempt} of {verification.maxAttempts}
       </Content>
-      <ClipboardCopy
-        isReadOnly
-        isCode
-        hoverTip="Copy"
-        clickTip="Copied"
-        style={{
-          fontFamily: 'var(--pf-t--global--font--family--mono)',
-          fontSize: '12px',
-        }}
-      >
-        {streamedLog || 'Starting verification checks…'}
-      </ClipboardCopy>
+      <ExpandableCodeBlock
+        id="verif-log"
+        code={streamedLog || 'Starting verification checks…'}
+        codeStyle={{ fontSize: '12px' }}
+      />
     </div>
   );
 };

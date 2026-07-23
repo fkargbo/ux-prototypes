@@ -1,9 +1,9 @@
 import React from 'react';
-import { Content, Flex, FlexItem, Label, Title } from '@patternfly/react-core';
+import { Content, Flex, FlexItem, Title } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
-import { AuditKillSwitchPanel } from '../../components/AuditKillSwitchPanel';
+import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import * as Hub from '../ai-hub-plans-v2';
 import '../ai-hub-page.css';
 
@@ -21,7 +21,7 @@ export const AIHubPageV2: React.FC = () => {
                 </Title>
               </FlexItem>
               <FlexItem>
-                <Label color="orange" isCompact>Tech preview</Label>
+                <TechPreviewBadge />
               </FlexItem>
             </Flex>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
@@ -48,7 +48,6 @@ export const AIHubPageV2: React.FC = () => {
         aria-label="Agentic runs content"
       >
         <AgenticKillSwitchBanner />
-        <AuditKillSwitchPanel />
         <Hub.PlansAndApprovalsTab />
       </div>
     </div>

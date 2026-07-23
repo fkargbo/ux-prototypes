@@ -4,18 +4,24 @@ import {
   Alert,
   Breadcrumb,
   BreadcrumbItem,
+  Button,
   Content,
-  EmptyState,
-  EmptyStateBody,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   Flex,
   FlexItem,
   Label,
-  Spinner,
+  MenuToggle,
   Title,
 } from '@patternfly/react-core';
+import EllipsisVIcon from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
+import { useDeletedPlans } from '../../context/DeletedPlansContext';
+import { DeleteAgenticRunModal } from '../../components/DeleteAgenticRunModal';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
+  NamespaceResourceBadge,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
@@ -31,11 +37,9 @@ import {
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import '../ai-hub-page.css';
-
-/** PF6 EmptyState.icon expects a component ref; this wrapper sizes the Spinner to xl. */
-const PendingSpinnerIcon: React.FC = () => <Spinner size="xl" />;
 
 export const AcsPlanDetailPageV2: React.FC = () => {
   const navigate = useNavigate();
@@ -96,6 +100,16 @@ export const AcsPlanDetailPageV2: React.FC = () => {
     setLocallyDenied(false);
   }, [planSlug]);
 
+  const { deletePlan } = useDeletedPlans();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+
+  const handleConfirmDelete = useCallback(() => {
+    deletePlan(plan?.id ?? '');
+    setIsDeleteModalOpen(false);
+    navigateBackToPlans();
+  }, [deletePlan, plan, navigateBackToPlans]);
+
   if (!planSlug || !plan) return null;
 
   const effectivePlan: PlanRow = locallyDenied
@@ -138,17 +152,20 @@ export const AcsPlanDetailPageV2: React.FC = () => {
                   </Title>
                 </FlexItem>
                 <FlexItem>
-                  <Label color="orange" isCompact>Tech preview</Label>
+                  <TechPreviewBadge />
                 </FlexItem>
               </Flex>
             </FlexItem>
             {plan.namespace && (
               <FlexItem>
-                <Label color="grey" variant="outline" isCompact>{plan.namespace}</Label>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+                  <FlexItem><NamespaceResourceBadge /></FlexItem>
+                  <FlexItem>{plan.namespace}</FlexItem>
+                </Flex>
               </FlexItem>
             )}
             <FlexItem>
-              <Label color="grey" variant="outline" isCompact>{plan.triggerDomain}</Label>
+              <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
             </FlexItem>
             <FlexItem>
               <Label color="purple" variant="outline" isCompact>ACS console</Label>
@@ -159,44 +176,61 @@ export const AcsPlanDetailPageV2: React.FC = () => {
             gap={{ default: 'gapSm' }}
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
-            <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
+            <FlexItem>
+              <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
+            </FlexItem>
+            <FlexItem align={{ default: 'alignRight' }}>
+              <Dropdown
+                isOpen={isActionsMenuOpen}
+                onSelect={() => setIsActionsMenuOpen(false)}
+                onOpenChange={setIsActionsMenuOpen}
+                popperProps={{ position: 'right' }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    variant="plain"
+                    isExpanded={isActionsMenuOpen}
+                    onClick={() => setIsActionsMenuOpen((o) => !o)}
+                    aria-label="Run actions"
+                  >
+                    <EllipsisVIcon />
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem
+                    isDanger
+                    onClick={() => { setIsActionsMenuOpen(false); setIsDeleteModalOpen(true); }}
+                  >
+                    Delete run
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </FlexItem>
           </Flex>
         </div>
       </AiHubPageHeading>
 
+      <DeleteAgenticRunModal
+        isOpen={isDeleteModalOpen}
+        runName={planDisplayName}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+      />
+
       <div className="template-page-content" role="main" aria-label={`ACS plan: ${planDisplayName}`}>
-        {effectivePlan.status === 'Pending' ? (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: '320px',
-              padding: 'var(--pf-t--global--spacer--2xl) var(--pf-t--global--spacer--lg)',
-            }}
-          >
-            <EmptyState
-              titleText="Initializing plan..."
-              icon={PendingSpinnerIcon}
-              headingLevel="h2"
-            >
-              <EmptyStateBody>
-                The proposal custom resource has been created on the cluster. Waiting for the AI
-                analysis engine to dispatch.
-              </EmptyStateBody>
-            </EmptyState>
-          </div>
-        ) : (
-          <div className="ols-plan-remediation-drilldown">
-            <AgenticKillSwitchBanner />
-            <RemediationBlueprintPanel
-              key={plan.id}
-              plan={effectivePlan}
-              onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
-              onStartNewInvestigation={navigateBackToPlans}
-            />
-          </div>
-        )}
+        <div
+          className="ols-plan-remediation-drilldown"
+          style={effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
+        >
+          <AgenticKillSwitchBanner />
+          <RemediationBlueprintPanel
+            key={plan.id}
+            plan={effectivePlan}
+            onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
+            onStartNewInvestigation={navigateBackToPlans}
+          />
+        </div>
       </div>
     </div>
   );

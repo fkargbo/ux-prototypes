@@ -196,11 +196,10 @@ export const PLAN_TOKEN_SDK_UNAVAILABLE = new Set([
   'inv-alert-mds-cache-high',
 ]);
 
-export function getPlanTokenBurn(planId: string): PlanTokenBurn {
-  if (PLAN_TOKEN_SDK_UNAVAILABLE.has(planId)) {
-    return {};
-  }
-  return PLAN_TOKEN_BURN[planId] ?? { analysis: 500 };
+export function getPlanTokenBurn(_planId: string): PlanTokenBurn {
+  // Token usage reporting is not yet available — OLS-3661 (Token usage reporting and
+  // attribution per AgenticRun owner/namespace) must complete before real data can be wired in.
+  return {};
 }
 
 export function getOptionExecutionTokenBurn(planId: string, optionId: string): number | undefined {

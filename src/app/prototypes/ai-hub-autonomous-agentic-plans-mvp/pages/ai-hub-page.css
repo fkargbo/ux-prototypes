@@ -203,6 +203,11 @@
   overflow-y: auto;
 }
 
+/* The checkbox already communicates selection state — hide the redundant right-side check icon. */
+.ols-ai-hub-plans-filter-select-list .pf-v6-c-menu__item-select-icon {
+  display: none;
+}
+
 .ols-ai-hub-plans-filter-chips {
   display: flex;
   flex-wrap: wrap;

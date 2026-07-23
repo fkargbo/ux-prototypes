@@ -7,8 +7,6 @@ import {
   CardBody,
   CardHeader,
   Checkbox,
-  ClipboardCopy,
-  ClipboardCopyVariant,
   Content,
   DescriptionList,
   DescriptionListDescription,
@@ -43,7 +41,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InfoCircleIcon, SearchIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiDownloadIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -54,10 +52,7 @@ import type { Reversibility } from '../../types/reversibility';
 import { formatReversibilityLabel, reversibilityLabelColor } from '../../types/reversibility';
 import type { RemediationRisk } from '../../types/riskScore';
 import {
-  formatTokenBurnPair,
-  formatOptionalTokenBurn,
   getPlanTokensConsumedView,
-  isPlanTokenBurnAvailable,
 } from '../../types/tokenBurn';
 import {
   AGENTIC_STATUS_FILTER_OPTIONS,
@@ -90,6 +85,7 @@ import {
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
 import { useDeletedPlans } from '../../context/DeletedPlansContext';
+import { DeleteAgenticRunModal } from '../../components/DeleteAgenticRunModal';
 import { usePlanTermination, type PlanExecutionRuntime } from '../../context/PlanTerminationContext';
 import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
@@ -103,7 +99,6 @@ import {
 } from './planWorkflowPanels';
 import {
   enrichRemediationOptionsWithConfidence,
-  getOptionExecutionTokenBurn,
   getPlanTokenBurn,
   GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
   MVP_PLAN_IDS,
@@ -111,6 +106,7 @@ import {
 } from './plansMvpConstants';
 import { getPlanDetailHref, resolvePlanDomainAnnotations } from './domainPlanNavigation';
 import { downloadAnalysisReportMarkdown, downloadRemediationPlanMarkdown } from '../../utils/downloadRemediationPlan';
+import { ExpandableCodeBlock } from '../../components/ExpandableCodeBlock';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2135,16 +2131,6 @@ Exit code: 0 — Execution succeeded.`,
   };
 };
 
-/** Deterministic simulated analysis token count for plans without real SDK token data. */
-function simulateAnalysisTokenCount(planId: string): number {
-  let hash = 0;
-  for (let i = 0; i < planId.length; i++) {
-    hash = (hash * 31 + planId.charCodeAt(i)) >>> 0;
-  }
-  // Range: 820 – 3,640 tokens (plausible LLM analysis call)
-  return 820 + (hash % 2820);
-}
-
 const formatExecutionKillTimestamp = (date: Date): string =>
   date.toLocaleString('en-US', {
     month: 'short',
@@ -2353,7 +2339,7 @@ export const PlanResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="AR" backgroundColor="#2b9af3" />
 );
 
-const NamespaceResourceBadge: React.FC = () => (
+export const NamespaceResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="NS" backgroundColor="#1e4f18" />
 );
 
@@ -2465,13 +2451,12 @@ const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete:
       <DropdownList>
         <DropdownItem
           key="delete-plan"
-          isDanger
           onClick={() => {
             onDelete(planId);
             setIsOpen(false);
           }}
         >
-          Delete plan
+          Delete run
         </DropdownItem>
       </DropdownList>
     </Dropdown>
@@ -2571,7 +2556,17 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
           <Td dataLabel="Created">
             {row.createdAt ? (
-              <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                <FlexItem>
+                  <OutlinedClockIcon
+                    style={{ color: 'var(--pf-t--global--icon--color--subtle)', verticalAlign: 'middle' }}
+                    aria-hidden
+                  />
+                </FlexItem>
+                <FlexItem>
+                  <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
+                </FlexItem>
+              </Flex>
             ) : (
               '—'
             )}
@@ -2609,6 +2604,22 @@ const PlansTable: React.FC<PlansTableProps> = ({
   isAgenticAutomationEnabled,
 }) => {
   const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true, mapObservabilityDomains: true });
+
+  // ── Delete confirmation modal state ──────────────────────────────────────
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const requestDelete = useCallback((planId: string) => {
+    const row = rows.find((r) => r.id === planId);
+    setPendingDelete({ id: planId, name: row?.name ?? planId });
+  }, [rows]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!pendingDelete) return;
+    onDeletePlan(pendingDelete.id);
+    setPendingDelete(null);
+  }, [pendingDelete, onDeletePlan]);
+
+  const handleCancelDelete = useCallback(() => setPendingDelete(null), []);
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
@@ -2675,6 +2686,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
         filterAriaLabel="Filter plans"
         statusOptions={AGENTIC_STATUS_FILTER_OPTIONS}
         includeTriggerDomainFilter
+        rows={rows}
         pagination={<Pagination isCompact {...paginationProps} style={{ margin: 0 }} />}
         {...plansFilter}
       />
@@ -2706,7 +2718,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
             ariaLabel="Plans"
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={onReviewPlan}
-            onDeletePlan={onDeletePlan}
+            onDeletePlan={requestDelete}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             mapObservabilityDomains
           />
@@ -2717,6 +2729,13 @@ const PlansTable: React.FC<PlansTableProps> = ({
           />
         </>
       )}
+
+      <DeleteAgenticRunModal
+        isOpen={pendingDelete !== null}
+        runName={pendingDelete?.name ?? ''}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </>
   );
 };
@@ -2912,19 +2931,11 @@ const RemediationOptionCard: React.FC<{
               >
                 Active execution log
               </Content>
-              <ClipboardCopy
-                isReadOnly
-                isCode
-                hoverTip="Copy"
-                clickTip="Copied"
-                style={{
-                  fontFamily: 'var(--pf-t--global--font--family--mono)',
-                  fontSize: '12px',
-                  marginBottom: 'var(--pf-t--global--spacer--sm)',
-                }}
-              >
-                {streamedExecutionLog}
-              </ClipboardCopy>
+              <ExpandableCodeBlock
+                id={`exec-log-${option.id}`}
+                code={streamedExecutionLog}
+                codeStyle={{ fontSize: '12px' }}
+              />
             </>
           )}
 
@@ -2942,17 +2953,13 @@ const RemediationOptionCard: React.FC<{
                   marginBottom: 'var(--pf-t--global--spacer--xs)',
                 }}
               >
-                PROPOSED AGENT COMMAND
+                Proposed agent command
               </Content>
-              <ClipboardCopy
-                isReadOnly
-                isCode
-                hoverTip="Copy"
-                clickTip="Copied"
-                style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '12px' }}
-              >
-                {option.rawCommands}
-              </ClipboardCopy>
+              <ExpandableCodeBlock
+                id={`cmd-${option.id}`}
+                code={option.rawCommands}
+                codeStyle={{ fontSize: '12px' }}
+              />
               {(onExecute || ((isProposed || isDenied || isEmergencyStopped) && rootCause)) && (
                 <Flex
                   gap={{ default: 'gapSm' }}
@@ -2974,7 +2981,7 @@ const RemediationOptionCard: React.FC<{
                     <FlexItem>
                       <Button
                         variant="link"
-                        icon={<DownloadIcon />}
+                        icon={<RhUiDownloadIcon />}
                         onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
                       >
                         Download plan
@@ -3049,8 +3056,6 @@ const PostMortemPanel: React.FC<{
   const [logCategory, setLogCategory] = useState<'execution' | 'verification'>('execution');
   const [logQuery, setLogQuery] = useState('');
   const [isLogCatOpen, setIsLogCatOpen] = useState(false);
-  const [failureLogCategory, setFailureLogCategory] = useState<'trace' | 'execution'>('trace');
-  const [isFailureLogCatOpen, setIsFailureLogCatOpen] = useState(false);
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -3119,23 +3124,6 @@ const PostMortemPanel: React.FC<{
               <DescriptionListDescription>{postMortem.executionDuration}</DescriptionListDescription>
             </DescriptionListGroup>
           )}
-          {(() => {
-            const burn = getPlanTokenBurn(plan.id);
-            const executionFromOption = executionOptionId
-              ? getOptionExecutionTokenBurn(plan.id, executionOptionId)
-              : undefined;
-            const execution = executionFromOption ?? burn.execution ?? 0;
-            const burnLine = formatTokenBurnPair(burn.analysis, execution > 0 ? execution : undefined);
-            if (!burnLine) {
-              return null;
-            }
-            return (
-              <DescriptionListGroup>
-                <DescriptionListTerm>Token burn</DescriptionListTerm>
-                <DescriptionListDescription>{burnLine}</DescriptionListDescription>
-              </DescriptionListGroup>
-            );
-          })()}
           {verification && (
             <>
               <DescriptionListGroup>
@@ -3235,19 +3223,11 @@ const PostMortemPanel: React.FC<{
                     ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
                     : raw;
                   return (
-                    <ClipboardCopy
-                      variant={ClipboardCopyVariant.expansion}
-                      isReadOnly
-                      isCode
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        fontSize: '12px',
-                        maxHeight: '280px',
-                        overflowY: 'auto',
-                      }}
-                    >
-                      {displayed}
-                    </ClipboardCopy>
+                    <ExpandableCodeBlock
+                      id={`pm-log-inline-${plan.id}`}
+                      code={displayed}
+                      codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                    />
                   );
                 })()}
               </div>
@@ -3328,19 +3308,11 @@ const PostMortemPanel: React.FC<{
                       ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
                       : raw;
                     return (
-                      <ClipboardCopy
-                        variant={ClipboardCopyVariant.expansion}
-                        isReadOnly
-                        isCode
-                        style={{
-                          fontFamily: 'var(--pf-t--global--font--family--mono)',
-                          fontSize: '12px',
-                          maxHeight: '280px',
-                          overflowY: 'auto',
-                        }}
-                      >
-                        {displayed}
-                      </ClipboardCopy>
+                      <ExpandableCodeBlock
+                        id={`pm-log-card-${plan.id}`}
+                        code={displayed}
+                        codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                      />
                     );
                   })()}
                 </div>
@@ -3362,9 +3334,23 @@ const PostMortemPanel: React.FC<{
       <Stack hasGutter style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
         {/* ── Header ── */}
         <StackItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
             <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
-            <Title headingLevel="h5" size="md">Critical Automation Failure</Title>
+            <Title headingLevel="h5" size="md" style={{ marginBottom: 0 }}>Critical automation failure</Title>
+            <FlexItem style={{ marginLeft: 'auto' }}>
+              <Button
+                variant="link"
+                icon={<ExternalLinkAltIcon />}
+                iconPosition="end"
+                component="a"
+                href="/observe/traces"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ padding: 0 }}
+              >
+                View trace
+              </Button>
+            </FlexItem>
           </Flex>
         </StackItem>
 
@@ -3381,7 +3367,7 @@ const PostMortemPanel: React.FC<{
 
         <StackItem><Divider /></StackItem>
 
-        {/* ── Logs (traces + execution) ── */}
+        {/* ── Execution logs ── */}
         <StackItem>
           <ExpandableSection
             toggleText={showLogs ? 'Hide logs' : 'View logs'}
@@ -3391,26 +3377,6 @@ const PostMortemPanel: React.FC<{
           >
             <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
               <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                <FlexItem>
-                  <Dropdown
-                    isOpen={isFailureLogCatOpen}
-                    onOpenChange={setIsFailureLogCatOpen}
-                    onSelect={(_e, val) => {
-                      setFailureLogCategory(val as 'trace' | 'execution');
-                      setIsFailureLogCatOpen(false);
-                    }}
-                    toggle={(ref) => (
-                      <MenuToggle ref={ref} onClick={() => setIsFailureLogCatOpen(!isFailureLogCatOpen)} isExpanded={isFailureLogCatOpen}>
-                        {failureLogCategory === 'trace' ? 'Traces' : 'Execution logs'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      <DropdownItem value="trace">Traces</DropdownItem>
-                      <DropdownItem value="execution">Execution logs</DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
-                </FlexItem>
                 <FlexItem grow={{ default: 'grow' }}>
                   <SearchInput
                     value={logQuery}
@@ -3421,26 +3387,16 @@ const PostMortemPanel: React.FC<{
                 </FlexItem>
               </Flex>
               {(() => {
-                const raw = failureLogCategory === 'trace'
-                  ? (postMortem.failureTrace ?? '')
-                  : (postMortem.rawLog ?? '');
+                const raw = postMortem.rawLog ?? '';
                 const displayed = logQuery.trim()
                   ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
                   : raw;
                 return (
-                  <ClipboardCopy
-                    variant={ClipboardCopyVariant.expansion}
-                    isReadOnly
-                    isCode
-                    style={{
-                      fontFamily: 'var(--pf-t--global--font--family--mono)',
-                      fontSize: '12px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                    }}
-                  >
-                    {displayed}
-                  </ClipboardCopy>
+                  <ExpandableCodeBlock
+                    id={`pm-log-fail-${plan.id}`}
+                    code={displayed}
+                    codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                  />
                 );
               })()}
             </div>
@@ -3577,14 +3533,19 @@ function generateAnalysisLogs(planId: string, finding: string, narrative: string
   const clip = (str: string, len = 90) => (str.length > len ? str.slice(0, len) + '...' : str);
   return [
     `${ts(0)}  INFO [analysis] Initializing investigation pipeline — plan_id=${planId}`,
+    `${ts(1)}  INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
     `${ts(2)}  INFO [signals]  Querying Prometheus TSDB for correlated alert signals...`,
     `${ts(4)}  INFO [signals]  ${clip(finding)}`,
+    `${ts(5)}  INFO [probe]    GET /readyz  200 OK — readiness probe passed`,
     `${ts(7)}  INFO [model]    Dispatching signal corpus to LLM reasoning engine`,
     `${ts(9)}  INFO [model]    Hypothesis generation in progress (temperature=0.2, max_tokens=1024)`,
+    `${ts(11)} INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
     `${ts(12)} INFO [model]    Root cause hypothesis locked — confidence=0.87`,
     `${ts(14)} INFO [rca]      ${clip(narrative)}`,
+    `${ts(15)} INFO [probe]    GET /readyz  200 OK — readiness probe passed`,
     `${ts(16)} INFO [rca]      Contributing factor graph traversal complete: 3 factors identified`,
     `${ts(17)} INFO [proposal] Root cause analysis complete. Generating remediation proposal...`,
+    `${ts(18)} INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
     `${ts(19)} INFO [proposal] Proposal ready — plan_id=${planId} is available for review.`,
   ].join('\n');
 }
@@ -3635,6 +3596,7 @@ export const RemediationBlueprintPanel: React.FC<{
   const isCompleted = status === 'Completed';
   const isDenied           = status === 'Denied';
   const isEmergencyStopped = status === 'EmergencyStopped';
+  const isPending = status === 'Pending';
   const isClusterUpdatePlan = resolvePlanDomainAnnotations(plan).sourceDomain === 'cluster-update';
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
@@ -3648,6 +3610,7 @@ export const RemediationBlueprintPanel: React.FC<{
     acknowledgePlan,
     startVerification,
     completeVerification,
+    dispatchAnalysis,
   } = usePlanWorkflow();
   const workflow = getPlanWorkflow(plan.id);
   const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
@@ -3660,14 +3623,30 @@ export const RemediationBlueprintPanel: React.FC<{
   const [denyReason, setDenyReason] = useState('');
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
-  const [isRawEvidenceExpanded, setIsRawEvidenceExpanded] = useState(false);
+  const [hideHealthChecks, setHideHealthChecks] = useState(true);
   const [isCitationsExpanded, setIsCitationsExpanded] = useState(false);
   const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
 
+  /**
+   * HITL sub-state for Pending runs.
+   *   INITIALIZING       — CR created, engine not yet dispatched (shows spinner, 5-second window)
+   *   READY_FOR_ANALYSIS — Manual approval policy gate: awaiting "Analyze with AI" action
+   */
+  type PendingSubState = 'INITIALIZING' | 'READY_FOR_ANALYSIS';
+  const [pendingSubState, setPendingSubState] = useState<PendingSubState>('INITIALIZING');
+
+  // Auto-advance from INITIALIZING → READY_FOR_ANALYSIS after 5 s.
+  // Depends only on plan.id so re-renders don't cancel and restart the timer.
+  useEffect(() => {
+    if (status !== 'Pending') return;
+    setPendingSubState('INITIALIZING');
+    const timer = window.setTimeout(() => setPendingSubState('READY_FOR_ANALYSIS'), 5000);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan.id]);
+
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
-
-  const planTokenBurn = getPlanTokenBurn(plan.id);
 
   useEffect(() => {
     setIsExecutionRunning(false);
@@ -3675,7 +3654,6 @@ export const RemediationBlueprintPanel: React.FC<{
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
     setIsStopExecutionModalOpen(false);
-    setIsRawEvidenceExpanded(false);
     setIsCitationsExpanded(false);
     setIsReasoningChainExpanded(false);
   }, [plan.id]);
@@ -3773,7 +3751,7 @@ export const RemediationBlueprintPanel: React.FC<{
     }
   }, [completeVerification, plan.id, workflow.verification]);
 
-  if (!drawer && !isEscalating) return null;
+  if (!drawer && !isEscalating && !isPending && !isAnalyzing) return null;
 
   // Cluster-update domain: RCA + handoff to Administration → Cluster Update (shared for all these runs).
   if (isClusterUpdatePlan) {
@@ -3811,16 +3789,6 @@ export const RemediationBlueprintPanel: React.FC<{
               Root cause analysis (RCA)
             </Title>
             <Label color="grey" isCompact>AI-generated</Label>
-            {!isAnalyzing && (
-              <Label color="grey" variant="outline" isCompact>
-                {formatOptionalTokenBurn(
-                  isPlanTokenBurnAvailable(planTokenBurn)
-                    ? planTokenBurn.analysis
-                    : simulateAnalysisTokenCount(plan.id),
-                  '(analysis)',
-                )}
-              </Label>
-            )}
           </Flex>
           {isAnalyzing || !drawer ? (
             <RcaLockedPlaceholder />
@@ -3854,6 +3822,38 @@ export const RemediationBlueprintPanel: React.FC<{
           )}
         </StackItem>
       </Stack>
+    );
+  }
+
+  // ── Pending HITL gate — Phase 1: Initializing / Phase 2: Ready for Analysis ──
+  if (isPending) {
+    return pendingSubState === 'INITIALIZING' ? (
+      <EmptyState
+        titleText="Initializing plan..."
+        headingLevel="h4"
+        icon={() => <Spinner size="lg" aria-label="Initializing" />}
+      >
+        <EmptyStateBody>
+          The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.
+        </EmptyStateBody>
+      </EmptyState>
+    ) : (
+      <EmptyState
+        titleText="Ready for analysis"
+        headingLevel="h4"
+        style={{ paddingTop: '80px' }}
+      >
+        <EmptyStateBody>
+          Manual approval policy enabled. The proposal custom resource is ready for AI analysis.
+        </EmptyStateBody>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button variant="primary" onClick={() => dispatchAnalysis(plan.id)}>
+              Analyze with AI
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
+      </EmptyState>
     );
   }
 
@@ -4046,16 +4046,6 @@ export const RemediationBlueprintPanel: React.FC<{
             Root cause analysis (RCA)
           </Title>
           <Label color="grey" isCompact>AI-generated</Label>
-          {!isAnalyzing && (
-            <Label color="grey" variant="outline" isCompact>
-              {formatOptionalTokenBurn(
-                isPlanTokenBurnAvailable(planTokenBurn)
-                  ? planTokenBurn.analysis
-                  : simulateAnalysisTokenCount(plan.id),
-                '(analysis)',
-              )}
-            </Label>
-          )}
         </Flex>
           {isAnalyzing ? (
             <>
@@ -4239,29 +4229,6 @@ export const RemediationBlueprintPanel: React.FC<{
               </div>
             </ExpandableSection>
 
-            {drawer!.rawEvidence && (
-              <ExpandableSection
-                toggleText={isRawEvidenceExpanded ? 'Hide raw evidence' : 'View raw evidence'}
-                isExpanded={isRawEvidenceExpanded}
-                onToggle={(_e, expanded) => setIsRawEvidenceExpanded(expanded)}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                <ClipboardCopy
-                  variant={ClipboardCopyVariant.expansion}
-                  isReadOnly
-                  isCode
-                  style={{
-                    fontFamily: 'var(--pf-t--global--font--family--mono)',
-                    fontSize: '12px',
-                    maxHeight: '280px',
-                    overflowY: 'auto',
-                  }}
-                >
-                  {drawer!.rawEvidence}
-                </ClipboardCopy>
-              </ExpandableSection>
-            )}
-
             {/* View analysis logs */}
             <ExpandableSection
               toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
@@ -4273,32 +4240,42 @@ export const RemediationBlueprintPanel: React.FC<{
               style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
             >
               {(() => {
+                const HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
                 const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
-                const displayLogs = analysisLogsQuery.trim()
-                  ? rawLogs.split('\n').filter(l => l.toLowerCase().includes(analysisLogsQuery.toLowerCase())).join('\n')
-                  : rawLogs;
+                const displayLogs = rawLogs
+                  .split('\n')
+                  .filter(l => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
+                  .filter(l => !analysisLogsQuery.trim() || l.toLowerCase().includes(analysisLogsQuery.toLowerCase()))
+                  .join('\n');
                 return (
                   <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                    <SearchInput
-                      value={analysisLogsQuery}
-                      onChange={(_evt, val) => setAnalysisLogsQuery(val)}
-                      onClear={() => setAnalysisLogsQuery('')}
-                      placeholder="Search logs..."
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      gap={{ default: 'gapMd' }}
                       style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                    />
-                    <ClipboardCopy
-                      variant={ClipboardCopyVariant.expansion}
-                      isReadOnly
-                      isCode
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        fontSize: '12px',
-                        maxHeight: '280px',
-                        overflowY: 'auto',
-                      }}
                     >
-                      {displayLogs}
-                    </ClipboardCopy>
+                      <FlexItem grow={{ default: 'grow' }}>
+                        <SearchInput
+                          value={analysisLogsQuery}
+                          onChange={(_evt, val) => setAnalysisLogsQuery(val)}
+                          onClear={() => setAnalysisLogsQuery('')}
+                          placeholder="Search logs..."
+                        />
+                      </FlexItem>
+                      <FlexItem>
+                        <Checkbox
+                          id={`hide-health-checks-${plan.id}`}
+                          label="Hide health checks"
+                          isChecked={hideHealthChecks}
+                          onChange={(_evt, checked) => setHideHealthChecks(checked)}
+                        />
+                      </FlexItem>
+                    </Flex>
+                    <ExpandableCodeBlock
+                      id={`analysis-log-${plan.id}`}
+                      code={displayLogs}
+                      codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                    />
                   </div>
                 );
               })()}
@@ -4343,7 +4320,7 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Button>
                 <Button
                   variant="link"
-                  icon={<DownloadIcon />}
+                  icon={<RhUiDownloadIcon />}
                   iconPosition="start"
                   onClick={() =>
                     downloadAnalysisReportMarkdown(plan, {
@@ -4448,15 +4425,12 @@ export const RemediationBlueprintPanel: React.FC<{
                 >
                   {escalatedPlaybook.title}
                 </Content>
-                <ClipboardCopy
-                  isCode
-                  variant={ClipboardCopyVariant.expansion}
-                  isReadOnly
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                >
-                  {escalatedPlaybook.command}
-                </ClipboardCopy>
-                <Button variant="link" icon={<DownloadIcon />} iconPosition="start"
+                <ExpandableCodeBlock
+                  id={`escalated-cmd-${plan.id}`}
+                  code={escalatedPlaybook.command}
+                  codeStyle={{ fontSize: '12px' }}
+                />
+                <Button variant="link" icon={<RhUiDownloadIcon />} iconPosition="start"
                   onClick={() => downloadAnalysisReportMarkdown(plan, {
                     aggregatedFinding: drawer?.aggregatedFinding ?? '',
                     rootCauseNarrative: drawer?.rootCauseNarrative ?? '',

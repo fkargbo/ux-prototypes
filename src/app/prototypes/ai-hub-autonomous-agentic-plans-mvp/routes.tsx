@@ -9,7 +9,6 @@ import { BridgeRedirect } from './pages/BridgeRedirect';
 
 // ── V2 workspace page wrappers (the sole supported Agentic runs experience) ──
 import { AIHubPageV2 } from './pages/v2/AIHubPageV2';
-import { AuditAndLogsPageV2 } from './pages/v2/AuditAndLogsPageV2';
 import { PlanRemediationPageV2 } from './pages/v2/PlanRemediationPageV2';
 import { AcsPlanDetailPageV2 } from './pages/v2/AcsPlanDetailPageV2';
 import { TroubleshootingPlanDetailV2 } from './pages/v2/TroubleshootingPlanDetailV2';
@@ -51,17 +50,6 @@ export const routes: RouteConfig[] = [
         '/v2/ai-hub/observe/acs-plans',
         '/core/observe/ai-hub/acs-plans',
       ],
-    },
-  },
-  {
-    path: '/core/observe/ai-hub/audit-logs',
-    element: <BridgeRedirect to="/v2/ai-hub/observe/audit-logs" />,
-    label: 'Audit & logs',
-    title: 'Audit & logs',
-    navigation: {
-      group: 'Agentic Runs',
-      order: 2,
-      insertAfterGroup: 'Compute',
     },
   },
   {
@@ -182,11 +170,6 @@ export const routes: RouteConfig[] = [
     // No sidebar entry here — the "Agentic Runs" nav item lives on the
     // /core/observe/ai-hub/plans route above (see comment there for why).
     title: 'Agentic runs',
-  },
-  {
-    path: '/v2/ai-hub/observe/audit-logs',
-    element: withPerspectiveUrlSync(<AuditAndLogsPageV2 />),
-    title: 'Audit & logs',
   },
   {
     path: '/v2/ai-hub/observe/plans/:planSlug/remediation',

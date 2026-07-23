@@ -1,10 +1,11 @@
 import React from 'react';
-import { Content, Flex, FlexItem, Label, Title } from '@patternfly/react-core';
+import { Content, Flex, FlexItem, Title } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { TroubleshootingPlansTab } from '../ai-hub-plans-v2/TroubleshootingPlansTab';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
 import { AiExperienceIcon } from '../ai-hub-plans-v2/AiExperienceIcon';
+import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import '../ai-hub-page.css';
 
 export const TroubleshootingPlansPageV2: React.FC = () => {
@@ -21,7 +22,7 @@ export const TroubleshootingPlansPageV2: React.FC = () => {
                 </Title>
               </FlexItem>
               <FlexItem>
-                <Label color="orange" isCompact>Tech preview</Label>
+                <TechPreviewBadge />
               </FlexItem>
             </Flex>
             <Content component="p" className="ols-ai-hub-page-subtitle">
