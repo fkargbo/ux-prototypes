@@ -3652,6 +3652,7 @@ export const RemediationBlueprintPanel: React.FC<{
     setRetryBanner(null);
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
+    setHideHealthChecks(true);
     setIsStopExecutionModalOpen(false);
     setIsCitationsExpanded(false);
   }, [plan.id]);
@@ -3798,9 +3799,61 @@ export const RemediationBlueprintPanel: React.FC<{
               <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.aggregatedFinding}
               </Content>
-              <Content component="p" style={{ marginBottom: 0 }}>
+              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.rootCauseNarrative}
               </Content>
+
+              {/* View analysis logs */}
+              <ExpandableSection
+                toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
+                isExpanded={showAnalysisLogs}
+                onToggle={(_e, expanded) => {
+                  setShowAnalysisLogs(expanded);
+                  if (!expanded) setAnalysisLogsQuery('');
+                }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                {(() => {
+                  const HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
+                  const rawLogs = generateAnalysisLogs(plan.id, drawer.aggregatedFinding, drawer.rootCauseNarrative);
+                  const displayLogs = rawLogs
+                    .split('\n')
+                    .filter(l => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
+                    .filter(l => !analysisLogsQuery.trim() || l.toLowerCase().includes(analysisLogsQuery.toLowerCase()))
+                    .join('\n');
+                  return (
+                    <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                      <Flex
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        gap={{ default: 'gapMd' }}
+                        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                      >
+                        <FlexItem grow={{ default: 'grow' }}>
+                          <SearchInput
+                            value={analysisLogsQuery}
+                            onChange={(_evt, val) => setAnalysisLogsQuery(val)}
+                            onClear={() => setAnalysisLogsQuery('')}
+                            placeholder="Search logs..."
+                          />
+                        </FlexItem>
+                        <FlexItem>
+                          <Checkbox
+                            id={`analysis-log-hc-cu-${plan.id}`}
+                            label="Hide health checks"
+                            isChecked={hideHealthChecks}
+                            onChange={(_evt, checked) => setHideHealthChecks(checked)}
+                          />
+                        </FlexItem>
+                      </Flex>
+                      <ExpandableCodeBlock
+                        id={`analysis-log-cu-${plan.id}`}
+                        code={displayLogs}
+                        codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                      />
+                    </div>
+                  );
+                })()}
+              </ExpandableSection>
             </div>
           )}
         </StackItem>
@@ -3818,6 +3871,14 @@ export const RemediationBlueprintPanel: React.FC<{
               Continue remediation from Administration → Cluster Update.
             </Content>
           )}
+        </StackItem>
+
+        {/* ── Timeline (always last) ────────────────────────────────────── */}
+        <StackItem>
+          <AgenticRunTimeline
+            status={status}
+            createdAt={plan.createdAt}
+          />
         </StackItem>
       </Stack>
     );
