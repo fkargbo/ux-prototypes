@@ -177,7 +177,10 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
         role="main"
         aria-label={`Agentic run: ${planDisplayName}`}
       >
-        <div className="ols-plan-remediation-drilldown">
+        <div
+          className="ols-plan-remediation-drilldown"
+          style={effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
+        >
           <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel
             key={plan.id}

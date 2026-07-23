@@ -187,7 +187,10 @@ export const PlanRemediationPageV2: React.FC = () => {
       </AiHubPageHeading>
 
       <div className="template-page-content" role="main" aria-label={`Plan remediation: ${planDisplayName}`}>
-        <div className="ols-plan-remediation-drilldown">
+        <div
+          className="ols-plan-remediation-drilldown"
+          style={effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
+        >
           <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel
             key={plan.id}

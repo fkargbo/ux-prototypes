@@ -160,7 +160,10 @@ export const AcsPlanDetailPageV2: React.FC = () => {
       </AiHubPageHeading>
 
       <div className="template-page-content" role="main" aria-label={`ACS plan: ${planDisplayName}`}>
-        <div className="ols-plan-remediation-drilldown">
+        <div
+          className="ols-plan-remediation-drilldown"
+          style={effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
+        >
           <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel
             key={plan.id}
