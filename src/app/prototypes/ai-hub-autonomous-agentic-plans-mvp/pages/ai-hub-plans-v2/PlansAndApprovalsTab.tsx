@@ -2451,7 +2451,6 @@ const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete:
       <DropdownList>
         <DropdownItem
           key="delete-plan"
-          isDanger
           onClick={() => {
             onDelete(planId);
             setIsOpen(false);
