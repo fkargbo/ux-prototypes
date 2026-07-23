@@ -2,8 +2,6 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Button,
-  CodeBlock,
-  CodeBlockCode,
   Content,
   DescriptionList,
   DescriptionListDescription,
@@ -14,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon, TimesIcon } from '@patternfly/react-icons';
 import type { NodeComponentStatusLabel, NodeComponentSummaryRow } from './nodeComponentSummaryData';
+import { ExpandableCodeBlock } from '../../components/ExpandableCodeBlock';
 
 export type NodeComponentSummaryDrawerProps = {
   isOpen: boolean;
@@ -129,9 +128,11 @@ export const NodeComponentSummaryDrawer: React.FC<NodeComponentSummaryDrawerProp
           <Title headingLevel="h3" size="md" className="ols-node-summary-drawer-section-title">
             Local diagnostic log
           </Title>
-          <CodeBlock>
-            <CodeBlockCode>{row.diagnosticLogs.join('\n')}</CodeBlockCode>
-          </CodeBlock>
+          <ExpandableCodeBlock
+            id="node-diagnostic-log"
+            code={row.diagnosticLogs.join('\n')}
+            codeStyle={{ fontSize: '12px' }}
+          />
         </div>
       </aside>
     </div>,

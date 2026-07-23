@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ClipboardCopyButton,
-  CodeBlock,
-  CodeBlockAction,
-  CodeBlockCode,
   Content,
   DescriptionList,
   DescriptionListDescription,
@@ -14,6 +10,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
+import { ExpandableCodeBlock } from '../../components/ExpandableCodeBlock';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import type { ExecutionApproval, VerificationState } from '../../context/PlanWorkflowContext';
 import type { RemediationOption } from './PlansAndApprovalsTab';
@@ -82,7 +79,6 @@ export const VerificationPanel: React.FC<{
   onComplete?: () => void;
 }> = ({ verification, isLive = false, onComplete }) => {
   const isFrozen = !isLive;
-  const [verifCopied, setVerifCopied] = useState(false);
   const streamedLog = useStreamingVerificationLog(
     verification.checks.length > 0 ? verification.checks : VERIFICATION_CHECK_LINES,
     isLive && !verification.outcome,
@@ -115,30 +111,11 @@ export const VerificationPanel: React.FC<{
       <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
         Attempt {verification.attempt} of {verification.maxAttempts}
       </Content>
-      <CodeBlock
-        actions={
-          <CodeBlockAction>
-            <ClipboardCopyButton
-              id="verif-log-copy"
-              textId="verif-log-text"
-              aria-label="Copy verification log"
-              onClick={() => {
-                navigator.clipboard.writeText(streamedLog || 'Starting verification checks…');
-                setVerifCopied(true);
-                setTimeout(() => setVerifCopied(false), 2000);
-              }}
-              exitDelay={1000}
-              variant="plain"
-            >
-              {verifCopied ? 'Copied!' : 'Copy'}
-            </ClipboardCopyButton>
-          </CodeBlockAction>
-        }
-      >
-        <CodeBlockCode id="verif-log-text" style={{ fontSize: '12px' }}>
-          {streamedLog || 'Starting verification checks…'}
-        </CodeBlockCode>
-      </CodeBlock>
+      <ExpandableCodeBlock
+        id="verif-log"
+        code={streamedLog || 'Starting verification checks…'}
+        codeStyle={{ fontSize: '12px' }}
+      />
     </div>
   );
 };
