@@ -449,7 +449,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
       </Flex>
 
       {hasActiveFilters && (
-        <div className="ols-ai-hub-plans-filter-chips ols-ai-hub-plans-filter-chips--active">
+        <div className="ols-ai-hub-plans-filter-chips ols-ai-hub-plans-filter-chips--active" style={{ marginTop: '12px' }}>
           {statusFilters.length > 0 && (
             <LabelGroup categoryName="Status" isClosable onClick={() => setStatusFilters([])}>
               {statusFilters.map((status) => (
