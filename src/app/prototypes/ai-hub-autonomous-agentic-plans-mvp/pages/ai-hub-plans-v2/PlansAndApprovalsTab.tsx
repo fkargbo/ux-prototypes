@@ -45,8 +45,8 @@ import { CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTrian
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { AgenticRunTimeline } from '../../components/AgenticRunTimeline';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
-import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import type { Reversibility } from '../../types/reversibility';
 import { formatReversibilityLabel, reversibilityLabelColor } from '../../types/reversibility';
@@ -3624,9 +3624,6 @@ export const RemediationBlueprintPanel: React.FC<{
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
   const [hideHealthChecks, setHideHealthChecks] = useState(true);
-  const [isCitationsExpanded, setIsCitationsExpanded] = useState(false);
-  const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
-
   /**
    * HITL sub-state for Pending runs.
    *   INITIALIZING       — CR created, engine not yet dispatched (shows spinner, 5-second window)
@@ -3653,9 +3650,8 @@ export const RemediationBlueprintPanel: React.FC<{
     setRetryBanner(null);
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
+    setHideHealthChecks(true);
     setIsStopExecutionModalOpen(false);
-    setIsCitationsExpanded(false);
-    setIsReasoningChainExpanded(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -3800,9 +3796,61 @@ export const RemediationBlueprintPanel: React.FC<{
               <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.aggregatedFinding}
               </Content>
-              <Content component="p" style={{ marginBottom: 0 }}>
+              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.rootCauseNarrative}
               </Content>
+
+              {/* View analysis logs */}
+              <ExpandableSection
+                toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
+                isExpanded={showAnalysisLogs}
+                onToggle={(_e, expanded) => {
+                  setShowAnalysisLogs(expanded);
+                  if (!expanded) setAnalysisLogsQuery('');
+                }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                {(() => {
+                  const HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
+                  const rawLogs = generateAnalysisLogs(plan.id, drawer.aggregatedFinding, drawer.rootCauseNarrative);
+                  const displayLogs = rawLogs
+                    .split('\n')
+                    .filter(l => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
+                    .filter(l => !analysisLogsQuery.trim() || l.toLowerCase().includes(analysisLogsQuery.toLowerCase()))
+                    .join('\n');
+                  return (
+                    <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                      <Flex
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        gap={{ default: 'gapMd' }}
+                        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                      >
+                        <FlexItem grow={{ default: 'grow' }}>
+                          <SearchInput
+                            value={analysisLogsQuery}
+                            onChange={(_evt, val) => setAnalysisLogsQuery(val)}
+                            onClear={() => setAnalysisLogsQuery('')}
+                            placeholder="Search logs..."
+                          />
+                        </FlexItem>
+                        <FlexItem>
+                          <Checkbox
+                            id={`analysis-log-hc-cu-${plan.id}`}
+                            label="Hide health checks"
+                            isChecked={hideHealthChecks}
+                            onChange={(_evt, checked) => setHideHealthChecks(checked)}
+                          />
+                        </FlexItem>
+                      </Flex>
+                      <ExpandableCodeBlock
+                        id={`analysis-log-cu-${plan.id}`}
+                        code={displayLogs}
+                        codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                      />
+                    </div>
+                  );
+                })()}
+              </ExpandableSection>
             </div>
           )}
         </StackItem>
@@ -3820,6 +3868,14 @@ export const RemediationBlueprintPanel: React.FC<{
               Continue remediation from Administration → Cluster Update.
             </Content>
           )}
+        </StackItem>
+
+        {/* ── Timeline (always last) ────────────────────────────────────── */}
+        <StackItem>
+          <AgenticRunTimeline
+            status={status}
+            createdAt={plan.createdAt}
+          />
         </StackItem>
       </Stack>
     );
@@ -3888,7 +3944,7 @@ export const RemediationBlueprintPanel: React.FC<{
         </Content>
       </StackItem>
 
-      {/* ── Status alerts (below heading, above Reasoning chain) ────────── */}
+      {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (
         <StackItem>
           <Alert
@@ -3932,109 +3988,6 @@ export const RemediationBlueprintPanel: React.FC<{
         </StackItem>
       )}
 
-      {/* ── Section D: Reasoning chain ────────────────────────────────── */}
-      {(() => {
-        const COMPLETED_STEPS: ReasoningStep[] = [
-          { id: 'rc-c1', time: '10:03:02', status: 'done', icon: 'exclamation', title: 'Detected ArgoCD LiveStateOutOfSync event',                    detail: '4 IngressControllerDegraded alerts firing fleet-wide' },
-          { id: 'rc-c2', time: '10:03:25', status: 'done', icon: 'database',    title: 'Fetched GitOps revision history',                             detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
-          { id: 'rc-c3', time: '10:03:41', status: 'done', icon: 'search',      title: 'Diffed live vs. declared NetworkPolicy objects',               detail: 'Kustomize overlay conflict found across 4 fleet namespaces' },
-          { id: 'rc-c4', time: '10:03:55', status: 'done', icon: 'check',       title: 'Automated rollback applied via GitOps engine',                 detail: 'Rollback to r4891 applied across all 4 affected fleets' },
-          { id: 'rc-c5', time: '10:04:12', status: 'done', icon: 'network',     title: 'Cluster state reconciled successfully; health checks passing', detail: 'All IngressControllerDegraded alerts resolved' },
-        ];
-
-        const stepsToRender: ReasoningStep[] = isCompleted
-          ? COMPLETED_STEPS
-          : (drawer?.steps ?? []);
-
-        if (stepsToRender.length === 0) return null;
-
-        return (
-          <StackItem>
-            <ExpandableSection
-              toggleText=""
-              isExpanded={isReasoningChainExpanded}
-              onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
-              toggleContent={
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                  <Title headingLevel="h4" size="md">
-                    Reasoning chain
-                  </Title>
-                  <Label color="grey" isCompact>AI-generated</Label>
-                </Flex>
-              }
-            >
-              <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                {stepsToRender.map((step) => {
-                  const isAwaitingApproval = step.status === 'pending' && step.title.startsWith('Awaiting');
-                  const isCritical = step.status === 'alert' && status === 'Failed';
-                  const isWarning  = step.status === 'alert' && !isCritical;
-                  return (
-                    <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                      <span
-                        className="ols-aio-reasoning-timeline__node"
-                        style={
-                          isAwaitingApproval
-                            ? { borderColor: 'var(--pf-t--global--color--status--info--default)',    color: 'var(--pf-t--global--color--status--info--default)' }
-                            : isWarning
-                            ? { borderColor: 'var(--pf-t--global--color--status--warning--default)', color: 'var(--pf-t--global--color--status--warning--default)' }
-                            : isCritical
-                            ? { borderColor: 'var(--pf-t--global--color--status--danger--default)',  color: 'var(--pf-t--global--color--status--danger--default)' }
-                            : undefined
-                        }
-                      >
-                        {isAwaitingApproval ? (
-                          <InfoCircleIcon
-                            aria-hidden
-                            style={{ color: 'var(--pf-t--global--color--status--info--default)' }}
-                          />
-                        ) : isWarning ? (
-                          <ExclamationTriangleIcon
-                            aria-hidden
-                            style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
-                          />
-                        ) : isCritical ? (
-                          <ExclamationCircleIcon
-                            aria-hidden
-                            style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
-                          />
-                        ) : (
-                          <ReasoningChainStepGlyph step={step} />
-                        )}
-                      </span>
-                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
-                        <FlexItem>
-                          <span
-                            className="ols-aio-text-subtle-sm"
-                            style={{ fontVariantNumeric: 'tabular-nums' }}
-                          >
-                            {isAwaitingApproval ? (step.time ?? '—') : formatReasoningStepDisplayTime(step)}
-                          </span>
-                        </FlexItem>
-                      </Flex>
-                      <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                        {step.title}
-                      </Title>
-                      {step.detail && (
-                        <Content
-                          component="p"
-                          style={{
-                            marginTop: 'var(--pf-t--global--spacer--xs)',
-                            color: 'var(--pf-t--global--text--color--subtle)',
-                            marginBottom: 0,
-                          }}
-                        >
-                          {step.detail}
-                        </Content>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-            </ExpandableSection>
-          </StackItem>
-        );
-      })()}
-
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
         <Flex
@@ -4062,172 +4015,6 @@ export const RemediationBlueprintPanel: React.FC<{
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.rootCauseNarrative}
             </Content>
-
-            {/* ── Telemetry and resource citations (Legal requirement C) ─────────── */}
-            <ExpandableSection
-              toggleText={
-                isCitationsExpanded
-                  ? 'Hide telemetry and resource citations'
-                  : 'View telemetry and resource citations'
-              }
-              isExpanded={isCitationsExpanded}
-              onToggle={(_e, expanded) => setIsCitationsExpanded(expanded)}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              {/*
-               * Mirrors the default ClipboardCopy expandable-content tokens
-               * (.pf-v6-c-clipboard-copy__expandable-content, line 11 of clipboard-copy.css):
-               *   Background: --pf-t--global--background--color--control--default
-               *     → white in Light/System, dark in Dark/Glass
-               *   Border:     --pf-t--global--border--color--control--default
-               *   Radius:     --pf-t--global--border--radius--control--form-element
-               *   Width:      --pf-t--global--border--width--control--default
-               * Using --control--default (not --control--read-only) so Light/System mode
-               * renders white (high-contrast) rather than the read-only grey tint.
-               */}
-              <div
-                style={{
-                  backgroundColor: 'var(--pf-t--global--background--color--control--default)',
-                  border: 'var(--pf-t--global--border--width--control--default) solid var(--pf-t--global--border--color--control--default)',
-                  borderRadius: 'var(--pf-t--global--border--radius--control--form-element)',
-                  padding: 'var(--pf-t--global--spacer--md)',
-                  marginTop: 'var(--pf-t--global--spacer--sm)',
-                }}
-              >
-              <Stack hasGutter>
-
-                {/* Telemetry correlation */}
-                <StackItem>
-                  <span className="ols-aio-text-overline">Telemetry correlation</span>
-                  <Content
-                    component="p"
-                    style={{ marginTop: 'var(--pf-t--global--spacer--xs)', marginBottom: 0 }}
-                  >
-                    The fleet-wide onset of{' '}
-                    <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
-                      alertname=&quot;IngressControllerDegraded&quot;
-                    </code>{' '}
-                    occurred exactly 9 minutes after ArgoCD applied ApplicationSet revision r4892,
-                    establishing a 94% causal correlation.
-                  </Content>
-                </StackItem>
-
-                {/* Diagnostic finding citations */}
-                <StackItem>
-                  <span className="ols-aio-text-overline">Diagnostic finding citations</span>
-                  <DescriptionList
-                    isCompact
-                    style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
-                  >
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Finding 1 — Ingress controller routing failure</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <Stack>
-                          <StackItem>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                              <FlexItem>Prometheus Alert:</FlexItem>
-                              <FlexItem>
-                                <Label color="grey" isCompact variant="outline">
-                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
-                                    alertname=&quot;IngressControllerDegraded&quot;
-                                  </code>
-                                </Label>
-                              </FlexItem>
-                            </Flex>
-                          </StackItem>
-                          <StackItem>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                              <FlexItem>Kubernetes Resource:</FlexItem>
-                              <FlexItem>
-                                <Label color="grey" isCompact variant="outline">
-                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
-                                    Deployment/ingress-nginx-controller
-                                  </code>
-                                </Label>
-                              </FlexItem>
-                              <FlexItem>in namespace</FlexItem>
-                              <FlexItem>
-                                <Label color="grey" isCompact variant="outline">
-                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
-                                    ingress-nginx
-                                  </code>
-                                </Label>
-                              </FlexItem>
-                            </Flex>
-                          </StackItem>
-                          <StackItem>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                              <FlexItem>Operator Condition:</FlexItem>
-                              <FlexItem>
-                                <Label color="grey" isCompact variant="outline">
-                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
-                                    IngressControllerDegraded=True
-                                  </code>
-                                </Label>
-                              </FlexItem>
-                            </Flex>
-                          </StackItem>
-                        </Stack>
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Finding 2 — ArgoCD LiveState synchronization block</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <Stack>
-                          <StackItem>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                              <FlexItem>Kubernetes Resource:</FlexItem>
-                              <FlexItem>
-                                <Label color="grey" isCompact variant="outline">
-                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
-                                    Application/root-app
-                                  </code>
-                                </Label>
-                              </FlexItem>
-                            </Flex>
-                          </StackItem>
-                          <StackItem>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                              <FlexItem>Metric Value:</FlexItem>
-                              <FlexItem>
-                                <Label color="grey" isCompact variant="outline">
-                                  <code style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.85em' }}>
-                                    {`gitops_sync_status{status="OutOfSync"} = 1`}
-                                  </code>
-                                </Label>
-                              </FlexItem>
-                            </Flex>
-                          </StackItem>
-                        </Stack>
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  </DescriptionList>
-                </StackItem>
-
-                {/* Remediation action justifications */}
-                <StackItem>
-                  <span className="ols-aio-text-overline">Remediation action justifications</span>
-                  <DescriptionList
-                    isCompact
-                    style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
-                  >
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Proposed action — Roll back deployment to revision r4891</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <Content component="p" style={{ marginBottom: 0 }}>
-                          Justified by Finding 1 &amp; Finding 2. The overlay conflict introduced in
-                          revision r4892 is the sole driver of both the synchronization block and
-                          ingress degradation.
-                        </Content>
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  </DescriptionList>
-                </StackItem>
-
-              </Stack>
-              </div>
-            </ExpandableSection>
 
             {/* View analysis logs */}
             <ExpandableSection
@@ -4803,6 +4590,14 @@ export const RemediationBlueprintPanel: React.FC<{
           </Button>
         </StackItem>
       )}
+
+      {/* ── Section E: Timeline (always last) ────────────────────────── */}
+      <StackItem>
+        <AgenticRunTimeline
+          status={status}
+          createdAt={plan.createdAt}
+        />
+      </StackItem>
     </Stack>
   );
 };

@@ -4,6 +4,7 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { TroubleshootingPlansTab } from '../ai-hub-plans-v2/TroubleshootingPlansTab';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { AuditKillSwitchPanel } from '../../components/AuditKillSwitchPanel';
 import { AiExperienceIcon } from '../ai-hub-plans-v2/AiExperienceIcon';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import '../ai-hub-page.css';
@@ -52,6 +53,7 @@ export const TroubleshootingPlansPageV2: React.FC = () => {
         role="main"
         aria-label="Agentic runs content"
       >
+        <AuditKillSwitchPanel />
         <AgenticKillSwitchBanner />
         <TroubleshootingPlansTab />
       </div>
