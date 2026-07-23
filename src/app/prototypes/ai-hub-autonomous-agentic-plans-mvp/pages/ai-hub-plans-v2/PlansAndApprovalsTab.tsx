@@ -3573,6 +3573,7 @@ export const RemediationBlueprintPanel: React.FC<{
   const isCompleted = status === 'Completed';
   const isDenied           = status === 'Denied';
   const isEmergencyStopped = status === 'EmergencyStopped';
+  const isPending = status === 'Pending';
   const isClusterUpdatePlan = resolvePlanDomainAnnotations(plan).sourceDomain === 'cluster-update';
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
@@ -3586,6 +3587,7 @@ export const RemediationBlueprintPanel: React.FC<{
     acknowledgePlan,
     startVerification,
     completeVerification,
+    dispatchAnalysis,
   } = usePlanWorkflow();
   const workflow = getPlanWorkflow(plan.id);
   const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
@@ -3601,6 +3603,22 @@ export const RemediationBlueprintPanel: React.FC<{
   const [hideHealthChecks, setHideHealthChecks] = useState(true);
   const [isCitationsExpanded, setIsCitationsExpanded] = useState(false);
   const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
+
+  /**
+   * HITL sub-state for Pending runs.
+   *   INITIALIZING       — CR created, engine not yet dispatched (shows spinner, 5-second window)
+   *   READY_FOR_ANALYSIS — Manual approval policy gate: awaiting "Analyze with AI" action
+   */
+  type PendingSubState = 'INITIALIZING' | 'READY_FOR_ANALYSIS';
+  const [pendingSubState, setPendingSubState] = useState<PendingSubState>('INITIALIZING');
+
+  // Auto-advance from INITIALIZING → READY_FOR_ANALYSIS after 5 s.
+  useEffect(() => {
+    if (!isPending) return;
+    setPendingSubState('INITIALIZING');
+    const timer = window.setTimeout(() => setPendingSubState('READY_FOR_ANALYSIS'), 5000);
+    return () => window.clearTimeout(timer);
+  }, [plan.id, isPending]);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -3708,7 +3726,7 @@ export const RemediationBlueprintPanel: React.FC<{
     }
   }, [completeVerification, plan.id, workflow.verification]);
 
-  if (!drawer && !isEscalating) return null;
+  if (!drawer && !isEscalating && !isPending) return null;
 
   // Cluster-update domain: RCA + handoff to Administration → Cluster Update (shared for all these runs).
   if (isClusterUpdatePlan) {
@@ -3779,6 +3797,40 @@ export const RemediationBlueprintPanel: React.FC<{
           )}
         </StackItem>
       </Stack>
+    );
+  }
+
+  // ── Pending HITL gate — Phase 1: Initializing / Phase 2: Ready for Analysis ──
+  if (isPending) {
+    return (
+      <EmptyState
+        headingLevel="h4"
+        titleText={
+          pendingSubState === 'INITIALIZING'
+            ? 'Initializing plan...'
+            : 'Ready for analysis'
+        }
+        icon={pendingSubState === 'INITIALIZING' ? () => <Spinner size="lg" aria-label="Initializing" /> : undefined}
+        style={{ padding: 'var(--pf-t--global--spacer--2xl) 0' }}
+      >
+        <EmptyStateBody>
+          {pendingSubState === 'INITIALIZING'
+            ? 'The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.'
+            : 'Manual approval policy enabled. The proposal custom resource is ready for AI analysis.'}
+        </EmptyStateBody>
+        {pendingSubState === 'READY_FOR_ANALYSIS' && (
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button
+                variant="primary"
+                onClick={() => dispatchAnalysis(plan.id)}
+              >
+                Analyze with AI
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        )}
+      </EmptyState>
     );
   }
 
