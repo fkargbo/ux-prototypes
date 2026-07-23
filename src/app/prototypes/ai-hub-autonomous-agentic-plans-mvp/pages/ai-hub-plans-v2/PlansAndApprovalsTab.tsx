@@ -3613,12 +3613,14 @@ export const RemediationBlueprintPanel: React.FC<{
   const [pendingSubState, setPendingSubState] = useState<PendingSubState>('INITIALIZING');
 
   // Auto-advance from INITIALIZING → READY_FOR_ANALYSIS after 5 s.
+  // Depends only on plan.id so re-renders don't cancel and restart the timer.
   useEffect(() => {
-    if (!isPending) return;
+    if (status !== 'Pending') return;
     setPendingSubState('INITIALIZING');
     const timer = window.setTimeout(() => setPendingSubState('READY_FOR_ANALYSIS'), 5000);
     return () => window.clearTimeout(timer);
-  }, [plan.id, isPending]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan.id]);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
