@@ -45,8 +45,8 @@ import { CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTrian
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { AgenticRunTimeline } from '../../components/AgenticRunTimeline';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
-import { formatReasoningStepDisplayTime, ReasoningChainStepGlyph } from '../../components/autonomousAiObserve/reasoningChainTimeline';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import type { Reversibility } from '../../types/reversibility';
 import { formatReversibilityLabel, reversibilityLabelColor } from '../../types/reversibility';
@@ -3625,7 +3625,6 @@ export const RemediationBlueprintPanel: React.FC<{
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
   const [hideHealthChecks, setHideHealthChecks] = useState(true);
   const [isCitationsExpanded, setIsCitationsExpanded] = useState(false);
-  const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
 
   /**
    * HITL sub-state for Pending runs.
@@ -3655,7 +3654,6 @@ export const RemediationBlueprintPanel: React.FC<{
     setAnalysisLogsQuery('');
     setIsStopExecutionModalOpen(false);
     setIsCitationsExpanded(false);
-    setIsReasoningChainExpanded(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -3888,7 +3886,7 @@ export const RemediationBlueprintPanel: React.FC<{
         </Content>
       </StackItem>
 
-      {/* ── Status alerts (below heading, above Reasoning chain) ────────── */}
+      {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (
         <StackItem>
           <Alert
@@ -3931,109 +3929,6 @@ export const RemediationBlueprintPanel: React.FC<{
           </Alert>
         </StackItem>
       )}
-
-      {/* ── Section D: Reasoning chain ────────────────────────────────── */}
-      {(() => {
-        const COMPLETED_STEPS: ReasoningStep[] = [
-          { id: 'rc-c1', time: '10:03:02', status: 'done', icon: 'exclamation', title: 'Detected ArgoCD LiveStateOutOfSync event',                    detail: '4 IngressControllerDegraded alerts firing fleet-wide' },
-          { id: 'rc-c2', time: '10:03:25', status: 'done', icon: 'database',    title: 'Fetched GitOps revision history',                             detail: 'ApplicationSet r4892 applied 9 minutes before alert onset' },
-          { id: 'rc-c3', time: '10:03:41', status: 'done', icon: 'search',      title: 'Diffed live vs. declared NetworkPolicy objects',               detail: 'Kustomize overlay conflict found across 4 fleet namespaces' },
-          { id: 'rc-c4', time: '10:03:55', status: 'done', icon: 'check',       title: 'Automated rollback applied via GitOps engine',                 detail: 'Rollback to r4891 applied across all 4 affected fleets' },
-          { id: 'rc-c5', time: '10:04:12', status: 'done', icon: 'network',     title: 'Cluster state reconciled successfully; health checks passing', detail: 'All IngressControllerDegraded alerts resolved' },
-        ];
-
-        const stepsToRender: ReasoningStep[] = isCompleted
-          ? COMPLETED_STEPS
-          : (drawer?.steps ?? []);
-
-        if (stepsToRender.length === 0) return null;
-
-        return (
-          <StackItem>
-            <ExpandableSection
-              toggleText=""
-              isExpanded={isReasoningChainExpanded}
-              onToggle={(_e, expanded) => setIsReasoningChainExpanded(expanded)}
-              toggleContent={
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                  <Title headingLevel="h4" size="md">
-                    Reasoning chain
-                  </Title>
-                  <Label color="grey" isCompact>AI-generated</Label>
-                </Flex>
-              }
-            >
-              <ol className="ols-aio-reasoning-timeline ols-aio-reasoning-timeline--fitted" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                {stepsToRender.map((step) => {
-                  const isAwaitingApproval = step.status === 'pending' && step.title.startsWith('Awaiting');
-                  const isCritical = step.status === 'alert' && status === 'Failed';
-                  const isWarning  = step.status === 'alert' && !isCritical;
-                  return (
-                    <li key={step.id} className="ols-aio-reasoning-timeline__item">
-                      <span
-                        className="ols-aio-reasoning-timeline__node"
-                        style={
-                          isAwaitingApproval
-                            ? { borderColor: 'var(--pf-t--global--color--status--info--default)',    color: 'var(--pf-t--global--color--status--info--default)' }
-                            : isWarning
-                            ? { borderColor: 'var(--pf-t--global--color--status--warning--default)', color: 'var(--pf-t--global--color--status--warning--default)' }
-                            : isCritical
-                            ? { borderColor: 'var(--pf-t--global--color--status--danger--default)',  color: 'var(--pf-t--global--color--status--danger--default)' }
-                            : undefined
-                        }
-                      >
-                        {isAwaitingApproval ? (
-                          <InfoCircleIcon
-                            aria-hidden
-                            style={{ color: 'var(--pf-t--global--color--status--info--default)' }}
-                          />
-                        ) : isWarning ? (
-                          <ExclamationTriangleIcon
-                            aria-hidden
-                            style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
-                          />
-                        ) : isCritical ? (
-                          <ExclamationCircleIcon
-                            aria-hidden
-                            style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
-                          />
-                        ) : (
-                          <ReasoningChainStepGlyph step={step} />
-                        )}
-                      </span>
-                      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} flexWrap={{ default: 'wrap' }}>
-                        <FlexItem>
-                          <span
-                            className="ols-aio-text-subtle-sm"
-                            style={{ fontVariantNumeric: 'tabular-nums' }}
-                          >
-                            {isAwaitingApproval ? (step.time ?? '—') : formatReasoningStepDisplayTime(step)}
-                          </span>
-                        </FlexItem>
-                      </Flex>
-                      <Title headingLevel="h5" size="md" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-                        {step.title}
-                      </Title>
-                      {step.detail && (
-                        <Content
-                          component="p"
-                          style={{
-                            marginTop: 'var(--pf-t--global--spacer--xs)',
-                            color: 'var(--pf-t--global--text--color--subtle)',
-                            marginBottom: 0,
-                          }}
-                        >
-                          {step.detail}
-                        </Content>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-            </ExpandableSection>
-          </StackItem>
-        );
-      })()}
 
       {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
       <StackItem>
@@ -4723,6 +4618,14 @@ export const RemediationBlueprintPanel: React.FC<{
           )}
         </>
         )}
+      </StackItem>
+
+      {/* ── Section E: Timeline ──────────────────────────────────────── */}
+      <StackItem>
+        <AgenticRunTimeline
+          status={status}
+          createdAt={plan.createdAt}
+        />
       </StackItem>
 
       {/* ── Stop execution action (Executing state only) ──────────────── */}
