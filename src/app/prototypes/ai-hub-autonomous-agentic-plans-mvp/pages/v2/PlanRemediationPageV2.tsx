@@ -18,6 +18,7 @@ import { DeleteAgenticRunModal } from '../../components/DeleteAgenticRunModal';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
+  NamespaceResourceBadge,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
@@ -180,7 +181,10 @@ export const PlanRemediationPageV2: React.FC = () => {
             </FlexItem>
             {plan.namespace && (
               <FlexItem>
-                <Label color="grey" variant="outline" isCompact>Namespace: {plan.namespace}</Label>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+                  <FlexItem><NamespaceResourceBadge /></FlexItem>
+                  <FlexItem>{plan.namespace}</FlexItem>
+                </Flex>
               </FlexItem>
             )}
             <FlexItem>
