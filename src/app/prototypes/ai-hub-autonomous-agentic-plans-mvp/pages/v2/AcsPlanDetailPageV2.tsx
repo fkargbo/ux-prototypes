@@ -4,12 +4,20 @@ import {
   Alert,
   Breadcrumb,
   BreadcrumbItem,
+  Button,
   Content,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   Flex,
   FlexItem,
   Label,
+  MenuToggle,
   Title,
 } from '@patternfly/react-core';
+import EllipsisVIcon from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
+import { useDeletedPlans } from '../../context/DeletedPlansContext';
+import { DeleteAgenticRunModal } from '../../components/DeleteAgenticRunModal';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
@@ -91,6 +99,16 @@ export const AcsPlanDetailPageV2: React.FC = () => {
     setLocallyDenied(false);
   }, [planSlug]);
 
+  const { deletePlan } = useDeletedPlans();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+
+  const handleConfirmDelete = useCallback(() => {
+    deletePlan(plan?.id ?? '');
+    setIsDeleteModalOpen(false);
+    navigateBackToPlans();
+  }, [deletePlan, plan, navigateBackToPlans]);
+
   if (!planSlug || !plan) return null;
 
   const effectivePlan: PlanRow = locallyDenied
@@ -154,10 +172,47 @@ export const AcsPlanDetailPageV2: React.FC = () => {
             gap={{ default: 'gapSm' }}
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
-            <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
+            <FlexItem>
+              <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
+            </FlexItem>
+            <FlexItem align={{ default: 'alignRight' }}>
+              <Dropdown
+                isOpen={isActionsMenuOpen}
+                onSelect={() => setIsActionsMenuOpen(false)}
+                onOpenChange={setIsActionsMenuOpen}
+                popperProps={{ position: 'right' }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    variant="plain"
+                    isExpanded={isActionsMenuOpen}
+                    onClick={() => setIsActionsMenuOpen((o) => !o)}
+                    aria-label="Run actions"
+                  >
+                    <EllipsisVIcon />
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem
+                    isDanger
+                    onClick={() => { setIsActionsMenuOpen(false); setIsDeleteModalOpen(true); }}
+                  >
+                    Delete run
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </FlexItem>
           </Flex>
         </div>
       </AiHubPageHeading>
+
+      <DeleteAgenticRunModal
+        isOpen={isDeleteModalOpen}
+        runName={planDisplayName}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+      />
 
       <div className="template-page-content" role="main" aria-label={`ACS plan: ${planDisplayName}`}>
         <div

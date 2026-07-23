@@ -85,6 +85,7 @@ import {
   useAgenticCapabilities,
 } from '../../context/AgenticCapabilitiesContext';
 import { useDeletedPlans } from '../../context/DeletedPlansContext';
+import { DeleteAgenticRunModal } from '../../components/DeleteAgenticRunModal';
 import { usePlanTermination, type PlanExecutionRuntime } from '../../context/PlanTerminationContext';
 import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
@@ -2456,7 +2457,7 @@ const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete:
             setIsOpen(false);
           }}
         >
-          Delete plan
+          Delete run
         </DropdownItem>
       </DropdownList>
     </Dropdown>
@@ -2605,6 +2606,22 @@ const PlansTable: React.FC<PlansTableProps> = ({
 }) => {
   const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true, mapObservabilityDomains: true });
 
+  // ── Delete confirmation modal state ──────────────────────────────────────
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const requestDelete = useCallback((planId: string) => {
+    const row = rows.find((r) => r.id === planId);
+    setPendingDelete({ id: planId, name: row?.name ?? planId });
+  }, [rows]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!pendingDelete) return;
+    onDeletePlan(pendingDelete.id);
+    setPendingDelete(null);
+  }, [pendingDelete, onDeletePlan]);
+
+  const handleCancelDelete = useCallback(() => setPendingDelete(null), []);
+
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
@@ -2702,7 +2719,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
             ariaLabel="Plans"
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
             onReviewPlan={onReviewPlan}
-            onDeletePlan={onDeletePlan}
+            onDeletePlan={requestDelete}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             mapObservabilityDomains
           />
@@ -2713,6 +2730,13 @@ const PlansTable: React.FC<PlansTableProps> = ({
           />
         </>
       )}
+
+      <DeleteAgenticRunModal
+        isOpen={pendingDelete !== null}
+        runName={pendingDelete?.name ?? ''}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </>
   );
 };
