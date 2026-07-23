@@ -3541,14 +3541,19 @@ function generateAnalysisLogs(planId: string, finding: string, narrative: string
   const clip = (str: string, len = 90) => (str.length > len ? str.slice(0, len) + '...' : str);
   return [
     `${ts(0)}  INFO [analysis] Initializing investigation pipeline — plan_id=${planId}`,
+    `${ts(1)}  INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
     `${ts(2)}  INFO [signals]  Querying Prometheus TSDB for correlated alert signals...`,
     `${ts(4)}  INFO [signals]  ${clip(finding)}`,
+    `${ts(5)}  INFO [probe]    GET /readyz  200 OK — readiness probe passed`,
     `${ts(7)}  INFO [model]    Dispatching signal corpus to LLM reasoning engine`,
     `${ts(9)}  INFO [model]    Hypothesis generation in progress (temperature=0.2, max_tokens=1024)`,
+    `${ts(11)} INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
     `${ts(12)} INFO [model]    Root cause hypothesis locked — confidence=0.87`,
     `${ts(14)} INFO [rca]      ${clip(narrative)}`,
+    `${ts(15)} INFO [probe]    GET /readyz  200 OK — readiness probe passed`,
     `${ts(16)} INFO [rca]      Contributing factor graph traversal complete: 3 factors identified`,
     `${ts(17)} INFO [proposal] Root cause analysis complete. Generating remediation proposal...`,
+    `${ts(18)} INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
     `${ts(19)} INFO [proposal] Proposal ready — plan_id=${planId} is available for review.`,
   ].join('\n');
 }
@@ -3624,6 +3629,7 @@ export const RemediationBlueprintPanel: React.FC<{
   const [denyReason, setDenyReason] = useState('');
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
+  const [hideHealthChecks, setHideHealthChecks] = useState(true);
   const [isCitationsExpanded, setIsCitationsExpanded] = useState(false);
   const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
 
@@ -4212,19 +4218,37 @@ export const RemediationBlueprintPanel: React.FC<{
               style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
             >
               {(() => {
+                const HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
                 const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
-                const displayLogs = analysisLogsQuery.trim()
-                  ? rawLogs.split('\n').filter(l => l.toLowerCase().includes(analysisLogsQuery.toLowerCase())).join('\n')
-                  : rawLogs;
+                const displayLogs = rawLogs
+                  .split('\n')
+                  .filter(l => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
+                  .filter(l => !analysisLogsQuery.trim() || l.toLowerCase().includes(analysisLogsQuery.toLowerCase()))
+                  .join('\n');
                 return (
                   <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                    <SearchInput
-                      value={analysisLogsQuery}
-                      onChange={(_evt, val) => setAnalysisLogsQuery(val)}
-                      onClear={() => setAnalysisLogsQuery('')}
-                      placeholder="Search logs..."
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      gap={{ default: 'gapMd' }}
                       style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                    />
+                    >
+                      <FlexItem grow={{ default: 'grow' }}>
+                        <SearchInput
+                          value={analysisLogsQuery}
+                          onChange={(_evt, val) => setAnalysisLogsQuery(val)}
+                          onClear={() => setAnalysisLogsQuery('')}
+                          placeholder="Search logs..."
+                        />
+                      </FlexItem>
+                      <FlexItem>
+                        <Checkbox
+                          id={`hide-health-checks-${plan.id}`}
+                          label="Hide health checks"
+                          isChecked={hideHealthChecks}
+                          onChange={(_evt, checked) => setHideHealthChecks(checked)}
+                        />
+                      </FlexItem>
+                    </Flex>
                     <ExpandableCodeBlock
                       id={`analysis-log-${plan.id}`}
                       code={displayLogs}
