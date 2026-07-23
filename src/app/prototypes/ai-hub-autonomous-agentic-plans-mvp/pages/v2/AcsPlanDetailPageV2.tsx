@@ -195,7 +195,6 @@ export const AcsPlanDetailPageV2: React.FC = () => {
               >
                 <DropdownList>
                   <DropdownItem
-                    isDanger
                     onClick={() => { setIsActionsMenuOpen(false); setIsDeleteModalOpen(true); }}
                   >
                     Delete run
