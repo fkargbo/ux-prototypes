@@ -30,7 +30,7 @@ export const DeleteAgenticRunModal: React.FC<DeleteAgenticRunModalProps> = ({
     variant="small"
   >
     <ModalHeader
-      id="delete-run-modal-title"
+      labelId="delete-run-modal-title"
       title="Delete agentic run?"
       titleIconVariant="warning"
     />
