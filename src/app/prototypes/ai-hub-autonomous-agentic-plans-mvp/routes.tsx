@@ -12,6 +12,8 @@ import { AIHubPageV2 } from './pages/v2/AIHubPageV2';
 import { PlanRemediationPageV2 } from './pages/v2/PlanRemediationPageV2';
 import { AcsPlanDetailPageV2 } from './pages/v2/AcsPlanDetailPageV2';
 import { TroubleshootingPlanDetailV2 } from './pages/v2/TroubleshootingPlanDetailV2';
+import { ClusterUpdatePageV2 } from './pages/v2/ClusterUpdatePageV2';
+import { AdminPlaceholderPage } from './pages/v2/AdminPlaceholderPage';
 
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
 
@@ -69,6 +71,59 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/troubleshooting-plans/:planId',
     element: <BridgeRedirect to="/v2/ai-hub/agentic-runs/runs/:planId" />,
     title: 'Agentic run detail',
+  },
+
+  // ── Administration (domain UI) ─────────────────────────────────────────────
+  // Declaring navigation.group: 'Administration' replaces the default Admin
+  // group in AppLayout — include inert siblings so Cluster Settings / etc. remain.
+  {
+    path: '/core/administration/settings',
+    element: <AdminPlaceholderPage title="Cluster Settings" />,
+    label: 'Cluster Settings',
+    title: 'Cluster Settings',
+    navigation: { group: 'Administration', order: 1 },
+  },
+  {
+    path: '/core/administration/namespaces',
+    element: <AdminPlaceholderPage title="Namespaces" />,
+    label: 'Namespaces',
+    title: 'Namespaces',
+    navigation: { group: 'Administration', order: 2 },
+  },
+  {
+    path: '/core/administration/resource-quotas',
+    element: <AdminPlaceholderPage title="ResourceQuotas" />,
+    label: 'ResourceQuotas',
+    title: 'ResourceQuotas',
+    navigation: { group: 'Administration', order: 3 },
+  },
+  {
+    path: '/core/administration/limit-ranges',
+    element: <AdminPlaceholderPage title="LimitRanges" />,
+    label: 'LimitRanges',
+    title: 'LimitRanges',
+    navigation: { group: 'Administration', order: 4 },
+  },
+  {
+    path: '/core/administration/crds',
+    element: <AdminPlaceholderPage title="CustomResourceDefinitions" />,
+    label: 'CustomResourceDefinitions',
+    title: 'CustomResourceDefinitions',
+    navigation: { group: 'Administration', order: 5 },
+  },
+  {
+    path: '/core/administration/dynamic-plugins',
+    element: <AdminPlaceholderPage title="Dynamic Plugins" />,
+    label: 'Dynamic Plugins',
+    title: 'Dynamic Plugins',
+    navigation: { group: 'Administration', order: 6 },
+  },
+  {
+    path: '/core/administration/cluster-update',
+    element: <ClusterUpdatePageV2 />,
+    label: 'Cluster Update',
+    title: 'Cluster Update',
+    navigation: { group: 'Administration', order: 7 },
   },
 
   // ── Alerting (unrelated to the Agentic runs versioning; left untouched) ────

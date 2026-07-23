@@ -34,6 +34,7 @@ import { resolvePlanDomainAnnotations } from '../ai-hub-plans-v2/domainPlanNavig
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
+import { getClusterUpdateHref } from '../v2PerspectiveUrl';
 import '../ai-hub-page.css';
 
 /** PF6 EmptyState.icon expects a component ref; this wrapper sizes the Spinner to xl. */
@@ -67,15 +68,28 @@ export const PlanRemediationPageV2: React.FC = () => {
     [plan],
   );
 
-  const navigateBackToPlans = useCallback(() => {
-    const key = drillPerspectiveKey
+  const resolvePerspectiveKey = useCallback(
+    () =>
+      drillPerspectiveKey
       ?? perspectiveKeyFromShellName(activePerspective)
-      ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
+      ?? DEFAULT_PROTOTYPE_PERSPECTIVE,
+    [activePerspective, drillPerspectiveKey],
+  );
+
+  const navigateBackToPlans = useCallback(() => {
+    const key = resolvePerspectiveKey();
     writePlanRemediationDrillSession({ perspectiveKey: key });
     setPerspectiveByKey(key);
     const backPath = planDomain?.listPath ?? PLANS_LIST_PATH;
     navigate(buildPrototypeHref(backPath, key));
-  }, [activePerspective, drillPerspectiveKey, navigate, planDomain?.listPath, setPerspectiveByKey]);
+  }, [navigate, planDomain?.listPath, resolvePerspectiveKey, setPerspectiveByKey]);
+
+  const openClusterUpdateUi = useCallback(() => {
+    const key = resolvePerspectiveKey();
+    writePlanRemediationDrillSession({ perspectiveKey: key });
+    setPerspectiveByKey(key);
+    navigate(getClusterUpdateHref(key));
+  }, [navigate, resolvePerspectiveKey, setPerspectiveByKey]);
 
   useLayoutEffect(() => {
     if (!drillPerspectiveKey || drillPerspectiveAppliedRef.current) return;
@@ -208,6 +222,7 @@ export const PlanRemediationPageV2: React.FC = () => {
               plan={effectivePlan}
               onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
               onStartNewInvestigation={navigateBackToPlans}
+              onRemediateInClusterUpdates={openClusterUpdateUi}
             />
           </div>
         )}
