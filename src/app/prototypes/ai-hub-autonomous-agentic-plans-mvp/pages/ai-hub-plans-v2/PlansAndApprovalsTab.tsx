@@ -2339,7 +2339,7 @@ export const PlanResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="AR" backgroundColor="#2b9af3" />
 );
 
-const NamespaceResourceBadge: React.FC = () => (
+export const NamespaceResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="NS" backgroundColor="#1e4f18" />
 );
 
