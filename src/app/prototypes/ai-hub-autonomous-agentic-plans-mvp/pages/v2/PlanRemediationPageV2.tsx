@@ -3,12 +3,9 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  EmptyState,
-  EmptyStateBody,
   Flex,
   FlexItem,
   Label,
-  Spinner,
   Title,
 } from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
@@ -36,9 +33,6 @@ import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import { getClusterUpdateHref } from '../v2PerspectiveUrl';
 import '../ai-hub-page.css';
-
-/** PF6 EmptyState.icon expects a component ref; this wrapper sizes the Spinner to xl. */
-const PendingSpinnerIcon: React.FC = () => <Spinner size="xl" />;
 
 export const PlanRemediationPageV2: React.FC = () => {
   const navigate = useNavigate();
@@ -193,39 +187,16 @@ export const PlanRemediationPageV2: React.FC = () => {
       </AiHubPageHeading>
 
       <div className="template-page-content" role="main" aria-label={`Plan remediation: ${planDisplayName}`}>
-        {effectivePlan.status === 'Pending' ? (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: '320px',
-              padding: 'var(--pf-t--global--spacer--2xl) var(--pf-t--global--spacer--lg)',
-            }}
-          >
-            <EmptyState
-              titleText="Initializing plan..."
-              icon={PendingSpinnerIcon}
-              headingLevel="h2"
-            >
-              <EmptyStateBody>
-                The proposal custom resource has been created on the cluster. Waiting for the AI
-                analysis engine to dispatch.
-              </EmptyStateBody>
-            </EmptyState>
-          </div>
-        ) : (
-          <div className="ols-plan-remediation-drilldown">
-            <AgenticKillSwitchBanner />
-            <RemediationBlueprintPanel
-              key={plan.id}
-              plan={effectivePlan}
-              onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
-              onStartNewInvestigation={navigateBackToPlans}
-              onRemediateInClusterUpdates={openClusterUpdateUi}
-            />
-          </div>
-        )}
+        <div className="ols-plan-remediation-drilldown">
+          <AgenticKillSwitchBanner />
+          <RemediationBlueprintPanel
+            key={plan.id}
+            plan={effectivePlan}
+            onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
+            onStartNewInvestigation={navigateBackToPlans}
+            onRemediateInClusterUpdates={openClusterUpdateUi}
+          />
+        </div>
       </div>
     </div>
   );
