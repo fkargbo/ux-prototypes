@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  Card,
-  CardBody,
-  CardTitle,
+  ExpandableSection,
+  Flex,
   ProgressStep,
   ProgressStepper,
+  Title,
 } from '@patternfly/react-core';
 import type { PlanStatus } from '../types/planStatus';
 
@@ -282,26 +282,47 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   createdAt,
   retryCount = 0,
 }) => {
-  const steps = buildTimelineSteps(status, createdAt, retryCount);
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  // Only surface steps that have been processed or are currently in progress.
+  // Pending (unreached) steps are intentionally excluded — not all runs pass
+  // through every phase (e.g. Denied runs never reach execution).
+  const steps = buildTimelineSteps(status, createdAt, retryCount).filter(
+    (s) => s.variant !== 'pending',
+  );
+
+  if (steps.length === 0) return null;
 
   return (
-    <Card id="agentic-run-timeline" isPlain isCompact>
-      <CardTitle>Timeline</CardTitle>
-      <CardBody>
-        <ProgressStepper isVertical aria-label="Agentic run timeline">
-          {steps.map((s) => (
-            <ProgressStep
-              key={s.id}
-              variant={s.variant}
-              description={s.description}
-              titleId={s.id}
-              aria-label={s.label}
-            >
-              {s.label}
-            </ProgressStep>
-          ))}
-        </ProgressStepper>
-      </CardBody>
-    </Card>
+    <ExpandableSection
+      toggleText=""
+      isExpanded={isExpanded}
+      onToggle={(_e, expanded) => setIsExpanded(expanded)}
+      toggleContent={
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <Title headingLevel="h4" size="md">
+            Timeline
+          </Title>
+        </Flex>
+      }
+    >
+      <ProgressStepper
+        isVertical
+        aria-label="Agentic run timeline"
+        style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+      >
+        {steps.map((s) => (
+          <ProgressStep
+            key={s.id}
+            variant={s.variant}
+            description={s.description}
+            titleId={s.id}
+            aria-label={s.label}
+          >
+            {s.label}
+          </ProgressStep>
+        ))}
+      </ProgressStepper>
+    </ExpandableSection>
   );
 };
