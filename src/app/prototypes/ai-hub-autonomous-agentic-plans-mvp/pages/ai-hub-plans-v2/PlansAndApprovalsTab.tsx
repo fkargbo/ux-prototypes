@@ -3805,35 +3805,69 @@ export const RemediationBlueprintPanel: React.FC<{
   // ── Pending HITL gate — Phase 1: Initializing / Phase 2: Ready for Analysis ──
   if (isPending) {
     return (
-      <div style={{ paddingTop: 'var(--pf-t--global--spacer--xl)' }}>
-        {pendingSubState === 'INITIALIZING' ? (
-          <>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-              <FlexItem><Spinner size="md" aria-label="Initializing" /></FlexItem>
-              <FlexItem>
-                <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+      <Stack style={{ gap: '24px' }}>
+        {/* ── Page heading + AI disclaimer (same as all other states) ──────── */}
+        <StackItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+            <AiExperienceIcon size={20} />
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
+              Agentic run details
+            </Title>
+          </Flex>
+          <Content component="p" className="ols-ai-hub-page-disclaimer">
+            <InfoCircleIcon
+              style={{
+                color: 'var(--pf-t--global--icon--color--status--info--default)',
+                marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+                verticalAlign: 'middle',
+                flexShrink: 0,
+              }}
+              aria-hidden
+            />
+            The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
+            review AI-generated content prior to use.
+          </Content>
+        </StackItem>
+
+        <StackItem><Divider /></StackItem>
+
+        {/* ── Phase content — centered below the divider ───────────────────── */}
+        <StackItem>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              padding: 'var(--pf-t--global--spacer--4xl) 0',
+            }}
+          >
+            {pendingSubState === 'INITIALIZING' ? (
+              <>
+                <Spinner size="lg" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }} />
+                <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                   Initializing plan...
                 </Title>
-              </FlexItem>
-            </Flex>
-            <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--xs)', color: 'var(--pf-t--global--text--color--subtle)' }}>
-              The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.
-            </Content>
-          </>
-        ) : (
-          <>
-            <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-              Ready for analysis
-            </Title>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)', color: 'var(--pf-t--global--text--color--subtle)' }}>
-              Manual approval policy enabled. The proposal custom resource is ready for AI analysis.
-            </Content>
-            <Button variant="primary" onClick={() => dispatchAnalysis(plan.id)}>
-              Analyze with AI
-            </Button>
-          </>
-        )}
-      </div>
+                <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)', maxWidth: '420px', margin: 0 }}>
+                  The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.
+                </Content>
+              </>
+            ) : (
+              <>
+                <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                  Ready for analysis
+                </Title>
+                <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)', maxWidth: '420px', marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+                  Manual approval policy enabled. The proposal custom resource is ready for AI analysis.
+                </Content>
+                <Button variant="primary" onClick={() => dispatchAnalysis(plan.id)}>
+                  Analyze with AI
+                </Button>
+              </>
+            )}
+          </div>
+        </StackItem>
+      </Stack>
     );
   }
 
