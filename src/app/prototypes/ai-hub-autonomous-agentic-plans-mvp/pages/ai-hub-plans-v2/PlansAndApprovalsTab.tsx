@@ -7,9 +7,7 @@ import {
   CardBody,
   CardHeader,
   Checkbox,
-  ClipboardCopy,
   ClipboardCopyButton,
-  ClipboardCopyVariant,
   CodeBlock,
   CodeBlockAction,
   CodeBlockCode,
@@ -3095,6 +3093,7 @@ const PostMortemPanel: React.FC<{
   const [logCategory, setLogCategory] = useState<'execution' | 'verification'>('execution');
   const [logQuery, setLogQuery] = useState('');
   const [isLogCatOpen, setIsLogCatOpen] = useState(false);
+  const [logCopied, setLogCopied] = useState(false);
   // Fall back to a synthesised post-mortem for plans executed live in this session.
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
 
@@ -3279,19 +3278,33 @@ const PostMortemPanel: React.FC<{
                     ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
                     : raw;
                   return (
-                    <ClipboardCopy
-                      variant={ClipboardCopyVariant.expansion}
-                      isReadOnly
-                      isCode
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        fontSize: '12px',
-                        maxHeight: '280px',
-                        overflowY: 'auto',
-                      }}
+                    <CodeBlock
+                      actions={
+                        <CodeBlockAction>
+                          <ClipboardCopyButton
+                            id={`pm-log-copy-inline-${plan.id}`}
+                            textId={`pm-log-text-inline-${plan.id}`}
+                            aria-label="Copy log"
+                            onClick={() => {
+                              navigator.clipboard.writeText(displayed);
+                              setLogCopied(true);
+                              setTimeout(() => setLogCopied(false), 2000);
+                            }}
+                            exitDelay={1000}
+                            variant="plain"
+                          >
+                            {logCopied ? 'Copied!' : 'Copy'}
+                          </ClipboardCopyButton>
+                        </CodeBlockAction>
+                      }
                     >
-                      {displayed}
-                    </ClipboardCopy>
+                      <CodeBlockCode
+                        id={`pm-log-text-inline-${plan.id}`}
+                        style={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                      >
+                        {displayed}
+                      </CodeBlockCode>
+                    </CodeBlock>
                   );
                 })()}
               </div>
@@ -3372,19 +3385,33 @@ const PostMortemPanel: React.FC<{
                       ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
                       : raw;
                     return (
-                      <ClipboardCopy
-                        variant={ClipboardCopyVariant.expansion}
-                        isReadOnly
-                        isCode
-                        style={{
-                          fontFamily: 'var(--pf-t--global--font--family--mono)',
-                          fontSize: '12px',
-                          maxHeight: '280px',
-                          overflowY: 'auto',
-                        }}
+                      <CodeBlock
+                        actions={
+                          <CodeBlockAction>
+                            <ClipboardCopyButton
+                              id={`pm-log-copy-card-${plan.id}`}
+                              textId={`pm-log-text-card-${plan.id}`}
+                              aria-label="Copy log"
+                              onClick={() => {
+                                navigator.clipboard.writeText(displayed);
+                                setLogCopied(true);
+                                setTimeout(() => setLogCopied(false), 2000);
+                              }}
+                              exitDelay={1000}
+                              variant="plain"
+                            >
+                              {logCopied ? 'Copied!' : 'Copy'}
+                            </ClipboardCopyButton>
+                          </CodeBlockAction>
+                        }
                       >
-                        {displayed}
-                      </ClipboardCopy>
+                        <CodeBlockCode
+                          id={`pm-log-text-card-${plan.id}`}
+                          style={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                        >
+                          {displayed}
+                        </CodeBlockCode>
+                      </CodeBlock>
                     );
                   })()}
                 </div>
@@ -3464,19 +3491,33 @@ const PostMortemPanel: React.FC<{
                   ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
                   : raw;
                 return (
-                  <ClipboardCopy
-                    variant={ClipboardCopyVariant.expansion}
-                    isReadOnly
-                    isCode
-                    style={{
-                      fontFamily: 'var(--pf-t--global--font--family--mono)',
-                      fontSize: '12px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                    }}
+                  <CodeBlock
+                    actions={
+                      <CodeBlockAction>
+                        <ClipboardCopyButton
+                          id={`pm-log-copy-fail-${plan.id}`}
+                          textId={`pm-log-text-fail-${plan.id}`}
+                          aria-label="Copy log"
+                          onClick={() => {
+                            navigator.clipboard.writeText(displayed);
+                            setLogCopied(true);
+                            setTimeout(() => setLogCopied(false), 2000);
+                          }}
+                          exitDelay={1000}
+                          variant="plain"
+                        >
+                          {logCopied ? 'Copied!' : 'Copy'}
+                        </ClipboardCopyButton>
+                      </CodeBlockAction>
+                    }
                   >
-                    {displayed}
-                  </ClipboardCopy>
+                    <CodeBlockCode
+                      id={`pm-log-text-fail-${plan.id}`}
+                      style={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                    >
+                      {displayed}
+                    </CodeBlockCode>
+                  </CodeBlock>
                 );
               })()}
             </div>
@@ -3696,6 +3737,8 @@ export const RemediationBlueprintPanel: React.FC<{
   const [denyReason, setDenyReason] = useState('');
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
   const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
+  const [analysisLogCopied, setAnalysisLogCopied] = useState(false);
+  const [escalatedPlaybookCopied, setEscalatedPlaybookCopied] = useState(false);
   const [isCitationsExpanded, setIsCitationsExpanded] = useState(false);
   const [isReasoningChainExpanded, setIsReasoningChainExpanded] = useState(false);
 
@@ -4297,19 +4340,33 @@ export const RemediationBlueprintPanel: React.FC<{
                       placeholder="Search logs..."
                       style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
                     />
-                    <ClipboardCopy
-                      variant={ClipboardCopyVariant.expansion}
-                      isReadOnly
-                      isCode
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        fontSize: '12px',
-                        maxHeight: '280px',
-                        overflowY: 'auto',
-                      }}
+                    <CodeBlock
+                      actions={
+                        <CodeBlockAction>
+                          <ClipboardCopyButton
+                            id={`analysis-log-copy-${plan.id}`}
+                            textId={`analysis-log-text-${plan.id}`}
+                            aria-label="Copy analysis logs"
+                            onClick={() => {
+                              navigator.clipboard.writeText(displayLogs);
+                              setAnalysisLogCopied(true);
+                              setTimeout(() => setAnalysisLogCopied(false), 2000);
+                            }}
+                            exitDelay={1000}
+                            variant="plain"
+                          >
+                            {analysisLogCopied ? 'Copied!' : 'Copy'}
+                          </ClipboardCopyButton>
+                        </CodeBlockAction>
+                      }
                     >
-                      {displayLogs}
-                    </ClipboardCopy>
+                      <CodeBlockCode
+                        id={`analysis-log-text-${plan.id}`}
+                        style={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                      >
+                        {displayLogs}
+                      </CodeBlockCode>
+                    </CodeBlock>
                   </div>
                 );
               })()}
@@ -4459,14 +4516,31 @@ export const RemediationBlueprintPanel: React.FC<{
                 >
                   {escalatedPlaybook.title}
                 </Content>
-                <ClipboardCopy
-                  isCode
-                  variant={ClipboardCopyVariant.expansion}
-                  isReadOnly
+                <CodeBlock
                   style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                  actions={
+                    <CodeBlockAction>
+                      <ClipboardCopyButton
+                        id={`escalated-cmd-copy-${plan.id}`}
+                        textId={`escalated-cmd-text-${plan.id}`}
+                        aria-label="Copy command"
+                        onClick={() => {
+                          navigator.clipboard.writeText(escalatedPlaybook.command);
+                          setEscalatedPlaybookCopied(true);
+                          setTimeout(() => setEscalatedPlaybookCopied(false), 2000);
+                        }}
+                        exitDelay={1000}
+                        variant="plain"
+                      >
+                        {escalatedPlaybookCopied ? 'Copied!' : 'Copy'}
+                      </ClipboardCopyButton>
+                    </CodeBlockAction>
+                  }
                 >
-                  {escalatedPlaybook.command}
-                </ClipboardCopy>
+                  <CodeBlockCode id={`escalated-cmd-text-${plan.id}`} style={{ fontSize: '12px' }}>
+                    {escalatedPlaybook.command}
+                  </CodeBlockCode>
+                </CodeBlock>
                 <Button variant="link" icon={<RhUiDownloadIcon />} iconPosition="start"
                   onClick={() => downloadAnalysisReportMarkdown(plan, {
                     aggregatedFinding: drawer?.aggregatedFinding ?? '',

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ClipboardCopy,
+  ClipboardCopyButton,
+  CodeBlock,
+  CodeBlockAction,
+  CodeBlockCode,
   Content,
   DescriptionList,
   DescriptionListDescription,
@@ -79,6 +82,7 @@ export const VerificationPanel: React.FC<{
   onComplete?: () => void;
 }> = ({ verification, isLive = false, onComplete }) => {
   const isFrozen = !isLive;
+  const [verifCopied, setVerifCopied] = useState(false);
   const streamedLog = useStreamingVerificationLog(
     verification.checks.length > 0 ? verification.checks : VERIFICATION_CHECK_LINES,
     isLive && !verification.outcome,
@@ -111,18 +115,30 @@ export const VerificationPanel: React.FC<{
       <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
         Attempt {verification.attempt} of {verification.maxAttempts}
       </Content>
-      <ClipboardCopy
-        isReadOnly
-        isCode
-        hoverTip="Copy"
-        clickTip="Copied"
-        style={{
-          fontFamily: 'var(--pf-t--global--font--family--mono)',
-          fontSize: '12px',
-        }}
+      <CodeBlock
+        actions={
+          <CodeBlockAction>
+            <ClipboardCopyButton
+              id="verif-log-copy"
+              textId="verif-log-text"
+              aria-label="Copy verification log"
+              onClick={() => {
+                navigator.clipboard.writeText(streamedLog || 'Starting verification checks…');
+                setVerifCopied(true);
+                setTimeout(() => setVerifCopied(false), 2000);
+              }}
+              exitDelay={1000}
+              variant="plain"
+            >
+              {verifCopied ? 'Copied!' : 'Copy'}
+            </ClipboardCopyButton>
+          </CodeBlockAction>
+        }
       >
-        {streamedLog || 'Starting verification checks…'}
-      </ClipboardCopy>
+        <CodeBlockCode id="verif-log-text" style={{ fontSize: '12px' }}>
+          {streamedLog || 'Starting verification checks…'}
+        </CodeBlockCode>
+      </CodeBlock>
     </div>
   );
 };
