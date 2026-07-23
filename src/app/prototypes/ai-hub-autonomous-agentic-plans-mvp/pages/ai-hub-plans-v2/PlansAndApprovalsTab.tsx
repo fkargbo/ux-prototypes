@@ -3805,13 +3805,18 @@ export const RemediationBlueprintPanel: React.FC<{
   // ── Pending HITL gate — Phase 1: Initializing / Phase 2: Ready for Analysis ──
   if (isPending) {
     return pendingSubState === 'INITIALIZING' ? (
-      <EmptyState
-        titleText="Initializing plan..."
-        headingLevel="h4"
-        icon={() => <Spinner size="lg" aria-label="Initializing" />}
-      >
+      <EmptyState titleText="Initializing plan..." headingLevel="h4">
         <EmptyStateBody>
-          The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.
+          <Flex
+            direction={{ default: 'column' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapSm' }}
+          >
+            <Spinner size="md" aria-label="Initializing" />
+            <span>
+              The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.
+            </span>
+          </Flex>
         </EmptyStateBody>
       </EmptyState>
     ) : (
