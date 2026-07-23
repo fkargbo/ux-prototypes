@@ -179,34 +179,36 @@ export const AcsPlanDetailPageV2: React.FC = () => {
             <FlexItem>
               <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
             </FlexItem>
-            <FlexItem align={{ default: 'alignRight' }}>
-              <Dropdown
-                isOpen={isActionsMenuOpen}
-                onSelect={() => setIsActionsMenuOpen(false)}
-                onOpenChange={setIsActionsMenuOpen}
-                popperProps={{ position: 'right' }}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    variant="plain"
-                    isExpanded={isActionsMenuOpen}
-                    onClick={() => setIsActionsMenuOpen((o) => !o)}
-                    aria-label="Run actions"
-                  >
-                    <EllipsisVIcon />
-                  </MenuToggle>
-                )}
-              >
-                <DropdownList>
-                  <DropdownItem
-                    isDanger
-                    onClick={() => { setIsActionsMenuOpen(false); setIsDeleteModalOpen(true); }}
-                  >
-                    Delete run
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </FlexItem>
+            {effectivePlan.status !== 'Pending' && (
+              <FlexItem align={{ default: 'alignRight' }}>
+                <Dropdown
+                  isOpen={isActionsMenuOpen}
+                  onSelect={() => setIsActionsMenuOpen(false)}
+                  onOpenChange={setIsActionsMenuOpen}
+                  popperProps={{ position: 'right' }}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      variant="plain"
+                      isExpanded={isActionsMenuOpen}
+                      onClick={() => setIsActionsMenuOpen((o) => !o)}
+                      aria-label="Run actions"
+                    >
+                      <EllipsisVIcon />
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    <DropdownItem
+                      isDanger
+                      onClick={() => { setIsActionsMenuOpen(false); setIsDeleteModalOpen(true); }}
+                    >
+                      Delete run
+                    </DropdownItem>
+                  </DropdownList>
+                </Dropdown>
+              </FlexItem>
+            )}
           </Flex>
         </div>
       </AiHubPageHeading>

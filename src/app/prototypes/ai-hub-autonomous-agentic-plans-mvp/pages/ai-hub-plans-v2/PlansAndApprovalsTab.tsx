@@ -4620,14 +4620,6 @@ export const RemediationBlueprintPanel: React.FC<{
         )}
       </StackItem>
 
-      {/* ── Section E: Timeline ──────────────────────────────────────── */}
-      <StackItem>
-        <AgenticRunTimeline
-          status={status}
-          createdAt={plan.createdAt}
-        />
-      </StackItem>
-
       {/* ── Stop execution action (Executing state only) ──────────────── */}
       {isExecutionPhase && !executionKillState && (
         <StackItem>
@@ -4706,6 +4698,14 @@ export const RemediationBlueprintPanel: React.FC<{
           </Button>
         </StackItem>
       )}
+
+      {/* ── Section E: Timeline (always last) ────────────────────────── */}
+      <StackItem>
+        <AgenticRunTimeline
+          status={status}
+          createdAt={plan.createdAt}
+        />
+      </StackItem>
     </Stack>
   );
 };
