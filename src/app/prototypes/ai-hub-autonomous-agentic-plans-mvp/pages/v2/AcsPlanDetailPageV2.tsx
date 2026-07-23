@@ -157,11 +157,11 @@ export const AcsPlanDetailPageV2: React.FC = () => {
             </FlexItem>
             {plan.namespace && (
               <FlexItem>
-                <Label color="grey" variant="outline" isCompact>{plan.namespace}</Label>
+                <Label color="grey" variant="outline" isCompact>Namespace: {plan.namespace}</Label>
               </FlexItem>
             )}
             <FlexItem>
-              <Label color="grey" variant="outline" isCompact>{plan.triggerDomain}</Label>
+              <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
             </FlexItem>
             <FlexItem>
               <Label color="purple" variant="outline" isCompact>ACS console</Label>

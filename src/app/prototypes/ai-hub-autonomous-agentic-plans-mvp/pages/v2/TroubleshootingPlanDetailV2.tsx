@@ -166,11 +166,11 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
             </FlexItem>
             {plan.namespace && (
               <FlexItem>
-                <Label color="grey" variant="outline" isCompact>{plan.namespace}</Label>
+                <Label color="grey" variant="outline" isCompact>Namespace: {plan.namespace}</Label>
               </FlexItem>
             )}
             <FlexItem>
-              <Label color="grey" variant="outline" isCompact>{plan.triggerDomain}</Label>
+              <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
             </FlexItem>
           </Flex>
           <Flex
