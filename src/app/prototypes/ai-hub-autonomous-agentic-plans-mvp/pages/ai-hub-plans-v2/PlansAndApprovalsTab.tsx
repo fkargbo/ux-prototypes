@@ -52,10 +52,7 @@ import type { Reversibility } from '../../types/reversibility';
 import { formatReversibilityLabel, reversibilityLabelColor } from '../../types/reversibility';
 import type { RemediationRisk } from '../../types/riskScore';
 import {
-  formatTokenBurnPair,
-  formatOptionalTokenBurn,
   getPlanTokensConsumedView,
-  isPlanTokenBurnAvailable,
 } from '../../types/tokenBurn';
 import {
   AGENTIC_STATUS_FILTER_OPTIONS,
@@ -101,7 +98,6 @@ import {
 } from './planWorkflowPanels';
 import {
   enrichRemediationOptionsWithConfidence,
-  getOptionExecutionTokenBurn,
   getPlanTokenBurn,
   GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
   MVP_PLAN_IDS,
@@ -2134,16 +2130,6 @@ Exit code: 0 — Execution succeeded.`,
   };
 };
 
-/** Deterministic simulated analysis token count for plans without real SDK token data. */
-function simulateAnalysisTokenCount(planId: string): number {
-  let hash = 0;
-  for (let i = 0; i < planId.length; i++) {
-    hash = (hash * 31 + planId.charCodeAt(i)) >>> 0;
-  }
-  // Range: 820 – 3,640 tokens (plausible LLM analysis call)
-  return 820 + (hash % 2820);
-}
-
 const formatExecutionKillTimestamp = (date: Date): string =>
   date.toLocaleString('en-US', {
     month: 'short',
@@ -3115,23 +3101,6 @@ const PostMortemPanel: React.FC<{
               <DescriptionListDescription>{postMortem.executionDuration}</DescriptionListDescription>
             </DescriptionListGroup>
           )}
-          {(() => {
-            const burn = getPlanTokenBurn(plan.id);
-            const executionFromOption = executionOptionId
-              ? getOptionExecutionTokenBurn(plan.id, executionOptionId)
-              : undefined;
-            const execution = executionFromOption ?? burn.execution ?? 0;
-            const burnLine = formatTokenBurnPair(burn.analysis, execution > 0 ? execution : undefined);
-            if (!burnLine) {
-              return null;
-            }
-            return (
-              <DescriptionListGroup>
-                <DescriptionListTerm>Token burn</DescriptionListTerm>
-                <DescriptionListDescription>{burnLine}</DescriptionListDescription>
-              </DescriptionListGroup>
-            );
-          })()}
           {verification && (
             <>
               <DescriptionListGroup>
@@ -3636,8 +3605,6 @@ export const RemediationBlueprintPanel: React.FC<{
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
 
-  const planTokenBurn = getPlanTokenBurn(plan.id);
-
   useEffect(() => {
     setIsExecutionRunning(false);
     setRetryBanner(null);
@@ -3779,16 +3746,6 @@ export const RemediationBlueprintPanel: React.FC<{
               Root cause analysis (RCA)
             </Title>
             <Label color="grey" isCompact>AI-generated</Label>
-            {!isAnalyzing && (
-              <Label color="grey" variant="outline" isCompact>
-                {formatOptionalTokenBurn(
-                  isPlanTokenBurnAvailable(planTokenBurn)
-                    ? planTokenBurn.analysis
-                    : simulateAnalysisTokenCount(plan.id),
-                  '(analysis)',
-                )}
-              </Label>
-            )}
           </Flex>
           {isAnalyzing || !drawer ? (
             <RcaLockedPlaceholder />
@@ -4014,16 +3971,6 @@ export const RemediationBlueprintPanel: React.FC<{
             Root cause analysis (RCA)
           </Title>
           <Label color="grey" isCompact>AI-generated</Label>
-          {!isAnalyzing && (
-            <Label color="grey" variant="outline" isCompact>
-              {formatOptionalTokenBurn(
-                isPlanTokenBurnAvailable(planTokenBurn)
-                  ? planTokenBurn.analysis
-                  : simulateAnalysisTokenCount(plan.id),
-                '(analysis)',
-              )}
-            </Label>
-          )}
         </Flex>
           {isAnalyzing ? (
             <>
