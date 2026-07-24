@@ -81,7 +81,7 @@ export const RecommendationHubPage: React.FC = () => {
   );
 
   if (bannerVersionKey !== 'v4') {
-    return <Navigate to="/core/observe/ai-hub" replace />;
+    return <Navigate to="/post-5-0/ai-hub" replace />;
   }
 
   return (

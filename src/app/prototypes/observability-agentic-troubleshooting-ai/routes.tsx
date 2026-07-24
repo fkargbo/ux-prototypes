@@ -33,7 +33,7 @@ const ObserveNavPlaceholder: React.FC = () => (
 export const routes: RouteConfig[] = [
   {
     path: '/',
-    element: <Navigate to="/core/observe/ai-hub" replace />,
+    element: <Navigate to="/post-5-0/ai-hub" replace />,
     title: 'AI Troubleshooting Hub',
   },
   {
@@ -46,8 +46,10 @@ export const routes: RouteConfig[] = [
       order: 1,
     },
   },
+  // Canonical entry-point — unique path owned exclusively by this prototype.
+  // Share URL: https://fkargbo.github.io/ux-prototypes/post-5-0/ai-hub
   {
-    path: '/core/observe/ai-hub',
+    path: '/post-5-0/ai-hub',
     element: <AIHubPage />,
     label: 'AI Hub',
     title: 'AI Hub',
@@ -55,6 +57,14 @@ export const routes: RouteConfig[] = [
       group: 'Home',
       order: 2,
     },
+  },
+  // Legacy path kept as a redirect so old bookmarks / share links still work.
+  // /core/observe/ai-hub is also claimed by the MVP prototype, making it
+  // ambiguous for route-based prototype detection — this redirect avoids that.
+  {
+    path: '/core/observe/ai-hub',
+    element: <Navigate to="/post-5-0/ai-hub" replace />,
+    title: 'AI Hub',
   },
   {
     path: '/core/observe/ai-insights',
