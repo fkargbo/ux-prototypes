@@ -225,6 +225,13 @@
   margin-block-start: 0;
 }
 
+/* When agentic capabilities are off, suppress row hover background and
+   set a non-interactive cursor so the table reads as read-only. */
+.ols-plans-table--capabilities-off tbody tr:hover {
+  background-color: transparent;
+  cursor: default;
+}
+
 /* Increase vertical spacing between inventory bar and widget cards. */
 .ols-ai-hub-main-stack.pf-v6-l-stack.pf-m-gutter {
   gap: 24px;

@@ -2423,10 +2423,11 @@ const PlansTableColumnHeader: React.FC<{
 
 // ─── Core stateless table renderer ───────────────────────────────────────────
 
-const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete: (planId: string) => void }> = ({
+const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete: (planId: string) => void; isDisabled?: boolean }> = ({
   planId,
   planName,
   onDelete,
+  isDisabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -2441,6 +2442,7 @@ const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete:
           ref={toggleRef}
           variant="plain"
           isExpanded={isOpen}
+          isDisabled={isDisabled}
           onClick={() => setIsOpen((open) => !open)}
           aria-label={`Actions for ${planName}`}
         >
@@ -2488,7 +2490,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 }) => (
   <Table
     aria-label={ariaLabel}
-    className="ols-plans-table"
+    className={`ols-plans-table${isAgenticAutomationEnabled ? '' : ' ols-plans-table--capabilities-off'}`}
     style={{
       tableLayout: 'fixed',
       width: '100%',
@@ -2512,7 +2514,16 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 
     <Tbody>
       {rows.map((row) => (
-        <Tr key={row.id} style={{ verticalAlign: 'middle' }}>
+        <Tr
+          key={row.id}
+          style={{
+            verticalAlign: 'middle',
+            ...(!isAgenticAutomationEnabled && {
+              '--pf-v6-c-table__tr--hover--BackgroundColor': 'transparent',
+              cursor: 'default',
+            } as React.CSSProperties),
+          }}
+        >
           <Td dataLabel="Name" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
               <FlexItem>
@@ -2576,6 +2587,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
               planId={row.id}
               planName={row.name ?? row.id}
               onDelete={onDeletePlan}
+              isDisabled={!isAgenticAutomationEnabled}
             />
           </Td>
         </Tr>
