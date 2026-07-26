@@ -2516,13 +2516,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
       {rows.map((row) => (
         <Tr
           key={row.id}
-          style={{
-            verticalAlign: 'middle',
-            ...(!isAgenticAutomationEnabled && {
-              '--pf-v6-c-table__tr--hover--BackgroundColor': 'transparent',
-              cursor: 'default',
-            } as React.CSSProperties),
-          }}
+          style={{ verticalAlign: 'middle' }}
         >
           <Td dataLabel="Name" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>

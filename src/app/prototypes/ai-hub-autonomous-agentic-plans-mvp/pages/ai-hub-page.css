@@ -226,8 +226,14 @@
 }
 
 /* When agentic capabilities are off, suppress row hover background and
-   set a non-interactive cursor so the table reads as read-only. */
-.ols-plans-table--capabilities-off tbody tr:hover {
+   set a non-interactive cursor so the table reads as read-only.
+   Override PF's CSS custom property at the table level so it wins over
+   the PF .pf-v6-c-table tbody tr:hover rule that reads from it. */
+.pf-v6-c-table.ols-plans-table--capabilities-off {
+  --pf-v6-c-table--tr--hover--BackgroundColor: transparent;
+}
+
+.pf-v6-c-table.ols-plans-table--capabilities-off tbody tr:hover {
   background-color: transparent;
   cursor: default;
 }
