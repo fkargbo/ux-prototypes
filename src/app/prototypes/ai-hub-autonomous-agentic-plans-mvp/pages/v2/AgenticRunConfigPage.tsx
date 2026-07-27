@@ -113,9 +113,6 @@ const INITIAL_AGENTS: AgentRow[] = [
 
 const AGENTIC_RUNS_LIST_PATH = '/v2/ai-hub/observe/plans';
 
-/** Constrains the settings content (and the Tabs bottom divider above it) to a readable, non-full-bleed width. */
-const CONFIG_CONTENT_MAX_WIDTH = '600px';
-
 // ─── Row actions menu (shared by both config tables) ──────────────────────────
 
 const RowActionsMenu: React.FC<{
@@ -161,9 +158,9 @@ const PolicyRow: React.FC<{ label: string; fieldId?: string; children: React.Rea
   children,
 }) => (
   <Flex
+    className="ols-ai-hub-config-policy-row"
     justifyContent={{ default: 'justifyContentSpaceBetween' }}
     alignItems={{ default: 'alignItemsCenter' }}
-    style={{ paddingBlock: 'var(--pf-t--global--spacer--sm)' }}
   >
     <FlexItem>
       <Content component="p" className="pf-v6-u-mb-0">
@@ -191,7 +188,7 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
     onChange: (next: ApprovalMode) => void,
   ) => (
     <PolicyRow label={label} fieldId={`${ariaLabel}-toggle`}>
-      <ToggleGroup aria-label={ariaLabel} id={`${ariaLabel}-toggle`}>
+      <ToggleGroup isCompact aria-label={ariaLabel} id={`${ariaLabel}-toggle`}>
         <ToggleGroupItem
           text="Manual"
           isSelected={value === 'manual'}
@@ -211,7 +208,10 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
       <Content component="p">
         Configure whether each workflow stage requires manual approval or runs automatically.
       </Content>
-      <Form style={{ marginTop: 'var(--pf-t--global--spacer--md)', maxWidth: CONFIG_CONTENT_MAX_WIDTH }}>
+      <Form
+        className="ols-ai-hub-config-content-width"
+        style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+      >
         {renderToggleRow('Analysis', 'Analysis policy', analysisPolicy, setAnalysisPolicy)}
         <Divider />
         {renderToggleRow('Execution', 'Execution policy', executionPolicy, setExecutionPolicy)}
@@ -401,7 +401,7 @@ export const AgenticRunConfigPage: React.FC = () => {
             <TechPreviewBadge />
           </FlexItem>
         </Flex>
-        <div style={{ maxWidth: CONFIG_CONTENT_MAX_WIDTH }}>
+        <div className="ols-ai-hub-config-content-width">
           <Tabs
             activeKey={activeTab}
             onSelect={(_event, tabKey) => setActiveTab(tabKey as AgenticRunConfigTabKey)}

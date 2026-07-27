@@ -23,6 +23,27 @@
   position: relative;
 }
 
+/*
+ * Agentic runs configuration page: constrain the Tabs (in the heading) and the
+ * settings Form/table content (in template-page-content) to the same 600px
+ * column so the Tabs' bottom-border divider lines up with the content dividers
+ * below. `!important` is required because `.pf-v6-c-tabs` renders as a
+ * `display:flex` block box with `width:auto`, which otherwise stretches to
+ * fill 100% of `template-page-heading` (a direct child of
+ * `.pf-v6-c-page__main-section`, which app.css forces to `width: 100%
+ * !important` at the page level) — a plain inline max-width can lose to that
+ * cascade in some render paths, so we pin it here at higher specificity.
+ */
+.ols-ai-hub-page .ols-ai-hub-config-content-width {
+  max-width: 600px !important;
+  width: 100%;
+}
+
+/* Settings row: PF-recommended compact spacing (spacer-sm) between divided rows. */
+.ols-ai-hub-page .ols-ai-hub-config-policy-row {
+  padding-block: var(--pf-t--global--spacer--sm) !important;
+}
+
 .ols-ai-hub-page-heading-actions {
   position: absolute;
   top: 24px;
