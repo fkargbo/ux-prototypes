@@ -27,6 +27,7 @@ import {
 import { EllipsisVIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
+import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import '../ai-hub-page.css';
 
 /** OpenShift console / PatternFly table style: e.g. Jul 22, 2026, 11:29 AM — matches the Agentic runs "Created" column. */
@@ -364,9 +365,16 @@ export const AgenticRunConfigPage: React.FC = () => {
       </div>
 
       <AiHubPageHeading>
-        <Title headingLevel="h1" size="2xl">
-          Configuration
-        </Title>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <FlexItem>
+            <Title headingLevel="h1" size="2xl">
+              Configuration
+            </Title>
+          </FlexItem>
+          <FlexItem>
+            <TechPreviewBadge />
+          </FlexItem>
+        </Flex>
         <Tabs
           activeKey={activeTab}
           onSelect={(_event, tabKey) => setActiveTab(tabKey as AgenticRunConfigTabKey)}
