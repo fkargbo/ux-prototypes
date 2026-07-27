@@ -210,7 +210,7 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
       </Content>
       <Form
         className="ols-ai-hub-config-content-width"
-        style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+        style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
       >
         {renderToggleRow('Analysis', 'Analysis policy', analysisPolicy, setAnalysisPolicy)}
         <Divider />

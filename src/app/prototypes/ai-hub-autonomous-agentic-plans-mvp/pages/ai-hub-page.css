@@ -39,9 +39,10 @@
   width: 100%;
 }
 
-/* Settings row: PF-recommended compact spacing (spacer-sm) between divided rows. */
+/* Settings row: fixed ~52px row height (label vertically centered against the control). */
 .ols-ai-hub-page .ols-ai-hub-config-policy-row {
-  padding-block: var(--pf-t--global--spacer--sm) !important;
+  min-height: 52px !important;
+  padding-block: 0 !important;
 }
 
 .ols-ai-hub-page-heading-actions {
