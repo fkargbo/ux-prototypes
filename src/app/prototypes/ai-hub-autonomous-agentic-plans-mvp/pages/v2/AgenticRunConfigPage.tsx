@@ -8,13 +8,13 @@ import {
   BreadcrumbItem,
   Button,
   Content,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
   Flex,
   FlexItem,
   Form,
-  FormGroup,
   MenuToggle,
   NumberInput,
   Tab,
@@ -152,6 +152,25 @@ const RowActionsMenu: React.FC<{
   );
 };
 
+/** A single labeled settings row — label on the left, control on the right. */
+const PolicyRow: React.FC<{ label: string; fieldId?: string; children: React.ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <Flex
+    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+    alignItems={{ default: 'alignItemsCenter' }}
+    style={{ paddingBlock: 'var(--pf-t--global--spacer--md)' }}
+  >
+    <FlexItem>
+      <Content component="p" className="pf-v6-u-mb-0">
+        <strong>{label}</strong>
+      </Content>
+    </FlexItem>
+    <FlexItem>{children}</FlexItem>
+  </Flex>
+);
+
 // ─── Tab 1: Approval policy ────────────────────────────────────────────────────
 
 const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
@@ -162,26 +181,26 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   const [escalationPolicy, setEscalationPolicy] = useState<ApprovalMode>('manual');
   const [maxRetryAttempts, setMaxRetryAttempts] = useState(3);
 
-  const renderToggle = (
+  const renderToggleRow = (
     label: string,
     ariaLabel: string,
     value: ApprovalMode,
     onChange: (next: ApprovalMode) => void,
   ) => (
-    <FormGroup label={label} fieldId={`${ariaLabel}-toggle`}>
+    <PolicyRow label={label} fieldId={`${ariaLabel}-toggle`}>
       <ToggleGroup aria-label={ariaLabel} id={`${ariaLabel}-toggle`}>
+        <ToggleGroupItem
+          text="Manual"
+          isSelected={value === 'manual'}
+          onChange={() => onChange('manual')}
+        />
         <ToggleGroupItem
           text="Automatic"
           isSelected={value === 'auto'}
           onChange={() => onChange('auto')}
         />
-        <ToggleGroupItem
-          text="Manual approval"
-          isSelected={value === 'manual'}
-          onChange={() => onChange('manual')}
-        />
       </ToggleGroup>
-    </FormGroup>
+    </PolicyRow>
   );
 
   return (
@@ -189,12 +208,16 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
       <Content component="p">
         Configure whether each workflow stage requires manual approval or runs automatically.
       </Content>
-      <Form style={{ marginTop: 'var(--pf-t--global--spacer--md)', maxWidth: '480px' }}>
-        {renderToggle('Analysis', 'Analysis policy', analysisPolicy, setAnalysisPolicy)}
-        {renderToggle('Execution', 'Execution policy', executionPolicy, setExecutionPolicy)}
-        {renderToggle('Verification', 'Verification policy', verificationPolicy, setVerificationPolicy)}
-        {renderToggle('Escalation', 'Escalation policy', escalationPolicy, setEscalationPolicy)}
-        <FormGroup label="Max retry attempts" fieldId="max-retry-attempts">
+      <Form style={{ marginTop: 'var(--pf-t--global--spacer--md)', maxWidth: '560px' }}>
+        {renderToggleRow('Analysis', 'Analysis policy', analysisPolicy, setAnalysisPolicy)}
+        <Divider />
+        {renderToggleRow('Execution', 'Execution policy', executionPolicy, setExecutionPolicy)}
+        <Divider />
+        {renderToggleRow('Verification', 'Verification policy', verificationPolicy, setVerificationPolicy)}
+        <Divider />
+        {renderToggleRow('Escalation', 'Escalation policy', escalationPolicy, setEscalationPolicy)}
+        <Divider />
+        <PolicyRow label="Max retry attempts" fieldId="max-retry-attempts">
           <NumberInput
             id="max-retry-attempts"
             value={maxRetryAttempts}
@@ -213,7 +236,7 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
             minusBtnAriaLabel="Decrement max retry attempts"
             plusBtnAriaLabel="Increment max retry attempts"
           />
-        </FormGroup>
+        </PolicyRow>
       </Form>
       <Flex style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }} gap={{ default: 'gapSm' }}>
         <FlexItem>
