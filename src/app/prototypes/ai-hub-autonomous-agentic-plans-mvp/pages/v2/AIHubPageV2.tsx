@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Content, Flex, FlexItem, Icon, Title, Tooltip } from '@patternfly/react-core';
-import { InfoCircleIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
+import { CogIcon, InfoCircleIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
 import { AuditKillSwitchPanel } from '../../components/AuditKillSwitchPanel';
@@ -10,6 +11,7 @@ import * as Hub from '../ai-hub-plans-v2';
 import '../ai-hub-page.css';
 
 export const AIHubPageV2: React.FC = () => {
+  const navigate = useNavigate();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isFavoritesModalOpen, setIsFavoritesModalOpen] = useState(false);
 
@@ -41,6 +43,17 @@ export const AIHubPageV2: React.FC = () => {
                 ) : (
                   <OutlinedStarIcon />
                 )}
+              </Icon>
+            </Button>
+          </Tooltip>
+          <Tooltip content="Agentic runs settings">
+            <Button
+              variant="plain"
+              aria-label="Agentic runs settings"
+              onClick={() => navigate('/v2/ai-hub/observe/plans/config')}
+            >
+              <Icon size="xl">
+                <CogIcon />
               </Icon>
             </Button>
           </Tooltip>
