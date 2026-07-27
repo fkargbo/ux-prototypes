@@ -40,7 +40,7 @@ export const AddToFavoritesModal: React.FC<AddToFavoritesModalProps> = ({
       onClose={onClose}
       variant="small"
     >
-      <ModalHeader id="add-to-favorites-title" title="Add to favorites" />
+      <ModalHeader labelId="add-to-favorites-title" title="Add to favorites" />
       <ModalBody>
         <Form onSubmit={handleSubmit}>
           <FormGroup fieldId="favorite-name-input" isRequired label="Name">
