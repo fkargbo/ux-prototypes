@@ -275,21 +275,41 @@ interface AgenticRunTimelineProps {
   status: PlanStatus;
   createdAt?: string;
   retryCount?: number;
+  /**
+   * When true (agentic kill switch engaged), any in-progress `info` step is
+   * converted to `warning` and its description is updated to reflect that the
+   * run was administratively suspended, not failed.
+   */
+  isCapabilitiesDisabled?: boolean;
 }
 
 export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   status,
   createdAt,
   retryCount = 0,
+  isCapabilitiesDisabled = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   // Only surface steps that have been processed or are currently in progress.
   // Pending (unreached) steps are intentionally excluded — not all runs pass
   // through every phase (e.g. Denied runs never reach execution).
-  const steps = buildTimelineSteps(status, createdAt, retryCount).filter(
-    (s) => s.variant !== 'pending',
-  );
+  const steps = buildTimelineSteps(status, createdAt, retryCount)
+    .filter((s) => s.variant !== 'pending')
+    .map((s) => {
+      // When the kill switch is engaged, demote the active (blue) step to
+      // warning (yellow) and append a suspension note to its description.
+      if (isCapabilitiesDisabled && s.variant === 'info') {
+        return {
+          ...s,
+          variant: 'warning' as TimelineStepVariant,
+          description: s.description
+            ? `${s.description} — suspended by administrator`
+            : 'Suspended — agentic capabilities disabled by administrator',
+        };
+      }
+      return s;
+    });
 
   if (steps.length === 0) return null;
 

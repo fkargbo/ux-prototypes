@@ -3011,36 +3011,52 @@ const LOCKED_BOX_STYLE: React.CSSProperties = {
   padding: 'var(--pf-t--global--spacer--md)',
 };
 
-const RcaLockedPlaceholder: React.FC = () => (
+const SKELETON_SUSPENDED_STYLE: React.CSSProperties = {
+  animationName: 'none',
+  opacity: 0.45,
+};
+
+const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended = false }) => (
   <div style={LOCKED_BOX_STYLE}>
     <Flex
       alignItems={{ default: 'alignItemsCenter' }}
       gap={{ default: 'gapSm' }}
       style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
     >
-      <Spinner size="sm" aria-label="Analyzing root cause" />
+      {isSuspended ? (
+        <ExclamationTriangleIcon
+          style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', flexShrink: 0 }}
+          aria-hidden
+        />
+      ) : (
+        <Spinner size="sm" aria-label="Analyzing root cause" />
+      )}
       <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
-        Analyzing infrastructure topology to isolate root cause…
+        {isSuspended
+          ? 'Analysis suspended — agentic capabilities disabled'
+          : 'Analyzing infrastructure topology to isolate root cause…'}
       </Content>
     </Flex>
-    <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-    <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-    <Skeleton width="75%" />
+    <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
+    <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
+    <Skeleton width="75%" style={isSuspended ? SKELETON_SUSPENDED_STYLE : undefined} />
   </div>
 );
 
-const HubLockedPlaceholder: React.FC = () => (
+const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended = false }) => (
   <div style={LOCKED_BOX_STYLE}>
     <Content
       component="p"
       className="ols-aio-text-subtle-sm"
       style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
     >
-      Remediation options will be synthesized following root cause confirmation.
+      {isSuspended
+        ? 'Remediation synthesis suspended — agentic capabilities disabled'
+        : 'Remediation options will be synthesized following root cause confirmation.'}
     </Content>
-    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-    <Skeleton width="55%" />
+    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
+    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
+    <Skeleton width="55%" style={isSuspended ? SKELETON_SUSPENDED_STYLE : undefined} />
   </div>
 );
 
@@ -3790,7 +3806,7 @@ export const RemediationBlueprintPanel: React.FC<{
             <Label color="grey" isCompact>AI-generated</Label>
           </Flex>
           {isAnalyzing || !drawer ? (
-            <RcaLockedPlaceholder />
+            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
           ) : (
             <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
               <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
@@ -3883,6 +3899,7 @@ export const RemediationBlueprintPanel: React.FC<{
           <AgenticRunTimeline
             status={status}
             createdAt={plan.createdAt}
+            isCapabilitiesDisabled={!isAgenticAutomationEnabled}
           />
         </StackItem>
       </Stack>
@@ -4014,7 +4031,7 @@ export const RemediationBlueprintPanel: React.FC<{
         </Flex>
           {isAnalyzing ? (
             <>
-              <RcaLockedPlaceholder />
+              <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
             </>
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
@@ -4196,7 +4213,7 @@ export const RemediationBlueprintPanel: React.FC<{
           <WaitingApprovalPlanMeta plan={plan} />
         </Flex>
           {isAnalyzing ? (
-            <HubLockedPlaceholder />
+            <HubLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
           ) : isEscalated ? (
             <>
               <div
@@ -4620,6 +4637,7 @@ export const RemediationBlueprintPanel: React.FC<{
         <AgenticRunTimeline
           status={status}
           createdAt={plan.createdAt}
+          isCapabilitiesDisabled={!isAgenticAutomationEnabled}
         />
       </StackItem>
     </Stack>
