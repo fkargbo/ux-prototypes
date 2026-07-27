@@ -62,9 +62,9 @@
  */
 .ols-ai-hub-page .ols-ai-hub-config-policy-row {
   box-sizing: border-box !important;
-  height: 52px !important;
-  min-height: 52px !important;
-  max-height: 52px !important;
+  height: 72px !important;
+  min-height: 72px !important;
+  max-height: 72px !important;
   padding-block: 0 !important;
   border-block-end: var(--pf-t--global--border--width--divider--default) solid
     var(--pf-t--global--border--color--default);
