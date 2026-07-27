@@ -3660,37 +3660,6 @@ const DEFAULT_ESCALATION_PLAYBOOK = {
   command: 'oc describe proposal <plan-name> -n openshift-lightspeed',
 };
 
-/** Generates deterministic simulated analysis log lines for a plan's RCA section. */
-function generateAnalysisLogs(planId: string, finding: string, narrative: string): string {
-  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const mm = String(10 + (h % 49)).padStart(2, '0');
-  const ts = (offset: number) => {
-    const rawSec = (h % 60) + offset;
-    const m = String(10 + (h % 49) + Math.floor(rawSec / 60)).padStart(2, '0');
-    const s = String(rawSec % 60).padStart(2, '0');
-    return `2026-07-02T08:${m}:${s}.000000000Z`;
-  };
-  void mm;
-  const clip = (str: string, len = 90) => (str.length > len ? str.slice(0, len) + '...' : str);
-  return [
-    `${ts(0)}  INFO [analysis] Initializing investigation pipeline — plan_id=${planId}`,
-    `${ts(1)}  INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
-    `${ts(2)}  INFO [signals]  Querying Prometheus TSDB for correlated alert signals...`,
-    `${ts(4)}  INFO [signals]  ${clip(finding)}`,
-    `${ts(5)}  INFO [probe]    GET /readyz  200 OK — readiness probe passed`,
-    `${ts(7)}  INFO [model]    Dispatching signal corpus to LLM reasoning engine`,
-    `${ts(9)}  INFO [model]    Hypothesis generation in progress (temperature=0.2, max_tokens=1024)`,
-    `${ts(11)} INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
-    `${ts(12)} INFO [model]    Root cause hypothesis locked — confidence=0.87`,
-    `${ts(14)} INFO [rca]      ${clip(narrative)}`,
-    `${ts(15)} INFO [probe]    GET /readyz  200 OK — readiness probe passed`,
-    `${ts(16)} INFO [rca]      Contributing factor graph traversal complete: 3 factors identified`,
-    `${ts(17)} INFO [proposal] Root cause analysis complete. Generating remediation proposal...`,
-    `${ts(18)} INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
-    `${ts(19)} INFO [proposal] Proposal ready — plan_id=${planId} is available for review.`,
-  ].join('\n');
-}
-
 /** Generates deterministic simulated verification log lines for the post-execution logs panel. */
 function generateVerificationLogs(planId: string): string {
   const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -3762,9 +3731,6 @@ export const RemediationBlueprintPanel: React.FC<{
   const [isDenyModalOpen, setIsDenyModalOpen] = useState(false);
   const [isDenySelectOpen, setIsDenySelectOpen] = useState(false);
   const [denyReason, setDenyReason] = useState('');
-  const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
-  const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
-  const [hideHealthChecks, setHideHealthChecks] = useState(true);
   /**
    * HITL sub-state for Pending runs.
    *   INITIALIZING       — CR created, engine not yet dispatched (shows spinner, 5-second window)
@@ -3789,9 +3755,6 @@ export const RemediationBlueprintPanel: React.FC<{
   useEffect(() => {
     setIsExecutionRunning(false);
     setRetryBanner(null);
-    setShowAnalysisLogs(false);
-    setAnalysisLogsQuery('');
-    setHideHealthChecks(true);
     setIsStopExecutionModalOpen(false);
   }, [plan.id]);
 
@@ -3832,6 +3795,16 @@ export const RemediationBlueprintPanel: React.FC<{
     !isEscalating &&
     !isVerifying;
   const showTopLevelRca = !showPerOptionRca;
+
+  /** Timeline hosts "View analysis logs" once analysis has completed (same mock data as former RCA card). */
+  const timelineAnalysisLogs =
+    drawer && !isAnalyzing && !isPending
+      ? {
+          planId: plan.id,
+          finding: drawer.aggregatedFinding,
+          narrative: drawer.rootCauseNarrative,
+        }
+      : null;
   const optionCount = options.length;
   const visibleOptionCount = isOptionLocked ? 1 : optionCount;
   const optionLabel = visibleOptionCount === 1 ? '1 remediation option' : `${visibleOptionCount} remediation options`;
@@ -3958,58 +3931,6 @@ export const RemediationBlueprintPanel: React.FC<{
               <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.rootCauseNarrative}
               </Content>
-
-              {/* View analysis logs */}
-              <ExpandableSection
-                toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
-                isExpanded={showAnalysisLogs}
-                onToggle={(_e, expanded) => {
-                  setShowAnalysisLogs(expanded);
-                  if (!expanded) setAnalysisLogsQuery('');
-                }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                {(() => {
-                  const HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
-                  const rawLogs = generateAnalysisLogs(plan.id, drawer.aggregatedFinding, drawer.rootCauseNarrative);
-                  const displayLogs = rawLogs
-                    .split('\n')
-                    .filter(l => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
-                    .filter(l => !analysisLogsQuery.trim() || l.toLowerCase().includes(analysisLogsQuery.toLowerCase()))
-                    .join('\n');
-                  return (
-                    <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                      <Flex
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        gap={{ default: 'gapMd' }}
-                        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                      >
-                        <FlexItem grow={{ default: 'grow' }}>
-                          <SearchInput
-                            value={analysisLogsQuery}
-                            onChange={(_evt, val) => setAnalysisLogsQuery(val)}
-                            onClear={() => setAnalysisLogsQuery('')}
-                            placeholder="Search logs..."
-                          />
-                        </FlexItem>
-                        <FlexItem>
-                          <Checkbox
-                            id={`analysis-log-hc-cu-${plan.id}`}
-                            label="Hide health checks"
-                            isChecked={hideHealthChecks}
-                            onChange={(_evt, checked) => setHideHealthChecks(checked)}
-                          />
-                        </FlexItem>
-                      </Flex>
-                      <ExpandableCodeBlock
-                        id={`analysis-log-cu-${plan.id}`}
-                        code={displayLogs}
-                        codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-                      />
-                    </div>
-                  );
-                })()}
-              </ExpandableSection>
             </div>
           )}
         </StackItem>
@@ -4040,6 +3961,7 @@ export const RemediationBlueprintPanel: React.FC<{
             status={status}
             createdAt={plan.createdAt}
             isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+            analysisLogs={timelineAnalysisLogs}
           />
         </StackItem>
       </Stack>
@@ -4191,59 +4113,6 @@ export const RemediationBlueprintPanel: React.FC<{
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.rootCauseNarrative}
             </Content>
-
-            {/* View analysis logs */}
-            <ExpandableSection
-              toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
-              isExpanded={showAnalysisLogs}
-              onToggle={(_e, expanded) => {
-                setShowAnalysisLogs(expanded);
-                if (!expanded) setAnalysisLogsQuery('');
-              }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              {(() => {
-                const HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
-                const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
-                const displayLogs = rawLogs
-                  .split('\n')
-                  .filter(l => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
-                  .filter(l => !analysisLogsQuery.trim() || l.toLowerCase().includes(analysisLogsQuery.toLowerCase()))
-                  .join('\n');
-                return (
-                  <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      gap={{ default: 'gapMd' }}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                    >
-                      <FlexItem grow={{ default: 'grow' }}>
-                        <SearchInput
-                          value={analysisLogsQuery}
-                          onChange={(_evt, val) => setAnalysisLogsQuery(val)}
-                          onClear={() => setAnalysisLogsQuery('')}
-                          placeholder="Search logs..."
-                        />
-                      </FlexItem>
-                      <FlexItem>
-                        <Checkbox
-                          id={`hide-health-checks-${plan.id}`}
-                          label="Hide health checks"
-                          isChecked={hideHealthChecks}
-                          onChange={(_evt, checked) => setHideHealthChecks(checked)}
-                        />
-                      </FlexItem>
-                    </Flex>
-                    <ExpandableCodeBlock
-                      id={`analysis-log-${plan.id}`}
-                      code={displayLogs}
-                      codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-                    />
-                  </div>
-                );
-              })()}
-            </ExpandableSection>
-
           </div>
           )}
       </StackItem>
@@ -4777,6 +4646,7 @@ export const RemediationBlueprintPanel: React.FC<{
           status={status}
           createdAt={plan.createdAt}
           isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+          analysisLogs={timelineAnalysisLogs}
         />
       </StackItem>
     </Stack>
