@@ -7,8 +7,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
-  Card,
-  CardBody,
   Content,
   Dropdown,
   DropdownItem,
@@ -26,10 +24,39 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
-import { EllipsisVIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import '../ai-hub-page.css';
+
+/** OpenShift console / PatternFly table style: e.g. Jul 22, 2026, 11:29 AM — matches the Agentic runs "Created" column. */
+const formatConfigCreatedAt = (iso: string): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '—';
+  }
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const CreatedAtCell: React.FC<{ iso: string }> = ({ iso }) => (
+  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+    <FlexItem>
+      <OutlinedClockIcon
+        style={{ color: 'var(--pf-t--global--icon--color--subtle)', verticalAlign: 'middle' }}
+        aria-hidden
+      />
+    </FlexItem>
+    <FlexItem>
+      <time dateTime={iso}>{formatConfigCreatedAt(iso)}</time>
+    </FlexItem>
+  </Flex>
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,16 +75,15 @@ interface AgentRow {
   name: string;
   llmProvider: string;
   model: string;
-  maxTurns: number;
   created: string;
 }
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 const INITIAL_LLM_PROVIDERS: LlmProviderRow[] = [
-  { id: 'llm-openai-enterprise', name: 'OpenAI Enterprise', type: 'OpenAI', created: '2026-02-10' },
-  { id: 'llm-granite-local', name: 'Granite Local', type: 'Ollama', created: '2026-01-15' },
-  { id: 'llm-anthropic-enterprise', name: 'Anthropic Enterprise', type: 'Anthropic', created: '2025-11-03' },
+  { id: 'llm-openai-enterprise', name: 'OpenAI Enterprise', type: 'OpenAI', created: '2026-02-10T11:29:00' },
+  { id: 'llm-granite-local', name: 'Granite Local', type: 'Ollama', created: '2026-01-15T09:14:00' },
+  { id: 'llm-anthropic-enterprise', name: 'Anthropic Enterprise', type: 'Anthropic', created: '2025-11-03T15:42:00' },
 ];
 
 const INITIAL_AGENTS: AgentRow[] = [
@@ -66,24 +92,21 @@ const INITIAL_AGENTS: AgentRow[] = [
     name: 'Analyzer Agent',
     llmProvider: 'OpenAI Enterprise',
     model: 'gpt-4o',
-    maxTurns: 10,
-    created: '2026-03-01',
+    created: '2026-03-01T08:05:00',
   },
   {
     id: 'agent-remediator',
     name: 'Remediator Agent',
     llmProvider: 'Granite Local',
     model: 'granite-3b-code',
-    maxTurns: 5,
-    created: '2026-02-20',
+    created: '2026-02-20T13:37:00',
   },
   {
     id: 'agent-escalation',
     name: 'Escalation Agent',
     llmProvider: 'OpenAI Enterprise',
     model: 'gpt-4o-mini',
-    maxTurns: 6,
-    created: '2026-01-28',
+    created: '2026-01-28T17:21:00',
   },
 ];
 
@@ -161,51 +184,49 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   );
 
   return (
-    <Card>
-      <CardBody>
-        <Content component="p">
-          Configure whether each workflow stage requires manual approval or runs automatically.
-        </Content>
-        <Form style={{ marginTop: 'var(--pf-t--global--spacer--md)', maxWidth: '480px' }}>
-          {renderToggle('Analysis', 'Analysis policy', analysisPolicy, setAnalysisPolicy)}
-          {renderToggle('Execution', 'Execution policy', executionPolicy, setExecutionPolicy)}
-          {renderToggle('Verification', 'Verification policy', verificationPolicy, setVerificationPolicy)}
-          {renderToggle('Escalation', 'Escalation policy', escalationPolicy, setEscalationPolicy)}
-          <FormGroup label="Max retry attempts" fieldId="max-retry-attempts">
-            <NumberInput
-              id="max-retry-attempts"
-              value={maxRetryAttempts}
-              min={0}
-              max={10}
-              onMinus={() => setMaxRetryAttempts((prev) => Math.max(0, prev - 1))}
-              onPlus={() => setMaxRetryAttempts((prev) => Math.min(10, prev + 1))}
-              onChange={(event) => {
-                const parsed = Number((event.target as HTMLInputElement).value);
-                if (!Number.isNaN(parsed)) {
-                  setMaxRetryAttempts(Math.min(10, Math.max(0, parsed)));
-                }
-              }}
-              inputName="max-retry-attempts"
-              inputAriaLabel="Max retry attempts"
-              minusBtnAriaLabel="Decrement max retry attempts"
-              plusBtnAriaLabel="Increment max retry attempts"
-            />
-          </FormGroup>
-        </Form>
-        <Flex style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }} gap={{ default: 'gapSm' }}>
-          <FlexItem>
-            <Button variant="primary" onClick={onSaved}>
-              Save
-            </Button>
-          </FlexItem>
-          <FlexItem>
-            <Button variant="link" onClick={() => navigate(AGENTIC_RUNS_LIST_PATH)}>
-              Cancel
-            </Button>
-          </FlexItem>
-        </Flex>
-      </CardBody>
-    </Card>
+    <>
+      <Content component="p">
+        Configure whether each workflow stage requires manual approval or runs automatically.
+      </Content>
+      <Form style={{ marginTop: 'var(--pf-t--global--spacer--md)', maxWidth: '480px' }}>
+        {renderToggle('Analysis', 'Analysis policy', analysisPolicy, setAnalysisPolicy)}
+        {renderToggle('Execution', 'Execution policy', executionPolicy, setExecutionPolicy)}
+        {renderToggle('Verification', 'Verification policy', verificationPolicy, setVerificationPolicy)}
+        {renderToggle('Escalation', 'Escalation policy', escalationPolicy, setEscalationPolicy)}
+        <FormGroup label="Max retry attempts" fieldId="max-retry-attempts">
+          <NumberInput
+            id="max-retry-attempts"
+            value={maxRetryAttempts}
+            min={0}
+            max={10}
+            onMinus={() => setMaxRetryAttempts((prev) => Math.max(0, prev - 1))}
+            onPlus={() => setMaxRetryAttempts((prev) => Math.min(10, prev + 1))}
+            onChange={(event) => {
+              const parsed = Number((event.target as HTMLInputElement).value);
+              if (!Number.isNaN(parsed)) {
+                setMaxRetryAttempts(Math.min(10, Math.max(0, parsed)));
+              }
+            }}
+            inputName="max-retry-attempts"
+            inputAriaLabel="Max retry attempts"
+            minusBtnAriaLabel="Decrement max retry attempts"
+            plusBtnAriaLabel="Increment max retry attempts"
+          />
+        </FormGroup>
+      </Form>
+      <Flex style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }} gap={{ default: 'gapSm' }}>
+        <FlexItem>
+          <Button variant="primary" onClick={onSaved}>
+            Save
+          </Button>
+        </FlexItem>
+        <FlexItem>
+          <Button variant="link" onClick={() => navigate(AGENTIC_RUNS_LIST_PATH)}>
+            Cancel
+          </Button>
+        </FlexItem>
+      </Flex>
+    </>
   );
 };
 
@@ -215,51 +236,51 @@ const LlmProvidersTab: React.FC = () => {
   const [providers, setProviders] = useState(INITIAL_LLM_PROVIDERS);
 
   return (
-    <Card>
-      <CardBody>
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-        >
-          <FlexItem>
-            <Content component="p">
-              Large language model providers available to agents for run analysis and execution.
-            </Content>
-          </FlexItem>
-          <FlexItem>
-            <Button variant="primary">Create LLM provider</Button>
-          </FlexItem>
-        </Flex>
-        <Table aria-label="LLM providers" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-          <Thead>
-            <Tr>
-              <Th>Name</Th>
-              <Th>Type</Th>
-              <Th>Created</Th>
-              <Th screenReaderText="Actions" />
+    <>
+      <Flex
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        alignItems={{ default: 'alignItemsFlexStart' }}
+      >
+        <FlexItem>
+          <Content component="p">
+            Large language model providers available to agents for run analysis and execution.
+          </Content>
+        </FlexItem>
+        <FlexItem>
+          <Button variant="primary">Create LLM provider</Button>
+        </FlexItem>
+      </Flex>
+      <Table aria-label="LLM providers" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+        <Thead>
+          <Tr>
+            <Th>Name</Th>
+            <Th>Type</Th>
+            <Th>Created</Th>
+            <Th screenReaderText="Actions" />
+          </Tr>
+        </Thead>
+        <Tbody>
+          {providers.map((provider) => (
+            <Tr key={provider.id}>
+              <Td dataLabel="Name">{provider.name}</Td>
+              <Td dataLabel="Type">{provider.type}</Td>
+              <Td dataLabel="Created">
+                <CreatedAtCell iso={provider.created} />
+              </Td>
+              <Td isActionCell>
+                <RowActionsMenu
+                  label={provider.name}
+                  onEdit={() => {}}
+                  onDelete={() =>
+                    setProviders((prev) => prev.filter((row) => row.id !== provider.id))
+                  }
+                />
+              </Td>
             </Tr>
-          </Thead>
-          <Tbody>
-            {providers.map((provider) => (
-              <Tr key={provider.id}>
-                <Td dataLabel="Name">{provider.name}</Td>
-                <Td dataLabel="Type">{provider.type}</Td>
-                <Td dataLabel="Created">{provider.created}</Td>
-                <Td isActionCell>
-                  <RowActionsMenu
-                    label={provider.name}
-                    onEdit={() => {}}
-                    onDelete={() =>
-                      setProviders((prev) => prev.filter((row) => row.id !== provider.id))
-                    }
-                  />
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </CardBody>
-    </Card>
+          ))}
+        </Tbody>
+      </Table>
+    </>
   );
 };
 
@@ -269,53 +290,53 @@ const AgentsTab: React.FC = () => {
   const [agents, setAgents] = useState(INITIAL_AGENTS);
 
   return (
-    <Card>
-      <CardBody>
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-        >
-          <FlexItem>
-            <Content component="p">
-              Agent tiers define the model and settings used at each stage of a run workflow.
-            </Content>
-          </FlexItem>
-          <FlexItem>
-            <Button variant="primary">Create agent</Button>
-          </FlexItem>
-        </Flex>
-        <Table aria-label="Agents" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-          <Thead>
-            <Tr>
-              <Th>Name</Th>
-              <Th>LLM provider</Th>
-              <Th>Model</Th>
-              <Th>Max turns</Th>
-              <Th>Created</Th>
-              <Th screenReaderText="Actions" />
+    <>
+      <Flex
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        alignItems={{ default: 'alignItemsFlexStart' }}
+      >
+        <FlexItem>
+          <Content component="p">
+            Agent tiers define the model and settings used at each stage of a run workflow.
+          </Content>
+        </FlexItem>
+        <FlexItem>
+          <Button variant="primary">Create agent</Button>
+        </FlexItem>
+      </Flex>
+      <Table aria-label="Agents" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+        <Thead>
+          <Tr>
+            <Th>Name</Th>
+            <Th>LLM provider</Th>
+            <Th>Model</Th>
+            <Th>Max turns</Th>
+            <Th>Created</Th>
+            <Th screenReaderText="Actions" />
+          </Tr>
+        </Thead>
+        <Tbody>
+          {agents.map((agent) => (
+            <Tr key={agent.id}>
+              <Td dataLabel="Name">{agent.name}</Td>
+              <Td dataLabel="LLM provider">{agent.llmProvider}</Td>
+              <Td dataLabel="Model">{agent.model}</Td>
+              <Td dataLabel="Max turns">—</Td>
+              <Td dataLabel="Created">
+                <CreatedAtCell iso={agent.created} />
+              </Td>
+              <Td isActionCell>
+                <RowActionsMenu
+                  label={agent.name}
+                  onEdit={() => {}}
+                  onDelete={() => setAgents((prev) => prev.filter((row) => row.id !== agent.id))}
+                />
+              </Td>
             </Tr>
-          </Thead>
-          <Tbody>
-            {agents.map((agent) => (
-              <Tr key={agent.id}>
-                <Td dataLabel="Name">{agent.name}</Td>
-                <Td dataLabel="LLM provider">{agent.llmProvider}</Td>
-                <Td dataLabel="Model">{agent.model}</Td>
-                <Td dataLabel="Max turns">{agent.maxTurns}</Td>
-                <Td dataLabel="Created">{agent.created}</Td>
-                <Td isActionCell>
-                  <RowActionsMenu
-                    label={agent.name}
-                    onEdit={() => {}}
-                    onDelete={() => setAgents((prev) => prev.filter((row) => row.id !== agent.id))}
-                  />
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </CardBody>
-    </Card>
+          ))}
+        </Tbody>
+      </Table>
+    </>
   );
 };
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Content, Flex, FlexItem, Icon, Title, Tooltip } from '@patternfly/react-core';
-import { CogIcon, InfoCircleIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon, OutlinedStarIcon, RhUiSettingsIcon, StarIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
 import { AuditKillSwitchPanel } from '../../components/AuditKillSwitchPanel';
@@ -53,7 +53,7 @@ export const AIHubPageV2: React.FC = () => {
               onClick={() => navigate('/v2/ai-hub/observe/plans/config')}
             >
               <Icon size="xl">
-                <CogIcon />
+                <RhUiSettingsIcon />
               </Icon>
             </Button>
           </Tooltip>
