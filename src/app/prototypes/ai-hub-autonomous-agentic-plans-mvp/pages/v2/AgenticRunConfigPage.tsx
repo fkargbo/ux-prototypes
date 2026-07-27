@@ -365,7 +365,7 @@ export const AgenticRunConfigPage: React.FC = () => {
 
       <AiHubPageHeading>
         <Title headingLevel="h1" size="2xl">
-          Agentic runs configuration
+          Configuration
         </Title>
         <Tabs
           activeKey={activeTab}

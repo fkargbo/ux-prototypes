@@ -46,10 +46,10 @@ export const AIHubPageV2: React.FC = () => {
               </Icon>
             </Button>
           </Tooltip>
-          <Tooltip content="Agentic runs settings">
+          <Tooltip content="Agentic runs configuration">
             <Button
               variant="plain"
-              aria-label="Agentic runs settings"
+              aria-label="Agentic runs configuration"
               onClick={() => navigate('/v2/ai-hub/observe/plans/config')}
             >
               <Icon size="xl">
