@@ -39,10 +39,39 @@
   width: 100%;
 }
 
-/* Settings row: fixed ~52px row height (label vertically centered against the control). */
+/* 24px between the Approval policy description and the settings list. */
+.ols-ai-hub-page .ols-ai-hub-config-approval-description {
+  margin-block-end: 0 !important;
+}
+
+.ols-ai-hub-page .ols-ai-hub-config-approval-description .pf-v6-c-content,
+.ols-ai-hub-page .ols-ai-hub-config-approval-description.pf-v6-c-content,
+.ols-ai-hub-page .ols-ai-hub-config-approval-description p {
+  margin-block-end: 0 !important;
+}
+
+/* Kill PF Form's default vertical grid gap so row height is predictable. */
+.ols-ai-hub-page .ols-ai-hub-config-approval-form.pf-v6-c-form {
+  margin-block-start: 24px !important;
+  gap: 0 !important;
+}
+
+/*
+ * Settings row: fixed 52px height with an embedded bottom divider (replaces
+ * separate <Divider> siblings that were inflated by Form grid gap).
+ */
 .ols-ai-hub-page .ols-ai-hub-config-policy-row {
+  box-sizing: border-box !important;
+  height: 52px !important;
   min-height: 52px !important;
+  max-height: 52px !important;
   padding-block: 0 !important;
+  border-block-end: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+}
+
+.ols-ai-hub-page .ols-ai-hub-config-policy-row--last {
+  border-block-end: none !important;
 }
 
 .ols-ai-hub-page-heading-actions {

@@ -8,7 +8,6 @@ import {
   BreadcrumbItem,
   Button,
   Content,
-  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -153,12 +152,14 @@ const RowActionsMenu: React.FC<{
 };
 
 /** A single labeled settings row — label on the left, control on the right. */
-const PolicyRow: React.FC<{ label: string; fieldId?: string; children: React.ReactNode }> = ({
-  label,
-  children,
-}) => (
+const PolicyRow: React.FC<{
+  label: string;
+  fieldId?: string;
+  isLast?: boolean;
+  children: React.ReactNode;
+}> = ({ label, isLast = false, children }) => (
   <Flex
-    className="ols-ai-hub-config-policy-row"
+    className={`ols-ai-hub-config-policy-row${isLast ? ' ols-ai-hub-config-policy-row--last' : ''}`}
     justifyContent={{ default: 'justifyContentSpaceBetween' }}
     alignItems={{ default: 'alignItemsCenter' }}
   >
@@ -205,22 +206,15 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
 
   return (
     <>
-      <Content component="p">
+      <Content component="p" className="ols-ai-hub-config-approval-description">
         Configure whether each workflow stage requires manual approval or runs automatically.
       </Content>
-      <Form
-        className="ols-ai-hub-config-content-width"
-        style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
-      >
+      <Form className="ols-ai-hub-config-content-width ols-ai-hub-config-approval-form">
         {renderToggleRow('Analysis', 'Analysis policy', analysisPolicy, setAnalysisPolicy)}
-        <Divider />
         {renderToggleRow('Execution', 'Execution policy', executionPolicy, setExecutionPolicy)}
-        <Divider />
         {renderToggleRow('Verification', 'Verification policy', verificationPolicy, setVerificationPolicy)}
-        <Divider />
         {renderToggleRow('Escalation', 'Escalation policy', escalationPolicy, setEscalationPolicy)}
-        <Divider />
-        <PolicyRow label="Max retry attempts" fieldId="max-retry-attempts">
+        <PolicyRow label="Max retry attempts" fieldId="max-retry-attempts" isLast>
           <NumberInput
             id="max-retry-attempts"
             value={maxRetryAttempts}
