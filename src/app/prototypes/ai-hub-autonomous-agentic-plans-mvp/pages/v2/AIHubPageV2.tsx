@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Content, Flex, FlexItem, Title, Tooltip } from '@patternfly/react-core';
+import { Button, Content, Flex, FlexItem, Icon, Title, Tooltip } from '@patternfly/react-core';
 import { InfoCircleIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
@@ -28,6 +28,23 @@ export const AIHubPageV2: React.FC = () => {
   return (
     <div className="ols-ai-hub-page ols-ai-hub-page--v3 ols-ai-hub-page--list" data-exp-lab-annotation-root>
       <AiHubPageHeading>
+        <div className="ols-ai-hub-page-heading-actions">
+          <Tooltip content={isFavorited ? 'Remove from favorites' : 'Add to favorites'}>
+            <Button
+              variant="plain"
+              aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+              onClick={handleStarClick}
+            >
+              <Icon size="lg">
+                {isFavorited ? (
+                  <StarIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)' }} />
+                ) : (
+                  <OutlinedStarIcon />
+                )}
+              </Icon>
+            </Button>
+          </Tooltip>
+        </div>
         <div className="ols-ai-hub-page-header-primary">
           <Hub.AiExperienceIcon size={40} />
           <div className="ols-ai-hub-page-header-copy">
@@ -39,22 +56,6 @@ export const AIHubPageV2: React.FC = () => {
               </FlexItem>
               <FlexItem>
                 <TechPreviewBadge />
-              </FlexItem>
-              <FlexItem>
-                <Tooltip content={isFavorited ? 'Remove from favorites' : 'Add to favorites'}>
-                  <Button
-                    variant="plain"
-                    aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-                    onClick={handleStarClick}
-                    style={{ padding: '2px' }}
-                  >
-                    {isFavorited ? (
-                      <StarIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)' }} />
-                    ) : (
-                      <OutlinedStarIcon />
-                    )}
-                  </Button>
-                </Tooltip>
               </FlexItem>
             </Flex>
             <Content component="p" className="ols-ai-hub-page-disclaimer">
