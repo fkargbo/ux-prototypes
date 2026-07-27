@@ -35,7 +35,7 @@ export const AIHubPageV2: React.FC = () => {
               aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
               onClick={handleStarClick}
             >
-              <Icon size="lg">
+              <Icon size="xl">
                 {isFavorited ? (
                   <StarIcon style={{ color: 'var(--pf-t--global--color--status--warning--default)' }} />
                 ) : (
