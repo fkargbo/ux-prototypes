@@ -276,14 +276,6 @@
   margin-block-start: 0;
 }
 
-/* When agentic capabilities are off, suppress row hover background and
-   set a non-interactive cursor so the table reads as read-only.
-   Needs .ols-ai-hub-page scope + !important to beat the base rule at line 83
-   which applies background-color !important to all tables on the page. */
-.ols-ai-hub-page .pf-v6-c-table.ols-plans-table--capabilities-off tbody tr:hover {
-  background-color: transparent !important;
-  cursor: default;
-}
 
 /* Increase vertical spacing between inventory bar and widget cards. */
 .ols-ai-hub-main-stack.pf-v6-l-stack.pf-m-gutter {
@@ -835,11 +827,6 @@ body:has(.ols-ai-hub-page),
 
 :root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table tbody tr:hover {
   background-color: var(--pf-t--global--background--color--primary--hover) !important;
-}
-
-:root.pf-v6-theme-glass .ols-ai-hub-page .pf-v6-c-table.ols-plans-table--capabilities-off tbody tr:hover {
-  background-color: transparent !important;
-  cursor: default;
 }
 
 /*

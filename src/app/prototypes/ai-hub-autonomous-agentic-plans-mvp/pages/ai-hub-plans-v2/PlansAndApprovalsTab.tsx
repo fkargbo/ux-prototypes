@@ -2490,12 +2490,10 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 }) => (
   <Table
     aria-label={ariaLabel}
-    className={`ols-plans-table${isAgenticAutomationEnabled ? '' : ' ols-plans-table--capabilities-off'}`}
+    className="ols-plans-table"
     style={{
       tableLayout: 'fixed',
       width: '100%',
-      opacity: isAgenticAutomationEnabled ? 1 : 0.55,
-      transition: 'opacity 200ms ease',
     }}
   >
     <Thead>
@@ -2527,7 +2525,6 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                 <Button
                   variant="link"
                   isInline
-                  isDisabled={!isAgenticAutomationEnabled}
                   onClick={() => onReviewPlan(row)}
                   style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
                 >
@@ -3866,7 +3863,12 @@ export const RemediationBlueprintPanel: React.FC<{
             Remediation hub
           </Title>
           {onRemediateInClusterUpdates ? (
-            <Button variant="link" isInline onClick={onRemediateInClusterUpdates}>
+            <Button
+              variant="link"
+              isInline
+              isDisabled={!isAgenticAutomationEnabled}
+              onClick={onRemediateInClusterUpdates}
+            >
               Remediate in Cluster Updates
             </Button>
           ) : (
@@ -3910,7 +3912,11 @@ export const RemediationBlueprintPanel: React.FC<{
         </EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button variant="primary" onClick={() => dispatchAnalysis(plan.id)}>
+            <Button
+              variant="primary"
+              isDisabled={!isAgenticAutomationEnabled}
+              onClick={() => dispatchAnalysis(plan.id)}
+            >
               Analyze with AI
             </Button>
           </EmptyStateActions>
@@ -3977,7 +3983,7 @@ export const RemediationBlueprintPanel: React.FC<{
       )}
       {isDenied && (
         <StackItem>
-          <DeniedPlanBanner onStartNewInvestigation={onStartNewInvestigation} />
+          <DeniedPlanBanner onStartNewInvestigation={isAgenticAutomationEnabled ? onStartNewInvestigation : undefined} />
         </StackItem>
       )}
       {isEmergencyStopped && (
@@ -4369,7 +4375,11 @@ export const RemediationBlueprintPanel: React.FC<{
               {isProposed && onRejectPlan && (
                 <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <FlexItem>
-                    <Button variant="secondary" onClick={() => setIsDenyModalOpen(true)}>
+                    <Button
+                      variant="secondary"
+                      isDisabled={!isAgenticAutomationEnabled}
+                      onClick={() => setIsDenyModalOpen(true)}
+                    >
                       Deny run
                     </Button>
                   </FlexItem>
@@ -4521,7 +4531,11 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* ── Stop execution action (Executing state only) ──────────────── */}
       {isExecutionPhase && !executionKillState && (
         <StackItem>
-          <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)}>
+          <Button
+            variant="danger"
+            isDisabled={!isAgenticAutomationEnabled}
+            onClick={() => setIsStopExecutionModalOpen(true)}
+          >
             Stop execution
           </Button>
           <Modal
@@ -4556,7 +4570,11 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* ── Stop analysis action (Analyzing state only) ──────────────── */}
       {isAnalyzing && (
         <StackItem>
-          <Button variant="danger" onClick={() => setIsStopAnalysisModalOpen(true)}>
+          <Button
+            variant="danger"
+            isDisabled={!isAgenticAutomationEnabled}
+            onClick={() => setIsStopAnalysisModalOpen(true)}
+          >
             Stop analysis
           </Button>
           <Modal
@@ -4591,7 +4609,7 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* ── Escalate to human action (Failed state only) ──────────────── */}
       {status === 'Failed' && (
         <StackItem>
-          <Button variant="secondary">
+          <Button variant="secondary" isDisabled={!isAgenticAutomationEnabled}>
             Escalate to human
           </Button>
         </StackItem>
@@ -4716,15 +4734,12 @@ export const PlansAndApprovalsTab: React.FC = () => {
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
-    if (!isAgenticAutomationEnabled) {
-      return;
-    }
     const perspectiveKey: AppShellPerspectiveKey =
       perspectiveKeyFromShellName(activePerspective)
       ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
     writePlanRemediationDrillSession({ perspectiveKey });
     navigate(getPlanDetailHref(plan, perspectiveKey));
-  }, [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate]);
+  }, [activePerspective, isSingleCluster, navigate]);
 
   return (
     <Stack>
