@@ -14,6 +14,7 @@ import { AcsPlanDetailPageV2 } from './pages/v2/AcsPlanDetailPageV2';
 import { TroubleshootingPlanDetailV2 } from './pages/v2/TroubleshootingPlanDetailV2';
 import { ClusterUpdatePageV2 } from './pages/v2/ClusterUpdatePageV2';
 import { AdminPlaceholderPage } from './pages/v2/AdminPlaceholderPage';
+import { AgenticRunConfigPage } from './pages/v2/AgenticRunConfigPage';
 
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from './prototypePerspectiveUrl';
 
@@ -170,6 +171,11 @@ export const routes: RouteConfig[] = [
     // No sidebar entry here — the "Agentic Runs" nav item lives on the
     // /core/observe/ai-hub/plans route above (see comment there for why).
     title: 'Agentic runs',
+  },
+  {
+    path: '/v2/ai-hub/observe/plans/config',
+    element: withPerspectiveUrlSync(<AgenticRunConfigPage />),
+    title: 'Agentic runs configuration',
   },
   {
     path: '/v2/ai-hub/observe/plans/:planSlug/remediation',
