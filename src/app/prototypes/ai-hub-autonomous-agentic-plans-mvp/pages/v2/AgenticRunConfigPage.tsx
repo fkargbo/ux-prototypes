@@ -113,6 +113,9 @@ const INITIAL_AGENTS: AgentRow[] = [
 
 const AGENTIC_RUNS_LIST_PATH = '/v2/ai-hub/observe/plans';
 
+/** Constrains the settings content (and the Tabs bottom divider above it) to a readable, non-full-bleed width. */
+const CONFIG_CONTENT_MAX_WIDTH = '600px';
+
 // ─── Row actions menu (shared by both config tables) ──────────────────────────
 
 const RowActionsMenu: React.FC<{
@@ -160,7 +163,7 @@ const PolicyRow: React.FC<{ label: string; fieldId?: string; children: React.Rea
   <Flex
     justifyContent={{ default: 'justifyContentSpaceBetween' }}
     alignItems={{ default: 'alignItemsCenter' }}
-    style={{ paddingBlock: 'var(--pf-t--global--spacer--md)' }}
+    style={{ paddingBlock: 'var(--pf-t--global--spacer--sm)' }}
   >
     <FlexItem>
       <Content component="p" className="pf-v6-u-mb-0">
@@ -177,7 +180,7 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   const navigate = useNavigate();
   const [analysisPolicy, setAnalysisPolicy] = useState<ApprovalMode>('manual');
   const [executionPolicy, setExecutionPolicy] = useState<ApprovalMode>('manual');
-  const [verificationPolicy, setVerificationPolicy] = useState<ApprovalMode>('auto');
+  const [verificationPolicy, setVerificationPolicy] = useState<ApprovalMode>('manual');
   const [escalationPolicy, setEscalationPolicy] = useState<ApprovalMode>('manual');
   const [maxRetryAttempts, setMaxRetryAttempts] = useState(3);
 
@@ -208,7 +211,7 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
       <Content component="p">
         Configure whether each workflow stage requires manual approval or runs automatically.
       </Content>
-      <Form style={{ marginTop: 'var(--pf-t--global--spacer--md)', maxWidth: '560px' }}>
+      <Form style={{ marginTop: 'var(--pf-t--global--spacer--md)', maxWidth: CONFIG_CONTENT_MAX_WIDTH }}>
         {renderToggleRow('Analysis', 'Analysis policy', analysisPolicy, setAnalysisPolicy)}
         <Divider />
         {renderToggleRow('Execution', 'Execution policy', executionPolicy, setExecutionPolicy)}
@@ -398,16 +401,18 @@ export const AgenticRunConfigPage: React.FC = () => {
             <TechPreviewBadge />
           </FlexItem>
         </Flex>
-        <Tabs
-          activeKey={activeTab}
-          onSelect={(_event, tabKey) => setActiveTab(tabKey as AgenticRunConfigTabKey)}
-          aria-label="Agentic runs configuration sections"
-          className="pf-v6-u-mt-md"
-        >
-          <Tab eventKey="approval-policy" title={<TabTitleText>Approval policy</TabTitleText>} />
-          <Tab eventKey="llm-providers" title={<TabTitleText>LLM providers</TabTitleText>} />
-          <Tab eventKey="agents" title={<TabTitleText>Agents</TabTitleText>} />
-        </Tabs>
+        <div style={{ maxWidth: CONFIG_CONTENT_MAX_WIDTH }}>
+          <Tabs
+            activeKey={activeTab}
+            onSelect={(_event, tabKey) => setActiveTab(tabKey as AgenticRunConfigTabKey)}
+            aria-label="Agentic runs configuration sections"
+            className="pf-v6-u-mt-md"
+          >
+            <Tab eventKey="approval-policy" title={<TabTitleText>Approval policy</TabTitleText>} />
+            <Tab eventKey="llm-providers" title={<TabTitleText>LLM providers</TabTitleText>} />
+            <Tab eventKey="agents" title={<TabTitleText>Agents</TabTitleText>} />
+          </Tabs>
+        </div>
       </AiHubPageHeading>
 
       <div
