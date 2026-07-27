@@ -1778,11 +1778,23 @@ limits.memory    62Gi    64Gi
 
 // ─── Remediation options data ────────────────────────────────────────────────
 
+/** Per-option diagnosis payload (backend: options[].diagnosis). OLS-3724. */
+export type OptionDiagnosis = {
+  aggregatedFinding: string;
+  rootCauseNarrative: string;
+};
+
 export interface RemediationOption {
   id: string;
   title: string;
   description: string;
   risk: RemediationRisk;
+  /**
+   * Per-option root cause analysis (backend: options[].diagnosis).
+   * When remediation options exist, top-level diagnosis is omitted and each option
+   * carries its own RCA — see OLS-3724.
+   */
+  diagnosis?: OptionDiagnosis;
   /** Diagnosis confidence for this remediation path (backend: options[].diagnosis.confidence). */
   confidence?: ConfidenceTier;
   /** Rollback assessment (backend: options[].proposal.reversible). */
@@ -1791,11 +1803,89 @@ export interface RemediationOption {
   rawCommands: string;
 }
 
+/**
+ * Ensures every remediation option has a 1:1 diagnosis (OLS-3724).
+ * Uses explicit `option.diagnosis` when present; otherwise derives a path-specific
+ * RCA from the plan-level drawer so multi-option runs never collapse findings.
+ */
+function enrichRemediationOptionsWithDiagnosis(
+  options: RemediationOption[],
+  drawer?: { aggregatedFinding: string; rootCauseNarrative: string },
+): RemediationOption[] {
+  if (options.length === 0) return options;
+  return options.map((opt) => {
+    if (opt.diagnosis) return opt;
+    if (!drawer) {
+      return {
+        ...opt,
+        diagnosis: {
+          aggregatedFinding: opt.title,
+          rootCauseNarrative: opt.description,
+        },
+      };
+    }
+    if (options.length === 1) {
+      return {
+        ...opt,
+        diagnosis: {
+          aggregatedFinding: drawer.aggregatedFinding,
+          rootCauseNarrative: drawer.rootCauseNarrative,
+        },
+      };
+    }
+    const desc =
+      opt.description.charAt(0).toLowerCase() + opt.description.slice(1);
+    return {
+      ...opt,
+      diagnosis: {
+        aggregatedFinding: drawer.aggregatedFinding,
+        rootCauseNarrative: `${drawer.rootCauseNarrative} This option (“${opt.title}”) remediates that root cause by ${desc}`,
+      },
+    };
+  });
+}
+
 const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
   tp1: [
-    { id: 'tp1-o1', title: 'Automated fleet rollback via GitOps controller', description: 'Revert the ApplicationSet to revision r4891 and trigger a fleet-wide hard sync via the ArgoCD GitOps controller.', risk: 'low', reversible: 'Reversible', model: 'smart', rawCommands: 'argocd app sync cluster-ingress-controller --prune --force' },
-    { id: 'tp1-o2', title: 'Manual cluster-by-cluster ArgoCD sync override', description: 'Force-sync each affected cluster individually via the ArgoCD CLI, bypassing the ApplicationSet controller.', risk: 'medium', reversible: 'Reversible', model: 'fast', rawCommands: 'argocd app sync cluster-ingress-controller --revision HEAD~1 --local' },
-    { id: 'tp1-o3', title: 'Full ApplicationSet deletion and recreation', description: 'Delete the faulty ApplicationSet entirely and redeploy from the canonical Git source.', risk: 'high', reversible: 'Irreversible', model: 'fast', rawCommands: 'argocd app delete cluster-ingress-controller --cascade && git checkout HEAD~1 -- config/applicationset.yaml && argocd app create -f config/applicationset.yaml' },
+    {
+      id: 'tp1-o1',
+      title: 'Automated fleet rollback via GitOps controller',
+      description: 'Revert the ApplicationSet to revision r4891 and trigger a fleet-wide hard sync via the ArgoCD GitOps controller.',
+      risk: 'low',
+      reversible: 'Reversible',
+      model: 'smart',
+      rawCommands: 'argocd app sync cluster-ingress-controller --prune --force',
+      diagnosis: {
+        aggregatedFinding: 'ArgoCD revision r4892 applied a malformed ApplicationSet template that mismatched live cluster state across 4 fleets.',
+        rootCauseNarrative: 'A faulty Argo CD ApplicationSet push (revision r4892) propagated conflicting Kustomize overlays. Fleet-wide rollback to r4891 via the GitOps controller is the lowest-risk path to restore declared state.',
+      },
+    },
+    {
+      id: 'tp1-o2',
+      title: 'Manual cluster-by-cluster ArgoCD sync override',
+      description: 'Force-sync each affected cluster individually via the ArgoCD CLI, bypassing the ApplicationSet controller.',
+      risk: 'medium',
+      reversible: 'Reversible',
+      model: 'fast',
+      rawCommands: 'argocd app sync cluster-ingress-controller --revision HEAD~1 --local',
+      diagnosis: {
+        aggregatedFinding: 'Per-cluster Argo CD sync state diverged after ApplicationSet r4892; three clusters remain on the faulty overlay.',
+        rootCauseNarrative: 'Individual Application controllers still hold the bad sync revision. Manual cluster-by-cluster sync override restores healthy revisions without deleting the ApplicationSet controller object.',
+      },
+    },
+    {
+      id: 'tp1-o3',
+      title: 'Full ApplicationSet deletion and recreation',
+      description: 'Delete the faulty ApplicationSet entirely and redeploy from the canonical Git source.',
+      risk: 'high',
+      reversible: 'Irreversible',
+      model: 'fast',
+      rawCommands: 'argocd app delete cluster-ingress-controller --cascade && git checkout HEAD~1 -- config/applicationset.yaml && argocd app create -f config/applicationset.yaml',
+      diagnosis: {
+        aggregatedFinding: 'ApplicationSet object itself cannot reconcile cleanly after revision r4892 — incremental sync will not clear the drift.',
+        rootCauseNarrative: 'Controller-level repair failed. Deleting and recreating the ApplicationSet from the canonical Git source is required when hard sync cannot restore a consistent desired state.',
+      },
+    },
   ],
   tp2: [],
   tp3: [
@@ -2909,6 +2999,38 @@ const RemediationOptionCard: React.FC<{
             {option.description}
           </Content>
 
+          {/* Per-option RCA (backend: options[].diagnosis) — OLS-3724 */}
+          {rootCause && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Content
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 'var(--pf-t--global--spacer--xs)',
+                }}
+              >
+                Root cause analysis
+              </Content>
+              <div
+                className={`ols-aio-rca-box ${
+                  plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning'
+                }`}
+                style={{ borderRadius: '12px', overflow: 'hidden' }}
+              >
+                <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                  {rootCause.aggregatedFinding}
+                </Content>
+                <Content component="p" style={{ margin: 0 }}>
+                  {rootCause.rootCauseNarrative}
+                </Content>
+              </div>
+            </div>
+          )}
+
           {/* Execution status (Executing only) */}
           {isExecutionPhase && isFirst && isExecutionKilled && (
             <Alert
@@ -3688,11 +3810,28 @@ export const RemediationBlueprintPanel: React.FC<{
 
   const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
-  const options = enrichRemediationOptionsWithConfidence(
-    plan.id,
-    applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster),
-    drawer?.confidence,
+  const options = enrichRemediationOptionsWithDiagnosis(
+    enrichRemediationOptionsWithConfidence(
+      plan.id,
+      applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster),
+      drawer?.confidence,
+    ),
+    drawer,
   );
+  /**
+   * OLS-3724 mutual exclusivity:
+   * - When remediation options exist, each card renders its own RCA — hide top-level.
+   * - Show top-level RCA for analyzing, analysis-only, no-options, verifying (hub shows
+   *   VerificationPanel instead of option cards), and escalation handoff states.
+   */
+  const showPerOptionRca =
+    options.length > 0 &&
+    !isAnalysisOnly &&
+    !isAnalyzing &&
+    !isEscalated &&
+    !isEscalating &&
+    !isVerifying;
+  const showTopLevelRca = !showPerOptionRca;
   const optionCount = options.length;
   const visibleOptionCount = isOptionLocked ? 1 : optionCount;
   const optionLabel = visibleOptionCount === 1 ? '1 remediation option' : `${visibleOptionCount} remediation options`;
@@ -3802,7 +3941,7 @@ export const RemediationBlueprintPanel: React.FC<{
             style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
           >
             <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-              Root cause analysis (RCA)
+              Root cause analysis
             </Title>
             <Label color="grey" isCompact>AI-generated</Label>
           </Flex>
@@ -3811,7 +3950,7 @@ export const RemediationBlueprintPanel: React.FC<{
           ) : (
             <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
               <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                <span className="ols-aio-text-overline">Detected Root Cause</span>
+                <span className="ols-aio-text-overline">Detected root cause</span>
               </div>
               <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.aggregatedFinding}
@@ -4024,7 +4163,8 @@ export const RemediationBlueprintPanel: React.FC<{
         </StackItem>
       )}
 
-      {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
+      {/* ── Section A: Root cause analysis (top-level; OLS-3724 mutual exclusivity) ── */}
+      {showTopLevelRca && (
       <StackItem>
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
@@ -4032,7 +4172,7 @@ export const RemediationBlueprintPanel: React.FC<{
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
         >
           <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-            Root cause analysis (RCA)
+            Root cause analysis
           </Title>
           <Label color="grey" isCompact>AI-generated</Label>
         </Flex>
@@ -4043,7 +4183,7 @@ export const RemediationBlueprintPanel: React.FC<{
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <span className="ols-aio-text-overline">Detected Root Cause</span>
+              <span className="ols-aio-text-overline">Detected root cause</span>
             </div>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.aggregatedFinding}
@@ -4107,6 +4247,7 @@ export const RemediationBlueprintPanel: React.FC<{
           </div>
           )}
       </StackItem>
+      )}
 
       {/* ── Section C: Remediation Hub (or investigation-only) ─────────── */}
       <StackItem>
@@ -4280,10 +4421,7 @@ export const RemediationBlueprintPanel: React.FC<{
                         isExecutionPhase={false}
                         isOptionLocked={false}
                         showExecutionLog={false}
-                        rootCause={{
-                          aggregatedFinding: drawer!.aggregatedFinding,
-                          rootCauseNarrative: drawer!.rootCauseNarrative,
-                        }}
+                        rootCause={opt.diagnosis}
                       />
                     </StackItem>
                   );
@@ -4306,10 +4444,7 @@ export const RemediationBlueprintPanel: React.FC<{
                       isExecutionPhase={false}
                       isOptionLocked={false}
                       showExecutionLog={false}
-                      rootCause={{
-                        aggregatedFinding: drawer!.aggregatedFinding,
-                        rootCauseNarrative: drawer!.rootCauseNarrative,
-                      }}
+                      rootCause={opt.diagnosis}
                     />
                   </StackItem>
                 );
@@ -4333,6 +4468,7 @@ export const RemediationBlueprintPanel: React.FC<{
                           isExecutionPhase={false}
                           isOptionLocked={false}
                           showExecutionLog={false}
+                          rootCause={opt.diagnosis}
                         />
                       </StackItem>
                     );
@@ -4383,10 +4519,7 @@ export const RemediationBlueprintPanel: React.FC<{
                           isExecutionPhase={isExecutionPhase}
                           isOptionLocked={isOptionLocked}
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
-                          rootCause={{
-                            aggregatedFinding: drawer!.aggregatedFinding,
-                            rootCauseNarrative: drawer!.rootCauseNarrative,
-                          }}
+                          rootCause={opt.diagnosis}
                           onExecute={isProposed ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
                         />
                       </StackItem>
