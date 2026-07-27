@@ -41,6 +41,53 @@ export function generateAnalysisLogs(planId: string, finding: string, narrative:
 
 const HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
 
+export type EvidenceLogFormat = 'txt' | 'json';
+
+/**
+ * Builds `evidence-log-[runId]-[timestamp].(txt|json)` —
+ * e.g. `evidence-log-run-9482a-20260727.txt`.
+ */
+export function buildEvidenceLogFilename(runId: string, format: EvidenceLogFormat = 'txt'): string {
+  const slug = (runId || 'run').replace(/[^a-z0-9._-]+/gi, '-').toLowerCase();
+  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  return `evidence-log-${slug}-${timestamp}.${format}`;
+}
+
+/**
+ * Mock download handler: Blob + anchor click for raw `.txt` or structured `.json` evidence.
+ * Always exports the full unfiltered audit trace, independent of search / health-check filters.
+ */
+export function downloadEvidenceLogFile(
+  runId: string,
+  logText: string,
+  format: EvidenceLogFormat = 'txt',
+): void {
+  const filename = buildEvidenceLogFilename(runId, format);
+  const body =
+    format === 'json'
+      ? JSON.stringify(
+          {
+            runId,
+            exportedAt: new Date().toISOString(),
+            format: 'agentic-analysis-evidence',
+            lineCount: logText.split('\n').filter(Boolean).length,
+            lines: logText.split('\n'),
+            raw: logText,
+          },
+          null,
+          2,
+        )
+      : logText;
+  const mime = format === 'json' ? 'application/json' : 'text/plain';
+  const blob = new Blob([body], { type: `${mime};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export type AnalysisLogsExpandableProps = {
   planId: string;
   finding: string;
@@ -50,8 +97,10 @@ export type AnalysisLogsExpandableProps = {
 };
 
 /**
- * Exact "View analysis logs" ExpandableSection previously embedded in the
- * top-level RCA card — search, hide-health-checks, and ExpandableCodeBlock.
+ * "View analysis logs" ExpandableSection — search, hide-health-checks,
+ * ExpandableCodeBlock with Copy + Download log file. Hosted on the Timeline
+ * Analysis completed step so it remains available when the top-level RCA card
+ * is hidden (OLS-3724).
  */
 export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
   planId,
@@ -106,7 +155,10 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
         <ExpandableCodeBlock
           id={`${idPrefix}-${planId}`}
           code={displayLogs}
+          clipboardCode={rawLogs}
           codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+          onDownload={() => downloadEvidenceLogFile(planId, rawLogs, 'txt')}
+          downloadAriaLabel="Download log file"
         />
       </div>
     </ExpandableSection>
