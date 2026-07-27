@@ -84,9 +84,9 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
           gap={{ default: 'gapMd' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+          style={{ marginBottom: 'calc(var(--pf-t--global--spacer--xs) + 4px)' }}
         >
-          <FlexItem grow={{ default: 'grow' }}>
+          <FlexItem style={{ width: '200px', maxWidth: '200px', flexShrink: 0 }}>
             <SearchInput
               value={query}
               onChange={(_evt, val) => setQuery(val)}
