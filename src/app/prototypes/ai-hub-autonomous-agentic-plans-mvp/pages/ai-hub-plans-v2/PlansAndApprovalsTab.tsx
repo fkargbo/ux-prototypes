@@ -3674,7 +3674,7 @@ export const RemediationBlueprintPanel: React.FC<{
   }, [plan.id]);
 
   useEffect(() => {
-    if (!isExecuting) {
+    if (!isExecuting || !isAgenticAutomationEnabled) {
       setIsExecutionRunning(false);
       return;
     }
@@ -3684,7 +3684,7 @@ export const RemediationBlueprintPanel: React.FC<{
       setIsExecutionRunning(false);
     }, 4000);
     return () => window.clearTimeout(timer);
-  }, [isExecuting, plan.id, startVerification, workflow.verification?.attempt]);
+  }, [isExecuting, isAgenticAutomationEnabled, plan.id, startVerification, workflow.verification?.attempt]);
 
   const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
@@ -3753,6 +3753,7 @@ export const RemediationBlueprintPanel: React.FC<{
   };
 
   const handleVerificationComplete = useCallback(() => {
+    if (!isAgenticAutomationEnabled) return;
     const verification = workflow.verification;
     if (!verification || verification.outcome) {
       return;
@@ -3764,7 +3765,7 @@ export const RemediationBlueprintPanel: React.FC<{
         `Verification failed — retrying execution (attempt ${verification.attempt + 1} of ${verification.maxAttempts})`,
       );
     }
-  }, [completeVerification, plan.id, workflow.verification]);
+  }, [completeVerification, isAgenticAutomationEnabled, plan.id, workflow.verification]);
 
   if (!drawer && !isEscalating && !isPending && !isAnalyzing) return null;
 
