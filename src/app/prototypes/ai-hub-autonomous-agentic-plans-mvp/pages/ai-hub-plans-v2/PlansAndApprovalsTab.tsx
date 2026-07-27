@@ -2788,7 +2788,7 @@ const RemediationOptionCard: React.FC<{
   const streamedExecutionLog = useStreamingExecutionLog(
     activeExecutionLogLines,
     showExecutionLog,
-    isExecutionKilled,
+    isExecutionKilled || !isAgenticAutomationEnabled,
   );
 
   // Reset inner states when the card is collapsed / deselected.
@@ -3911,12 +3911,18 @@ export const RemediationBlueprintPanel: React.FC<{
   if (isPending) {
     return pendingSubState === 'INITIALIZING' ? (
       <EmptyState
-        titleText="Initializing plan..."
+        titleText={isAgenticAutomationEnabled ? 'Initializing plan...' : 'Analysis suspended'}
         headingLevel="h4"
-        icon={() => <Spinner size="lg" aria-label="Initializing" />}
+        icon={() => isAgenticAutomationEnabled
+          ? <Spinner size="lg" aria-label="Initializing" />
+          : <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', fontSize: '2rem' }} aria-hidden />
+        }
       >
         <EmptyStateBody>
-          The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.
+          {isAgenticAutomationEnabled
+            ? 'The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.'
+            : 'Agentic capabilities are disabled. Analysis cannot be dispatched until capabilities are re-enabled by an administrator.'
+          }
         </EmptyStateBody>
       </EmptyState>
     ) : (
@@ -4342,7 +4348,7 @@ export const RemediationBlueprintPanel: React.FC<{
           ) : isVerifying && verificationState ? (
             <VerificationPanel
               verification={verificationState}
-              isLive={Boolean(workflow.verification) && !showStaticVerification}
+              isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
               onComplete={handleVerificationComplete}
             />
           ) : (
@@ -4358,7 +4364,6 @@ export const RemediationBlueprintPanel: React.FC<{
               <div
                 style={{
                   opacity: !isAgenticAutomationEnabled ? 0.55 : 1,
-                  pointerEvents: !isAgenticAutomationEnabled ? 'none' : undefined,
                   transition: 'opacity 300ms ease',
                 }}
               >
