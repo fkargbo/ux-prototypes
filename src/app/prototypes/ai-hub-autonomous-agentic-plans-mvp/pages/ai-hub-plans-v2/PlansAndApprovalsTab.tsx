@@ -4356,8 +4356,8 @@ export const RemediationBlueprintPanel: React.FC<{
 
               <div
                 style={{
-                  opacity: !isAgenticAutomationEnabled && !isExecutionPhase ? 0.55 : 1,
-                  pointerEvents: !isAgenticAutomationEnabled && !isExecutionPhase ? 'none' : undefined,
+                  opacity: !isAgenticAutomationEnabled ? 0.55 : 1,
+                  pointerEvents: !isAgenticAutomationEnabled ? 'none' : undefined,
                   transition: 'opacity 300ms ease',
                 }}
               >
