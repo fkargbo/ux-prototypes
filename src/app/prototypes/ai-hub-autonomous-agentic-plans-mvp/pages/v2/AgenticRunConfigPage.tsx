@@ -400,7 +400,7 @@ export const AgenticRunConfigPage: React.FC = () => {
           activeKey={activeTab}
           onSelect={(_event, tabKey) => setActiveTab(tabKey as AgenticRunConfigTabKey)}
           aria-label="Agentic runs configuration sections"
-          className="pf-v6-u-mt-md ols-ai-hub-config-tabs"
+          className="ols-ai-hub-config-tabs"
         >
           <Tab eventKey="approval-policy" title={<TabTitleText>Approval policy</TabTitleText>} />
           <Tab eventKey="llm-providers" title={<TabTitleText>LLM providers</TabTitleText>} />

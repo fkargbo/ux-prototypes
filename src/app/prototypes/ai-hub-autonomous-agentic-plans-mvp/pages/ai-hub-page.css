@@ -50,6 +50,11 @@
 }
 
 .ols-ai-hub-page.ols-ai-hub-config-page .ols-ai-hub-config-tabs.pf-v6-c-tabs {
+  /*
+   * Title → tabs: spacer--lg (24px). Matches PatternFly page-section padding
+   * and the recommended gap under a page header title before primary header tabs.
+   */
+  margin-block-start: var(--pf-t--global--spacer--lg) !important;
   /* Bleed past heading padding so the tab border spans the full section width. */
   width: calc(100% + 48px) !important;
   max-width: none !important;
