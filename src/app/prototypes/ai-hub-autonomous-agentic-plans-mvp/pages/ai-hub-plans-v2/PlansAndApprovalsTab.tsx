@@ -1778,11 +1778,23 @@ limits.memory    62Gi    64Gi
 
 // ─── Remediation options data ────────────────────────────────────────────────
 
+/** Per-option diagnosis payload (backend: options[].diagnosis). OLS-3724. */
+export type OptionDiagnosis = {
+  aggregatedFinding: string;
+  rootCauseNarrative: string;
+};
+
 export interface RemediationOption {
   id: string;
   title: string;
   description: string;
   risk: RemediationRisk;
+  /**
+   * Per-option root cause analysis (backend: options[].diagnosis).
+   * When remediation options exist, top-level diagnosis is omitted and each option
+   * carries its own RCA — see OLS-3724.
+   */
+  diagnosis?: OptionDiagnosis;
   /** Diagnosis confidence for this remediation path (backend: options[].diagnosis.confidence). */
   confidence?: ConfidenceTier;
   /** Rollback assessment (backend: options[].proposal.reversible). */
@@ -1791,11 +1803,89 @@ export interface RemediationOption {
   rawCommands: string;
 }
 
+/**
+ * Ensures every remediation option has a 1:1 diagnosis (OLS-3724).
+ * Uses explicit `option.diagnosis` when present; otherwise derives a path-specific
+ * RCA from the plan-level drawer so multi-option runs never collapse findings.
+ */
+function enrichRemediationOptionsWithDiagnosis(
+  options: RemediationOption[],
+  drawer?: { aggregatedFinding: string; rootCauseNarrative: string },
+): RemediationOption[] {
+  if (options.length === 0) return options;
+  return options.map((opt) => {
+    if (opt.diagnosis) return opt;
+    if (!drawer) {
+      return {
+        ...opt,
+        diagnosis: {
+          aggregatedFinding: opt.title,
+          rootCauseNarrative: opt.description,
+        },
+      };
+    }
+    if (options.length === 1) {
+      return {
+        ...opt,
+        diagnosis: {
+          aggregatedFinding: drawer.aggregatedFinding,
+          rootCauseNarrative: drawer.rootCauseNarrative,
+        },
+      };
+    }
+    const desc =
+      opt.description.charAt(0).toLowerCase() + opt.description.slice(1);
+    return {
+      ...opt,
+      diagnosis: {
+        aggregatedFinding: drawer.aggregatedFinding,
+        rootCauseNarrative: `${drawer.rootCauseNarrative} This option (“${opt.title}”) remediates that root cause by ${desc}`,
+      },
+    };
+  });
+}
+
 const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
   tp1: [
-    { id: 'tp1-o1', title: 'Automated fleet rollback via GitOps controller', description: 'Revert the ApplicationSet to revision r4891 and trigger a fleet-wide hard sync via the ArgoCD GitOps controller.', risk: 'low', reversible: 'Reversible', model: 'smart', rawCommands: 'argocd app sync cluster-ingress-controller --prune --force' },
-    { id: 'tp1-o2', title: 'Manual cluster-by-cluster ArgoCD sync override', description: 'Force-sync each affected cluster individually via the ArgoCD CLI, bypassing the ApplicationSet controller.', risk: 'medium', reversible: 'Reversible', model: 'fast', rawCommands: 'argocd app sync cluster-ingress-controller --revision HEAD~1 --local' },
-    { id: 'tp1-o3', title: 'Full ApplicationSet deletion and recreation', description: 'Delete the faulty ApplicationSet entirely and redeploy from the canonical Git source.', risk: 'high', reversible: 'Irreversible', model: 'fast', rawCommands: 'argocd app delete cluster-ingress-controller --cascade && git checkout HEAD~1 -- config/applicationset.yaml && argocd app create -f config/applicationset.yaml' },
+    {
+      id: 'tp1-o1',
+      title: 'Automated fleet rollback via GitOps controller',
+      description: 'Revert the ApplicationSet to revision r4891 and trigger a fleet-wide hard sync via the ArgoCD GitOps controller.',
+      risk: 'low',
+      reversible: 'Reversible',
+      model: 'smart',
+      rawCommands: 'argocd app sync cluster-ingress-controller --prune --force',
+      diagnosis: {
+        aggregatedFinding: 'ArgoCD revision r4892 applied a malformed ApplicationSet template that mismatched live cluster state across 4 fleets.',
+        rootCauseNarrative: 'A faulty Argo CD ApplicationSet push (revision r4892) propagated conflicting Kustomize overlays. Fleet-wide rollback to r4891 via the GitOps controller is the lowest-risk path to restore declared state.',
+      },
+    },
+    {
+      id: 'tp1-o2',
+      title: 'Manual cluster-by-cluster ArgoCD sync override',
+      description: 'Force-sync each affected cluster individually via the ArgoCD CLI, bypassing the ApplicationSet controller.',
+      risk: 'medium',
+      reversible: 'Reversible',
+      model: 'fast',
+      rawCommands: 'argocd app sync cluster-ingress-controller --revision HEAD~1 --local',
+      diagnosis: {
+        aggregatedFinding: 'Per-cluster Argo CD sync state diverged after ApplicationSet r4892; three clusters remain on the faulty overlay.',
+        rootCauseNarrative: 'Individual Application controllers still hold the bad sync revision. Manual cluster-by-cluster sync override restores healthy revisions without deleting the ApplicationSet controller object.',
+      },
+    },
+    {
+      id: 'tp1-o3',
+      title: 'Full ApplicationSet deletion and recreation',
+      description: 'Delete the faulty ApplicationSet entirely and redeploy from the canonical Git source.',
+      risk: 'high',
+      reversible: 'Irreversible',
+      model: 'fast',
+      rawCommands: 'argocd app delete cluster-ingress-controller --cascade && git checkout HEAD~1 -- config/applicationset.yaml && argocd app create -f config/applicationset.yaml',
+      diagnosis: {
+        aggregatedFinding: 'ApplicationSet object itself cannot reconcile cleanly after revision r4892 — incremental sync will not clear the drift.',
+        rootCauseNarrative: 'Controller-level repair failed. Deleting and recreating the ApplicationSet from the canonical Git source is required when hard sync cannot restore a consistent desired state.',
+      },
+    },
   ],
   tp2: [],
   tp3: [
@@ -2490,12 +2580,10 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 }) => (
   <Table
     aria-label={ariaLabel}
-    className={`ols-plans-table${isAgenticAutomationEnabled ? '' : ' ols-plans-table--capabilities-off'}`}
+    className="ols-plans-table"
     style={{
       tableLayout: 'fixed',
       width: '100%',
-      opacity: isAgenticAutomationEnabled ? 1 : 0.55,
-      transition: 'opacity 200ms ease',
     }}
   >
     <Thead>
@@ -2527,7 +2615,6 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                 <Button
                   variant="link"
                   isInline
-                  isDisabled={!isAgenticAutomationEnabled}
                   onClick={() => onReviewPlan(row)}
                   style={{ fontWeight: 400, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-word' }}
                 >
@@ -2791,7 +2878,7 @@ const RemediationOptionCard: React.FC<{
   const streamedExecutionLog = useStreamingExecutionLog(
     activeExecutionLogLines,
     showExecutionLog,
-    isExecutionKilled,
+    isExecutionKilled || !isAgenticAutomationEnabled,
   );
 
   // Reset inner states when the card is collapsed / deselected.
@@ -2912,6 +2999,38 @@ const RemediationOptionCard: React.FC<{
             {option.description}
           </Content>
 
+          {/* Per-option RCA (backend: options[].diagnosis) — OLS-3724 */}
+          {rootCause && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Content
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 'var(--pf-t--global--spacer--xs)',
+                }}
+              >
+                Root cause analysis
+              </Content>
+              <div
+                className={`ols-aio-rca-box ${
+                  plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning'
+                }`}
+                style={{ borderRadius: '12px', overflow: 'hidden' }}
+              >
+                <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                  {rootCause.aggregatedFinding}
+                </Content>
+                <Content component="p" style={{ margin: 0 }}>
+                  {rootCause.rootCauseNarrative}
+                </Content>
+              </div>
+            </div>
+          )}
+
           {/* Execution status (Executing only) */}
           {isExecutionPhase && isFirst && isExecutionKilled && (
             <Alert
@@ -3014,36 +3133,52 @@ const LOCKED_BOX_STYLE: React.CSSProperties = {
   padding: 'var(--pf-t--global--spacer--md)',
 };
 
-const RcaLockedPlaceholder: React.FC = () => (
+const SKELETON_SUSPENDED_STYLE: React.CSSProperties = {
+  animationName: 'none',
+  opacity: 0.45,
+};
+
+const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended = false }) => (
   <div style={LOCKED_BOX_STYLE}>
     <Flex
       alignItems={{ default: 'alignItemsCenter' }}
       gap={{ default: 'gapSm' }}
       style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
     >
-      <Spinner size="sm" aria-label="Analyzing root cause" />
+      {isSuspended ? (
+        <ExclamationTriangleIcon
+          style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', flexShrink: 0 }}
+          aria-hidden
+        />
+      ) : (
+        <Spinner size="sm" aria-label="Analyzing root cause" />
+      )}
       <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
-        Analyzing infrastructure topology to isolate root cause…
+        {isSuspended
+          ? 'Analysis suspended — agentic capabilities disabled'
+          : 'Analyzing infrastructure topology to isolate root cause…'}
       </Content>
     </Flex>
-    <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-    <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-    <Skeleton width="75%" />
+    <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
+    <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
+    <Skeleton width="75%" style={isSuspended ? SKELETON_SUSPENDED_STYLE : undefined} />
   </div>
 );
 
-const HubLockedPlaceholder: React.FC = () => (
+const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended = false }) => (
   <div style={LOCKED_BOX_STYLE}>
     <Content
       component="p"
       className="ols-aio-text-subtle-sm"
       style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', fontStyle: 'italic' }}
     >
-      Remediation options will be synthesized following root cause confirmation.
+      {isSuspended
+        ? 'Remediation synthesis suspended — agentic capabilities disabled'
+        : 'Remediation options will be synthesized following root cause confirmation.'}
     </Content>
-    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-    <Skeleton width="55%" />
+    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
+    <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
+    <Skeleton width="55%" style={isSuspended ? SKELETON_SUSPENDED_STYLE : undefined} />
   </div>
 );
 
@@ -3525,37 +3660,6 @@ const DEFAULT_ESCALATION_PLAYBOOK = {
   command: 'oc describe proposal <plan-name> -n openshift-lightspeed',
 };
 
-/** Generates deterministic simulated analysis log lines for a plan's RCA section. */
-function generateAnalysisLogs(planId: string, finding: string, narrative: string): string {
-  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const mm = String(10 + (h % 49)).padStart(2, '0');
-  const ts = (offset: number) => {
-    const rawSec = (h % 60) + offset;
-    const m = String(10 + (h % 49) + Math.floor(rawSec / 60)).padStart(2, '0');
-    const s = String(rawSec % 60).padStart(2, '0');
-    return `2026-07-02T08:${m}:${s}.000000000Z`;
-  };
-  void mm;
-  const clip = (str: string, len = 90) => (str.length > len ? str.slice(0, len) + '...' : str);
-  return [
-    `${ts(0)}  INFO [analysis] Initializing investigation pipeline — plan_id=${planId}`,
-    `${ts(1)}  INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
-    `${ts(2)}  INFO [signals]  Querying Prometheus TSDB for correlated alert signals...`,
-    `${ts(4)}  INFO [signals]  ${clip(finding)}`,
-    `${ts(5)}  INFO [probe]    GET /readyz  200 OK — readiness probe passed`,
-    `${ts(7)}  INFO [model]    Dispatching signal corpus to LLM reasoning engine`,
-    `${ts(9)}  INFO [model]    Hypothesis generation in progress (temperature=0.2, max_tokens=1024)`,
-    `${ts(11)} INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
-    `${ts(12)} INFO [model]    Root cause hypothesis locked — confidence=0.87`,
-    `${ts(14)} INFO [rca]      ${clip(narrative)}`,
-    `${ts(15)} INFO [probe]    GET /readyz  200 OK — readiness probe passed`,
-    `${ts(16)} INFO [rca]      Contributing factor graph traversal complete: 3 factors identified`,
-    `${ts(17)} INFO [proposal] Root cause analysis complete. Generating remediation proposal...`,
-    `${ts(18)} INFO [probe]    GET /healthz 200 OK — liveness probe passed`,
-    `${ts(19)} INFO [proposal] Proposal ready — plan_id=${planId} is available for review.`,
-  ].join('\n');
-}
-
 /** Generates deterministic simulated verification log lines for the post-execution logs panel. */
 function generateVerificationLogs(planId: string): string {
   const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -3627,9 +3731,6 @@ export const RemediationBlueprintPanel: React.FC<{
   const [isDenyModalOpen, setIsDenyModalOpen] = useState(false);
   const [isDenySelectOpen, setIsDenySelectOpen] = useState(false);
   const [denyReason, setDenyReason] = useState('');
-  const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
-  const [analysisLogsQuery, setAnalysisLogsQuery] = useState('');
-  const [hideHealthChecks, setHideHealthChecks] = useState(true);
   /**
    * HITL sub-state for Pending runs.
    *   INITIALIZING       — CR created, engine not yet dispatched (shows spinner, 5-second window)
@@ -3654,14 +3755,11 @@ export const RemediationBlueprintPanel: React.FC<{
   useEffect(() => {
     setIsExecutionRunning(false);
     setRetryBanner(null);
-    setShowAnalysisLogs(false);
-    setAnalysisLogsQuery('');
-    setHideHealthChecks(true);
     setIsStopExecutionModalOpen(false);
   }, [plan.id]);
 
   useEffect(() => {
-    if (!isExecuting) {
+    if (!isExecuting || !isAgenticAutomationEnabled) {
       setIsExecutionRunning(false);
       return;
     }
@@ -3671,15 +3769,42 @@ export const RemediationBlueprintPanel: React.FC<{
       setIsExecutionRunning(false);
     }, 4000);
     return () => window.clearTimeout(timer);
-  }, [isExecuting, plan.id, startVerification, workflow.verification?.attempt]);
+  }, [isExecuting, isAgenticAutomationEnabled, plan.id, startVerification, workflow.verification?.attempt]);
 
   const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
-  const options = enrichRemediationOptionsWithConfidence(
-    plan.id,
-    applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster),
-    drawer?.confidence,
+  const options = enrichRemediationOptionsWithDiagnosis(
+    enrichRemediationOptionsWithConfidence(
+      plan.id,
+      applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster),
+      drawer?.confidence,
+    ),
+    drawer,
   );
+  /**
+   * OLS-3724 mutual exclusivity:
+   * - When remediation options exist, each card renders its own RCA — hide top-level.
+   * - Show top-level RCA for analyzing, analysis-only, no-options, verifying (hub shows
+   *   VerificationPanel instead of option cards), and escalation handoff states.
+   */
+  const showPerOptionRca =
+    options.length > 0 &&
+    !isAnalysisOnly &&
+    !isAnalyzing &&
+    !isEscalated &&
+    !isEscalating &&
+    !isVerifying;
+  const showTopLevelRca = !showPerOptionRca;
+
+  /** Timeline hosts "View analysis logs" once analysis has completed (same mock data as former RCA card). */
+  const timelineAnalysisLogs =
+    drawer && !isAnalyzing && !isPending
+      ? {
+          planId: plan.id,
+          finding: drawer.aggregatedFinding,
+          narrative: drawer.rootCauseNarrative,
+        }
+      : null;
   const optionCount = options.length;
   const visibleOptionCount = isOptionLocked ? 1 : optionCount;
   const optionLabel = visibleOptionCount === 1 ? '1 remediation option' : `${visibleOptionCount} remediation options`;
@@ -3740,6 +3865,7 @@ export const RemediationBlueprintPanel: React.FC<{
   };
 
   const handleVerificationComplete = useCallback(() => {
+    if (!isAgenticAutomationEnabled) return;
     const verification = workflow.verification;
     if (!verification || verification.outcome) {
       return;
@@ -3751,7 +3877,7 @@ export const RemediationBlueprintPanel: React.FC<{
         `Verification failed — retrying execution (attempt ${verification.attempt + 1} of ${verification.maxAttempts})`,
       );
     }
-  }, [completeVerification, plan.id, workflow.verification]);
+  }, [completeVerification, isAgenticAutomationEnabled, plan.id, workflow.verification]);
 
   if (!drawer && !isEscalating && !isPending && !isAnalyzing) return null;
 
@@ -3788,16 +3914,16 @@ export const RemediationBlueprintPanel: React.FC<{
             style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
           >
             <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-              Root cause analysis (RCA)
+              Root cause analysis
             </Title>
             <Label color="grey" isCompact>AI-generated</Label>
           </Flex>
           {isAnalyzing || !drawer ? (
-            <RcaLockedPlaceholder />
+            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
           ) : (
             <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
               <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                <span className="ols-aio-text-overline">Detected Root Cause</span>
+                <span className="ols-aio-text-overline">Detected root cause</span>
               </div>
               <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.aggregatedFinding}
@@ -3805,58 +3931,6 @@ export const RemediationBlueprintPanel: React.FC<{
               <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.rootCauseNarrative}
               </Content>
-
-              {/* View analysis logs */}
-              <ExpandableSection
-                toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
-                isExpanded={showAnalysisLogs}
-                onToggle={(_e, expanded) => {
-                  setShowAnalysisLogs(expanded);
-                  if (!expanded) setAnalysisLogsQuery('');
-                }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                {(() => {
-                  const HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
-                  const rawLogs = generateAnalysisLogs(plan.id, drawer.aggregatedFinding, drawer.rootCauseNarrative);
-                  const displayLogs = rawLogs
-                    .split('\n')
-                    .filter(l => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
-                    .filter(l => !analysisLogsQuery.trim() || l.toLowerCase().includes(analysisLogsQuery.toLowerCase()))
-                    .join('\n');
-                  return (
-                    <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                      <Flex
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        gap={{ default: 'gapMd' }}
-                        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                      >
-                        <FlexItem grow={{ default: 'grow' }}>
-                          <SearchInput
-                            value={analysisLogsQuery}
-                            onChange={(_evt, val) => setAnalysisLogsQuery(val)}
-                            onClear={() => setAnalysisLogsQuery('')}
-                            placeholder="Search logs..."
-                          />
-                        </FlexItem>
-                        <FlexItem>
-                          <Checkbox
-                            id={`analysis-log-hc-cu-${plan.id}`}
-                            label="Hide health checks"
-                            isChecked={hideHealthChecks}
-                            onChange={(_evt, checked) => setHideHealthChecks(checked)}
-                          />
-                        </FlexItem>
-                      </Flex>
-                      <ExpandableCodeBlock
-                        id={`analysis-log-cu-${plan.id}`}
-                        code={displayLogs}
-                        codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-                      />
-                    </div>
-                  );
-                })()}
-              </ExpandableSection>
             </div>
           )}
         </StackItem>
@@ -3866,7 +3940,12 @@ export const RemediationBlueprintPanel: React.FC<{
             Remediation hub
           </Title>
           {onRemediateInClusterUpdates ? (
-            <Button variant="link" isInline onClick={onRemediateInClusterUpdates}>
+            <Button
+              variant="link"
+              isInline
+              isDisabled={!isAgenticAutomationEnabled}
+              onClick={onRemediateInClusterUpdates}
+            >
               Remediate in Cluster Updates
             </Button>
           ) : (
@@ -3881,6 +3960,8 @@ export const RemediationBlueprintPanel: React.FC<{
           <AgenticRunTimeline
             status={status}
             createdAt={plan.createdAt}
+            isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+            analysisLogs={timelineAnalysisLogs}
           />
         </StackItem>
       </Stack>
@@ -3891,12 +3972,18 @@ export const RemediationBlueprintPanel: React.FC<{
   if (isPending) {
     return pendingSubState === 'INITIALIZING' ? (
       <EmptyState
-        titleText="Initializing plan..."
+        titleText={isAgenticAutomationEnabled ? 'Initializing plan...' : 'Analysis suspended'}
         headingLevel="h4"
-        icon={() => <Spinner size="lg" aria-label="Initializing" />}
+        icon={() => isAgenticAutomationEnabled
+          ? <Spinner size="lg" aria-label="Initializing" />
+          : <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', fontSize: '2rem' }} aria-hidden />
+        }
       >
         <EmptyStateBody>
-          The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.
+          {isAgenticAutomationEnabled
+            ? 'The proposal custom resource has been created on the cluster. Waiting for the AI analysis engine to dispatch.'
+            : 'Agentic capabilities are disabled. Analysis cannot be dispatched until capabilities are re-enabled by an administrator.'
+          }
         </EmptyStateBody>
       </EmptyState>
     ) : (
@@ -3910,7 +3997,11 @@ export const RemediationBlueprintPanel: React.FC<{
         </EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button variant="primary" onClick={() => dispatchAnalysis(plan.id)}>
+            <Button
+              variant="primary"
+              isDisabled={!isAgenticAutomationEnabled}
+              onClick={() => dispatchAnalysis(plan.id)}
+            >
               Analyze with AI
             </Button>
           </EmptyStateActions>
@@ -3977,7 +4068,7 @@ export const RemediationBlueprintPanel: React.FC<{
       )}
       {isDenied && (
         <StackItem>
-          <DeniedPlanBanner onStartNewInvestigation={onStartNewInvestigation} />
+          <DeniedPlanBanner onStartNewInvestigation={isAgenticAutomationEnabled ? onStartNewInvestigation : undefined} />
         </StackItem>
       )}
       {isEmergencyStopped && (
@@ -3994,7 +4085,8 @@ export const RemediationBlueprintPanel: React.FC<{
         </StackItem>
       )}
 
-      {/* ── Section A: Root Cause Analysis ────────────────────────────── */}
+      {/* ── Section A: Root cause analysis (top-level; OLS-3724 mutual exclusivity) ── */}
+      {showTopLevelRca && (
       <StackItem>
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
@@ -4002,18 +4094,18 @@ export const RemediationBlueprintPanel: React.FC<{
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
         >
           <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-            Root cause analysis (RCA)
+            Root cause analysis
           </Title>
           <Label color="grey" isCompact>AI-generated</Label>
         </Flex>
           {isAnalyzing ? (
             <>
-              <RcaLockedPlaceholder />
+              <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
             </>
           ) : (
           <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <span className="ols-aio-text-overline">Detected Root Cause</span>
+              <span className="ols-aio-text-overline">Detected root cause</span>
             </div>
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.aggregatedFinding}
@@ -4021,62 +4113,10 @@ export const RemediationBlueprintPanel: React.FC<{
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.rootCauseNarrative}
             </Content>
-
-            {/* View analysis logs */}
-            <ExpandableSection
-              toggleText={showAnalysisLogs ? 'Hide analysis logs' : 'View analysis logs'}
-              isExpanded={showAnalysisLogs}
-              onToggle={(_e, expanded) => {
-                setShowAnalysisLogs(expanded);
-                if (!expanded) setAnalysisLogsQuery('');
-              }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              {(() => {
-                const HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
-                const rawLogs = generateAnalysisLogs(plan.id, drawer!.aggregatedFinding, drawer!.rootCauseNarrative);
-                const displayLogs = rawLogs
-                  .split('\n')
-                  .filter(l => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
-                  .filter(l => !analysisLogsQuery.trim() || l.toLowerCase().includes(analysisLogsQuery.toLowerCase()))
-                  .join('\n');
-                return (
-                  <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      gap={{ default: 'gapMd' }}
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                    >
-                      <FlexItem grow={{ default: 'grow' }}>
-                        <SearchInput
-                          value={analysisLogsQuery}
-                          onChange={(_evt, val) => setAnalysisLogsQuery(val)}
-                          onClear={() => setAnalysisLogsQuery('')}
-                          placeholder="Search logs..."
-                        />
-                      </FlexItem>
-                      <FlexItem>
-                        <Checkbox
-                          id={`hide-health-checks-${plan.id}`}
-                          label="Hide health checks"
-                          isChecked={hideHealthChecks}
-                          onChange={(_evt, checked) => setHideHealthChecks(checked)}
-                        />
-                      </FlexItem>
-                    </Flex>
-                    <ExpandableCodeBlock
-                      id={`analysis-log-${plan.id}`}
-                      code={displayLogs}
-                      codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-                    />
-                  </div>
-                );
-              })()}
-            </ExpandableSection>
-
           </div>
           )}
       </StackItem>
+      )}
 
       {/* ── Section C: Remediation Hub (or investigation-only) ─────────── */}
       <StackItem>
@@ -4190,7 +4230,7 @@ export const RemediationBlueprintPanel: React.FC<{
           <WaitingApprovalPlanMeta plan={plan} />
         </Flex>
           {isAnalyzing ? (
-            <HubLockedPlaceholder />
+            <HubLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
           ) : isEscalated ? (
             <>
               <div
@@ -4250,10 +4290,7 @@ export const RemediationBlueprintPanel: React.FC<{
                         isExecutionPhase={false}
                         isOptionLocked={false}
                         showExecutionLog={false}
-                        rootCause={{
-                          aggregatedFinding: drawer!.aggregatedFinding,
-                          rootCauseNarrative: drawer!.rootCauseNarrative,
-                        }}
+                        rootCause={opt.diagnosis}
                       />
                     </StackItem>
                   );
@@ -4276,10 +4313,7 @@ export const RemediationBlueprintPanel: React.FC<{
                       isExecutionPhase={false}
                       isOptionLocked={false}
                       showExecutionLog={false}
-                      rootCause={{
-                        aggregatedFinding: drawer!.aggregatedFinding,
-                        rootCauseNarrative: drawer!.rootCauseNarrative,
-                      }}
+                      rootCause={opt.diagnosis}
                     />
                   </StackItem>
                 );
@@ -4303,6 +4337,7 @@ export const RemediationBlueprintPanel: React.FC<{
                           isExecutionPhase={false}
                           isOptionLocked={false}
                           showExecutionLog={false}
+                          rootCause={opt.diagnosis}
                         />
                       </StackItem>
                     );
@@ -4318,7 +4353,7 @@ export const RemediationBlueprintPanel: React.FC<{
           ) : isVerifying && verificationState ? (
             <VerificationPanel
               verification={verificationState}
-              isLive={Boolean(workflow.verification) && !showStaticVerification}
+              isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
               onComplete={handleVerificationComplete}
             />
           ) : (
@@ -4333,8 +4368,7 @@ export const RemediationBlueprintPanel: React.FC<{
 
               <div
                 style={{
-                  opacity: !isAgenticAutomationEnabled && !isExecutionPhase ? 0.55 : 1,
-                  pointerEvents: !isAgenticAutomationEnabled && !isExecutionPhase ? 'none' : undefined,
+                  opacity: !isAgenticAutomationEnabled ? 0.55 : 1,
                   transition: 'opacity 300ms ease',
                 }}
               >
@@ -4354,10 +4388,7 @@ export const RemediationBlueprintPanel: React.FC<{
                           isExecutionPhase={isExecutionPhase}
                           isOptionLocked={isOptionLocked}
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
-                          rootCause={{
-                            aggregatedFinding: drawer!.aggregatedFinding,
-                            rootCauseNarrative: drawer!.rootCauseNarrative,
-                          }}
+                          rootCause={opt.diagnosis}
                           onExecute={isProposed ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
                         />
                       </StackItem>
@@ -4369,7 +4400,11 @@ export const RemediationBlueprintPanel: React.FC<{
               {isProposed && onRejectPlan && (
                 <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <FlexItem>
-                    <Button variant="secondary" onClick={() => setIsDenyModalOpen(true)}>
+                    <Button
+                      variant="secondary"
+                      isDisabled={!isAgenticAutomationEnabled}
+                      onClick={() => setIsDenyModalOpen(true)}
+                    >
                       Deny run
                     </Button>
                   </FlexItem>
@@ -4521,7 +4556,11 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* ── Stop execution action (Executing state only) ──────────────── */}
       {isExecutionPhase && !executionKillState && (
         <StackItem>
-          <Button variant="danger" onClick={() => setIsStopExecutionModalOpen(true)}>
+          <Button
+            variant="danger"
+            isDisabled={!isAgenticAutomationEnabled}
+            onClick={() => setIsStopExecutionModalOpen(true)}
+          >
             Stop execution
           </Button>
           <Modal
@@ -4556,7 +4595,11 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* ── Stop analysis action (Analyzing state only) ──────────────── */}
       {isAnalyzing && (
         <StackItem>
-          <Button variant="danger" onClick={() => setIsStopAnalysisModalOpen(true)}>
+          <Button
+            variant="danger"
+            isDisabled={!isAgenticAutomationEnabled}
+            onClick={() => setIsStopAnalysisModalOpen(true)}
+          >
             Stop analysis
           </Button>
           <Modal
@@ -4591,7 +4634,7 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* ── Escalate to human action (Failed state only) ──────────────── */}
       {status === 'Failed' && (
         <StackItem>
-          <Button variant="secondary">
+          <Button variant="secondary" isDisabled={!isAgenticAutomationEnabled}>
             Escalate to human
           </Button>
         </StackItem>
@@ -4602,6 +4645,8 @@ export const RemediationBlueprintPanel: React.FC<{
         <AgenticRunTimeline
           status={status}
           createdAt={plan.createdAt}
+          isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+          analysisLogs={timelineAnalysisLogs}
         />
       </StackItem>
     </Stack>
@@ -4716,15 +4761,12 @@ export const PlansAndApprovalsTab: React.FC = () => {
   );
 
   const openPlanRemediation = useCallback((plan: PlanRow) => {
-    if (!isAgenticAutomationEnabled) {
-      return;
-    }
     const perspectiveKey: AppShellPerspectiveKey =
       perspectiveKeyFromShellName(activePerspective)
       ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
     writePlanRemediationDrillSession({ perspectiveKey });
     navigate(getPlanDetailHref(plan, perspectiveKey));
-  }, [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate]);
+  }, [activePerspective, isSingleCluster, navigate]);
 
   return (
     <Stack>

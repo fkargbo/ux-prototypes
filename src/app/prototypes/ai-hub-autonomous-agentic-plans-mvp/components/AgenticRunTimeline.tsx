@@ -7,6 +7,17 @@ import {
   Title,
 } from '@patternfly/react-core';
 import type { PlanStatus } from '../types/planStatus';
+import { AnalysisLogsExpandable } from './AnalysisLogsExpandable';
+
+/** Mock analysis-log inputs (same payload previously fed from the RCA card). */
+export type TimelineAnalysisLogs = {
+  planId: string;
+  finding: string;
+  narrative: string;
+};
+
+/** Audit event that marks analysis completion — hosts the "View analysis logs" trigger. */
+const ANALYSIS_COMPLETED_EVENT = 'agenticrun.analysis.completed';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -275,21 +286,48 @@ interface AgenticRunTimelineProps {
   status: PlanStatus;
   createdAt?: string;
   retryCount?: number;
+  /**
+   * When true (agentic kill switch engaged), any in-progress `info` step is
+   * converted to `warning` and its description is updated to reflect that the
+   * run was administratively suspended, not failed.
+   */
+  isCapabilitiesDisabled?: boolean;
+  /**
+   * Analysis log payload for the "View analysis logs" expandable attached to
+   * the Analysis completed timeline step. Same data previously hosted on the
+   * top-level RCA card — remains available when that card is hidden (OLS-3724).
+   */
+  analysisLogs?: TimelineAnalysisLogs | null;
 }
 
 export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   status,
   createdAt,
   retryCount = 0,
+  isCapabilitiesDisabled = false,
+  analysisLogs = null,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   // Only surface steps that have been processed or are currently in progress.
   // Pending (unreached) steps are intentionally excluded — not all runs pass
   // through every phase (e.g. Denied runs never reach execution).
-  const steps = buildTimelineSteps(status, createdAt, retryCount).filter(
-    (s) => s.variant !== 'pending',
-  );
+  const steps = buildTimelineSteps(status, createdAt, retryCount)
+    .filter((s) => s.variant !== 'pending')
+    .map((s) => {
+      // When the kill switch is engaged, demote the active (blue) step to
+      // warning (yellow) and append a suspension note to its description.
+      if (isCapabilitiesDisabled && s.variant === 'info') {
+        return {
+          ...s,
+          variant: 'warning' as TimelineStepVariant,
+          description: s.description
+            ? `${s.description} — suspended by administrator`
+            : 'Suspended — agentic capabilities disabled by administrator',
+        };
+      }
+      return s;
+    });
 
   if (steps.length === 0) return null;
 
@@ -311,17 +349,40 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
         aria-label="Agentic run timeline"
         style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
       >
-        {steps.map((s) => (
-          <ProgressStep
-            key={s.id}
-            variant={s.variant}
-            description={s.description}
-            titleId={s.id}
-            aria-label={s.label}
-          >
-            {s.label}
-          </ProgressStep>
-        ))}
+        {steps.map((s) => {
+          const showAnalysisLogs =
+            s.event === ANALYSIS_COMPLETED_EVENT && Boolean(analysisLogs);
+
+          return (
+            <ProgressStep
+              key={s.id}
+              variant={s.variant}
+              description={
+                showAnalysisLogs && analysisLogs ? (
+                  <div>
+                    {s.description && (
+                      <div style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                        {s.description}
+                      </div>
+                    )}
+                    <AnalysisLogsExpandable
+                      planId={analysisLogs.planId}
+                      finding={analysisLogs.finding}
+                      narrative={analysisLogs.narrative}
+                      idPrefix="timeline-analysis-log"
+                    />
+                  </div>
+                ) : (
+                  s.description
+                )
+              }
+              titleId={s.id}
+              aria-label={s.label}
+            >
+              {s.label}
+            </ProgressStep>
+          );
+        })}
       </ProgressStepper>
     </ExpandableSection>
   );

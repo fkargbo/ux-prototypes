@@ -6,6 +6,7 @@ import {
   CodeBlockAction,
   CodeBlockCode,
 } from '@patternfly/react-core';
+import { RhUiDownloadIcon } from '@patternfly/react-icons';
 
 /** Default maximum lines shown in the collapsed state. */
 const DEFAULT_MAX_COLLAPSED_LINES = 5;
@@ -13,9 +14,15 @@ const DEFAULT_MAX_COLLAPSED_LINES = 5;
 export interface ExpandableCodeBlockProps {
   /**
    * The code / log string to display.
-   * Copy-to-clipboard always copies the full string regardless of expand state.
+   * Copy-to-clipboard uses `clipboardCode` when set; otherwise copies `code`
+   * (full string regardless of expand/collapse state).
    */
   code: string;
+  /**
+   * Optional full evidence string for Copy (e.g. unfiltered audit logs while
+   * the viewport shows a search-/health-check-filtered subset).
+   */
+  clipboardCode?: string;
   /**
    * Stable base id used to generate the copy-button and code-element ids.
    * Auto-generated via React.useId() when omitted.
@@ -32,10 +39,17 @@ export interface ExpandableCodeBlockProps {
    */
   maxCollapsedLines?: number;
   /**
-   * Optional extra actions rendered before the built-in copy button.
+   * Optional extra actions rendered before the built-in download/copy buttons.
    * Use sparingly — the copy button is always included automatically.
    */
   extraActions?: React.ReactNode;
+  /**
+   * When provided, renders a "Download log file" action adjacent to Copy.
+   * Caller supplies the click handler (typically a Blob download of full evidence).
+   */
+  onDownload?: () => void;
+  /** Accessible label for the download action. Defaults to "Download log file". */
+  downloadAriaLabel?: string;
 }
 
 /**
@@ -56,10 +70,13 @@ export interface ExpandableCodeBlockProps {
  */
 export const ExpandableCodeBlock: React.FC<ExpandableCodeBlockProps> = ({
   code,
+  clipboardCode,
   id: idProp,
   codeStyle,
   maxCollapsedLines = DEFAULT_MAX_COLLAPSED_LINES,
   extraActions,
+  onDownload,
+  downloadAriaLabel = 'Download log file',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -69,6 +86,7 @@ export const ExpandableCodeBlock: React.FC<ExpandableCodeBlockProps> = ({
   const baseId = idProp ?? reactId;
   const textId = `${baseId}-code`;
   const copyId = `${baseId}-copy`;
+  const downloadId = `${baseId}-download`;
 
   const lines = code.trim().split('\n');
   const isLongCode = lines.length > maxCollapsedLines;
@@ -78,7 +96,7 @@ export const ExpandableCodeBlock: React.FC<ExpandableCodeBlockProps> = ({
     : code;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(code);
+    navigator.clipboard.writeText(clipboardCode ?? code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -88,6 +106,17 @@ export const ExpandableCodeBlock: React.FC<ExpandableCodeBlockProps> = ({
       actions={
         <>
           {extraActions}
+          {onDownload && (
+            <CodeBlockAction>
+              <Button
+                id={downloadId}
+                variant="plain"
+                aria-label={downloadAriaLabel}
+                onClick={onDownload}
+                icon={<RhUiDownloadIcon />}
+              />
+            </CodeBlockAction>
+          )}
           <CodeBlockAction>
             <ClipboardCopyButton
               id={copyId}

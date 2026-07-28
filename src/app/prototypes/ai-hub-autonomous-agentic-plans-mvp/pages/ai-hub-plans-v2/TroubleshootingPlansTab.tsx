@@ -88,16 +88,13 @@ export const TroubleshootingPlansTab: React.FC = () => {
 
   const openPlanRemediation = useCallback(
     (plan: PlanRow) => {
-      if (!isAgenticAutomationEnabled) {
-        return;
-      }
       const perspectiveKey: AppShellPerspectiveKey =
         perspectiveKeyFromShellName(activePerspective)
         ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
       writePlanRemediationDrillSession({ perspectiveKey });
       navigate(getPlanDetailHref(plan, perspectiveKey));
     },
-    [activePerspective, isAgenticAutomationEnabled, isSingleCluster, navigate],
+    [activePerspective, isSingleCluster, navigate],
   );
 
   return (
