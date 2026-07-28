@@ -374,7 +374,7 @@ export const AgenticRunConfigPage: React.FC = () => {
   };
 
   return (
-    <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
+    <div className="ols-ai-hub-page ols-ai-hub-page--v3 ols-ai-hub-config-page" data-exp-lab-annotation-root>
       <div className="template-page-breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem component="button" onClick={navigateBackToPlans}>
@@ -395,18 +395,17 @@ export const AgenticRunConfigPage: React.FC = () => {
             <TechPreviewBadge />
           </FlexItem>
         </Flex>
-        <div className="ols-ai-hub-config-content-width">
-          <Tabs
-            activeKey={activeTab}
-            onSelect={(_event, tabKey) => setActiveTab(tabKey as AgenticRunConfigTabKey)}
-            aria-label="Agentic runs configuration sections"
-            className="pf-v6-u-mt-md"
-          >
-            <Tab eventKey="approval-policy" title={<TabTitleText>Approval policy</TabTitleText>} />
-            <Tab eventKey="llm-providers" title={<TabTitleText>LLM providers</TabTitleText>} />
-            <Tab eventKey="agents" title={<TabTitleText>Agents</TabTitleText>} />
-          </Tabs>
-        </div>
+        {/* Full-width Tabs — bottom border is the sole page-header divider. */}
+        <Tabs
+          activeKey={activeTab}
+          onSelect={(_event, tabKey) => setActiveTab(tabKey as AgenticRunConfigTabKey)}
+          aria-label="Agentic runs configuration sections"
+          className="pf-v6-u-mt-md ols-ai-hub-config-tabs"
+        >
+          <Tab eventKey="approval-policy" title={<TabTitleText>Approval policy</TabTitleText>} />
+          <Tab eventKey="llm-providers" title={<TabTitleText>LLM providers</TabTitleText>} />
+          <Tab eventKey="agents" title={<TabTitleText>Agents</TabTitleText>} />
+        </Tabs>
       </AiHubPageHeading>
 
       <div

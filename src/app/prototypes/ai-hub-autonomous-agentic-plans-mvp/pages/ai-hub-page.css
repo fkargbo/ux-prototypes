@@ -24,19 +24,38 @@
 }
 
 /*
- * Agentic runs configuration page: constrain the Tabs (in the heading) and the
- * settings Form/table content (in template-page-content) to the same 600px
- * column so the Tabs' bottom-border divider lines up with the content dividers
- * below. `!important` is required because `.pf-v6-c-tabs` renders as a
- * `display:flex` block box with `width:auto`, which otherwise stretches to
- * fill 100% of `template-page-heading` (a direct child of
- * `.pf-v6-c-page__main-section`, which app.css forces to `width: 100%
- * !important` at the page level) — a plain inline max-width can lose to that
- * cascade in some render paths, so we pin it here at higher specificity.
+ * Agentic runs configuration page — settings Form/table content column.
+ * Tabs are intentionally full-width (see `.ols-ai-hub-config-page` below) so
+ * their bottom border is the single continuous header divider.
  */
 .ols-ai-hub-page .ols-ai-hub-config-content-width {
   max-width: 600px !important;
   width: 100%;
+}
+
+/*
+ * Configuration page header: eliminate the double-divider artifact.
+ * - Drop `template-page-heading` border-bottom (from app.css).
+ * - Flush padding so the Tabs border sits at the heading edge.
+ * - Stretch Tabs to 100% width so that border spans the section.
+ */
+.ols-ai-hub-page.ols-ai-hub-config-page div.template-page-heading {
+  border-bottom: none !important;
+  padding-block-end: 0 !important;
+}
+
+.ols-ai-hub-page.ols-ai-hub-config-page .ols-ai-hub-page-heading-body {
+  /* No Agentic Capabilities action on this page — reclaim full width for Tabs. */
+  padding-inline-end: 0;
+}
+
+.ols-ai-hub-page.ols-ai-hub-config-page .ols-ai-hub-config-tabs.pf-v6-c-tabs {
+  /* Bleed past heading padding so the tab border spans the full section width. */
+  width: calc(100% + 48px) !important;
+  max-width: none !important;
+  margin-block-end: 0 !important;
+  margin-inline: -24px !important;
+  padding-inline: 24px;
 }
 
 /* 24px between the Approval policy description and the settings list. */
