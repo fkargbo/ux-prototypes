@@ -246,7 +246,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             Analysis request
           </Title>
         </FlexItem>
-        <FlexItem style={{ marginInlineStart: 0 }}>
+        <FlexItem>
           <Popover
             aria-label="Analysis request help"
             headerContent="Analysis request"
@@ -255,7 +255,6 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             <Button
               variant="plain"
               aria-label="More information about analysis request"
-              style={{ padding: 0, minWidth: 0, lineHeight: 1 }}
               icon={<OutlinedQuestionCircleIcon />}
             />
           </Popover>
