@@ -317,8 +317,11 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
 
   /**
    * Intercept policy changes:
-   * - Automatic → Manual: apply immediately
-   * - Manual → Automatic: open 3-click safety modal (toggle stays Manual until confirmed)
+   * - Automatic → Manual: apply immediately for all stages
+   * - Manual → Automatic on Execution only: open 3-click safety modal
+   *   (Execution is the destructive/mutating stage; Analysis, Verification,
+   *   and Escalation apply immediately)
+   * - Manual → Automatic on other stages: apply immediately
    */
   const requestPolicyChange = (stage: PolicyStage, next: ApprovalMode) => {
     const current = policyValues[stage];
@@ -330,8 +333,14 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
       return;
     }
 
-    // Manual → Automatic: gate behind modal; do not flip the toggle yet.
-    setPendingAutoStage(stage);
+    // Manual → Automatic: only Execution requires the triple-confirmation gate.
+    if (stage === 'execution') {
+      setPendingAutoStage(stage);
+      return;
+    }
+
+    policySetters[stage]('auto');
+    setIsDirty(true);
   };
 
   const dismissAutoModal = () => {
