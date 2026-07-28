@@ -238,15 +238,15 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
     <div className="ols-ai-hub-trigger-request">
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
-        gap={{ default: 'gapSm' }}
-        style={{ marginBlockEnd: 'var(--pf-t--global--spacer--sm)' }}
+        gap={{ default: 'gapXs' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
       >
         <FlexItem>
           <Title headingLevel="h2" size="md" style={{ margin: 0 }}>
             Analysis request
           </Title>
         </FlexItem>
-        <FlexItem>
+        <FlexItem style={{ marginInlineStart: 0 }}>
           <Popover
             aria-label="Analysis request help"
             headerContent="Analysis request"
@@ -255,7 +255,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             <Button
               variant="plain"
               aria-label="More information about analysis request"
-              style={{ padding: 0 }}
+              style={{ padding: 0, minWidth: 0, lineHeight: 1 }}
               icon={<OutlinedQuestionCircleIcon />}
             />
           </Popover>
