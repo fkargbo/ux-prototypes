@@ -4,9 +4,7 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
-  Label,
   SearchInput,
-  Spinner,
 } from '@patternfly/react-core';
 import type { PlanStatus } from '../types/planStatus';
 import { ExpandableCodeBlock } from './ExpandableCodeBlock';
@@ -109,41 +107,11 @@ export function downloadEvidenceLogFile(
   URL.revokeObjectURL(url);
 }
 
-function lifecycleHeaderBadge(lifecycle: AnalysisLogsLifecycle): React.ReactNode {
-  switch (lifecycle) {
-    case 'live':
-      return (
-        <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Live streaming" />}>
-          Live streaming
-        </Label>
-      );
-    case 'failed':
-      return (
-        <Label color="red" isCompact>
-          Failed
-        </Label>
-      );
-    case 'cancelled':
-      return (
-        <Label color="orange" isCompact>
-          Cancelled
-        </Label>
-      );
-    case 'completed':
-    default:
-      return (
-        <Label color="green" isCompact>
-          Completed
-        </Label>
-      );
-  }
-}
-
 export type AnalysisLogsExpandableProps = {
   planId: string;
   finding: string;
   narrative: string;
-  /** Analysis-phase lifecycle driving trigger copy, badge, download, and streaming. */
+  /** Analysis-phase lifecycle driving trigger copy, download, and streaming. */
   lifecycle: AnalysisLogsLifecycle;
   /** Prefix for checkbox / code-block ids (keeps multiple instances unique). */
   idPrefix?: string;
@@ -231,13 +199,6 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
       style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
     >
       <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-        >
-          {lifecycleHeaderBadge(lifecycle)}
-        </Flex>
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
           gap={{ default: 'gapMd' }}
