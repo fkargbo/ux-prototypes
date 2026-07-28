@@ -46,6 +46,16 @@ import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AgenticRunTimeline } from '../../components/AgenticRunTimeline';
+import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
+import {
+  buildAgenticRunRequest,
+  TriggerRequestSection,
+} from '../../components/TriggerRequestSection';
+
+export {
+  NamespaceResourceBadge,
+  NamespaceResourceLink,
+} from '../../components/NamespaceResourceLink';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import type { Reversibility } from '../../types/reversibility';
@@ -146,6 +156,11 @@ export interface PlanRow {
   terminatedAt?: string;
   /** Investigation-only proposals have analysis but no remediation hub. */
   planKind?: 'remediation' | 'analysis-only';
+  /**
+   * Raw `spec.request` prompt / alert event string that initiated analysis.
+   * Rendered on the Agentic Run details page as the Analysis request section.
+   */
+  request?: string;
 }
 
 /**
@@ -2381,9 +2396,9 @@ export const TriggerDomainCell: React.FC<{
   </Label>
 );
 
-/** Created time for plans in Proposed status. */
+/** Created timestamp shown beneath status on Agentic Run details / hub headers. */
 export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) => {
-  if (plan.status !== 'Proposed' || !plan.createdAt) {
+  if (!plan.createdAt) {
     return null;
   }
 
@@ -2429,10 +2444,6 @@ export const PlanResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="AR" backgroundColor="#2b9af3" />
 );
 
-export const NamespaceResourceBadge: React.FC = () => (
-  <OpenShiftResourceBadge label="NS" backgroundColor="#1e4f18" />
-);
-
 // ─── Scope cell (cluster / namespace) with multi-target tooltip ───────────────
 
 const PlanScopeCell: React.FC<{
@@ -2444,14 +2455,10 @@ const PlanScopeCell: React.FC<{
   const showTooltip = scopeColumnLabel === 'Cluster' && scopeTargets.length > 1;
 
   if (scopeColumnLabel === 'Namespace') {
-    return (
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-        <FlexItem>
-          <NamespaceResourceBadge />
-        </FlexItem>
-        <FlexItem style={{ minWidth: 0, wordBreak: 'break-word' }}>{label}</FlexItem>
-      </Flex>
-    );
+    if (!scope || scope === '—') {
+      return <>{label}</>;
+    }
+    return <NamespaceResourceLink name={scope} />;
   }
 
   if (!showTooltip) {
@@ -3796,13 +3803,20 @@ export const RemediationBlueprintPanel: React.FC<{
     !isVerifying;
   const showTopLevelRca = !showPerOptionRca;
 
-  /** Timeline hosts "View analysis logs" once analysis has completed (same mock data as former RCA card). */
+  /**
+   * Timeline hosts View live / analysis logs on the Analysis phase step for all
+   * post-Pending lifecycle states (Analyzing → terminal), including live streaming.
+   */
   const timelineAnalysisLogs =
-    drawer && !isAnalyzing && !isPending
+    !isPending
       ? {
           planId: plan.id,
-          finding: drawer.aggregatedFinding,
-          narrative: drawer.rootCauseNarrative,
+          finding:
+            drawer?.aggregatedFinding ??
+            'Signal correlation in progress — querying fleet telemetry and alert history.',
+          narrative:
+            drawer?.rootCauseNarrative ??
+            'Root cause hypothesis generation in progress. Partial findings stream into the analysis log.',
         }
       : null;
   const optionCount = options.length;
@@ -3906,6 +3920,12 @@ export const RemediationBlueprintPanel: React.FC<{
             review AI-generated content prior to use.
           </Content>
         </StackItem>
+
+        {plan.request ? (
+          <StackItem>
+            <TriggerRequestSection request={plan.request} planId={plan.id} />
+          </StackItem>
+        ) : null}
 
         <StackItem>
           <Flex
@@ -4040,6 +4060,12 @@ export const RemediationBlueprintPanel: React.FC<{
           review AI-generated content prior to use.
         </Content>
       </StackItem>
+
+      {plan.request ? (
+        <StackItem>
+          <TriggerRequestSection request={plan.request} planId={plan.id} />
+        </StackItem>
+      ) : null}
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (
@@ -4710,6 +4736,16 @@ export function buildPlansForPerspective(
           normalizedRow.createdAt ??
           new Date(createdAnchor - index * 47 * 60_000).toISOString(),
         terminatedAt: normalizedRow.terminatedAt,
+        request:
+          normalizedRow.request ??
+          buildAgenticRunRequest({
+            id: row.id,
+            name: identity?.name ?? row.id,
+            synopsis: identity?.synopsis ?? normalizedRow.synopsis,
+            severity: normalizedRow.severity,
+            namespace: identity?.namespace,
+            triggerDomain: normalizedRow.triggerDomain,
+          }),
       };
 
       if (abortedPlans[row.id]) {

@@ -11,7 +11,6 @@ import {
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
-  NamespaceResourceBadge,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
@@ -149,14 +148,6 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
                 </FlexItem>
               </Flex>
             </FlexItem>
-            {plan.namespace && (
-              <FlexItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-                  <FlexItem><NamespaceResourceBadge /></FlexItem>
-                  <FlexItem>{plan.namespace}</FlexItem>
-                </Flex>
-              </FlexItem>
-            )}
             <FlexItem>
               <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
             </FlexItem>

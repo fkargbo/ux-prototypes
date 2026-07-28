@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Checkbox,
   ExpandableSection,
@@ -6,7 +6,26 @@ import {
   FlexItem,
   SearchInput,
 } from '@patternfly/react-core';
+import type { PlanStatus } from '../types/planStatus';
 import { ExpandableCodeBlock } from './ExpandableCodeBlock';
+
+/** Analysis-phase log viewer lifecycle (independent of later execution phases). */
+export type AnalysisLogsLifecycle = 'live' | 'completed' | 'failed' | 'cancelled';
+
+/** Maps plan status → analysis-log viewer lifecycle. */
+export function resolveAnalysisLogsLifecycle(status: PlanStatus): AnalysisLogsLifecycle {
+  switch (status) {
+    case 'Analyzing':
+      return 'live';
+    case 'Failed':
+      return 'failed';
+    case 'EmergencyStopped':
+    case 'Plan aborted':
+      return 'cancelled';
+    default:
+      return 'completed';
+  }
+}
 
 /** Generates deterministic simulated analysis log lines for a plan's RCA section. */
 export function generateAnalysisLogs(planId: string, finding: string, narrative: string): string {
@@ -92,36 +111,80 @@ export type AnalysisLogsExpandableProps = {
   planId: string;
   finding: string;
   narrative: string;
+  /** Analysis-phase lifecycle driving trigger copy, download, and streaming. */
+  lifecycle: AnalysisLogsLifecycle;
   /** Prefix for checkbox / code-block ids (keeps multiple instances unique). */
   idPrefix?: string;
 };
 
 /**
- * "View analysis logs" ExpandableSection — search, hide-health-checks,
- * ExpandableCodeBlock with Copy + Download log file. Hosted on the Timeline
- * Analysis completed step so it remains available when the top-level RCA card
- * is hidden (OLS-3724).
+ * PF ExpandableSection — "View analysis logs".
+ * Closed by default. Live mode streams lines with auto-scroll and hides download
+ * until analysis finishes.
  */
 export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
   planId,
   finding,
   narrative,
+  lifecycle,
   idPrefix = 'analysis-log',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
   const [hideHealthChecks, setHideHealthChecks] = useState(true);
+  const logScrollRef = useRef<HTMLDivElement>(null);
 
-  const rawLogs = generateAnalysisLogs(planId, finding, narrative);
+  const isLive = lifecycle === 'live';
+  const canDownload = lifecycle === 'completed' || lifecycle === 'failed' || lifecycle === 'cancelled';
+  const toggleText = isExpanded ? 'Hide analysis logs' : 'View analysis logs';
+
+  const allLines = useMemo(
+    () => generateAnalysisLogs(planId, finding, narrative).split('\n'),
+    [planId, finding, narrative],
+  );
+
+  const [streamedCount, setStreamedCount] = useState(() => (isLive ? 3 : allLines.length));
+
+  useEffect(() => {
+    setStreamedCount(isLive ? 3 : allLines.length);
+  }, [isLive, allLines.length, planId]);
+
+  // Append mock lines while live and expanded.
+  useEffect(() => {
+    if (!isLive || !isExpanded) return undefined;
+    const timer = window.setInterval(() => {
+      setStreamedCount((prev) => {
+        if (prev >= allLines.length) return prev;
+        return prev + 1;
+      });
+    }, 700);
+    return () => window.clearInterval(timer);
+  }, [isLive, isExpanded, allLines.length]);
+
+  const rawLogs = allLines.slice(0, streamedCount).join('\n');
+  const fullLogs = allLines.join('\n');
   const displayLogs = rawLogs
     .split('\n')
     .filter((l) => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
     .filter((l) => !query.trim() || l.toLowerCase().includes(query.toLowerCase()))
     .join('\n');
 
+  // Auto-scroll as new live lines append.
+  useEffect(() => {
+    if (!isLive || !isExpanded) return;
+    const scrollTarget = logScrollRef.current;
+    if (scrollTarget) {
+      scrollTarget.scrollTop = scrollTarget.scrollHeight;
+    }
+    const el = logScrollRef.current?.querySelector('.pf-v6-c-code-block__content, pre, code');
+    if (el instanceof HTMLElement) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [displayLogs, isLive, isExpanded]);
+
   return (
     <ExpandableSection
-      toggleText={isExpanded ? 'Hide analysis logs' : 'View analysis logs'}
+      toggleText={toggleText}
       isExpanded={isExpanded}
       onToggle={(_e, expanded) => {
         setIsExpanded(expanded);
@@ -152,14 +215,29 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
             />
           </FlexItem>
         </Flex>
-        <ExpandableCodeBlock
-          id={`${idPrefix}-${planId}`}
-          code={displayLogs}
-          clipboardCode={rawLogs}
-          codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-          onDownload={() => downloadEvidenceLogFile(planId, rawLogs, 'txt')}
-          downloadAriaLabel="Download log file"
-        />
+        <div
+          ref={logScrollRef}
+          style={isLive ? { maxHeight: '280px', overflowY: 'auto' } : undefined}
+        >
+          <ExpandableCodeBlock
+            id={`${idPrefix}-${planId}`}
+            code={displayLogs}
+            clipboardCode={isLive ? rawLogs : fullLogs}
+            codeStyle={{
+              fontSize: '12px',
+              maxHeight: isLive ? undefined : '280px',
+              overflowY: isLive ? undefined : 'auto',
+              display: 'block',
+            }}
+            maxCollapsedLines={isLive ? Number.MAX_SAFE_INTEGER : 5}
+            onDownload={
+              canDownload
+                ? () => downloadEvidenceLogFile(planId, fullLogs, 'txt')
+                : undefined
+            }
+            downloadAriaLabel="Download log file"
+          />
+        </div>
       </div>
     </ExpandableSection>
   );
