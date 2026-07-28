@@ -20,7 +20,6 @@ import {
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
-import { TriggerRequestSection } from '../../components/TriggerRequestSection';
 import {
   buildPrototypeHref,
   isSingleClusterPerspectiveKey,
@@ -172,12 +171,6 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
             <WaitingApprovalPlanMeta plan={effectivePlan} />
           </div>
-          {effectivePlan.request && (
-            <TriggerRequestSection
-              request={effectivePlan.request}
-              planId={effectivePlan.id}
-            />
-          )}
         </div>
       </AiHubPageHeading>
 

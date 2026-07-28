@@ -32,7 +32,6 @@ import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
-import { TriggerRequestSection } from '../../components/TriggerRequestSection';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import '../ai-hub-page.css';
 
@@ -166,12 +165,6 @@ export const AcsPlanDetailPageV2: React.FC = () => {
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
             <WaitingApprovalPlanMeta plan={effectivePlan} />
           </div>
-          {effectivePlan.request && (
-            <TriggerRequestSection
-              request={effectivePlan.request}
-              planId={effectivePlan.id}
-            />
-          )}
         </div>
       </AiHubPageHeading>
 

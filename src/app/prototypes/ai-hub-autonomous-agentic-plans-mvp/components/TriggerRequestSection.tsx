@@ -235,10 +235,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   const hasRightColumn = Boolean(parsed?.severity || parsed?.namespace);
 
   return (
-    <div
-      className="ols-ai-hub-trigger-request"
-      style={{ marginBlockStart: 'var(--pf-t--global--spacer--md)' }}
-    >
+    <div className="ols-ai-hub-trigger-request">
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
         gap={{ default: 'gapSm' }}

@@ -47,7 +47,10 @@ import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AgenticRunTimeline } from '../../components/AgenticRunTimeline';
 import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
-import { buildAgenticRunRequest } from '../../components/TriggerRequestSection';
+import {
+  buildAgenticRunRequest,
+  TriggerRequestSection,
+} from '../../components/TriggerRequestSection';
 
 export {
   NamespaceResourceBadge,
@@ -3911,6 +3914,12 @@ export const RemediationBlueprintPanel: React.FC<{
           </Content>
         </StackItem>
 
+        {plan.request ? (
+          <StackItem>
+            <TriggerRequestSection request={plan.request} planId={plan.id} />
+          </StackItem>
+        ) : null}
+
         <StackItem>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -4044,6 +4053,12 @@ export const RemediationBlueprintPanel: React.FC<{
           review AI-generated content prior to use.
         </Content>
       </StackItem>
+
+      {plan.request ? (
+        <StackItem>
+          <TriggerRequestSection request={plan.request} planId={plan.id} />
+        </StackItem>
+      ) : null}
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (
