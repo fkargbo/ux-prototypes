@@ -1,17 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Button,
   Checkbox,
+  ExpandableSection,
   Flex,
   FlexItem,
   Label,
-  Modal,
-  ModalBody,
-  ModalHeader,
   SearchInput,
   Spinner,
 } from '@patternfly/react-core';
-import { OutlinedFileAltIcon } from '@patternfly/react-icons';
 import type { PlanStatus } from '../types/planStatus';
 import { ExpandableCodeBlock } from './ExpandableCodeBlock';
 
@@ -154,7 +150,7 @@ export type AnalysisLogsExpandableProps = {
 };
 
 /**
- * Timeline "View analysis logs" / "View live logs" trigger + modal viewer.
+ * PF ExpandableSection — "View analysis logs" / "View live logs".
  * Closed by default. Live mode streams lines with auto-scroll and hides download
  * until analysis finishes.
  */
@@ -165,14 +161,20 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
   lifecycle,
   idPrefix = 'analysis-log',
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
   const [hideHealthChecks, setHideHealthChecks] = useState(true);
   const logScrollRef = useRef<HTMLDivElement>(null);
 
   const isLive = lifecycle === 'live';
   const canDownload = lifecycle === 'completed' || lifecycle === 'failed' || lifecycle === 'cancelled';
-  const triggerLabel = isLive ? 'View live logs' : 'View analysis logs';
+  const toggleText = isExpanded
+    ? isLive
+      ? 'Hide live logs'
+      : 'Hide analysis logs'
+    : isLive
+      ? 'View live logs'
+      : 'View analysis logs';
 
   const allLines = useMemo(
     () => generateAnalysisLogs(planId, finding, narrative).split('\n'),
@@ -181,14 +183,13 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
 
   const [streamedCount, setStreamedCount] = useState(() => (isLive ? 3 : allLines.length));
 
-  // Reset stream when opening live viewer or when lifecycle / plan changes.
   useEffect(() => {
     setStreamedCount(isLive ? 3 : allLines.length);
   }, [isLive, allLines.length, planId]);
 
-  // Append mock lines while live and the modal is open.
+  // Append mock lines while live and expanded.
   useEffect(() => {
-    if (!isLive || !isOpen) return undefined;
+    if (!isLive || !isExpanded) return undefined;
     const timer = window.setInterval(() => {
       setStreamedCount((prev) => {
         if (prev >= allLines.length) return prev;
@@ -196,7 +197,7 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
       });
     }, 700);
     return () => window.clearInterval(timer);
-  }, [isLive, isOpen, allLines.length]);
+  }, [isLive, isExpanded, allLines.length]);
 
   const rawLogs = allLines.slice(0, streamedCount).join('\n');
   const fullLogs = allLines.join('\n');
@@ -208,105 +209,81 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
 
   // Auto-scroll as new live lines append.
   useEffect(() => {
-    if (!isLive || !isOpen) return;
-    const el = logScrollRef.current?.querySelector('.pf-v6-c-code-block__content, pre, code');
+    if (!isLive || !isExpanded) return;
     const scrollTarget = logScrollRef.current;
     if (scrollTarget) {
       scrollTarget.scrollTop = scrollTarget.scrollHeight;
     }
+    const el = logScrollRef.current?.querySelector('.pf-v6-c-code-block__content, pre, code');
     if (el instanceof HTMLElement) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [displayLogs, isLive, isOpen]);
-
-  const close = () => {
-    setIsOpen(false);
-    setQuery('');
-  };
+  }, [displayLogs, isLive, isExpanded]);
 
   return (
-    <>
-      <Button
-        variant="link"
-        isInline
-        icon={<OutlinedFileAltIcon />}
-        onClick={() => setIsOpen(true)}
-        aria-label={triggerLabel}
-      >
-        {triggerLabel}
-      </Button>
-
-      <Modal
-        variant="large"
-        isOpen={isOpen}
-        onClose={close}
-        aria-labelledby={`${idPrefix}-modal-title`}
-      >
-        <ModalHeader
-          labelId={`${idPrefix}-modal-title`}
-          title={
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
-              flexWrap={{ default: 'wrap' }}
-            >
-              <FlexItem>Analysis logs</FlexItem>
-              <FlexItem>{lifecycleHeaderBadge(lifecycle)}</FlexItem>
-            </Flex>
-          }
-        />
-        <ModalBody>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            gap={{ default: 'gapMd' }}
-            style={{ marginBottom: 'calc(var(--pf-t--global--spacer--xs) + 4px)' }}
-          >
-            <FlexItem style={{ width: '200px', maxWidth: '200px', flexShrink: 0 }}>
-              <SearchInput
-                value={query}
-                onChange={(_evt, val) => setQuery(val)}
-                onClear={() => setQuery('')}
-                placeholder="Search logs..."
-              />
-            </FlexItem>
-            <FlexItem>
-              <Checkbox
-                id={`${idPrefix}-hc-${planId}`}
-                label="Hide health checks"
-                isChecked={hideHealthChecks}
-                onChange={(_evt, checked) => setHideHealthChecks(checked)}
-              />
-            </FlexItem>
-          </Flex>
-          <div
-            ref={logScrollRef}
-            style={
-              isLive
-                ? { maxHeight: '360px', overflowY: 'auto' }
+    <ExpandableSection
+      toggleText={toggleText}
+      isExpanded={isExpanded}
+      onToggle={(_e, expanded) => {
+        setIsExpanded(expanded);
+        if (!expanded) setQuery('');
+      }}
+      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+    >
+      <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          {lifecycleHeaderBadge(lifecycle)}
+        </Flex>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapMd' }}
+          style={{ marginBottom: 'calc(var(--pf-t--global--spacer--xs) + 4px)' }}
+        >
+          <FlexItem style={{ width: '200px', maxWidth: '200px', flexShrink: 0 }}>
+            <SearchInput
+              value={query}
+              onChange={(_evt, val) => setQuery(val)}
+              onClear={() => setQuery('')}
+              placeholder="Search logs..."
+            />
+          </FlexItem>
+          <FlexItem>
+            <Checkbox
+              id={`${idPrefix}-hc-${planId}`}
+              label="Hide health checks"
+              isChecked={hideHealthChecks}
+              onChange={(_evt, checked) => setHideHealthChecks(checked)}
+            />
+          </FlexItem>
+        </Flex>
+        <div
+          ref={logScrollRef}
+          style={isLive ? { maxHeight: '280px', overflowY: 'auto' } : undefined}
+        >
+          <ExpandableCodeBlock
+            id={`${idPrefix}-${planId}`}
+            code={displayLogs}
+            clipboardCode={isLive ? rawLogs : fullLogs}
+            codeStyle={{
+              fontSize: '12px',
+              maxHeight: isLive ? undefined : '280px',
+              overflowY: isLive ? undefined : 'auto',
+              display: 'block',
+            }}
+            maxCollapsedLines={isLive ? Number.MAX_SAFE_INTEGER : 5}
+            onDownload={
+              canDownload
+                ? () => downloadEvidenceLogFile(planId, fullLogs, 'txt')
                 : undefined
             }
-          >
-            <ExpandableCodeBlock
-              id={`${idPrefix}-${planId}`}
-              code={displayLogs}
-              clipboardCode={isLive ? rawLogs : fullLogs}
-              codeStyle={{
-                fontSize: '12px',
-                maxHeight: isLive ? undefined : '360px',
-                overflowY: isLive ? undefined : 'auto',
-                display: 'block',
-              }}
-              maxCollapsedLines={isLive ? Number.MAX_SAFE_INTEGER : 5}
-              onDownload={
-                canDownload
-                  ? () => downloadEvidenceLogFile(planId, fullLogs, 'txt')
-                  : undefined
-              }
-              downloadAriaLabel="Download log file"
-            />
-          </div>
-        </ModalBody>
-      </Modal>
-    </>
+            downloadAriaLabel="Download log file"
+          />
+        </div>
+      </div>
+    </ExpandableSection>
   );
 };
