@@ -46,6 +46,7 @@ import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AgenticRunTimeline } from '../../components/AgenticRunTimeline';
+import { buildAgenticRunRequest } from '../../components/TriggerRequestSection';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import type { Reversibility } from '../../types/reversibility';
@@ -146,6 +147,11 @@ export interface PlanRow {
   terminatedAt?: string;
   /** Investigation-only proposals have analysis but no remediation hub. */
   planKind?: 'remediation' | 'analysis-only';
+  /**
+   * Raw `spec.request` prompt / alert event string that initiated analysis.
+   * Rendered on the Agentic Run details page as the Trigger request section.
+   */
+  request?: string;
 }
 
 /**
@@ -2381,9 +2387,9 @@ export const TriggerDomainCell: React.FC<{
   </Label>
 );
 
-/** Created time for plans in Proposed status. */
+/** Created timestamp shown beneath status on Agentic Run details / hub headers. */
 export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) => {
-  if (plan.status !== 'Proposed' || !plan.createdAt) {
+  if (!plan.createdAt) {
     return null;
   }
 
@@ -4710,6 +4716,16 @@ export function buildPlansForPerspective(
           normalizedRow.createdAt ??
           new Date(createdAnchor - index * 47 * 60_000).toISOString(),
         terminatedAt: normalizedRow.terminatedAt,
+        request:
+          normalizedRow.request ??
+          buildAgenticRunRequest({
+            id: row.id,
+            name: identity?.name ?? row.id,
+            synopsis: identity?.synopsis ?? normalizedRow.synopsis,
+            severity: normalizedRow.severity,
+            namespace: identity?.namespace,
+            triggerDomain: normalizedRow.triggerDomain,
+          }),
       };
 
       if (abortedPlans[row.id]) {
