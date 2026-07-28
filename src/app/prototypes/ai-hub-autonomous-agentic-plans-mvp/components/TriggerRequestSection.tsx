@@ -128,19 +128,17 @@ function assignParsedField(
   }
 }
 
-/** PF status Label for alert severity (status Labels include the matching icon). */
-function severityLabelStatus(
-  severity: string,
-): 'danger' | 'warning' | 'info' | undefined {
+/** Filled Label colors — same compact style as Agentic runs table Status labels. */
+function severityLabelColor(severity: string): 'red' | 'orange' | 'blue' | 'grey' {
   switch (severity.toLowerCase()) {
     case 'critical':
-      return 'danger';
+      return 'red';
     case 'warning':
-      return 'warning';
+      return 'orange';
     case 'info':
-      return 'info';
+      return 'blue';
     default:
-      return undefined;
+      return 'grey';
   }
 }
 
@@ -158,22 +156,11 @@ function formatSeverityLabel(severity: string): string {
   }
 }
 
-const SeverityLabel: React.FC<{ severity: string }> = ({ severity }) => {
-  const status = severityLabelStatus(severity);
-  const text = formatSeverityLabel(severity);
-  if (status) {
-    return (
-      <Label status={status} isCompact>
-        {text}
-      </Label>
-    );
-  }
-  return (
-    <Label color="grey" isCompact>
-      {text}
-    </Label>
-  );
-};
+const SeverityLabel: React.FC<{ severity: string }> = ({ severity }) => (
+  <Label color={severityLabelColor(severity)} isCompact style={{ whiteSpace: 'nowrap' }}>
+    {formatSeverityLabel(severity)}
+  </Label>
+);
 
 // ─── Raw viewer (copy + code block) ───────────────────────────────────────────
 
@@ -222,7 +209,7 @@ const RawRequestCodeBlock: React.FC<{ code: string; id: string }> = ({ code, id 
  * `spec.request` into Labels / DescriptionList when possible, with an
  * expandable raw string viewer (and graceful fallback when parsing fails).
  *
- * Layout (parsed): left column Alert name + Summary; right column Severity + Namespace.
+ * Layout (parsed): left column Trigger source + Summary; right column Severity + Namespace.
  */
 export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   request,
@@ -269,7 +256,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
                 <DescriptionList isHorizontal isCompact>
                   {parsed.alertName && (
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Alert name</DescriptionListTerm>
+                      <DescriptionListTerm>Trigger source</DescriptionListTerm>
                       <DescriptionListDescription>
                         <Label color="grey" isCompact>
                           {parsed.alertName}
