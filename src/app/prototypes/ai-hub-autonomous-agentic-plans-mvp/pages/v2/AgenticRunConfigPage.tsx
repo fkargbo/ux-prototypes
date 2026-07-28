@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -7,6 +7,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
+  Checkbox,
   Content,
   Dropdown,
   DropdownItem,
@@ -15,7 +16,13 @@ import {
   FlexItem,
   Form,
   MenuToggle,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   NumberInput,
+  Stack,
+  StackItem,
   Tab,
   Tabs,
   TabTitleText,
@@ -62,6 +69,115 @@ const CreatedAtCell: React.FC<{ iso: string }> = ({ iso }) => (
 
 type AgenticRunConfigTabKey = 'approval-policy' | 'llm-providers' | 'agents';
 type ApprovalMode = 'auto' | 'manual';
+type PolicyStage = 'analysis' | 'execution' | 'verification' | 'escalation';
+
+const POLICY_STAGE_LABELS: Record<PolicyStage, string> = {
+  analysis: 'Analysis',
+  execution: 'Execution',
+  verification: 'Verification',
+  escalation: 'Escalation',
+};
+
+// ─── Manual → Automatic 3-click safety modal ─────────────────────────────────
+
+type EnableAutomaticPolicyModalProps = {
+  isOpen: boolean;
+  stage: PolicyStage | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
+/**
+ * Triple-confirmation gate for enabling Automatic execution policy.
+ * Click 1 + 2 = mandatory risk/guardrail checkboxes; Click 3 = primary button
+ * (disabled until both checkboxes are checked). Cancel / Esc / X leaves Manual.
+ */
+const EnableAutomaticPolicyModal: React.FC<EnableAutomaticPolicyModalProps> = ({
+  isOpen,
+  stage,
+  onCancel,
+  onConfirm,
+}) => {
+  const [ackRisk, setAckRisk] = useState(false);
+  const [ackGuardrail, setAckGuardrail] = useState(false);
+  const stageLabel = stage ? POLICY_STAGE_LABELS[stage] : 'this';
+
+  // Reset acknowledgments whenever the modal opens for a (new) stage.
+  useEffect(() => {
+    if (isOpen) {
+      setAckRisk(false);
+      setAckGuardrail(false);
+    }
+  }, [isOpen, stage]);
+
+  const canConfirm = ackRisk && ackGuardrail;
+
+  return (
+    <Modal
+      variant="medium"
+      isOpen={isOpen}
+      onClose={onCancel}
+      aria-labelledby="enable-automatic-policy-title"
+      aria-describedby="enable-automatic-policy-body"
+    >
+      <ModalHeader
+        labelId="enable-automatic-policy-title"
+        title="Enable automatic execution policy"
+        titleIconVariant="warning"
+      />
+      <ModalBody id="enable-automatic-policy-body">
+        <Stack hasGutter>
+          <StackItem>
+            <Alert
+              variant="danger"
+              isInline
+              title="Automatic policy allows unprompted autonomous cluster operations"
+            >
+              Enabling Automatic for the <strong>{stageLabel}</strong> stage lets the agent
+              proceed without a human approval gate. Misconfigured limits or RBAC can result in
+              unintended cluster changes across remediation workflows.
+            </Alert>
+          </StackItem>
+          <StackItem>
+            <Content component="p">
+              Confirm both statements below before enabling Automatic execution for{' '}
+              <strong>{stageLabel}</strong>.
+            </Content>
+          </StackItem>
+          <StackItem>
+            <Checkbox
+              id="enable-auto-ack-risk"
+              label="I understand the agent will automatically perform operations without manual approval"
+              isChecked={ackRisk}
+              onChange={(_event, checked) => setAckRisk(checked)}
+            />
+          </StackItem>
+          <StackItem>
+            <Checkbox
+              id="enable-auto-ack-guardrail"
+              label="I confirm that cluster safety limits and RBAC permissions have been verified"
+              isChecked={ackGuardrail}
+              onChange={(_event, checked) => setAckGuardrail(checked)}
+            />
+          </StackItem>
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          key="confirm"
+          variant="danger"
+          isDisabled={!canConfirm}
+          onClick={onConfirm}
+        >
+          Enable automatic execution
+        </Button>
+        <Button key="cancel" variant="link" onClick={onCancel}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+};
 
 interface LlmProviderRow {
   id: string;
@@ -181,24 +297,72 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   const [verificationPolicy, setVerificationPolicy] = useState<ApprovalMode>('manual');
   const [escalationPolicy, setEscalationPolicy] = useState<ApprovalMode>('manual');
   const [maxRetryAttempts, setMaxRetryAttempts] = useState(3);
+  const [isDirty, setIsDirty] = useState(false);
+  /** Stage awaiting Manual → Automatic confirmation; null when modal is closed. */
+  const [pendingAutoStage, setPendingAutoStage] = useState<PolicyStage | null>(null);
 
-  const renderToggleRow = (
-    label: string,
-    ariaLabel: string,
-    value: ApprovalMode,
-    onChange: (next: ApprovalMode) => void,
-  ) => (
-    <PolicyRow label={label} fieldId={`${ariaLabel}-toggle`}>
+  const policySetters: Record<PolicyStage, React.Dispatch<React.SetStateAction<ApprovalMode>>> = {
+    analysis: setAnalysisPolicy,
+    execution: setExecutionPolicy,
+    verification: setVerificationPolicy,
+    escalation: setEscalationPolicy,
+  };
+
+  const policyValues: Record<PolicyStage, ApprovalMode> = {
+    analysis: analysisPolicy,
+    execution: executionPolicy,
+    verification: verificationPolicy,
+    escalation: escalationPolicy,
+  };
+
+  /**
+   * Intercept policy changes:
+   * - Automatic → Manual: apply immediately
+   * - Manual → Automatic: open 3-click safety modal (toggle stays Manual until confirmed)
+   */
+  const requestPolicyChange = (stage: PolicyStage, next: ApprovalMode) => {
+    const current = policyValues[stage];
+    if (next === current) return;
+
+    if (next === 'manual') {
+      policySetters[stage]('manual');
+      setIsDirty(true);
+      return;
+    }
+
+    // Manual → Automatic: gate behind modal; do not flip the toggle yet.
+    setPendingAutoStage(stage);
+  };
+
+  const dismissAutoModal = () => {
+    // Leave the stage on Manual — no state write needed.
+    setPendingAutoStage(null);
+  };
+
+  const confirmEnableAutomatic = () => {
+    if (!pendingAutoStage) return;
+    policySetters[pendingAutoStage]('auto');
+    setIsDirty(true);
+    setPendingAutoStage(null);
+  };
+
+  const markDirtyRetry = (next: number) => {
+    setMaxRetryAttempts(next);
+    setIsDirty(true);
+  };
+
+  const renderToggleRow = (stage: PolicyStage, ariaLabel: string) => (
+    <PolicyRow label={POLICY_STAGE_LABELS[stage]} fieldId={`${ariaLabel}-toggle`}>
       <ToggleGroup isCompact aria-label={ariaLabel} id={`${ariaLabel}-toggle`}>
         <ToggleGroupItem
           text="Manual"
-          isSelected={value === 'manual'}
-          onChange={() => onChange('manual')}
+          isSelected={policyValues[stage] === 'manual'}
+          onChange={() => requestPolicyChange(stage, 'manual')}
         />
         <ToggleGroupItem
           text="Automatic"
-          isSelected={value === 'auto'}
-          onChange={() => onChange('auto')}
+          isSelected={policyValues[stage] === 'auto'}
+          onChange={() => requestPolicyChange(stage, 'auto')}
         />
       </ToggleGroup>
     </PolicyRow>
@@ -210,22 +374,22 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
         Configure whether each workflow stage requires manual approval or runs automatically.
       </Content>
       <Form className="ols-ai-hub-config-content-width ols-ai-hub-config-approval-form">
-        {renderToggleRow('Analysis', 'Analysis policy', analysisPolicy, setAnalysisPolicy)}
-        {renderToggleRow('Execution', 'Execution policy', executionPolicy, setExecutionPolicy)}
-        {renderToggleRow('Verification', 'Verification policy', verificationPolicy, setVerificationPolicy)}
-        {renderToggleRow('Escalation', 'Escalation policy', escalationPolicy, setEscalationPolicy)}
+        {renderToggleRow('analysis', 'Analysis policy')}
+        {renderToggleRow('execution', 'Execution policy')}
+        {renderToggleRow('verification', 'Verification policy')}
+        {renderToggleRow('escalation', 'Escalation policy')}
         <PolicyRow label="Max retry attempts" fieldId="max-retry-attempts" isLast>
           <NumberInput
             id="max-retry-attempts"
             value={maxRetryAttempts}
             min={0}
             max={10}
-            onMinus={() => setMaxRetryAttempts((prev) => Math.max(0, prev - 1))}
-            onPlus={() => setMaxRetryAttempts((prev) => Math.min(10, prev + 1))}
+            onMinus={() => markDirtyRetry(Math.max(0, maxRetryAttempts - 1))}
+            onPlus={() => markDirtyRetry(Math.min(10, maxRetryAttempts + 1))}
             onChange={(event) => {
               const parsed = Number((event.target as HTMLInputElement).value);
               if (!Number.isNaN(parsed)) {
-                setMaxRetryAttempts(Math.min(10, Math.max(0, parsed)));
+                markDirtyRetry(Math.min(10, Math.max(0, parsed)));
               }
             }}
             inputName="max-retry-attempts"
@@ -237,7 +401,14 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
       </Form>
       <Flex style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }} gap={{ default: 'gapSm' }}>
         <FlexItem>
-          <Button variant="primary" onClick={onSaved}>
+          <Button
+            variant="primary"
+            isDisabled={!isDirty}
+            onClick={() => {
+              onSaved();
+              setIsDirty(false);
+            }}
+          >
             Save
           </Button>
         </FlexItem>
@@ -247,6 +418,13 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
           </Button>
         </FlexItem>
       </Flex>
+
+      <EnableAutomaticPolicyModal
+        isOpen={pendingAutoStage !== null}
+        stage={pendingAutoStage}
+        onCancel={dismissAutoModal}
+        onConfirm={confirmEnableAutomatic}
+      />
     </>
   );
 };
