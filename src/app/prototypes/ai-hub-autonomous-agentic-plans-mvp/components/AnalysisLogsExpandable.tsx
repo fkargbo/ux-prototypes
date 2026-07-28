@@ -118,7 +118,7 @@ export type AnalysisLogsExpandableProps = {
 };
 
 /**
- * PF ExpandableSection — "View analysis logs" / "View live logs".
+ * PF ExpandableSection — "View analysis logs".
  * Closed by default. Live mode streams lines with auto-scroll and hides download
  * until analysis finishes.
  */
@@ -136,13 +136,7 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
 
   const isLive = lifecycle === 'live';
   const canDownload = lifecycle === 'completed' || lifecycle === 'failed' || lifecycle === 'cancelled';
-  const toggleText = isExpanded
-    ? isLive
-      ? 'Hide live logs'
-      : 'Hide analysis logs'
-    : isLive
-      ? 'View live logs'
-      : 'View analysis logs';
+  const toggleText = isExpanded ? 'Hide analysis logs' : 'View analysis logs';
 
   const allLines = useMemo(
     () => generateAnalysisLogs(planId, finding, narrative).split('\n'),
