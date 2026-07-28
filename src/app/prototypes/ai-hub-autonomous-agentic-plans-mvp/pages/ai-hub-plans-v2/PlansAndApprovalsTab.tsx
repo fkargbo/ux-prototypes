@@ -3803,13 +3803,20 @@ export const RemediationBlueprintPanel: React.FC<{
     !isVerifying;
   const showTopLevelRca = !showPerOptionRca;
 
-  /** Timeline hosts "View analysis logs" once analysis has completed (same mock data as former RCA card). */
+  /**
+   * Timeline hosts View live / analysis logs on the Analysis phase step for all
+   * post-Pending lifecycle states (Analyzing → terminal), including live streaming.
+   */
   const timelineAnalysisLogs =
-    drawer && !isAnalyzing && !isPending
+    !isPending
       ? {
           planId: plan.id,
-          finding: drawer.aggregatedFinding,
-          narrative: drawer.rootCauseNarrative,
+          finding:
+            drawer?.aggregatedFinding ??
+            'Signal correlation in progress — querying fleet telemetry and alert history.',
+          narrative:
+            drawer?.rootCauseNarrative ??
+            'Root cause hypothesis generation in progress. Partial findings stream into the analysis log.',
         }
       : null;
   const optionCount = options.length;

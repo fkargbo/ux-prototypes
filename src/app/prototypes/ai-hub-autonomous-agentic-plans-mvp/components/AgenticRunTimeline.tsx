@@ -7,7 +7,10 @@ import {
   Title,
 } from '@patternfly/react-core';
 import type { PlanStatus } from '../types/planStatus';
-import { AnalysisLogsExpandable } from './AnalysisLogsExpandable';
+import {
+  AnalysisLogsExpandable,
+  resolveAnalysisLogsLifecycle,
+} from './AnalysisLogsExpandable';
 
 /** Mock analysis-log inputs (same payload previously fed from the RCA card). */
 export type TimelineAnalysisLogs = {
@@ -16,8 +19,8 @@ export type TimelineAnalysisLogs = {
   narrative: string;
 };
 
-/** Audit event that marks analysis completion — hosts the "View analysis logs" trigger. */
-const ANALYSIS_COMPLETED_EVENT = 'agenticrun.analysis.completed';
+/** Analysis phase step — hosts View live / analysis logs for all post-start lifecycle states. */
+const ANALYSIS_PHASE_EVENT = 'agenticrun.analyze';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -293,9 +296,9 @@ interface AgenticRunTimelineProps {
    */
   isCapabilitiesDisabled?: boolean;
   /**
-   * Analysis log payload for the "View analysis logs" expandable attached to
-   * the Analysis completed timeline step. Same data previously hosted on the
-   * top-level RCA card — remains available when that card is hidden (OLS-3724).
+   * Analysis log payload for the View live / analysis logs action on the
+   * Analysis phase timeline step. Same data previously hosted on the top-level
+   * RCA card — remains available when that card is hidden (OLS-3724).
    */
   analysisLogs?: TimelineAnalysisLogs | null;
 }
@@ -351,7 +354,7 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
       >
         {steps.map((s) => {
           const showAnalysisLogs =
-            s.event === ANALYSIS_COMPLETED_EVENT && Boolean(analysisLogs);
+            s.event === ANALYSIS_PHASE_EVENT && Boolean(analysisLogs);
 
           return (
             <ProgressStep
@@ -369,6 +372,7 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
                       planId={analysisLogs.planId}
                       finding={analysisLogs.finding}
                       narrative={analysisLogs.narrative}
+                      lifecycle={resolveAnalysisLogsLifecycle(status)}
                       idPrefix="timeline-analysis-log"
                     />
                   </div>
