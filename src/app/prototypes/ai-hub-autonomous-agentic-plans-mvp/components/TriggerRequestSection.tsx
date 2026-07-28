@@ -1,9 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   Button,
-  Card,
-  CardBody,
-  CardTitle,
   CodeBlock,
   CodeBlockAction,
   CodeBlockCode,
@@ -15,6 +12,8 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
+  Grid,
+  GridItem,
   Label,
   Popover,
   Title,
@@ -219,9 +218,11 @@ const RawRequestCodeBlock: React.FC<{ code: string; id: string }> = ({ code, id 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
- * Structured "Analysis request" card for Agentic Run details — parses
+ * Structured "Analysis request" section for Agentic Run details — parses
  * `spec.request` into Labels / DescriptionList when possible, with an
  * expandable raw string viewer (and graceful fallback when parsing fails).
+ *
+ * Layout (parsed): left column Alert name + Summary; right column Severity + Namespace.
  */
 export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   request,
@@ -230,90 +231,104 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   const [isRawExpanded, setIsRawExpanded] = useState(false);
   const parsed = useMemo(() => parseTriggerRequest(request), [request]);
   const hasParsedFields = Boolean(parsed);
+  const hasLeftColumn = Boolean(parsed?.alertName || parsed?.description);
+  const hasRightColumn = Boolean(parsed?.severity || parsed?.namespace);
 
   return (
-    <Card
-      isCompact
+    <div
       className="ols-ai-hub-trigger-request"
       style={{ marginBlockStart: 'var(--pf-t--global--spacer--md)' }}
     >
-      <CardTitle>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <FlexItem>
-            <Title headingLevel="h2" size="md" style={{ margin: 0 }}>
-              Analysis request
-            </Title>
-          </FlexItem>
-          <FlexItem>
-            <Popover
-              aria-label="Analysis request help"
-              headerContent="Analysis request"
-              bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
-            >
-              <Button
-                variant="plain"
-                aria-label="More information about analysis request"
-                style={{ padding: 0 }}
-                icon={<OutlinedQuestionCircleIcon />}
-              />
-            </Popover>
-          </FlexItem>
-        </Flex>
-      </CardTitle>
-      <CardBody>
-        {hasParsedFields && parsed ? (
-          <>
-            <DescriptionList isHorizontal isCompact isFluid>
-              {parsed.alertName && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Alert name</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Label color="grey" isCompact>
-                      {parsed.alertName}
-                    </Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-              {parsed.severity && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Severity</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <SeverityLabel severity={parsed.severity} />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-              {parsed.namespace && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Namespace</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <NamespaceResourceLink name={parsed.namespace} />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-              {parsed.description && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Summary</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      {parsed.description}
-                    </span>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-            </DescriptionList>
-            <ExpandableSection
-              toggleText={isRawExpanded ? 'Hide raw request string' : 'View raw request string'}
-              isExpanded={isRawExpanded}
-              onToggle={(_e, expanded) => setIsRawExpanded(expanded)}
-              style={{ marginBlockStart: 'var(--pf-t--global--spacer--md)' }}
-            >
-              <RawRequestCodeBlock code={request} id={`trigger-request-${planId}`} />
-            </ExpandableSection>
-          </>
-        ) : (
-          <RawRequestCodeBlock code={request} id={`trigger-request-${planId}`} />
-        )}
-      </CardBody>
-    </Card>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBlockEnd: 'var(--pf-t--global--spacer--sm)' }}
+      >
+        <FlexItem>
+          <Title headingLevel="h2" size="md" style={{ margin: 0 }}>
+            Analysis request
+          </Title>
+        </FlexItem>
+        <FlexItem>
+          <Popover
+            aria-label="Analysis request help"
+            headerContent="Analysis request"
+            bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
+          >
+            <Button
+              variant="plain"
+              aria-label="More information about analysis request"
+              style={{ padding: 0 }}
+              icon={<OutlinedQuestionCircleIcon />}
+            />
+          </Popover>
+        </FlexItem>
+      </Flex>
+
+      {hasParsedFields && parsed ? (
+        <>
+          <Grid hasGutter>
+            {hasLeftColumn && (
+              <GridItem md={hasRightColumn ? 7 : 12}>
+                <DescriptionList isHorizontal isCompact>
+                  {parsed.alertName && (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Alert name</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Label color="grey" isCompact>
+                          {parsed.alertName}
+                        </Label>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  )}
+                  {parsed.description && (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Summary</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                          {parsed.description}
+                        </span>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  )}
+                </DescriptionList>
+              </GridItem>
+            )}
+            {hasRightColumn && (
+              <GridItem md={hasLeftColumn ? 5 : 12}>
+                <DescriptionList isHorizontal isCompact>
+                  {parsed.severity && (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Severity</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <SeverityLabel severity={parsed.severity} />
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  )}
+                  {parsed.namespace && (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Namespace</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <NamespaceResourceLink name={parsed.namespace} />
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  )}
+                </DescriptionList>
+              </GridItem>
+            )}
+          </Grid>
+          <ExpandableSection
+            toggleText={isRawExpanded ? 'Hide raw request string' : 'View raw request string'}
+            isExpanded={isRawExpanded}
+            onToggle={(_e, expanded) => setIsRawExpanded(expanded)}
+            style={{ marginBlockStart: 'var(--pf-t--global--spacer--md)' }}
+          >
+            <RawRequestCodeBlock code={request} id={`trigger-request-${planId}`} />
+          </ExpandableSection>
+        </>
+      ) : (
+        <RawRequestCodeBlock code={request} id={`trigger-request-${planId}`} />
+      )}
+    </div>
   );
 };
