@@ -4197,50 +4197,12 @@ export const RemediationBlueprintPanel: React.FC<{
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
             <Title headingLevel="h4" size="md">Remediation hub</Title>
             <Label color="grey" isCompact>AI-generated</Label>
-            {status === 'Completed' && (
-              <Label
-                color="green"
-                isCompact
-                icon={<CheckCircleIcon />}
-              >
-                Completed
-              </Label>
-            )}
-            {status === 'Failed' && (
-              <Label
-                color="red"
-                isCompact
-                icon={<ExclamationCircleIcon />}
-              >
-                Failed
-              </Label>
-            )}
-            {isEscalated && (
-              <Label
-                color="orange"
-                isCompact
-                icon={<ExclamationTriangleIcon />}
-              >
-                Escalated
-              </Label>
-            )}
-            {isDenied && (
-              <Label
-                color="red"
-                isCompact
-                icon={<ExclamationCircleIcon />}
-              >
-                Denied
-              </Label>
-            )}
-            {isEmergencyStopped && (
-              <Label
-                color="orange"
-                isCompact
-                icon={<ExclamationTriangleIcon />}
-              >
-                Emergency stopped
-              </Label>
+            {(status === 'Completed' ||
+              status === 'Failed' ||
+              isEscalated ||
+              isDenied ||
+              isEmergencyStopped) && (
+              <StatusLabel status={status} terminatedAt={plan.terminatedAt} />
             )}
             {!isAnalyzing && !isTerminal && !isDenied && visibleOptionCount > 0 && (
               <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
