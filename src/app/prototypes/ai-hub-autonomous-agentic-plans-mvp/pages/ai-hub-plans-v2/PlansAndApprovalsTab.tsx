@@ -149,7 +149,7 @@ export interface PlanRow {
   planKind?: 'remediation' | 'analysis-only';
   /**
    * Raw `spec.request` prompt / alert event string that initiated analysis.
-   * Rendered on the Agentic Run details page as the Trigger request section.
+   * Rendered on the Agentic Run details page as the Analysis request section.
    */
   request?: string;
 }

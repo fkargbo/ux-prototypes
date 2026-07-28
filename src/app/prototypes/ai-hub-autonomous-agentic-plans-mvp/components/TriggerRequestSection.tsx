@@ -184,7 +184,7 @@ const RawRequestCodeBlock: React.FC<{ code: string; id: string }> = ({ code, id 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
- * Structured "Trigger request" card for Agentic Run details — parses
+ * Structured "Analysis request" card for Agentic Run details — parses
  * `spec.request` into Labels / DescriptionList when possible, with an
  * expandable raw string viewer (and graceful fallback when parsing fails).
  */
@@ -206,18 +206,18 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
           <FlexItem>
             <Title headingLevel="h2" size="md" style={{ margin: 0 }}>
-              Trigger request
+              Analysis request
             </Title>
           </FlexItem>
           <FlexItem>
             <Popover
-              aria-label="Trigger request help"
-              headerContent="Trigger request"
+              aria-label="Analysis request help"
+              headerContent="Analysis request"
               bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
             >
               <Button
                 variant="plain"
-                aria-label="More information about trigger request"
+                aria-label="More information about analysis request"
                 style={{ padding: 0 }}
                 icon={<OutlinedQuestionCircleIcon />}
               />
