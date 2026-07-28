@@ -46,7 +46,13 @@ import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AgenticRunTimeline } from '../../components/AgenticRunTimeline';
+import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
 import { buildAgenticRunRequest } from '../../components/TriggerRequestSection';
+
+export {
+  NamespaceResourceBadge,
+  NamespaceResourceLink,
+} from '../../components/NamespaceResourceLink';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import type { Reversibility } from '../../types/reversibility';
@@ -2435,10 +2441,6 @@ export const PlanResourceBadge: React.FC = () => (
   <OpenShiftResourceBadge label="AR" backgroundColor="#2b9af3" />
 );
 
-export const NamespaceResourceBadge: React.FC = () => (
-  <OpenShiftResourceBadge label="NS" backgroundColor="#1e4f18" />
-);
-
 // ─── Scope cell (cluster / namespace) with multi-target tooltip ───────────────
 
 const PlanScopeCell: React.FC<{
@@ -2450,14 +2452,10 @@ const PlanScopeCell: React.FC<{
   const showTooltip = scopeColumnLabel === 'Cluster' && scopeTargets.length > 1;
 
   if (scopeColumnLabel === 'Namespace') {
-    return (
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-        <FlexItem>
-          <NamespaceResourceBadge />
-        </FlexItem>
-        <FlexItem style={{ minWidth: 0, wordBreak: 'break-word' }}>{label}</FlexItem>
-      </Flex>
-    );
+    if (!scope || scope === '—') {
+      return <>{label}</>;
+    }
+    return <NamespaceResourceLink name={scope} />;
   }
 
   if (!showTooltip) {

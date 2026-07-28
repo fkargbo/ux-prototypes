@@ -20,6 +20,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { NamespaceResourceLink } from './NamespaceResourceLink';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,6 +129,7 @@ function assignParsedField(
   }
 }
 
+/** OCP/PF severity Label color — warning uses standard gold. */
 function severityLabelColor(severity: string): 'red' | 'gold' | 'blue' | 'grey' {
   switch (severity.toLowerCase()) {
     case 'critical':
@@ -138,6 +140,20 @@ function severityLabelColor(severity: string): 'red' | 'gold' | 'blue' | 'grey' 
       return 'blue';
     default:
       return 'grey';
+  }
+}
+
+/** Sentence-case severity display (e.g. warning → Warning). */
+function formatSeverityLabel(severity: string): string {
+  switch (severity.toLowerCase()) {
+    case 'critical':
+      return 'Critical';
+    case 'warning':
+      return 'Warning';
+    case 'info':
+      return 'Info';
+    default:
+      return severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase();
   }
 }
 
@@ -244,23 +260,16 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
                   <DescriptionListTerm>Severity</DescriptionListTerm>
                   <DescriptionListDescription>
                     <Label color={severityLabelColor(parsed.severity)} isCompact>
-                      {parsed.severity}
+                      {formatSeverityLabel(parsed.severity)}
                     </Label>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               )}
               {parsed.namespace && (
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Target namespace</DescriptionListTerm>
+                  <DescriptionListTerm>Namespace</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <code
-                      style={{
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        fontSize: 'var(--pf-t--global--font--size--sm)',
-                      }}
-                    >
-                      {parsed.namespace}
-                    </code>
+                    <NamespaceResourceLink name={parsed.namespace} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               )}
