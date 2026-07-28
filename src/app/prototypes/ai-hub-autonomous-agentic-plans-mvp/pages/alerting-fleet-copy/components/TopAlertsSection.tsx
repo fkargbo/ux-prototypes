@@ -127,16 +127,8 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <Label
                       isCompact
-                      {...(alertActionsLayout === 'ai-hub'
-                        ? { status: SEVERITY_LABEL_STATUS[dominantSeverity], variant: 'outline' as const }
-                        : {
-                            color:
-                              dominantSeverity === 'Critical'
-                                ? 'red'
-                                : dominantSeverity === 'Warning'
-                                  ? 'orange'
-                                  : 'purple',
-                          })}
+                      status={SEVERITY_LABEL_STATUS[dominantSeverity]}
+                      variant={alertActionsLayout === 'ai-hub' ? 'outline' : 'filled'}
                       icon={SEVERITY_ICONS[dominantSeverity]}
                     >
                       {dominantSeverity}

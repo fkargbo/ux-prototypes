@@ -129,17 +129,19 @@ function assignParsedField(
   }
 }
 
-/** OCP/PF severity Label color — warning uses standard gold. */
-function severityLabelColor(severity: string): 'red' | 'gold' | 'blue' | 'grey' {
+/** PF status Label for alert severity (status Labels include the matching icon). */
+function severityLabelStatus(
+  severity: string,
+): 'danger' | 'warning' | 'info' | undefined {
   switch (severity.toLowerCase()) {
     case 'critical':
-      return 'red';
+      return 'danger';
     case 'warning':
-      return 'gold';
+      return 'warning';
     case 'info':
-      return 'blue';
+      return 'info';
     default:
-      return 'grey';
+      return undefined;
   }
 }
 
@@ -156,6 +158,23 @@ function formatSeverityLabel(severity: string): string {
       return severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase();
   }
 }
+
+const SeverityLabel: React.FC<{ severity: string }> = ({ severity }) => {
+  const status = severityLabelStatus(severity);
+  const text = formatSeverityLabel(severity);
+  if (status) {
+    return (
+      <Label status={status} isCompact>
+        {text}
+      </Label>
+    );
+  }
+  return (
+    <Label color="grey" isCompact>
+      {text}
+    </Label>
+  );
+};
 
 // ─── Raw viewer (copy + code block) ───────────────────────────────────────────
 
@@ -259,9 +278,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
                 <DescriptionListGroup>
                   <DescriptionListTerm>Severity</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <Label color={severityLabelColor(parsed.severity)} isCompact>
-                      {formatSeverityLabel(parsed.severity)}
-                    </Label>
+                    <SeverityLabel severity={parsed.severity} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               )}
