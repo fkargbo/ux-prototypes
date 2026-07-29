@@ -64,6 +64,12 @@
   margin-bottom: 16px;
 }
 
+/* Doubles the default Stack gutter below each capability card grid, so the
+   "Installed" and "Recommended" sections read as clearly separated groups. */
+.ols-obs-services-section-cards {
+  margin-bottom: var(--pf-t--global--spacer--gutter--default);
+}
+
 .ols-obs-services-toolbar {
   margin-bottom: var(--pf-t--global--spacer--lg);
 }

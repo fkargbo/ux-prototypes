@@ -13,7 +13,7 @@ const SectionCards: React.FC<{ items: CapabilityCardData[] }> = ({ items }) => {
   }
 
   return (
-    <Grid hasGutter>
+    <Grid hasGutter className="ols-obs-services-section-cards">
       {items.map((cap) => (
         <GridItem key={cap.id} span={12} md={6} xl={4}>
           <CapabilityCard capability={cap} />
