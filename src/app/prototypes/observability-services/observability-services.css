@@ -70,10 +70,6 @@
   margin-bottom: var(--pf-t--global--spacer--gutter--default);
 }
 
-.ols-obs-services-toolbar {
-  margin-bottom: var(--pf-t--global--spacer--lg);
-}
-
 .ols-obs-services-alert {
   margin-top: var(--pf-t--global--spacer--md);
 }

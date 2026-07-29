@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -6,13 +6,9 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Content,
-  SearchInput,
   Stack,
   StackItem,
   Title,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
 } from '@patternfly/react-core';
 import { CAPABILITY_CARDS, STACK_SUMMARY_STATS } from '../data';
 import { StackSummaryRibbon } from '../components/StackSummaryRibbon';
@@ -26,28 +22,7 @@ import '../observability-services.css';
  */
 export const ObservabilityServicesPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchValue, setSearchValue] = useState('');
   const [isScopeAlertVisible, setIsScopeAlertVisible] = useState(true);
-
-  const filteredCapabilities = useMemo(() => {
-    const q = searchValue.trim().toLowerCase();
-    if (!q) {
-      return CAPABILITY_CARDS;
-    }
-    return CAPABILITY_CARDS.filter((card) => {
-      const haystack = [
-        card.title,
-        card.subtitle ?? '',
-        card.summary,
-        card.status.label,
-        ...card.searchTerms,
-        ...(card.dependencies?.map((d) => d.label) ?? []),
-      ]
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(q);
-    });
-  }, [searchValue]);
 
   return (
     <div className="ols-obs-services-page">
@@ -100,34 +75,11 @@ export const ObservabilityServicesPage: React.FC = () => {
       >
         <Stack hasGutter>
           <StackItem>
-            <Toolbar className="ols-obs-services-toolbar" id="ols-obs-services-toolbar">
-              <ToolbarContent>
-                <ToolbarItem>
-                  <SearchInput
-                    aria-label="Search observability capabilities or operators"
-                    placeholder="Search observability capabilities or operators..."
-                    value={searchValue}
-                    onChange={(_event, value) => setSearchValue(value)}
-                    onClear={() => setSearchValue('')}
-                  />
-                </ToolbarItem>
-              </ToolbarContent>
-            </Toolbar>
-          </StackItem>
-
-          <StackItem>
             <StackSummaryRibbon stats={STACK_SUMMARY_STATS} />
           </StackItem>
 
           <StackItem>
-            {filteredCapabilities.length === 0 ? (
-              <Alert variant="info" isInline title="No matching capabilities">
-                No observability capabilities or operators match “{searchValue}”. Clear the search
-                to see all capabilities.
-              </Alert>
-            ) : (
-              <CapabilityLayout capabilities={filteredCapabilities} />
-            )}
+            <CapabilityLayout capabilities={CAPABILITY_CARDS} />
           </StackItem>
         </Stack>
       </div>

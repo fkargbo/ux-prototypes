@@ -7,14 +7,14 @@ import type { CapabilityCardData, StackSummaryStat } from './types';
 export const STACK_SUMMARY_STATS: StackSummaryStat[] = [
   {
     id: 'global-dashboards',
-    label: 'Global-scoped Dashboards (Perses)',
+    label: 'Perses Dashboards',
     value: 12,
     href: '/core/observe/dashboards',
     description: 'Cluster-wide Perses dashboards available in this hub',
   },
   {
     id: 'project-dashboards',
-    label: 'Project-scoped Dashboards',
+    label: 'Perses Data Sources',
     value: 28,
     href: '/core/observe/dashboards',
     description: 'Namespace-scoped dashboards available to projects',
@@ -68,8 +68,16 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
       { id: 'alertmanager', label: 'Alertmanager', state: 'ready' },
       { id: 'perses-ui', label: 'Perses Dashboards UI Plugin', state: 'ready' },
     ],
-    // All dependencies are ready and status is "Fully Enabled" — no action needed.
-    actions: [],
+    // All dependencies are ready and status is "Fully Enabled" — no install action needed.
+    actions: [
+      {
+        id: 'core-observability-learn-more',
+        label: 'Learn more',
+        variant: 'link',
+        href: 'https://docs.redhat.com/en/documentation/cluster_observability_operator/latest/html/monitoring_overview/index',
+        isExternal: true,
+      },
+    ],
   },
   {
     id: 'centralized-logging',
@@ -97,12 +105,12 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     ],
     actions: [
       {
-        id: 'enable-logging-ui',
-        label: 'Enable Logging UI Plugin',
+        id: 'install-logging-ui',
+        label: 'Install Logging UI Plugin',
         variant: 'secondary',
         href: '/core/observe/observability-services#enable-logging-ui',
         helperText:
-          'After enabling the plugin, complete Step 2 in the Cluster Observability Operator configuration to finish setup.',
+          'After installing the plugin, complete Step 2 in the Cluster Observability Operator configuration to finish setup.',
       },
       {
         id: 'logging-learn-more',
@@ -131,13 +139,21 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
       { id: 'otel', label: 'Red Hat build of OpenTelemetry Operator', state: 'ready' },
       { id: 'tracing-ui', label: 'Distributed Tracing UI Plugin', state: 'ready' },
     ],
-    // All dependencies are ready and status is "Fully Enabled" — no action needed.
-    actions: [],
+    // All dependencies are ready and status is "Fully Enabled" — no install action needed.
+    actions: [
+      {
+        id: 'tracing-learn-more',
+        label: 'Learn more',
+        variant: 'link',
+        href: 'https://docs.redhat.com/en/documentation/red_hat_build_of_opentelemetry/latest/html/distributed_tracing/index',
+        isExternal: true,
+      },
+    ],
   },
   {
     id: 'korrel8r',
     title: 'Signal Correlation & Troubleshooting',
-    subtitle: 'Korrel8r',
+    subtitle: 'Red Hat OpenShift Observability Signal Correlation',
     status: {
       kind: 'available-addon',
       label: 'Not Installed',
@@ -150,11 +166,18 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     actions: [
       {
         id: 'install-korrel8r',
-        label: 'Install Korrel8r Operator',
+        label: 'Install Operator',
         variant: 'secondary',
         href: '/k8s/ns/openshift-operators/operators.coreos.com~v1alpha1~ClusterServiceVersion',
         helperText:
           'You will be redirected to OperatorHub. After installation, return here and complete Step 2 to finish configuration.',
+      },
+      {
+        id: 'korrel8r-learn-more',
+        label: 'Learn more',
+        variant: 'link',
+        href: 'https://docs.redhat.com/en/documentation/cluster_observability_operator/latest/html/using_the_correlation_signals_ui_plugin/index',
+        isExternal: true,
       },
     ],
   },
@@ -174,12 +197,19 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     searchTerms: ['incident', 'health analyzer', 'aiops', 'alerts'],
     actions: [
       {
-        id: 'enable-incident',
-        label: 'Enable Incident Plugin',
+        id: 'install-incident',
+        label: 'Install Incident Plugin',
         variant: 'secondary',
         href: '/core/observe/incidents',
         helperText:
-          'Enabling the plugin opens Incident configuration. Complete Step 2 after the plugin is available.',
+          'Installing the plugin opens Incident configuration. Complete Step 2 after the plugin is available.',
+      },
+      {
+        id: 'incident-learn-more',
+        label: 'Learn more',
+        variant: 'link',
+        href: 'https://docs.redhat.com/en/documentation/cluster_observability_operator/latest/html/using_the_troubleshooting_ui_plugin/index',
+        isExternal: true,
       },
     ],
   },
@@ -203,6 +233,13 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
         href: '/k8s/ns/openshift-netobserv-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
         helperText:
           'You will be redirected to OperatorHub. After installation, return here and complete Step 2 to finish configuration.',
+      },
+      {
+        id: 'network-learn-more',
+        label: 'Learn more',
+        variant: 'link',
+        href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index',
+        isExternal: true,
       },
     ],
   },

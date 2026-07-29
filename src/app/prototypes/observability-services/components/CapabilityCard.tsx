@@ -176,7 +176,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
             {helperTexts.map((text, index) => (
               <FlexItem key={`helper-${index}`}>
                 <HelperText>
-                  <HelperTextItem variant="indeterminate">{text}</HelperTextItem>
+                  <HelperTextItem>{text}</HelperTextItem>
                 </HelperText>
               </FlexItem>
             ))}
