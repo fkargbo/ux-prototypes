@@ -149,7 +149,6 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             narrative={logNarrative}
             lifecycle={logsLifecycle}
             idPrefix="analysis-request-log"
-            showLifecycleBadge
           />
         </div>
       </div>
