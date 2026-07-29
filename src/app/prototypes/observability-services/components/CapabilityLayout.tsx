@@ -36,7 +36,7 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({ capabilities
               headingLevel="h2"
               size="lg"
               id="ols-obs-installed-heading"
-              className="pf-v6-u-mb-md"
+              className="ols-obs-services-section-title"
             >
               Installed operators and add-ons
             </Title>
@@ -52,7 +52,7 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({ capabilities
               headingLevel="h2"
               size="lg"
               id="ols-obs-recommended-heading"
-              className="pf-v6-u-mb-md"
+              className="ols-obs-services-section-title"
             >
               Recommended Operators (Not installed)
             </Title>

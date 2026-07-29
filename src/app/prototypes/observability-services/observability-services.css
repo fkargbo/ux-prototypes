@@ -60,6 +60,10 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
+.ols-obs-services-section-title {
+  margin-bottom: 16px;
+}
+
 .ols-obs-services-toolbar {
   margin-bottom: var(--pf-t--global--spacer--lg);
 }

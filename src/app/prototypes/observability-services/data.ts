@@ -68,14 +68,8 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
       { id: 'alertmanager', label: 'Alertmanager', state: 'ready' },
       { id: 'perses-ui', label: 'Perses Dashboards UI Plugin', state: 'ready' },
     ],
-    actions: [
-      {
-        id: 'view-dashboards',
-        label: 'View Dashboards',
-        variant: 'primary',
-        href: '/core/observe/dashboards',
-      },
-    ],
+    // All dependencies are ready and status is "Fully Enabled" — no action needed.
+    actions: [],
   },
   {
     id: 'centralized-logging',
@@ -105,7 +99,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
       {
         id: 'enable-logging-ui',
         label: 'Enable Logging UI Plugin',
-        variant: 'primary',
+        variant: 'secondary',
         href: '/core/observe/observability-services#enable-logging-ui',
         helperText:
           'After enabling the plugin, complete Step 2 in the Cluster Observability Operator configuration to finish setup.',
@@ -137,14 +131,8 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
       { id: 'otel', label: 'Red Hat build of OpenTelemetry Operator', state: 'ready' },
       { id: 'tracing-ui', label: 'Distributed Tracing UI Plugin', state: 'ready' },
     ],
-    actions: [
-      {
-        id: 'view-traces',
-        label: 'View Traces',
-        variant: 'secondary',
-        href: '/core/observe/observability-services#traces',
-      },
-    ],
+    // All dependencies are ready and status is "Fully Enabled" — no action needed.
+    actions: [],
   },
   {
     id: 'korrel8r',

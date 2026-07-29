@@ -82,6 +82,8 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
     .map((a) => a.helperText)
     .filter((t): t is string => Boolean(t));
 
+  const hasFooterContent = capability.actions.length > 0 || helperTexts.length > 0;
+
   return (
     <Card
       id={`capability-${capability.id}`}
@@ -143,40 +145,44 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
           </>
         ) : null}
       </CardBody>
-      <CardFooter>
-        <Flex
-          direction={{ default: 'column' }}
-          gap={{ default: 'gapSm' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-        >
-          <FlexItem>
-            <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-              {capability.actions.map((action) => (
-                <FlexItem key={action.id}>
-                  <Button
-                    variant={action.variant}
-                    onClick={() => handleAction(action)}
-                    icon={action.isExternal ? <ExternalLinkAltIcon /> : undefined}
-                    iconPosition={action.isExternal ? 'end' : undefined}
-                    aria-label={
-                      action.isExternal ? `${action.label} (opens in a new tab)` : undefined
-                    }
-                  >
-                    {action.label}
-                  </Button>
-                </FlexItem>
-              ))}
-            </Flex>
-          </FlexItem>
-          {helperTexts.map((text, index) => (
-            <FlexItem key={`helper-${index}`}>
-              <HelperText>
-                <HelperTextItem variant="indeterminate">{text}</HelperTextItem>
-              </HelperText>
-            </FlexItem>
-          ))}
-        </Flex>
-      </CardFooter>
+      {hasFooterContent ? (
+        <CardFooter>
+          <Flex
+            direction={{ default: 'column' }}
+            gap={{ default: 'gapSm' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+          >
+            {capability.actions.length > 0 ? (
+              <FlexItem>
+                <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                  {capability.actions.map((action) => (
+                    <FlexItem key={action.id}>
+                      <Button
+                        variant={action.variant}
+                        onClick={() => handleAction(action)}
+                        icon={action.isExternal ? <ExternalLinkAltIcon /> : undefined}
+                        iconPosition={action.isExternal ? 'end' : undefined}
+                        aria-label={
+                          action.isExternal ? `${action.label} (opens in a new tab)` : undefined
+                        }
+                      >
+                        {action.label}
+                      </Button>
+                    </FlexItem>
+                  ))}
+                </Flex>
+              </FlexItem>
+            ) : null}
+            {helperTexts.map((text, index) => (
+              <FlexItem key={`helper-${index}`}>
+                <HelperText>
+                  <HelperTextItem variant="indeterminate">{text}</HelperTextItem>
+                </HelperText>
+              </FlexItem>
+            ))}
+          </Flex>
+        </CardFooter>
+      ) : null}
     </Card>
   );
 };
