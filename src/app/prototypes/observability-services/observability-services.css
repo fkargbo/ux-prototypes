@@ -26,7 +26,7 @@
   font-size: var(--pf-t--global--font--size--3xl);
   font-weight: var(--pf-t--global--font--weight--heading--bold);
   line-height: var(--pf-t--global--font--line-height--heading);
-  margin: 0 0 var(--pf-t--global--spacer--sm) 0;
+  margin: var(--pf-t--global--spacer--sm) 0 0 0;
   color: var(--pf-t--global--text--color--regular);
 }
 

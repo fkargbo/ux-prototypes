@@ -6,14 +6,10 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Content,
-  Flex,
-  FlexItem,
   SearchInput,
   Stack,
   StackItem,
   Title,
-  ToggleGroup,
-  ToggleGroupItem,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -21,29 +17,17 @@ import {
 import { CAPABILITY_CARDS, STACK_SUMMARY_STATS } from '../data';
 import { StackSummaryRibbon } from '../components/StackSummaryRibbon';
 import { CapabilityLayout } from '../components/CapabilityLayout';
-import type { CapabilityLayoutMode } from '../types';
 import '../observability-services.css';
-
-export interface ObservabilityServicesPageProps {
-  /** Layout mode for capability cards. Defaults to unified grid (Option B). */
-  layoutMode?: CapabilityLayoutMode;
-  /** When true, shows a layout-mode toggle in the toolbar. Default: true. */
-  showLayoutToggle?: boolean;
-}
 
 /**
  * Observe → Observability services
  * Post–Cluster Observability Operator installation hub.
  * Surfaces capability readiness — not live telemetry health.
  */
-export const ObservabilityServicesPage: React.FC<ObservabilityServicesPageProps> = ({
-  layoutMode: layoutModeProp,
-  showLayoutToggle = true,
-}) => {
+export const ObservabilityServicesPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
   const [isScopeAlertVisible, setIsScopeAlertVisible] = useState(true);
-  const [layoutMode, setLayoutMode] = useState<CapabilityLayoutMode>(layoutModeProp ?? 'grid');
 
   const filteredCapabilities = useMemo(() => {
     const q = searchValue.trim().toLowerCase();
@@ -127,36 +111,6 @@ export const ObservabilityServicesPage: React.FC<ObservabilityServicesPageProps>
                     onClear={() => setSearchValue('')}
                   />
                 </ToolbarItem>
-                {showLayoutToggle ? (
-                  <ToolbarItem align={{ default: 'alignEnd' }}>
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      gap={{ default: 'gapSm' }}
-                    >
-                      <FlexItem>
-                        <Content component="small" id="layout-mode-label">
-                          Layout
-                        </Content>
-                      </FlexItem>
-                      <FlexItem>
-                        <ToggleGroup aria-labelledby="layout-mode-label">
-                          <ToggleGroupItem
-                            text="Unified grid"
-                            buttonId="layout-grid"
-                            isSelected={layoutMode === 'grid'}
-                            onChange={() => setLayoutMode('grid')}
-                          />
-                          <ToggleGroupItem
-                            text="By section"
-                            buttonId="layout-sections"
-                            isSelected={layoutMode === 'sections'}
-                            onChange={() => setLayoutMode('sections')}
-                          />
-                        </ToggleGroup>
-                      </FlexItem>
-                    </Flex>
-                  </ToolbarItem>
-                ) : null}
               </ToolbarContent>
             </Toolbar>
           </StackItem>
@@ -172,7 +126,7 @@ export const ObservabilityServicesPage: React.FC<ObservabilityServicesPageProps>
                 to see all capabilities.
               </Alert>
             ) : (
-              <CapabilityLayout capabilities={filteredCapabilities} layoutMode={layoutMode} />
+              <CapabilityLayout capabilities={filteredCapabilities} layoutMode="grid" />
             )}
           </StackItem>
         </Stack>

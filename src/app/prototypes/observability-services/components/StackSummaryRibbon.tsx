@@ -39,19 +39,15 @@ export const StackSummaryRibbon: React.FC<StackSummaryRibbonProps> = ({ stats })
                 }}
               />
               <CardBody>
+                <Title headingLevel="h3" size="md" id={`stat-title-${stat.id}`}>
+                  {stat.label}
+                </Title>
                 <Content
                   component="p"
                   className="ols-obs-services-stat-card__value"
-                  aria-hidden="true"
+                  aria-label={`${stat.value.toLocaleString()} ${stat.label}`}
                 >
                   {stat.value.toLocaleString()}
-                </Content>
-                <Title headingLevel="h3" size="md" id={`stat-title-${stat.id}`}>
-                  <span className="pf-v6-u-screen-reader">{stat.value.toLocaleString()} </span>
-                  {stat.label}
-                </Title>
-                <Content component="small" className="ols-obs-services-muted">
-                  {stat.description}
                 </Content>
               </CardBody>
             </Card>
