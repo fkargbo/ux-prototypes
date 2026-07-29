@@ -11,4 +11,8 @@ Prototype id: `observability-services` (also works with `?prototype=observabilit
 
 ## Status
 
-Empty page template under **Observe → Observability services**. Full UI will be built from a follow-up prompt.
+Post–COO install hub under **Observe → Observability services**:
+
+- Stack summary ribbon (inventory stats → Observe views)
+- Capability cards (readiness labels; no critical red for uninstalled add-ons)
+- Search + layout toggle (unified grid default, or collapsible sections)

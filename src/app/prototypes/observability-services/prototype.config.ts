@@ -11,7 +11,7 @@ export const config: PrototypeConfig = {
     email: 'fkargbo@redhat.com',
   },
   version: '1.0.0',
-  status: 'draft',
+  status: 'in-progress',
   persona: {
     name: 'Cluster Administrator / SRE',
     role: 'Managing observability services and operators',

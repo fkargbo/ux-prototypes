@@ -1,0 +1,69 @@
+/* Observability services hub — prototype-local styles (PF design tokens only) */
+
+.ols-obs-services-page {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.ols-obs-services-muted {
+  color: var(--pf-t--global--text--color--subtle);
+  margin: 0;
+}
+
+.ols-obs-services-stat-card.pf-v6-c-card {
+  height: 100%;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  border: 1px solid var(--pf-t--global--border--color--default);
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+.ols-obs-services-stat-card.pf-v6-c-card:hover,
+.ols-obs-services-stat-card.pf-v6-c-card:focus-within {
+  box-shadow: var(--pf-t--global--box-shadow--sm);
+  border-color: var(--pf-t--global--border--color--hover);
+}
+
+.ols-obs-services-stat-card__value {
+  font-size: var(--pf-t--global--font--size--3xl);
+  font-weight: var(--pf-t--global--font--weight--heading--bold);
+  line-height: var(--pf-t--global--font--line-height--heading);
+  margin: 0 0 var(--pf-t--global--spacer--sm) 0;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.ols-obs-services-capability-card.pf-v6-c-card {
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.ols-obs-services-capability-card__subtitle {
+  display: block;
+  margin-top: var(--pf-t--global--spacer--xs);
+  color: var(--pf-t--global--text--color--subtle);
+  font-weight: var(--pf-t--global--font--weight--body--default);
+}
+
+.ols-obs-services-capability-card__summary {
+  margin: 0 0 var(--pf-t--global--spacer--md) 0;
+}
+
+.ols-obs-services-capability-card__deps-heading {
+  margin: 0 0 var(--pf-t--global--spacer--sm) 0;
+  font-size: var(--pf-t--global--font--size--sm);
+  font-weight: var(--pf-t--global--font--weight--heading--bold);
+}
+
+.ols-obs-services-capability-card__deps {
+  margin: 0;
+}
+
+.ols-obs-services-capability-card__dep-detail {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ols-obs-services-toolbar {
+  margin-bottom: var(--pf-t--global--spacer--lg);
+}
+
+.ols-obs-services-alert {
+  margin-top: var(--pf-t--global--spacer--md);
+}
