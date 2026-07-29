@@ -15,4 +15,4 @@ Post–COO install hub under **Observe → Observability services**:
 
 - Stack summary ribbon (inventory stats → Observe views)
 - Capability cards (readiness labels; no critical red for uninstalled add-ons)
-- Search + layout toggle (unified grid default, or collapsible sections)
+- Search across installed and recommended capability cards

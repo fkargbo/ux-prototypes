@@ -126,7 +126,7 @@ export const ObservabilityServicesPage: React.FC = () => {
                 to see all capabilities.
               </Alert>
             ) : (
-              <CapabilityLayout capabilities={filteredCapabilities} layoutMode="grid" />
+              <CapabilityLayout capabilities={filteredCapabilities} />
             )}
           </StackItem>
         </Stack>

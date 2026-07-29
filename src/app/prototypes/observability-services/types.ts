@@ -69,5 +69,3 @@ export interface StackSummaryStat {
   href: string;
   description: string;
 }
-
-export type CapabilityLayoutMode = 'sections' | 'grid';
