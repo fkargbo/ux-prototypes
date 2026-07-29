@@ -7,22 +7,6 @@ import {
   Title,
 } from '@patternfly/react-core';
 import type { PlanStatus } from '../types/planStatus';
-import {
-  AnalysisLogsExpandable,
-  resolveAnalysisLogsLifecycle,
-} from './AnalysisLogsExpandable';
-
-/** Mock analysis-log inputs (same payload previously fed from the RCA card). */
-export type TimelineAnalysisLogs = {
-  planId: string;
-  finding: string;
-  narrative: string;
-};
-
-/** While analysis is in progress, logs attach to this step. */
-const ANALYSIS_PHASE_EVENT = 'agenticrun.analyze';
-/** Once analysis finishes, logs move to the Analysis completed step. */
-const ANALYSIS_COMPLETED_EVENT = 'agenticrun.analysis.completed';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -297,19 +281,17 @@ interface AgenticRunTimelineProps {
    * run was administratively suspended, not failed.
    */
   isCapabilitiesDisabled?: boolean;
-  /**
-   * Analysis log payload for "View analysis logs".
-   * Shown on Analysis phase while analyzing; moves to Analysis completed afterward.
-   */
-  analysisLogs?: TimelineAnalysisLogs | null;
 }
 
+/**
+ * Lightweight timestamped event markers for the Agentic Run lifecycle.
+ * Analysis logs live on the Analysis request section, not on Timeline steps.
+ */
 export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   status,
   createdAt,
   retryCount = 0,
   isCapabilitiesDisabled = false,
-  analysisLogs = null,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -353,45 +335,17 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
         aria-label="Agentic run timeline"
         style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
       >
-        {steps.map((s) => {
-          const logsLifecycle = resolveAnalysisLogsLifecycle(status);
-          // Live analysis → Analysis phase step; afterward → Analysis completed step.
-          const analysisLogsHostEvent =
-            logsLifecycle === 'live' ? ANALYSIS_PHASE_EVENT : ANALYSIS_COMPLETED_EVENT;
-          const showAnalysisLogs =
-            Boolean(analysisLogs) && s.event === analysisLogsHostEvent;
-
-          return (
-            <ProgressStep
-              key={s.id}
-              variant={s.variant}
-              description={
-                showAnalysisLogs && analysisLogs ? (
-                  <div>
-                    {s.description && (
-                      <div style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                        {s.description}
-                      </div>
-                    )}
-                    <AnalysisLogsExpandable
-                      planId={analysisLogs.planId}
-                      finding={analysisLogs.finding}
-                      narrative={analysisLogs.narrative}
-                      lifecycle={logsLifecycle}
-                      idPrefix="timeline-analysis-log"
-                    />
-                  </div>
-                ) : (
-                  s.description
-                )
-              }
-              titleId={s.id}
-              aria-label={s.label}
-            >
-              {s.label}
-            </ProgressStep>
-          );
-        })}
+        {steps.map((s) => (
+          <ProgressStep
+            key={s.id}
+            variant={s.variant}
+            description={s.description}
+            titleId={s.id}
+            aria-label={s.label}
+          >
+            {s.label}
+          </ProgressStep>
+        ))}
       </ProgressStepper>
     </ExpandableSection>
   );
