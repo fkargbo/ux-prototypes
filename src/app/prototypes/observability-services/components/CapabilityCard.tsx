@@ -147,6 +147,13 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
             gap={{ default: 'gapSm' }}
             alignItems={{ default: 'alignItemsFlexStart' }}
           >
+            {helperTextEntries.map((entry) => (
+              <FlexItem key={entry.id}>
+                <HelperText>
+                  <HelperTextItem id={entry.id}>{entry.text}</HelperTextItem>
+                </HelperText>
+              </FlexItem>
+            ))}
             {capability.actions.length > 0 ? (
               <FlexItem>
                 <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
@@ -171,13 +178,6 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                 </Flex>
               </FlexItem>
             ) : null}
-            {helperTextEntries.map((entry) => (
-              <FlexItem key={entry.id}>
-                <HelperText>
-                  <HelperTextItem id={entry.id}>{entry.text}</HelperTextItem>
-                </HelperText>
-              </FlexItem>
-            ))}
           </Flex>
         </CardFooter>
       ) : null}

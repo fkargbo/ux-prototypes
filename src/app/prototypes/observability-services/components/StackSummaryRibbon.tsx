@@ -1,14 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Content,
-  Grid,
-  GridItem,
-  Title,
-} from '@patternfly/react-core';
+import { Button, Card, CardBody, Content, Grid, GridItem, Title } from '@patternfly/react-core';
 import type { StackSummaryStat } from '../types';
 
 export interface StackSummaryRibbonProps {
@@ -24,31 +16,26 @@ export const StackSummaryRibbon: React.FC<StackSummaryRibbonProps> = ({ stats })
         Observability stack summary
       </Title>
       <Content component="p" className="ols-obs-services-muted pf-v6-u-mb-md">
-        Inventory of configured observability surfaces. Select a card to open the related Observe
-        view.
+        Inventory of configured observability surfaces. Select a number to open the related
+        Observe view.
       </Content>
       <Grid hasGutter>
         {stats.map((stat) => (
           <GridItem key={stat.id} span={12} md={6} lg={4} xl={2}>
-            <Card isClickable isCompact isFullHeight className="ols-obs-services-stat-card">
-              <CardHeader
-                selectableActions={{
-                  selectableActionId: `stat-action-${stat.id}`,
-                  selectableActionAriaLabelledby: `stat-title-${stat.id}`,
-                  onClickAction: () => navigate(stat.href),
-                }}
-              />
+            <Card isCompact isFullHeight className="ols-obs-services-stat-card">
               <CardBody>
                 <Title headingLevel="h3" size="md" id={`stat-title-${stat.id}`}>
                   {stat.label}
                 </Title>
-                <Content
-                  component="p"
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => navigate(stat.href)}
                   className="ols-obs-services-stat-card__value"
                   aria-label={`${stat.value.toLocaleString()} ${stat.label}`}
                 >
                   {stat.value.toLocaleString()}
-                </Content>
+                </Button>
               </CardBody>
             </Card>
           </GridItem>

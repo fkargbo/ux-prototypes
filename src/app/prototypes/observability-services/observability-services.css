@@ -20,23 +20,28 @@
 }
 
 /* Card appearance (background, border, radius, hover/focus states) intentionally left
-   to PF6's default Card styling per https://www.patternfly.org/components/card. */
+   to PF6's default Card styling per https://www.patternfly.org/components/card. Since
+   the summary cards are plain (non-clickable) cards, their border already matches the
+   capability cards below without any override. */
 
-/* PF6 gives isClickable cards a darker "control" border by default to hint
-   interactivity, which reads inconsistently next to the plain capability cards
-   below. Override just the border-color variable (not the border itself) so the
-   summary ribbon and capability cards share one outline color; PF6's built-in
-   hover/focus border-color changes on the clickable action still apply on top. */
-.ols-obs-services-stat-card.pf-v6-c-card {
-  --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--subtle);
+/* The KPI value is a `Button variant="link" isInline` (only the number is clickable,
+   not the whole card). These overrides make it read as a plain bold number at rest,
+   with a PF6 brand-color/underline affordance on hover and focus. `!important` is used
+   because PF6's own `.pf-m-link.pf-m-inline` rule shares the same selector specificity,
+   so declaration order alone can't be relied on to win the cascade. */
+.ols-obs-services-stat-card__value {
+  font-size: var(--pf-t--global--font--size--3xl) !important;
+  font-weight: var(--pf-t--global--font--weight--heading--bold) !important;
+  line-height: var(--pf-t--global--font--line-height--heading) !important;
+  margin: var(--pf-t--global--spacer--sm) 0 0 0;
+  color: var(--pf-t--global--text--color--regular) !important;
+  text-decoration: none !important;
 }
 
-.ols-obs-services-stat-card__value {
-  font-size: var(--pf-t--global--font--size--3xl);
-  font-weight: var(--pf-t--global--font--weight--heading--bold);
-  line-height: var(--pf-t--global--font--line-height--heading);
-  margin: var(--pf-t--global--spacer--sm) 0 0 0;
-  color: var(--pf-t--global--text--color--regular);
+.ols-obs-services-stat-card__value:hover,
+.ols-obs-services-stat-card__value:focus {
+  color: var(--pf-t--global--text--color--brand--default) !important;
+  text-decoration: underline !important;
 }
 
 .ols-obs-services-capability-card__summary {
