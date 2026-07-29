@@ -35,14 +35,14 @@ export const STACK_SUMMARY_STATS: StackSummaryStat[] = [
   },
   {
     id: 'active-targets',
-    label: 'Active Targets',
+    label: 'Targets',
     value: 142,
     href: '/core/observe/targets',
     description: 'Scrape targets registered with the metrics stack',
   },
   {
     id: 'unique-metrics',
-    label: 'Unique Metrics',
+    label: 'Metrics',
     value: 1840,
     href: '/core/observe/metrics',
     description: 'Unique metric names exposed by the stack',
