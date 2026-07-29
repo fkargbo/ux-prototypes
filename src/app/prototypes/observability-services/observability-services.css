@@ -25,23 +25,34 @@
    capability cards below without any override. */
 
 /* The KPI value is a `Button variant="link" isInline` (only the number is clickable,
-   not the whole card). These overrides make it read as a plain bold number at rest,
-   with a PF6 brand-color/underline affordance on hover and focus. `!important` is used
-   because PF6's own `.pf-m-link.pf-m-inline` rule shares the same selector specificity,
-   so declaration order alone can't be relied on to win the cascade. */
+   not the whole card). Styled blue at rest to match the standard OCP console
+   status/inventory-card number pattern (e.g. the "Virtual machine statuses" card),
+   with a darker brand blue + underline on hover/focus for affordance. `!important` is
+   used because PF6's own `.pf-m-link.pf-m-inline` rule shares the same selector
+   specificity, so declaration order alone can't be relied on to win the cascade. */
 .ols-obs-services-stat-card__value {
   font-size: var(--pf-t--global--font--size--3xl) !important;
   font-weight: var(--pf-t--global--font--weight--heading--bold) !important;
   line-height: var(--pf-t--global--font--line-height--heading) !important;
   margin: var(--pf-t--global--spacer--sm) 0 0 0;
-  color: var(--pf-t--global--text--color--regular) !important;
+  color: var(--pf-t--global--text--color--brand--default) !important;
   text-decoration: none !important;
 }
 
 .ols-obs-services-stat-card__value:hover,
 .ols-obs-services-stat-card__value:focus {
-  color: var(--pf-t--global--text--color--brand--default) !important;
+  color: var(--pf-t--global--text--color--brand--hover) !important;
   text-decoration: underline !important;
+}
+
+/* PF6's default HelperTextItem text color ("regular"/near-black) is meant for form
+   field hints; the recommended muted gray for auxiliary helper text is the same
+   subtle token used by the "indeterminate" variant
+   (https://www.patternfly.org/components/helper-text). We can't use that variant
+   directly since it also renders a dash icon we've intentionally omitted here, so
+   this overrides just the text color variable, which cascades to the item's text span. */
+.ols-obs-services-helper-text {
+  --pf-v6-c-helper-text__item-text--Color: var(--pf-t--global--text--color--subtle);
 }
 
 .ols-obs-services-capability-card__summary {

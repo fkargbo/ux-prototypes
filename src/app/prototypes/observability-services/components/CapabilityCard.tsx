@@ -150,7 +150,9 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
             {helperTextEntries.map((entry) => (
               <FlexItem key={entry.id}>
                 <HelperText>
-                  <HelperTextItem id={entry.id}>{entry.text}</HelperTextItem>
+                  <HelperTextItem id={entry.id} className="ols-obs-services-helper-text">
+                    {entry.text}
+                  </HelperTextItem>
                 </HelperText>
               </FlexItem>
             ))}
