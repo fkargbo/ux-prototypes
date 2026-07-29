@@ -78,11 +78,11 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
     navigate(action.href);
   };
 
-  const helperTexts = capability.actions
-    .map((a) => a.helperText)
-    .filter((t): t is string => Boolean(t));
+  const helperTextEntries = capability.actions
+    .filter((a): a is CapabilityAction & { helperText: string } => Boolean(a.helperText))
+    .map((a) => ({ id: `${a.id}-helper-text`, text: a.helperText }));
 
-  const hasFooterContent = capability.actions.length > 0 || helperTexts.length > 0;
+  const hasFooterContent = capability.actions.length > 0 || helperTextEntries.length > 0;
 
   return (
     <Card
@@ -160,6 +160,9 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                         aria-label={
                           action.isExternal ? `${action.label} (opens in a new tab)` : undefined
                         }
+                        aria-describedby={
+                          action.helperText ? `${action.id}-helper-text` : undefined
+                        }
                       >
                         {action.label}
                       </Button>
@@ -168,10 +171,10 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                 </Flex>
               </FlexItem>
             ) : null}
-            {helperTexts.map((text, index) => (
-              <FlexItem key={`helper-${index}`}>
+            {helperTextEntries.map((entry) => (
+              <FlexItem key={entry.id}>
                 <HelperText>
-                  <HelperTextItem>{text}</HelperTextItem>
+                  <HelperTextItem id={entry.id}>{entry.text}</HelperTextItem>
                 </HelperText>
               </FlexItem>
             ))}
