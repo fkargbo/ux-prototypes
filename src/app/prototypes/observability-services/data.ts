@@ -63,6 +63,11 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     summary: 'Foundations for metrics, Alertmanager, and customizable Perses dashboards.',
     category: 'installed',
     searchTerms: ['prometheus', 'perses', 'metrics', 'alertmanager', 'dashboards', 'core'],
+    dependencies: [
+      { id: 'prometheus', label: 'Cluster Monitoring (Prometheus)', state: 'ready' },
+      { id: 'alertmanager', label: 'Alertmanager', state: 'ready' },
+      { id: 'perses-ui', label: 'Perses Dashboards UI Plugin', state: 'ready' },
+    ],
     actions: [
       {
         id: 'view-dashboards',
