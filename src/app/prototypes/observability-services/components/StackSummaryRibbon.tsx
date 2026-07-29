@@ -30,7 +30,7 @@ export const StackSummaryRibbon: React.FC<StackSummaryRibbonProps> = ({ stats })
       <Grid hasGutter>
         {stats.map((stat) => (
           <GridItem key={stat.id} span={12} md={6} lg={4} xl={2}>
-            <Card isClickable isCompact isFullHeight>
+            <Card isClickable isCompact isFullHeight className="ols-obs-services-stat-card">
               <CardHeader
                 selectableActions={{
                   selectableActionId: `stat-action-${stat.id}`,

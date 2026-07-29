@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   AlertActionCloseButton,
-  Breadcrumb,
-  BreadcrumbItem,
   Content,
   Stack,
   StackItem,
@@ -13,6 +10,7 @@ import {
 import { CAPABILITY_CARDS, STACK_SUMMARY_STATS } from '../data';
 import { StackSummaryRibbon } from '../components/StackSummaryRibbon';
 import { CapabilityLayout } from '../components/CapabilityLayout';
+import { ProjectSwitcher } from '../components/ProjectSwitcher';
 import '../observability-services.css';
 
 /**
@@ -21,24 +19,12 @@ import '../observability-services.css';
  * Surfaces capability readiness — not live telemetry health.
  */
 export const ObservabilityServicesPage: React.FC = () => {
-  const navigate = useNavigate();
   const [isScopeAlertVisible, setIsScopeAlertVisible] = useState(true);
 
   return (
     <div className="ols-obs-services-page">
       <div className="template-page-breadcrumb">
-        <Breadcrumb>
-          <BreadcrumbItem
-            to="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/core/observe/observability-services');
-            }}
-          >
-            Observe
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>Observability services</BreadcrumbItem>
-        </Breadcrumb>
+        <ProjectSwitcher />
       </div>
 
       <div className="template-page-heading">
