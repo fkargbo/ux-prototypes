@@ -11,6 +11,7 @@ import {
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
+  NamespaceResourceLink,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
@@ -164,9 +165,7 @@ export const PlanRemediationPageV2: React.FC = () => {
             </FlexItem>
             {plan.namespace ? (
               <FlexItem>
-                <Label color="grey" variant="outline" isCompact>
-                  Namespace: {plan.namespace}
-                </Label>
+                <NamespaceResourceLink name={plan.namespace} />
               </FlexItem>
             ) : null}
             <FlexItem>

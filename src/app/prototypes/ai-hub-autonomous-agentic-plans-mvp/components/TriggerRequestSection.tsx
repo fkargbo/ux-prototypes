@@ -103,7 +103,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
           <Popover
             aria-label="Analysis request help"
             headerContent="Analysis request"
-            bodyContent="The initial prompt and alert data passed to the agent."
+            bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
           >
             <Button
               variant="plain"
@@ -120,13 +120,18 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
       >
         {hasRequest ? (
           <pre
-            className="ols-aio-code-block"
             style={{
               margin: 0,
               maxHeight: '280px',
               overflow: 'auto',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
+              fontFamily: 'var(--pf-t--global--font--family--mono)',
+              fontSize: 'var(--pf-t--global--font--size--body--sm)',
+              color: 'var(--pf-t--global--text--color--regular)',
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
             }}
           >
             {request}
