@@ -4,7 +4,7 @@ New Observe-domain prototype for the **Observability services** page.
 
 ## Sharable URL
 
-- **Local:** `http://localhost:9000/core/observe/observability-services`
+- **Local:** `http://localhost:3000/core/observe/observability-services`
 - **GitHub Pages:** `https://fkargbo.github.io/ux-prototypes/core/observe/observability-services`
 
 Prototype id: `observability-services` (also works with `?prototype=observability-services`).
