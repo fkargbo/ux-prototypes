@@ -88,7 +88,6 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
     <Card
       id={`capability-${capability.id}`}
       isFullHeight
-      className="ols-obs-services-capability-card"
       aria-labelledby={`capability-title-${capability.id}`}
     >
       <CardHeader>
@@ -99,16 +98,12 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
           gap={{ default: 'gapSm' }}
         >
           <FlexItem>
-            <CardTitle id={`capability-title-${capability.id}`} component="h3">
+            <CardTitle
+              id={`capability-title-${capability.id}`}
+              component="h3"
+              subtitle={capability.subtitle}
+            >
               {capability.title}
-              {capability.subtitle ? (
-                <Content
-                  component="small"
-                  className="ols-obs-services-capability-card__subtitle"
-                >
-                  {capability.subtitle}
-                </Content>
-              ) : null}
             </CardTitle>
           </FlexItem>
           <FlexItem>

@@ -1,7 +1,17 @@
 /* Observability services hub — prototype-local styles (PF design tokens only) */
 
-.ols-obs-services-page {
-  background-color: var(--pf-t--global--background--color--secondary--default);
+/*
+ * The shared app page template (src/app/app.css `.template-page-content`) applies a
+ * secondary-gray background band by default, matching the PF6 Page shell's default
+ * background. This hub is a single grid of white PF6 Cards, so per the PF6 Page
+ * guidelines (https://www.patternfly.org/components/page — default vs. secondary
+ * PageSection variants), we override just this page's content band back to the
+ * default/primary (white) surface rather than stacking a secondary-gray band behind
+ * cards that already carry their own border for definition. Scoped to
+ * `.ols-obs-services-page` only, so no other prototype's page template is affected.
+ */
+.ols-obs-services-page .template-page-content {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
 }
 
 .ols-obs-services-muted {
@@ -9,18 +19,8 @@
   margin: 0;
 }
 
-.ols-obs-services-stat-card.pf-v6-c-card {
-  height: 100%;
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
-  border: 1px solid var(--pf-t--global--border--color--default);
-  background-color: var(--pf-t--global--background--color--primary--default);
-}
-
-.ols-obs-services-stat-card.pf-v6-c-card:hover,
-.ols-obs-services-stat-card.pf-v6-c-card:focus-within {
-  box-shadow: var(--pf-t--global--box-shadow--sm);
-  border-color: var(--pf-t--global--border--color--hover);
-}
+/* Card appearance (background, border, radius, hover/focus states) intentionally left
+   to PF6's default Card styling per https://www.patternfly.org/components/card. */
 
 .ols-obs-services-stat-card__value {
   font-size: var(--pf-t--global--font--size--3xl);
@@ -28,18 +28,6 @@
   line-height: var(--pf-t--global--font--line-height--heading);
   margin: var(--pf-t--global--spacer--sm) 0 0 0;
   color: var(--pf-t--global--text--color--regular);
-}
-
-.ols-obs-services-capability-card.pf-v6-c-card {
-  background-color: var(--pf-t--global--background--color--primary--default);
-  border: 1px solid var(--pf-t--global--border--color--default);
-}
-
-.ols-obs-services-capability-card__subtitle {
-  display: block;
-  margin-top: var(--pf-t--global--spacer--xs);
-  color: var(--pf-t--global--text--color--subtle);
-  font-weight: var(--pf-t--global--font--weight--body--default);
 }
 
 .ols-obs-services-capability-card__summary {
