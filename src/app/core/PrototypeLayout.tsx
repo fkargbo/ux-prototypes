@@ -52,15 +52,21 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
 
   const sharePageUrl = React.useMemo(() => {
     const base = process.env.NODE_ENV === 'production' ? getGithubPagesBasenameNoSlash() : '';
-    const u = new URL(`${base}${location.pathname}${location.search}${location.hash}`, window.location.origin);
+    // If the prototype declares a canonical share URL, always use it so that the Share
+    // link stays consistent regardless of which sub-page the user is currently viewing.
+    const canonicalPath = prototype.config.shareUrl ?? null;
+    const activePath = canonicalPath ?? location.pathname;
+    const activeSearch = canonicalPath ? '' : location.search;
+    const activeHash = canonicalPath ? '' : location.hash;
+    const u = new URL(`${base}${activePath}${activeSearch}${activeHash}`, window.location.origin);
     // Only add ?prototype= when the path alone is ambiguous (e.g. "/" matches no prototype).
     // When the path already uniquely identifies this prototype, omit the param so the share
     // link is identical to the direct URL — ensuring feedback pins are visible on both.
-    if (findPrototypeIdForPath(location.pathname) !== prototype.config.id) {
+    if (findPrototypeIdForPath(activePath) !== prototype.config.id) {
       u.searchParams.set('prototype', prototype.config.id);
     }
     return u.toString();
-  }, [prototype.config.id, location.pathname, location.search, location.hash]);
+  }, [prototype.config.id, prototype.config.shareUrl, location.pathname, location.search, location.hash]);
 
   const handleCopyShareLink = React.useCallback(async () => {
     try {

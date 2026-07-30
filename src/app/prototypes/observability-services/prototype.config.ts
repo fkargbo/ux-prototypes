@@ -19,5 +19,6 @@ export const config: PrototypeConfig = {
   perspectives: ['core-platforms'],
   tags: ['Observability', 'Observe', 'Services'],
   createdAt: '2026-07-29',
-  updatedAt: '2026-07-29',
+  updatedAt: '2026-07-30',
+  shareUrl: '/core/observe/observability-services',
 };

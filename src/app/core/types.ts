@@ -93,6 +93,15 @@ export interface PrototypeConfig {
     color?: string;
     banner?: string;
   };
+
+  /**
+   * Canonical URL path the Share button should always point to, regardless of which
+   * sub-page the user is currently viewing inside the prototype.
+   * When omitted, the Share link mirrors the current page URL (existing behaviour).
+   *
+   * @example '/core/observe/observability-services'
+   */
+  shareUrl?: string;
 }
 
 /**
