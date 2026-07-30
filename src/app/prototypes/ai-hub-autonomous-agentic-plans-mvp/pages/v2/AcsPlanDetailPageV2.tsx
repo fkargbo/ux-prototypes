@@ -14,6 +14,7 @@ import {
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
+  NamespaceResourceLink,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
@@ -140,6 +141,11 @@ export const AcsPlanDetailPageV2: React.FC = () => {
                 </FlexItem>
               </Flex>
             </FlexItem>
+            {plan.namespace ? (
+              <FlexItem>
+                <NamespaceResourceLink name={plan.namespace} />
+              </FlexItem>
+            ) : null}
             <FlexItem>
               <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
             </FlexItem>

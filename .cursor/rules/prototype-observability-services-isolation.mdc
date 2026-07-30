@@ -1,0 +1,24 @@
+---
+description: Isolation fence for the observability-services prototype — all edits must stay inside its directory.
+globs:
+  - src/app/prototypes/observability-services/**
+alwaysApply: false
+---
+
+# Prototype: observability-services — Isolation Fence
+
+## HARD RULE
+Every file read, edit, or creation for this prototype MUST be inside:
+```
+src/app/prototypes/observability-services/
+```
+
+## STRICTLY FORBIDDEN
+- ❌ Any edit to other prototype directories
+- ❌ Any edit to shared components, global CSS, or infrastructure outside this prototype's directory
+
+## REQUIRED: Confirm target before every edit
+Before writing or editing **any** file, confirm its path starts with:
+`src/app/prototypes/observability-services/`
+
+If the target path is outside this prefix → **STOP and ask the user** which prototype they intended.

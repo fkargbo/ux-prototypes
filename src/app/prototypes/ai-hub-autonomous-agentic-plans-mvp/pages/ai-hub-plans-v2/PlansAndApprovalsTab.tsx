@@ -51,6 +51,7 @@ import {
   buildAgenticRunRequest,
   TriggerRequestSection,
 } from '../../components/TriggerRequestSection';
+import { resolveAnalysisLogsLifecycle } from '../../components/AnalysisLogsExpandable';
 
 export {
   NamespaceResourceBadge,
@@ -3803,22 +3804,13 @@ export const RemediationBlueprintPanel: React.FC<{
     !isVerifying;
   const showTopLevelRca = !showPerOptionRca;
 
-  /**
-   * Timeline hosts View live / analysis logs on the Analysis phase step for all
-   * post-Pending lifecycle states (Analyzing → terminal), including live streaming.
-   */
-  const timelineAnalysisLogs =
-    !isPending
-      ? {
-          planId: plan.id,
-          finding:
-            drawer?.aggregatedFinding ??
-            'Signal correlation in progress — querying fleet telemetry and alert history.',
-          narrative:
-            drawer?.rootCauseNarrative ??
-            'Root cause hypothesis generation in progress. Partial findings stream into the analysis log.',
-        }
-      : null;
+  const analysisLogsLifecycle = resolveAnalysisLogsLifecycle(status);
+  const analysisLogFinding =
+    drawer?.aggregatedFinding ??
+    'Signal correlation in progress — querying fleet telemetry and alert history.';
+  const analysisLogNarrative =
+    drawer?.rootCauseNarrative ??
+    'Root cause hypothesis generation in progress. Partial findings stream into the analysis log.';
   const optionCount = options.length;
   const visibleOptionCount = isOptionLocked ? 1 : optionCount;
   const optionLabel = visibleOptionCount === 1 ? '1 remediation option' : `${visibleOptionCount} remediation options`;
@@ -3921,11 +3913,16 @@ export const RemediationBlueprintPanel: React.FC<{
           </Content>
         </StackItem>
 
-        {plan.request ? (
-          <StackItem>
-            <TriggerRequestSection request={plan.request} planId={plan.id} />
-          </StackItem>
-        ) : null}
+        <StackItem>
+          <TriggerRequestSection
+            request={plan.request}
+            planId={plan.id}
+            logsLifecycle={analysisLogsLifecycle}
+            logFinding={analysisLogFinding}
+            logNarrative={analysisLogNarrative}
+            analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
+          />
+        </StackItem>
 
         <StackItem>
           <Flex
@@ -3981,7 +3978,6 @@ export const RemediationBlueprintPanel: React.FC<{
             status={status}
             createdAt={plan.createdAt}
             isCapabilitiesDisabled={!isAgenticAutomationEnabled}
-            analysisLogs={timelineAnalysisLogs}
           />
         </StackItem>
       </Stack>
@@ -4061,11 +4057,16 @@ export const RemediationBlueprintPanel: React.FC<{
         </Content>
       </StackItem>
 
-      {plan.request ? (
-        <StackItem>
-          <TriggerRequestSection request={plan.request} planId={plan.id} />
-        </StackItem>
-      ) : null}
+      <StackItem>
+        <TriggerRequestSection
+          request={plan.request}
+          planId={plan.id}
+          logsLifecycle={analysisLogsLifecycle}
+          logFinding={analysisLogFinding}
+          logNarrative={analysisLogNarrative}
+          analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
+        />
+      </StackItem>
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (
@@ -4672,7 +4673,6 @@ export const RemediationBlueprintPanel: React.FC<{
           status={status}
           createdAt={plan.createdAt}
           isCapabilitiesDisabled={!isAgenticAutomationEnabled}
-          analysisLogs={timelineAnalysisLogs}
         />
       </StackItem>
     </Stack>

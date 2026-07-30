@@ -1,0 +1,88 @@
+/* Observability services hub — prototype-local styles (PF design tokens only) */
+
+/*
+ * The shared app page template (src/app/app.css `.template-page-content`) applies a
+ * secondary-gray background band by default, matching the PF6 Page shell's default
+ * background. This hub is a single grid of white PF6 Cards, so per the PF6 Page
+ * guidelines (https://www.patternfly.org/components/page — default vs. secondary
+ * PageSection variants), we override just this page's content band back to the
+ * default/primary (white) surface rather than stacking a secondary-gray band behind
+ * cards that already carry their own border for definition. Scoped to
+ * `.ols-obs-services-page` only, so no other prototype's page template is affected.
+ */
+.ols-obs-services-page .template-page-content {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+.ols-obs-services-muted {
+  color: var(--pf-t--global--text--color--subtle);
+  margin: 0;
+}
+
+/* Card appearance (background, border, radius, hover/focus states) intentionally left
+   to PF6's default Card styling per https://www.patternfly.org/components/card. Since
+   the summary cards are plain (non-clickable) cards, their border already matches the
+   capability cards below without any override. */
+
+/* The KPI value is a `Button variant="link" isInline` (only the number is clickable,
+   not the whole card). Styled blue at rest to match the standard OCP console
+   status/inventory-card number pattern (e.g. the "Virtual machine statuses" card),
+   with a darker brand blue + underline on hover/focus for affordance. `!important` is
+   used because PF6's own `.pf-m-link.pf-m-inline` rule shares the same selector
+   specificity, so declaration order alone can't be relied on to win the cascade. */
+.ols-obs-services-stat-card__value {
+  font-size: var(--pf-t--global--font--size--3xl) !important;
+  font-weight: var(--pf-t--global--font--weight--heading--bold) !important;
+  line-height: var(--pf-t--global--font--line-height--heading) !important;
+  margin: var(--pf-t--global--spacer--sm) 0 0 0;
+  color: var(--pf-t--global--text--color--brand--default) !important;
+  text-decoration: none !important;
+}
+
+.ols-obs-services-stat-card__value:hover,
+.ols-obs-services-stat-card__value:focus {
+  color: var(--pf-t--global--text--color--brand--hover) !important;
+  text-decoration: underline !important;
+}
+
+/* PF6's default HelperTextItem text color ("regular"/near-black) is meant for form
+   field hints; the recommended muted gray for auxiliary helper text is the same
+   subtle token used by the "indeterminate" variant
+   (https://www.patternfly.org/components/helper-text). We can't use that variant
+   directly since it also renders a dash icon we've intentionally omitted here, so
+   this overrides just the text color variable, which cascades to the item's text span. */
+.ols-obs-services-helper-text {
+  --pf-v6-c-helper-text__item-text--Color: var(--pf-t--global--text--color--subtle);
+}
+
+.ols-obs-services-capability-card__summary {
+  margin: 0 0 var(--pf-t--global--spacer--md) 0;
+}
+
+.ols-obs-services-capability-card__deps-heading {
+  margin: 0 0 var(--pf-t--global--spacer--sm) 0;
+  font-size: var(--pf-t--global--font--size--sm);
+  font-weight: var(--pf-t--global--font--weight--heading--bold);
+}
+
+.ols-obs-services-capability-card__deps {
+  margin: 0;
+}
+
+.ols-obs-services-capability-card__dep-detail {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ols-obs-services-section-title {
+  margin-bottom: 16px;
+}
+
+/* Doubles the default Stack gutter below each capability card grid, so the
+   "Installed" and "Recommended" sections read as clearly separated groups. */
+.ols-obs-services-section-cards {
+  margin-bottom: var(--pf-t--global--spacer--gutter--default);
+}
+
+.ols-obs-services-alert {
+  margin-top: var(--pf-t--global--spacer--md);
+}

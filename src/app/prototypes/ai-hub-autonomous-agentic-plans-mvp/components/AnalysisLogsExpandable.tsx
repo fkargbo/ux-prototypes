@@ -4,7 +4,9 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
+  Label,
   SearchInput,
+  Spinner,
 } from '@patternfly/react-core';
 import type { PlanStatus } from '../types/planStatus';
 import { ExpandableCodeBlock } from './ExpandableCodeBlock';
@@ -107,14 +109,41 @@ export function downloadEvidenceLogFile(
   URL.revokeObjectURL(url);
 }
 
+function lifecycleToggleBadge(lifecycle: AnalysisLogsLifecycle): React.ReactNode {
+  switch (lifecycle) {
+    case 'live':
+      return (
+        <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Streaming" />}>
+          Streaming
+        </Label>
+      );
+    case 'failed':
+      return (
+        <Label color="red" isCompact>
+          Failed
+        </Label>
+      );
+    case 'cancelled':
+    case 'completed':
+    default:
+      return (
+        <Label color="green" isCompact>
+          Completed
+        </Label>
+      );
+  }
+}
+
 export type AnalysisLogsExpandableProps = {
   planId: string;
   finding: string;
   narrative: string;
-  /** Analysis-phase lifecycle driving trigger copy, download, and streaming. */
+  /** Analysis-phase lifecycle driving download and streaming. */
   lifecycle: AnalysisLogsLifecycle;
   /** Prefix for checkbox / code-block ids (keeps multiple instances unique). */
   idPrefix?: string;
+  /** When true, show Streaming / Completed / Failed badge beside the toggle. */
+  showLifecycleBadge?: boolean;
 };
 
 /**
@@ -128,6 +157,7 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
   narrative,
   lifecycle,
   idPrefix = 'analysis-log',
+  showLifecycleBadge = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
@@ -136,7 +166,7 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
 
   const isLive = lifecycle === 'live';
   const canDownload = lifecycle === 'completed' || lifecycle === 'failed' || lifecycle === 'cancelled';
-  const toggleText = isExpanded ? 'Hide analysis logs' : 'View analysis logs';
+  const toggleLabel = isExpanded ? 'Hide analysis logs' : 'View analysis logs';
 
   const allLines = useMemo(
     () => generateAnalysisLogs(planId, finding, narrative).split('\n'),
@@ -184,13 +214,19 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
 
   return (
     <ExpandableSection
-      toggleText={toggleText}
+      toggleText=""
+      toggleContent={
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <FlexItem>{toggleLabel}</FlexItem>
+          {showLifecycleBadge ? <FlexItem>{lifecycleToggleBadge(lifecycle)}</FlexItem> : null}
+        </Flex>
+      }
       isExpanded={isExpanded}
       onToggle={(_e, expanded) => {
         setIsExpanded(expanded);
         if (!expanded) setQuery('');
       }}
-      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+      style={{ marginBottom: 0 }}
     >
       <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
         <Flex
