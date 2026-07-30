@@ -47,9 +47,9 @@ export const ObservabilityServicesPage: React.FC = () => {
               />
             }
           >
-            This hub reflects observability capabilities for the current cluster after Cluster
-            Observability Operator installation. Status labels indicate enablement and configuration
-            readiness—not live telemetry severity.
+            This hub reflects observability capabilities configured on the current cluster. Status
+            labels indicate operator enablement and configuration readiness, rather than live
+            telemetry severity.
           </Alert>
         ) : null}
       </div>
