@@ -216,10 +216,10 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     title: 'Signal Correlation',
     subtitle: 'COO · Korrel8r',
     status: {
-      kind: 'configuration-required',
-      label: 'Partial setup',
-      color: 'yellow',
-      srText: 'Status: partial setup — Troubleshooting Panel UI Plugin CR not created',
+      kind: 'available-addon',
+      label: 'Not installed',
+      color: 'grey',
+      srText: 'Status: not installed',
     },
     summary:
       'Execute correlation queries between observability signals — metrics, logs, traces, and alerts. Accessible via the OCP web console header actions once enabled.',
@@ -257,10 +257,10 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     title: 'Health Analyzer',
     subtitle: 'COO · Incidents',
     status: {
-      kind: 'configuration-required',
-      label: 'Partial setup',
-      color: 'yellow',
-      srText: 'Status: partial setup — Health Analyzer feature not enabled',
+      kind: 'available-addon',
+      label: 'Not installed',
+      color: 'grey',
+      srText: 'Status: not installed',
     },
     summary:
       'Group alerts into incidents to reduce alert noise and integrate with AIOps platforms. When enabled, adds an Incidents tab under Observe → Alerts.',
