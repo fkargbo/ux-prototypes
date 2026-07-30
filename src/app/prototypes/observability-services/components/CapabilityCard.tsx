@@ -21,6 +21,7 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   ExternalLinkAltIcon,
+  MinusCircleIcon,
 } from '@patternfly/react-icons';
 import type { CapabilityAction, CapabilityCardData, CapabilityDependency } from '../types';
 
@@ -45,8 +46,9 @@ const DependencyIcon: React.FC<{ state: CapabilityDependency['state'] }> = ({ st
       />
     );
   }
+  // 'missing' — component not yet installed or configured
   return (
-    <ExclamationTriangleIcon
+    <MinusCircleIcon
       color="var(--pf-t--global--icon--color--subtle)"
       aria-hidden
     />
@@ -59,8 +61,10 @@ const dependencyStateLabel = (state: CapabilityDependency['state']): string => {
       return 'Ready';
     case 'attention':
       return 'Needs attention';
+    case 'missing':
+      return 'Not installed';
     default:
-      return 'Not available';
+      return 'Not installed';
   }
 };
 
