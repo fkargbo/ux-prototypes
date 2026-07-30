@@ -235,7 +235,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     actions: [
       {
         id: 'enable-signal-correlation',
-        label: 'Enable in COO',
+        label: 'Install',
         variant: 'secondary',
         href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
         helperText:
@@ -276,7 +276,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     actions: [
       {
         id: 'enable-health-analyzer',
-        label: 'Enable Health Analyzer',
+        label: 'Install',
         variant: 'secondary',
         href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
         helperText:
@@ -309,7 +309,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     actions: [
       {
         id: 'install-network',
-        label: 'Install Network Operator',
+        label: 'Install',
         variant: 'secondary',
         href: '/k8s/ns/openshift-netobserv-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
         helperText:
