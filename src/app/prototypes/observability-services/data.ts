@@ -292,36 +292,4 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     ],
   },
 
-  // ─── Recommended: Network Observability ──────────────────────────────────────
-  {
-    id: 'network-observability',
-    title: 'Network Observability',
-    status: {
-      kind: 'available-addon',
-      label: 'Not Installed',
-      color: 'grey',
-      srText: 'Status: available add-on — not installed',
-    },
-    summary:
-      'eBPF-based network flow collection, cross-namespace traffic mapping, and egress analysis.',
-    category: 'recommended',
-    searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
-    actions: [
-      {
-        id: 'install-network',
-        label: 'Install Network Operator',
-        variant: 'secondary',
-        href: '/k8s/ns/openshift-netobserv-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
-        helperText:
-          'You will be redirected to OperatorHub. After installation, return here and complete Step 2 to finish configuration.',
-      },
-      {
-        id: 'network-learn-more',
-        label: 'Learn more',
-        variant: 'link',
-        href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index',
-        isExternal: true,
-      },
-    ],
-  },
 ];
