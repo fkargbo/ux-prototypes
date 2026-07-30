@@ -111,7 +111,17 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
             </CardTitle>
           </FlexItem>
           <FlexItem>
-            <Label color={capability.status.color} isCompact>
+            <Label
+              color={capability.status.color}
+              isCompact
+              icon={
+                capability.status.kind === 'fully-enabled' ? (
+                  <CheckCircleIcon />
+                ) : capability.status.kind === 'configuration-required' ? (
+                  <ExclamationTriangleIcon />
+                ) : undefined
+              }
+            >
               <span className="pf-v6-u-screen-reader">{capability.status.srText}. </span>
               {capability.status.label}
             </Label>

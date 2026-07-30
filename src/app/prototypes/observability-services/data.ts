@@ -69,7 +69,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     subtitle: 'COO · MonitoringStack',
     status: {
       kind: 'fully-enabled',
-      label: 'Fully Enabled',
+      label: 'Fully enabled',
       color: 'green',
       srText: 'Status: fully enabled',
     },
@@ -101,7 +101,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     subtitle: 'COO · Perses',
     status: {
       kind: 'fully-enabled',
-      label: 'Fully Enabled',
+      label: 'Fully enabled',
       color: 'green',
       srText: 'Status: fully enabled',
     },
@@ -137,9 +137,9 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     subtitle: 'COO · Loki · CLO',
     status: {
       kind: 'configuration-required',
-      label: 'UI Plugin Required',
+      label: 'Partial setup',
       color: 'yellow',
-      srText: 'Status: configuration required — UI plugin required',
+      srText: 'Status: partial setup — Logging UI Plugin disabled',
     },
     summary:
       'Execute log-based queries for application, infrastructure, and audit logs. Available under Observe → Logs once the UI plugin is enabled.',
@@ -158,7 +158,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     actions: [
       {
         id: 'enable-logging-plugin',
-        label: 'Enable Logging Plugin',
+        label: 'Enable logging plugin',
         variant: 'secondary',
         href: '/core/observe/observability-services#enable-logging-plugin',
         helperText:
@@ -181,7 +181,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     subtitle: 'COO · Tempo · OpenTelemetry',
     status: {
       kind: 'fully-enabled',
-      label: 'Fully Enabled',
+      label: 'Fully enabled',
       color: 'green',
       srText: 'Status: fully enabled',
     },
@@ -216,10 +216,10 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     title: 'Signal Correlation',
     subtitle: 'COO · Korrel8r',
     status: {
-      kind: 'available-addon',
-      label: 'Not Installed',
-      color: 'grey',
-      srText: 'Status: available add-on — not installed',
+      kind: 'configuration-required',
+      label: 'Partial setup',
+      color: 'yellow',
+      srText: 'Status: partial setup — Troubleshooting Panel UI Plugin CR not created',
     },
     summary:
       'Execute correlation queries between observability signals — metrics, logs, traces, and alerts. Accessible via the OCP web console header actions once enabled.',
@@ -257,10 +257,10 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     title: 'Health Analyzer',
     subtitle: 'COO · Incidents',
     status: {
-      kind: 'available-addon',
-      label: 'Not Installed',
-      color: 'grey',
-      srText: 'Status: available add-on — not installed',
+      kind: 'configuration-required',
+      label: 'Partial setup',
+      color: 'yellow',
+      srText: 'Status: partial setup — Health Analyzer feature not enabled',
     },
     summary:
       'Group alerts into incidents to reduce alert noise and integrate with AIOps platforms. When enabled, adds an Incidents tab under Observe → Alerts.',
