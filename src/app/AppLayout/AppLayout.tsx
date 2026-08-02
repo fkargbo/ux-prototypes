@@ -183,7 +183,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
       setActivePerspective('Core platforms');
     } else if (useCase === 'use-case-cclm' || currentPrototypeId === 'cross-cluster-migration') {
       setActivePerspective('Fleet virtualization');
-    } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states' || currentPrototypeId === 'fleet-admin-rbac' || currentPrototypeId === 'fleet-admin-rbac-v1.1' || currentPrototypeId === 'tenant-admin-access' || currentPrototypeId === 'stefans-acmintegration') {
+    } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states' || currentPrototypeId === 'fleet-admin-rbac' || currentPrototypeId === 'fleet-admin-rbac-v1.1' || currentPrototypeId === 'tenant-admin-access') {
       setActivePerspective('Fleet management');
     } else if (enabledPerspectives && enabledPerspectives.length > 0) {
       // Set to first enabled perspective for prototypes

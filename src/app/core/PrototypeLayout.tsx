@@ -365,12 +365,6 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
       if (location.pathname === '/' || location.pathname === '' || !location.pathname.includes('/infrastructure/clusters')) {
         navigate('/infrastructure/clusters', { replace: true });
       }
-    } else if (prototype.config.id === 'stefans-acmintegration') {
-      // For ACM Ansible integration prototype, navigate to Decision Environments page (first in workflow)
-      // Only redirect on root path, not on valid automation routes
-      if (location.pathname === '/' || location.pathname === '') {
-        navigate('/automation/decision-environments', { replace: true });
-      }
     } else if (prototype.config.id === 'stefan-costmanagement') {
       // For Cost Management prototype, redirect based on selected option
       // Only redirect on root path
