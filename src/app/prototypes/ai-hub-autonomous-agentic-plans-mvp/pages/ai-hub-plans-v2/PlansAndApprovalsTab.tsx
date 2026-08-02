@@ -45,7 +45,7 @@ import {
   buildAgenticRunRequest,
   TriggerRequestSection,
 } from '../../components/TriggerRequestSection';
-import { AnalysisLogsExpandable, resolveAnalysisLogsLifecycle } from '../../components/AnalysisLogsExpandable';
+import { resolveAnalysisLogsLifecycle } from '../../components/AnalysisLogsExpandable';
 
 export {
   NamespaceResourceBadge,
@@ -3684,15 +3684,6 @@ export const RemediationBlueprintPanel: React.FC<{
               <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.rootCauseNarrative}
               </Content>
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                <AnalysisLogsExpandable
-                  planId={plan.id}
-                  finding={analysisLogFinding}
-                  narrative={analysisLogNarrative}
-                  lifecycle={analysisLogsLifecycle}
-                  idPrefix="rca-top-level-log"
-                />
-              </div>
             </div>
           )}
         </StackItem>
@@ -3885,17 +3876,6 @@ export const RemediationBlueprintPanel: React.FC<{
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.rootCauseNarrative}
             </Content>
-            {/* No remediation options generated for this run — preserve the legal/audit
-                evidence trail by keeping analysis logs attached to the diagnosis card. */}
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-              <AnalysisLogsExpandable
-                planId={plan.id}
-                finding={analysisLogFinding}
-                narrative={analysisLogNarrative}
-                lifecycle={analysisLogsLifecycle}
-                idPrefix="rca-top-level-log"
-              />
-            </div>
           </div>
           )}
       </StackItem>
