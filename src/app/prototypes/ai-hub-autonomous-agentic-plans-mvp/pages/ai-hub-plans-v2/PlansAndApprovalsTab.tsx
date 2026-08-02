@@ -2845,11 +2845,7 @@ const EvidenceLogsSection: React.FC<{
   idPrefix: string;
   executionLogText: string;
   verificationLogText: string;
-  isExecuting: boolean;
-  isCompleted: boolean;
-  isFailed: boolean;
-  verificationOutcome: 'streaming' | 'passed' | 'failed' | undefined;
-}> = ({ idPrefix, executionLogText, verificationLogText, isExecuting, isCompleted, isFailed, verificationOutcome }) => {
+}> = ({ idPrefix, executionLogText, verificationLogText }) => {
   const [isExecLogsExpanded, setIsExecLogsExpanded] = useState(false);
   const [isVerifLogsExpanded, setIsVerifLogsExpanded] = useState(false);
 
@@ -2857,23 +2853,7 @@ const EvidenceLogsSection: React.FC<{
     <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
       <StackItem>
         <ExpandableSection
-          toggleText=""
-          toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <FlexItem>{isExecLogsExpanded ? 'Hide execution logs' : 'View execution logs'}</FlexItem>
-              <FlexItem>
-                {isExecuting ? (
-                  <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Streaming" />}>
-                    Streaming
-                  </Label>
-                ) : isCompleted ? (
-                  <Label color="green" isCompact>Completed</Label>
-                ) : isFailed ? (
-                  <Label color="red" isCompact>Failed</Label>
-                ) : null}
-              </FlexItem>
-            </Flex>
-          }
+          toggleText={isExecLogsExpanded ? 'Hide execution logs' : 'View execution logs'}
           isExpanded={isExecLogsExpanded}
           onToggle={(_e, expanded) => setIsExecLogsExpanded(expanded)}
           style={{ marginBottom: 0 }}
@@ -2889,23 +2869,7 @@ const EvidenceLogsSection: React.FC<{
       </StackItem>
       <StackItem>
         <ExpandableSection
-          toggleText=""
-          toggleContent={
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <FlexItem>{isVerifLogsExpanded ? 'Hide verification logs' : 'View verification logs'}</FlexItem>
-              <FlexItem>
-                {verificationOutcome === 'streaming' ? (
-                  <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Streaming" />}>
-                    Streaming
-                  </Label>
-                ) : verificationOutcome === 'passed' ? (
-                  <Label color="green" isCompact>Completed</Label>
-                ) : verificationOutcome === 'failed' ? (
-                  <Label color="red" isCompact>Failed</Label>
-                ) : null}
-              </FlexItem>
-            </Flex>
-          }
+          toggleText={isVerifLogsExpanded ? 'Hide verification logs' : 'View verification logs'}
           isExpanded={isVerifLogsExpanded}
           onToggle={(_e, expanded) => setIsVerifLogsExpanded(expanded)}
           style={{ marginBottom: 0 }}
@@ -2940,39 +2904,48 @@ const TerminalEvidenceCard: React.FC<{
   const verificationLogText = verification
     ? verification.checks.join('\n')
     : generateVerificationLogs(plan.id);
-  const verificationOutcome: 'streaming' | 'passed' | 'failed' | undefined = verification && !verification.outcome
-    ? 'streaming'
-    : verification?.outcome
-      ?? (isCompleted ? 'passed' : isFailed ? 'failed' : undefined);
   const actionSummary = postMortem.type === 'success'
     ? postMortem.remediationActionDelta
     : postMortem.failureReason;
 
+  // Execution status now lives in the top-right corner of the card header
+  // (rather than inline in the title row) — mirrors RemediationOptionCard.
+  const executionStatusLabel = isCompleted ? (
+    <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
+  ) : isFailed ? (
+    <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
+  ) : null;
+
   const headerContent = (
     <Flex
-      direction={{ default: 'column' }}
+      justifyContent={{ default: 'justifyContentSpaceBetween' }}
       alignItems={{ default: 'alignItemsFlexStart' }}
-      gap={{ default: 'gapXs' }}
+      flexWrap={{ default: 'nowrap' }}
+      style={{ width: '100%' }}
     >
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-          Remediation
-        </span>
-        <Label color={isCompleted ? 'green' : 'red'} isCompact>
-          {isCompleted ? 'Executed' : 'Failed'}
-        </Label>
-      </Flex>
-      <span
-        style={{
-          fontWeight: 600,
-          fontSize: '14px',
-          lineHeight: 1.4,
-          whiteSpace: 'normal',
-          wordBreak: 'break-word',
-        }}
-      >
-        {plan.synopsis}
-      </span>
+      <FlexItem>
+        <Flex
+          direction={{ default: 'column' }}
+          alignItems={{ default: 'alignItemsFlexStart' }}
+          gap={{ default: 'gapXs' }}
+        >
+          <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+            Remediation
+          </span>
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: '14px',
+              lineHeight: 1.4,
+              whiteSpace: 'normal',
+              wordBreak: 'break-word',
+            }}
+          >
+            {plan.synopsis}
+          </span>
+        </Flex>
+      </FlexItem>
+      {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
     </Flex>
   );
 
@@ -2980,18 +2953,6 @@ const TerminalEvidenceCard: React.FC<{
     <Card style={{ borderRadius: '16px' }}>
       <CardHeader>{headerContent}</CardHeader>
       <CardBody className="ols-remediation-option-card__body">
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-        >
-          {isCompleted && (
-            <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
-          )}
-          {isFailed && (
-            <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
-          )}
-        </Flex>
         {actionSummary && (
           <Content
             component="p"
@@ -3005,10 +2966,6 @@ const TerminalEvidenceCard: React.FC<{
           idPrefix={plan.id}
           executionLogText={postMortem.rawLog ?? ''}
           verificationLogText={verificationLogText}
-          isExecuting={false}
-          isCompleted={isCompleted}
-          isFailed={isFailed}
-          verificationOutcome={verificationOutcome}
         />
       </CardBody>
     </Card>
@@ -3085,10 +3042,6 @@ const RemediationOptionCard: React.FC<{
   const verificationLogText = verification
     ? verification.checks.join('\n')
     : generateVerificationLogs(plan.id);
-  const verificationOutcome: 'streaming' | 'passed' | 'failed' | undefined = verification && !verification.outcome
-    ? 'streaming'
-    : verification?.outcome
-      ?? (isCompleted ? 'passed' : isFailed ? 'failed' : undefined);
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
@@ -3117,44 +3070,64 @@ const RemediationOptionCard: React.FC<{
   const isBodyVisible = isSelected || isTerminal;
   const cardId = `remediation-option-${option.id}`;
 
+  // Execution status now lives in the top-right corner of the card header
+  // (rather than inline in the title row) — see EOL-xxxx UI cleanup.
+  const executionStatusLabel =
+    (isExecuting || isTerminal) && !isExecutionKilled ? (
+      isExecuting ? (
+        <Label color="blue" icon={<Spinner size="sm" aria-label="Executing" />}>
+          Executing
+        </Label>
+      ) : isCompleted ? (
+        <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
+      ) : isFailed ? (
+        <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
+      ) : null
+    ) : null;
+
   const headerContent = (
     <Flex
-      direction={{ default: 'column' }}
+      justifyContent={{ default: 'justifyContentSpaceBetween' }}
       alignItems={{ default: 'alignItemsFlexStart' }}
-      gap={{ default: 'gapXs' }}
-      id={`${cardId}-title`}
+      flexWrap={{ default: 'nowrap' }}
+      style={{ width: '100%' }}
     >
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-          Option {index + 1}
-        </span>
-        <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
-          {isTerminal && isFirst && (
-            <Label color={status === 'Completed' ? 'green' : 'red'} isCompact>
-              {status === 'Completed' ? 'Executed' : 'Failed'}
-            </Label>
-          )}
-          {isOptionLocked && isFirst && (
-            <Label color="orange" isCompact>
-              Approved option
-            </Label>
-          )}
-          <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
-            {formatReversibilityLabel(option.reversible)}
-          </Label>
+      <FlexItem>
+        <Flex
+          direction={{ default: 'column' }}
+          alignItems={{ default: 'alignItemsFlexStart' }}
+          gap={{ default: 'gapXs' }}
+          id={`${cardId}-title`}
+        >
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+            <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+              Option {index + 1}
+            </span>
+            <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+              {isOptionLocked && isFirst && (
+                <Label color="orange" isCompact>
+                  Approved option
+                </Label>
+              )}
+              <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
+                {formatReversibilityLabel(option.reversible)}
+              </Label>
+            </Flex>
+          </Flex>
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: '14px',
+              lineHeight: 1.4,
+              whiteSpace: 'normal',
+              wordBreak: 'break-word',
+            }}
+          >
+            {option.title}
+          </span>
         </Flex>
-      </Flex>
-      <span
-        style={{
-          fontWeight: 600,
-          fontSize: '14px',
-          lineHeight: 1.4,
-          whiteSpace: 'normal',
-          wordBreak: 'break-word',
-        }}
-      >
-        {option.title}
-      </span>
+      </FlexItem>
+      {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
     </Flex>
   );
 
@@ -3200,35 +3173,12 @@ const RemediationOptionCard: React.FC<{
 
       {isBodyVisible && (
         <CardBody className="ols-remediation-option-card__body">
-          {/* ── A. Status header & approval metadata (post-approval evidence trail) ── */}
-          {(isExecuting || isTerminal) && !isExecutionKilled && (
+          {/* ── A. Approval metadata (post-approval evidence trail; status now lives top-right in the header) ── */}
+          {(isExecuting || isTerminal) && !isExecutionKilled && approval && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-              >
-                {isExecuting && (
-                  <Label color="blue" icon={<Spinner size="sm" aria-label="Executing" />}>
-                    Executing
-                  </Label>
-                )}
-                {isCompleted && (
-                  <Label color="green" icon={<CheckCircleIcon />}>
-                    Execution successful
-                  </Label>
-                )}
-                {isFailed && (
-                  <Label color="red" icon={<ExclamationCircleIcon />}>
-                    Execution failed
-                  </Label>
-                )}
-              </Flex>
-              {approval && (
-                <Content component="small" className="ols-aio-text-subtle-sm" style={{ display: 'block' }}>
-                  Execution approved by {approval.approvedBy} · {approval.approvedAt}
-                </Content>
-              )}
+              <Content component="small" className="ols-aio-text-subtle-sm" style={{ display: 'block' }}>
+                Execution approved by {approval.approvedBy} · {approval.approvedAt}
+              </Content>
             </div>
           )}
 
@@ -3342,10 +3292,6 @@ const RemediationOptionCard: React.FC<{
               idPrefix={option.id}
               executionLogText={executionLogText}
               verificationLogText={verificationLogText}
-              isExecuting={isExecuting}
-              isCompleted={isCompleted}
-              isFailed={isFailed}
-              verificationOutcome={verificationOutcome}
             />
           )}
         </CardBody>
@@ -3815,44 +3761,48 @@ export const RemediationBlueprintPanel: React.FC<{
           <Card style={{ borderRadius: '16px' }}>
             <CardHeader>
               <Flex
-                direction={{ default: 'column' }}
+                justifyContent={{ default: 'justifyContentSpaceBetween' }}
                 alignItems={{ default: 'alignItemsFlexStart' }}
-                gap={{ default: 'gapXs' }}
+                flexWrap={{ default: 'nowrap' }}
+                style={{ width: '100%' }}
               >
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-                  <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-                    Remediation
-                  </span>
-                  {isCompleted && (
-                    <Label color="green" isCompact icon={<CheckCircleIcon />}>Completed</Label>
-                  )}
-                  {status === 'Failed' && (
-                    <Label color="red" isCompact icon={<ExclamationCircleIcon />}>Failed</Label>
-                  )}
-                  {(isExecuting || isVerifying) && (
-                    <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="In progress" />}>In progress</Label>
-                  )}
-                  {isEscalated && (
-                    <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>Escalated</Label>
-                  )}
-                  {isDenied && (
-                    <Label color="red" isCompact icon={<ExclamationCircleIcon />}>Denied</Label>
-                  )}
-                  {isEmergencyStopped && (
-                    <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>Emergency stopped</Label>
-                  )}
-                </Flex>
-                <span
-                  style={{
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    lineHeight: 1.4,
-                    whiteSpace: 'normal',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {plan.synopsis}
-                </span>
+                <FlexItem>
+                  <Flex
+                    direction={{ default: 'column' }}
+                    alignItems={{ default: 'alignItemsFlexStart' }}
+                    gap={{ default: 'gapXs' }}
+                  >
+                    <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+                      Remediation
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        lineHeight: 1.4,
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {plan.synopsis}
+                    </span>
+                  </Flex>
+                </FlexItem>
+                <FlexItem>
+                  {isCompleted ? (
+                    <Label color="green" icon={<CheckCircleIcon />}>Completed</Label>
+                  ) : status === 'Failed' ? (
+                    <Label color="red" icon={<ExclamationCircleIcon />}>Failed</Label>
+                  ) : (isExecuting || isVerifying) ? (
+                    <Label color="blue" icon={<Spinner size="sm" aria-label="In progress" />}>In progress</Label>
+                  ) : isEscalated ? (
+                    <Label color="orange" icon={<ExclamationTriangleIcon />}>Escalated</Label>
+                  ) : isDenied ? (
+                    <Label color="red" icon={<ExclamationCircleIcon />}>Denied</Label>
+                  ) : isEmergencyStopped ? (
+                    <Label color="orange" icon={<ExclamationTriangleIcon />}>Emergency stopped</Label>
+                  ) : null}
+                </FlexItem>
               </Flex>
             </CardHeader>
             <CardBody className="ols-remediation-option-card__body">
@@ -4107,51 +4057,6 @@ export const RemediationBlueprintPanel: React.FC<{
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
             <Title headingLevel="h4" size="md">Remediation hub</Title>
             <Label color="grey" isCompact>AI-generated</Label>
-            {status === 'Completed' && (
-              <Label
-                color="green"
-                isCompact
-                icon={<CheckCircleIcon />}
-              >
-                Completed
-              </Label>
-            )}
-            {status === 'Failed' && (
-              <Label
-                color="red"
-                isCompact
-                icon={<ExclamationCircleIcon />}
-              >
-                Failed
-              </Label>
-            )}
-            {isEscalated && (
-              <Label
-                color="orange"
-                isCompact
-                icon={<ExclamationTriangleIcon />}
-              >
-                Escalated
-              </Label>
-            )}
-            {isDenied && (
-              <Label
-                color="red"
-                isCompact
-                icon={<ExclamationCircleIcon />}
-              >
-                Denied
-              </Label>
-            )}
-            {isEmergencyStopped && (
-              <Label
-                color="orange"
-                isCompact
-                icon={<ExclamationTriangleIcon />}
-              >
-                Emergency stopped
-              </Label>
-            )}
             {!isAnalyzing && !isTerminal && !isDenied && visibleOptionCount > 0 && (
               <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
             )}
