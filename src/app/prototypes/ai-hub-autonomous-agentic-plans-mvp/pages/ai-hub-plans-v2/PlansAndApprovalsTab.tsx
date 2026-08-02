@@ -8,11 +8,6 @@ import {
   CardHeader,
   Checkbox,
   Content,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -33,7 +28,6 @@ import {
   Pagination,
   PaginationVariant,
   Popover,
-  SearchInput,
   Skeleton,
   Spinner,
   Stack,
@@ -51,7 +45,7 @@ import {
   buildAgenticRunRequest,
   TriggerRequestSection,
 } from '../../components/TriggerRequestSection';
-import { resolveAnalysisLogsLifecycle } from '../../components/AnalysisLogsExpandable';
+import { AnalysisLogsExpandable, resolveAnalysisLogsLifecycle } from '../../components/AnalysisLogsExpandable';
 
 export {
   NamespaceResourceBadge,
@@ -103,7 +97,6 @@ import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import type { PlanStatus } from '../../types/planStatus';
 import { normalizePlanStatus } from '../../types/planStatus';
 import {
-  ProposalApprovalArtifact,
   resolveVerificationState,
   VERIFICATION_CHECK_LINES,
   VerificationPanel,
@@ -2856,6 +2849,10 @@ const RemediationOptionCard: React.FC<{
   showExecutionLog: boolean;
   rootCause?: { aggregatedFinding: string; rootCauseNarrative: string };
   onExecute?: () => void;
+  /** Human approval metadata — shown as plain secondary text once execution begins. */
+  approval?: import('../../context/PlanWorkflowContext').ExecutionApproval | null;
+  /** Live or resolved verification state, used to badge the verification-logs toggle. */
+  verification?: import('../../context/PlanWorkflowContext').VerificationState | null;
 }> = ({
   option,
   index,
@@ -2869,14 +2866,19 @@ const RemediationOptionCard: React.FC<{
   isOptionLocked,
   rootCause,
   onExecute,
+  approval,
+  verification,
 }) => {
   const isFirst = index === 0;
   const { status } = plan;
   const isTerminal         = status === 'Completed' || status === 'Failed';
+  const isCompleted        = status === 'Completed';
+  const isFailed           = status === 'Failed';
   const isDenied           = status === 'Denied';
   const isEmergencyStopped = status === 'EmergencyStopped';
   const isExecutionKilled = Boolean(executionKillState);
   const isProposed = status === 'Proposed';
+  const isExecuting = status === 'Executing';
   const cardRootRef = React.useRef<HTMLDivElement>(null);
   const wasSelectedRef = React.useRef(isSelected);
   const activeExecutionLogLines = useMemo(
@@ -2888,6 +2890,28 @@ const RemediationOptionCard: React.FC<{
     showExecutionLog,
     isExecutionKilled || !isAgenticAutomationEnabled,
   );
+
+  // Consolidated evidence trail (execution + verification logs) — single source
+  // of truth once an option is approved/executed. See PostMortemPanel removal.
+  const postMortem = useMemo(
+    () => (isTerminal ? (PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan)) : null),
+    [isTerminal, plan],
+  );
+  const [isExecLogsExpanded, setIsExecLogsExpanded] = useState(false);
+  const [isVerifLogsExpanded, setIsVerifLogsExpanded] = useState(false);
+  // Parent always renders a single card instance during these phases (see
+  // `visibleOptions`/`terminalVisibleOptions` filtering), so no index check needed here.
+  const showEvidenceTrail = !isExecutionKilled && (isExecuting || isTerminal);
+  const executionLogText = isTerminal
+    ? (postMortem?.rawLog ?? '')
+    : streamedExecutionLog;
+  const verificationLogText = verification
+    ? verification.checks.join('\n')
+    : generateVerificationLogs(plan.id);
+  const verificationOutcome: 'streaming' | 'passed' | 'failed' | undefined = verification && !verification.outcome
+    ? 'streaming'
+    : verification?.outcome
+      ?? (isCompleted ? 'passed' : isFailed ? 'failed' : undefined);
 
   // Reset inner states when the card is collapsed / deselected.
   useEffect(() => {
@@ -2999,15 +3023,49 @@ const RemediationOptionCard: React.FC<{
 
       {isBodyVisible && (
         <CardBody className="ols-remediation-option-card__body">
-          <Content
-            component="p"
-            className="ols-aio-text-subtle-sm"
-            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-          >
-            {option.description}
-          </Content>
+          {/* ── A. Status header & approval metadata (post-approval evidence trail) ── */}
+          {(isExecuting || isTerminal) && !isExecutionKilled && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+              >
+                {isExecuting && (
+                  <Label color="blue" icon={<Spinner size="sm" aria-label="Executing" />}>
+                    Executing
+                  </Label>
+                )}
+                {isCompleted && (
+                  <Label color="green" icon={<CheckCircleIcon />}>
+                    Execution successful
+                  </Label>
+                )}
+                {isFailed && (
+                  <Label color="red" icon={<ExclamationCircleIcon />}>
+                    Execution failed
+                  </Label>
+                )}
+              </Flex>
+              {approval && (
+                <Content component="small" className="ols-aio-text-subtle-sm" style={{ display: 'block' }}>
+                  Execution approved by {approval.approvedBy} · {approval.approvedAt}
+                </Content>
+              )}
+            </div>
+          )}
 
-          {/* Per-option RCA (backend: options[].diagnosis) — OLS-3724 */}
+          {!isExecuting && !isTerminal && (
+            <Content
+              component="p"
+              className="ols-aio-text-subtle-sm"
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              {option.description}
+            </Content>
+          )}
+
+          {/* ── B. Root cause analysis (per-option; backend: options[].diagnosis) — OLS-3724 ── */}
           {rootCause && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               <Content
@@ -3039,7 +3097,7 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* Execution status (Executing only) */}
+          {/* Execution terminated mid-flight (operator stop) */}
           {isExecutionPhase && isFirst && isExecutionKilled && (
             <Alert
               variant="danger"
@@ -3049,83 +3107,127 @@ const RemediationOptionCard: React.FC<{
             />
           )}
 
-          {showExecutionLog && isFirst && !isExecutionKilled && (
-            <>
-              <Content
-                component="small"
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                  margin: '0 0 var(--pf-t--global--spacer--xs)',
-                }}
+          {/* ── C. Proposed / executed commands ── */}
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            <Content
+              component="small"
+              style={{
+                display: 'block',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: 'var(--pf-t--global--text--color--subtle)',
+                marginBottom: 'var(--pf-t--global--spacer--xs)',
+              }}
+            >
+              {isExecuting || isTerminal ? 'Executed command' : 'Proposed agent command'}
+            </Content>
+            <ExpandableCodeBlock
+              id={`cmd-${option.id}`}
+              code={option.rawCommands}
+              codeStyle={{ fontSize: '12px' }}
+            />
+            {(onExecute || ((isProposed || isDenied || isEmergencyStopped) && rootCause)) && (
+              <Flex
+                gap={{ default: 'gapSm' }}
+                flexWrap={{ default: 'wrap' }}
+                style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
               >
-                Active execution log
-              </Content>
-              <ExpandableCodeBlock
-                id={`exec-log-${option.id}`}
-                code={streamedExecutionLog}
-                codeStyle={{ fontSize: '12px' }}
-              />
-            </>
-          )}
+                {onExecute && (
+                  <FlexItem>
+                    <Button
+                      variant="primary"
+                      isDisabled={!isAgenticAutomationEnabled}
+                      onClick={onExecute}
+                    >
+                      Execute remediation
+                    </Button>
+                  </FlexItem>
+                )}
+                {(isProposed || isDenied || isEmergencyStopped) && rootCause && (
+                  <FlexItem>
+                    <Button
+                      variant="link"
+                      icon={<RhUiDownloadIcon />}
+                      onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
+                    >
+                      Download plan
+                    </Button>
+                  </FlexItem>
+                )}
+              </Flex>
+            )}
+          </div>
 
-          {/* ── Command executed by agent (read-only) ── */}
-          {!isExecutionPhase && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <Content
-                component="small"
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                  marginBottom: 'var(--pf-t--global--spacer--xs)',
-                }}
-              >
-                Proposed agent command
-              </Content>
-              <ExpandableCodeBlock
-                id={`cmd-${option.id}`}
-                code={option.rawCommands}
-                codeStyle={{ fontSize: '12px' }}
-              />
-              {(onExecute || ((isProposed || isDenied || isEmergencyStopped) && rootCause)) && (
-                <Flex
-                  gap={{ default: 'gapSm' }}
-                  flexWrap={{ default: 'wrap' }}
-                  style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
+          {/* ── D. Logs (expandable): execution + verification evidence trail ── */}
+          {showEvidenceTrail && (
+            <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              <StackItem>
+                <ExpandableSection
+                  toggleText=""
+                  toggleContent={
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                      <FlexItem>{isExecLogsExpanded ? 'Hide execution logs' : 'View execution logs'}</FlexItem>
+                      <FlexItem>
+                        {isExecuting ? (
+                          <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Streaming" />}>
+                            Streaming
+                          </Label>
+                        ) : isCompleted ? (
+                          <Label color="green" isCompact>Completed</Label>
+                        ) : isFailed ? (
+                          <Label color="red" isCompact>Failed</Label>
+                        ) : null}
+                      </FlexItem>
+                    </Flex>
+                  }
+                  isExpanded={isExecLogsExpanded}
+                  onToggle={(_e, expanded) => setIsExecLogsExpanded(expanded)}
+                  style={{ marginBottom: 0 }}
                 >
-                  {onExecute && (
-                    <FlexItem>
-                      <Button
-                        variant="primary"
-                        isDisabled={!isAgenticAutomationEnabled}
-                        onClick={onExecute}
-                      >
-                        Execute remediation
-                      </Button>
-                    </FlexItem>
-                  )}
-                  {(isProposed || isDenied || isEmergencyStopped) && rootCause && (
-                    <FlexItem>
-                      <Button
-                        variant="link"
-                        icon={<RhUiDownloadIcon />}
-                        onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
-                      >
-                        Download plan
-                      </Button>
-                    </FlexItem>
-                  )}
-                </Flex>
-              )}
-            </div>
+                  <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                    <ExpandableCodeBlock
+                      id={`exec-log-${option.id}`}
+                      code={executionLogText}
+                      codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                    />
+                  </div>
+                </ExpandableSection>
+              </StackItem>
+              <StackItem>
+                <ExpandableSection
+                  toggleText=""
+                  toggleContent={
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                      <FlexItem>{isVerifLogsExpanded ? 'Hide verification logs' : 'View verification logs'}</FlexItem>
+                      <FlexItem>
+                        {verificationOutcome === 'streaming' ? (
+                          <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Streaming" />}>
+                            Streaming
+                          </Label>
+                        ) : verificationOutcome === 'passed' ? (
+                          <Label color="green" isCompact>Completed</Label>
+                        ) : verificationOutcome === 'failed' ? (
+                          <Label color="red" isCompact>Failed</Label>
+                        ) : null}
+                      </FlexItem>
+                    </Flex>
+                  }
+                  isExpanded={isVerifLogsExpanded}
+                  onToggle={(_e, expanded) => setIsVerifLogsExpanded(expanded)}
+                  style={{ marginBottom: 0 }}
+                >
+                  <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                    <ExpandableCodeBlock
+                      id={`verif-log-${option.id}`}
+                      code={verificationLogText}
+                      codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+                    />
+                  </div>
+                </ExpandableSection>
+              </StackItem>
+            </Stack>
           )}
-
         </CardBody>
       )}
     </Card>
@@ -3189,372 +3291,6 @@ const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended
     <Skeleton width="55%" style={isSuspended ? SKELETON_SUSPENDED_STYLE : undefined} />
   </div>
 );
-
-// ─── Drawer: post-mortem summary panel ───────────────────────────────────────
-
-const PostMortemPanel: React.FC<{
-  plan: PlanRow;
-  verification?: import('../../context/PlanWorkflowContext').VerificationState | null;
-  executionOptionId?: string;
-  isMetricsExpanded?: boolean;
-  onToggleMetrics?: (expanded: boolean) => void;
-  isLogsExpanded?: boolean;
-  onToggleLogs?: (expanded: boolean) => void;
-}> = ({ plan, verification, executionOptionId, isMetricsExpanded, onToggleMetrics, isLogsExpanded, onToggleLogs }) => {
-  const [localShowLogs, setLocalShowLogs] = useState(false);
-  const [logCategory, setLogCategory] = useState<'execution' | 'verification'>('execution');
-  const [logQuery, setLogQuery] = useState('');
-  const [isLogCatOpen, setIsLogCatOpen] = useState(false);
-  // Fall back to a synthesised post-mortem for plans executed live in this session.
-  const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
-
-  // When toggle props are supplied the metrics section is collapsible; otherwise
-  // the full panel is rendered statically (e.g. for plans already in terminal state).
-  const hasToggle = isMetricsExpanded !== undefined && onToggleMetrics !== undefined;
-  const hasLogsToggle = isLogsExpanded !== undefined && onToggleLogs !== undefined;
-  const showLogs = hasLogsToggle ? isLogsExpanded! : localShowLogs;
-  const toggleLogs = hasLogsToggle ? onToggleLogs! : setLocalShowLogs;
-
-  if (postMortem.type === 'success') {
-    const sectionLabel = (text: string) => (
-      <Content
-        component="small"
-        style={{
-          display: 'block',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          color: 'var(--pf-t--global--text--color--subtle)',
-          marginBottom: 'var(--pf-t--global--spacer--xs)',
-          marginTop: 'var(--pf-t--global--spacer--md)',
-        }}
-      >
-        {text}
-      </Content>
-    );
-
-    const metricsBlock = (
-      <>
-        {/* Section A — Contextual Evidence */}
-        {sectionLabel('Contextual Evidence')}
-        <DescriptionList isHorizontal isAutoColumnWidths isCompact>
-          {postMortem.rootCauseSummary && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Original root cause</DescriptionListTerm>
-              <DescriptionListDescription>{postMortem.rootCauseSummary}</DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-          {postMortem.remediationActionDelta && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Remediation delta</DescriptionListTerm>
-              <DescriptionListDescription>{postMortem.remediationActionDelta}</DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-        </DescriptionList>
-
-        {/* Section B — Audit Trail */}
-        {sectionLabel('Audit Trail')}
-        <DescriptionList isHorizontal isAutoColumnWidths isCompact style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-          {postMortem.appliedAt && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Applied</DescriptionListTerm>
-              <DescriptionListDescription>{postMortem.appliedAt}</DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-          {postMortem.recoveredAt && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>System restored</DescriptionListTerm>
-              <DescriptionListDescription>{postMortem.recoveredAt}</DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-          {postMortem.executionDuration && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Execution time</DescriptionListTerm>
-              <DescriptionListDescription>{postMortem.executionDuration}</DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-          {verification && (
-            <>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Verification</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {verification.outcome === 'passed' ? 'Passed' : verification.outcome === 'failed' ? 'Failed' : '—'}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Verification attempt</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {verification.attempt} of {verification.maxAttempts}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-            </>
-          )}
-          {postMortem.gitCommitRef && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Git commit</DescriptionListTerm>
-              <DescriptionListDescription>
-                <Button
-                  variant="link"
-                  isInline
-                  style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '13px', padding: 0 }}
-                >
-                  #{postMortem.gitCommitRef}
-                </Button>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-        </DescriptionList>
-      </>
-    );
-
-    return (
-      <>
-        {hasToggle ? (
-          /* ── Inline post-execution: flat layout, no container ── */
-          <>
-            <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
-
-            {/* Collapsible metrics toggle */}
-            <ExpandableSection
-              toggleText={isMetricsExpanded ? 'Hide execution summary' : 'View execution summary'}
-              isExpanded={isMetricsExpanded}
-              onToggle={(_e, expanded) => onToggleMetrics!(expanded)}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              {metricsBlock}
-            </ExpandableSection>
-
-            <Divider style={{ margin: `var(--pf-t--global--spacer--sm) 0` }} />
-
-            {/* Logs — collapsible with category selector and search */}
-            <ExpandableSection
-              toggleText={showLogs ? 'Hide logs' : 'View logs'}
-              isExpanded={showLogs}
-              onToggle={(_e, expanded) => toggleLogs(expanded)}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                  <FlexItem>
-                    <Dropdown
-                      isOpen={isLogCatOpen}
-                      onOpenChange={setIsLogCatOpen}
-                      onSelect={(_e, val) => {
-                        setLogCategory(val as 'execution' | 'verification');
-                        setIsLogCatOpen(false);
-                      }}
-                      toggle={(ref) => (
-                        <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
-                          {logCategory === 'execution' ? 'Execution' : 'Verification'}
-                        </MenuToggle>
-                      )}
-                    >
-                      <DropdownList>
-                        <DropdownItem value="execution">Execution logs</DropdownItem>
-                        <DropdownItem value="verification">Verification logs</DropdownItem>
-                      </DropdownList>
-                    </Dropdown>
-                  </FlexItem>
-                  <FlexItem grow={{ default: 'grow' }}>
-                    <SearchInput
-                      value={logQuery}
-                      onChange={(_e, val) => setLogQuery(val)}
-                      onClear={() => setLogQuery('')}
-                      placeholder="Search logs..."
-                    />
-                  </FlexItem>
-                </Flex>
-                {(() => {
-                  const raw = logCategory === 'execution'
-                    ? (postMortem.rawLog ?? '')
-                    : generateVerificationLogs(plan.id);
-                  const displayed = logQuery.trim()
-                    ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
-                    : raw;
-                  return (
-                    <ExpandableCodeBlock
-                      id={`pm-log-inline-${plan.id}`}
-                      code={displayed}
-                      codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-                    />
-                  );
-                })()}
-              </div>
-            </ExpandableSection>
-          </>
-        ) : (
-          /* ── Terminal drawer view: bordered card ── */
-          <div
-            style={{
-              borderRadius: '16px',
-              border: '1px solid var(--pf-t--global--color--status--success--default)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-              >
-                {status === 'Failed'
-                  ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
-                  : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
-                }
-                <Title headingLevel="h5" size="md">Execution summary</Title>
-                <Label color="grey" isCompact>AI-generated</Label>
-              </Flex>
-
-              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }} />
-
-              {metricsBlock}
-
-              <Divider style={{ margin: `var(--pf-t--global--spacer--md) 0` }} />
-
-              {/* Logs */}
-              <ExpandableSection
-                toggleText={showLogs ? 'Hide logs' : 'View logs'}
-                isExpanded={showLogs}
-                onToggle={(_e, expanded) => toggleLogs(expanded)}
-                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-              >
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                  <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                    <FlexItem>
-                      <Dropdown
-                        isOpen={isLogCatOpen}
-                        onOpenChange={setIsLogCatOpen}
-                        onSelect={(_e, val) => {
-                          setLogCategory(val as 'execution' | 'verification');
-                          setIsLogCatOpen(false);
-                        }}
-                        toggle={(ref) => (
-                          <MenuToggle ref={ref} onClick={() => setIsLogCatOpen(!isLogCatOpen)} isExpanded={isLogCatOpen}>
-                            {logCategory === 'execution' ? 'Execution' : 'Verification'}
-                          </MenuToggle>
-                        )}
-                      >
-                        <DropdownList>
-                          <DropdownItem value="execution">Execution logs</DropdownItem>
-                          <DropdownItem value="verification">Verification logs</DropdownItem>
-                        </DropdownList>
-                      </Dropdown>
-                    </FlexItem>
-                    <FlexItem grow={{ default: 'grow' }}>
-                      <SearchInput
-                        value={logQuery}
-                        onChange={(_e, val) => setLogQuery(val)}
-                        onClear={() => setLogQuery('')}
-                        placeholder="Search logs..."
-                      />
-                    </FlexItem>
-                  </Flex>
-                  {(() => {
-                    const raw = logCategory === 'execution'
-                      ? (postMortem.rawLog ?? '')
-                      : generateVerificationLogs(plan.id);
-                    const displayed = logQuery.trim()
-                      ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
-                      : raw;
-                    return (
-                      <ExpandableCodeBlock
-                        id={`pm-log-card-${plan.id}`}
-                        code={displayed}
-                        codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-                      />
-                    );
-                  })()}
-                </div>
-              </ExpandableSection>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  }
-
-  return (
-    <div
-      style={{
-        borderRadius: '16px',
-        border: '1px solid var(--pf-t--global--color--status--danger--default)',
-      }}
-    >
-      <Stack hasGutter style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
-        {/* ── Header ── */}
-        <StackItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-            <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
-            <Title headingLevel="h5" size="md" style={{ marginBottom: 0 }}>Critical automation failure</Title>
-            <FlexItem style={{ marginLeft: 'auto' }}>
-              <Button
-                variant="link"
-                icon={<ExternalLinkAltIcon />}
-                iconPosition="end"
-                component="a"
-                href="/observe/traces"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ padding: 0 }}
-              >
-                View trace
-              </Button>
-            </FlexItem>
-          </Flex>
-        </StackItem>
-
-        <StackItem><Divider /></StackItem>
-
-        {/* ── Failure reason ── */}
-        {postMortem.failureReason && (
-          <StackItem>
-            <Content component="p" style={{ margin: 0 }}>
-              {postMortem.failureReason}
-            </Content>
-          </StackItem>
-        )}
-
-        <StackItem><Divider /></StackItem>
-
-        {/* ── Execution logs ── */}
-        <StackItem>
-          <ExpandableSection
-            toggleText={showLogs ? 'Hide logs' : 'View logs'}
-            isExpanded={showLogs}
-            onToggle={(_e, expanded) => toggleLogs(expanded)}
-            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-          >
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-              <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                <FlexItem grow={{ default: 'grow' }}>
-                  <SearchInput
-                    value={logQuery}
-                    onChange={(_e, val) => setLogQuery(val)}
-                    onClear={() => setLogQuery('')}
-                    placeholder="Search logs..."
-                  />
-                </FlexItem>
-              </Flex>
-              {(() => {
-                const raw = postMortem.rawLog ?? '';
-                const displayed = logQuery.trim()
-                  ? raw.split('\n').filter(l => l.toLowerCase().includes(logQuery.toLowerCase())).join('\n')
-                  : raw;
-                return (
-                  <ExpandableCodeBlock
-                    id={`pm-log-fail-${plan.id}`}
-                    code={displayed}
-                    codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-                  />
-                );
-              })()}
-            </div>
-          </ExpandableSection>
-        </StackItem>
-      </Stack>
-    </div>
-  );
-};
 
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
@@ -3948,6 +3684,15 @@ export const RemediationBlueprintPanel: React.FC<{
               <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                 {drawer.rootCauseNarrative}
               </Content>
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                <AnalysisLogsExpandable
+                  planId={plan.id}
+                  finding={analysisLogFinding}
+                  narrative={analysisLogNarrative}
+                  lifecycle={analysisLogsLifecycle}
+                  idPrefix="rca-top-level-log"
+                />
+              </div>
             </div>
           )}
         </StackItem>
@@ -4140,6 +3885,17 @@ export const RemediationBlueprintPanel: React.FC<{
             <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {drawer!.rootCauseNarrative}
             </Content>
+            {/* No remediation options generated for this run — preserve the legal/audit
+                evidence trail by keeping analysis logs attached to the diagnosis card. */}
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              <AnalysisLogsExpandable
+                planId={plan.id}
+                finding={analysisLogFinding}
+                narrative={analysisLogNarrative}
+                lifecycle={analysisLogsLifecycle}
+                idPrefix="rca-top-level-log"
+              />
+            </div>
           </div>
           )}
       </StackItem>
@@ -4365,17 +4121,14 @@ export const RemediationBlueprintPanel: React.FC<{
                           isOptionLocked={false}
                           showExecutionLog={false}
                           rootCause={opt.diagnosis}
+                          approval={workflow.executionApproval}
+                          verification={workflow.verification}
                         />
                       </StackItem>
                     );
                   })}
                 </Stack>
               )}
-              <PostMortemPanel
-                plan={plan}
-                verification={workflow.verification}
-                executionOptionId={workflow.executionApproval?.optionId}
-              />
             </>
           ) : isVerifying && verificationState ? (
             <VerificationPanel
@@ -4387,10 +4140,6 @@ export const RemediationBlueprintPanel: React.FC<{
             <>
               {retryBanner && (
                 <Alert variant="warning" isInline title={retryBanner} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
-              )}
-
-              {workflow.executionApproval && (isExecuting || isVerifying) && (
-                <ProposalApprovalArtifact approval={workflow.executionApproval} />
               )}
 
               <div
@@ -4417,6 +4166,8 @@ export const RemediationBlueprintPanel: React.FC<{
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
                           rootCause={opt.diagnosis}
                           onExecute={isProposed ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
+                          approval={workflow.executionApproval}
+                          verification={workflow.verification}
                         />
                       </StackItem>
                     );
