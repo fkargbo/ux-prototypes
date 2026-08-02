@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   EmptyState,
@@ -97,6 +98,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   traceId,
   runStatus,
 }) => {
+  const navigate = useNavigate();
   const hasRequest = Boolean(request?.trim());
   const emptyMessage = analysisFailedToInitialize
     ? 'Analysis failed to initialize.'
@@ -137,10 +139,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             <Button
               variant="link"
               isInline
-              component="a"
-              href={`/observe/traces?traceId=${traceId}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() => navigate(`/core/observe/traces?traceId=${traceId}`)}
             >
               View trace
             </Button>
