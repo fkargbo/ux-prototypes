@@ -2836,6 +2836,154 @@ const PlansTable: React.FC<PlansTableProps> = ({
 
 // ─── Drawer: Remediation option card ─────────────────────────────────────────
 
+/**
+ * Stacked "View execution logs" / "View verification logs" evidence trail.
+ * Shared by `RemediationOptionCard` and the option-less terminal fallback
+ * (autonomous runs with no modeled remediation options — see `TerminalEvidenceCard`).
+ */
+const EvidenceLogsSection: React.FC<{
+  idPrefix: string;
+  executionLogText: string;
+  verificationLogText: string;
+  isExecuting: boolean;
+  isCompleted: boolean;
+  isFailed: boolean;
+  verificationOutcome: 'streaming' | 'passed' | 'failed' | undefined;
+}> = ({ idPrefix, executionLogText, verificationLogText, isExecuting, isCompleted, isFailed, verificationOutcome }) => {
+  const [isExecLogsExpanded, setIsExecLogsExpanded] = useState(false);
+  const [isVerifLogsExpanded, setIsVerifLogsExpanded] = useState(false);
+
+  return (
+    <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+      <StackItem>
+        <ExpandableSection
+          toggleText=""
+          toggleContent={
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <FlexItem>{isExecLogsExpanded ? 'Hide execution logs' : 'View execution logs'}</FlexItem>
+              <FlexItem>
+                {isExecuting ? (
+                  <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Streaming" />}>
+                    Streaming
+                  </Label>
+                ) : isCompleted ? (
+                  <Label color="green" isCompact>Completed</Label>
+                ) : isFailed ? (
+                  <Label color="red" isCompact>Failed</Label>
+                ) : null}
+              </FlexItem>
+            </Flex>
+          }
+          isExpanded={isExecLogsExpanded}
+          onToggle={(_e, expanded) => setIsExecLogsExpanded(expanded)}
+          style={{ marginBottom: 0 }}
+        >
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+            <ExpandableCodeBlock
+              id={`exec-log-${idPrefix}`}
+              code={executionLogText}
+              codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+            />
+          </div>
+        </ExpandableSection>
+      </StackItem>
+      <StackItem>
+        <ExpandableSection
+          toggleText=""
+          toggleContent={
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <FlexItem>{isVerifLogsExpanded ? 'Hide verification logs' : 'View verification logs'}</FlexItem>
+              <FlexItem>
+                {verificationOutcome === 'streaming' ? (
+                  <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Streaming" />}>
+                    Streaming
+                  </Label>
+                ) : verificationOutcome === 'passed' ? (
+                  <Label color="green" isCompact>Completed</Label>
+                ) : verificationOutcome === 'failed' ? (
+                  <Label color="red" isCompact>Failed</Label>
+                ) : null}
+              </FlexItem>
+            </Flex>
+          }
+          isExpanded={isVerifLogsExpanded}
+          onToggle={(_e, expanded) => setIsVerifLogsExpanded(expanded)}
+          style={{ marginBottom: 0 }}
+        >
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+            <ExpandableCodeBlock
+              id={`verif-log-${idPrefix}`}
+              code={verificationLogText}
+              codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+            />
+          </div>
+        </ExpandableSection>
+      </StackItem>
+    </Stack>
+  );
+};
+
+/**
+ * Fallback evidence card for terminal (Completed/Failed) runs that have no modeled
+ * remediation options — e.g. autonomous reconciliations executed without an operator
+ * option selection. Keeps the execution/verification audit trail from disappearing
+ * once `PostMortemPanel` was retired in favor of per-option cards.
+ */
+const TerminalEvidenceCard: React.FC<{
+  plan: PlanRow;
+  verification?: import('../../context/PlanWorkflowContext').VerificationState | null;
+}> = ({ plan, verification }) => {
+  const { status } = plan;
+  const isCompleted = status === 'Completed';
+  const isFailed = status === 'Failed';
+  const postMortem = useMemo(() => PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan), [plan]);
+  const verificationLogText = verification
+    ? verification.checks.join('\n')
+    : generateVerificationLogs(plan.id);
+  const verificationOutcome: 'streaming' | 'passed' | 'failed' | undefined = verification && !verification.outcome
+    ? 'streaming'
+    : verification?.outcome
+      ?? (isCompleted ? 'passed' : isFailed ? 'failed' : undefined);
+  const actionSummary = postMortem.type === 'success'
+    ? postMortem.remediationActionDelta
+    : postMortem.failureReason;
+
+  return (
+    <div>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+      >
+        {isCompleted && (
+          <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
+        )}
+        {isFailed && (
+          <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
+        )}
+      </Flex>
+      {actionSummary && (
+        <Content
+          component="p"
+          className="ols-aio-text-subtle-sm"
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          {actionSummary}
+        </Content>
+      )}
+      <EvidenceLogsSection
+        idPrefix={plan.id}
+        executionLogText={postMortem.rawLog ?? ''}
+        verificationLogText={verificationLogText}
+        isExecuting={false}
+        isCompleted={isCompleted}
+        isFailed={isFailed}
+        verificationOutcome={verificationOutcome}
+      />
+    </div>
+  );
+};
+
 const RemediationOptionCard: React.FC<{
   option: RemediationOption;
   index: number;
@@ -2897,8 +3045,6 @@ const RemediationOptionCard: React.FC<{
     () => (isTerminal ? (PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan)) : null),
     [isTerminal, plan],
   );
-  const [isExecLogsExpanded, setIsExecLogsExpanded] = useState(false);
-  const [isVerifLogsExpanded, setIsVerifLogsExpanded] = useState(false);
   // Parent always renders a single card instance during these phases (see
   // `visibleOptions`/`terminalVisibleOptions` filtering), so no index check needed here.
   const showEvidenceTrail = !isExecutionKilled && (isExecuting || isTerminal);
@@ -3161,72 +3307,15 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── D. Logs (expandable): execution + verification evidence trail ── */}
           {showEvidenceTrail && (
-            <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-              <StackItem>
-                <ExpandableSection
-                  toggleText=""
-                  toggleContent={
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                      <FlexItem>{isExecLogsExpanded ? 'Hide execution logs' : 'View execution logs'}</FlexItem>
-                      <FlexItem>
-                        {isExecuting ? (
-                          <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Streaming" />}>
-                            Streaming
-                          </Label>
-                        ) : isCompleted ? (
-                          <Label color="green" isCompact>Completed</Label>
-                        ) : isFailed ? (
-                          <Label color="red" isCompact>Failed</Label>
-                        ) : null}
-                      </FlexItem>
-                    </Flex>
-                  }
-                  isExpanded={isExecLogsExpanded}
-                  onToggle={(_e, expanded) => setIsExecLogsExpanded(expanded)}
-                  style={{ marginBottom: 0 }}
-                >
-                  <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                    <ExpandableCodeBlock
-                      id={`exec-log-${option.id}`}
-                      code={executionLogText}
-                      codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-                    />
-                  </div>
-                </ExpandableSection>
-              </StackItem>
-              <StackItem>
-                <ExpandableSection
-                  toggleText=""
-                  toggleContent={
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                      <FlexItem>{isVerifLogsExpanded ? 'Hide verification logs' : 'View verification logs'}</FlexItem>
-                      <FlexItem>
-                        {verificationOutcome === 'streaming' ? (
-                          <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="Streaming" />}>
-                            Streaming
-                          </Label>
-                        ) : verificationOutcome === 'passed' ? (
-                          <Label color="green" isCompact>Completed</Label>
-                        ) : verificationOutcome === 'failed' ? (
-                          <Label color="red" isCompact>Failed</Label>
-                        ) : null}
-                      </FlexItem>
-                    </Flex>
-                  }
-                  isExpanded={isVerifLogsExpanded}
-                  onToggle={(_e, expanded) => setIsVerifLogsExpanded(expanded)}
-                  style={{ marginBottom: 0 }}
-                >
-                  <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                    <ExpandableCodeBlock
-                      id={`verif-log-${option.id}`}
-                      code={verificationLogText}
-                      codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
-                    />
-                  </div>
-                </ExpandableSection>
-              </StackItem>
-            </Stack>
+            <EvidenceLogsSection
+              idPrefix={option.id}
+              executionLogText={executionLogText}
+              verificationLogText={verificationLogText}
+              isExecuting={isExecuting}
+              isCompleted={isCompleted}
+              isFailed={isFailed}
+              verificationOutcome={verificationOutcome}
+            />
           )}
         </CardBody>
       )}
@@ -4108,6 +4197,9 @@ export const RemediationBlueprintPanel: React.FC<{
                     );
                   })}
                 </Stack>
+              )}
+              {terminalVisibleOptions.length === 0 && (
+                <TerminalEvidenceCard plan={plan} verification={workflow.verification} />
               )}
             </>
           ) : isVerifying && verificationState ? (
