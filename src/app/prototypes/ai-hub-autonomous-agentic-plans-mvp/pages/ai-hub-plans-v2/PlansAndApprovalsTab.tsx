@@ -155,6 +155,12 @@ export interface PlanRow {
    * Rendered on the Agentic Run details page as the Analysis request section.
    */
   request?: string;
+  /**
+   * Distributed-tracing trace ID captured for this run, if any. Drives the
+   * "View trace" link on the Analysis request card — only shown when set
+   * AND status is Analyzing/Executing/Completed/Failed.
+   */
+  traceId?: string;
 }
 
 /**
@@ -435,6 +441,7 @@ const TOP_PLANS: RawPlanRow[] = [
     consolidationScope: '14 Runtime Events',
     triggerDomain: 'Security',
     drawerTargets: ['prod-east-2', 'prod-eu-west-1', 'edge-apac-1'],
+    traceId: 'trc-7f2a19d8',
     expandedReasons: [
       { icon: 'warning', text: 'Advanced Cluster Security Hook: 14 eBPF Kernel System Call Mutations detected.' },
     ],
@@ -475,6 +482,7 @@ const TOP_PLANS: RawPlanRow[] = [
     synopsis: 'Optimize Control Plane API Latency',
     consolidationScope: '2 API Events',
     triggerDomain: 'Cluster update',
+    traceId: 'trc-4c81be03',
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'gear', text: 'K8s API Server Log Hook: 2 etcd_db_total_size_in_bytes fragmentation events.' },
@@ -590,6 +598,7 @@ const ALL_PLANS: RawPlanRow[] = [
     consolidationScope: '2 Events / 1 Alert',
     triggerDomain: 'Compute',
     drawerTargets: ['edge-apac-1'],
+    traceId: 'trc-9a1e6d47',
     expandedReasons: [
       { icon: 'gear',  text: '2 NodeCPUOvercommitted events detected.' },
       { icon: 'alert', text: '1 KubeNodeNotReady alert active.' },
@@ -762,6 +771,7 @@ const ALL_PLANS: RawPlanRow[] = [
     consolidationScope: 'Triggered by alert: ThanosCompactorHasNotRun (Thanos compactor pod stuck on corrupted block; manually terminated by admin)',
     triggerDomain: 'Thanos',
     drawerTargets: ['thanos-compactor'],
+    traceId: 'trc-2e5f8c91',
     expandedReasons: [
       { icon: 'alert', text: 'ThanosCompactorHasNotRun: compactor pod stuck on corrupted block.' },
     ],
@@ -3724,6 +3734,8 @@ export const RemediationBlueprintPanel: React.FC<{
             logFinding={analysisLogFinding}
             logNarrative={analysisLogNarrative}
             analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
+            traceId={plan.traceId}
+            runStatus={status}
           />
         </StackItem>
 
@@ -3918,6 +3930,8 @@ export const RemediationBlueprintPanel: React.FC<{
           logFinding={analysisLogFinding}
           logNarrative={analysisLogNarrative}
           analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
+          traceId={plan.traceId}
+          runStatus={status}
         />
       </StackItem>
 

@@ -8,13 +8,22 @@ import {
   Popover,
   Title,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { ExternalLinkAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   AnalysisLogsExpandable,
   type AnalysisLogsLifecycle,
 } from './AnalysisLogsExpandable';
+import type { PlanStatus } from '../types/planStatus';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+/** Run phases where a captured trace is meaningful to view. */
+const TRACE_LINK_VISIBLE_STATUSES: ReadonlySet<PlanStatus> = new Set([
+  'Analyzing',
+  'Executing',
+  'Completed',
+  'Failed',
+]);
 
 export type TriggerRequestSectionProps = {
   /** Raw `spec.request` prompt / alert event string. */
@@ -31,6 +40,10 @@ export type TriggerRequestSectionProps = {
    * payload ingestion (vs. simply missing request data).
    */
   analysisFailedToInitialize?: boolean;
+  /** Distributed-tracing trace ID for this run, if captured. */
+  traceId?: string;
+  /** Current run status — combined with `traceId` to decide whether to show "View trace". */
+  runStatus?: PlanStatus;
 };
 
 // ─── Builder (mock spec.request from plan metadata) ───────────────────────────
@@ -81,11 +94,14 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   logFinding = 'Signal correlation in progress — querying fleet telemetry and alert history.',
   logNarrative = 'Root cause hypothesis generation in progress. Partial findings stream into the analysis log.',
   analysisFailedToInitialize = false,
+  traceId,
+  runStatus,
 }) => {
   const hasRequest = Boolean(request?.trim());
   const emptyMessage = analysisFailedToInitialize
     ? 'Analysis failed to initialize.'
     : 'Analysis request data unavailable.';
+  const showTraceLink = Boolean(traceId) && Boolean(runStatus) && TRACE_LINK_VISIBLE_STATUSES.has(runStatus as PlanStatus);
 
   return (
     <div className="ols-ai-hub-trigger-request">
@@ -112,6 +128,22 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             />
           </Popover>
         </FlexItem>
+        {showTraceLink && (
+          <FlexItem>
+            <Button
+              variant="link"
+              isInline
+              component="a"
+              href={`/observe/traces?traceId=${traceId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              icon={<ExternalLinkAltIcon />}
+              iconPosition="end"
+            >
+              View trace
+            </Button>
+          </FlexItem>
+        )}
       </Flex>
 
       <div
