@@ -2301,7 +2301,7 @@ const formatPlanCreatedAt = (iso: string): string => {
 
 // ─── Status label ─────────────────────────────────────────────────────────────
 
-type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
+type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey' | 'yellow';
 
 const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Pending':          'grey',
@@ -2314,8 +2314,9 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Completed':        'green',
   'Failed':           'red',
   'Denied':           'red',
-  'Escalating':       'orange',
-  'Escalated':        'orange',
+  // Gold/yellow — SRE attention required, distinct from routine progress (teal/blue) or terminal failure (red).
+  'Escalating':       'yellow',
+  'Escalated':        'yellow',
   'EmergencyStopped': 'red',
   'Plan aborted':     'red',
 };
@@ -3796,7 +3797,7 @@ export const RemediationBlueprintPanel: React.FC<{
                   ) : (isExecuting || isVerifying) ? (
                     <Label color="blue" icon={<Spinner size="sm" aria-label="In progress" />}>In progress</Label>
                   ) : isEscalated ? (
-                    <Label color="orange" icon={<ExclamationTriangleIcon />}>Escalated</Label>
+                    <Label color="yellow" icon={<ExclamationTriangleIcon />}>Escalated</Label>
                   ) : isDenied ? (
                     <Label color="red" icon={<ExclamationCircleIcon />}>Denied</Label>
                   ) : isEmergencyStopped ? (
