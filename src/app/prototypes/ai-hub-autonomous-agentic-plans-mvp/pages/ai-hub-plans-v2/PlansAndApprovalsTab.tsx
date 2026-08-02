@@ -46,6 +46,11 @@ import {
   TriggerRequestSection,
 } from '../../components/TriggerRequestSection';
 import { resolveAnalysisLogsLifecycle } from '../../components/AnalysisLogsExpandable';
+import { generateMockTraceId, type AgenticTraceLinkProps } from '../../components/AgenticTraceLink';
+import {
+  AgenticTraceDemoControls,
+  useAgenticTraceDemoState,
+} from '../../components/AgenticTraceDemoControls';
 
 export {
   NamespaceResourceBadge,
@@ -155,6 +160,12 @@ export interface PlanRow {
    * Rendered on the Agentic Run details page as the Analysis request section.
    */
   request?: string;
+  /**
+   * Distributed-tracing trace ID for this run (COO/Tempo), when captured.
+   * Drives the "View trace" link — see `AgenticTraceLink`. Falls back to a
+   * deterministic mock ID via `generateMockTraceId` when unset.
+   */
+  traceId?: string;
 }
 
 /**
@@ -3656,6 +3667,15 @@ export const RemediationBlueprintPanel: React.FC<{
   const verificationState = resolveVerificationState(plan.id, workflow.verification);
   const showStaticVerification = isVerifying && verificationState && !workflow.verification;
 
+  // "View trace" link demo/testing state (OLS-trace-link) — seeded from the
+  // real run status, fully overridable via `AgenticTraceDemoControls`.
+  const traceDemo = useAgenticTraceDemoState(status);
+  const traceLinkProps: AgenticTraceLinkProps = {
+    status: traceDemo.status,
+    traceId: traceDemo.hasTraceId ? (plan.traceId ?? generateMockTraceId(plan.id)) : undefined,
+    isTracingInstalled: traceDemo.isTracingInstalled,
+  };
+
   const handleExecuteRemediation = () => {
     if (!selectedOption || !isAgenticAutomationEnabled) {
       return;
@@ -3717,6 +3737,10 @@ export const RemediationBlueprintPanel: React.FC<{
         </StackItem>
 
         <StackItem>
+          <AgenticTraceDemoControls {...traceDemo} />
+        </StackItem>
+
+        <StackItem>
           <TriggerRequestSection
             request={plan.request}
             planId={plan.id}
@@ -3724,6 +3748,7 @@ export const RemediationBlueprintPanel: React.FC<{
             logFinding={analysisLogFinding}
             logNarrative={analysisLogNarrative}
             analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
+            trace={traceLinkProps}
           />
         </StackItem>
 
@@ -3911,6 +3936,10 @@ export const RemediationBlueprintPanel: React.FC<{
       </StackItem>
 
       <StackItem>
+        <AgenticTraceDemoControls {...traceDemo} />
+      </StackItem>
+
+      <StackItem>
         <TriggerRequestSection
           request={plan.request}
           planId={plan.id}
@@ -3918,6 +3947,7 @@ export const RemediationBlueprintPanel: React.FC<{
           logFinding={analysisLogFinding}
           logNarrative={analysisLogNarrative}
           analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
+          trace={traceLinkProps}
         />
       </StackItem>
 

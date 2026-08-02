@@ -13,6 +13,7 @@ import {
   AnalysisLogsExpandable,
   type AnalysisLogsLifecycle,
 } from './AnalysisLogsExpandable';
+import { AgenticTraceLink, type AgenticTraceLinkProps } from './AgenticTraceLink';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,8 @@ export type TriggerRequestSectionProps = {
    * payload ingestion (vs. simply missing request data).
    */
   analysisFailedToInitialize?: boolean;
+  /** Drives the "View trace" link rendered in the card header. Omit to hide the link entirely. */
+  trace?: AgenticTraceLinkProps;
 };
 
 // ─── Builder (mock spec.request from plan metadata) ───────────────────────────
@@ -81,6 +84,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   logFinding = 'Signal correlation in progress — querying fleet telemetry and alert history.',
   logNarrative = 'Root cause hypothesis generation in progress. Partial findings stream into the analysis log.',
   analysisFailedToInitialize = false,
+  trace,
 }) => {
   const hasRequest = Boolean(request?.trim());
   const emptyMessage = analysisFailedToInitialize
@@ -90,28 +94,35 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   return (
     <div className="ols-ai-hub-trigger-request">
       <Flex
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
         alignItems={{ default: 'alignItemsCenter' }}
-        gap={{ default: 'gapXs' }}
         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
       >
-        <FlexItem>
-          <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-            Analysis request
-          </Title>
-        </FlexItem>
-        <FlexItem>
-          <Popover
-            aria-label="Analysis request help"
-            headerContent="Analysis request"
-            bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
-          >
-            <Button
-              variant="plain"
-              aria-label="More information about analysis request"
-              icon={<OutlinedQuestionCircleIcon />}
-            />
-          </Popover>
-        </FlexItem>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+          <FlexItem>
+            <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+              Analysis request
+            </Title>
+          </FlexItem>
+          <FlexItem>
+            <Popover
+              aria-label="Analysis request help"
+              headerContent="Analysis request"
+              bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
+            >
+              <Button
+                variant="plain"
+                aria-label="More information about analysis request"
+                icon={<OutlinedQuestionCircleIcon />}
+              />
+            </Popover>
+          </FlexItem>
+        </Flex>
+        {trace && (
+          <FlexItem>
+            <AgenticTraceLink {...trace} />
+          </FlexItem>
+        )}
       </Flex>
 
       <div
