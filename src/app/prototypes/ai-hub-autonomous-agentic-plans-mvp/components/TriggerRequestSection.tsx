@@ -8,7 +8,7 @@ import {
   Popover,
   Title,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   AnalysisLogsExpandable,
   type AnalysisLogsLifecycle,
@@ -107,26 +107,30 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
     <div className="ols-ai-hub-trigger-request">
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
-        gap={{ default: 'gapXs' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
       >
         <FlexItem>
-          <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-            Analysis request
-          </Title>
-        </FlexItem>
-        <FlexItem>
-          <Popover
-            aria-label="Analysis request help"
-            headerContent="Analysis request"
-            bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
-          >
-            <Button
-              variant="plain"
-              aria-label="More information about analysis request"
-              icon={<OutlinedQuestionCircleIcon />}
-            />
-          </Popover>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+            <FlexItem>
+              <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+                Analysis request
+              </Title>
+            </FlexItem>
+            <FlexItem>
+              <Popover
+                aria-label="Analysis request help"
+                headerContent="Analysis request"
+                bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
+              >
+                <Button
+                  variant="plain"
+                  aria-label="More information about analysis request"
+                  icon={<OutlinedQuestionCircleIcon />}
+                />
+              </Popover>
+            </FlexItem>
+          </Flex>
         </FlexItem>
         {showTraceLink && (
           <FlexItem>
@@ -137,8 +141,6 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
               href={`/observe/traces?traceId=${traceId}`}
               target="_blank"
               rel="noopener noreferrer"
-              icon={<ExternalLinkAltIcon />}
-              iconPosition="end"
             >
               View trace
             </Button>
