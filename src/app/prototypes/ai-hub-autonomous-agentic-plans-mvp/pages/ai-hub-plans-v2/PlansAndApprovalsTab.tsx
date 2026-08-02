@@ -2948,39 +2948,70 @@ const TerminalEvidenceCard: React.FC<{
     ? postMortem.remediationActionDelta
     : postMortem.failureReason;
 
-  return (
-    <div>
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        gap={{ default: 'gapSm' }}
-        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-      >
-        {isCompleted && (
-          <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
-        )}
-        {isFailed && (
-          <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
-        )}
+  const headerContent = (
+    <Flex
+      direction={{ default: 'column' }}
+      alignItems={{ default: 'alignItemsFlexStart' }}
+      gap={{ default: 'gapXs' }}
+    >
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+          Remediation
+        </span>
+        <Label color={isCompleted ? 'green' : 'red'} isCompact>
+          {isCompleted ? 'Executed' : 'Failed'}
+        </Label>
       </Flex>
-      {actionSummary && (
-        <Content
-          component="p"
-          className="ols-aio-text-subtle-sm"
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      <span
+        style={{
+          fontWeight: 600,
+          fontSize: '14px',
+          lineHeight: 1.4,
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
+        }}
+      >
+        {plan.synopsis}
+      </span>
+    </Flex>
+  );
+
+  return (
+    <Card style={{ borderRadius: '16px' }}>
+      <CardHeader>{headerContent}</CardHeader>
+      <CardBody className="ols-remediation-option-card__body">
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
         >
-          {actionSummary}
-        </Content>
-      )}
-      <EvidenceLogsSection
-        idPrefix={plan.id}
-        executionLogText={postMortem.rawLog ?? ''}
-        verificationLogText={verificationLogText}
-        isExecuting={false}
-        isCompleted={isCompleted}
-        isFailed={isFailed}
-        verificationOutcome={verificationOutcome}
-      />
-    </div>
+          {isCompleted && (
+            <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
+          )}
+          {isFailed && (
+            <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
+          )}
+        </Flex>
+        {actionSummary && (
+          <Content
+            component="p"
+            className="ols-aio-text-subtle-sm"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            {actionSummary}
+          </Content>
+        )}
+        <EvidenceLogsSection
+          idPrefix={plan.id}
+          executionLogText={postMortem.rawLog ?? ''}
+          verificationLogText={verificationLogText}
+          isExecuting={false}
+          isCompleted={isCompleted}
+          isFailed={isFailed}
+          verificationOutcome={verificationOutcome}
+        />
+      </CardBody>
+    </Card>
   );
 };
 
