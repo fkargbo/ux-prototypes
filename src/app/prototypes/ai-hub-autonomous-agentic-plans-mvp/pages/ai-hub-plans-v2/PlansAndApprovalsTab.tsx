@@ -3812,20 +3812,66 @@ export const RemediationBlueprintPanel: React.FC<{
           <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
             Remediation hub
           </Title>
-          {onRemediateInClusterUpdates ? (
-            <Button
-              variant="link"
-              isInline
-              isDisabled={!isAgenticAutomationEnabled}
-              onClick={onRemediateInClusterUpdates}
-            >
-              Remediate in Cluster Updates
-            </Button>
-          ) : (
-            <Content component="p" style={{ margin: 0 }}>
-              Continue remediation from Administration → Cluster Update.
-            </Content>
-          )}
+          <Card style={{ borderRadius: '16px' }}>
+            <CardHeader>
+              <Flex
+                direction={{ default: 'column' }}
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                gap={{ default: 'gapXs' }}
+              >
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                  <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+                    Remediation
+                  </span>
+                  {isCompleted && (
+                    <Label color="green" isCompact icon={<CheckCircleIcon />}>Completed</Label>
+                  )}
+                  {status === 'Failed' && (
+                    <Label color="red" isCompact icon={<ExclamationCircleIcon />}>Failed</Label>
+                  )}
+                  {(isExecuting || isVerifying) && (
+                    <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="In progress" />}>In progress</Label>
+                  )}
+                  {isEscalated && (
+                    <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>Escalated</Label>
+                  )}
+                  {isDenied && (
+                    <Label color="red" isCompact icon={<ExclamationCircleIcon />}>Denied</Label>
+                  )}
+                  {isEmergencyStopped && (
+                    <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>Emergency stopped</Label>
+                  )}
+                </Flex>
+                <span
+                  style={{
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    lineHeight: 1.4,
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {plan.synopsis}
+                </span>
+              </Flex>
+            </CardHeader>
+            <CardBody className="ols-remediation-option-card__body">
+              {onRemediateInClusterUpdates ? (
+                <Button
+                  variant="link"
+                  isInline
+                  isDisabled={!isAgenticAutomationEnabled}
+                  onClick={onRemediateInClusterUpdates}
+                >
+                  Remediate in Cluster Updates
+                </Button>
+              ) : (
+                <Content component="p" style={{ margin: 0 }}>
+                  Continue remediation from Administration → Cluster Update.
+                </Content>
+              )}
+            </CardBody>
+          </Card>
         </StackItem>
 
         {/* ── Timeline (always last) ────────────────────────────────────── */}
