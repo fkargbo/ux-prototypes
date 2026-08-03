@@ -482,7 +482,6 @@ const TOP_PLANS: RawPlanRow[] = [
     synopsis: 'Optimize Control Plane API Latency',
     consolidationScope: '2 API Events',
     triggerDomain: 'Cluster update',
-    traceId: 'trc-4c81be03',
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'gear', text: 'K8s API Server Log Hook: 2 etcd_db_total_size_in_bytes fragmentation events.' },
@@ -598,7 +597,6 @@ const ALL_PLANS: RawPlanRow[] = [
     consolidationScope: '2 Events / 1 Alert',
     triggerDomain: 'Compute',
     drawerTargets: ['edge-apac-1'],
-    traceId: 'trc-9a1e6d47',
     expandedReasons: [
       { icon: 'gear',  text: '2 NodeCPUOvercommitted events detected.' },
       { icon: 'alert', text: '1 KubeNodeNotReady alert active.' },
@@ -744,6 +742,7 @@ const ALL_PLANS: RawPlanRow[] = [
     synopsis: 'Reconcile Prometheus Targets',
     consolidationScope: 'Triggered by alert: PrometheusTargetDown (Endpoint scrape failures detected in openshift-monitoring)',
     triggerDomain: 'Prometheus',
+    traceId: 'trc-4c81be03',
     drawerTargets: ['prometheus-k8s', 'prometheus-operator'],
     expandedReasons: [
       { icon: 'alert', text: 'PrometheusTargetDown: endpoint scrape failures detected in openshift-monitoring.' },
@@ -877,6 +876,7 @@ const ALL_PLANS: RawPlanRow[] = [
     synopsis: 'Compact and Defragment Etcd Database',
     consolidationScope: '1 Alert',
     triggerDomain: 'Cluster update',
+    traceId: 'trc-9a1e6d47',
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'alert', text: 'EtcdDatabaseHighFragmentationRatio: fragmentation ratio 0.67 exceeded 0.5 threshold across 3 control plane nodes.' },
