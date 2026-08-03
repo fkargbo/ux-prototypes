@@ -472,7 +472,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                         className="ols-ai-hub-search-shortcut-hint"
                         style={{
                           position: 'absolute',
-                          insetInlineEnd: '8px',
+                          insetInlineEnd: '6px',
                           top: '50%',
                           transform: 'translateY(-50%)',
                           fontFamily: 'var(--pf-t--global--font--family--mono)',
@@ -481,9 +481,11 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                           border: '1px solid var(--pf-t--global--border--color--default)',
                           borderRadius: 'var(--pf-t--global--border--radius--small)',
                           lineHeight: 1,
-                          padding: '2px 6px',
+                          minWidth: '18px',
+                          textAlign: 'center',
+                          padding: '2px 4px',
                           pointerEvents: 'none',
-                          backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
                         }}
                       >
                         /
