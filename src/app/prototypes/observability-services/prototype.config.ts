@@ -19,6 +19,7 @@ export const config: PrototypeConfig = {
   perspectives: ['core-platforms'],
   tags: ['Observability', 'Observe', 'Services'],
   createdAt: '2026-07-29',
-  updatedAt: '2026-07-30',
+  updatedAt: '2026-08-03',
   shareUrl: '/core/observe/observability-services',
+  badgeLabel: 'UXD prototype - Observability Overview Design',
 };

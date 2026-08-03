@@ -102,6 +102,14 @@ export interface PrototypeConfig {
    * @example '/core/observe/observability-services'
    */
   shareUrl?: string;
+
+  /**
+   * Label shown in the masthead orange badge (the "UXD prototype - …" chip).
+   * When omitted, falls back to the hardcoded default "UXD prototype - MVP 5.0 Design".
+   *
+   * @example 'UXD prototype - Observability Overview Design'
+   */
+  badgeLabel?: string;
 }
 
 /**

@@ -29,7 +29,7 @@ export const ObservabilityServicesPage: React.FC = () => {
 
       <div className="template-page-heading">
         <Title headingLevel="h1" size="2xl">
-          Observability services
+          Overview
         </Title>
         <Content component="p">
           Manage and monitor your metrics, logs, and traces from a single, unified hub.
