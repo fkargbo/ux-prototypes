@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Badge,
   Button,
@@ -316,6 +316,29 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   const statusFilterLabel = (value: PlanRow['status']) =>
     statusOptions.find((opt) => opt.value === value)?.label ?? value;
 
+  /** "/" keyboard shortcut — focuses the search field, mirroring the console's global search convention. */
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const showSearchShortcutHint = !isSearchFocused && searchInputValue.length === 0;
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      const isTypingElsewhere =
+        target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
+      if (isTypingElsewhere) {
+        return;
+      }
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <>
       <Flex
@@ -432,13 +455,41 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                 </InputGroupItem>
 
                 <InputGroupItem isFill>
-                  <TextInput
-                    aria-label={searchCategory === 'name' ? 'Search plans by name' : 'Search plans by label'}
-                    placeholder={searchCategory === 'name' ? 'Search by name...' : 'Search by label...'}
-                    value={searchInputValue}
-                    onChange={(_evt, value) => setSearchInputValue(value)}
-                    style={{ minWidth: 220 }}
-                  />
+                  <div style={{ position: 'relative', minWidth: 220 }}>
+                    <TextInput
+                      ref={searchInputRef}
+                      aria-label={searchCategory === 'name' ? 'Search plans by name' : 'Search plans by label'}
+                      placeholder={searchCategory === 'name' ? 'Search by name...' : 'Search by label...'}
+                      value={searchInputValue}
+                      onChange={(_evt, value) => setSearchInputValue(value)}
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => setIsSearchFocused(false)}
+                      style={{ width: '100%', ...(showSearchShortcutHint ? { paddingInlineEnd: '28px' } : null) }}
+                    />
+                    {showSearchShortcutHint && (
+                      <kbd
+                        aria-hidden="true"
+                        className="ols-ai-hub-search-shortcut-hint"
+                        style={{
+                          position: 'absolute',
+                          insetInlineEnd: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          fontFamily: 'var(--pf-t--global--font--family--mono)',
+                          fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                          color: 'var(--pf-t--global--text--color--subtle)',
+                          border: '1px solid var(--pf-t--global--border--color--default)',
+                          borderRadius: 'var(--pf-t--global--border--radius--small)',
+                          lineHeight: 1,
+                          padding: '2px 6px',
+                          pointerEvents: 'none',
+                          backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                        }}
+                      >
+                        /
+                      </kbd>
+                    )}
+                  </div>
                 </InputGroupItem>
               </InputGroup>
             </FlexItem>
