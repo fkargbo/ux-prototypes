@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { CaretDownIcon } from '@patternfly/react-icons';
 
-const PROJECT_OPTIONS = ['All Projects', 'openshift-monitoring', 'project-1', 'project-2'];
+const PROJECT_OPTIONS = ['All projects', 'openshift-monitoring', 'project-1', 'project-2'];
 
 /**
  * Project scope switcher, matching the "Project: <name>" menu pattern used

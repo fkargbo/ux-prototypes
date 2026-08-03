@@ -21,6 +21,7 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   ExternalLinkAltIcon,
+  MinusCircleIcon,
 } from '@patternfly/react-icons';
 import type { CapabilityAction, CapabilityCardData, CapabilityDependency } from '../types';
 
@@ -45,8 +46,9 @@ const DependencyIcon: React.FC<{ state: CapabilityDependency['state'] }> = ({ st
       />
     );
   }
+  // 'missing' — component not yet installed or configured
   return (
-    <ExclamationTriangleIcon
+    <MinusCircleIcon
       color="var(--pf-t--global--icon--color--subtle)"
       aria-hidden
     />
@@ -59,8 +61,10 @@ const dependencyStateLabel = (state: CapabilityDependency['state']): string => {
       return 'Ready';
     case 'attention':
       return 'Needs attention';
+    case 'missing':
+      return 'Not installed';
     default:
-      return 'Not available';
+      return 'Not installed';
   }
 };
 
@@ -107,7 +111,17 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
             </CardTitle>
           </FlexItem>
           <FlexItem>
-            <Label color={capability.status.color} isCompact>
+            <Label
+              color={capability.status.color}
+              isCompact
+              icon={
+                capability.status.kind === 'fully-enabled' ? (
+                  <CheckCircleIcon />
+                ) : capability.status.kind === 'configuration-required' ? (
+                  <ExclamationTriangleIcon />
+                ) : undefined
+              }
+            >
               <span className="pf-v6-u-screen-reader">{capability.status.srText}. </span>
               {capability.status.label}
             </Label>

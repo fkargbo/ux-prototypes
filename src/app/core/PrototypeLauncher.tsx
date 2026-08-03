@@ -545,7 +545,7 @@ const PrototypeLauncher: React.FC = () => {
                                   borderRight: '1px solid rgba(255, 255, 255, 0.3)',
                                 }}
                               >
-                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : prototype.config.id === 'stefans-acmintegration' ? 'Explore ACM Ansible' : 'Explore'}
+                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
                               </Button>
                               <Dropdown
                                 isOpen={openDropdowns.has(cardId)}
@@ -1088,7 +1088,7 @@ const PrototypeLauncher: React.FC = () => {
                                   borderRight: '1px solid rgba(255, 255, 255, 0.3)',
                                 }}
                               >
-                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : prototype.config.id === 'stefans-acmintegration' ? 'Explore ACM Ansible' : 'Explore'}
+                                {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
                               </Button>
                             </FlexItem>
                             <FlexItem>
@@ -1234,7 +1234,7 @@ const PrototypeLauncher: React.FC = () => {
                               }
                             }}
                           >
-                            {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : prototype.config.id === 'stefans-acmintegration' ? 'Explore ACM Ansible' : 'Explore'}
+                            {prototype.config.id === 'virtualization-parent' ? 'Explore quotas' : prototype.config.id === 'acm-rbac-parent' ? 'Explore RBAC' : prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
                           </Button>
                         )
                       ) : prototype.config.id === 'stefan-costmanagement' ? (
@@ -1327,7 +1327,7 @@ const PrototypeLauncher: React.FC = () => {
                             }
                           }}
                         >
-                          {prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : prototype.config.id === 'stefans-acmintegration' ? 'Explore ACM Ansible' : 'Explore'}
+                          {prototype.config.id === 'cross-cluster-migration' ? 'Explore CCLM' : prototype.config.id === 'operator-lifecycle' ? 'Explore OperatorHub' : 'Explore'}
                         </Button>
                       )}
                     </CardFooter>

@@ -52,15 +52,21 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
 
   const sharePageUrl = React.useMemo(() => {
     const base = process.env.NODE_ENV === 'production' ? getGithubPagesBasenameNoSlash() : '';
-    const u = new URL(`${base}${location.pathname}${location.search}${location.hash}`, window.location.origin);
+    // If the prototype declares a canonical share URL, always use it so that the Share
+    // link stays consistent regardless of which sub-page the user is currently viewing.
+    const canonicalPath = prototype.config.shareUrl ?? null;
+    const activePath = canonicalPath ?? location.pathname;
+    const activeSearch = canonicalPath ? '' : location.search;
+    const activeHash = canonicalPath ? '' : location.hash;
+    const u = new URL(`${base}${activePath}${activeSearch}${activeHash}`, window.location.origin);
     // Only add ?prototype= when the path alone is ambiguous (e.g. "/" matches no prototype).
     // When the path already uniquely identifies this prototype, omit the param so the share
     // link is identical to the direct URL — ensuring feedback pins are visible on both.
-    if (findPrototypeIdForPath(location.pathname) !== prototype.config.id) {
+    if (findPrototypeIdForPath(activePath) !== prototype.config.id) {
       u.searchParams.set('prototype', prototype.config.id);
     }
     return u.toString();
-  }, [prototype.config.id, location.pathname, location.search, location.hash]);
+  }, [prototype.config.id, prototype.config.shareUrl, location.pathname, location.search, location.hash]);
 
   const handleCopyShareLink = React.useCallback(async () => {
     try {
@@ -359,12 +365,6 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
       if (location.pathname === '/' || location.pathname === '' || !location.pathname.includes('/infrastructure/clusters')) {
         navigate('/infrastructure/clusters', { replace: true });
       }
-    } else if (prototype.config.id === 'stefans-acmintegration') {
-      // For ACM Ansible integration prototype, navigate to Decision Environments page (first in workflow)
-      // Only redirect on root path, not on valid automation routes
-      if (location.pathname === '/' || location.pathname === '') {
-        navigate('/automation/decision-environments', { replace: true });
-      }
     } else if (prototype.config.id === 'stefan-costmanagement') {
       // For Cost Management prototype, redirect based on selected option
       // Only redirect on root path
@@ -405,6 +405,7 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
         enabledPerspectives={prototype.config.perspectives}
         currentPrototypeId={prototype.config.id}
         chromeScrollWithStickyMasthead={prototype.config.id === OLS_AGENTIC_PROTOTYPE_ID}
+        badgeLabel={prototype.config.badgeLabel}
       >
         <Routes>
           {prototype.routes.map((route, index) => (

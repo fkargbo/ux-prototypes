@@ -13,8 +13,17 @@ import {
   AnalysisLogsExpandable,
   type AnalysisLogsLifecycle,
 } from './AnalysisLogsExpandable';
+import type { PlanStatus } from '../types/planStatus';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+/** Run phases where a captured trace is meaningful to view. */
+const TRACE_LINK_VISIBLE_STATUSES: ReadonlySet<PlanStatus> = new Set([
+  'Analyzing',
+  'Executing',
+  'Completed',
+  'Failed',
+]);
 
 export type TriggerRequestSectionProps = {
   /** Raw `spec.request` prompt / alert event string. */
@@ -31,6 +40,10 @@ export type TriggerRequestSectionProps = {
    * payload ingestion (vs. simply missing request data).
    */
   analysisFailedToInitialize?: boolean;
+  /** Distributed-tracing trace ID for this run, if captured. */
+  traceId?: string;
+  /** Current run status — combined with `traceId` to decide whether to show "View trace". */
+  runStatus?: PlanStatus;
 };
 
 // ─── Builder (mock spec.request from plan metadata) ───────────────────────────
@@ -81,37 +94,58 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   logFinding = 'Signal correlation in progress — querying fleet telemetry and alert history.',
   logNarrative = 'Root cause hypothesis generation in progress. Partial findings stream into the analysis log.',
   analysisFailedToInitialize = false,
+  traceId,
+  runStatus,
 }) => {
   const hasRequest = Boolean(request?.trim());
   const emptyMessage = analysisFailedToInitialize
     ? 'Analysis failed to initialize.'
     : 'Analysis request data unavailable.';
+  const showTraceLink = Boolean(traceId) && Boolean(runStatus) && TRACE_LINK_VISIBLE_STATUSES.has(runStatus as PlanStatus);
 
   return (
     <div className="ols-ai-hub-trigger-request">
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
-        gap={{ default: 'gapXs' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
       >
         <FlexItem>
-          <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-            Analysis request
-          </Title>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+            <FlexItem>
+              <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+                Analysis request
+              </Title>
+            </FlexItem>
+            <FlexItem>
+              <Popover
+                aria-label="Analysis request help"
+                headerContent="Analysis request"
+                bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
+              >
+                <Button
+                  variant="plain"
+                  aria-label="More information about analysis request"
+                  icon={<OutlinedQuestionCircleIcon />}
+                />
+              </Popover>
+            </FlexItem>
+          </Flex>
         </FlexItem>
-        <FlexItem>
-          <Popover
-            aria-label="Analysis request help"
-            headerContent="Analysis request"
-            bodyContent="The original prompt or alert event string sent to the AI agent to initiate analysis."
-          >
+        {showTraceLink && (
+          <FlexItem>
             <Button
-              variant="plain"
-              aria-label="More information about analysis request"
-              icon={<OutlinedQuestionCircleIcon />}
-            />
-          </Popover>
-        </FlexItem>
+              variant="link"
+              isInline
+              component="a"
+              href={`/core/observe/traces?traceId=${traceId}`}
+              onClick={(event) => event.preventDefault()}
+              aria-label={`View trace ${traceId}`}
+            >
+              View trace
+            </Button>
+          </FlexItem>
+        )}
       </Flex>
 
       <div

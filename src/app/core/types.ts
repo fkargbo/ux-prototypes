@@ -93,6 +93,23 @@ export interface PrototypeConfig {
     color?: string;
     banner?: string;
   };
+
+  /**
+   * Canonical URL path the Share button should always point to, regardless of which
+   * sub-page the user is currently viewing inside the prototype.
+   * When omitted, the Share link mirrors the current page URL (existing behaviour).
+   *
+   * @example '/core/observe/observability-services'
+   */
+  shareUrl?: string;
+
+  /**
+   * Label shown in the masthead orange badge (the "UXD prototype - …" chip).
+   * When omitted, falls back to the hardcoded default "UXD prototype - MVP 5.0 Design".
+   *
+   * @example 'UXD prototype - Observability Overview Design'
+   */
+  badgeLabel?: string;
 }
 
 /**

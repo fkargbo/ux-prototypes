@@ -95,6 +95,8 @@ interface IAppLayout {
   currentPrototypeId?: string; // Current prototype ID for conditional navigation
   /** Prototype nav banner scrolls away; masthead stays sticky at top of the chrome scroller. */
   chromeScrollWithStickyMasthead?: boolean;
+  /** Override the orange "UXD prototype - …" masthead badge text. Falls back to the shared default. */
+  badgeLabel?: string;
 }
 
 // Custom Core Platforms icon component
@@ -121,6 +123,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
   enabledPerspectives,
   currentPrototypeId,
   chromeScrollWithStickyMasthead = false,
+  badgeLabel,
 }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [perspectiveOpen, setPerspectiveOpen] = React.useState(false);
@@ -183,7 +186,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
       setActivePerspective('Core platforms');
     } else if (useCase === 'use-case-cclm' || currentPrototypeId === 'cross-cluster-migration') {
       setActivePerspective('Fleet virtualization');
-    } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states' || currentPrototypeId === 'fleet-admin-rbac' || currentPrototypeId === 'fleet-admin-rbac-v1.1' || currentPrototypeId === 'tenant-admin-access' || currentPrototypeId === 'stefans-acmintegration') {
+    } else if (useCase === 'use-case-1' || useCase === 'use-case-2' || useCase === 'use-case-empty-states' || currentPrototypeId === 'fleet-admin-rbac' || currentPrototypeId === 'fleet-admin-rbac-v1.1' || currentPrototypeId === 'tenant-admin-access') {
       setActivePerspective('Fleet management');
     } else if (enabledPerspectives && enabledPerspectives.length > 0) {
       // Set to first enabled perspective for prototypes
@@ -520,7 +523,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({
         <MastheadBrand>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <img src={redHatOpenShiftLogo} alt="Red Hat OpenShift" style={{ height: '40px' }} />
-            <Label color="orange" isCompact>UXD prototype - MVP 5.0 Design</Label>
+            <Label color="orange" isCompact>{badgeLabel ?? 'UXD prototype - MVP 5.0 Design'}</Label>
             <span style={{ fontSize: '14px', color: 'var(--pf-t--global--text--color--regular)' }}>
               Contact: {useCaseTitle && useCaseTitle.trim() !== ''
                 ? useCaseTitle
