@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Button,
   Checkbox,
+  ClipboardCopyButton,
   ExpandableSection,
   Flex,
   FlexItem,
@@ -8,8 +10,9 @@ import {
   SearchInput,
   Spinner,
 } from '@patternfly/react-core';
+import { LogViewer } from '@patternfly/react-log-viewer';
+import { RhUiDownloadIcon } from '@patternfly/react-icons';
 import type { PlanStatus } from '../types/planStatus';
-import { ExpandableCodeBlock } from './ExpandableCodeBlock';
 
 /** Analysis-phase log viewer lifecycle (independent of later execution phases). */
 export type AnalysisLogsLifecycle = 'live' | 'completed' | 'failed' | 'cancelled';
@@ -162,7 +165,7 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
   const [hideHealthChecks, setHideHealthChecks] = useState(true);
-  const logScrollRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
 
   const isLive = lifecycle === 'live';
   const canDownload = lifecycle === 'completed' || lifecycle === 'failed' || lifecycle === 'cancelled';
@@ -193,24 +196,17 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
 
   const rawLogs = allLines.slice(0, streamedCount).join('\n');
   const fullLogs = allLines.join('\n');
-  const displayLogs = rawLogs
-    .split('\n')
+  const displayLines = allLines
+    .slice(0, streamedCount)
     .filter((l) => !hideHealthChecks || !HEALTH_CHECK_PATTERN.test(l))
-    .filter((l) => !query.trim() || l.toLowerCase().includes(query.toLowerCase()))
-    .join('\n');
+    .filter((l) => !query.trim() || l.toLowerCase().includes(query.toLowerCase()));
+  const clipboardCode = isLive ? rawLogs : fullLogs;
 
-  // Auto-scroll as new live lines append.
-  useEffect(() => {
-    if (!isLive || !isExpanded) return;
-    const scrollTarget = logScrollRef.current;
-    if (scrollTarget) {
-      scrollTarget.scrollTop = scrollTarget.scrollHeight;
-    }
-    const el = logScrollRef.current?.querySelector('.pf-v6-c-code-block__content, pre, code');
-    if (el instanceof HTMLElement) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [displayLogs, isLive, isExpanded]);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(clipboardCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <ExpandableSection
@@ -230,50 +226,64 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
     >
       <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
         <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
           alignItems={{ default: 'alignItemsCenter' }}
           gap={{ default: 'gapMd' }}
           style={{ marginBottom: 'calc(var(--pf-t--global--spacer--xs) + 4px)' }}
         >
-          <FlexItem style={{ width: '200px', maxWidth: '200px', flexShrink: 0 }}>
-            <SearchInput
-              value={query}
-              onChange={(_evt, val) => setQuery(val)}
-              onClear={() => setQuery('')}
-              placeholder="Search logs..."
-            />
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+              <FlexItem style={{ width: '200px', maxWidth: '200px', flexShrink: 0 }}>
+                <SearchInput
+                  value={query}
+                  onChange={(_evt, val) => setQuery(val)}
+                  onClear={() => setQuery('')}
+                  placeholder="Search logs..."
+                />
+              </FlexItem>
+              <FlexItem>
+                <Checkbox
+                  id={`${idPrefix}-hc-${planId}`}
+                  label="Hide health checks"
+                  isChecked={hideHealthChecks}
+                  onChange={(_evt, checked) => setHideHealthChecks(checked)}
+                />
+              </FlexItem>
+            </Flex>
           </FlexItem>
           <FlexItem>
-            <Checkbox
-              id={`${idPrefix}-hc-${planId}`}
-              label="Hide health checks"
-              isChecked={hideHealthChecks}
-              onChange={(_evt, checked) => setHideHealthChecks(checked)}
-            />
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+              {canDownload && (
+                <FlexItem>
+                  <Button
+                    variant="plain"
+                    aria-label="Download log file"
+                    onClick={() => downloadEvidenceLogFile(planId, fullLogs, 'txt')}
+                    icon={<RhUiDownloadIcon />}
+                  />
+                </FlexItem>
+              )}
+              <FlexItem>
+                <ClipboardCopyButton
+                  id={`${idPrefix}-${planId}-copy`}
+                  aria-label="Copy to clipboard"
+                  onClick={handleCopy}
+                  exitDelay={1000}
+                  variant="plain"
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </ClipboardCopyButton>
+              </FlexItem>
+            </Flex>
           </FlexItem>
         </Flex>
-        <div
-          ref={logScrollRef}
-          style={isLive ? { maxHeight: '280px', overflowY: 'auto' } : undefined}
-        >
-          <ExpandableCodeBlock
-            id={`${idPrefix}-${planId}`}
-            code={displayLogs}
-            clipboardCode={isLive ? rawLogs : fullLogs}
-            codeStyle={{
-              fontSize: '12px',
-              maxHeight: isLive ? undefined : '280px',
-              overflowY: isLive ? undefined : 'auto',
-              display: 'block',
-            }}
-            maxCollapsedLines={isLive ? Number.MAX_SAFE_INTEGER : 5}
-            onDownload={
-              canDownload
-                ? () => downloadEvidenceLogFile(planId, fullLogs, 'txt')
-                : undefined
-            }
-            downloadAriaLabel="Download log file"
-          />
-        </div>
+        <LogViewer
+          data={displayLines}
+          hasLineNumbers
+          isTextWrapped
+          height="280px"
+          scrollToRow={isLive && displayLines.length > 0 ? displayLines.length - 1 : undefined}
+        />
       </div>
     </ExpandableSection>
   );
