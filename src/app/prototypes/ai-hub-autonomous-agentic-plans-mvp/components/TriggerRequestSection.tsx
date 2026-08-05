@@ -114,14 +114,13 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
     ? 'Analysis failed to initialize.'
     : 'Analysis request data unavailable.';
   const showTraceLink =
-    !onApproveAnalysis &&
-    !onStopAnalysis &&
     Boolean(traceId) &&
     Boolean(runStatus) &&
     TRACE_LINK_VISIBLE_STATUSES.has(runStatus as PlanStatus);
 
   return (
     <div className="ols-ai-hub-trigger-request">
+      {/* ── Title row ────────────────────────────────────────────────────────── */}
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
@@ -149,20 +148,6 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             </FlexItem>
           </Flex>
         </FlexItem>
-        {onApproveAnalysis && (
-          <FlexItem>
-            <Button variant="primary" onClick={onApproveAnalysis}>
-              Approve analysis
-            </Button>
-          </FlexItem>
-        )}
-        {!onApproveAnalysis && onStopAnalysis && (
-          <FlexItem>
-            <Button variant="secondary" isDanger onClick={onStopAnalysis}>
-              Stop analysis
-            </Button>
-          </FlexItem>
-        )}
         {showTraceLink && (
           <FlexItem>
             <Button
@@ -179,6 +164,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
         )}
       </Flex>
 
+      {/* ── Card body ────────────────────────────────────────────────────────── */}
       <div
         className="ols-aio-rca-box"
         style={{ borderRadius: '16px', overflow: 'hidden' }}
@@ -216,6 +202,21 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             idPrefix="analysis-request-log"
           />
         </div>
+
+        {/* ── Action button — bottom-left of card body ──────────────────────── */}
+        {(onApproveAnalysis || onStopAnalysis) && (
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+            {onApproveAnalysis ? (
+              <Button variant="primary" onClick={onApproveAnalysis}>
+                Approve analysis
+              </Button>
+            ) : (
+              <Button variant="secondary" isDanger onClick={onStopAnalysis}>
+                Stop analysis
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

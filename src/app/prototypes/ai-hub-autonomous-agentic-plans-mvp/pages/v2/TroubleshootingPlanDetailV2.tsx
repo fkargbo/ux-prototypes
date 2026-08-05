@@ -182,7 +182,6 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
       >
         <div
           className="ols-plan-remediation-drilldown"
-          style={effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
         >
           <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel
