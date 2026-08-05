@@ -3837,8 +3837,6 @@ export const RemediationBlueprintPanel: React.FC<{
             analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
             traceId={plan.traceId}
             runStatus={status}
-            onApproveAnalysis={isPendingReadyForAnalysis ? () => dispatchAnalysis(plan.id) : undefined}
-            onStopAnalysis={isAnalyzing ? () => setIsStopAnalysisModalOpen(true) : undefined}
           />
         </StackItem>
 
@@ -4018,10 +4016,33 @@ export const RemediationBlueprintPanel: React.FC<{
           analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
           traceId={plan.traceId}
           runStatus={status}
-          onApproveAnalysis={isPendingReadyForAnalysis ? () => dispatchAnalysis(plan.id) : undefined}
-          onStopAnalysis={isAnalyzing ? () => setIsStopAnalysisModalOpen(true) : undefined}
         />
       </StackItem>
+
+      {/* ── Analysis action buttons (below Analysis request card) ─────── */}
+      {isPendingReadyForAnalysis && (
+        <StackItem>
+          <Button
+            variant="primary"
+            isDisabled={!isAgenticAutomationEnabled}
+            onClick={() => dispatchAnalysis(plan.id)}
+          >
+            Approve analysis
+          </Button>
+        </StackItem>
+      )}
+      {isAnalyzing && (
+        <StackItem>
+          <Button
+            variant="secondary"
+            isDanger
+            isDisabled={!isAgenticAutomationEnabled}
+            onClick={() => setIsStopAnalysisModalOpen(true)}
+          >
+            Stop analysis
+          </Button>
+        </StackItem>
+      )}
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (

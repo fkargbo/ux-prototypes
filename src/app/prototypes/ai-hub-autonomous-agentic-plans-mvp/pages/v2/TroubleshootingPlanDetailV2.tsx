@@ -63,6 +63,25 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     setLocallyDenied(false);
   }, [planId]);
 
+  /**
+   * Full-width override for the 5-second INITIALIZING phase only.
+   * READY_FOR_ANALYSIS (manual gate) and all post-Pending states use the
+   * normal 60% constrained layout from CSS.
+   */
+  const [isInitializingPhase, setIsInitializingPhase] = useState(false);
+
+  useEffect(() => {
+    if (!planId) return;
+    // We can't know the plan's status here yet — start the timer on every plan
+    // load; the panel itself will handle non-Pending plans gracefully.
+    setIsInitializingPhase(true);
+    const timer = window.setTimeout(() => setIsInitializingPhase(false), 5000);
+    return () => {
+      window.clearTimeout(timer);
+      setIsInitializingPhase(false);
+    };
+  }, [planId]);
+
   const plan = useMemo(() => {
     if (!planId) return null;
     const decoded = decodeURIComponent(planId);
@@ -182,6 +201,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
       >
         <div
           className="ols-plan-remediation-drilldown"
+          style={isInitializingPhase && effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
         >
           <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel
