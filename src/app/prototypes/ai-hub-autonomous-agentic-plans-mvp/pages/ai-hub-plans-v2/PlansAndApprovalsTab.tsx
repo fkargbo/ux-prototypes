@@ -4417,26 +4417,14 @@ export const RemediationBlueprintPanel: React.FC<{
               />
               {/* Manual verification gate: SRE triggers health check and marks resolved */}
               {verificationPolicy === 'manual' && !workflow.verification?.outcome && (
-                <Flex
-                  gap={{ default: 'gapSm' }}
-                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
-                >
+                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <FlexItem>
                     <Button
                       variant="primary"
                       isDisabled={!isAgenticAutomationEnabled}
                       onClick={handleVerificationComplete}
                     >
-                      Run health check
-                    </Button>
-                  </FlexItem>
-                  <FlexItem>
-                    <Button
-                      variant="secondary"
-                      isDisabled={!isAgenticAutomationEnabled}
-                      onClick={() => completeVerification(plan.id, true)}
-                    >
-                      Mark resolved
+                      Approve verification
                     </Button>
                   </FlexItem>
                 </Flex>
