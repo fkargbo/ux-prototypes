@@ -111,6 +111,7 @@ import {
 import { getPlanDetailHref, resolvePlanDomainAnnotations } from './domainPlanNavigation';
 import { downloadAnalysisReportMarkdown, downloadRemediationPlanMarkdown } from '../../utils/downloadRemediationPlan';
 import { ExpandableCodeBlock } from '../../components/ExpandableCodeBlock';
+import { LogViewer } from '@patternfly/react-log-viewer';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2860,6 +2861,9 @@ const EvidenceLogsSection: React.FC<{
   const [isExecLogsExpanded, setIsExecLogsExpanded] = useState(false);
   const [isVerifLogsExpanded, setIsVerifLogsExpanded] = useState(false);
 
+  const execLines = useMemo(() => executionLogText.split('\n').filter(Boolean), [executionLogText]);
+  const verifLines = useMemo(() => verificationLogText.split('\n').filter(Boolean), [verificationLogText]);
+
   return (
     <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
       <StackItem>
@@ -2870,10 +2874,11 @@ const EvidenceLogsSection: React.FC<{
           style={{ marginBottom: 0 }}
         >
           <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-            <ExpandableCodeBlock
-              id={`exec-log-${idPrefix}`}
-              code={executionLogText}
-              codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+            <LogViewer
+              data={execLines}
+              hasLineNumbers
+              isTextWrapped
+              height="280px"
             />
           </div>
         </ExpandableSection>
@@ -2886,10 +2891,11 @@ const EvidenceLogsSection: React.FC<{
           style={{ marginBottom: 0 }}
         >
           <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-            <ExpandableCodeBlock
-              id={`verif-log-${idPrefix}`}
-              code={verificationLogText}
-              codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+            <LogViewer
+              data={verifLines}
+              hasLineNumbers
+              isTextWrapped
+              height="280px"
             />
           </div>
         </ExpandableSection>
