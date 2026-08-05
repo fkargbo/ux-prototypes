@@ -117,6 +117,7 @@ export const PlanRemediationPageV2: React.FC = () => {
 
   /** Local denial override — transitions a Proposed plan to Denied without mutating mock data. */
   const [locallyDenied, setLocallyDenied] = useState(false);
+  const [isInitializingPhase, setIsInitializingPhase] = useState(false);
 
   useEffect(() => {
     setLocallyDenied(false);
@@ -192,7 +193,7 @@ export const PlanRemediationPageV2: React.FC = () => {
       <div className="template-page-content" role="main" aria-label={`Plan remediation: ${planDisplayName}`}>
         <div
           className="ols-plan-remediation-drilldown"
-          style={effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
+          style={isInitializingPhase && effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
         >
           <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel
@@ -201,6 +202,7 @@ export const PlanRemediationPageV2: React.FC = () => {
             onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
             onStartNewInvestigation={navigateBackToPlans}
             onRemediateInClusterUpdates={openClusterUpdateUi}
+            onPendingInitializingChange={setIsInitializingPhase}
           />
         </div>
       </div>
