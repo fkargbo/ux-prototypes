@@ -94,6 +94,7 @@ import { useDeletedPlans } from '../../context/DeletedPlansContext';
 import { DeleteAgenticRunModal } from '../../components/DeleteAgenticRunModal';
 import { usePlanTermination, type PlanExecutionRuntime } from '../../context/PlanTerminationContext';
 import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
+import { useApprovalPolicy } from '../../context/ApprovalPolicyContext';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import type { PlanStatus } from '../../types/planStatus';
 import { normalizePlanStatus } from '../../types/planStatus';
@@ -3392,7 +3393,10 @@ const SKELETON_SUSPENDED_STYLE: React.CSSProperties = {
   opacity: 0.45,
 };
 
-const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended = false }) => (
+const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean; isPendingApproval?: boolean }> = ({
+  isSuspended = false,
+  isPendingApproval = false,
+}) => (
   <div style={LOCKED_BOX_STYLE}>
     <Flex
       alignItems={{ default: 'alignItemsCenter' }}
@@ -3404,12 +3408,19 @@ const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended
           style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', flexShrink: 0 }}
           aria-hidden
         />
+      ) : isPendingApproval ? (
+        <OutlinedClockIcon
+          style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
+          aria-hidden
+        />
       ) : (
         <Spinner size="sm" aria-label="Analyzing root cause" />
       )}
       <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
         {isSuspended
           ? 'Analysis suspended — agentic capabilities disabled'
+          : isPendingApproval
+          ? 'Awaiting analysis approval.'
           : 'Analyzing infrastructure topology to isolate root cause…'}
       </Content>
     </Flex>
@@ -3419,7 +3430,10 @@ const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended
   </div>
 );
 
-const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended = false }) => (
+const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean; awaitingAnalysis?: boolean }> = ({
+  isSuspended = false,
+  awaitingAnalysis = false,
+}) => (
   <div style={LOCKED_BOX_STYLE}>
     <Content
       component="p"
@@ -3428,6 +3442,8 @@ const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended
     >
       {isSuspended
         ? 'Remediation synthesis suspended — agentic capabilities disabled'
+        : awaitingAnalysis
+        ? 'Awaiting root cause analysis.'
         : 'Remediation options will be synthesized following root cause confirmation.'}
     </Content>
     <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
@@ -3596,6 +3612,9 @@ export const RemediationBlueprintPanel: React.FC<{
   const isEmergencyStopped = status === 'EmergencyStopped';
   const isPending = status === 'Pending';
   const isClusterUpdatePlan = resolvePlanDomainAnnotations(plan).sourceDomain === 'cluster-update';
+  // True only when the run is in Pending and the 5-second INITIALIZING window has expired —
+  // the full Agentic Run Details layout renders (manual policy gate).
+  // Note: isPendingReadyForAnalysis is evaluated lazily below after pendingSubState is defined.
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
@@ -3622,20 +3641,29 @@ export const RemediationBlueprintPanel: React.FC<{
   /**
    * HITL sub-state for Pending runs.
    *   INITIALIZING       — CR created, engine not yet dispatched (shows spinner, 5-second window)
-   *   READY_FOR_ANALYSIS — Manual approval policy gate: awaiting "Analyze with AI" action
+   *   READY_FOR_ANALYSIS — Manual approval policy gate: awaiting "Approve analysis" action
    */
   type PendingSubState = 'INITIALIZING' | 'READY_FOR_ANALYSIS';
   const [pendingSubState, setPendingSubState] = useState<PendingSubState>('INITIALIZING');
+  const { analysisPolicy } = useApprovalPolicy();
 
-  // Auto-advance from INITIALIZING → READY_FOR_ANALYSIS after 5 s.
-  // Depends only on plan.id so re-renders don't cancel and restart the timer.
+  // After INITIALIZING:
+  //   • Automatic policy → dispatch analysis immediately (skip the manual gate).
+  //   • Manual policy    → advance to READY_FOR_ANALYSIS so the full details layout renders
+  //                        with "Approve analysis" CTA in the Analysis request header.
   useEffect(() => {
     if (status !== 'Pending') return;
     setPendingSubState('INITIALIZING');
-    const timer = window.setTimeout(() => setPendingSubState('READY_FOR_ANALYSIS'), 5000);
+    const timer = window.setTimeout(() => {
+      if (analysisPolicy === 'auto') {
+        dispatchAnalysis(plan.id);
+      } else {
+        setPendingSubState('READY_FOR_ANALYSIS');
+      }
+    }, 5000);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.id]);
+  }, [plan.id, analysisPolicy]);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
@@ -3659,6 +3687,10 @@ export const RemediationBlueprintPanel: React.FC<{
     return () => window.clearTimeout(timer);
   }, [isExecuting, isAgenticAutomationEnabled, plan.id, startVerification, workflow.verification?.attempt]);
 
+  // Full Agentic Run Details layout is shown when Pending has passed the 5s INITIALIZING window
+  // and the analysis policy is manual (auto policy auto-dispatches, so this stays false for auto).
+  const isPendingReadyForAnalysis = isPending && pendingSubState === 'READY_FOR_ANALYSIS';
+
   const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
   const options = enrichRemediationOptionsWithDiagnosis(
@@ -3672,13 +3704,15 @@ export const RemediationBlueprintPanel: React.FC<{
   /**
    * OLS-3724 mutual exclusivity:
    * - When remediation options exist, each card renders its own RCA — hide top-level.
-   * - Show top-level RCA for analyzing, analysis-only, no-options, verifying (hub shows
-   *   VerificationPanel instead of option cards), and escalation handoff states.
+   * - Show top-level RCA for analyzing, pending-ready (awaiting approval), analysis-only,
+   *   no-options, verifying (hub shows VerificationPanel instead of option cards),
+   *   and escalation handoff states.
    */
   const showPerOptionRca =
     options.length > 0 &&
     !isAnalysisOnly &&
     !isAnalyzing &&
+    !isPendingReadyForAnalysis &&
     !isEscalated &&
     !isEscalating &&
     !isVerifying;
@@ -3803,6 +3837,8 @@ export const RemediationBlueprintPanel: React.FC<{
             analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
             traceId={plan.traceId}
             runStatus={status}
+            onApproveAnalysis={isPendingReadyForAnalysis ? () => dispatchAnalysis(plan.id) : undefined}
+            onStopAnalysis={isAnalyzing ? () => setIsStopAnalysisModalOpen(true) : undefined}
           />
         </StackItem>
 
@@ -3817,7 +3853,9 @@ export const RemediationBlueprintPanel: React.FC<{
             </Title>
             <Label color="grey" isCompact>AI-generated</Label>
           </Flex>
-          {isAnalyzing || !drawer ? (
+          {isPendingReadyForAnalysis ? (
+            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} isPendingApproval />
+          ) : isAnalyzing || !drawer ? (
             <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
           ) : (
             <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
@@ -3916,9 +3954,11 @@ export const RemediationBlueprintPanel: React.FC<{
     );
   }
 
-  // ── Pending HITL gate — Phase 1: Initializing / Phase 2: Ready for Analysis ──
-  if (isPending) {
-    return pendingSubState === 'INITIALIZING' ? (
+  // ── Pending HITL gate — Phase 1: Initializing (5s spinner) ──────────────────
+  // Phase 2 (READY_FOR_ANALYSIS) falls through to the full Agentic Run Details
+  // layout below with "Approve analysis" surfaced in the Analysis request header.
+  if (isPending && pendingSubState === 'INITIALIZING') {
+    return (
       <EmptyState
         titleText={isAgenticAutomationEnabled ? 'Initializing plan...' : 'Analysis suspended'}
         headingLevel="h4"
@@ -3933,27 +3973,6 @@ export const RemediationBlueprintPanel: React.FC<{
             : 'Agentic capabilities are disabled. Analysis cannot be dispatched until capabilities are re-enabled by an administrator.'
           }
         </EmptyStateBody>
-      </EmptyState>
-    ) : (
-      <EmptyState
-        titleText="Ready for analysis"
-        headingLevel="h4"
-        style={{ paddingTop: '80px' }}
-      >
-        <EmptyStateBody>
-          Manual approval policy enabled. The proposal custom resource is ready for AI analysis.
-        </EmptyStateBody>
-        <EmptyStateFooter>
-          <EmptyStateActions>
-            <Button
-              variant="primary"
-              isDisabled={!isAgenticAutomationEnabled}
-              onClick={() => dispatchAnalysis(plan.id)}
-            >
-              Analyze with AI
-            </Button>
-          </EmptyStateActions>
-        </EmptyStateFooter>
       </EmptyState>
     );
   }
@@ -3999,6 +4018,8 @@ export const RemediationBlueprintPanel: React.FC<{
           analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
           traceId={plan.traceId}
           runStatus={status}
+          onApproveAnalysis={isPendingReadyForAnalysis ? () => dispatchAnalysis(plan.id) : undefined}
+          onStopAnalysis={isAnalyzing ? () => setIsStopAnalysisModalOpen(true) : undefined}
         />
       </StackItem>
 
@@ -4059,7 +4080,9 @@ export const RemediationBlueprintPanel: React.FC<{
           </Title>
           <Label color="grey" isCompact>AI-generated</Label>
         </Flex>
-          {isAnalyzing ? (
+          {isPendingReadyForAnalysis ? (
+            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} isPendingApproval />
+          ) : isAnalyzing ? (
             <>
               <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
             </>
@@ -4145,8 +4168,11 @@ export const RemediationBlueprintPanel: React.FC<{
           </Flex>
           <WaitingApprovalPlanMeta plan={plan} />
         </Flex>
-          {isAnalyzing ? (
-            <HubLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
+          {(isPendingReadyForAnalysis || isAnalyzing) ? (
+            <HubLockedPlaceholder
+              isSuspended={!isAgenticAutomationEnabled}
+              awaitingAnalysis={isPendingReadyForAnalysis}
+            />
           ) : isEscalated ? (
             <>
               <div
@@ -4506,44 +4532,35 @@ export const RemediationBlueprintPanel: React.FC<{
         </StackItem>
       )}
 
-      {/* ── Stop analysis action (Analyzing state only) ──────────────── */}
-      {isAnalyzing && (
-        <StackItem>
-          <Button
-            variant="danger"
-            isDisabled={!isAgenticAutomationEnabled}
-            onClick={() => setIsStopAnalysisModalOpen(true)}
-          >
-            Stop analysis
-          </Button>
-          <Modal
-            variant={ModalVariant.small}
-            isOpen={isStopAnalysisModalOpen}
-            onClose={() => setIsStopAnalysisModalOpen(false)}
-            aria-labelledby="stop-plan-analysis-title"
-          >
-            <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
-            <ModalBody>
-              This halts root cause investigation for this run. Partial findings are preserved but no
-              remediation options will be synthesized.
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="danger"
-                onClick={() => {
-                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
-                  setIsStopAnalysisModalOpen(false);
-                }}
-              >
-                Yes, stop analysis
-              </Button>
-              <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </Modal>
-        </StackItem>
-      )}
+      {/* ── Stop analysis modal (button trigger is in TriggerRequestSection header) ── */}
+      <StackItem>
+        <Modal
+          variant={ModalVariant.small}
+          isOpen={isStopAnalysisModalOpen}
+          onClose={() => setIsStopAnalysisModalOpen(false)}
+          aria-labelledby="stop-plan-analysis-title"
+        >
+          <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
+          <ModalBody>
+            This halts root cause investigation for this run. Partial findings are preserved but no
+            remediation options will be synthesized.
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="danger"
+              onClick={() => {
+                registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+                setIsStopAnalysisModalOpen(false);
+              }}
+            >
+              Yes, stop analysis
+            </Button>
+            <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      </StackItem>
 
       {/* ── Escalate to human action (Failed state only) ──────────────── */}
       {status === 'Failed' && (

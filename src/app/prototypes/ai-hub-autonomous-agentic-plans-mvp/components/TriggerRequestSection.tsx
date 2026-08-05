@@ -44,6 +44,16 @@ export type TriggerRequestSectionProps = {
   traceId?: string;
   /** Current run status — combined with `traceId` to decide whether to show "View trace". */
   runStatus?: PlanStatus;
+  /**
+   * When provided, renders a primary "Approve analysis" button in the card header.
+   * Used when the run is in the Pending (manual approval) state.
+   */
+  onApproveAnalysis?: () => void;
+  /**
+   * When provided, renders a secondary-danger "Stop analysis" button in the card header.
+   * Used when the run is in the Analyzing state.
+   */
+  onStopAnalysis?: () => void;
 };
 
 // ─── Builder (mock spec.request from plan metadata) ───────────────────────────
@@ -96,12 +106,19 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   analysisFailedToInitialize = false,
   traceId,
   runStatus,
+  onApproveAnalysis,
+  onStopAnalysis,
 }) => {
   const hasRequest = Boolean(request?.trim());
   const emptyMessage = analysisFailedToInitialize
     ? 'Analysis failed to initialize.'
     : 'Analysis request data unavailable.';
-  const showTraceLink = Boolean(traceId) && Boolean(runStatus) && TRACE_LINK_VISIBLE_STATUSES.has(runStatus as PlanStatus);
+  const showTraceLink =
+    !onApproveAnalysis &&
+    !onStopAnalysis &&
+    Boolean(traceId) &&
+    Boolean(runStatus) &&
+    TRACE_LINK_VISIBLE_STATUSES.has(runStatus as PlanStatus);
 
   return (
     <div className="ols-ai-hub-trigger-request">
@@ -132,6 +149,20 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             </FlexItem>
           </Flex>
         </FlexItem>
+        {onApproveAnalysis && (
+          <FlexItem>
+            <Button variant="primary" onClick={onApproveAnalysis}>
+              Approve analysis
+            </Button>
+          </FlexItem>
+        )}
+        {!onApproveAnalysis && onStopAnalysis && (
+          <FlexItem>
+            <Button variant="secondary" isDanger onClick={onStopAnalysis}>
+              Stop analysis
+            </Button>
+          </FlexItem>
+        )}
         {showTraceLink && (
           <FlexItem>
             <Button

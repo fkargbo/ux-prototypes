@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useApprovalPolicy } from '../../context/ApprovalPolicyContext';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -292,7 +293,8 @@ const PolicyRow: React.FC<{
 
 const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   const navigate = useNavigate();
-  const [analysisPolicy, setAnalysisPolicy] = useState<ApprovalMode>('manual');
+  const { analysisPolicy: globalAnalysisPolicy, setAnalysisPolicy: persistAnalysisPolicy } = useApprovalPolicy();
+  const [analysisPolicy, setAnalysisPolicy] = useState<ApprovalMode>(globalAnalysisPolicy);
   const [executionPolicy, setExecutionPolicy] = useState<ApprovalMode>('manual');
   const [verificationPolicy, setVerificationPolicy] = useState<ApprovalMode>('manual');
   const [escalationPolicy, setEscalationPolicy] = useState<ApprovalMode>('manual');
@@ -414,6 +416,7 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
             variant="primary"
             isDisabled={!isDirty}
             onClick={() => {
+              persistAnalysisPolicy(analysisPolicy);
               onSaved();
               setIsDirty(false);
             }}
