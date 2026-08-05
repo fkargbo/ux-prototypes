@@ -189,20 +189,6 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
           />
         </div>
 
-        {/* ── Action button — bottom-left of card body ──────────────────────── */}
-        {(onApproveAnalysis || onStopAnalysis) && (
-          <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-            {onApproveAnalysis ? (
-              <Button variant="primary" onClick={onApproveAnalysis}>
-                Approve analysis
-              </Button>
-            ) : (
-              <Button variant="secondary" isDanger onClick={onStopAnalysis}>
-                Stop analysis
-              </Button>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
