@@ -30,6 +30,7 @@ import {
   Popover,
   Skeleton,
   Spinner,
+  SearchInput,
   Stack,
   StackItem,
   Title,
@@ -2853,6 +2854,8 @@ const PlansTable: React.FC<PlansTableProps> = ({
  * Shared by `RemediationOptionCard` and the option-less terminal fallback
  * (autonomous runs with no modeled remediation options — see `TerminalEvidenceCard`).
  */
+const EVIDENCE_HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
+
 const EvidenceLogsSection: React.FC<{
   idPrefix: string;
   executionLogText: string;
@@ -2860,9 +2863,59 @@ const EvidenceLogsSection: React.FC<{
 }> = ({ idPrefix, executionLogText, verificationLogText }) => {
   const [isExecLogsExpanded, setIsExecLogsExpanded] = useState(false);
   const [isVerifLogsExpanded, setIsVerifLogsExpanded] = useState(false);
+  const [execQuery, setExecQuery] = useState('');
+  const [execHideHealthChecks, setExecHideHealthChecks] = useState(true);
+  const [verifQuery, setVerifQuery] = useState('');
+  const [verifHideHealthChecks, setVerifHideHealthChecks] = useState(true);
 
-  const execLines = useMemo(() => executionLogText.split('\n').filter(Boolean), [executionLogText]);
-  const verifLines = useMemo(() => verificationLogText.split('\n').filter(Boolean), [verificationLogText]);
+  const execLines = useMemo(
+    () => executionLogText
+      .split('\n')
+      .filter(Boolean)
+      .filter((l) => !execHideHealthChecks || !EVIDENCE_HEALTH_CHECK_PATTERN.test(l))
+      .filter((l) => !execQuery.trim() || l.toLowerCase().includes(execQuery.toLowerCase())),
+    [executionLogText, execQuery, execHideHealthChecks],
+  );
+
+  const verifLines = useMemo(
+    () => verificationLogText
+      .split('\n')
+      .filter(Boolean)
+      .filter((l) => !verifHideHealthChecks || !EVIDENCE_HEALTH_CHECK_PATTERN.test(l))
+      .filter((l) => !verifQuery.trim() || l.toLowerCase().includes(verifQuery.toLowerCase())),
+    [verificationLogText, verifQuery, verifHideHealthChecks],
+  );
+
+  const logToolbar = (
+    query: string,
+    setQuery: (v: string) => void,
+    hideHealthChecks: boolean,
+    setHideHealthChecks: (v: boolean) => void,
+    sectionId: string,
+  ) => (
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      gap={{ default: 'gapMd' }}
+      style={{ marginBottom: 'calc(var(--pf-t--global--spacer--xs) + 4px)' }}
+    >
+      <FlexItem style={{ width: '200px', maxWidth: '200px', flexShrink: 0 }}>
+        <SearchInput
+          value={query}
+          onChange={(_evt, val) => setQuery(val)}
+          onClear={() => setQuery('')}
+          placeholder="Search logs..."
+        />
+      </FlexItem>
+      <FlexItem>
+        <Checkbox
+          id={`${idPrefix}-${sectionId}-hc`}
+          label="Hide health checks"
+          isChecked={hideHealthChecks}
+          onChange={(_evt, checked) => setHideHealthChecks(checked)}
+        />
+      </FlexItem>
+    </Flex>
+  );
 
   return (
     <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
@@ -2870,10 +2923,14 @@ const EvidenceLogsSection: React.FC<{
         <ExpandableSection
           toggleText={isExecLogsExpanded ? 'Hide execution logs' : 'View execution logs'}
           isExpanded={isExecLogsExpanded}
-          onToggle={(_e, expanded) => setIsExecLogsExpanded(expanded)}
+          onToggle={(_e, expanded) => {
+            setIsExecLogsExpanded(expanded);
+            if (!expanded) setExecQuery('');
+          }}
           style={{ marginBottom: 0 }}
         >
           <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+            {logToolbar(execQuery, setExecQuery, execHideHealthChecks, setExecHideHealthChecks, 'exec')}
             <LogViewer
               data={execLines}
               hasLineNumbers
@@ -2887,10 +2944,14 @@ const EvidenceLogsSection: React.FC<{
         <ExpandableSection
           toggleText={isVerifLogsExpanded ? 'Hide verification logs' : 'View verification logs'}
           isExpanded={isVerifLogsExpanded}
-          onToggle={(_e, expanded) => setIsVerifLogsExpanded(expanded)}
+          onToggle={(_e, expanded) => {
+            setIsVerifLogsExpanded(expanded);
+            if (!expanded) setVerifQuery('');
+          }}
           style={{ marginBottom: 0 }}
         >
           <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+            {logToolbar(verifQuery, setVerifQuery, verifHideHealthChecks, setVerifHideHealthChecks, 'verif')}
             <LogViewer
               data={verifLines}
               hasLineNumbers
