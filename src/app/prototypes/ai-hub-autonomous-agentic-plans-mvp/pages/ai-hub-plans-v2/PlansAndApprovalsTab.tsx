@@ -3593,7 +3593,13 @@ export const RemediationBlueprintPanel: React.FC<{
   onStartNewInvestigation?: () => void;
   /** Cluster-update runs: open Administration → Cluster Update from Remediation hub. */
   onRemediateInClusterUpdates?: () => void;
-}> = ({ plan, onRejectPlan, onStartNewInvestigation, onRemediateInClusterUpdates }) => {
+  /**
+   * Called when the internal Pending sub-state changes.
+   * `true`  → INITIALIZING  (5-second spinner; parent should render full-width)
+   * `false` → READY_FOR_ANALYSIS or any non-Pending state (parent uses default 60% layout)
+   */
+  onPendingInitializingChange?: (isInitializing: boolean) => void;
+}> = ({ plan, onRejectPlan, onStartNewInvestigation, onRemediateInClusterUpdates, onPendingInitializingChange }) => {
   const status = plan.status;
   const isAnalyzing = status === 'Analyzing';
   const isProposed = status === 'Proposed';
@@ -3654,14 +3660,20 @@ export const RemediationBlueprintPanel: React.FC<{
   useEffect(() => {
     if (status !== 'Pending') return;
     setPendingSubState('INITIALIZING');
+    onPendingInitializingChange?.(true);
     const timer = window.setTimeout(() => {
       if (analysisPolicy === 'auto') {
         dispatchAnalysis(plan.id);
       } else {
         setPendingSubState('READY_FOR_ANALYSIS');
+        onPendingInitializingChange?.(false);
       }
     }, 5000);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      // If the component unmounts or plan/policy changes mid-timer, reset the parent flag.
+      onPendingInitializingChange?.(false);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan.id, analysisPolicy]);
 

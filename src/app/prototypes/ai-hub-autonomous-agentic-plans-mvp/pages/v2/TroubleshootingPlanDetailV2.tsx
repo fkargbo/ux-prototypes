@@ -64,23 +64,11 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
   }, [planId]);
 
   /**
-   * Full-width override for the 5-second INITIALIZING phase only.
-   * READY_FOR_ANALYSIS (manual gate) and all post-Pending states use the
-   * normal 60% constrained layout from CSS.
+   * Tracks whether RemediationBlueprintPanel is in its 5-second INITIALIZING phase.
+   * Driven by the panel's onPendingInitializingChange callback — no duplicated timer needed.
+   * Full-width layout only during INITIALIZING; READY_FOR_ANALYSIS uses the default 60% CSS width.
    */
   const [isInitializingPhase, setIsInitializingPhase] = useState(false);
-
-  useEffect(() => {
-    if (!planId) return;
-    // We can't know the plan's status here yet — start the timer on every plan
-    // load; the panel itself will handle non-Pending plans gracefully.
-    setIsInitializingPhase(true);
-    const timer = window.setTimeout(() => setIsInitializingPhase(false), 5000);
-    return () => {
-      window.clearTimeout(timer);
-      setIsInitializingPhase(false);
-    };
-  }, [planId]);
 
   const plan = useMemo(() => {
     if (!planId) return null;
@@ -209,6 +197,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
             plan={effectivePlan}
             onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
             onStartNewInvestigation={navigateBackToPlans}
+            onPendingInitializingChange={setIsInitializingPhase}
           />
         </div>
       </div>
