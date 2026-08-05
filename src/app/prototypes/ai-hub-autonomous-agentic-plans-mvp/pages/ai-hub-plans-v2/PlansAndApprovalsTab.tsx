@@ -4471,7 +4471,7 @@ export const RemediationBlueprintPanel: React.FC<{
                           isOptionLocked={isOptionLocked}
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
                           rootCause={opt.diagnosis}
-                          onExecute={isProposed && executionPolicy !== 'auto' ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
+                          onExecute={isProposed && (executionPolicy !== 'auto' || reversibilityCircuitBreakerActive) ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
                           approval={workflow.executionApproval}
                           verification={workflow.verification}
                         />
@@ -4481,7 +4481,7 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Stack>
               </div>
 
-              {/* ── Execution policy: auto-queued status or manual CTA ─────────── */}
+              {/* ── Execution policy: auto-queued status ─────────────────────── */}
               {isProposed && isAutoExecuteQueued && (
                 <Flex
                   alignItems={{ default: 'alignItemsCenter' }}
@@ -4499,6 +4499,7 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Flex>
               )}
 
+              {/* ── Reversibility circuit breaker warning ────────────────────── */}
               {isProposed && reversibilityCircuitBreakerActive && (
                 <Alert
                   variant="warning"
@@ -4513,37 +4514,7 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Alert>
               )}
 
-              {isProposed && (executionPolicy === 'manual' || reversibilityCircuitBreakerActive) && (
-                <Flex
-                  gap={{ default: 'gapSm' }}
-                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
-                >
-                  <FlexItem>
-                    <Button
-                      variant="primary"
-                      isDisabled={!isAgenticAutomationEnabled || !selectedOption}
-                      onClick={() => {
-                        setIsExecuteConfirmModalOpen(true);
-                      }}
-                    >
-                      Apply remediation
-                    </Button>
-                  </FlexItem>
-                  {onRejectPlan && (
-                    <FlexItem>
-                      <Button
-                        variant="secondary"
-                        isDisabled={!isAgenticAutomationEnabled}
-                        onClick={() => setIsDenyModalOpen(true)}
-                      >
-                        Deny run
-                      </Button>
-                    </FlexItem>
-                  )}
-                </Flex>
-              )}
-
-              {isProposed && executionPolicy === 'auto' && !reversibilityCircuitBreakerActive && onRejectPlan && !isAutoExecuteQueued && (
+              {isProposed && onRejectPlan && (
                 <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <FlexItem>
                     <Button
