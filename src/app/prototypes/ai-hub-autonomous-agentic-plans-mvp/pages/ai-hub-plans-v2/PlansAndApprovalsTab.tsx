@@ -3651,7 +3651,13 @@ export const RemediationBlueprintPanel: React.FC<{
    */
   type PendingSubState = 'INITIALIZING' | 'READY_FOR_ANALYSIS';
   const [pendingSubState, setPendingSubState] = useState<PendingSubState>('INITIALIZING');
-  const { analysisPolicy } = useApprovalPolicy();
+  const {
+    analysisPolicy,
+    executionPolicy,
+    verificationPolicy,
+    escalationPolicy,
+    maxRetryAttempts: configMaxRetryAttempts,
+  } = useApprovalPolicy();
 
   // After INITIALIZING:
   //   • Automatic policy → dispatch analysis immediately (skip the manual gate).
@@ -3788,13 +3794,55 @@ export const RemediationBlueprintPanel: React.FC<{
       optionIndex: selectedOptionIndex,
       optionId: selectedOption.id,
       optionTitle: selectedOption.title,
-      maxAttempts: GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
+      maxAttempts: configMaxRetryAttempts,
     });
   };
 
   const handleAcknowledgePlan = () => {
     acknowledgePlan(plan.id);
   };
+
+  // ── Execution policy: auto-execute with reversibility circuit breaker ─────────
+  // When executionPolicy === 'auto', the primary option's reversibility is checked.
+  // If partially reversible or irreversible, the circuit breaker fires and we fall
+  // back to manual approval (show warning Alert + "Apply remediation" button).
+  const primaryOption = options[0];
+  const reversibilityCircuitBreakerActive =
+    isProposed &&
+    executionPolicy === 'auto' &&
+    primaryOption?.reversible !== undefined &&
+    primaryOption.reversible !== 'Reversible';
+
+  // Auto-execute the primary option when executionPolicy is 'auto' and the circuit
+  // breaker is NOT active. A 2-second spinner gives the user visibility before commit.
+  const [isAutoExecuteQueued, setIsAutoExecuteQueued] = useState(false);
+  useEffect(() => {
+    if (
+      !isProposed ||
+      executionPolicy !== 'auto' ||
+      reversibilityCircuitBreakerActive ||
+      !isAgenticAutomationEnabled ||
+      !primaryOption
+    ) {
+      setIsAutoExecuteQueued(false);
+      return undefined;
+    }
+    setIsAutoExecuteQueued(true);
+    const timer = window.setTimeout(() => {
+      executeRemediation(plan.id, {
+        optionIndex: 0,
+        optionId: primaryOption.id,
+        optionTitle: primaryOption.title,
+        maxAttempts: configMaxRetryAttempts,
+      });
+      setIsAutoExecuteQueued(false);
+    }, 2000);
+    return () => {
+      window.clearTimeout(timer);
+      setIsAutoExecuteQueued(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isProposed, executionPolicy, reversibilityCircuitBreakerActive, isAgenticAutomationEnabled, plan.id]);
 
   const handleVerificationComplete = useCallback(() => {
     if (!isAgenticAutomationEnabled) return;
@@ -4064,9 +4112,44 @@ export const RemediationBlueprintPanel: React.FC<{
             variant="danger"
             title="Automated remediation retries exhausted"
           >
-            The autonomous agent failed to resolve this issue after 3 retry attempts. Escalation
-            handoff is in progress, and human intervention is now required.
+            The autonomous agent failed to resolve this issue after {configMaxRetryAttempts} retry attempt{configMaxRetryAttempts !== 1 ? 's' : ''}.{' '}
+            {escalationPolicy === 'auto'
+              ? 'Routing incident to configured external channels (PagerDuty / ITSM).'
+              : 'Escalation handoff is in progress, and human intervention is now required.'}
           </Alert>
+        </StackItem>
+      )}
+      {isEscalating && escalationPolicy === 'manual' && (
+        <StackItem>
+          <Flex gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Button
+                variant="danger"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={handleAcknowledgePlan}
+              >
+                Escalate manually
+              </Button>
+            </FlexItem>
+            <FlexItem>
+              <Button
+                variant="secondary"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={() => {
+                  if (selectedOption) {
+                    executeRemediation(plan.id, {
+                      optionIndex: selectedOptionIndex,
+                      optionId: selectedOption.id,
+                      optionTitle: selectedOption.title,
+                      maxAttempts: configMaxRetryAttempts,
+                    });
+                  }
+                }}
+              >
+                Retry execution
+              </Button>
+            </FlexItem>
+          </Flex>
         </StackItem>
       )}
       {isEscalated && (
@@ -4326,11 +4409,39 @@ export const RemediationBlueprintPanel: React.FC<{
               )}
             </>
           ) : isVerifying && verificationState ? (
-            <VerificationPanel
-              verification={verificationState}
-              isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
-              onComplete={handleVerificationComplete}
-            />
+            <>
+              <VerificationPanel
+                verification={verificationState}
+                isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
+                onComplete={verificationPolicy === 'auto' ? handleVerificationComplete : undefined}
+              />
+              {/* Manual verification gate: SRE triggers health check and marks resolved */}
+              {verificationPolicy === 'manual' && !workflow.verification?.outcome && (
+                <Flex
+                  gap={{ default: 'gapSm' }}
+                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  <FlexItem>
+                    <Button
+                      variant="primary"
+                      isDisabled={!isAgenticAutomationEnabled}
+                      onClick={handleVerificationComplete}
+                    >
+                      Run health check
+                    </Button>
+                  </FlexItem>
+                  <FlexItem>
+                    <Button
+                      variant="secondary"
+                      isDisabled={!isAgenticAutomationEnabled}
+                      onClick={() => completeVerification(plan.id, true)}
+                    >
+                      Mark resolved
+                    </Button>
+                  </FlexItem>
+                </Flex>
+              )}
+            </>
           ) : (
             <>
               {retryBanner && (
@@ -4360,7 +4471,7 @@ export const RemediationBlueprintPanel: React.FC<{
                           isOptionLocked={isOptionLocked}
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
                           rootCause={opt.diagnosis}
-                          onExecute={isProposed ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
+                          onExecute={isProposed && executionPolicy !== 'auto' ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
                           approval={workflow.executionApproval}
                           verification={workflow.verification}
                         />
@@ -4370,7 +4481,69 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Stack>
               </div>
 
-              {isProposed && onRejectPlan && (
+              {/* ── Execution policy: auto-queued status or manual CTA ─────────── */}
+              {isProposed && isAutoExecuteQueued && (
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  <FlexItem>
+                    <Spinner size="sm" aria-label="Executing default remediation" />
+                  </FlexItem>
+                  <FlexItem>
+                    <Content component="p" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Executing default remediation (1 of {optionCount})…
+                    </Content>
+                  </FlexItem>
+                </Flex>
+              )}
+
+              {isProposed && reversibilityCircuitBreakerActive && (
+                <Alert
+                  variant="warning"
+                  isInline
+                  title="Manual approval required"
+                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  Automatic execution was paused because the primary remediation option (
+                  <strong>{primaryOption?.title}</strong>) is{' '}
+                  <strong>{primaryOption?.reversible === 'Partial' ? 'partially reversible' : 'irreversible'}</strong>.
+                  Review the proposed commands and approve manually.
+                </Alert>
+              )}
+
+              {isProposed && (executionPolicy === 'manual' || reversibilityCircuitBreakerActive) && (
+                <Flex
+                  gap={{ default: 'gapSm' }}
+                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  <FlexItem>
+                    <Button
+                      variant="primary"
+                      isDisabled={!isAgenticAutomationEnabled || !selectedOption}
+                      onClick={() => {
+                        setIsExecuteConfirmModalOpen(true);
+                      }}
+                    >
+                      Apply remediation
+                    </Button>
+                  </FlexItem>
+                  {onRejectPlan && (
+                    <FlexItem>
+                      <Button
+                        variant="secondary"
+                        isDisabled={!isAgenticAutomationEnabled}
+                        onClick={() => setIsDenyModalOpen(true)}
+                      >
+                        Deny run
+                      </Button>
+                    </FlexItem>
+                  )}
+                </Flex>
+              )}
+
+              {isProposed && executionPolicy === 'auto' && !reversibilityCircuitBreakerActive && onRejectPlan && !isAutoExecuteQueued && (
                 <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <FlexItem>
                     <Button

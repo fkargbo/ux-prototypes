@@ -293,12 +293,19 @@ const PolicyRow: React.FC<{
 
 const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   const navigate = useNavigate();
-  const { analysisPolicy: globalAnalysisPolicy, setAnalysisPolicy: persistAnalysisPolicy } = useApprovalPolicy();
+  const {
+    analysisPolicy: globalAnalysisPolicy,
+    executionPolicy: globalExecutionPolicy,
+    verificationPolicy: globalVerificationPolicy,
+    escalationPolicy: globalEscalationPolicy,
+    maxRetryAttempts: globalMaxRetryAttempts,
+    applyPolicyConfig,
+  } = useApprovalPolicy();
   const [analysisPolicy, setAnalysisPolicy] = useState<ApprovalMode>(globalAnalysisPolicy);
-  const [executionPolicy, setExecutionPolicy] = useState<ApprovalMode>('manual');
-  const [verificationPolicy, setVerificationPolicy] = useState<ApprovalMode>('manual');
-  const [escalationPolicy, setEscalationPolicy] = useState<ApprovalMode>('manual');
-  const [maxRetryAttempts, setMaxRetryAttempts] = useState(3);
+  const [executionPolicy, setExecutionPolicy] = useState<ApprovalMode>(globalExecutionPolicy);
+  const [verificationPolicy, setVerificationPolicy] = useState<ApprovalMode>(globalVerificationPolicy);
+  const [escalationPolicy, setEscalationPolicy] = useState<ApprovalMode>(globalEscalationPolicy);
+  const [maxRetryAttempts, setMaxRetryAttempts] = useState(globalMaxRetryAttempts);
   const [isDirty, setIsDirty] = useState(false);
   /** Stage awaiting Manual → Automatic confirmation; null when modal is closed. */
   const [pendingAutoStage, setPendingAutoStage] = useState<PolicyStage | null>(null);
@@ -416,7 +423,7 @@ const ApprovalPolicyTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
             variant="primary"
             isDisabled={!isDirty}
             onClick={() => {
-              persistAnalysisPolicy(analysisPolicy);
+              applyPolicyConfig({ analysisPolicy, executionPolicy, verificationPolicy, escalationPolicy, maxRetryAttempts });
               onSaved();
               setIsDirty(false);
             }}
