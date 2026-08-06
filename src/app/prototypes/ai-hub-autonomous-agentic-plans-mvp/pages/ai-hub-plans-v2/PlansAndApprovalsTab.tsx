@@ -3564,24 +3564,23 @@ const RemediationOptionCard: React.FC<{
                 codeStyle={{ fontSize: '12px' }}
               />
             )}
-            {(onExecute || ((isProposed || isDenied || isEmergencyStopped) && rootCause)) && (
+            {/* Execute remediation — visible only in Proposed state via onExecute prop */}
+            {onExecute && (
               <Flex
                 gap={{ default: 'gapSm' }}
                 flexWrap={{ default: 'wrap' }}
                 style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
               >
-                {onExecute && (
-                  <FlexItem>
-                    <Button
-                      variant="primary"
-                      isDisabled={!isAgenticAutomationEnabled}
-                      onClick={onExecute}
-                    >
-                      Execute remediation
-                    </Button>
-                  </FlexItem>
-                )}
-                {(isProposed || isDenied || isEmergencyStopped) && rootCause && (
+                <FlexItem>
+                  <Button
+                    variant="primary"
+                    isDisabled={!isAgenticAutomationEnabled}
+                    onClick={onExecute}
+                  >
+                    Execute remediation
+                  </Button>
+                </FlexItem>
+                {rootCause && (
                   <FlexItem>
                     <Button
                       variant="link"
@@ -3596,8 +3595,8 @@ const RemediationOptionCard: React.FC<{
             )}
           </div>
 
-          {/* ── D. Rollback plan — shown during pre-execution review ── */}
-          {(isProposed || isDenied || isEmergencyStopped) && (() => {
+          {/* ── D. Rollback plan — shown after execution ── */}
+          {showEvidenceTrail && (() => {
             const rollback = resolveOptionRollbackPlan(plan.id, option);
             if (!rollback) return null;
             return (
@@ -3635,8 +3634,8 @@ const RemediationOptionCard: React.FC<{
             );
           })()}
 
-          {/* ── E. Verification steps — shown during pre-execution review ── */}
-          {(isProposed || isDenied || isEmergencyStopped) && option.verificationSteps && (
+          {/* ── E. Verification steps — shown after execution ── */}
+          {showEvidenceTrail && option.verificationSteps && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               <Content
                 component="small"
@@ -3701,6 +3700,19 @@ const RemediationOptionCard: React.FC<{
               executionLogText={executionLogText}
               verificationLogText={verificationLogText}
             />
+          )}
+
+          {/* ── G. Card footer — Download plan (post-execution only) ── */}
+          {showEvidenceTrail && rootCause && (
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--md)', borderTop: '1px solid var(--pf-t--global--border--color--default)', paddingTop: 'var(--pf-t--global--spacer--sm)' }}>
+              <Button
+                variant="link"
+                icon={<RhUiDownloadIcon />}
+                onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
+              >
+                Download plan
+              </Button>
+            </div>
           )}
         </CardBody>
       )}
