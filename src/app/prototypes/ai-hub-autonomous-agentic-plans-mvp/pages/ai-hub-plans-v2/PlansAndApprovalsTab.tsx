@@ -1831,6 +1831,38 @@ export interface OptionVerificationSteps {
   steps: VerificationStep[];
 }
 
+/** A single action executed during the remediation phase with its result. */
+export interface ExecutionAction {
+  /** Category tag: 'pre-check' | 'mutation' | 'cleanup' | 'verification' | 'rollback' */
+  category: string;
+  status: 'Succeeded' | 'Failed' | 'Skipped';
+  description: string;
+  command: string;
+  output: string;
+}
+
+export interface ExecutionSummaryData {
+  /** One-sentence baseline explaining what the agent targeted. */
+  targetedRootCause: string;
+  /** Description of the cluster changes the remediation actually made. */
+  remediationDelta: string;
+  actionsTaken: ExecutionAction[];
+}
+
+/** A single verification check run after remediation with its actual result. */
+export interface VerificationCheck {
+  id: string;
+  status: 'Passed' | 'Failed';
+  command: string;
+  output: string;
+}
+
+export interface VerificationSummaryData {
+  /** Bulleted outcome statements rendered as an assessment list. */
+  outcomeAssessment: string[];
+  checks: VerificationCheck[];
+}
+
 /**
  * A single agent-proposed shell command with a category label and human-readable description.
  * Backend field: options[].proposal.commands[].
@@ -2442,6 +2474,139 @@ ${targetLines}
 [${recoveredAt}] Health checks passed. System restored to nominal state.
 Exit code: 0 — Execution succeeded.`,
   };
+};
+
+// ─── Execution & Verification Summary mock data ──────────────────────────────
+
+const PLAN_EXECUTION_SUMMARY: Record<string, ExecutionSummaryData> = {
+  op1: {
+    targetedRootCause: 'A clock skew of +847 ms on 3 OpenShift nodes caused Prometheus target scrapes to fail TLS certificate time-validation checks.',
+    remediationDelta: 'Updated the NTP pool to ntp.corp.redhat.com on all 3 affected nodes and restarted chrony-sync-daemon to resynchronize clocks.',
+    actionsTaken: [
+      { category: 'mutation', status: 'Succeeded', description: 'Update NTP pool config and restart chrony on node-1', command: 'chronyc makestep && systemctl restart chronyd', output: 'chrony-sync-daemon on node-1: restarted (offset was +847ms)' },
+      { category: 'mutation', status: 'Succeeded', description: 'Update NTP pool config and restart chrony on node-2', command: 'chronyc makestep && systemctl restart chronyd', output: 'chrony-sync-daemon on node-2: restarted (offset was +851ms)' },
+      { category: 'mutation', status: 'Succeeded', description: 'Update NTP pool config and restart chrony on node-3', command: 'chronyc makestep && systemctl restart chronyd', output: 'chrony-sync-daemon on node-3: restarted (offset was +843ms)' },
+    ],
+  },
+  op2: {
+    targetedRootCause: 'The alertmanager-main PagerDuty integration key expired, causing all PagerDuty-routed alerts to fail delivery with HTTP 403 errors.',
+    remediationDelta: 'Replaced the expired alertmanager-pagerduty secret with a rotated integration key and triggered a rolling restart of the 3-pod alertmanager-main StatefulSet.',
+    actionsTaken: [
+      { category: 'mutation', status: 'Succeeded', description: 'Rotate PagerDuty integration key in alertmanager-pagerduty secret', command: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f -', output: 'secret/alertmanager-pagerduty configured' },
+      { category: 'mutation', status: 'Succeeded', description: 'Trigger rolling reload of alertmanager pods to pick up rotated credentials', command: 'oc rollout restart statefulset/alertmanager-main -n openshift-monitoring', output: 'statefulset.apps/alertmanager-main restarted' },
+    ],
+  },
+  op3: {
+    targetedRootCause: 'A corrupted TSDB compaction block (01HX...) caused thanos-compactor to crash-loop, halting metric compaction and growing storage usage.',
+    remediationDelta: 'Scaled thanos-compactor to zero, removed the corrupted TSDB block from the PVC, then restarted the compactor with a clean compaction state.',
+    actionsTaken: [
+      { category: 'pre-check', status: 'Succeeded', description: 'Scale compactor to zero to safely access the PVC', command: 'oc scale statefulset/thanos-compactor --replicas=0 -n openshift-monitoring', output: 'statefulset.apps/thanos-compactor scaled' },
+      { category: 'mutation', status: 'Succeeded', description: 'Remove corrupted TSDB block from the compactor data volume', command: 'oc rsh -n openshift-monitoring thanos-compactor-0 -- rm -rf /var/thanos/compact/data/01HX*', output: "removed '/var/thanos/compact/data/01HXQ4P6R3N2M8Y7K0C5D9F1'" },
+      { category: 'cleanup', status: 'Succeeded', description: 'Scale compactor back to resume compaction with a clean state', command: 'oc scale statefulset/thanos-compactor --replicas=1 -n openshift-monitoring', output: 'statefulset.apps/thanos-compactor scaled' },
+    ],
+  },
+  op5: {
+    targetedRootCause: 'A stale SQLite WAL lock file on the Grafana PVC prevented Grafana from starting after an unclean pod shutdown.',
+    remediationDelta: 'Scaled Grafana to zero, removed the stale grafana.db-wal lock file, and restarted the deployment to bring Grafana back online.',
+    actionsTaken: [
+      { category: 'pre-check', status: 'Succeeded', description: 'Scale Grafana to zero to safely access the shared PVC', command: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring', output: 'deployment.apps/grafana scaled' },
+      { category: 'mutation', status: 'Succeeded', description: 'Remove stale SQLite WAL lock file causing startup failure', command: 'oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal', output: "removed '/var/lib/grafana/grafana.db-wal'" },
+      { category: 'cleanup', status: 'Succeeded', description: 'Restart Grafana deployment with a clean database lock state', command: 'oc scale deployment/grafana --replicas=1 -n openshift-monitoring', output: 'deployment.apps/grafana scaled' },
+    ],
+  },
+  ap8: {
+    targetedRootCause: 'A deployment in the production namespace was running with hostNetwork: true, violating the cluster security policy and exposing host network interfaces.',
+    remediationDelta: 'Patched the SecurityContextConstraints to deny hostNetwork access and installed a MutatingAdmissionWebhook to prevent future violations at admission time.',
+    actionsTaken: [
+      { category: 'pre-check', status: 'Succeeded', description: 'Verify current SCC allowHostNetwork setting before patching', command: "oc get securitycontextconstraints restricted -o jsonpath='{.allowHostNetwork}'", output: 'true' },
+      { category: 'mutation', status: 'Succeeded', description: 'Patch SCC to deny host network access cluster-wide', command: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'", output: 'securitycontextconstraints.security.openshift.io/restricted patched' },
+      { category: 'mutation', status: 'Succeeded', description: 'Install MutatingAdmissionWebhook to block future hostNetwork violations', command: 'oc apply -f - <<EOF\napiVersion: admissionregistration.k8s.io/v1\nkind: MutatingWebhookConfiguration\nmetadata:\n  name: hostnetwork-guard\nEOF', output: 'mutatingwebhookconfiguration.admissionregistration.k8s.io/hostnetwork-guard created' },
+    ],
+  },
+  'etcd-defrag-failed': {
+    targetedRootCause: 'EtcdDatabaseHighFragmentationRatio exceeded 65% across all 3 control plane members, causing API write amplification and P99 latency above 1.2 s.',
+    remediationDelta: 'Attempted etcd defragmentation sequentially across etcd-master-01, etcd-master-02, and etcd-master-03. Commands completed but post-execution verification found the fragmentation ratio unchanged at 0.67.',
+    actionsTaken: [
+      { category: 'mutation', status: 'Succeeded', description: 'Defragment etcd on etcd-master-01', command: 'etcdctl defrag --endpoints=https://etcd-master-01:2379', output: 'Finished defragmenting etcd member[https://etcd-master-01:2379]' },
+      { category: 'mutation', status: 'Succeeded', description: 'Defragment etcd on etcd-master-02', command: 'etcdctl defrag --endpoints=https://etcd-master-02:2379', output: 'Finished defragmenting etcd member[https://etcd-master-02:2379]' },
+      { category: 'mutation', status: 'Succeeded', description: 'Defragment etcd on etcd-master-03', command: 'etcdctl defrag --endpoints=https://etcd-master-03:2379', output: 'Finished defragmenting etcd member[https://etcd-master-03:2379]' },
+      { category: 'verification', status: 'Failed', description: 'Verify fragmentation ratio has been reduced', command: 'etcdctl endpoint status --endpoints=https://etcd-master-01:2379 --write-out=table', output: 'fragmentation_ratio: 0.67 — unchanged from pre-execution baseline (0.67). Compaction window had not run prior to defrag.' },
+    ],
+  },
+};
+
+const PLAN_VERIFICATION_SUMMARY: Record<string, VerificationSummaryData> = {
+  op1: {
+    outcomeAssessment: [
+      'Clock offset delta fell below 1 ms across all 3 nodes after NTP resynchronization.',
+      'NodeClockSkewDetected alert resolved — no longer firing in any namespace.',
+      'Prometheus target scrape success rate returned to 100% within 2 minutes of clock correction.',
+    ],
+    checks: [
+      { id: 'clock-offset', status: 'Passed', command: 'chronyc tracking | grep "System time"', output: 'System time: 0.000023104 seconds fast of NTP time — offset < 1 ms confirmed.' },
+      { id: 'alert-resolved', status: 'Passed', command: "oc get prometheusrule -A -o json | jq '.items[].spec.groups[].rules[] | select(.alert==\"NodeClockSkewDetected\") | .labels.severity'", output: 'NodeClockSkewDetected: resolved' },
+      { id: 'prometheus-targets', status: 'Passed', command: 'curl -s http://prometheus-k8s.openshift-monitoring:9090/api/v1/query?query=up | jq .data.result[].value[1]', output: '"1" — all Prometheus targets reporting up=1 (100% scrape success)' },
+    ],
+  },
+  op2: {
+    outcomeAssessment: [
+      'alertmanager-main pods restarted successfully with the rotated PagerDuty integration key.',
+      'PagerDuty alert delivery resumed — no HTTP 403 errors in the 2-minute post-restart window.',
+      'All 3 alertmanager-main pods are in Running state and Ready.',
+    ],
+    checks: [
+      { id: 'secret-updated', status: 'Passed', command: "oc get secret alertmanager-pagerduty -n openshift-monitoring -o jsonpath='{.metadata.resourceVersion}'", output: 'resourceVersion: "487231" — secret replaced with rotated key.' },
+      { id: 'alertmanager-ready', status: 'Passed', command: 'oc rollout status statefulset/alertmanager-main -n openshift-monitoring --timeout=3m', output: 'statefulset rolling update complete 3 pods at revision alertmanager-main-2' },
+      { id: 'no-delivery-errors', status: 'Passed', command: "oc logs -n openshift-monitoring alertmanager-main-0 --since=2m | grep -i 'pagerduty.*error\\|failed.*pagerduty' || echo 'none'", output: 'none' },
+    ],
+  },
+  op3: {
+    outcomeAssessment: [
+      'Corrupted TSDB block removed from the compactor data volume without data loss.',
+      'thanos-compactor restarted successfully and resumed compaction with a clean state.',
+      'No compaction error or corruption log entries in the 5-minute post-restart window.',
+    ],
+    checks: [
+      { id: 'block-removed', status: 'Passed', command: "oc rsh -n openshift-monitoring thanos-compactor-0 -- ls /var/thanos/compact/data/ | grep 01HX || echo 'none'", output: 'none — corrupted TSDB block successfully removed.' },
+      { id: 'compactor-running', status: 'Passed', command: 'oc rollout status statefulset/thanos-compactor -n openshift-monitoring --timeout=2m', output: 'statefulset rolling update complete 1 pods at revision thanos-compactor-4' },
+      { id: 'compaction-healthy', status: 'Passed', command: "oc logs -n openshift-monitoring thanos-compactor-0 --since=5m | grep -iE 'error|corrupted|failed' || echo 'no errors'", output: 'no errors' },
+    ],
+  },
+  op5: {
+    outcomeAssessment: [
+      'Stale SQLite WAL lock file successfully removed from the Grafana PVC.',
+      'Grafana deployment rolled out with 1 pod in Running state.',
+      'Grafana health endpoint confirms database: ok — dashboard serving resumed.',
+    ],
+    checks: [
+      { id: 'wal-lock-removed', status: 'Passed', command: "oc rsh -n openshift-monitoring grafana-debug -- ls /var/lib/grafana/ | grep grafana.db-wal || echo 'none'", output: 'none — stale WAL lock file is no longer present.' },
+      { id: 'grafana-ready', status: 'Passed', command: 'oc rollout status deployment/grafana -n openshift-monitoring --timeout=3m', output: 'deployment "grafana" successfully rolled out' },
+      { id: 'grafana-health', status: 'Passed', command: 'oc exec -n openshift-monitoring deploy/grafana -- curl -sf http://localhost:3000/api/health', output: '{"database": "ok", "health": "ok", "version": "10.2.3"}' },
+    ],
+  },
+  ap8: {
+    outcomeAssessment: [
+      'SecurityContextConstraints allowHostNetwork is now set to false cluster-wide.',
+      'MutatingAdmissionWebhook hostnetwork-guard is registered and active at admission time.',
+      'Zero running pods in non-system namespaces are using host network access.',
+    ],
+    checks: [
+      { id: 'scc-patched', status: 'Passed', command: "oc get securitycontextconstraints restricted -o jsonpath='{.allowHostNetwork}'", output: 'false — host network access denied at the SCC level.' },
+      { id: 'webhook-registered', status: 'Passed', command: 'oc get mutatingwebhookconfiguration hostnetwork-guard -o name', output: 'mutatingwebhookconfiguration.admissionregistration.k8s.io/hostnetwork-guard' },
+      { id: 'no-active-violations', status: 'Passed', command: "oc get pods --all-namespaces -o json | jq '[.items[] | select(.spec.hostNetwork==true)] | length'", output: '0 — no running pods using host networking outside of system namespaces.' },
+    ],
+  },
+  'etcd-defrag-failed': {
+    outcomeAssessment: [
+      'Defragmentation commands executed without errors on all 3 etcd members.',
+      'Post-defrag verification shows fragmentation ratio at 0.67 — unchanged from pre-execution baseline.',
+      'Root cause of failure: etcd auto-compaction window had not completed before defrag execution. Manual compaction (etcdctl compact) is required before re-attempting.',
+    ],
+    checks: [
+      { id: 'defrag-commands', status: 'Passed', command: 'etcdctl defrag --endpoints=https://etcd-master-01:2379,https://etcd-master-02:2379,https://etcd-master-03:2379', output: 'Finished defragmenting etcd member on all 3 endpoints.' },
+      { id: 'fragmentation-ratio', status: 'Failed', command: 'etcdctl endpoint status --endpoints=https://etcd-master-01:2379 --write-out=table', output: 'fragmentation_ratio: 0.67 (baseline: 0.67) — no improvement detected. Auto-compaction had not run.' },
+    ],
+  },
 };
 
 const formatExecutionKillTimestamp = (date: Date): string =>
@@ -3058,6 +3223,315 @@ const PlansTable: React.FC<PlansTableProps> = ({
  */
 const EVIDENCE_HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
 
+// ─── Shared log-expandable used in Execution & Verification summary cards ────
+
+const LogExpandable: React.FC<{
+  idPrefix: string;
+  toggleText: string;
+  logText: string;
+}> = ({ idPrefix, toggleText, logText }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [query, setQuery] = useState('');
+  const [hideHealthChecks, setHideHealthChecks] = useState(true);
+
+  const lines = useMemo(
+    () =>
+      logText
+        .split('\n')
+        .filter(Boolean)
+        .filter((l) => !hideHealthChecks || !EVIDENCE_HEALTH_CHECK_PATTERN.test(l))
+        .filter((l) => !query.trim() || l.toLowerCase().includes(query.toLowerCase())),
+    [logText, query, hideHealthChecks],
+  );
+
+  return (
+    <ExpandableSection
+      toggleText={isExpanded ? `Hide ${toggleText.toLowerCase()}` : toggleText}
+      isExpanded={isExpanded}
+      onToggle={(_e, expanded) => {
+        setIsExpanded(expanded);
+        if (!expanded) setQuery('');
+      }}
+    >
+      <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapMd' }}
+          style={{ marginBottom: 'calc(var(--pf-t--global--spacer--xs) + 4px)' }}
+        >
+          <FlexItem style={{ width: '200px', maxWidth: '200px', flexShrink: 0 }}>
+            <SearchInput
+              value={query}
+              onChange={(_evt, val) => setQuery(val)}
+              onClear={() => setQuery('')}
+              placeholder="Search logs..."
+            />
+          </FlexItem>
+          <FlexItem>
+            <Checkbox
+              id={`${idPrefix}-hc`}
+              label="Hide health checks"
+              isChecked={hideHealthChecks}
+              onChange={(_evt, checked) => setHideHealthChecks(checked)}
+            />
+          </FlexItem>
+        </Flex>
+        <LogViewer
+          data={lines}
+          hasLineNumbers
+          isTextWrapped
+          height="280px"
+          scrollToRow={isExpanded && lines.length > 0 ? lines.length - 1 : undefined}
+        />
+      </div>
+    </ExpandableSection>
+  );
+};
+
+// ─── Execution Summary Card ───────────────────────────────────────────────────
+
+const ACTION_STATUS_COLOR: Record<ExecutionAction['status'], 'green' | 'red' | 'grey'> = {
+  Succeeded: 'green',
+  Failed: 'red',
+  Skipped: 'grey',
+};
+
+const SECTION_OVERLINE_STYLE: React.CSSProperties = {
+  display: 'block',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: 'var(--pf-t--global--text--color--subtle)',
+  marginBottom: 'var(--pf-t--global--spacer--sm)',
+};
+
+const ExecutionSummaryCard: React.FC<{
+  plan: PlanRow;
+  executionLog: string;
+}> = ({ plan, executionLog }) => {
+  const summary = PLAN_EXECUTION_SUMMARY[plan.id];
+
+  return (
+    <Card style={{ borderRadius: '16px' }}>
+      <CardHeader>
+        <Title headingLevel="h4" size="md">Execution</Title>
+      </CardHeader>
+      <CardBody>
+        {/* ── Contextual evidence ── */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+          <Content component="small" style={SECTION_OVERLINE_STYLE}>Contextual evidence</Content>
+          {summary ? (
+            <Stack hasGutter>
+              <StackItem>
+                <Content component="small" style={{ display: 'block', fontWeight: 600, marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                  Targeted root cause
+                </Content>
+                <Content component="p" style={{ fontSize: '0.875rem' }}>{summary.targetedRootCause}</Content>
+              </StackItem>
+              <StackItem>
+                <Content component="small" style={{ display: 'block', fontWeight: 600, marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                  Remediation delta
+                </Content>
+                <Content component="p" style={{ fontSize: '0.875rem' }}>{summary.remediationDelta}</Content>
+              </StackItem>
+            </Stack>
+          ) : (
+            <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              Execution context is being assembled…
+            </Content>
+          )}
+        </div>
+
+        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+
+        {/* ── Actions taken ── */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+          <Content component="small" style={SECTION_OVERLINE_STYLE}>Actions taken</Content>
+          {summary ? (
+            <Stack hasGutter>
+              {summary.actionsTaken.map((action, i) => (
+                <StackItem key={i}>
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    gap={{ default: 'gapSm' }}
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                  >
+                    <FlexItem><Label isCompact color="grey">{action.category}</Label></FlexItem>
+                    <FlexItem>
+                      <Label isCompact color={ACTION_STATUS_COLOR[action.status]}>{action.status}</Label>
+                    </FlexItem>
+                    <FlexItem>
+                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        {action.description}
+                      </Content>
+                    </FlexItem>
+                  </Flex>
+                  <ExpandableCodeBlock
+                    id={`exec-action-${plan.id}-${i}`}
+                    code={action.command}
+                    codeStyle={{ fontSize: '12px' }}
+                  />
+                  {action.output && (
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        marginTop: 'var(--pf-t--global--spacer--xs)',
+                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        fontSize: '11px',
+                      }}
+                    >
+                      {action.output}
+                    </Content>
+                  )}
+                </StackItem>
+              ))}
+            </Stack>
+          ) : (
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <FlexItem><Spinner size="sm" aria-label="Executing" /></FlexItem>
+              <FlexItem>
+                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  Executing actions…
+                </Content>
+              </FlexItem>
+            </Flex>
+          )}
+        </div>
+
+        {/* ── Log footer ── */}
+        {executionLog && (
+          <>
+            <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+            <LogExpandable
+              idPrefix={`exec-log-${plan.id}`}
+              toggleText="View execution logs"
+              logText={executionLog}
+            />
+          </>
+        )}
+      </CardBody>
+    </Card>
+  );
+};
+
+// ─── Verification Summary Card ────────────────────────────────────────────────
+
+const CHECK_STATUS_COLOR: Record<VerificationCheck['status'], 'green' | 'red'> = {
+  Passed: 'green',
+  Failed: 'red',
+};
+
+const VerificationSummaryCard: React.FC<{
+  plan: PlanRow;
+  verificationLog: string;
+}> = ({ plan, verificationLog }) => {
+  const summary = PLAN_VERIFICATION_SUMMARY[plan.id];
+
+  return (
+    <Card style={{ borderRadius: '16px' }}>
+      <CardHeader>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <FlexItem><Title headingLevel="h4" size="md">Verification summary</Title></FlexItem>
+          <FlexItem><Label color="purple" isCompact>AI-generated</Label></FlexItem>
+        </Flex>
+      </CardHeader>
+      <CardBody>
+        {/* ── Outcome assessment ── */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+          <Content component="small" style={SECTION_OVERLINE_STYLE}>Outcome assessment</Content>
+          {summary ? (
+            <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
+              {summary.outcomeAssessment.map((line, i) => (
+                <li key={i}>
+                  <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{line}</Content>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              Outcome assessment is being generated…
+            </Content>
+          )}
+        </div>
+
+        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+
+        {/* ── Verification checks ── */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+          <Content component="small" style={SECTION_OVERLINE_STYLE}>Verification checks</Content>
+          {summary ? (
+            <Stack hasGutter>
+              {summary.checks.map((check, i) => (
+                <StackItem key={i}>
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    gap={{ default: 'gapSm' }}
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                  >
+                    <FlexItem>
+                      <Content
+                        component="small"
+                        style={{ fontWeight: 600, fontFamily: 'var(--pf-t--global--font--family--mono)' }}
+                      >
+                        {check.id}
+                      </Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <Label isCompact color={CHECK_STATUS_COLOR[check.status]}>{check.status}</Label>
+                    </FlexItem>
+                  </Flex>
+                  <ExpandableCodeBlock
+                    id={`verif-check-${plan.id}-${i}`}
+                    code={check.command}
+                    codeStyle={{ fontSize: '12px' }}
+                  />
+                  {check.output && (
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        marginTop: 'var(--pf-t--global--spacer--xs)',
+                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        fontSize: '11px',
+                      }}
+                    >
+                      {check.output}
+                    </Content>
+                  )}
+                </StackItem>
+              ))}
+            </Stack>
+          ) : (
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <FlexItem><Spinner size="sm" aria-label="Verifying" /></FlexItem>
+              <FlexItem>
+                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  Running verification checks…
+                </Content>
+              </FlexItem>
+            </Flex>
+          )}
+        </div>
+
+        {/* ── Log footer ── */}
+        {verificationLog && (
+          <>
+            <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+            <LogExpandable
+              idPrefix={`verif-log-${plan.id}`}
+              toggleText="View verification logs"
+              logText={verificationLog}
+            />
+          </>
+        )}
+      </CardBody>
+    </Card>
+  );
+};
+
 const EvidenceLogsSection: React.FC<{
   idPrefix: string;
   executionLogText: string;
@@ -3175,15 +3649,11 @@ const EvidenceLogsSection: React.FC<{
  */
 const TerminalEvidenceCard: React.FC<{
   plan: PlanRow;
-  verification?: import('../../context/PlanWorkflowContext').VerificationState | null;
-}> = ({ plan, verification }) => {
+}> = ({ plan }) => {
   const { status } = plan;
   const isCompleted = status === 'Completed';
   const isFailed = status === 'Failed';
   const postMortem = useMemo(() => PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan), [plan]);
-  const verificationLogText = verification
-    ? verification.checks.join('\n')
-    : generateVerificationLogs(plan.id);
   const actionSummary = postMortem.type === 'success'
     ? postMortem.remediationActionDelta
     : postMortem.failureReason;
@@ -3237,16 +3707,10 @@ const TerminalEvidenceCard: React.FC<{
           <Content
             component="p"
             className="ols-aio-text-subtle-sm"
-            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
           >
             {actionSummary}
           </Content>
         )}
-        <EvidenceLogsSection
-          idPrefix={plan.id}
-          executionLogText={postMortem.rawLog ?? ''}
-          verificationLogText={verificationLogText}
-        />
       </CardBody>
     </Card>
   );
@@ -3697,19 +4161,7 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── F. Logs (expandable): execution + verification evidence trail ── */}
-          {showEvidenceTrail && (
-            <div>
-              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
-              <EvidenceLogsSection
-                idPrefix={option.id}
-                executionLogText={executionLogText}
-                verificationLogText={verificationLogText}
-              />
-            </div>
-          )}
-
-          {/* ── G. Card footer — Download plan (post-execution only) ── */}
+          {/* ── F. Card footer — Download plan (post-execution only) ── */}
           {showEvidenceTrail && rootCause && (
             <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)', borderTop: '1px solid var(--pf-t--global--border--color--default)', paddingTop: 'var(--pf-t--global--spacer--md)' }}>
               <Button
@@ -4389,6 +4841,18 @@ export const RemediationBlueprintPanel: React.FC<{
     approvedOptionId ? selectedOptionId === approvedOptionId : selectedOptionIndex === 0
   );
 
+  // Log text used by the standalone Execution / Verification Summary cards.
+  const summaryPostMortem = useMemo(
+    () => (isTerminal || isExecuting || isVerifying)
+      ? (PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan))
+      : null,
+    [isTerminal, isExecuting, isVerifying, plan],
+  );
+  const summaryExecutionLog = summaryPostMortem?.rawLog ?? summaryPostMortem?.failureTrace ?? '';
+  const summaryVerificationLog = workflow.verification?.checks.join('\n') ?? (
+    isTerminal || isVerifying ? generateVerificationLogs(plan.id) : ''
+  );
+
   return (
     <Stack style={{ gap: '24px' }}>
       {/* ── Page heading + AI disclaimer ────────────────────────────────── */}
@@ -4726,58 +5190,76 @@ export const RemediationBlueprintPanel: React.FC<{
               })}
             </Stack>
           ) : isTerminal ? (
-            <>
+            <Stack hasGutter>
               {terminalVisibleOptions.length > 0 && (
-                <Stack hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                  {terminalVisibleOptions.map((opt) => {
-                    const optionIndex = options.findIndex((o) => o.id === opt.id);
-                    return (
-                      <StackItem key={opt.id}>
-                        <RemediationOptionCard
-                          option={opt}
-                          index={optionIndex}
-                          plan={plan}
-                          isSelected
-                          isAgenticAutomationEnabled={isAgenticAutomationEnabled}
-                          onSelect={setSelectedOptionId}
-                          isExecutionPhase={false}
-                          isOptionLocked={false}
-                          showExecutionLog={false}
-                          rootCause={opt.diagnosis}
-                          approval={workflow.executionApproval}
-                          verification={workflow.verification}
-                        />
-                      </StackItem>
-                    );
-                  })}
-                </Stack>
+                <StackItem>
+                  <Stack hasGutter>
+                    {terminalVisibleOptions.map((opt) => {
+                      const optionIndex = options.findIndex((o) => o.id === opt.id);
+                      return (
+                        <StackItem key={opt.id}>
+                          <RemediationOptionCard
+                            option={opt}
+                            index={optionIndex}
+                            plan={plan}
+                            isSelected
+                            isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+                            onSelect={setSelectedOptionId}
+                            isExecutionPhase={false}
+                            isOptionLocked={false}
+                            showExecutionLog={false}
+                            rootCause={opt.diagnosis}
+                            approval={workflow.executionApproval}
+                            verification={workflow.verification}
+                          />
+                        </StackItem>
+                      );
+                    })}
+                  </Stack>
+                </StackItem>
               )}
               {terminalVisibleOptions.length === 0 && (
-                <TerminalEvidenceCard plan={plan} verification={workflow.verification} />
+                <StackItem>
+                  <TerminalEvidenceCard plan={plan} />
+                </StackItem>
               )}
-            </>
+              <StackItem>
+                <ExecutionSummaryCard plan={plan} executionLog={summaryExecutionLog} />
+              </StackItem>
+              <StackItem>
+                <VerificationSummaryCard plan={plan} verificationLog={summaryVerificationLog} />
+              </StackItem>
+            </Stack>
           ) : isVerifying && verificationState ? (
-            <>
-              <VerificationPanel
-                verification={verificationState}
-                isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
-                onComplete={verificationPolicy === 'auto' ? handleVerificationComplete : undefined}
-              />
-              {/* Manual verification gate: SRE triggers health check and marks resolved */}
-              {verificationPolicy === 'manual' && !workflow.verification?.outcome && (
-                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                  <FlexItem>
-                    <Button
-                      variant="primary"
-                      isDisabled={!isAgenticAutomationEnabled}
-                      onClick={handleVerificationComplete}
-                    >
-                      Approve verification
-                    </Button>
-                  </FlexItem>
-                </Flex>
-              )}
-            </>
+            <Stack hasGutter>
+              <StackItem>
+                <VerificationPanel
+                  verification={verificationState}
+                  isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
+                  onComplete={verificationPolicy === 'auto' ? handleVerificationComplete : undefined}
+                />
+                {/* Manual verification gate: SRE triggers health check and marks resolved */}
+                {verificationPolicy === 'manual' && !workflow.verification?.outcome && (
+                  <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                    <FlexItem>
+                      <Button
+                        variant="primary"
+                        isDisabled={!isAgenticAutomationEnabled}
+                        onClick={handleVerificationComplete}
+                      >
+                        Approve verification
+                      </Button>
+                    </FlexItem>
+                  </Flex>
+                )}
+              </StackItem>
+              <StackItem>
+                <ExecutionSummaryCard plan={plan} executionLog={summaryExecutionLog} />
+              </StackItem>
+              <StackItem>
+                <VerificationSummaryCard plan={plan} verificationLog={summaryVerificationLog} />
+              </StackItem>
+            </Stack>
           ) : (
             <>
               {retryBanner && (
@@ -4816,6 +5298,11 @@ export const RemediationBlueprintPanel: React.FC<{
                   })}
                 </Stack>
               </div>
+
+              {/* ── Execution Summary Card (live during Executing phase) ─────── */}
+              {isExecuting && (
+                <ExecutionSummaryCard plan={plan} executionLog={summaryExecutionLog} />
+              )}
 
               {/* ── Execution policy: auto-queued status ─────────────────────── */}
               {isProposed && isAutoExecuteQueued && (
