@@ -4563,7 +4563,6 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── D. Proposed / executed commands ── */}
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-            <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
             <Content
               component="small"
               style={{
