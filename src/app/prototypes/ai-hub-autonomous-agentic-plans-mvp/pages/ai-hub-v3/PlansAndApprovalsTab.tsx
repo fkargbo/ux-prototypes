@@ -2490,7 +2490,7 @@ const RemediationOptionCard: React.FC<{
                   marginBottom: 'var(--pf-t--global--spacer--xs)',
                 }}
               >
-                PROPOSED AGENT COMMAND
+                PROPOSED AGENT COMMANDS
               </Content>
               <ClipboardCopy
                 isReadOnly

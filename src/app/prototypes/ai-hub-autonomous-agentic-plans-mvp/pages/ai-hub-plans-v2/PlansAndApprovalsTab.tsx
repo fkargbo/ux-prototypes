@@ -1806,6 +1806,22 @@ export type OptionDiagnosis = {
   rootCauseNarrative: string;
 };
 
+/**
+ * A single agent-proposed shell command with a category label and human-readable description.
+ * Backend field: options[].proposal.commands[].
+ */
+export interface AgentCommand {
+  /**
+   * Short category tag shown above the command block.
+   * Conventional values: 'pre-check' | 'mutation' | 'cleanup' | 'verification' | 'rollback'
+   */
+  label: string;
+  /** One-sentence explanation of what this command does and why. */
+  description: string;
+  /** The shell command to execute. */
+  command: string;
+}
+
 export interface RemediationOption {
   id: string;
   title: string;
@@ -1822,6 +1838,13 @@ export interface RemediationOption {
   /** Rollback assessment (backend: options[].proposal.reversible). */
   reversible: Reversibility;
   model: 'smart' | 'fast';
+  /**
+   * Structured command list (backend: options[].proposal.commands[]).
+   * When present, rendered as individually labeled command blocks with descriptions.
+   * Falls back to rawCommands for options not yet migrated to structured format.
+   */
+  commands?: AgentCommand[];
+  /** Legacy flat command string — used as fallback when commands is absent. */
   rawCommands: string;
 }
 
@@ -1947,8 +1970,23 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
     { id: 'ap7-o2', title: 'Temporary PDB suspension + manual ingress restart', description: 'Temporarily suspend the PodDisruptionBudget and manually restart ingress pods to restore the minimum replica count.', risk: 'medium', reversible: 'Partial', model: 'fast', rawCommands: 'oc rollout restart deployment/router-default -n openshift-ingress' },
   ],
   ap8: [
-    { id: 'ap8-o1', title: 'Set hostNetwork: false + mutating admission webhook', description: 'Patch the deployment to remove host network access and install a MutatingAdmissionWebhook to prevent future violations.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'" },
-    { id: 'ap8-o2', title: 'Force-delete non-compliant deployment', description: 'Immediately delete the offending deployment to eliminate the compliance violation — requires manual redeployment with a compliant spec.', risk: 'high', reversible: 'Irreversible', model: 'fast', rawCommands: "oc delete deployment -n production -l 'security.redhat.com/non-compliant=true'" },
+    {
+      id: 'ap8-o1', title: 'Set hostNetwork: false + mutating admission webhook', description: 'Patch the deployment to remove host network access and install a MutatingAdmissionWebhook to prevent future violations.', risk: 'medium', reversible: 'Reversible', model: 'smart',
+      rawCommands: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'",
+      commands: [
+        { label: 'pre-check', description: 'Verify the current SCC allowHostNetwork setting before patching', command: "oc get securitycontextconstraints restricted -o jsonpath='{.allowHostNetwork}'" },
+        { label: 'mutation', description: 'Patch the SecurityContextConstraints to deny host network access cluster-wide', command: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'" },
+        { label: 'mutation', description: 'Install a MutatingAdmissionWebhook to block future hostNetwork violations at admission time', command: 'oc apply -f - <<EOF\napiVersion: admissionregistration.k8s.io/v1\nkind: MutatingWebhookConfiguration\nmetadata:\n  name: hostnetwork-guard\nEOF' },
+      ],
+    },
+    {
+      id: 'ap8-o2', title: 'Force-delete non-compliant deployment', description: 'Immediately delete the offending deployment to eliminate the compliance violation — requires manual redeployment with a compliant spec.', risk: 'high', reversible: 'Irreversible', model: 'fast',
+      rawCommands: "oc delete deployment -n production -l 'security.redhat.com/non-compliant=true'",
+      commands: [
+        { label: 'pre-check', description: 'List deployments tagged as non-compliant before deletion', command: "oc get deployment -n production -l 'security.redhat.com/non-compliant=true'" },
+        { label: 'mutation', description: 'Delete all non-compliant deployments from the production namespace', command: "oc delete deployment -n production -l 'security.redhat.com/non-compliant=true'" },
+      ],
+    },
   ],
   ap9: [
     { id: 'ap9-o1', title: 'Kubelet GC cycle + containerd sandbox_cleanup_interval fix', description: 'Trigger a graceful Kubelet garbage collection pass and patch the containerd config to re-enable sandbox cleanup.', risk: 'low', reversible: 'Reversible', model: 'smart', rawCommands: 'oc adm prune deployments --keep-complete=5 --keep-failed=1 --keep-younger-than=60m' },
@@ -1973,20 +2011,78 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
     { id: 'ap15-o2', title: 'Direct manifest deletion by cluster-admin', description: 'Manually delete the 847 MB of unreferenced manifests using cluster-admin credentials, bypassing the pruner workflow.', risk: 'medium', reversible: 'Irreversible', model: 'fast', rawCommands: "oc delete istag -n production $(oc get istag -n production -o jsonpath='{.items[?(@.image.metadata.creationTimestamp<\"2026-01-01\")].metadata.name}')" },
   ],
   cp1: [
-    { id: 'cp1-o1', title: 'Supported minor upgrade 4.14 → 4.15 with rolling node cadence', description: 'Apply the ClusterVersion update to 4.15 using the supported upgrade graph with automated worker cordon, drain, and reboot sequencing.', risk: 'high', reversible: 'Irreversible', model: 'smart', rawCommands: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade' },
-    { id: 'cp1-o2', title: 'Preflight validation only (defer execution)', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane — defers execution until a maintenance window is approved.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
+    {
+      id: 'cp1-o1', title: 'Supported minor upgrade 4.14 → 4.15 with rolling node cadence', description: 'Apply the ClusterVersion update to 4.15 using the supported upgrade graph with automated worker cordon, drain, and reboot sequencing.', risk: 'high', reversible: 'Irreversible', model: 'smart',
+      rawCommands: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade',
+      commands: [
+        { label: 'pre-check', description: 'Verify all ClusterOperators are healthy and the upgrade path to 4.15 is available', command: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
+        { label: 'pre-check', description: 'Confirm etcd quorum and control plane health before initiating the upgrade', command: 'oc get etcd cluster -o jsonpath=\'{.status.conditions[?(@.type=="EtcdMembersAvailable")].status}\'' },
+        { label: 'mutation', description: 'Initiate rolling cluster upgrade to 4.15.8 via the supported upgrade graph with automated node cordon/drain', command: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade' },
+      ],
+    },
+    {
+      id: 'cp1-o2', title: 'Preflight validation only (defer execution)', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane — defers execution until a maintenance window is approved.', risk: 'low', reversible: 'Reversible', model: 'fast',
+      rawCommands: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client',
+      commands: [
+        { label: 'pre-check', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane', command: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
+      ],
+    },
   ],
   op2: [
-    { id: 'op2-o1', title: 'Rotate Alertmanager PagerDuty secret + rolling reload', description: 'Replace the expired PagerDuty integration key in the alertmanager-main secret and trigger a rolling reload of alertmanager pods in openshift-monitoring.', risk: 'low', reversible: 'Reversible', model: 'smart', rawCommands: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f - && oc rollout restart statefulset/alertmanager-main -n openshift-monitoring' },
-    { id: 'op2-o2', title: 'Temporarily disable PagerDuty receiver route', description: 'Silence the PagerDuty receiver in Alertmanager configuration to stop delivery failures while the integration token is rotated manually.', risk: 'medium', reversible: 'Partial', model: 'fast', rawCommands: 'oc patch secret alertmanager-main -n openshift-monitoring --type merge -p \'{"data":{"alertmanager.yaml":"<route with null receiver for pagerduty>"}}\' && oc delete pod alertmanager-main-0 -n openshift-monitoring' },
+    {
+      id: 'op2-o1', title: 'Rotate Alertmanager PagerDuty secret + rolling reload', description: 'Replace the expired PagerDuty integration key in the alertmanager-main secret and trigger a rolling reload of alertmanager pods in openshift-monitoring.', risk: 'low', reversible: 'Reversible', model: 'smart',
+      rawCommands: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f - && oc rollout restart statefulset/alertmanager-main -n openshift-monitoring',
+      commands: [
+        { label: 'mutation', description: 'Rotate the PagerDuty integration key in the alertmanager-main secret', command: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f -' },
+        { label: 'mutation', description: 'Trigger a rolling reload of Alertmanager pods to pick up the new integration secret', command: 'oc rollout restart statefulset/alertmanager-main -n openshift-monitoring' },
+      ],
+    },
+    {
+      id: 'op2-o2', title: 'Temporarily disable PagerDuty receiver route', description: 'Silence the PagerDuty receiver in Alertmanager configuration to stop delivery failures while the integration token is rotated manually.', risk: 'medium', reversible: 'Partial', model: 'fast',
+      rawCommands: 'oc patch secret alertmanager-main -n openshift-monitoring --type merge -p \'{"data":{"alertmanager.yaml":"<route with null receiver for pagerduty>"}}\' && oc delete pod alertmanager-main-0 -n openshift-monitoring',
+      commands: [
+        { label: 'mutation', description: 'Silence the PagerDuty receiver route in Alertmanager configuration to stop failed delivery attempts', command: 'oc patch secret alertmanager-main -n openshift-monitoring --type merge -p \'{"data":{"alertmanager.yaml":"<route with null receiver for pagerduty>"}}\'' },
+        { label: 'cleanup', description: 'Force-restart the Alertmanager pod to apply the silenced receiver configuration', command: 'oc delete pod alertmanager-main-0 -n openshift-monitoring' },
+      ],
+    },
   ],
   op3: [
-    { id: 'op3-o1', title: 'Quarantine corrupted block and restart compactor', description: 'Remove the corrupted TSDB block from thanos-compactor-data PVC and restart the compactor pod with a clean compaction window.', risk: 'medium', reversible: 'Partial', model: 'smart', rawCommands: 'oc scale statefulset/thanos-compactor --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring thanos-compactor-0 -- rm -rf /var/thanos/compact/data/01HX* && oc scale statefulset/thanos-compactor --replicas=1 -n openshift-monitoring' },
-    { id: 'op3-o2', title: 'Expand compactor PVC and force compaction', description: 'Resize the compactor persistent volume and run a forced compaction cycle — higher blast radius during PVC resize.', risk: 'high', reversible: 'Irreversible', model: 'fast', rawCommands: 'oc patch pvc/thanos-compactor-data -n openshift-monitoring -p \'{"spec":{"resources":{"requests":{"storage":"200Gi"}}}}\' && oc delete pod thanos-compactor-0 -n openshift-monitoring' },
+    {
+      id: 'op3-o1', title: 'Quarantine corrupted block and restart compactor', description: 'Remove the corrupted TSDB block from thanos-compactor-data PVC and restart the compactor pod with a clean compaction window.', risk: 'medium', reversible: 'Partial', model: 'smart',
+      rawCommands: 'oc scale statefulset/thanos-compactor --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring thanos-compactor-0 -- rm -rf /var/thanos/compact/data/01HX* && oc scale statefulset/thanos-compactor --replicas=1 -n openshift-monitoring',
+      commands: [
+        { label: 'pre-check', description: 'Scale Thanos compactor to zero to safely access the PVC without data corruption', command: 'oc scale statefulset/thanos-compactor --replicas=0 -n openshift-monitoring' },
+        { label: 'mutation', description: 'Remove the corrupted TSDB block from the compactor data volume', command: 'oc rsh -n openshift-monitoring thanos-compactor-0 -- rm -rf /var/thanos/compact/data/01HX*' },
+        { label: 'cleanup', description: 'Scale the compactor back up to resume compaction with a clean state', command: 'oc scale statefulset/thanos-compactor --replicas=1 -n openshift-monitoring' },
+      ],
+    },
+    {
+      id: 'op3-o2', title: 'Expand compactor PVC and force compaction', description: 'Resize the compactor persistent volume and run a forced compaction cycle — higher blast radius during PVC resize.', risk: 'high', reversible: 'Irreversible', model: 'fast',
+      rawCommands: 'oc patch pvc/thanos-compactor-data -n openshift-monitoring -p \'{"spec":{"resources":{"requests":{"storage":"200Gi"}}}}\' && oc delete pod thanos-compactor-0 -n openshift-monitoring',
+      commands: [
+        { label: 'mutation', description: 'Resize the thanos-compactor PVC to 200 GiB to accommodate compaction growth', command: 'oc patch pvc/thanos-compactor-data -n openshift-monitoring -p \'{"spec":{"resources":{"requests":{"storage":"200Gi"}}}}\'' },
+        { label: 'cleanup', description: 'Delete the compactor pod to force re-attachment and compaction restart on the resized PVC', command: 'oc delete pod thanos-compactor-0 -n openshift-monitoring' },
+      ],
+    },
   ],
   op5: [
-    { id: 'op5-o1', title: 'Clear stale Grafana SQLite WAL lock + controlled restart', description: 'Scale grafana to zero, remove the stale SQLite WAL lock file on the shared PVC, verify filesystem consistency, and restart the deployment.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal && oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
-    { id: 'op5-o2', title: 'Snapshot PVC then force WAL checkpoint', description: 'Take a volume snapshot of the Grafana PVC and run a forced SQLite checkpoint before clearing the lock — slower but preserves rollback capability.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: 'oc create -f grafana-pvc-snapshot.yaml && oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
+    {
+      id: 'op5-o1', title: 'Clear stale Grafana SQLite WAL lock + controlled restart', description: 'Scale grafana to zero, remove the stale SQLite WAL lock file on the shared PVC, verify filesystem consistency, and restart the deployment.', risk: 'medium', reversible: 'Reversible', model: 'smart',
+      rawCommands: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal && oc scale deployment/grafana --replicas=1 -n openshift-monitoring',
+      commands: [
+        { label: 'pre-check', description: 'Scale Grafana to zero to safely access the shared PVC without concurrent writes', command: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring' },
+        { label: 'mutation', description: 'Remove the stale SQLite WAL lock file that is preventing Grafana from starting', command: 'oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal' },
+        { label: 'cleanup', description: 'Restart Grafana deployment with a clean database lock state', command: 'oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
+      ],
+    },
+    {
+      id: 'op5-o2', title: 'Snapshot PVC then force WAL checkpoint', description: 'Take a volume snapshot of the Grafana PVC and run a forced SQLite checkpoint before clearing the lock — slower but preserves rollback capability.', risk: 'low', reversible: 'Reversible', model: 'fast',
+      rawCommands: 'oc create -f grafana-pvc-snapshot.yaml && oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"',
+      commands: [
+        { label: 'pre-check', description: 'Create a PVC snapshot of the Grafana volume before any mutation to preserve rollback capability', command: 'oc create -f grafana-pvc-snapshot.yaml' },
+        { label: 'mutation', description: 'Force a full SQLite WAL checkpoint to flush all pending writes and clear the stale lock', command: 'oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
+      ],
+    },
   ],
   'quota-exhaustion-escalating': [
     { id: 'quota-esc-o1', title: 'Grant scoped quota-editor ClusterRole binding to automation service account', description: 'Create a ClusterRole with resourcequotas patch permissions and bind it to the automation service account. This unblocks the agent from self-remediating future quota events without requiring full cluster-admin.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: `oc create clusterrole quota-editor --verb=get,list,watch,update,patch --resource=resourcequotas
@@ -3323,16 +3419,47 @@ const RemediationOptionCard: React.FC<{
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
                 color: 'var(--pf-t--global--text--color--subtle)',
-                marginBottom: 'var(--pf-t--global--spacer--xs)',
+                marginBottom: 'var(--pf-t--global--spacer--sm)',
               }}
             >
-              {isExecuting || isTerminal ? 'Executed command' : 'Proposed agent command'}
+              {isExecuting || isTerminal ? 'Executed commands' : 'Proposed agent commands'}
             </Content>
-            <ExpandableCodeBlock
-              id={`cmd-${option.id}`}
-              code={option.rawCommands}
-              codeStyle={{ fontSize: '12px' }}
-            />
+            {option.commands && option.commands.length > 0 ? (
+              <Stack hasGutter>
+                {option.commands.map((cmd, cmdIdx) => (
+                  <StackItem key={cmdIdx}>
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      gap={{ default: 'gapSm' }}
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                    >
+                      <FlexItem>
+                        <Label isCompact color="grey">{cmd.label}</Label>
+                      </FlexItem>
+                      <FlexItem>
+                        <Content
+                          component="small"
+                          style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                        >
+                          {cmd.description}
+                        </Content>
+                      </FlexItem>
+                    </Flex>
+                    <ExpandableCodeBlock
+                      id={`cmd-${option.id}-${cmdIdx}`}
+                      code={cmd.command}
+                      codeStyle={{ fontSize: '12px' }}
+                    />
+                  </StackItem>
+                ))}
+              </Stack>
+            ) : (
+              <ExpandableCodeBlock
+                id={`cmd-${option.id}`}
+                code={option.rawCommands}
+                codeStyle={{ fontSize: '12px' }}
+              />
+            )}
             {(onExecute || ((isProposed || isDenied || isEmergencyStopped) && rootCause)) && (
               <Flex
                 gap={{ default: 'gapSm' }}
