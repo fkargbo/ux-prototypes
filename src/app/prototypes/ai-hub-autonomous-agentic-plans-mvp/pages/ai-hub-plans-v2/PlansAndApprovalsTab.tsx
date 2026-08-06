@@ -3719,7 +3719,7 @@ const EscalationSummaryCard: React.FC<{
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
             <Content component="small" style={SECTION_OVERLINE_STYLE}>Escalation analysis</Content>
             {summary ? (
-              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
+              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6, listStyleType: 'disc' }}>
                 {summary.analysis.map((line, i) => (
                   <li key={i}>
                     <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{line}</Content>
@@ -3739,7 +3739,7 @@ const EscalationSummaryCard: React.FC<{
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
             <Content component="small" style={SECTION_OVERLINE_STYLE}>Recommended next steps</Content>
             {summary ? (
-              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
+              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6, listStyleType: 'disc' }}>
                 {summary.recommendedNextSteps.map((step, i) => (
                   <li key={i}>
                     <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{step}</Content>
@@ -3770,13 +3770,14 @@ const EscalationSummaryCard: React.FC<{
             <>
               <Divider style={{ margin: 'var(--pf-t--global--spacer--lg) 0' }} />
               <Flex
-                justifyContent={{ default: 'justifyContentFlexEnd' }}
+                justifyContent={{ default: 'justifyContentFlexStart' }}
                 gap={{ default: 'gapSm' }}
                 flexWrap={{ default: 'wrap' }}
+                alignItems={{ default: 'alignItemsCenter' }}
               >
                 <FlexItem>
-                  <Button variant="link" isInline onClick={onMarkResolved}>
-                    Mark resolved
+                  <Button variant="primary" onClick={onDispatch}>
+                    Dispatch escalation
                   </Button>
                 </FlexItem>
                 <FlexItem>
@@ -3785,8 +3786,8 @@ const EscalationSummaryCard: React.FC<{
                   </Button>
                 </FlexItem>
                 <FlexItem>
-                  <Button variant="primary" onClick={onDispatch}>
-                    Dispatch escalation
+                  <Button variant="link" isInline onClick={onMarkResolved}>
+                    Mark resolved
                   </Button>
                 </FlexItem>
               </Flex>
@@ -5255,15 +5256,6 @@ export const RemediationBlueprintPanel: React.FC<{
           </Alert>
         </StackItem>
       )}
-      {isEscalated && (
-        <StackItem>
-          <EscalationSummaryCard
-            plan={plan}
-            escalationLog={summaryEscalationLog}
-            escalationPolicy={escalationPolicy}
-          />
-        </StackItem>
-      )}
       {isDenied && (
         <StackItem>
           <DeniedPlanBanner onStartNewInvestigation={isAgenticAutomationEnabled ? onStartNewInvestigation : undefined} />
@@ -5808,6 +5800,17 @@ export const RemediationBlueprintPanel: React.FC<{
       {(isVerifying || isTerminal) && (
         <StackItem>
           <VerificationSummaryCard plan={plan} verificationLog={summaryVerificationLog} />
+        </StackItem>
+      )}
+
+      {/* ── Escalation Summary Card ─────────────────────────────────────── */}
+      {isEscalated && (
+        <StackItem>
+          <EscalationSummaryCard
+            plan={plan}
+            escalationLog={summaryEscalationLog}
+            escalationPolicy={escalationPolicy}
+          />
         </StackItem>
       )}
 
