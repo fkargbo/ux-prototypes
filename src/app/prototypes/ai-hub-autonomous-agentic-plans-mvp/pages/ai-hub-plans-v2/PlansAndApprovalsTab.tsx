@@ -2338,6 +2338,12 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
             { resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into compactor pod to remove the corrupted TSDB block', isWrite: true },
           ],
         },
+        clusterScope: {
+          rules: [
+            { resource: 'nodes', verbs: 'get, list', purpose: 'Check node disk pressure before scaling compactor — abort if storage is constrained', isWrite: false },
+            { resource: 'storageclasses (storage.k8s.io)', verbs: 'get', purpose: 'Verify the storage class supports ReadWriteOnce before PVC re-attachment', isWrite: false },
+          ],
+        },
       },
     },
     {
