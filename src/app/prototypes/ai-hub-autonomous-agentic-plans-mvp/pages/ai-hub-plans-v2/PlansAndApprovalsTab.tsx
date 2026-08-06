@@ -109,6 +109,7 @@ import {
   GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
   MVP_PLAN_IDS,
   normalizeTriggerDomain,
+  resolveOptionRollbackPlan,
 } from './plansMvpConstants';
 import { getPlanDetailHref, resolvePlanDomainAnnotations } from './domainPlanNavigation';
 import { downloadAnalysisReportMarkdown, downloadRemediationPlanMarkdown } from '../../utils/downloadRemediationPlan';
@@ -1807,6 +1808,29 @@ export type OptionDiagnosis = {
 };
 
 /**
+ * A single verification step run after remediation to confirm the fix is effective.
+ * Backend field: options[].proposal.verificationSteps[].
+ */
+export interface VerificationStep {
+  /** Short identifier used as a code-comment step label (e.g. 'alertmanager-ready'). */
+  id: string;
+  /** The shell command or query that confirms the remediation result. */
+  command: string;
+  /** Human-readable expected outcome displayed below the code block. */
+  expected: string;
+}
+
+/**
+ * Structured post-execution verification plan for a remediation option.
+ * Backend field: options[].proposal.verificationSteps.
+ */
+export interface OptionVerificationSteps {
+  /** Summary description shown below the section header. */
+  description: string;
+  steps: VerificationStep[];
+}
+
+/**
  * A single agent-proposed shell command with a category label and human-readable description.
  * Backend field: options[].proposal.commands[].
  */
@@ -1846,6 +1870,11 @@ export interface RemediationOption {
   commands?: AgentCommand[];
   /** Legacy flat command string — used as fallback when commands is absent. */
   rawCommands: string;
+  /**
+   * Post-execution verification steps (backend: options[].proposal.verificationSteps).
+   * Shown during the pre-execution review phase so operators know how success will be confirmed.
+   */
+  verificationSteps?: OptionVerificationSteps;
 }
 
 /**
@@ -1978,6 +2007,14 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         { label: 'mutation', description: 'Patch the SecurityContextConstraints to deny host network access cluster-wide', command: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'" },
         { label: 'mutation', description: 'Install a MutatingAdmissionWebhook to block future hostNetwork violations at admission time', command: 'oc apply -f - <<EOF\napiVersion: admissionregistration.k8s.io/v1\nkind: MutatingWebhookConfiguration\nmetadata:\n  name: hostnetwork-guard\nEOF' },
       ],
+      verificationSteps: {
+        description: 'Confirm the SCC patch is applied and no new hostNetwork deployments can be admitted to the cluster.',
+        steps: [
+          { id: 'scc-patched', command: "oc get securitycontextconstraints restricted -o jsonpath='{.allowHostNetwork}'", expected: "Expected: 'false' — confirming host network access is denied at the SCC level." },
+          { id: 'webhook-registered', command: 'oc get mutatingwebhookconfiguration hostnetwork-guard -o name', expected: "Expected: 'mutatingwebhookconfiguration.admissionregistration.k8s.io/hostnetwork-guard' — the admission webhook is registered and will block future violations." },
+          { id: 'no-active-violations', command: "oc get pods --all-namespaces -o json | jq '[.items[] | select(.spec.hostNetwork==true)] | length'", expected: "Expected: '0' — no running pods are using host networking outside of system-privileged namespaces." },
+        ],
+      },
     },
     {
       id: 'ap8-o2', title: 'Force-delete non-compliant deployment', description: 'Immediately delete the offending deployment to eliminate the compliance violation — requires manual redeployment with a compliant spec.', risk: 'high', reversible: 'Irreversible', model: 'fast',
@@ -1986,6 +2023,13 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         { label: 'pre-check', description: 'List deployments tagged as non-compliant before deletion', command: "oc get deployment -n production -l 'security.redhat.com/non-compliant=true'" },
         { label: 'mutation', description: 'Delete all non-compliant deployments from the production namespace', command: "oc delete deployment -n production -l 'security.redhat.com/non-compliant=true'" },
       ],
+      verificationSteps: {
+        description: 'Confirm all non-compliant deployments have been removed and no associated pods remain in the production namespace.',
+        steps: [
+          { id: 'deployments-removed', command: "oc get deployment -n production -l 'security.redhat.com/non-compliant=true' --no-headers | wc -l", expected: "Expected: '0' — no non-compliant deployments remain in the production namespace." },
+          { id: 'pods-terminated', command: "oc get pods -n production -l 'security.redhat.com/non-compliant=true' --no-headers | wc -l", expected: "Expected: '0' — all pods belonging to the deleted deployments have terminated." },
+        ],
+      },
     },
   ],
   ap9: [
@@ -2019,6 +2063,14 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         { label: 'pre-check', description: 'Confirm etcd quorum and control plane health before initiating the upgrade', command: 'oc get etcd cluster -o jsonpath=\'{.status.conditions[?(@.type=="EtcdMembersAvailable")].status}\'' },
         { label: 'mutation', description: 'Initiate rolling cluster upgrade to 4.15.8 via the supported upgrade graph with automated node cordon/drain', command: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade' },
       ],
+      verificationSteps: {
+        description: 'Confirm the cluster has upgraded to 4.15.8 and all ClusterOperators have recovered to an Available, non-degraded state.',
+        steps: [
+          { id: 'cluster-version', command: "oc get clusterversion version -o jsonpath='{.status.history[0].version}'", expected: "Expected: '4.15.8' — confirming the active cluster version matches the requested upgrade target." },
+          { id: 'operators-available', command: "oc get clusteroperators --no-headers | awk '{print $3, $4, $5}' | sort | uniq -c", expected: "Expected: All ClusterOperators report 'True False False' (Available=True, Progressing=False, Degraded=False). No degraded operators should remain." },
+          { id: 'nodes-ready', command: "oc get nodes --no-headers | awk '{print $2}' | sort | uniq -c", expected: "Expected: All nodes report 'Ready'. No nodes should remain in 'NotReady' or 'SchedulingDisabled' state after upgrade completion." },
+        ],
+      },
     },
     {
       id: 'cp1-o2', title: 'Preflight validation only (defer execution)', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane — defers execution until a maintenance window is approved.', risk: 'low', reversible: 'Reversible', model: 'fast',
@@ -2026,6 +2078,12 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       commands: [
         { label: 'pre-check', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane', command: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
       ],
+      verificationSteps: {
+        description: 'Confirm the preflight dry-run completed without fatal errors and the cluster is in a state ready for an upgrade execution window.',
+        steps: [
+          { id: 'preflight-exit-code', command: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client; echo "Preflight exit: $?"', expected: "Expected: Exit code 0 with no ClusterOperator degradation warnings — the upgrade path is validated and clear for a production run." },
+        ],
+      },
     },
   ],
   op2: [
@@ -2036,6 +2094,14 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         { label: 'mutation', description: 'Rotate the PagerDuty integration key in the alertmanager-main secret', command: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f -' },
         { label: 'mutation', description: 'Trigger a rolling reload of Alertmanager pods to pick up the new integration secret', command: 'oc rollout restart statefulset/alertmanager-main -n openshift-monitoring' },
       ],
+      verificationSteps: {
+        description: 'Confirm the secret is updated and Alertmanager is delivering notifications to PagerDuty without delivery failures.',
+        steps: [
+          { id: 'secret-updated', command: "oc get secret alertmanager-pagerduty -n openshift-monitoring -o jsonpath='{.metadata.resourceVersion}'", expected: "Expected: A new resourceVersion value — confirming the secret was replaced with the rotated PagerDuty integration key." },
+          { id: 'alertmanager-ready', command: 'oc rollout status statefulset/alertmanager-main -n openshift-monitoring --timeout=3m', expected: "Expected: 'statefulset rolling update complete 3 pods at revision alertmanager-main-...' — all pods restarted and are running with the new secret." },
+          { id: 'no-delivery-errors', command: "oc logs -n openshift-monitoring alertmanager-main-0 --since=2m | grep -i 'pagerduty.*error\\|failed.*pagerduty' || echo 'none'", expected: "Expected: 'none' — no PagerDuty delivery error lines in the 2-minute window following the rolling restart." },
+        ],
+      },
     },
     {
       id: 'op2-o2', title: 'Temporarily disable PagerDuty receiver route', description: 'Silence the PagerDuty receiver in Alertmanager configuration to stop delivery failures while the integration token is rotated manually.', risk: 'medium', reversible: 'Partial', model: 'fast',
@@ -2044,6 +2110,13 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         { label: 'mutation', description: 'Silence the PagerDuty receiver route in Alertmanager configuration to stop failed delivery attempts', command: 'oc patch secret alertmanager-main -n openshift-monitoring --type merge -p \'{"data":{"alertmanager.yaml":"<route with null receiver for pagerduty>"}}\'' },
         { label: 'cleanup', description: 'Force-restart the Alertmanager pod to apply the silenced receiver configuration', command: 'oc delete pod alertmanager-main-0 -n openshift-monitoring' },
       ],
+      verificationSteps: {
+        description: 'Confirm the PagerDuty receiver has been silenced and delivery failure errors are no longer appearing in Alertmanager logs.',
+        steps: [
+          { id: 'pagerduty-route-silenced', command: "oc get secret alertmanager-main -n openshift-monitoring -o jsonpath='{.data.alertmanager\\.yaml}' | base64 -d | grep -i pagerduty", expected: "Expected: The PagerDuty receiver is absent or routes to a null receiver — no delivery attempts in the next alert evaluation cycle." },
+          { id: 'alertmanager-error-rate', command: "oc logs -n openshift-monitoring alertmanager-main-0 --since=3m | grep -i 'pagerduty\\|error\\|failed' || echo 'none'", expected: "Expected: 'none' — no new PagerDuty delivery error lines in the 3-minute window after the pod restart." },
+        ],
+      },
     },
   ],
   op3: [
@@ -2055,6 +2128,14 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         { label: 'mutation', description: 'Remove the corrupted TSDB block from the compactor data volume', command: 'oc rsh -n openshift-monitoring thanos-compactor-0 -- rm -rf /var/thanos/compact/data/01HX*' },
         { label: 'cleanup', description: 'Scale the compactor back up to resume compaction with a clean state', command: 'oc scale statefulset/thanos-compactor --replicas=1 -n openshift-monitoring' },
       ],
+      verificationSteps: {
+        description: 'Confirm the corrupted TSDB block is removed and the compactor has resumed processing without errors.',
+        steps: [
+          { id: 'block-removed', command: "oc rsh -n openshift-monitoring thanos-compactor-0 -- ls /var/thanos/compact/data/ | grep 01HX || echo 'none'", expected: "Expected: 'none' — the quarantined TSDB block is no longer present in the compactor data volume." },
+          { id: 'compactor-running', command: 'oc rollout status statefulset/thanos-compactor -n openshift-monitoring --timeout=2m', expected: "Expected: 'statefulset rolling update complete 1 pods at revision thanos-compactor-...' — the compactor pod is running with a clean compaction state." },
+          { id: 'compaction-healthy', command: "oc logs -n openshift-monitoring thanos-compactor-0 --since=5m | grep -iE 'error|corrupted|failed' || echo 'no errors'", expected: "Expected: 'no errors' — no corruption or compaction failure entries in the first 5 minutes after restart." },
+        ],
+      },
     },
     {
       id: 'op3-o2', title: 'Expand compactor PVC and force compaction', description: 'Resize the compactor persistent volume and run a forced compaction cycle — higher blast radius during PVC resize.', risk: 'high', reversible: 'Irreversible', model: 'fast',
@@ -2063,6 +2144,13 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         { label: 'mutation', description: 'Resize the thanos-compactor PVC to 200 GiB to accommodate compaction growth', command: 'oc patch pvc/thanos-compactor-data -n openshift-monitoring -p \'{"spec":{"resources":{"requests":{"storage":"200Gi"}}}}\'' },
         { label: 'cleanup', description: 'Delete the compactor pod to force re-attachment and compaction restart on the resized PVC', command: 'oc delete pod thanos-compactor-0 -n openshift-monitoring' },
       ],
+      verificationSteps: {
+        description: 'Confirm the PVC has been resized and the compactor restarted cleanly on the new storage allocation.',
+        steps: [
+          { id: 'pvc-resized', command: "oc get pvc thanos-compactor-data -n openshift-monitoring -o jsonpath='{.status.capacity.storage}'", expected: "Expected: '200Gi' — confirming the PVC has been resized to the target capacity." },
+          { id: 'compactor-running', command: 'oc rollout status statefulset/thanos-compactor -n openshift-monitoring --timeout=2m', expected: "Expected: 'statefulset rolling update complete' — the compactor pod has restarted and is attached to the resized volume." },
+        ],
+      },
     },
   ],
   op5: [
@@ -2074,6 +2162,14 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         { label: 'mutation', description: 'Remove the stale SQLite WAL lock file that is preventing Grafana from starting', command: 'oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal' },
         { label: 'cleanup', description: 'Restart Grafana deployment with a clean database lock state', command: 'oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
       ],
+      verificationSteps: {
+        description: 'Confirm the WAL lock is removed and Grafana is accessible and serving dashboards without database errors.',
+        steps: [
+          { id: 'wal-lock-removed', command: "oc rsh -n openshift-monitoring grafana-debug -- ls /var/lib/grafana/ | grep grafana.db-wal || echo 'none'", expected: "Expected: 'none' — the stale SQLite WAL lock file has been removed from the Grafana PVC." },
+          { id: 'grafana-ready', command: 'oc rollout status deployment/grafana -n openshift-monitoring --timeout=3m', expected: "Expected: 'deployment grafana successfully rolled out' — Grafana is running and ready to serve dashboard requests." },
+          { id: 'grafana-health', command: "oc exec -n openshift-monitoring deploy/grafana -- curl -sf http://localhost:3000/api/health", expected: "Expected: '{\"database\": \"ok\", \"health\": \"ok\"}' — Grafana health endpoint confirms the database layer is healthy." },
+        ],
+      },
     },
     {
       id: 'op5-o2', title: 'Snapshot PVC then force WAL checkpoint', description: 'Take a volume snapshot of the Grafana PVC and run a forced SQLite checkpoint before clearing the lock — slower but preserves rollback capability.', risk: 'low', reversible: 'Reversible', model: 'fast',
@@ -2082,6 +2178,14 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         { label: 'pre-check', description: 'Create a PVC snapshot of the Grafana volume before any mutation to preserve rollback capability', command: 'oc create -f grafana-pvc-snapshot.yaml' },
         { label: 'mutation', description: 'Force a full SQLite WAL checkpoint to flush all pending writes and clear the stale lock', command: 'oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
       ],
+      verificationSteps: {
+        description: 'Confirm the PVC snapshot was created successfully and the WAL checkpoint completed without leaving residual lock frames.',
+        steps: [
+          { id: 'snapshot-ready', command: "oc get volumesnapshot grafana-pvc-snapshot -n openshift-monitoring -o jsonpath='{.status.readyToUse}'", expected: "Expected: 'true' — the PVC snapshot is ready and available as a rollback point if subsequent steps fail." },
+          { id: 'wal-checkpoint-done', command: 'oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);" 2>&1', expected: "Expected: '0 N 0' — blocked_count=0 confirms no writers are blocked; all WAL frames have been checkpointed to the main database file." },
+          { id: 'grafana-ready', command: 'oc rollout status deployment/grafana -n openshift-monitoring --timeout=3m', expected: "Expected: 'deployment grafana successfully rolled out' — Grafana is running without SQLite lock contention." },
+        ],
+      },
     },
   ],
   'quota-exhaustion-escalating': [
@@ -3492,7 +3596,105 @@ const RemediationOptionCard: React.FC<{
             )}
           </div>
 
-          {/* ── D. Logs (expandable): execution + verification evidence trail ── */}
+          {/* ── D. Rollback plan — shown during pre-execution review ── */}
+          {(isProposed || isDenied || isEmergencyStopped) && (() => {
+            const rollback = resolveOptionRollbackPlan(plan.id, option);
+            if (!rollback) return null;
+            return (
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                <Content
+                  component="small"
+                  style={{
+                    display: 'block',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    color: 'var(--pf-t--global--text--color--subtle)',
+                    marginBottom: 'var(--pf-t--global--spacer--sm)',
+                  }}
+                >
+                  Rollback plan
+                </Content>
+                <Content
+                  component="p"
+                  style={{
+                    fontSize: '0.875rem',
+                    marginBottom: rollback.command ? 'var(--pf-t--global--spacer--sm)' : 0,
+                  }}
+                >
+                  {rollback.description}
+                </Content>
+                {rollback.command && (
+                  <ExpandableCodeBlock
+                    id={`rollback-${option.id}`}
+                    code={rollback.command}
+                    codeStyle={{ fontSize: '12px' }}
+                  />
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── E. Verification steps — shown during pre-execution review ── */}
+          {(isProposed || isDenied || isEmergencyStopped) && option.verificationSteps && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Content
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 'var(--pf-t--global--spacer--sm)',
+                }}
+              >
+                Verification steps
+              </Content>
+              <Content
+                component="p"
+                style={{ fontSize: '0.875rem', marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                {option.verificationSteps.description}
+              </Content>
+              <Stack hasGutter>
+                {option.verificationSteps.steps.map((step, stepIdx) => (
+                  <StackItem key={stepIdx}>
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        fontWeight: 600,
+                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        marginBottom: 'var(--pf-t--global--spacer--xs)',
+                      }}
+                    >
+                      {step.id}
+                    </Content>
+                    <ExpandableCodeBlock
+                      id={`verify-${option.id}-${stepIdx}`}
+                      code={step.command}
+                      codeStyle={{ fontSize: '12px' }}
+                    />
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        marginTop: 'var(--pf-t--global--spacer--xs)',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {step.expected}
+                    </Content>
+                  </StackItem>
+                ))}
+              </Stack>
+            </div>
+          )}
+
+          {/* ── F. Logs (expandable): execution + verification evidence trail ── */}
           {showEvidenceTrail && (
             <EvidenceLogsSection
               idPrefix={option.id}
