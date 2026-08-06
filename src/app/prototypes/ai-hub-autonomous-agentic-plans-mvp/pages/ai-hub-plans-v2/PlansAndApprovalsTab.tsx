@@ -3318,7 +3318,7 @@ const ExecutionSummaryCard: React.FC<{
         gap={{ default: 'gapSm' }}
         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
       >
-        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Execution</Title>
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Execution summary</Title>
       </Flex>
       <Card style={{ borderRadius: '16px' }}>
       <CardBody>
@@ -4864,6 +4864,7 @@ export const RemediationBlueprintPanel: React.FC<{
   );
 
   return (
+    <>
     <Stack style={{ gap: '24px' }}>
       {/* ── Page heading + AI disclaimer ────────────────────────────────── */}
       <StackItem>
@@ -5519,36 +5520,6 @@ export const RemediationBlueprintPanel: React.FC<{
         </StackItem>
       )}
 
-      {/* ── Stop analysis modal (button trigger is in TriggerRequestSection header) ── */}
-      <StackItem>
-        <Modal
-          variant={ModalVariant.small}
-          isOpen={isStopAnalysisModalOpen}
-          onClose={() => setIsStopAnalysisModalOpen(false)}
-          aria-labelledby="stop-plan-analysis-title"
-        >
-          <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
-          <ModalBody>
-            This halts root cause investigation for this run. Partial findings are preserved but no
-            remediation options will be synthesized.
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              variant="danger"
-              onClick={() => {
-                registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
-                setIsStopAnalysisModalOpen(false);
-              }}
-            >
-              Yes, stop analysis
-            </Button>
-            <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
-              Cancel
-            </Button>
-          </ModalFooter>
-        </Modal>
-      </StackItem>
-
       {/* ── Execution Summary Card ─────────────────────────────────────── */}
       {(isExecuting || isVerifying || isTerminal) && (
         <StackItem>
@@ -5581,6 +5552,35 @@ export const RemediationBlueprintPanel: React.FC<{
         />
       </StackItem>
     </Stack>
+
+    {/* Stop analysis modal — rendered as a portal; lives outside Stack to avoid adding a gap slot */}
+    <Modal
+      variant={ModalVariant.small}
+      isOpen={isStopAnalysisModalOpen}
+      onClose={() => setIsStopAnalysisModalOpen(false)}
+      aria-labelledby="stop-plan-analysis-title"
+    >
+      <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
+      <ModalBody>
+        This halts root cause investigation for this run. Partial findings are preserved but no
+        remediation options will be synthesized.
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          variant="danger"
+          onClick={() => {
+            registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+            setIsStopAnalysisModalOpen(false);
+          }}
+        >
+          Yes, stop analysis
+        </Button>
+        <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </Modal>
+    </>
   );
 };
 
