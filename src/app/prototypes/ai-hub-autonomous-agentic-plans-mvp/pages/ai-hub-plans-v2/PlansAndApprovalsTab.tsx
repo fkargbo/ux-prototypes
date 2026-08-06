@@ -8,6 +8,7 @@ import {
   CardHeader,
   Checkbox,
   Content,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -3454,7 +3455,7 @@ const RemediationOptionCard: React.FC<{
         <CardBody className="ols-remediation-option-card__body">
           {/* ── A. Approval metadata (post-approval evidence trail; status now lives top-right in the header) ── */}
           {(isExecuting || isTerminal) && !isExecutionKilled && approval && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
               <Content component="small" className="ols-aio-text-subtle-sm" style={{ display: 'block' }}>
                 Execution approved by {approval.approvedBy} · {approval.approvedAt}
               </Content>
@@ -3465,7 +3466,7 @@ const RemediationOptionCard: React.FC<{
             <Content
               component="p"
               className="ols-aio-text-subtle-sm"
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
             >
               {option.description}
             </Content>
@@ -3473,7 +3474,7 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── B. Root cause analysis (per-option; backend: options[].diagnosis) — OLS-3724 ── */}
           {rootCause && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
               <Content
                 component="small"
                 style={{
@@ -3482,7 +3483,7 @@ const RemediationOptionCard: React.FC<{
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
                   color: 'var(--pf-t--global--text--color--subtle)',
-                  marginBottom: 'var(--pf-t--global--spacer--xs)',
+                  marginBottom: 'var(--pf-t--global--spacer--sm)',
                 }}
               >
                 Root cause analysis
@@ -3514,7 +3515,8 @@ const RemediationOptionCard: React.FC<{
           )}
 
           {/* ── C. Proposed / executed commands ── */}
-          <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+            <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
             <Content
               component="small"
               style={{
@@ -3600,7 +3602,8 @@ const RemediationOptionCard: React.FC<{
             const rollback = resolveOptionRollbackPlan(plan.id, option);
             if (!rollback) return null;
             return (
-              <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+                <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
                 <Content
                   component="small"
                   style={{
@@ -3636,7 +3639,8 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── E. Verification steps — shown after execution ── */}
           {showEvidenceTrail && option.verificationSteps && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
               <Content
                 component="small"
                 style={{
@@ -3695,16 +3699,19 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── F. Logs (expandable): execution + verification evidence trail ── */}
           {showEvidenceTrail && (
-            <EvidenceLogsSection
-              idPrefix={option.id}
-              executionLogText={executionLogText}
-              verificationLogText={verificationLogText}
-            />
+            <div>
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+              <EvidenceLogsSection
+                idPrefix={option.id}
+                executionLogText={executionLogText}
+                verificationLogText={verificationLogText}
+              />
+            </div>
           )}
 
           {/* ── G. Card footer — Download plan (post-execution only) ── */}
           {showEvidenceTrail && rootCause && (
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--md)', borderTop: '1px solid var(--pf-t--global--border--color--default)', paddingTop: 'var(--pf-t--global--spacer--sm)' }}>
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)', borderTop: '1px solid var(--pf-t--global--border--color--default)', paddingTop: 'var(--pf-t--global--spacer--md)' }}>
               <Button
                 variant="link"
                 icon={<RhUiDownloadIcon />}
