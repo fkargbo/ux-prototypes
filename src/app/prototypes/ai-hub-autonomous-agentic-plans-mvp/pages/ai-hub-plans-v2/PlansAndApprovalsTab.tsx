@@ -403,6 +403,12 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-ingress',
   },
+  'op5-manual-escalation': {
+    name: 'grafana-wal-lock-escalated',
+    synopsis: 'Grafana WAL lock recovery escalated after 3 failed execution attempts due to template rendering failure',
+    fleetCluster: 'prod-east-1',
+    namespace: 'openshift-monitoring',
+  },
   'prometheus-wal-emergency-stopped': {
     name: 'prometheus-wal-repair-emergency-stopped',
     synopsis: 'Prometheus write-ahead log repair halted by emergency stop during active write window',
@@ -858,6 +864,20 @@ const ALL_PLANS: RawPlanRow[] = [
     expandedReasons: [
       { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: automated scale-out failed after 2 execution attempts.' },
       { icon: 'ban', text: 'Escalation triggered: MaxRetriesExhausted — requires manual operator intervention.' },
+    ],
+  },
+  {
+    id: 'op5-manual-escalation',
+    severity: 'critical',
+    status: 'Escalated',
+    score: 79,
+    synopsis: 'Grafana Database WAL Lock Recovery Escalated',
+    consolidationScope: '3 Failed Execution Attempts',
+    triggerDomain: 'Observability',
+    drawerTargets: ['openshift-monitoring'],
+    expandedReasons: [
+      { icon: 'alert', text: 'GrafanaDown: Grafana startup blocked by stale SQLite WAL lock on PVC.' },
+      { icon: 'ban', text: 'MaxRetriesExhausted: escalation_request.tmpl type mismatch on StepResultRef — manual policy paused handoff.' },
     ],
   },
   {
@@ -1711,6 +1731,34 @@ status:
     requests.cpu: "3800m"
     requests.memory: "7680Mi"`,
   },
+  'op5-manual-escalation': {
+    steps: [
+      { id: 's1', time: '09:14:33', status: 'done', icon: 'exclamation', title: 'GrafanaDown alert fired', detail: 'Grafana pod CrashLoopBackOff — stale SQLite WAL lock detected on PVC' },
+      { id: 's2', time: '09:14:47', status: 'alert', icon: 'database', title: 'Execution attempt 1 — failed', detail: 'Template rendering error: escalation_request.tmpl:9 type mismatch on StepResultRef' },
+      { id: 's3', time: '09:15:12', status: 'alert', icon: 'database', title: 'Execution attempt 2 — failed', detail: 'Same template error; StepResultRef.Success field does not exist in v1alpha1 API' },
+      { id: 's4', time: '09:15:37', status: 'alert', icon: 'database', title: 'Execution attempt 3 — failed', detail: 'MaxRetriesExhausted: template error uncorrected across all attempts' },
+      { id: 's5', time: '09:15:45', status: 'alert', icon: 'exclamation', title: 'Manual escalation policy — handoff paused', detail: 'Awaiting SRE confirmation before dispatching to external channels' },
+    ],
+    aggregatedFinding: 'Grafana startup is blocked by a stale SQLite WAL lock file on the PVC. Three automated execution attempts failed due to a Go template rendering error in the escalation pipeline.',
+    rootCauseNarrative: 'A stale SQLite WAL lock file (grafana.db-wal) is preventing Grafana from initializing. Three consecutive automated execution attempts failed because the escalation request template (escalation_request.tmpl) attempts to access a non-existent Success field on a v1alpha1.StepResultRef value. This rendering failure prevents the escalation payload from being generated, blocking handoff to external channels. The manual escalation policy has paused automatic dispatch, awaiting SRE confirmation.',
+    remediationProposal: 'Fix the Go template rendering failure in escalation_request.tmpl, then manually dispatch the escalation or retry the execution after correcting the template/data model mismatch.',
+    riskAssessment: 'Low — WAL lock removal is non-destructive. Template bug must be fixed independently.',
+    estimatedRecovery: '~5m (WAL lock removal) + template fix time',
+    confidence: 'High',
+    rawEvidence: `// Grafana pod status
+NAME                    READY   STATUS             RESTARTS   AGE
+grafana-6d9c8b7-k2pmf   0/1     CrashLoopBackOff   12         47m
+
+// Template rendering error (escalation controller logs)
+ERROR escalation template rendering failed {"template":"escalation_request.tmpl","error":"template: escalation_request.tmpl:9:22: executing \\"escalation_request.tmpl\\" at <.Success>: can't evaluate field Success in type v1alpha1.StepResultRef"}
+
+// StepResultRef type (v1alpha1/proposal_types.go excerpt)
+type StepResultRef struct {
+    StepName string \`json:"stepName"\`
+    Phase    string \`json:"phase"\`
+    // Note: there is no 'Success' field — use .Phase == "Succeeded" instead
+}`,
+  },
   'prometheus-wal-emergency-stopped': {
     steps: [
       { id: 's1', time: '02:07:15', status: 'done', icon: 'exclamation', title: 'PrometheusWALCorruptionDetected alert fired', detail: 'Write-ahead log corruption markers on prometheus-k8s-0' },
@@ -1861,6 +1909,16 @@ export interface VerificationSummaryData {
   /** Bulleted outcome statements rendered as an assessment list. */
   outcomeAssessment: string[];
   checks: VerificationCheck[];
+}
+
+/** AI-generated analysis explaining why automated execution halted and what to do next. */
+export interface EscalationSummaryData {
+  /** Bulleted list explaining the root cause of the escalation failure path. */
+  analysis: string[];
+  /** Bulleted list of recommended manual steps to resolve the escalation. */
+  recommendedNextSteps: string[];
+  /** External channels the agent automatically dispatched to (auto policy only). */
+  dispatchedTargets?: string[];
 }
 
 /**
@@ -2609,6 +2667,52 @@ const PLAN_VERIFICATION_SUMMARY: Record<string, VerificationSummaryData> = {
   },
 };
 
+const PLAN_ESCALATION_SUMMARY: Record<string, EscalationSummaryData> = {
+  'ingress-controller-escalated': {
+    analysis: [
+      'Ingress controller replica count dropped to 1 after a node eviction on worker-bm-03.',
+      'Two consecutive automated scale-out executions failed: openshift-ingress namespace quota hard ceiling reached (pods=10/10).',
+      'MaxRetriesExhausted threshold reached after 2 failed attempts — escalation automatically dispatched under automatic policy.',
+      'Escalation payload routed to PagerDuty (P2) and ServiceNow (INC-0087342).',
+    ],
+    recommendedNextSteps: [
+      'Increase the openshift-ingress ResourceQuota pod limit from 10 to at least 14.',
+      'Re-trigger the ingress controller scale-out remediation after quota adjustment.',
+      'Review PagerDuty incident and ServiceNow ticket for on-call acknowledgement.',
+      'Update quota governance policy to prevent quota ceiling from blocking ingress-class scale events.',
+    ],
+    dispatchedTargets: ['PagerDuty — P2 incident created', 'ServiceNow — INC-0087342 opened'],
+  },
+  'quota-exhaustion-escalating': {
+    analysis: [
+      'Namespace quota exhaustion detected across 3 namespaces: production, staging, and shared-services.',
+      'Automated quota expansion retries failed — cluster-level resource ceiling prevents in-place quota increases.',
+      'Escalating to human operator for manual cluster resource governance review.',
+    ],
+    recommendedNextSteps: [
+      'Review cluster-level LimitRange and ResourceQuota policies across affected namespaces.',
+      'Coordinate with cluster administrator to adjust node capacity or redistribute workloads.',
+      'Consider implementing VPA or horizontal autoscaling for workloads hitting quota limits.',
+    ],
+    dispatchedTargets: [],
+  },
+  'op5-manual-escalation': {
+    analysis: [
+      'Failure is in the escalation rendering path, not in the Grafana pod or WAL lock itself.',
+      'escalation_request.tmpl tries to access .Success on a value of type v1alpha1.StepResultRef.',
+      'Go template execution fails because StepResultRef does not expose a Success field.',
+      'Result: the escalation request cannot be generated, so prior failed attempts are not being packaged for handoff.',
+    ],
+    recommendedNextSteps: [
+      'Check the v1alpha1.StepResultRef type definition and confirm the intended field or method.',
+      'Fix escalation_request.tmpl line 9 to use a valid property (e.g. .Phase == "Succeeded"), or pass the full step result object instead of a reference.',
+      'Add a template/unit test that renders escalation_request.tmpl with a real StepResultRef payload.',
+      'Re-run escalation generation after the template/data-model mismatch is corrected.',
+    ],
+    dispatchedTargets: [],
+  },
+};
+
 const formatExecutionKillTimestamp = (date: Date): string =>
   date.toLocaleString('en-US', {
     month: 'short',
@@ -3221,6 +3325,26 @@ const PlansTable: React.FC<PlansTableProps> = ({
  * Shared by `RemediationOptionCard` and the option-less terminal fallback
  * (autonomous runs with no modeled remediation options — see `TerminalEvidenceCard`).
  */
+/** Generates deterministic simulated escalation log lines for the escalation logs panel. */
+function generateEscalationLogs(planId: string): string {
+  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const ts = (offset: number) => {
+    const rawSec = (h % 60) + 5 + offset;
+    const m = String(14 + (h % 20) + Math.floor(rawSec / 60)).padStart(2, '0');
+    const s = String(rawSec % 60).padStart(2, '0');
+    return `2026-07-02T09:${m}:${s}.000000000Z`;
+  };
+  return [
+    `${ts(0)}  INFO [escalation]  Starting escalation pipeline — plan_id=${planId}`,
+    `${ts(1)}  INFO [escalation]  Max retries exhausted (attempts=3) — triggering escalation path`,
+    `${ts(2)}  INFO [escalation]  Loading escalation_request.tmpl...`,
+    `${ts(3)}  ERROR[escalation]  Template rendering failed: escalation_request.tmpl:9 type mismatch on StepResultRef`,
+    `${ts(4)}  WARN [escalation]  Cannot generate escalation payload — template execution aborted`,
+    `${ts(5)}  INFO [escalation]  Escalation policy=manual — handoff paused, awaiting SRE confirmation`,
+    `${ts(6)}  INFO [escalation]  Escalation request queued — status=AwaitingAction, plan_id=${planId}`,
+  ].join('\n');
+}
+
 const EVIDENCE_HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
 
 // ─── Shared log-expandable used in Execution & Verification summary cards ────
@@ -3538,6 +3662,138 @@ const VerificationSummaryCard: React.FC<{
         )}
       </CardBody>
     </Card>
+    </>
+  );
+};
+
+// ─── Escalation Summary Card ──────────────────────────────────────────────────
+
+const EscalationSummaryCard: React.FC<{
+  plan: PlanRow;
+  escalationLog: string;
+  escalationPolicy: 'manual' | 'auto';
+  onDispatch?: () => void;
+  onRetry?: () => void;
+  onMarkResolved?: () => void;
+}> = ({ plan, escalationLog, escalationPolicy, onDispatch, onRetry, onMarkResolved }) => {
+  const summary = PLAN_ESCALATION_SUMMARY[plan.id];
+  const isAutoPolicy = escalationPolicy === 'auto';
+  const hasDispatched = isAutoPolicy && summary?.dispatchedTargets && summary.dispatchedTargets.length > 0;
+
+  const statusBadge = hasDispatched
+    ? <Label color="red" isCompact>Dispatched</Label>
+    : <Label color="orange" isCompact>Awaiting Action</Label>;
+
+  return (
+    <>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      >
+        <ExclamationTriangleIcon
+          style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)' }}
+          aria-hidden
+        />
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Escalation summary</Title>
+        <Label color="grey" isCompact>AI-generated</Label>
+        {statusBadge}
+      </Flex>
+      <Card style={{ borderRadius: '16px' }}>
+        <CardBody>
+          {/* ── Dispatched targets (auto policy only) ── */}
+          {hasDispatched && summary.dispatchedTargets!.length > 0 && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>Dispatched to</Content>
+              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
+                {summary.dispatchedTargets!.map((target, i) => (
+                  <li key={i}>
+                    <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{target}</Content>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* ── Escalation analysis ── */}
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+            <Content component="small" style={SECTION_OVERLINE_STYLE}>Escalation analysis</Content>
+            {summary ? (
+              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
+                {summary.analysis.map((line, i) => (
+                  <li key={i}>
+                    <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{line}</Content>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                Escalation analysis is being generated…
+              </Content>
+            )}
+          </div>
+
+          <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+
+          {/* ── Recommended next steps ── */}
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+            <Content component="small" style={SECTION_OVERLINE_STYLE}>Recommended next steps</Content>
+            {summary ? (
+              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
+                {summary.recommendedNextSteps.map((step, i) => (
+                  <li key={i}>
+                    <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{step}</Content>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                Generating recommended next steps…
+              </Content>
+            )}
+          </div>
+
+          {/* ── Log footer ── */}
+          {escalationLog && (
+            <>
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+              <LogExpandable
+                idPrefix={`escal-log-${plan.id}`}
+                toggleText="View escalation logs"
+                logText={escalationLog}
+              />
+            </>
+          )}
+
+          {/* ── Manual policy action bar ── */}
+          {!isAutoPolicy && (
+            <>
+              <Divider style={{ margin: 'var(--pf-t--global--spacer--lg) 0' }} />
+              <Flex
+                justifyContent={{ default: 'justifyContentFlexEnd' }}
+                gap={{ default: 'gapSm' }}
+                flexWrap={{ default: 'wrap' }}
+              >
+                <FlexItem>
+                  <Button variant="link" isInline onClick={onMarkResolved}>
+                    Mark resolved
+                  </Button>
+                </FlexItem>
+                <FlexItem>
+                  <Button variant="secondary" onClick={onRetry}>
+                    Retry run
+                  </Button>
+                </FlexItem>
+                <FlexItem>
+                  <Button variant="primary" onClick={onDispatch}>
+                    Dispatch escalation
+                  </Button>
+                </FlexItem>
+              </Flex>
+            </>
+          )}
+        </CardBody>
+      </Card>
     </>
   );
 };
@@ -4367,6 +4623,17 @@ const ESCALATED_PLAN_PLAYBOOKS: Record<string, { title: string; command: string 
     command:
       "oc patch resourcequota default -n openshift-ingress --type merge \\\n  -p '{\"spec\":{\"hard\":{\"pods\":\"20\",\"requests.cpu\":\"4\",\"requests.memory\":\"8Gi\"}}}'",
   },
+  'op5-manual-escalation': {
+    title: 'Fix escalation template and remove WAL lock',
+    command:
+      `# Step 1: Fix the StepResultRef template field mismatch
+sed -i 's/.Success/.Phase == "Succeeded"/g' escalation_request.tmpl
+
+# Step 2: Remove the stale WAL lock and restart Grafana
+oc scale deployment/grafana --replicas=0 -n openshift-monitoring
+oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal
+oc scale deployment/grafana --replicas=1 -n openshift-monitoring`,
+  },
 };
 
 const DEFAULT_ESCALATION_PLAYBOOK = {
@@ -4862,6 +5129,7 @@ export const RemediationBlueprintPanel: React.FC<{
   const summaryVerificationLog = workflow.verification?.checks.join('\n') ?? (
     isTerminal || isVerifying ? generateVerificationLogs(plan.id) : ''
   );
+  const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
 
   return (
     <>
@@ -4985,6 +5253,15 @@ export const RemediationBlueprintPanel: React.FC<{
             Automated execution failed after reaching the maximum retry limit. Manual operator
             intervention is required to resolve this escalation.
           </Alert>
+        </StackItem>
+      )}
+      {isEscalated && (
+        <StackItem>
+          <EscalationSummaryCard
+            plan={plan}
+            escalationLog={summaryEscalationLog}
+            escalationPolicy={escalationPolicy}
+          />
         </StackItem>
       )}
       {isDenied && (
